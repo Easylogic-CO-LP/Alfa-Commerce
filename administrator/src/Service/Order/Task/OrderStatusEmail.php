@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskFailure;
@@ -18,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\TaskPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettlement;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettleRecorder;
 use Throwable;
 
 /**
@@ -31,9 +33,12 @@ use Throwable;
  * so a copy of a shop kept with mail off sends nothing late. An order's e-mails go in the order they were written
  * (the sequence order.email), and each names the status it was made for.
  *
+ * Who an e-mail reached outlives its task (2.2.0): a done run writes 'order.email_sent' on the order's timeline in the
+ * transaction that settles it, and a failed or held run's record lists the recipients already sent.
+ *
  * @since  2.1.4
  */
-class OrderStatusEmail extends OrderTaskHandler
+class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
 {
     /**
      * The handler's name.
@@ -130,6 +135,38 @@ class OrderStatusEmail extends OrderTaskHandler
     }
 
     /**
+     * The record of a done e-mail, written in the transaction that settles it: 'order.email_sent' with the e-mail,
+     * the task and each recipient it sent with the time it was handed over (a recipient carried from the task it
+     * resends is that task's). A task that sent to nobody (the status no longer notifies anyone, the order is gone)
+     * leaves none: no e-mail went out. A write that fails throws, and the settle is rolled back.
+     *
+     * @param TaskSettlement $settlement The run.
+     *
+     * @since  2.2.0
+     */
+    public function recordDone(TaskSettlement $settlement): void
+    {
+        if ($settlement->subjectType !== 'order' || $settlement->subjectId <= 0) {
+            return;
+        }
+
+        $sent = self::sentUnits(history: $settlement->history);
+
+        if ($sent === []) {
+            return;
+        }
+
+        $text = self::text('COM_ALFA_ORDER_TASK_EMAIL_SENT', $this->what($settlement->payload), $settlement->taskId, self::sentList(sent: $sent));
+        OrderModel::logOrderActivityStrict(
+            orderId: $settlement->subjectId,
+            event: 'order.email_sent',
+            summary: self::english(text: $text),
+            context: ['task' => $settlement->taskId, 'handler' => $settlement->handler, 'sent' => $sent, 'text' => $text],
+            actorId: 0,
+        );
+    }
+
+    /**
      * {@inheritdoc}
      *
      * @since  2.1.4
@@ -137,6 +174,16 @@ class OrderStatusEmail extends OrderTaskHandler
     protected function what(array $payload): array
     {
         return self::text('COM_ALFA_ORDER_TASK_STATUS_EMAIL', (int) ($payload['status'] ?? 0));
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @since  2.2.0
+     */
+    protected function alreadySent(TaskSettlement $settlement): array
+    {
+        return self::sentUnits(history: $settlement->history);
     }
 
     /**

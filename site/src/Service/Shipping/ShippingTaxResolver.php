@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Site\Service\Shipping;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedTax;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
@@ -33,9 +34,13 @@ defined('_JEXEC') or die;
  * publish window, customer groups, customer) and its places against the
  * shipment's destination chain: a rule scoped to a place applies to every
  * destination inside it, and an unknown destination admits only rules that
- * name no place. Category and manufacturer scopes describe goods; a shipping
- * charge has neither, so they are not read. How several rules combine (only
- * this, combined, one after another) is the pricing engine's own reading.
+ * name no place. A destination that may not price (an unpublished country, or
+ * a place inside one: PlaceTree::eligible()) is the unknown destination here,
+ * as the same buyer's place is for the goods (PriceContext, 2.2.0); the
+ * shipping zones keep the raw destination. Category and manufacturer scopes
+ * describe goods; a shipping charge has neither, so they are not read. How
+ * several rules combine (only this, combined, one after another) is the
+ * pricing engine's own reading.
  *
  * @since  2.0.0
  */
@@ -60,6 +65,14 @@ final class ShippingTaxResolver
         }
 
         $places = self::positiveIds($context->destination);
+
+        // The nearest place is the destination itself; eligible() walks every
+        // place above it. An ineligible one admits only the rules that name no
+        // place, as the goods' taxes do for that buyer.
+        if ($places !== [] && !PlaceTree::eligible(placeId: $places[0])) {
+            $places = [];
+        }
+
         $audience = $context->audience;
         $groups = $audience->getUserGroupsSql();
 

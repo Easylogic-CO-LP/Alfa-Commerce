@@ -17,13 +17,18 @@
 
 
 
-.cart-item-col-quantity{
-    display: flex;
+/* The quantity cell stays a table cell: its stepper and remove button share an inner
+   row, an inline box that follows the cell's alignment, centred on wide screens and at
+   the end of the stacked cell on phones, opposite the column's label. */
+.com-alfa.cart-wrapper .quantity-control {
+    display: inline-flex;
     /* Remove drops under the spinner instead of overflowing the fixed-width column */
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap:8px;
+    gap: 8px;
+    max-inline-size: 100%;
+    vertical-align: middle;
 }
 
 /* Chosen configuration (variants / options / custom) listed under the line name */
@@ -83,6 +88,15 @@
     font-size: 0.9375rem;
 }
 
+/* The empty cart's notice that the cart changed elsewhere. Under Alfa's root, not the
+   cart wrapper: a fresh empty page renders the empty layout alone (its own .com-alfa
+   root), a page emptied in place inside the wrapper, and the notice looks the same on
+   both. */
+.com-alfa .cart-changed-notice {
+    margin-block-start: 1rem;
+    color: var(--alfa-info-color);
+}
+
 /* Cart page heading (replaces Bootstrap .text-center). */
 .cart-heading {
     text-align: center;
@@ -139,4 +153,85 @@
 
 .cart-rule-remove:hover {
     opacity: 1;
+}
+
+/* The cart totals: the summary and the cart actions. The lines table holds lines
+   only; its money is a label and value list (layouts/cart/summary.php) with the
+   cart actions beside it. Wide screens keep the summary under the Total column and
+   Clear cart at the start edge; phones stack the summary first, then the actions.
+   Logical properties only, so a right-to-left page mirrors. */
+.com-alfa.cart-wrapper .cart-totals {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+    grid-template-areas: "actions summary";
+    align-items: end;
+    gap: 0.75rem;
+    margin-block: 0.75rem;
+}
+
+.com-alfa.cart-wrapper .cart-summary {
+    grid-area: summary;
+}
+
+.com-alfa.cart-wrapper .cart-actions {
+    grid-area: actions;
+}
+
+.com-alfa.cart-wrapper .summary-rows {
+    margin: 0;
+    border: 1px solid var(--alfa-hairline);
+    background-color: var(--alfa-surface);
+    color: var(--alfa-surface-color, inherit);
+}
+
+.com-alfa.cart-wrapper .summary-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.625em;
+}
+
+.com-alfa.cart-wrapper .summary-row + .summary-row {
+    border-block-start: 1px solid var(--alfa-hairline);
+}
+
+/* A long or translated label wraps; the amount never does, so every amount keeps
+   the same end edge. */
+.com-alfa.cart-wrapper .summary-label {
+    margin: 0;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.com-alfa.cart-wrapper .summary-value {
+    margin: 0;
+    text-align: end;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    unicode-bidi: isolate;
+}
+
+.com-alfa.cart-wrapper .summary-was {
+    display: block;
+}
+
+/* The total stands out by its label and figure; the row's own spacing stays the
+   others', so its amount keeps their end edge. */
+.com-alfa.cart-wrapper .summary-total .summary-label,
+.com-alfa.cart-wrapper .summary-total .summary-value {
+    font-size: 1.15em;
+}
+
+.com-alfa.cart-wrapper .summary-total .summary-value {
+    font-weight: 700;
+}
+
+@media screen and (max-width: 600px) {
+    .com-alfa.cart-wrapper .cart-totals {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "summary"
+            "actions";
+    }
 }

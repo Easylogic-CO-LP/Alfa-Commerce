@@ -85,6 +85,7 @@ final class AlfaLog
         'com_alfa.admin' => 'com_alfa_admin.php',
         'com_alfa.multilingual' => 'com_alfa.php',              // EXISTING
         'com_alfa.panel' => 'com_alfa_panel.php',
+        'com_alfa.plugins' => 'com_alfa_plugins.php',
         'com_alfa.tools' => 'com_alfa_tools.php',
         'com_alfa.media' => 'com_alfa_media.php',
         'com_alfa.setup' => 'com_alfa_setup.php',
@@ -92,7 +93,12 @@ final class AlfaLog
 
         // Catalogue & pricing
         'com_alfa.catalog' => 'com_alfa_catalog.php',
+        // The item editor's combinations popups: what the database refused, with the endpoint and the item (2.2.0).
+        'com_alfa.items' => 'com_alfa_items.php',
         'com_alfa.prices' => 'com_alfa_prices.php',
+
+        // The catalogue projections' item locks: a lock not granted, a rebuild owed (2.2.0).
+        'com_alfa.projections' => 'com_alfa_projections.php',
 
         // NOT a duplicate of com_alfa.prices, and deliberately not merged into
         // it. VariantHelper writes item price-CONTRIBUTION failures here, and
@@ -131,8 +137,7 @@ final class AlfaLog
         'alfa_sync' => 'alfa_sync.php',             // EXISTING
         'plg_alfa_subscriptions' => 'plg_alfa_subscriptions.log.php',
 
-        // Other extensions in the family
-        'plg_alfa-search_enterprise' => 'plg_alfa_search_enterprise.php',
+        // Other extensions in the family (an installed search engine registers its own category when it boots, 2.2.0)
         'mod_alfa_search' => 'mod_alfa_search.php',
     ];
 

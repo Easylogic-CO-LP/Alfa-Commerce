@@ -12,7 +12,6 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Event\Setup\CollectSetupChecksEvent;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
@@ -50,17 +49,27 @@ final class CoreSetupProvider
     public const OWNER_NAME = 'com_alfa';
 
     /**
-     * Register the core checklist. Priorities encode the natural DOING order, higher
-     * first: identity before currency before tax before methods before catalogue.
+     * The checks built so far by {@see self::checks()}.
      *
-     * @param CollectSetupChecksEvent $event The collecting event.
+     * @var SetupCheck[]
+     * @since  2.2.0
+     */
+    private array $checks = [];
+
+    /**
+     * The core checklist, each check owned by core.com_alfa (2.2.0: it enters the collecting event through the event's
+     * constructor, before any plugin is asked, as the menu's core entries do). Priorities encode the natural DOING
+     * order, higher first: identity before currency before tax before methods before catalogue.
      *
+     * @return SetupCheck[]
      *
      * @since  2.0.0
      */
-    public function onAlfaCollectSetupChecks(CollectSetupChecksEvent $event): void
+    public function checks(): array
     {
-        $event->add('store.identity', 'COM_ALFA_SETUP_CHECK_IDENTITY_LABEL')
+        $this->checks = [];
+
+        $this->check('store.identity', 'COM_ALFA_SETUP_CHECK_IDENTITY_LABEL')
             ->tier(SetupCheck::TIER_REQUIRED)
             ->reason('COM_ALFA_SETUP_CHECK_IDENTITY_REASON')
             ->cta('index.php?option=com_config&view=component&component=com_alfa')
@@ -73,7 +82,7 @@ final class CoreSetupProvider
                     && trim((string) $params->get('store_email', '')) !== '';
             });
 
-        $event->add('store.currency', 'COM_ALFA_SETUP_CHECK_CURRENCY_LABEL')
+        $this->check('store.currency', 'COM_ALFA_SETUP_CHECK_CURRENCY_LABEL')
             ->tier(SetupCheck::TIER_REQUIRED)
             ->reason('COM_ALFA_SETUP_CHECK_CURRENCY_REASON')
             ->cta('index.php?option=com_config&view=component&component=com_alfa')
@@ -91,7 +100,7 @@ final class CoreSetupProvider
                 );
             });
 
-        $event->add('tax.configured', 'COM_ALFA_SETUP_CHECK_TAX_LABEL')
+        $this->check('tax.configured', 'COM_ALFA_SETUP_CHECK_TAX_LABEL')
             ->tier(SetupCheck::TIER_REQUIRED)
             ->reason('COM_ALFA_SETUP_CHECK_TAX_REASON')
             ->cta('index.php?option=com_alfa&view=taxes')
@@ -103,7 +112,7 @@ final class CoreSetupProvider
         // can take orders from day one; what this checks is whether the
         // merchant added their own checkout fields (an address). RECOMMENDED,
         // not required: a digital-goods store legitimately runs on name + email.
-        $event->add('checkout.form', 'COM_ALFA_SETUP_CHECK_CHECKOUT_FORM_LABEL')
+        $this->check('checkout.form', 'COM_ALFA_SETUP_CHECK_CHECKOUT_FORM_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_CHECKOUT_FORM_REASON')
             ->cta('index.php?option=com_alfa&view=formfields')
@@ -114,7 +123,7 @@ final class CoreSetupProvider
         // Payment/shipping methods are RECOMMENDED, not
         // required: a store can legitimately run without them (catalogue mode,
         // quote/offline flows), so they never block "ready" or feed the notification.
-        $event->add('payments.active', 'COM_ALFA_SETUP_CHECK_PAYMENTS_LABEL')
+        $this->check('payments.active', 'COM_ALFA_SETUP_CHECK_PAYMENTS_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_PAYMENTS_REASON')
             ->cta('index.php?option=com_alfa&view=payments')
@@ -122,7 +131,7 @@ final class CoreSetupProvider
             ->priority(750)
             ->probe(static fn (): bool => self::methodBackedByPlugin(table: '#__alfa_payments', folder: 'alfa-payments'));
 
-        $event->add('shipping.active', 'COM_ALFA_SETUP_CHECK_SHIPPING_LABEL')
+        $this->check('shipping.active', 'COM_ALFA_SETUP_CHECK_SHIPPING_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_SHIPPING_REASON')
             ->cta('index.php?option=com_alfa&view=shipments')
@@ -130,7 +139,7 @@ final class CoreSetupProvider
             ->priority(700)
             ->probe(static fn (): bool => self::methodBackedByPlugin(table: '#__alfa_shipments', folder: 'alfa-shipments'));
 
-        $event->add('storefront.menu', 'COM_ALFA_SETUP_CHECK_MENU_LABEL')
+        $this->check('storefront.menu', 'COM_ALFA_SETUP_CHECK_MENU_LABEL')
             ->tier(SetupCheck::TIER_REQUIRED)
             ->reason('COM_ALFA_SETUP_CHECK_MENU_REASON')
             ->cta('index.php?option=com_menus&view=items')
@@ -153,7 +162,7 @@ final class CoreSetupProvider
         // Recommended, never required: the pages a shop works without but a CUSTOMER
         // does not. Same one-click fix: provisionStorefront() creates only what is
         // missing, so pressing it here cannot disturb what the merchant already made.
-        $event->add('storefront.customer', 'COM_ALFA_SETUP_CHECK_CUSTOMER_PAGES_LABEL')
+        $this->check('storefront.customer', 'COM_ALFA_SETUP_CHECK_CUSTOMER_PAGES_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_CUSTOMER_PAGES_REASON')
             ->cta('index.php?option=com_menus&view=items')
@@ -170,7 +179,7 @@ final class CoreSetupProvider
         // language switcher needs the copies ASSOCIATED or it drops the shopper on
         // the front page instead of the page they were reading. Silent on a
         // monolingual site (nothing to associate) and never destructive.
-        $event->add('storefront.associations', 'COM_ALFA_SETUP_CHECK_MENU_ASSOC_LABEL')
+        $this->check('storefront.associations', 'COM_ALFA_SETUP_CHECK_MENU_ASSOC_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_MENU_ASSOC_REASON')
             ->cta('index.php?option=com_menus&view=items')
@@ -179,7 +188,7 @@ final class CoreSetupProvider
             ->probe(static fn (): bool => MenuProvisioningService::unassociatedViews() === [])
             ->provision(static fn () => MenuProvisioningService::associateStorefront());
 
-        $event->add('catalog.category', 'COM_ALFA_SETUP_CHECK_CATEGORY_LABEL')
+        $this->check('catalog.category', 'COM_ALFA_SETUP_CHECK_CATEGORY_LABEL')
             ->tier(SetupCheck::TIER_REQUIRED)
             ->reason('COM_ALFA_SETUP_CHECK_CATEGORY_REASON')
             ->cta('index.php?option=com_alfa&view=categories')
@@ -187,7 +196,7 @@ final class CoreSetupProvider
             ->priority(600)
             ->probe(static fn (): bool => self::exists(table: '#__alfa_categories', where: ['state' => 1]));
 
-        $event->add('catalog.item', 'COM_ALFA_SETUP_CHECK_ITEM_LABEL')
+        $this->check('catalog.item', 'COM_ALFA_SETUP_CHECK_ITEM_LABEL')
             ->tier(SetupCheck::TIER_REQUIRED)
             ->reason('COM_ALFA_SETUP_CHECK_ITEM_REASON')
             ->cta('index.php?option=com_alfa&view=items')
@@ -203,7 +212,7 @@ final class CoreSetupProvider
         $anyFields = self::exists(table: '#__alfa_item_fields', where: []);
         $liveFields = self::exists(table: '#__alfa_item_fields', where: ['state' => 1]);
 
-        $event->add('catalog.itemfields', 'COM_ALFA_SETUP_CHECK_ITEMFIELDS_LABEL')
+        $this->check('catalog.itemfields', 'COM_ALFA_SETUP_CHECK_ITEMFIELDS_LABEL')
             ->tier($anyFields && !$liveFields ? SetupCheck::TIER_REQUIRED : SetupCheck::TIER_OPTIONAL)
             ->reason('COM_ALFA_SETUP_CHECK_ITEMFIELDS_REASON')
             ->cta('index.php?option=com_alfa&view=itemfields')
@@ -211,7 +220,7 @@ final class CoreSetupProvider
             ->priority(540)
             ->probe(static fn (): bool => self::exists(table: '#__alfa_item_fields', where: ['state' => 1]));
 
-        $event->add('docs.series', 'COM_ALFA_SETUP_CHECK_SERIES_LABEL')
+        $this->check('docs.series', 'COM_ALFA_SETUP_CHECK_SERIES_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_SERIES_REASON')
             ->cta('index.php?option=com_alfa&view=documentseries')
@@ -219,7 +228,7 @@ final class CoreSetupProvider
             ->priority(400)
             ->probe(static fn (): bool => self::exists(table: '#__alfa_document_series', where: ['state' => 1]));
 
-        $event->add('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
+        $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_MAIL_REASON')
             ->cta('index.php?option=com_config')
@@ -232,7 +241,7 @@ final class CoreSetupProvider
                     && trim((string) $app->get('mailfrom', '')) !== '';
             });
 
-        $event->add('media.writable', 'COM_ALFA_SETUP_CHECK_MEDIA_LABEL')
+        $this->check('media.writable', 'COM_ALFA_SETUP_CHECK_MEDIA_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_MEDIA_REASON')
             ->cta('index.php?option=com_config&view=component&component=com_alfa')
@@ -246,7 +255,7 @@ final class CoreSetupProvider
                 return is_dir($path) ? is_writable($path) : is_writable(\dirname($path));
             });
 
-        $event->add('sef.enabled', 'COM_ALFA_SETUP_CHECK_SEF_LABEL')
+        $this->check('sef.enabled', 'COM_ALFA_SETUP_CHECK_SEF_LABEL')
             ->tier(SetupCheck::TIER_OPTIONAL)
             ->reason('COM_ALFA_SETUP_CHECK_SEF_REASON')
             ->cta('index.php?option=com_config')
@@ -254,7 +263,7 @@ final class CoreSetupProvider
             ->priority(200)
             ->probe(static fn (): bool => (int) Factory::getApplication()->get('sef', 0) === 1);
 
-        $event->add('https.enforced', 'COM_ALFA_SETUP_CHECK_HTTPS_LABEL')
+        $this->check('https.enforced', 'COM_ALFA_SETUP_CHECK_HTTPS_LABEL')
             ->tier(SetupCheck::TIER_OPTIONAL)
             ->reason('COM_ALFA_SETUP_CHECK_HTTPS_REASON')
             ->cta('index.php?option=com_config')
@@ -264,6 +273,26 @@ final class CoreSetupProvider
                 return (int) Factory::getApplication()->get('force_ssl', 0) === 2
                     || str_starts_with(Uri::root(), 'https://');
             });
+
+        return $this->checks;
+    }
+
+    /**
+     * One core check, owned by core.com_alfa, kept for {@see self::checks()} and handed back for fluent completion.
+     *
+     * @param string $id Stable check id.
+     * @param string $label Language key for the checklist row label.
+     *
+     * @since  2.2.0
+     */
+    private function check(string $id, string $label): SetupCheck
+    {
+        $check = new SetupCheck($id, $label);
+        $check->metadata['owner_group'] = self::OWNER_GROUP;
+        $check->metadata['owner_name'] = self::OWNER_NAME;
+        $this->checks[] = $check;
+
+        return $check;
     }
 
     /**

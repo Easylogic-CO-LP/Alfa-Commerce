@@ -75,6 +75,14 @@ final class SearchQuery
          * @since 2.0.0
          */
         public readonly SearchEntity $entity = SearchEntity::ITEM,
+        /**
+         * THE READ THAT BACKS A RENDERED RESULT SET (2.2.0), or null for any other read
+         * (a facet re-read, a type-ahead lookup, a programmatic read). A provider may mint
+         * a handle only for a query that carries one ({@see SearchResult::$eventId}).
+         *
+         * @since 2.2.0
+         */
+        public readonly ?ResultSetContext $context = null,
     ) {
     }
 
@@ -89,6 +97,7 @@ final class SearchQuery
      *                             {@see SearchIntent::TYPEAHEAD}, so a caller that does not
      *                             declare cannot accidentally create analytics data.
      * @param SearchEntity $entity Whose rows to ask for; defaults to {@see SearchEntity::ITEM}.
+     * @param ResultSetContext|null $context The rendered result set this read backs; null for none.
      *
      *
      * @since  2.0.0
@@ -99,6 +108,7 @@ final class SearchQuery
         int $limit = 1000,
         SearchIntent $intent = SearchIntent::TYPEAHEAD,
         SearchEntity $entity = SearchEntity::ITEM,
+        ?ResultSetContext $context = null,
     ): self {
         $principals = (new CatalogAccessPolicy())->principals();
 
@@ -110,6 +120,7 @@ final class SearchQuery
             groups:  (array) $principals['groups'],
             intent:  $intent,
             entity:  $entity,
+            context: $context,
         );
     }
 }

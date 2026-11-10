@@ -15,6 +15,8 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\CalculateItemPriceEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
@@ -469,14 +471,22 @@ final class VariantHelper
             return [];
         }
 
-        $app = Factory::getApplication();
+        // Each field's own plugin, through the plugin helper (2.2.0, mode B).
+        $plugins = AlfaPluginHelper::get();
         $contributions = [];
 
         foreach ($item->fields as $field) {
-            try {
-                $plugin = $app->bootPlugin((string) $field->type, 'alfa-item-fields');
+            // A field whose plugin is unavailable takes no part (2.2.0, A-C14B-9): unavailability, logged once per
+            // request per plugin and never rethrown, so the cart page always loads; the cart refuses a line that
+            // needs the field (ItemConfigurationHelper::unpricedFields()).
+            $plugin = ItemConfigurationHelper::fieldPlugin(field: $field);
 
-                if (!$plugin || !method_exists($plugin, 'onCalculateItemPrice')) {
+            if ($plugin instanceof PluginUnavailable) {
+                continue;
+            }
+
+            try {
+                if (!$plugins->declares($plugin, 'onCalculateItemPrice')) {
                     continue;
                 }
 
@@ -491,7 +501,7 @@ final class VariantHelper
                     'selections' => $selections,
                 ]);
 
-                $plugin->onCalculateItemPrice($event);
+                $plugins->dispatchTo($plugin, $event);
 
                 foreach ($event->getContributions() as $contribution) {
                     // Owner default: the collector knows the invoked plugin;

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Card;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Log\Log;
 use Throwable;
 
 /**
@@ -136,6 +137,12 @@ final class AdminCard
      * @since  2.0.0
      */
     private $visibility = null;
+
+    /**
+     * @var array<string, true> The cards whose data failure was logged in this request, by owner and id.
+     * @since  2.2.0
+     */
+    private static array $failureLogged = [];
 
     /**
      * @param string $id Stable id, unique within the owner.
@@ -371,7 +378,21 @@ final class AdminCard
 
         try {
             return (array) ($this->dataProvider)();
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            // Hidden as before, never in silence (2.2.0, A-C14B-17): its owner, the card and what failed, once per
+            // request per card.
+            $key = ($this->metadata['owner_group'] ?? '') . '.' . ($this->metadata['owner_name'] ?? '') . ':' . $this->id;
+
+            if (!isset(self::$failureLogged[$key])) {
+                self::$failureLogged[$key] = true;
+                Log::add(
+                    'Card ' . $this->id . ' of ' . ($this->metadata['owner_group'] ?? '') . '.' . ($this->metadata['owner_name'] ?? '')
+                        . ' is hidden: its data failed (' . $e::class . ': ' . $e->getMessage() . ').',
+                    Log::WARNING,
+                    'com_alfa.cards',
+                );
+            }
+
             return null;
         }
     }

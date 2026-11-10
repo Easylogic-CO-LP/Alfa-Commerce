@@ -16,6 +16,10 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
@@ -23,9 +27,12 @@ use Alfa\Component\Alfa\Site\Helper\RecentlyViewed;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Throwable;
 
 /**
  * View class for a list of Alfa.
@@ -144,13 +151,8 @@ class HtmlView extends BaseHtmlView
                 'method' => $payment_method,
             ]);
 
-            // A configured method whose plugin is uninstalled must not fatal the
-            // whole product page; dispatch only when the plugin and hook exist.
-            $paymentPlugin = $app->bootPlugin($payment_method->type, 'alfa-payments');
-
-            if ($paymentPlugin !== null && method_exists($paymentPlugin, $onItemViewEventName)) {
-                $paymentPlugin->{$onItemViewEventName}($paymentEvent);
-            }
+            // A configured method whose plugin is unavailable, or that fails, must not fatal the whole product page.
+            $this->askMethodPlugin(group: 'alfa-payments', type: (string) $payment_method->type, event: $paymentEvent);
 
             if ($paymentEvent->hasRedirect()) {
                 $app->redirect(
@@ -181,11 +183,7 @@ class HtmlView extends BaseHtmlView
                 'method' => $shipment_method,
             ]);
 
-            $shipmentPlugin = $app->bootPlugin($shipment_method->type, 'alfa-shipments');
-
-            if ($shipmentPlugin !== null && method_exists($shipmentPlugin, $onItemViewEventName)) {
-                $shipmentPlugin->{$onItemViewEventName}($shipment_event);
-            }
+            $this->askMethodPlugin(group: 'alfa-shipments', type: (string) $shipment_method->type, event: $shipment_event);
 
             if ($shipment_event->hasRedirect()) {
                 $app->redirect(
@@ -209,9 +207,82 @@ class HtmlView extends BaseHtmlView
         // (ItemModel::dispatchFieldSurfaces, gated by the 'plugin.layouts' state),
         // so $this->item->fields[*]->view + ->cart / ->cartChildren are ready.
 
+        $this->declareGalleryAssets();
+
         $this->_prepareDocument();
 
         parent::display($tpl);
+    }
+
+    /**
+     * Ask one method's plugin for its product page surface (2.2.0, mode B): booted through the plugin helper, its
+     * ambient subscriptions engaged through Joomla's own import, the event delivered to its declared handler. A plugin
+     * unavailable, without the handler or failing contributes nothing (logged) and the page renders.
+     *
+     * @param string $group The plugin group.
+     * @param string $type The method's plugin element.
+     * @param PaymentsItemViewEvent|ShipmentsItemViewEvent $event The event.
+     *
+     * @since  2.2.0
+     */
+    private function askMethodPlugin(string $group, string $type, PaymentsItemViewEvent|ShipmentsItemViewEvent $event): void
+    {
+        $plugins = AlfaPluginHelper::get();
+
+        try {
+            $id = PluginId::from($group, $type);
+            $plugin = $plugins->bootSingle($id);
+        } catch (PluginUnavailable|InvalidArgumentException) {
+            return;
+        }
+
+        $plugins->importSingle($id);
+
+        if (!$plugins->declares($plugin, $event->getName())) {
+            return;
+        }
+
+        try {
+            $plugins->dispatchTo($plugin, $event);
+        } catch (Throwable $e) {
+            Log::add('Product page: ' . $id . ' failed in onItemView (' . $e::class . ': ' . $e->getMessage() . '); the page renders without it.', Log::ERROR, 'com_alfa');
+        }
+    }
+
+    /**
+     * THE GALLERIES THE PAGE CAN SHOW. A variant can swap its own gallery in
+     * (VariantHelper::overlay()), and variant.js re-initialises the swapped
+     * container without loading any asset, so the gallery assets are decided
+     * once for every gallery the page can show: the item's own and each
+     * published combination's own, the combinations' counted in one grouped
+     * read. Keen Slider when one of them has two or more images (a thumbnail
+     * strip), GLightbox when one has at least one; a page whose galleries all
+     * hold one image loads no slider, and a page with no image none of them.
+     * Declared here, not in a layout, so every item layout and its overrides
+     * get them.
+     *
+     * @since  2.2.0
+     */
+    private function declareGalleryAssets(): void
+    {
+        $counts = [\count(MediaHelper::getMediaData(origin: 'item', itemIDs: (int) $this->item->id))];
+        $combinationIds = array_map('intval', array_keys((array) ($this->item->combinations ?? [])));
+
+        if ($combinationIds !== []) {
+            foreach (MediaHelper::getMediaData(origin: 'combination', itemIDs: $combinationIds) as $media) {
+                $counts[] = \count((array) $media);
+            }
+        }
+
+        $wa = $this->getDocument()->getWebAssetManager();
+
+        if (max($counts) >= 1) {
+            $wa->useStyle('com_alfa.glightbox')->useScript('com_alfa.glightbox');
+        }
+
+        if (max($counts) >= 2) {
+            $wa->useStyle('com_alfa.keen-slider')->useScript('com_alfa.keen-slider');
+        }
     }
 
     /**

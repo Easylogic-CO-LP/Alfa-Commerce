@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailRecreation;
 use DomainException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -20,13 +22,14 @@ use Joomla\Database\ParameterType;
 use Throwable;
 
 /**
- * What staff do with a failed or held single, each act audited in its history.
+ * What staff do with a failed or held single, or a failed job, each act audited in its history.
  *
  * Nothing failed or held is ever run again automatically: staff decide. Resend (an e-mail) and Run again (a plugin's
  * reaction) write a new single that names the original (resend_of, rerun_of) and carries every part recorded done in
  * the chain; it runs at once, its handler attempts only the parts not recorded as done, and the original becomes
  * resolved in the same transaction. Mark resolved
- * closes a task with no action, with the reason given. A refusal is a DomainException whose code is one of the REFUSED_
+ * closes a task with no action, with the reason given. Retry puts a failed job back in the queue with its failures
+ * reset; a job is never cancelled. A refusal is a DomainException whose code is one of the REFUSED_
  * constants and whose message is its language key.
  *
  * @since  2.1.4
@@ -53,6 +56,13 @@ final class TaskStaff
      * @since  2.1.4
      */
     public const REFUSED_NO_REASON = 3;
+
+    /**
+     * Refusal: another job of the same work is already waiting or running.
+     *
+     * @since  2.2.0
+     */
+    public const REFUSED_ACTIVE = 4;
 
     /**
      * The longest reason kept.
@@ -131,6 +141,191 @@ final class TaskStaff
     }
 
     /**
+     * The jobs, for Tools > Tasks: running and waiting first, then failed, then the finished ones newest first.
+     *
+     * @param int $limit The most rows.
+     *
+     * @return list<array<string, mixed>> Each row's columns, plus label (a language key, '' for a handler this version
+     *                                    does not have) and groups (the customer groups a price set's job prepares,
+     *                                    an empty list for any other job).
+     *
+     * @since  2.2.0
+     */
+    public static function jobRows(int $limit = self::LIST_LIMIT): array
+    {
+        $db = self::db();
+        $order = 'CASE ' . $db->quoteName('state') . ' WHEN ' . $db->quote(Tasks::STATE_RUNNING) . ' THEN 0 WHEN ' . $db->quote(Tasks::STATE_PENDING)
+            . ' THEN 1 WHEN ' . $db->quote(Tasks::STATE_FAILED) . ' THEN 2 ELSE 3 END';
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'handler', 'state', 'scope_key', 'done_units', 'total_units', 'failures', 'last_error', 'run_after', 'created_at', 'started_at', 'finished_at']))
+                // The thumbnails job's walk keeps its mode and its report in its checkpoint (2.2.0, part C21).
+                ->select('CASE WHEN ' . $db->quoteName('handler') . ' = ' . $db->quote(Job\ThumbnailsRecreateJob::NAME) . ' THEN ' . $db->quoteName('checkpoint') . ' END AS ' . $db->quoteName('checkpoint'))
+                ->from($db->quoteName(Tasks::TABLE))
+                ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
+                ->order($order . ' ASC, ' . $db->quoteName('id') . ' DESC'),
+            0,
+            max(1, $limit),
+        )->loadAssocList() ?: [];
+        $prefix = Job\PriceSetPrepareJob::NAME . ':';
+        $digests = [];
+
+        foreach ($rows as $row) {
+            if (str_starts_with((string) $row['scope_key'], $prefix)) {
+                $digests[] = substr((string) $row['scope_key'], \strlen($prefix));
+            }
+        }
+
+        $lists = $digests === [] ? [] : ($db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['digest', 'group_list']))
+                ->from($db->quoteName('#__alfa_price_group_sets'))
+                ->whereIn($db->quoteName('digest'), array_values(array_unique($digests)), ParameterType::STRING),
+        )->loadAssocList('digest', 'group_list') ?: []);
+
+        foreach ($rows as &$row) {
+            $row['label'] = Runner::handler(name: (string) $row['handler'])?->policy()->label ?? '';
+            $list = str_starts_with((string) $row['scope_key'], $prefix) ? (string) ($lists[substr((string) $row['scope_key'], \strlen($prefix))] ?? '') : '';
+            $row['groups'] = $list === '' ? [] : array_map('intval', explode(',', $list));
+            $row['report'] = $row['handler'] === Job\ThumbnailsRecreateJob::NAME ? ThumbnailRecreation::reportOf(checkpoint: $row['checkpoint']) : null;
+            unset($row['checkpoint']);
+        }
+
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * One job as the progress page shows it, or null when there is no job of that id.
+     *
+     * @param int $id The job.
+     *
+     * @return array{id: int, label: string, heavy: bool, state: string, done: int, total: int, percent: int, error: string,
+     *               started_at: ?string, finished_at: ?string}|null
+     *
+     * @since  2.2.0
+     */
+    public static function job(int $id): ?array
+    {
+        $row = TaskDocument::row(id: $id);
+
+        if ($row === null || $row['type'] !== Tasks::TYPE_JOB) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $row['id'],
+            'label' => Runner::handler(name: (string) $row['handler'])?->policy()->label ?? '',
+            'heavy' => Runner::handler(name: (string) $row['handler'])?->policy()->weight === JobPolicy::HEAVY,
+            'state' => (string) $row['state'],
+            'done' => (int) $row['done_units'],
+            'total' => (int) $row['total_units'],
+            'percent' => TaskDocument::percent(row: $row),
+            'error' => (string) $row['last_error'],
+            'started_at' => $row['started_at'],
+            'finished_at' => $row['finished_at'],
+        ];
+    }
+
+    /**
+     * Process now on a job waiting out its backoff: due now, as staff asked (2.2.0). A job that is not waiting, or is
+     * due already, is left as it is.
+     *
+     * @param int $id The job.
+     *
+     * @since  2.2.0
+     */
+    public static function dueNow(int $id): void
+    {
+        $db = self::db();
+
+        try {
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->update($db->quoteName(Tasks::TABLE))
+                    ->set($db->quoteName('run_after') . ' = UTC_TIMESTAMP(3)')
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
+                    ->where($db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING))
+                    ->where($db->quoteName('run_after') . ' > UTC_TIMESTAMP(3)')
+                    ->bind(':id', $id, ParameterType::INTEGER),
+            )->execute();
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Process now: job #' . $id . ' could not be made due now: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+        }
+    }
+
+    /**
+     * Put a failed job back in the queue: waiting, due now, its failures reset. The next tick works it from its
+     * checkpoint.
+     *
+     * @param int $id The job.
+     * @param int $userId Who asks.
+     *
+     * @throws DomainException When it is no longer a failed job, or another job of the same work is active (the
+     *                         message is a language key).
+     *
+     * @since  2.2.0
+     */
+    public static function retry(int $id, int $userId): void
+    {
+        $db = self::db();
+        $row = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'type', 'handler', 'state', 'history']))
+                ->from($db->quoteName(Tasks::TABLE))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $id, ParameterType::INTEGER),
+        )->loadAssoc();
+
+        if (!\is_array($row) || $row['type'] !== Tasks::TYPE_JOB || $row['state'] !== Tasks::STATE_FAILED) {
+            throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
+        }
+
+        $history = Tasks::encodeHistory([...Tasks::decodeHistory($row['history']), Tasks::entry(trigger: 'staff', userId: $userId, outcome: 'retried')]);
+        $pending = Tasks::STATE_PENDING;
+        $trigger = 'staff';
+
+        try {
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->update($db->quoteName(Tasks::TABLE))
+                    ->set($db->quoteName('state') . ' = :state')
+                    ->set($db->quoteName('failures') . ' = 0')
+                    ->set($db->quoteName('run_after') . ' = UTC_TIMESTAMP(3)')
+                    ->set($db->quoteName('lease_owner') . ' = NULL')
+                    ->set($db->quoteName('lease_until') . ' = NULL')
+                    ->set($db->quoteName('finished_at') . ' = NULL')
+                    ->set($db->quoteName('history') . ' = :history')
+                    ->set($db->quoteName('last_trigger') . ' = :trigger')
+                    ->set($db->quoteName('updated_at') . ' = UTC_TIMESTAMP(3)')
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
+                    ->where($db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_FAILED))
+                    ->bind(':state', $pending)
+                    ->bind(':history', $history)
+                    ->bind(':trigger', $trigger)
+                    ->bind(':id', $id, ParameterType::INTEGER),
+            )->execute();
+        } catch (Throwable $e) {
+            // Waiting again would make it the second active job of its scope: the one already active covers it.
+            if (MysqlError::number(error: $e) === 1062) {
+                throw new DomainException('COM_ALFA_TASKS_JOB_ACTIVE', self::REFUSED_ACTIVE);
+            }
+
+            throw $e;
+        }
+
+        if ($db->getAffectedRows() !== 1) {
+            throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
+        }
+
+        Tasks::log(entry: 'Job #' . $id . ' (' . $row['handler'] . ') was put back in the queue by user ' . $userId . '.', priority: Log::INFO);
+        TaskAttention::sync();
+    }
+
+    /**
      * Resend a failed or held e-mail to the recipients not recorded as sent.
      *
      * @param int $id The task.
@@ -165,7 +360,7 @@ final class TaskStaff
     }
 
     /**
-     * Close a failed or held task with no action.
+     * Close a failed or held single, or a failed job, with no action.
      *
      * @param int $id The task.
      * @param int $userId Who closes it.
@@ -282,14 +477,14 @@ final class TaskStaff
     }
 
     /**
-     * A single staff may act on.
+     * A task staff may act on: a failed or held single, or a failed job.
      *
      * @param DatabaseDriver $db The connection.
      * @param int $id The task.
      *
      * @return array<string, mixed>
      *
-     * @throws DomainException When it is not a failed or held single.
+     * @throws DomainException When it is neither a failed or held single nor a failed job.
      *
      * @since  2.1.4
      */
@@ -303,7 +498,7 @@ final class TaskStaff
                 ->bind(':id', $id, ParameterType::INTEGER),
         )->loadAssoc();
 
-        if (!\is_array($row) || $row['type'] !== Tasks::TYPE_SINGLE || !\in_array($row['state'], [Tasks::STATE_FAILED, Tasks::STATE_HELD], true)) {
+        if (!\is_array($row) || !self::open(type: (string) $row['type'], state: (string) $row['state'])) {
             throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
         }
 
@@ -311,7 +506,8 @@ final class TaskStaff
     }
 
     /**
-     * Resolve a failed or held single, with its history: the affected row count says whether this act did it.
+     * Resolve a failed or held single, or a failed job, with its history: the affected row count says whether this
+     * act did it.
      *
      * @param DatabaseDriver $db The connection.
      * @param int $id The task.
@@ -333,8 +529,9 @@ final class TaskStaff
                 ->set($db->quoteName('updated_at') . ' = UTC_TIMESTAMP(3)')
                 ->set($db->quoteName('finished_at') . ' = UTC_TIMESTAMP(3)')
                 ->where($db->quoteName('id') . ' = :id')
-                ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_SINGLE))
-                ->whereIn($db->quoteName('state'), [Tasks::STATE_FAILED, Tasks::STATE_HELD], ParameterType::STRING)
+                ->where('((' . $db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_SINGLE) . ' AND ' . $db->quoteName('state') . ' IN ('
+                    . $db->quote(Tasks::STATE_FAILED) . ', ' . $db->quote(Tasks::STATE_HELD) . ')) OR (' . $db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB)
+                    . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_FAILED) . '))')
                 ->bind(':state', $state)
                 ->bind(':history', $json)
                 ->bind(':trigger', $trigger)
@@ -342,6 +539,19 @@ final class TaskStaff
         )->execute();
 
         return $db->getAffectedRows() === 1;
+    }
+
+    /**
+     * Whether staff may act on a task of this type in this state: a failed or held single, or a failed job.
+     *
+     * @param string $type Its type.
+     * @param string $state Its state.
+     *
+     * @since  2.2.0
+     */
+    private static function open(string $type, string $state): bool
+    {
+        return $type === Tasks::TYPE_SINGLE ? \in_array($state, [Tasks::STATE_FAILED, Tasks::STATE_HELD], true) : $type === Tasks::TYPE_JOB && $state === Tasks::STATE_FAILED;
     }
 
     /**

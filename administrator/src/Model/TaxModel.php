@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
@@ -317,7 +318,11 @@ class TaxModel extends AlfaAdminModel
                 );
             }
 
-            $priceIndexSyncService->syncItems(array_keys(array_flip(array_merge($affectedItemIds, $previousAffectedItemIds))));
+            $priceIndexSyncService->syncItems(
+                array_keys(array_flip(array_merge($affectedItemIds, $previousAffectedItemIds))),
+                cause: PricesChangedEvent::CAUSE_TAX,
+                causeId: (int) $currentId,
+            );
         } catch (Throwable $syncException) {
             Log::add(
                 '[TaxModel::save] Price index sync failed for tax ' . $currentId . ': ' . $syncException->getMessage(),
@@ -487,7 +492,7 @@ class TaxModel extends AlfaAdminModel
         // so final_price may drop and tax_amount will become 0.
         if (!empty($affectedItemIds)) {
             try {
-                $priceIndexSyncService->syncItems($affectedItemIds);
+                $priceIndexSyncService->syncItems($affectedItemIds, cause: PricesChangedEvent::CAUSE_TAX, causeId: \count($pks) === 1 ? (int) reset($pks) : 0);
             } catch (Throwable $syncException) {
                 Log::add(
                     '[TaxModel::delete] Price index re-sync failed after deleting taxes: ' . $syncException->getMessage(),

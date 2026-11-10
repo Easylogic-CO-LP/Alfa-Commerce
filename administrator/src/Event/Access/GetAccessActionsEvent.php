@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Access;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
@@ -43,6 +44,7 @@ class GetAccessActionsEvent extends AbstractEvent
     /**
      * Contribute an ACL action.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $name The action (e.g. 'alfa.search.manage'), checked via authorise().
      * @param string $title A language key for the Permissions tab label.
      * @param string $description A language key for the tooltip; defaults to the title.
@@ -50,8 +52,9 @@ class GetAccessActionsEvent extends AbstractEvent
      *
      * @since  2.0.0
      */
-    public function action(string $name, string $title, string $description = ''): static
+    public function action(string $contributor, string $name, string $title, string $description = ''): static
     {
+        PluginId::of($contributor);
         $this->actions[] = (object) [
             'name' => $name,
             'title' => $title,

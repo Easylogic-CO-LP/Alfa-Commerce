@@ -11,8 +11,13 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\PrepareForCartEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ValidateCartAddEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Site\Service\Variant\CombinationResolver;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -50,6 +55,14 @@ class ItemConfigurationHelper
      * @since  2.0.0
      */
     protected static array $requiredOverrides = [];
+
+    /**
+     * The field plugins whose unavailability was logged in this request: once per plugin (2.2.0, A-C14B-9).
+     *
+     * @var array<string, true>
+     * @since  2.2.0
+     */
+    private static array $unavailableLogged = [];
 
     /**
      * Validate a selection before it may be stored: a combination product needs
@@ -105,6 +118,12 @@ class ItemConfigurationHelper
                 continue;
             }
 
+            // A required field whose plugin is unavailable cannot be answered, so the line cannot enter; the refusal
+            // says why (2.2.0, A-C14B-9).
+            if (self::fieldPlugin(field: $field) instanceof PluginUnavailable) {
+                return ['key' => 'COM_ALFA_CART_FIELD_UNAVAILABLE', 'params' => [(string) ($field->display_name ?? $field->field_name)], 'text' => null];
+            }
+
             $fid = (int) $field->id;
             $hasChoice = !empty($request['selection'][$fid]) || !empty($request['optionValueIds'][$fid]);
             $hasPayload = self::isComposition(payload: $request['payloads'][$fid] ?? '');
@@ -114,20 +133,22 @@ class ItemConfigurationHelper
             }
         }
 
-        $app = Factory::getApplication();
+        $plugins = AlfaPluginHelper::get();
 
         foreach ($item->fields as $field) {
-            // Reset per field: a plugin that cannot be booted is logged as this
-            // field's, never as the plugin of the field before it.
-            $plugin = null;
+            // The field's own plugin, through the plugin helper (2.2.0, mode B): one Joomla does not list as
+            // enabled (or that is missing, or of another family) takes no part, as a missing one never did.
+            try {
+                $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
+            } catch (PluginUnavailable|InvalidArgumentException) {
+                continue;
+            }
+
+            if (!$plugins->declares($plugin, 'onValidateCartAdd')) {
+                continue;
+            }
 
             try {
-                $plugin = $app->bootPlugin((string) $field->type, 'alfa-item-fields');
-
-                if (!$plugin || !method_exists($plugin, 'onValidateCartAdd')) {
-                    continue;
-                }
-
                 $payload = $request['payloads'][(int) $field->id] ?? '';
                 $event = new ValidateCartAddEvent('onValidateCartAdd', [
                     'item' => $item,
@@ -137,7 +158,7 @@ class ItemConfigurationHelper
                     'quantity' => $quantity,
                     'selections' => self::selectionsOf($request),
                 ]);
-                $plugin->onValidateCartAdd($event);
+                $plugins->dispatchTo($plugin, $event);
 
                 if (!$event->isValid()) {
                     $error = $event->getError();
@@ -288,14 +309,19 @@ class ItemConfigurationHelper
      *
      * @param object $field The field definition (carries ->type).
      *
-     * @return object|null The booted plugin, or null.
+     * @return LoadedPlugin|null The field's plugin, booted through the plugin helper, or null.
      *
      * @since  2.0.0
      */
-    private static function payloadHandler(object $field): ?object
+    private static function payloadHandler(object $field): ?LoadedPlugin
     {
+        // The field's own plugin, through the plugin helper (2.2.0, mode B); one that is not available stores nothing.
+        $plugins = AlfaPluginHelper::get();
+
         try {
-            $plugin = Factory::getApplication()->bootPlugin(plugin: (string) ($field->type ?? ''), type: 'alfa-item-fields');
+            $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) ($field->type ?? '')));
+        } catch (PluginUnavailable|InvalidArgumentException) {
+            return null;
         } catch (Throwable $e) {
             AlfaLog::register();
             Log::add(
@@ -308,7 +334,7 @@ class ItemConfigurationHelper
             return null;
         }
 
-        return \is_object(value: $plugin) && method_exists(object_or_class: $plugin, method: 'onPrepareForCart') ? $plugin : null;
+        return $plugins->declares($plugin, 'onPrepareForCart') ? $plugin : null;
     }
 
     /**
@@ -325,6 +351,70 @@ class ItemConfigurationHelper
         $text = is_string(value: $payload) ? trim(string: $payload) : (string) json_encode(value: $payload);
 
         return !\in_array(needle: $text, haystack: ['', '{}', '[]', 'null'], strict: true);
+    }
+
+    /**
+     * A field's own plugin (2.2.0, A-C14B-9): booted through the plugin helper (mode B), or why it is unavailable
+     * (disabled, missing, unloadable, not loaded for this request's user, of another family, or a type that names no
+     * plugin). Unavailability is logged once per request per plugin, never once per price computation, and is never
+     * a failure to rethrow: the field takes no part, and a cart line that needs it is not priced
+     * ({@see self::unpricedFields()}).
+     *
+     * @param object $field The field definition (carries ->type).
+     *
+     * @since  2.2.0
+     */
+    public static function fieldPlugin(object $field): LoadedPlugin|PluginUnavailable
+    {
+        $type = (string) ($field->type ?? '');
+
+        try {
+            return AlfaPluginHelper::get()->bootSingle(PluginId::from('alfa-item-fields', $type));
+        } catch (PluginUnavailable $e) {
+            $unavailable = $e;
+        } catch (InvalidArgumentException $e) {
+            $unavailable = new PluginUnavailable(PluginUnavailable::MISSING, null, 'The field type "' . $type . '" names no item-fields plugin.', $e);
+        }
+
+        if (!isset(self::$unavailableLogged[$type])) {
+            self::$unavailableLogged[$type] = true;
+            AlfaLog::register();
+            Log::add(
+                entry: 'Item fields: ' . $unavailable->getMessage() . ' Its fields take no part in this request; a cart line that carries one of their compositions, or a required one, is not priced and cannot be ordered.',
+                priority: Log::WARNING,
+                category: 'com_alfa.pricing',
+            );
+        }
+
+        return $unavailable;
+    }
+
+    /**
+     * The fields a cart line cannot be priced without while their plugin is unavailable (2.2.0, A-C14B-9): a field
+     * whose composition the line carries, or a required field. The line is then marked as one that cannot be sold,
+     * and never priced without them.
+     *
+     * @param object $item The hydrated item (carries ->id and ->fields).
+     * @param array $payloads The line's stored compositions, field id => payload.
+     *
+     * @return array<int, object> The fields, by id.
+     *
+     * @since  2.2.0
+     */
+    public static function unpricedFields(object $item, array $payloads): array
+    {
+        $unpriced = [];
+
+        foreach ((array) ($item->fields ?? []) as $field) {
+            $fid = (int) ($field->id ?? 0);
+            $needed = self::isComposition(payload: $payloads[$fid] ?? '') || self::isFieldRequired(itemId: (int) ($item->id ?? 0), field: $field);
+
+            if ($needed && self::fieldPlugin(field: $field) instanceof PluginUnavailable) {
+                $unpriced[$fid] = $field;
+            }
+        }
+
+        return $unpriced;
     }
 
     /**
@@ -346,7 +436,7 @@ class ItemConfigurationHelper
     {
         AlfaLog::register();
         Log::add(
-            entry: $event . ' threw in plugin "' . ($plugin !== null ? ($plugin->name ?? \get_class($plugin)) : (string) ($field->type ?? ''))
+            entry: $event . ' threw in plugin "' . ($plugin instanceof LoadedPlugin ? (string) $plugin->id : (string) ($field->type ?? ''))
                 . '" for field #' . (int) ($field->id ?? 0) . ': ' . $e->getMessage(),
             priority: Log::ERROR,
             category: 'com_alfa.cart',
@@ -558,7 +648,7 @@ class ItemConfigurationHelper
             ]);
 
             try {
-                $plugin->onPrepareForCart($event);
+                AlfaPluginHelper::get()->dispatchTo($plugin, $event);
             } catch (Throwable $e) {
                 self::logDispatchFailure('onPrepareForCart', $plugin, $field, $e);
 

@@ -13,16 +13,14 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 use Alfa\Component\Alfa\Administrator\Event\Orders\OrderStatusChangeEvent;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskFailure;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
-use Closure;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\ParameterType;
-use ReflectionFunction;
 use Throwable;
 
 /**
@@ -57,6 +55,38 @@ final class OrderStatusEvent extends OrderTaskHandler
             staffAction: TaskPolicy::ACTION_RERUN,
             attention: 'danger',
         );
+    }
+
+    /**
+     * Whether onOrderStatusChange has a listener on the shared dispatcher, once the alfa group is imported as
+     * {@see self::run()} imports it: what a status change reads to decide whether its event single has work (2.2.0).
+     * When the listeners cannot be known (the group not imported: no application, or maintenance; or a plugin of the
+     * group that failed to import) the single is owed: its run meets the same plugin then. A failure that ended the
+     * caller's transaction reaches the caller.
+     *
+     * @since  2.2.0
+     */
+    public static function hasListeners(): bool
+    {
+        $plugins = AlfaPluginHelper::get();
+        $failed = $plugins->importGroup('alfa');
+
+        if ($failed === null) {
+            return true;
+        }
+
+        if ($failed !== []) {
+            Log::add(
+                entry:    'The listeners of onOrderStatusChange cannot be known, a plugin of the group alfa failed to load ('
+                          . implode(', ', $failed) . '); the event is owed.',
+                priority: Log::WARNING,
+                category: 'com_alfa.orders',
+            );
+
+            return true;
+        }
+
+        return $plugins->hasListeners('onOrderStatusChange');
     }
 
     /**
@@ -97,18 +127,13 @@ final class OrderStatusEvent extends OrderTaskHandler
         ]);
 
         // The feature plugins listen here; the component imports them when it boots, which a recovery run in another
-        // process may not have done.
-        PluginHelper::importPlugin('alfa');
-
+        // process may not have done. Each listener is a task unit, named by the helper without reflection
+        // (Class::method, a repeat by its position), so a failed one is retried alone (2.2.0, mode A, an after phase).
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa');
         $failed = [];
-        $seen = [];
 
-        foreach (Factory::getApplication()->getDispatcher()->getListeners('onOrderStatusChange') as $listener) {
-            // A second listener of the same name gets its position.
-            $name = self::listenerName(listener: $listener);
-            $seen[$name] = ($seen[$name] ?? 0) + 1;
-            $unit = $seen[$name] === 1 ? $name : $name . '#' . $seen[$name];
-
+        foreach ($plugins->listeners('onOrderStatusChange') as $unit => $listener) {
             if ($event->isStopped()) {
                 break;
             }
@@ -144,31 +169,6 @@ final class OrderStatusEvent extends OrderTaskHandler
         if ($failed !== []) {
             throw TaskFailure::failed(message: 'onOrderStatusChange listener failed: ' . implode(', ', $failed) . '.');
         }
-    }
-
-    /**
-     * A listener's name, stable across requests: its class and method, a closure by the object or class it was made
-     * in.
-     *
-     * @param callable $listener The listener.
-     *
-     * @since  2.1.4
-     */
-    private static function listenerName(callable $listener): string
-    {
-        if (\is_array($listener)) {
-            $name = (\is_object($listener[0]) ? $listener[0]::class : (string) $listener[0]) . '::' . $listener[1];
-        } elseif ($listener instanceof Closure) {
-            $function = new ReflectionFunction($listener);
-            $owner = $function->getClosureThis();
-            $name = ($owner !== null ? $owner::class : ($function->getClosureScopeClass()?->getName() ?? 'closure')) . '::{closure}';
-        } elseif (\is_object($listener)) {
-            $name = $listener::class;
-        } else {
-            $name = \is_string($listener) ? $listener : 'listener';
-        }
-
-        return $name;
     }
 
     /**

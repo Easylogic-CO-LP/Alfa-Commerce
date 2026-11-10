@@ -21,6 +21,9 @@ use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
@@ -29,8 +32,10 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityExcept
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryReservedFloorException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Site\Service\Pricing\UnsavedItem;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
@@ -38,8 +43,11 @@ use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
+use Joomla\CMS\Response\JsonResponse;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Versioning\VersionableControllerTrait;
+use Joomla\Database\Exception\ConnectionFailureException;
+use Joomla\Database\Exception\ExecutionFailureException;
 use Joomla\Database\ParameterType;
 use RuntimeException;
 use Throwable;
@@ -289,21 +297,23 @@ class ItemController extends FormController
 
             if ($field === 'name') {
                 $values = $payload['values'] ?? [];
-
-                $display = $this->saveInlineMultilingualField(
-                    id:            $id,
-                    table:         self::INLINE_TABLE,
-                    primaryColumn: self::INLINE_PRIMARY_COLUMN,
-                    field:         $field,
-                    values:        \is_array($values) ? $values : [],
-                    aliasFields:   MultilingualAliasConfig::FIELDS[self::INLINE_TABLE],
-                    aliasScope:    MultilingualAliasConfig::SCOPE[self::INLINE_TABLE] ?? [],
-                );
-
                 // The search document leads with the item name, so an inline rename
-                // must rebuild it; otherwise the old name keeps matching and the
-                // new one never does. Same call the full save makes.
-                (new ProjectionManager())->syncItem($id);
+                // rebuilds it, marked first under the item's lock as the full save is.
+                $change = ProjectionManager::markChange(itemId: $id);
+
+                try {
+                    $display = $this->saveInlineMultilingualField(
+                        id:            $id,
+                        table:         self::INLINE_TABLE,
+                        primaryColumn: self::INLINE_PRIMARY_COLUMN,
+                        field:         $field,
+                        values:        \is_array($values) ? $values : [],
+                        aliasFields:   MultilingualAliasConfig::FIELDS[self::INLINE_TABLE],
+                        aliasScope:    MultilingualAliasConfig::SCOPE[self::INLINE_TABLE] ?? [],
+                    );
+                } finally {
+                    ProjectionManager::rebuildChanged(change: $change);
+                }
 
                 $this->sendInlineJson(true, Text::_('COM_ALFA_INLINE_SAVED'), ['display' => $display]);
 
@@ -330,25 +340,30 @@ class ItemController extends FormController
                 $modified = Factory::getDate()->toSql();
                 $userId = (int) $this->app->getIdentity()->id;
 
-                // A targeted three-column UPDATE, never Table::store(): stock and
-                // available_quantity on this row are service-maintained caches and
-                // a load-then-store round trip would rewrite them from a stale read.
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->update($db->quoteName(self::INLINE_TABLE))
-                        ->set($db->quoteName('sku') . ' = :sku')
-                        ->set($db->quoteName('modified') . ' = :modified')
-                        ->set($db->quoteName('modified_by') . ' = :modifiedBy')
-                        ->where($db->quoteName('id') . ' = :id')
-                        ->bind(':sku', $value)
-                        ->bind(':modified', $modified)
-                        ->bind(':modifiedBy', $userId, ParameterType::INTEGER)
-                        ->bind(':id', $id, ParameterType::INTEGER),
-                )->execute();
-
                 // The search document folds the item SKU into its haystack, so a
-                // stale index would keep matching the OLD identifier for ever.
-                (new ProjectionManager())->syncItem($id);
+                // stale index would keep matching the OLD identifier for ever: the
+                // item is marked first under its lock and rebuilt after the write.
+                $change = ProjectionManager::markChange(itemId: $id);
+
+                try {
+                    // A targeted three-column UPDATE, never Table::store(): stock and
+                    // available_quantity on this row are service-maintained caches and
+                    // a load-then-store round trip would rewrite them from a stale read.
+                    $db->setQuery(
+                        $db->getQuery(true)
+                            ->update($db->quoteName(self::INLINE_TABLE))
+                            ->set($db->quoteName('sku') . ' = :sku')
+                            ->set($db->quoteName('modified') . ' = :modified')
+                            ->set($db->quoteName('modified_by') . ' = :modifiedBy')
+                            ->where($db->quoteName('id') . ' = :id')
+                            ->bind(':sku', $value)
+                            ->bind(':modified', $modified)
+                            ->bind(':modifiedBy', $userId, ParameterType::INTEGER)
+                            ->bind(':id', $id, ParameterType::INTEGER),
+                    )->execute();
+                } finally {
+                    ProjectionManager::rebuildChanged(change: $change);
+                }
 
                 $this->sendInlineJson(true, Text::_('COM_ALFA_INLINE_SAVED'), ['display' => $value]);
 
@@ -926,37 +941,42 @@ class ItemController extends FormController
             $valuesByField[(int) $fieldId] = array_map('intval', (array) $valueIds);
         }
 
+        $itemId = $this->input->getInt('id', 0);
+
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();
 
         try {
-            $itemId = $this->input->getInt('id', 0);
-
             // Dimension order is editable in the popup ONLY while the set is fresh
             // (no combinations yet); once created it's locked; reorder from the
             // live grid. Capture the pre-generation state to gate the persist.
             $wasFresh = ItemFieldsAdminHelper::getCombinationFieldIds(itemId: $itemId) === [];
+            // Newly generated variants contribute titles to the search document and
+            // values to the facet projection: the item is marked first under its lock
+            // and rebuilt after the rows, so none of them is ever left unprojected.
+            $change = ProjectionManager::markChange(itemId: $itemId);
 
-            $created = ItemFieldsAdminHelper::generateCombinations(
-                itemId: $itemId,
-                valuesByField: $valuesByField,
-            );
-
-            // Persist the variant dimension order chosen in the popup (drag whole
-            // fields); the payload key order is the chosen order. Reported back so
-            // the UI reloads even when no NEW rows were created (pure reorder).
-            $reordered = $wasFresh
-                && ItemFieldsAdminHelper::applyGeneratorFieldOrder(
+            try {
+                $created = ItemFieldsAdminHelper::generateCombinations(
                     itemId: $itemId,
-                    orderedVariantIds: array_keys($valuesByField),
+                    valuesByField: $valuesByField,
                 );
 
-            // Newly generated variants contribute titles to the search document and
-            // values to the facet projection; without this they exist but are
-            // invisible to both until something else re-saves the item.
-            (new ProjectionManager())->syncItem($itemId);
+                // Persist the variant dimension order chosen in the popup (drag whole
+                // fields); the payload key order is the chosen order. Reported back so
+                // the UI reloads even when no NEW rows were created (pure reorder).
+                $reordered = $wasFresh
+                    && ItemFieldsAdminHelper::applyGeneratorFieldOrder(
+                        itemId: $itemId,
+                        orderedVariantIds: array_keys($valuesByField),
+                    );
+            } finally {
+                ProjectionManager::rebuildChanged(change: $change);
+            }
 
             echo new \Joomla\CMS\Response\JsonResponse(['created' => $created, 'reordered' => $reordered]);
+        } catch (ExecutionFailureException | ConnectionFailureException $e) {
+            echo $this->databaseRefused(endpoint: 'generateCombinations', itemId: $itemId, failure: $e);
         } catch (RuntimeException $e) {
             // Depth lock and friends: surfaced verbatim in the generator UI.
             echo new \Joomla\CMS\Response\JsonResponse($e);
@@ -1164,10 +1184,17 @@ class ItemController extends FormController
                 throw new RuntimeException(Text::_('COM_ALFA_PANEL_TASK_POST_ONLY'), 405);
             }
 
-            // Boot plugin + dispatch
-            $plugin = $app->bootPlugin((string) $field->type, 'alfa-item-fields');
+            // The field's own plugin, through the plugin helper (2.2.0, mode B): unavailable or without the hook, the
+            // action is refused; its handler's exception is the action's failure.
+            $plugins = AlfaPluginHelper::get();
 
-            if (!$plugin || !method_exists($plugin, 'onExecuteFieldAction')) {
+            try {
+                $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
+            } catch (PluginUnavailable|InvalidArgumentException) {
+                $plugin = null;
+            }
+
+            if ($plugin === null || !$plugins->declares($plugin, 'onExecuteFieldAction')) {
                 throw new RuntimeException("Item-field plugin \"{$field->type}\" not found or outdated.");
             }
 
@@ -1180,7 +1207,7 @@ class ItemController extends FormController
                 'data' => $data,
             ]);
 
-            $plugin->onExecuteFieldAction($event);
+            $plugins->dispatchTo($plugin, $event);
 
             header('Content-Type: application/json; charset=utf-8');
             echo $event->toResponseJson();
@@ -1218,22 +1245,26 @@ class ItemController extends FormController
         $app->sendHeaders();
 
         try {
-            $added = ItemFieldsAdminHelper::addItemOptions(
-                itemId: $itemId,
-                valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
-            );
-
             // These rows are committed by THIS request and feed the item-field value
             // index, which the search document reads. The follow-up item.reload is core
-            // FormController::reload; it never calls save(), so abandoning the edit form
-            // afterwards would otherwise leave them permanently unprojected.
-            if ($added > 0 && $itemId > 0) {
-                (new ProjectionManager())->syncItem($itemId);
+            // FormController::reload; it never calls save(), so the item is marked first
+            // under its lock and rebuilt here, never left unprojected.
+            $change = ProjectionManager::markChange(itemId: $itemId);
+
+            try {
+                $added = ItemFieldsAdminHelper::addItemOptions(
+                    itemId: $itemId,
+                    valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
+                );
+            } finally {
+                ProjectionManager::rebuildChanged(change: $change);
             }
 
             echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+        } catch (ExecutionFailureException | ConnectionFailureException $e) {
+            echo $this->databaseRefused(endpoint: 'addOptions', itemId: $itemId, failure: $e);
         } catch (RuntimeException $e) {
-            // Refused (a database refusal and friends): its words to the picker, as the generator says them.
+            // Refused in words meant for staff: its words to the picker, as the generator says them.
             echo new \Joomla\CMS\Response\JsonResponse($e);
         }
 
@@ -1265,22 +1296,26 @@ class ItemController extends FormController
         $app->sendHeaders();
 
         try {
-            $added = ItemFieldsAdminHelper::addItemInfoValues(
-                itemId: $itemId,
-                valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
-            );
-
             // These rows are committed by THIS request and feed the item-field value
             // index, which the search document reads. The follow-up item.reload is core
-            // FormController::reload; it never calls save(), so abandoning the edit form
-            // afterwards would otherwise leave them permanently unprojected.
-            if ($added > 0 && $itemId > 0) {
-                (new ProjectionManager())->syncItem($itemId);
+            // FormController::reload; it never calls save(), so the item is marked first
+            // under its lock and rebuilt here, never left unprojected.
+            $change = ProjectionManager::markChange(itemId: $itemId);
+
+            try {
+                $added = ItemFieldsAdminHelper::addItemInfoValues(
+                    itemId: $itemId,
+                    valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
+                );
+            } finally {
+                ProjectionManager::rebuildChanged(change: $change);
             }
 
             echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+        } catch (ExecutionFailureException | ConnectionFailureException $e) {
+            echo $this->databaseRefused(endpoint: 'addInfoValues', itemId: $itemId, failure: $e);
         } catch (RuntimeException $e) {
-            // Refused (a database refusal and friends): its words to the picker, as the generator says them.
+            // Refused in words meant for staff: its words to the picker, as the generator says them.
             echo new \Joomla\CMS\Response\JsonResponse($e);
         }
 
@@ -1334,12 +1369,44 @@ class ItemController extends FormController
                 'state' => $display['state'],
                 'summary' => $display['summary'],
             ]);
+        } catch (ExecutionFailureException | ConnectionFailureException $e) {
+            echo $this->databaseRefused(endpoint: 'saveVisibility', itemId: $itemId, failure: $e);
         } catch (RuntimeException $e) {
-            // Refused (a database refusal and friends): its words to the dialog, which stays open.
+            // Refused in words meant for staff: its words to the dialog, which stays open.
             echo new \Joomla\CMS\Response\JsonResponse($e);
         }
 
         $app->close();
+    }
+
+    /**
+     * The answer of a combinations popup whose work the database refused: one plain sentence for the page, the
+     * detail in the log with the endpoint and the item (category com_alfa.items). A database exception's own text (a
+     * failed query's SQL, the schema's and the tables' names) never reaches the administrator; the refusals the
+     * generator words for staff (the depth lock, an item still holding stock) are answered by their own catch.
+     *
+     * @param string $endpoint The endpoint that was refused, as its task is named.
+     * @param int $itemId The item the request was for.
+     * @param Throwable $failure The database exception.
+     *
+     * @return JsonResponse A failed answer with the plain sentence.
+     *
+     * @since  2.2.0
+     */
+    private function databaseRefused(string $endpoint, int $itemId, Throwable $failure): JsonResponse
+    {
+        try {
+            AlfaLog::register();
+            Log::add(
+                sprintf('%s of item #%d: the database refused it: %s: %s', $endpoint, $itemId, $failure::class, $failure->getMessage()),
+                Log::ERROR,
+                'com_alfa.items',
+            );
+        } catch (Throwable) {
+            // The answer below holds whether or not the log can be written.
+        }
+
+        return new JsonResponse(new RuntimeException(Text::_('COM_ALFA_COMBI_DATABASE_REFUSED')));
     }
 
     /**
@@ -1510,109 +1577,113 @@ class ItemController extends FormController
             return;
         }
 
-        // Switching tracking on books the opening figures inside the save's own
-        // transaction, with the switch itself: they commit or roll back together.
-        $opening = $plan['transition'] === 'on';
-        $saved = false;
+        // Variant titles and identity are part of the item's search document: the
+        // item is marked first under its lock and rebuilt after everything the save
+        // writes, so a renamed variant is never left unfindable.
+        $change = ProjectionManager::markChange(itemId: $itemId);
 
         try {
-            $saved = ItemFieldsAdminHelper::saveSingleCombination(
-                itemId:         $itemId,
-                combinationId:  $combinationId,
-                row:            $row,
-                priceRows:      $priceRows,
-                openingTargets: $opening ? $plan['targets'] : null,
-            );
+            // Switching tracking on books the opening figures inside the save's own
+            // transaction, with the switch itself: they commit or roll back together.
+            $opening = $plan['transition'] === 'on';
+            $saved = false;
 
-            if (!$saved) {
-                $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVE_FAILED'), 'error');
-            }
-        } catch (RuntimeException $e) {
-            // The save rolled back as a whole; nothing after it may run.
-            Log::add(
-                entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $itemId, $e->getMessage()),
-                priority: Log::ERROR,
-                category: 'com_alfa.catalog',
-            );
-
-            $app->enqueueMessage($e->getMessage(), 'error');
-        }
-
-        if ($saved) {
-            // The variant's own gallery: same machinery as the item's media,
-            // keyed by the 'combination' origin.
-            MediaHelper::saveMedia(
-                mediaData:      $jform['media'] ?? [],
-                droppedMedia:   $this->input->files->get('jform')['uploads'] ?? [],
-                itemId:         $combinationId,
-                mediaOrigin:    'combination',
-                customFileName: (string) ($row['gtin'] ?? ''),
-            );
-
-            // Changed tracked figures converge after the save. A refusal here is
-            // not a failed save: the combination is stored, and the operator is
-            // told its stock did not change and why.
-            if (!$opening && $postedStock !== []) {
-                try {
-                    $notApplied = ItemFieldsAdminHelper::applyCombinationLocationStock(
-                        itemId:        $itemId,
-                        combinationId: $combinationId,
-                        posted:        $postedStock,
-                        baseline:      $postedBaseline,
-                    );
-
-                    foreach ($notApplied as $warning) {
-                        $app->enqueueMessage($warning, 'warning');
-                    }
-                } catch (InventoryIntegrityException $e) {
-                    Log::add(
-                        entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
-                        priority: Log::ERROR,
-                        category: 'com_alfa.inventory',
-                    );
-
-                    $app->enqueueMessage(self::ledgerMissingMessage(exception: $e), 'error');
-                } catch (Throwable $e) {
-                    Log::add(
-                        entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
-                        priority: Log::ERROR,
-                        category: 'com_alfa.inventory',
-                    );
-
-                    // Every refusal that reaches here is a complete sentence, so it
-                    // follows the saved notice whole.
-                    $app->enqueueMessage(Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED', $e->getMessage()), 'error');
-                }
-            }
-
-            // Tracking switched off keeps the stock records as they are; say which
-            // quantities are no longer counted for sale.
-            $tracking = ItemFieldsAdminHelper::lastTrackingChange();
-
-            if ((int) ($tracking['kept_rows'] ?? 0) > 0) {
-                $app->enqueueMessage(
-                    Text::sprintf(
-                        'COM_ALFA_INVENTORY_TRACKING_OFF_STOCK_KEPT',
-                        (int) $tracking['kept_rows'],
-                        InventoryAvailabilityService::formatQuantity(value: (float) ($tracking['kept_on_hand'] ?? 0.0)),
-                    ),
-                    'warning',
+            try {
+                $saved = ItemFieldsAdminHelper::saveSingleCombination(
+                    itemId:         $itemId,
+                    combinationId:  $combinationId,
+                    row:            $row,
+                    priceRows:      $priceRows,
+                    openingTargets: $opening ? $plan['targets'] : null,
                 );
+
+                if (!$saved) {
+                    $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVE_FAILED'), 'error');
+                }
+            } catch (RuntimeException $e) {
+                // The save rolled back as a whole; nothing after it may run.
+                Log::add(
+                    entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $itemId, $e->getMessage()),
+                    priority: Log::ERROR,
+                    category: 'com_alfa.catalog',
+                );
+
+                $app->enqueueMessage($e->getMessage(), 'error');
             }
 
-            // Variant downloads metadata (title/limits/state) rides the
-            // Studio form like every other surface; bytes go via AJAX.
-            Entitlements::saveItemDownloadsMeta(
-                itemId:  $itemId,
-                payload: (array) ($jform['item_downloads'] ?? []),
-            );
+            if ($saved) {
+                // The variant's own gallery: same machinery as the item's media,
+                // keyed by the 'combination' origin.
+                MediaHelper::saveMedia(
+                    mediaData:      $jform['media'] ?? [],
+                    droppedMedia:   $this->input->files->get('jform')['uploads'] ?? [],
+                    itemId:         $combinationId,
+                    mediaOrigin:    'combination',
+                    customFileName: (string) ($row['gtin'] ?? ''),
+                );
 
-            // Variant titles and identity are part of the item's search document,
-            // so a Studio save must rebuild it; otherwise the renamed variant is
-            // unfindable and the old title keeps matching.
-            (new ProjectionManager())->syncItem($itemId);
+                // Changed tracked figures converge after the save. A refusal here is
+                // not a failed save: the combination is stored, and the operator is
+                // told its stock did not change and why.
+                if (!$opening && $postedStock !== []) {
+                    try {
+                        $notApplied = ItemFieldsAdminHelper::applyCombinationLocationStock(
+                            itemId:        $itemId,
+                            combinationId: $combinationId,
+                            posted:        $postedStock,
+                            baseline:      $postedBaseline,
+                        );
 
-            $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVED'));
+                        foreach ($notApplied as $warning) {
+                            $app->enqueueMessage($warning, 'warning');
+                        }
+                    } catch (InventoryIntegrityException $e) {
+                        Log::add(
+                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
+                            priority: Log::ERROR,
+                            category: 'com_alfa.inventory',
+                        );
+
+                        $app->enqueueMessage(self::ledgerMissingMessage(exception: $e), 'error');
+                    } catch (Throwable $e) {
+                        Log::add(
+                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
+                            priority: Log::ERROR,
+                            category: 'com_alfa.inventory',
+                        );
+
+                        // Every refusal that reaches here is a complete sentence, so it
+                        // follows the saved notice whole.
+                        $app->enqueueMessage(Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED', $e->getMessage()), 'error');
+                    }
+                }
+
+                // Tracking switched off keeps the stock records as they are; say which
+                // quantities are no longer counted for sale.
+                $tracking = ItemFieldsAdminHelper::lastTrackingChange();
+
+                if ((int) ($tracking['kept_rows'] ?? 0) > 0) {
+                    $app->enqueueMessage(
+                        Text::sprintf(
+                            'COM_ALFA_INVENTORY_TRACKING_OFF_STOCK_KEPT',
+                            (int) $tracking['kept_rows'],
+                            InventoryAvailabilityService::formatQuantity(value: (float) ($tracking['kept_on_hand'] ?? 0.0)),
+                        ),
+                        'warning',
+                    );
+                }
+
+                // Variant downloads metadata (title/limits/state) rides the
+                // Studio form like every other surface; bytes go via AJAX.
+                Entitlements::saveItemDownloadsMeta(
+                    itemId:  $itemId,
+                    payload: (array) ($jform['item_downloads'] ?? []),
+                );
+
+                $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVED'));
+            }
+        } finally {
+            ProjectionManager::rebuildChanged(change: $change);
         }
 
         $this->redirectToStudio(itemId: $itemId, combinationId: $combinationId, saved: $saved, closeAfter: $closeAfter);

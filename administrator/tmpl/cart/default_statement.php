@@ -118,7 +118,7 @@ $cartId = (int) $this->builderCartId;
                 <?php if ($price === null) : ?>
                     <?php echo $dash; ?>
                 <?php elseif ($price->hasDiscount()) : ?>
-                    <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotal()->format()); ?></span>
+                    <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotalWithTax()->format()); ?></span>
                 <?php elseif ($price->hasExplicitPrice()) : ?>
                     <?php // ITS OWN SURFACE, NOT THE DISCOUNT ONE. A negotiated
                           // price is not a promotional adjustment, and the ruling
@@ -214,7 +214,7 @@ $cartId = (int) $this->builderCartId;
                             <input type="hidden" name="code" value="<?php echo $this->escape($rule->code); ?>">
                             <?php echo HTMLHelper::_('form.token'); ?>
                             <button type="submit" class="btn btn-sm btn-link text-danger p-0 align-baseline"
-                                    title="<?php echo Text::_('COM_ALFA_CART_COUPON_REMOVE'); ?>">&times;</button>
+                                    title="<?php echo $this->escape(Text::sprintf('COM_ALFA_CART_COUPON_REMOVE', $rule->code)); ?>">&times;</button>
                         </form>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -256,6 +256,14 @@ $cartId = (int) $this->builderCartId;
             <tr>
                 <td colspan="<?php echo $labelSpan + 1; ?>" class="text-end"><?php echo $this->escape($contribution->label); ?></td>
                 <td class="text-end"><?php echo $this->escape($contribution->amount_tax_incl_money->format()); ?></td>
+            </tr>
+        <?php endforeach; ?>
+
+        <?php // A plugin of the customer's that cannot run for this operator: its charges are missing from these totals
+              // and the placement refuses, so the operator reads why here, with the totals (2.2.0). ?>
+        <?php foreach ($totals->contributionsNotLoaded as $notLoaded) : ?>
+            <tr class="table-warning">
+                <td colspan="<?php echo $labelSpan + 2; ?>"><?php echo Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR', $this->escape($notLoaded)); ?></td>
             </tr>
         <?php endforeach; ?>
 

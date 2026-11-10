@@ -12,7 +12,9 @@ namespace Alfa\Component\Alfa\Administrator\Event\Search;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineInterface;
+use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
@@ -26,7 +28,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *
  *     public function onCollectSearchEngines(CollectSearchEnginesEvent $event): void
  *     {
- *         $event->addEngine(new ExampleEngine(), 'plg_alfa-search_example', '1.0.0');
+ *         $event->addEngine(new ExampleEngine(), 'alfa-search.example', '1.0.0');
  *     }
  *
  * The typed signature IS the developer contract: a wrong type fails loudly at the
@@ -37,26 +39,34 @@ use Joomla\CMS\Event\AbstractEvent;
 class CollectSearchEnginesEvent extends AbstractEvent
 {
     /**
-     * Contribute an engine under its owning extension's identity.
+     * The engines contributed so far; written only through addEngine().
+     *
+     * @var array<int, array{engine: SearchEngineInterface, element: string, version: string}>
+     *
+     * @since  2.2.0
+     */
+    private array $engines = [];
+
+    /**
+     * Contribute an engine, owned by the plugin that names itself.
      *
      * @param SearchEngineInterface $engine The engine instance.
-     * @param string $element Owning extension element (e.g. 'plg_alfa-search_example').
+     * @param string $contributor The contributing plugin, group.element (2.2.0; in place of the extension name; attribution,
+     *                            never an authorisation). The configured engine's plugin is the one asked for the search
+     *                            input when it is an alfa-search plugin.
      * @param string $version The package version.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function addEngine(SearchEngineInterface $engine, string $element, string $version = ''): void
+    public function addEngine(SearchEngineInterface $engine, string $contributor, string $version = ''): void
     {
-        $entries = (array) ($this->arguments['engines'] ?? []);
-
-        $entries[] = [
+        $this->engines[] = [
             'engine' => $engine,
-            'element' => trim($element),
+            'element' => PluginId::of($contributor)->key(),
             'version' => trim($version),
         ];
-
-        $this->arguments['engines'] = $entries;
     }
 
     /**
@@ -68,6 +78,6 @@ class CollectSearchEnginesEvent extends AbstractEvent
      */
     public function getEngines(): array
     {
-        return (array) ($this->arguments['engines'] ?? []);
+        return $this->engines;
     }
 }

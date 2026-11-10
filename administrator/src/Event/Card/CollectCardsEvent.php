@@ -14,6 +14,8 @@ namespace Alfa\Component\Alfa\Administrator\Event\Card;
 
 use Alfa\Component\Alfa\Administrator\Card\AdminCard;
 use Alfa\Component\Alfa\Administrator\Card\DashboardSurface;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
@@ -25,10 +27,10 @@ use Joomla\CMS\Event\AbstractEvent;
  * second path and no hard-coded card, so the route a plugin's card takes is
  * exercised on every dashboard load.
  *
- * Ownership is stamped by the collector after each contributor runs
- * ({@see self::attributeTo()}), which makes it observed rather than claimed,
- * and lets a broken contributor's half-registered cards be pinned to the
- * contributor that actually added them.
+ * A card is its owner plus its id (2.2.0): every way in takes the contributing
+ * plugin as group.element first (core's own cards as core.com_alfa), checked for
+ * its shape only, attribution and never an authorisation. Nothing is stamped
+ * by the collector, so a broken contributor's half-made cards stay its own.
  *
  * @since  2.0.0
  */
@@ -67,6 +69,7 @@ class CollectCardsEvent extends AbstractEvent
     /**
      * Full width, above everything.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -74,14 +77,15 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @since  2.0.0
      */
-    public function top(string $id, string $title): AdminCard
+    public function top(string $contributor, string $id, string $title): AdminCard
     {
-        return $this->on(DashboardSurface::Top, $id, $title);
+        return $this->addCard($contributor, DashboardSurface::Top, $id, $title);
     }
 
     /**
      * The row of figures.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -89,14 +93,15 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @since  2.0.0
      */
-    public function metrics(string $id, string $title): AdminCard
+    public function metrics(string $contributor, string $id, string $title): AdminCard
     {
-        return $this->on(DashboardSurface::Metrics, $id, $title);
+        return $this->addCard($contributor, DashboardSurface::Metrics, $id, $title);
     }
 
     /**
      * The wide column.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -104,14 +109,15 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @since  2.0.0
      */
-    public function main(string $id, string $title): AdminCard
+    public function main(string $contributor, string $id, string $title): AdminCard
     {
-        return $this->on(DashboardSurface::Main, $id, $title);
+        return $this->addCard($contributor, DashboardSurface::Main, $id, $title);
     }
 
     /**
      * The narrow column beside it.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -119,14 +125,15 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @since  2.0.0
      */
-    public function side(string $id, string $title): AdminCard
+    public function side(string $contributor, string $id, string $title): AdminCard
     {
-        return $this->on(DashboardSurface::Side, $id, $title);
+        return $this->addCard($contributor, DashboardSurface::Side, $id, $title);
     }
 
     /**
      * Full width at the end.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -134,29 +141,34 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @since  2.0.0
      */
-    public function bottom(string $id, string $title): AdminCard
+    public function bottom(string $contributor, string $id, string $title): AdminCard
     {
-        return $this->on(DashboardSurface::Bottom, $id, $title);
+        return $this->addCard($contributor, DashboardSurface::Bottom, $id, $title);
     }
 
     /**
-     * Place a card on a named surface. The typed helpers above are the readable
-     * way in; this is the same door when the surface is held in a variable.
+     * Place a card on a named surface, owned by the plugin that names itself. The typed helpers above are the
+     * readable way in; this is the same door when the surface is held in a variable.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param DashboardSurface $surface Where it goes.
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
      * @return AdminCard The card, for chaining.
      *
-     * @since  2.0.0
+     * @throws InvalidArgumentException When the contributor is not group.element.
+     *
+     * @since  2.2.0
      */
-    public function on(DashboardSurface $surface, string $id, string $title): AdminCard
+    public function addCard(string $contributor, DashboardSurface $surface, string $id, string $title): AdminCard
     {
+        $owner = PluginId::of($contributor);
         $card = (new AdminCard($id, $title))
             ->screen($this->screen())
             ->surface($surface);
-
+        $card->metadata['owner_group'] = $owner->group;
+        $card->metadata['owner_name'] = $owner->element;
         $this->cards[] = $card;
 
         return $card;
@@ -175,29 +187,5 @@ class CollectCardsEvent extends AbstractEvent
             $this->cards,
             static fn (AdminCard $card): bool => $card->isValid(),
         ));
-    }
-
-    /**
-     * Stamp whatever a contributor just added with who added it. Only untagged
-     * cards are touched, so calling this after a contributor throws pins its
-     * half-registered cards to the thrower instead of letting the next
-     * contributor inherit them.
-     *
-     * @param string $group Extension group (`alfa`, or `core` for the component).
-     * @param string $name Contributor name.
-     *
-     *
-     * @since  2.0.0
-     */
-    public function attributeTo(string $group, string $name): void
-    {
-        foreach ($this->cards as $card) {
-            if (($card->metadata['owner_group'] ?? '') !== '') {
-                continue;
-            }
-
-            $card->metadata['owner_group'] = $group;
-            $card->metadata['owner_name'] = $name;
-        }
     }
 }

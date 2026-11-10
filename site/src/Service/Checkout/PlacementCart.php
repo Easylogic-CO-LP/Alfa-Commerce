@@ -258,7 +258,12 @@ final class PlacementCart
         return $this->cart->computation->totals()->shipmentChargeBasis();
     }
 
-    /** @return string[] The rates the carrier's charge was calculated with, in order, as exact decimal texts. @since 2.0.0 */
+    /**
+     * @return array<int, array{rate: string, name: string}> The rates the carrier's charge was calculated with, in
+     *                                                       order, each as its exact decimal text with the name of
+     *                                                       the tax rule that applied it.
+     * @since 2.0.0
+     */
     public function shipmentTaxChain(): array
     {
         return $this->cart->computation->totals()->shipmentTaxChain();

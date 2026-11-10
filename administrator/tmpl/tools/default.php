@@ -62,7 +62,9 @@ $toolsUser = Factory::getApplication()->getIdentity();
 
     <?php // Outer tabset carries recall; the devguide's inner tabset must NOT, or
           // nested recall shares one sessionStorage key and can hang the page. ?>
-    <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaTools', ['active' => 'media', 'recall' => true]); ?>
+    <?php // The progress page (&job=N) and a new web-cron address open on the Tasks tab, whatever tab was last open.
+    $onTasks = $this->job !== null || $this->jobMissing || $this->newCronKey !== ''; ?>
+    <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaTools', ['active' => $onTasks ? 'tasks' : 'media', 'recall' => !$onTasks]); ?>
 
     <?php /* Media */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'media', Text::_('COM_ALFA_TOOLS_TAB_MEDIA')); ?>
@@ -86,9 +88,13 @@ $toolsUser = Factory::getApplication()->getIdentity();
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-    <?php /* Tasks: what a save left failed or with an unknown outcome, for staff to act on; then the recovery run */ ?>
+    <?php /* Tasks: the job the progress page follows; what a save left failed or with an unknown outcome, for staff to act on;
+             the jobs; how the background work runs; then the recovery run and the prune */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'tasks', Text::_('COM_ALFA_TOOLS_TAB_TASKS')); ?>
+        <?php echo LayoutHelper::render('tasks.progress', ['job' => $this->job, 'missing' => $this->jobMissing, 'id' => Factory::getApplication()->getInput()->getInt('job', 0)], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo LayoutHelper::render('tasks.attention', $this->tasks, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo LayoutHelper::render('tasks.jobs', $this->jobs, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo LayoutHelper::render('tasks.runner', $this->runner + ['newKey' => $this->newCronKey], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo $renderSurface('tasks'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>

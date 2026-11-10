@@ -71,7 +71,7 @@ class AlfarulesField extends RulesField
         }
 
         $event = new GetAccessActionsEvent('onAlfaGetAccessActions', []);
-        PanelDispatcher::broadcast($event, 'onAlfaGetAccessActions');
+        PanelDispatcher::broadcast($event);
 
         $existing = [];
 

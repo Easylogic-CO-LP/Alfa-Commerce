@@ -12,6 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\User\User;
 use Throwable;
@@ -61,7 +63,52 @@ trait AlfaAdminAware
      */
     protected function alfaDispatches(string $event): bool
     {
-        return $this->alfaEntity !== '' && AlfaAdminDispatcher::hasSubscribers($event);
+        return $this->alfaEntity !== '' && self::alfaPlugins()->hasListeners($event);
+    }
+
+    /**
+     * Raise an admin event on the shared dispatcher (2.2.0, design 2.15.3): the before phases (validate, before save,
+     * before delete) through Joomla's dispatch(), a listener's exception logged here and rethrown to the caller, which
+     * refuses the operation; every other phase under Alfa's isolated policy, a listener's failure logged by the helper
+     * and the next listener run.
+     *
+     * @param AlfaAdminEvent $event The event.
+     *
+     * @since  2.2.0
+     */
+    protected static function alfaRaise(AlfaAdminEvent $event): AlfaAdminEvent
+    {
+        $plugins = self::alfaPlugins();
+        $context = $event->getAdminContext();
+
+        if (!$context->is(AlfaAdminContext::PHASE_VALIDATE, AlfaAdminContext::PHASE_BEFORE_SAVE, AlfaAdminContext::PHASE_BEFORE_DELETE)) {
+            $plugins->dispatchIsolated($event);
+
+            return $event;
+        }
+
+        try {
+            $plugins->dispatch($event);
+        } catch (Throwable $e) {
+            Log::add('Alfa admin events: ' . $event->getName() . ' - ' . $context->key() . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa.admin');
+
+            throw $e;
+        }
+
+        return $event;
+    }
+
+    /**
+     * The plugin helper with the alfa group imported, the group every admin event is raised for first.
+     *
+     * @since  2.2.0
+     */
+    private static function alfaPlugins(): AlfaPluginHelper
+    {
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa');
+
+        return $plugins;
     }
 
     /**

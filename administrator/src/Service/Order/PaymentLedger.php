@@ -127,10 +127,15 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentAutomation;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentRefundFlip;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
@@ -139,10 +144,12 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
 use Closure;
 use Exception;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
+use LogicException;
 use RuntimeException;
 use Throwable;
 
@@ -1000,6 +1007,9 @@ class PaymentLedger
     /** @var bool ->asStaff(): the write of a staff entry point, held to the staff guard ({@see self::staffWriteRefusal()}) */
     protected bool $staff = false;
 
+    /** @var string ->writtenBy(): the element of the payment plugin writing a new row; '' for core's own writes */
+    protected string $writer = '';
+
     //  FLUENT BUILDER API: the recommended developer interface
 
     /**
@@ -1372,6 +1382,29 @@ class PaymentLedger
     }
 
     /**
+     * The payment plugin writing this new row (2.2.0): PaymentsPlugin::payment() names it, a gateway never does. The
+     * row then records that plugin's element as its payment_method_type, never the live type of a method row, which an
+     * edit can change; the create refuses a method that is not one of the writer's own, and a refund or chargeback of
+     * another gateway's money. Named once: another element afterwards is refused.
+     *
+     * @param string $element The writing plugin's element.
+     *
+     * @throws LogicException When the builder already names another writer.
+     *
+     * @since  2.2.0
+     */
+    public function writtenBy(string $element): static
+    {
+        if ($this->writer !== '' && $this->writer !== $element) {
+            throw new LogicException('PaymentLedger::writtenBy(): this row is already written by ' . $this->writer . '.');
+        }
+
+        $this->writer = $element;
+
+        return $this;
+    }
+
+    /**
      * Override the payment method ID.
      *
      * Normally auto-filled from $order->id_payment_method.
@@ -1454,7 +1487,8 @@ class PaymentLedger
      * whichever door settled the refund (since 2.1.0).
      *
      * SKIPPED:
-     *   - applyStatusAutomation(): the method's status_on_<phase> map runs
+     *   - the status automation (the payment.automation single, run by
+     *     applyStatusAutomation()): the method's status_on_<phase> map runs
      *     through Transition, which moves the ORDER's status, writes its own
      *     activity entry, SENDS THE STATUS EMAIL and applies stock effects.
      *     On an abandoned attempt that means emailing "your order was
@@ -1711,7 +1745,7 @@ class PaymentLedger
         $this->stagePluginDataForCreate();
 
         // Delegate to the static CRUD engine
-        return static::create($this->data, $grandTotalHint);
+        return static::create($this->data, $grandTotalHint, writer: $this->writer);
     }
 
     /**
@@ -1790,10 +1824,11 @@ class PaymentLedger
                 $this->bookkeeping,
                 $payloadMerge,
                 staff: $this->staff,
+                writer: $this->writer,
             );
         }
 
-        return static::update($this->paymentId, $this->data, $this->bookkeeping, $payloadMerge, staff: $this->staff)
+        return static::update($this->paymentId, $this->data, $this->bookkeeping, $payloadMerge, staff: $this->staff, writer: $this->writer)
             ? self::WRITE_OK
             : self::WRITE_FAILED;
     }
@@ -1855,6 +1890,8 @@ class PaymentLedger
      *                          refunds are reserved ({@see self::refundableNow()}).
      *                          False for money already moved, which the books'
      *                          caps alone judge (since 2.1.0).
+     * @param string $writer The element of the payment plugin writing the row ({@see self::writtenBy()}); '' for
+     *                       core's own rows, which keep their own classification (since 2.2.0).
      *
      * @return int|false New payment row ID, or false on failure
      *
@@ -1862,7 +1899,7 @@ class PaymentLedger
      *
      * @since  1.0.0
      */
-    public static function create(array $data, Money|float $grandTotalHint = 0.0, bool $refundStart = false): int|false
+    public static function create(array $data, Money|float $grandTotalHint = 0.0, bool $refundStart = false, string $writer = ''): int|false
     {
         $orderId = (int) ($data['id_order'] ?? 0);
 
@@ -1929,7 +1966,7 @@ class PaymentLedger
                 return false;
             }
 
-            $newId = self::createLocked($data, $orderId, $grandTotalHint, refundStart: $refundStart);
+            $newId = self::createLocked($data, $orderId, $grandTotalHint, refundStart: $refundStart, writer: $writer);
 
             if ($newId === false) {
                 TransactionState::rollBackLevel($db);
@@ -1943,6 +1980,18 @@ class PaymentLedger
             // never received. The reconciler no-ops for anything that is not a
             // credit payment or a refund of one.
             $walletEntries = self::settleWalletForPayment($newId, $orderId, failClosed: true);
+
+            // The row's timeline entry commits with it (2.2.0), as a status change's records do.
+            self::logCreatedRow($newId, $orderId);
+
+            // A linked refund born settled (a plugin's builder ->refund()->...->completed()->save(), or a part split off
+            // a reservation): its payment is refunded once its settled refunds cover it, as on every settle path (since
+            // 2.1.0). Owed as a single of this transaction, so a request that ends after the commit cannot lose it (2.2.0).
+            if ((string) ($data['payment_type'] ?? '') === self::TYPE_REFUND
+                && \in_array((string) ($data['transaction_status'] ?? ''), self::REFUND_SETTLED_STATUSES, true)
+                && (int) ($data['id_refunded_payment'] ?? 0) > 0) {
+                self::oweRefundFlip(paymentId: (int) $data['id_refunded_payment'], orderId: $orderId);
+            }
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
 
@@ -1966,22 +2015,6 @@ class PaymentLedger
             );
         }
 
-        // Post-commit: the money row is durable, so the timeline entry is
-        // best-effort and can no longer affect the write, unless the failure
-        // ended a caller's transaction this write was part of (a deadlock
-        // inside a provider word's frame): that one reaches the caller.
-        self::logCreatedRow($newId, $orderId);
-
-        // A linked refund born settled (a plugin's builder ->refund()->...->completed()->save()): its payment is
-        // refunded once its settled refunds cover it, as on every settle path (since 2.1.0). A part split off a
-        // reservation is flipped by its settle once the split has committed ({@see self::$deferFlip}).
-        if (!self::$deferFlip
-            && (string) ($data['payment_type'] ?? '') === self::TYPE_REFUND
-            && \in_array((string) ($data['transaction_status'] ?? ''), self::REFUND_SETTLED_STATUSES, true)
-            && (int) ($data['id_refunded_payment'] ?? 0) > 0) {
-            self::flipIfCovered(paymentId: (int) $data['id_refunded_payment'], orderId: $orderId);
-        }
-
         return $newId;
     }
 
@@ -2000,12 +2033,13 @@ class PaymentLedger
      *                         recordChargeback(): the one door a reversal
      *                         or a chargeback row is written through.
      * @param bool $refundStart See create() (since 2.1.0).
+     * @param string $writer See create() (since 2.2.0).
      *
      * @return int|false New payment row ID, or false if a guard refused
      *
      * @since  2.0.0
      */
-    private static function createLocked(array $data, int $orderId, Money|float $grandTotalHint, bool $ledgerFact = false, bool $refundStart = false): int|false
+    private static function createLocked(array $data, int $orderId, Money|float $grandTotalHint, bool $ledgerFact = false, bool $refundStart = false, string $writer = ''): int|false
     {
         // Money -> the column's decimal, refusing a currency the order is not
         // in. Here, the one door every new row passes, so a verb that writes
@@ -2365,7 +2399,10 @@ class PaymentLedger
             $data['payment_method'] = (string) ($refunded->payment_method ?? '');
             $data['id_payment_method'] = (int) ($refunded->id_payment_method ?? 0);
         } elseif ($refunded !== null) {
+            // A refund inherits the identity of what it refunds: its plugin and its method, never the order header's
+            // method (a sibling's, or another gateway's on a split order), as the refund verbs write it.
             $data['payment_method_type'] = (string) ($refunded->payment_method_type ?? '');
+            $data['id_payment_method'] = (int) ($refunded->id_payment_method ?? 0);
 
             // An empty name is also what the NOT NULL, NO DEFAULT column turned
             // into a hard INSERT error on a method-0 order, which stranded a
@@ -2431,6 +2468,33 @@ class PaymentLedger
                 'Payment',
                 (int) $data['id_payment_method'],
             );
+        }
+
+        // The writer's identity (2.2.0). A row a payment plugin writes records that plugin's element, compared byte for
+        // byte with the method row's type, never stamped from a type an edit could have changed: a method that is not
+        // one of the writer's own, or a refund or chargeback of another gateway's money, is a contract error, and
+        // nothing is written.
+        if ($writer !== '') {
+            $named = (int) ($data['id_payment_method'] ?? 0);
+            $refusal = match (true) {
+                $spendLink > 0 => 'a wallet spend is the ledger\'s own row, never a payment plugin\'s',
+                $refunded !== null => (string) ($refunded->payment_method_type ?? '') === $writer
+                    ? null
+                    : sprintf('payment #%d is not %s\'s money', $sourceId, $writer),
+                $named <= 0 => sprintf('the row names no method of %s', $writer),
+                self::resolveMethodType('Payment', $named) !== $writer => sprintf('method #%d is not a method of %s', $named, $writer),
+                default => null,
+            };
+
+            if ($refusal !== null) {
+                self::warn('create(): ' . $refusal . '; nothing was written.');
+
+                return false;
+            }
+
+            if ($refunded === null) {
+                $data['payment_method_type'] = $writer;
+            }
         }
 
         // Auto-fill server-side defaults
@@ -2542,28 +2606,27 @@ class PaymentLedger
         // The wallet leg is settled by create(), which owns the transaction and
         // so logs the rows it wrote once they are committed.
         //
-        // The timeline entry is written by create() AFTER the commit; see
-        // logCreatedRow(). Writing it here put a best-effort insert inside the
-        // open transaction: a failure would either commit the payment with no
-        // record, or (on a lock timeout) roll the payment back while this
-        // method still returned its id.
+        // The timeline entry is written by create(), in its transaction after
+        // this body returned (2.2.0; see logCreatedRow()).
 
         return $newId;
     }
 
     /**
-     * Write the timeline entry for a committed payment row.
+     * Write the timeline entry for a payment row create() wrote.
      *
-     * Called after the transaction closes: a refund row is money going out and
-     * must read as 'payment.refunded', never as an incoming 'payment.added'; one
+     * Called inside create()'s transaction, before its commit, so the entry
+     * commits with the row (2.2.0): a refund row is money going out and must
+     * read as 'payment.refunded', never as an incoming 'payment.added'; one
      * that is not settled yet (pending or authorized, a reservation) reads as
      * 'payment.refund_reserved' (since 2.1.0).
-     * Non-fatal by contract: the row is committed, so an entry that cannot be
-     * written is logged and never turns a recorded payment into a throw, except
-     * a failure that ended the caller's transaction (a deadlock inside a provider
-     * word's frame), which reaches the caller (since 2.1.1).
+     * Non-fatal by contract, as a status change's records: an entry that cannot
+     * be written is logged (OrderModel::logOrderActivity() also raises the
+     * critical staff notice) and never refuses the row, except a failure that
+     * ended the transaction (a deadlock), which reaches create() and its caller
+     * with nothing written (since 2.1.1).
      *
-     * @param int $paymentId Committed payment row PK.
+     * @param int $paymentId Payment row PK, written in the open transaction.
      * @param int $orderId Order PK.
      *
      *
@@ -2596,7 +2659,7 @@ class PaymentLedger
     /**
      * The timeline entry of {@see self::logCreatedRow()}.
      *
-     * @param int $paymentId Committed payment row PK.
+     * @param int $paymentId Payment row PK.
      * @param int $orderId Order PK.
      *
      *
@@ -2664,6 +2727,9 @@ class PaymentLedger
      * @param bool $staff The write of a staff entry point (the payment form's save, the REST settle verb): held to
      *                    the staff guard under the lock ({@see self::staffWriteRefusal()}). Never set by a payment
      *                    plugin or by the ledger's own writes (since 2.1.0).
+     * @param string $writer The payment plugin updating through its builder (2.2.0, PaymentsPlugin::paymentUpdate()):
+     *                       only a row recorded as its own, moved only to another method of its own, and its recorded
+     *                       plugin stays ({@see self::writerRefusal()}).
      *
      * @return bool True on success
      *
@@ -2671,7 +2737,7 @@ class PaymentLedger
      *
      * @since  1.0.0
      */
-    public static function update(int $id, array $data, bool $bookkeeping = false, ?Closure $payloadMerge = null, bool $staff = false): bool
+    public static function update(int $id, array $data, bool $bookkeeping = false, ?Closure $payloadMerge = null, bool $staff = false, string $writer = ''): bool
     {
         if ($id <= 0) {
             self::warn('update(): invalid payment ID');
@@ -2711,7 +2777,17 @@ class PaymentLedger
         // payment at a different order, which moves money between two pools,
         // so both have to be held. Unlocked read, used only to choose the
         // rows to lock; the authoritative snapshot is taken under them.
-        $previousOrderId = (int) (self::getRaw($id)?->id_order ?? 0);
+        $before = self::getRaw($id);
+        $previousOrderId = (int) ($before?->id_order ?? 0);
+
+        // A gateway's write on an attempt staff moved to Standard (2.2.0): refused before anything is locked, recorded
+        // and raised; the check under the lock below still refuses one that moved meanwhile.
+        if ($writer !== '' && $before !== null && $writer !== self::STANDARD_METHOD && (string) ($before->payment_method_type ?? '') === self::STANDARD_METHOD) {
+            self::warn(self::writerRefusal(stored: $before, data: $data, writer: $writer) ?? 'payment #' . $id . ' is not money of the ' . $writer . ' plugin', 'update()');
+            self::rejectMovedAttempt(stored: $before, gateway: $writer, reference: (string) ($data['transaction_id'] ?? ''));
+
+            return false;
+        }
 
         // The settle path is a pool writer too. A refund born 'pending' costs
         // the pool nothing; flipping it to 'completed' is what actually
@@ -2774,6 +2850,16 @@ class PaymentLedger
 
             if ($staffRefused !== null) {
                 self::warn($staffRefused, 'update()');
+                TransactionState::rollBackLevel($db);
+
+                return false;
+            }
+
+            // A payment plugin's update (the writer named, 2.2.0): its own rows only, moved only to its own methods.
+            $notTheirs = $writer !== '' && $oldSnapshot ? self::writerRefusal(stored: $oldSnapshot, data: $data, writer: $writer) : null;
+
+            if ($notTheirs !== null) {
+                self::warn($notTheirs, 'update()');
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2848,8 +2934,10 @@ class PaymentLedger
                 }
 
                 // The type records the plugin that took the money: it moves with the id only (or fills a row that
-                // records none), never with a later edit of the method's own type (since 2.1.0).
-                if ($movedFrom !== $movedTo || (string) ($oldSnapshot->payment_method_type ?? '') === '') {
+                // records none), never with a later edit of the method's own type (since 2.1.0). A payment plugin's
+                // update (the writer named, 2.2.0) never changes it: writerRefusal() let through only a move to
+                // another method of its own.
+                if ($writer === '' && ($movedFrom !== $movedTo || (string) ($oldSnapshot->payment_method_type ?? '') === '')) {
                     $data['payment_method_type'] = self::resolveMethodType('Payment', $movedTo);
                 }
             }
@@ -2883,6 +2971,13 @@ class PaymentLedger
                 }
 
                 $walletEntries = self::settleWalletForPayment($id, $orderId, failClosed: false);
+
+                // What the write owes commits with it (2.2.0): its timeline row and its singles. The status
+                // automation and the refund flip run from their singles once the outermost transaction committed and
+                // Alfa's named locks are released, so plugin code never runs inside this transaction.
+                if ($oldSnapshot) {
+                    self::writeConsequences(id: $id, orderId: $orderId, oldSnapshot: $oldSnapshot, data: $data, bookkeeping: $bookkeeping);
+                }
             }
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
@@ -2905,24 +3000,12 @@ class PaymentLedger
             );
         }
 
-        // POST-COMMIT, deliberately. Status automation dispatches to plugins,
-        // and third-party code opening its own transaction would implicitly
-        // commit ours: the same reason spendOnOrder flips its row outside
-        // the lock and DocumentIssuer does its stock effect after committing.
-        if ($success && $oldSnapshot) {
-            self::applyWriteSideEffects($id, $orderId, $oldSnapshot, $data, $bookkeeping);
-
-            // A linked refund settled (or re-amounted while settled) by this write: its payment is refunded once its
-            // settled refunds cover it, as on every other settle path (since 2.1.0).
-            self::flipAfterSettle(stored: $oldSnapshot, data: $data, orderId: $orderId);
-        }
-
         return $success;
     }
 
     /**
-     * After a write of a linked refund that leaves it settled and either brought it into a settled status or changed
-     * its amount: {@see self::flipIfCovered()} for its payment, the one rule every settle path follows (the payment
+     * Whether a write of a linked refund leaves it settled and either brought it into a settled status or changed its
+     * amount: its payment then owes {@see self::flipIfCovered()}, the one rule every settle path follows (the payment
      * form, the REST settle verb, a plugin's builder or compare-and-set, the ledger's own verbs). The payment becomes
      * refunded only when its settled refunds cover it, decided under the order's lock, and status_on_refunded fires
      * only on that transition: a repeated save or settle of a refund already settled flips nothing. A settled refund
@@ -2932,9 +3015,9 @@ class PaymentLedger
      * @param array $data The write.
      * @param int $orderId Its order.
      *
-     * @since  2.1.0
+     * @since  2.2.0
      */
-    private static function flipAfterSettle(object $stored, array $data, int $orderId): void
+    private static function settlesLinkedRefund(object $stored, array $data, int $orderId): bool
     {
         $paymentId = (int) ($stored->id_refunded_payment ?? 0);
         $from = (string) ($stored->transaction_status ?? '');
@@ -2942,14 +3025,26 @@ class PaymentLedger
         $amountMoves = \array_key_exists('amount', $data)
             && self::money($data['amount'] ?? 0, $orderId)->getMinorUnits() !== self::money($stored->amount ?? 0, $orderId)->getMinorUnits();
 
-        if ((string) ($stored->payment_type ?? '') !== self::TYPE_REFUND
-            || $paymentId <= 0
-            || !\in_array($to, self::REFUND_SETTLED_STATUSES, true)
-            || (\in_array($from, self::REFUND_SETTLED_STATUSES, true) && !$amountMoves)) {
-            return;
-        }
+        return (string) ($stored->payment_type ?? '') === self::TYPE_REFUND
+            && $paymentId > 0
+            && \in_array($to, self::REFUND_SETTLED_STATUSES, true)
+            && (!\in_array($from, self::REFUND_SETTLED_STATUSES, true) || $amountMoves);
+    }
 
-        self::flipIfCovered(paymentId: $paymentId, orderId: $orderId);
+    /**
+     * Owe a payment's flip to refunded once its settled refunds cover it: the payment.refund_flip single, written in
+     * the open transaction of the write that settled a linked refund, run once the outermost transaction committed and
+     * Alfa's named locks are released ({@see PaymentRefundFlip}). It decides again under the order's lock, from the
+     * books as they are then (2.2.0).
+     *
+     * @param int $paymentId The payment.
+     * @param int $orderId Its order.
+     *
+     * @since  2.2.0
+     */
+    private static function oweRefundFlip(int $paymentId, int $orderId): void
+    {
+        Tasks::single(handler: PaymentRefundFlip::NAME, subjectType: 'order', subjectId: $orderId, payload: ['payment' => $paymentId]);
     }
 
     /**
@@ -3012,6 +3107,152 @@ class PaymentLedger
     }
 
     /**
+     * Claim a gateway's pending attempt for a provider reference: the one path for it (2.2.0). A payment plugin reaches
+     * it through PaymentsPlugin::claimPendingAttempt() and never writes the payment table itself.
+     *
+     * One compare-and-set inside the ledger's own transaction and under the order's row lock, as every ledger write: the
+     * row's id, order, gateway, money-in type (payment or authorization), pending status and empty transaction_id are all
+     * in the UPDATE's WHERE, and the affected-row count is the answer. Of two deliveries of one provider event that claim
+     * the same row, exactly one wins; the other changes nothing. Not updateIfStatus(): its condition is the status
+     * alone, and the empty reference is what this claim turns on.
+     *
+     * The winner's change is written to the order's timeline ('payment.edited', transaction_id) in the same
+     * transaction, through the write's consequences; the status does not move, so nothing else is owed.
+     *
+     * A reference is blank when nothing is left of it after trim(): a blank reference is refused, as a malformed
+     * argument. Any other reference is stored whole, byte for byte, its spaces and letter case kept. A row holds no
+     * reference when its transaction_id is NULL, empty or spaces alone, compared by binary weights (utf8mb4_bin, which
+     * pads with spaces), never by the column's own collation, which weighs many invisible and control characters as
+     * nothing: any other stored value holds the row, so an attempt is won once whatever its reference. A value of tabs
+     * alone, which trim() calls blank, holds the row too; no claim writes one.
+     *
+     * @param int $id The payment row.
+     * @param string $gateway The claiming gateway, the row's payment_method_type.
+     * @param string $reference The provider reference, not blank, stored whole.
+     *
+     * @return bool True when this call wrote the reference. False when the row is not, or no longer, that gateway's
+     *              pending payment or authorization without a reference (another delivery claimed it first, it moved
+     *              on, it was deleted): nothing is written.
+     *
+     * @throws InvalidArgumentException An id under 1, an empty gateway, or a blank reference.
+     * @throws RuntimeException When the row's order cannot be locked (held by another writer, or gone): nothing is
+     *                          written, the row stays claimable.
+     *
+     * @since  2.2.0
+     */
+    public static function claimReference(int $id, string $gateway, string $reference): bool
+    {
+        if ($id <= 0 || $gateway === '' || trim($reference) === '') {
+            throw new InvalidArgumentException('PaymentLedger::claimReference(): a payment id, a gateway and a reference that is not blank are required.');
+        }
+
+        $db = self::db();
+        $orderId = (int) (self::getRaw($id)->id_order ?? 0);
+
+        if ($orderId <= 0) {
+            return false;
+        }
+
+        $pending = self::STATUS_PENDING;
+        $won = false;
+        $db->transactionStart(true);
+
+        try {
+            if (!self::lockOrders($db, $orderId)) {
+                throw new RuntimeException('PaymentLedger::claimReference(): order #' . $orderId . ' of payment #' . $id . ' could not be locked; nothing was claimed.');
+            }
+
+            $before = self::getRaw($id);
+            $query = $db->getQuery(true)
+                ->update($db->quoteName(self::TABLE))
+                ->set($db->quoteName('transaction_id') . ' = :reference')
+                ->where($db->quoteName(self::PK) . ' = :id')
+                ->where($db->quoteName('id_order') . ' = :order')
+                ->where($db->quoteName('payment_method_type') . ' = :gateway')
+                ->whereIn($db->quoteName('payment_type'), [self::TYPE_PAYMENT, self::TYPE_AUTHORIZATION], ParameterType::STRING)
+                ->where($db->quoteName('transaction_status') . ' = :pending')
+                ->where('(' . $db->quoteName('transaction_id') . ' IS NULL OR ' . $db->quoteName('transaction_id') . " COLLATE utf8mb4_bin = '')")
+                ->bind(':reference', $reference)
+                ->bind(':id', $id, ParameterType::INTEGER)
+                ->bind(':order', $orderId, ParameterType::INTEGER)
+                ->bind(':gateway', $gateway)
+                ->bind(':pending', $pending);
+            $db->setQuery($query)->execute();
+            $won = $db->getAffectedRows() === 1;
+
+            if ($won && $before !== null) {
+                self::writeConsequences(id: $id, orderId: $orderId, oldSnapshot: $before, data: ['transaction_id' => $reference], bookkeeping: false);
+            }
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel($db, $e);
+
+            throw $e;
+        }
+
+        TransactionState::commitLevel($db);
+
+        if (!$won && $before !== null) {
+            self::rejectMovedAttempt(stored: $before, gateway: $gateway, reference: $reference);
+        }
+
+        return $won;
+    }
+
+    /**
+     * A gateway's callback for an attempt staff moved to Standard (2.2.0, design 2.15.5; the 2.1.0 rule:
+     * a pending attempt with no provider id may be moved): the write was already refused, so the Standard row is never
+     * settled or changed and nothing is moved back. The rejection is written to the order's history and raised as one
+     * staff alert naming the order, the attempt, the original gateway and the provider's reference, one per attempt and
+     * provider event, so a repeated callback adds no alert. The gateway's own answer to its provider is untouched.
+     *
+     * @param object $stored The row as it stood.
+     * @param string $gateway The gateway whose callback it was.
+     * @param string $reference The provider's reference or event id the callback carried ('' when none).
+     *
+     * @since  2.2.0
+     */
+    private static function rejectMovedAttempt(object $stored, string $gateway, string $reference): void
+    {
+        if ($gateway === '' || $gateway === self::STANDARD_METHOD || (string) ($stored->payment_method_type ?? '') !== self::STANDARD_METHOD
+            || !\in_array((string) ($stored->payment_type ?? self::TYPE_PAYMENT), [self::TYPE_PAYMENT, self::TYPE_AUTHORIZATION], true)) {
+            return;
+        }
+
+        $attempt = (int) ($stored->id ?? 0);
+        $orderId = (int) ($stored->id_order ?? 0);
+        $shown = $reference !== '' ? $reference : '-';
+
+        try {
+            OrderModel::logOrderActivity(
+                $orderId,
+                'payment.callback_rejected',
+                "Callback of the {$gateway} gateway rejected for attempt #{$attempt}: staff moved the attempt to Standard; nothing was changed (provider reference {$shown}).",
+                ['attempt' => $attempt, 'gateway' => $gateway, 'reference' => $reference],
+                $attempt,
+                0,
+            );
+            NotificationHelper::push(
+                'payment.moved.callback.' . $attempt . '.' . sha1($gateway . '|' . $reference),
+                NotificationText::of('COM_ALFA_NOTIFY_MOVED_CALLBACK_TITLE', $orderId),
+                [
+                    'severity' => 'danger',
+                    'group' => NotificationHelper::GROUP_PAYMENTS,
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_MOVED_CALLBACK_MESSAGE', $orderId, $attempt, $gateway, $shown),
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.payments.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                ],
+            );
+        } catch (Throwable $e) {
+            if (TransactionState::endedBy(db: self::db(), failure: $e)) {
+                throw $e;
+            }
+
+            self::warn('the rejected callback of ' . $gateway . ' for attempt #' . $attempt . ' could not be recorded: ' . $e->getMessage(), 'rejectMovedAttempt()');
+        }
+    }
+
+    /**
      * Compare-and-set update: write ONLY if the row still holds an
      * expected transaction_status.
      *
@@ -3062,6 +3303,9 @@ class PaymentLedger
      * @param bool $staff The write of a staff entry point (the REST settle verb writes a payment row through this
      *                    door): held to the staff guard under the lock ({@see self::staffWriteRefusal()}). Never
      *                    set by a payment plugin or by the ledger's own writes (since 2.1.0).
+     * @param string $writer The payment plugin writing through this door (2.2.0: its builder's ->expectStatus(),
+     *                       settleAttempt(), supersedeAttempt()): held to the plain update's rule under the lock
+     *                       ({@see self::writerRefusal()}). '' for staff and for the ledger's own writes.
      *
      * @return int WRITE_OK (1) this caller made the change, or the row still
      *             holds $expectedStatus and the write changed nothing;
@@ -3081,6 +3325,7 @@ class PaymentLedger
         ?Closure $payloadMerge = null,
         ?Closure $precondition = null,
         bool $staff = false,
+        string $writer = '',
     ): int {
         if ($id <= 0) {
             self::warn('updateIfStatus(): invalid payment ID');
@@ -3154,7 +3399,7 @@ class PaymentLedger
             }
 
             $unreconciled = null;
-            $affected = self::updateIfStatusLocked($db, $id, $data, $expectedStatus, $oldSnapshot, $unreconciled, staff: $staff);
+            $affected = self::updateIfStatusLocked($db, $id, $data, $expectedStatus, $oldSnapshot, $unreconciled, staff: $staff, writer: $writer);
 
             // The driver counts CHANGED rows, so a row that still holds
             // $expectedStatus but already carries these values also answers 0.
@@ -3169,6 +3414,14 @@ class PaymentLedger
             if ($affected >= 1) {
                 self::reevaluateAfterRefundEnded(db: $db, stored: $oldSnapshot, data: $data, orderId: $orderId);
                 $walletEntries = self::settleWalletForPayment($id, $orderId, failClosed: false);
+
+                // What the write owes commits with it, as in update() (2.2.0).
+                self::writeConsequences(id: $id, orderId: $orderId, oldSnapshot: $oldSnapshot, data: $data, bookkeeping: $bookkeeping);
+
+                // The provider's settle the ledger would have refused: written, and marked for staff with it.
+                if ($unreconciled !== null) {
+                    self::markUnreconciledSettle(refundId: $id, orderId: $orderId, refusal: $unreconciled);
+                }
             }
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
@@ -3190,6 +3443,12 @@ class PaymentLedger
         }
 
         if ($affected < 0) {
+            // A gateway's compare-and-set on an attempt staff moved to Standard: refused under the lock, recorded
+            // once it is released, as update() and claimReference() record theirs.
+            if ($writer !== '' && (string) ($oldSnapshot->payment_method_type ?? '') !== $writer) {
+                self::rejectMovedAttempt(stored: $oldSnapshot, gateway: $writer, reference: (string) ($data['transaction_id'] ?? ''));
+            }
+
             return self::WRITE_FAILED;
         }
 
@@ -3203,19 +3462,6 @@ class PaymentLedger
             // caller's read and this write. Nothing written, no side effects.
             return self::WRITE_RACED;
         }
-
-        // The provider's settle the ledger would have refused: written, and
-        // only now, with the row committed, logged and marked for staff.
-        if ($unreconciled !== null) {
-            self::markUnreconciledSettle(refundId: $id, orderId: $orderId, refusal: $unreconciled);
-        }
-
-        // POST-COMMIT: status automation dispatches to plugins, whose own
-        // transactions would implicitly commit ours.
-        self::applyWriteSideEffects($id, $orderId, $oldSnapshot, $data, $bookkeeping);
-
-        // A linked refund this compare-and-set settled: its payment is refunded once covered (since 2.1.0).
-        self::flipAfterSettle(stored: $oldSnapshot, data: $data, orderId: $orderId);
 
         return self::WRITE_OK;
     }
@@ -3251,6 +3497,7 @@ class PaymentLedger
         object $oldSnapshot,
         ?array &$unreconciled = null,
         bool $staff = false,
+        string $writer = '',
     ): int {
         $orderId = (int) ($data['id_order'] ?? 0);
 
@@ -3289,6 +3536,15 @@ class PaymentLedger
 
         if ($staffRefused !== null) {
             self::warn($staffRefused, 'updateIfStatus()');
+
+            return -1;
+        }
+
+        // Same writer rule as update(), for a payment plugin's compare-and-set (2.2.0).
+        $notTheirs = $writer !== '' ? self::writerRefusal(stored: $oldSnapshot, data: $data, writer: $writer) : null;
+
+        if ($notTheirs !== null) {
+            self::warn($notTheirs, 'updateIfStatus()');
 
             return -1;
         }
@@ -3360,7 +3616,7 @@ class PaymentLedger
                 $data['payment_method'] = self::resolveMethodName('Payment', $movedTo);
             }
 
-            if ($movedFrom !== $movedTo || (string) ($oldSnapshot->payment_method_type ?? '') === '') {
+            if ($writer === '' && ($movedFrom !== $movedTo || (string) ($oldSnapshot->payment_method_type ?? '') === '')) {
                 $data['payment_method_type'] = self::resolveMethodType('Payment', $movedTo);
             }
         }
@@ -4111,6 +4367,8 @@ class PaymentLedger
      *
      * @param int $paymentId Pending attempt row PK
      * @param string $reason Why it was abandoned; stamped into the row's note
+     * @param string $writer The payment plugin closing its own attempt (2.2.0, PaymentsPlugin::supersedeAttempt()):
+     *                       another plugin's row is refused ({@see self::updateIfStatus()}). '' for core.
      *
      * @return int WRITE_OK (1) this caller closed it;
      *             WRITE_RACED (0) no longer pending, nothing written;
@@ -4118,7 +4376,7 @@ class PaymentLedger
      *
      * @since  2.0.0
      */
-    public static function supersedeAttempt(int $paymentId, string $reason = ''): int
+    public static function supersedeAttempt(int $paymentId, string $reason = '', string $writer = ''): int
     {
         $row = self::getRaw($paymentId);
 
@@ -4151,6 +4409,7 @@ class PaymentLedger
             ],
             self::STATUS_PENDING,
             bookkeeping: true,
+            writer: $writer,
         );
     }
 
@@ -6796,15 +7055,9 @@ class PaymentLedger
                 return ['outcome' => 'whole', 'row' => $now];
             }
 
-            // The settle flips the payment once this transaction has committed, never inside it.
-            $was = self::$deferFlip;
-            self::$deferFlip = true;
-
-            try {
-                $childId = static::create(data: $child);
-            } finally {
-                self::$deferFlip = $was;
-            }
+            // The payment's flip never runs inside this transaction: create() owes it as a single, run once the
+            // outermost transaction committed (2.2.0), and the settle asks it again after this commit.
+            $childId = static::create(data: $child);
 
             if ($childId === false) {
                 TransactionState::rollBackLevel($db);
@@ -8099,22 +8352,28 @@ class PaymentLedger
      * decision taken before the lock: a concurrent settle or a refund set failed
      * meanwhile counts). Only settled refunds decide it; a reservation never does.
      *
+     * What the payment.refund_flip single runs ({@see PaymentRefundFlip}), and the verbs that flip right after their
+     * own commit.
+     *
      * @param int $paymentId The payment.
      * @param int $orderId Its order.
      *
+     * @return bool False when the compare-and-set failed (the order row busy, or the write refused): asking again may
+     *              flip it. True when it flipped, when it was not covered or no longer completed, and when the flip
+     *              is owed as a single.
+     *
      * @since  2.1.0
      */
-    private static function flipIfCovered(int $paymentId, int $orderId): void
+    public static function flipIfCovered(int $paymentId, int $orderId): bool
     {
         // Inside a provider word's frame the flip waits for the outermost commit: decided then under its own lock,
         // its status automation runs with no lock held (round 8d, {@see self::inWord()}). So does the flip of a
-        // frame inside core's staff verb, whatever transaction the verb runs in (since 2.1.1).
+        // frame inside core's staff verb, whatever transaction the verb runs in (since 2.1.1). Owed as a single of
+        // the frame's transaction, so a request that ends after the commit cannot lose it (2.2.0).
         if (self::$wordOrder !== 0 && (self::$wordDefersFlip || self::$verbOrder === self::$wordOrder) && TransactionState::isOpen(self::db())) {
-            PostCommit::defer(db: self::db(), label: sprintf('flip payment #%d once its settled refunds cover it', $paymentId), work: static function () use ($paymentId, $orderId): void {
-                self::flipIfCovered(paymentId: $paymentId, orderId: $orderId);
-            });
+            self::oweRefundFlip(paymentId: $paymentId, orderId: $orderId);
 
-            return;
+            return true;
         }
 
         $verdict = self::updateIfStatus(
@@ -8132,7 +8391,11 @@ class PaymentLedger
         // Raced: not covered under the lock, or no longer completed (flipped by the other writer).
         if ($verdict === self::WRITE_FAILED) {
             self::warn(sprintf('flipIfCovered(): payment #%d is covered by its settled refunds but could not be marked refunded; it stays as it is', $paymentId));
+
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -8399,6 +8662,76 @@ class PaymentLedger
         $added = $kept === null ? null : self::keptWordAdded(row: $kept, kind: $held ? self::REPORT_STATUS_PENDING : self::REPORT_STATUS_SETTLED, figure: $figure, providerRefundId: $providerId !== '' ? $providerId : null);
 
         return $added ?? self::keptAnswer(row: $existing, what: sprintf('the provider\'s word %s', $reference));
+    }
+
+    /**
+     * Why a payment plugin may not make this write, or null (2.2.0). Asked under the order lock by update() and
+     * updateIfStatus(), and by delete(), when the write names its writer (PaymentsPlugin::paymentUpdate(),
+     * settleAttempt(), supersedeAttempt(), deletePayment()): a plugin acts only on the rows recorded as its own, and
+     * moves one only to another method of its own. A row that records no plugin is no plugin's, as the action registry
+     * reads it. Staff writes and the ledger's own name no writer and are not asked.
+     *
+     * @param object $stored The row as read under the order lock.
+     * @param array $data The update payload.
+     * @param string $writer The payment plugin's element.
+     *
+     * @return string|null Why the write is refused, or null when it may proceed.
+     *
+     * @since  2.2.0
+     */
+    private static function writerRefusal(object $stored, array $data, string $writer): ?string
+    {
+        $id = (int) ($stored->id ?? 0);
+        $recorded = (string) ($stored->payment_method_type ?? '');
+
+        if ($recorded !== $writer) {
+            return sprintf(
+                'payment #%d is not money of the %s plugin (%s): a payment plugin acts only on its own payments; nothing was changed',
+                $id,
+                $writer,
+                $recorded !== '' ? $recorded : 'no plugin',
+            );
+        }
+
+        $movedTo = (int) ($data['id_payment_method'] ?? 0);
+
+        if ($movedTo > 0 && $movedTo !== (int) ($stored->id_payment_method ?? 0)) {
+            $target = self::resolveMethodType('Payment', $movedTo);
+
+            if ($target !== $writer) {
+                return sprintf(
+                    'payment #%d is written by %s and keeps it: method #%d is a method of %s, so the payment cannot move to it; nothing was changed',
+                    $id,
+                    $writer,
+                    $movedTo,
+                    $target !== '' ? $target : 'no plugin',
+                );
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Why a payment plugin may not record a reversal or a chargeback on a row, or null: a plugin records facts only on
+     * its own money. Asked only when the call names its plugin ('plugin', which PaymentsPlugin passes).
+     *
+     * @param object $row The target row (id, payment_method_type).
+     * @param array $options The call's options.
+     *
+     * @since  2.2.0
+     */
+    private static function factRefusal(object $row, array $options): ?string
+    {
+        if (!isset($options['plugin'])) {
+            return null;
+        }
+
+        $element = (string) ($row->payment_method_type ?? '');
+
+        return $element === (string) $options['plugin']
+            ? null
+            : sprintf('row #%d is not money of the %s plugin (%s): a gateway records reversals and chargebacks only on its own money', (int) $row->id, (string) $options['plugin'], $element !== '' ? $element : 'no plugin');
     }
 
     /**
@@ -8724,6 +9057,12 @@ class PaymentLedger
                 return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('row #%d does not exist', $rowId));
             }
 
+            // A payment plugin records a fact only on its own money (2.2.0): the call names it ('plugin'), as the
+            // refund verbs do. A row's recorded plugin never changes, so it is read before the lock.
+            if (($notTheirs = self::factRefusal(row: $target, options: $options)) !== null) {
+                return self::factResult(self::OUTCOME_REFUSED, reason: $notTheirs);
+            }
+
             $orderId = (int) $target->id_order;
             $kind = (string) ($target->payment_type ?? '');
 
@@ -8914,6 +9253,33 @@ class PaymentLedger
                 $paymentId = $kind === self::TYPE_REFUND ? (int) ($target->id_refunded_payment ?? 0) : 0;
                 $p = self::reopenIfUncovered(db: $db, paymentId: $paymentId, orderId: $orderId);
                 $reopened = $p !== null;
+
+                // The fact's timeline entry and notice, and the reopened payment's edit entry, commit with the fact
+                // (2.2.0). Each is best-effort: only a failure that ended the transaction reaches the catch.
+                self::afterFact(newId: (int) $newId, orderId: $orderId, amount: $amount, targetId: $rowId, kind: $kind === self::TYPE_REFUND ? 'refund_reversed' : 'chargeback_reversed');
+
+                if ($reopened) {
+                    try {
+                        // A bookkeeping flip owes no single: only its edit entry.
+                        self::logEditedRow(
+                            id:          $paymentId,
+                            orderId:     $orderId,
+                            oldSnapshot: $p,
+                            data:        ['id_order' => $orderId, 'transaction_status' => self::STATUS_COMPLETED],
+                        );
+                    } catch (Throwable $e) {
+                        if (TransactionState::endedBy(self::db(), $e)) {
+                            throw $e;
+                        }
+
+                        self::ensureLogger();
+                        Log::add(
+                            sprintf('recordReversal(): row #%d is recorded, but the edit entry of payment #%d failed: %s', (int) $newId, $paymentId, $e->getMessage()),
+                            Log::ERROR,
+                            'com_alfa.payments',
+                        );
+                    }
+                }
             } catch (Throwable $e) {
                 TransactionState::rollBackLevel($db, $e);
 
@@ -8928,29 +9294,6 @@ class PaymentLedger
             }
 
             return self::factFailure(verb: 'recordReversal', rowId: $rowId, error: $e);
-        }
-
-        // After the commit, never on a rollback path. Each step is best-effort:
-        // the fact is durable, so none of them can change the answer.
-        self::afterFact(newId: (int) $newId, orderId: $orderId, amount: $amount, targetId: $rowId, kind: $kind === self::TYPE_REFUND ? 'refund_reversed' : 'chargeback_reversed');
-
-        if ($reopened && $p !== null) {
-            try {
-                self::applyWriteSideEffects(
-                    id:          $paymentId,
-                    orderId:     $orderId,
-                    oldSnapshot: $p,
-                    data:        ['id_order' => $orderId, 'transaction_status' => self::STATUS_COMPLETED],
-                    bookkeeping: true,
-                );
-            } catch (Throwable $e) {
-                self::ensureLogger();
-                Log::add(
-                    sprintf('recordReversal(): row #%d is recorded, but the edit entry of payment #%d failed: %s', (int) $newId, $paymentId, $e->getMessage()),
-                    Log::ERROR,
-                    'com_alfa.payments',
-                );
-            }
         }
 
         return self::factResult(self::OUTCOME_RECORDED, (int) $newId, amount: $amount->getAmount(), reopened: $reopened);
@@ -8990,6 +9333,11 @@ class PaymentLedger
 
             if (!$payment) {
                 return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('payment #%d does not exist', $paymentId));
+            }
+
+            // A payment plugin records a fact only on its own money (2.2.0), as above.
+            if (($notTheirs = self::factRefusal(row: $payment, options: $options)) !== null) {
+                return self::factResult(self::OUTCOME_REFUSED, reason: $notTheirs);
             }
 
             $orderId = (int) $payment->id_order;
@@ -9131,6 +9479,10 @@ class PaymentLedger
 
                     return self::factResult(self::OUTCOME_FAILED, reason: 'the chargeback row was rejected by the ledger');
                 }
+
+                // No flip, no side effects, no Transition: the timeline and the notice only, committed with the fact
+                // (2.2.0).
+                self::afterFact(newId: (int) $newId, orderId: $orderId, amount: $amount, targetId: $paymentId, kind: 'charged_back');
             } catch (Throwable $e) {
                 TransactionState::rollBackLevel($db, $e);
 
@@ -9146,9 +9498,6 @@ class PaymentLedger
 
             return self::factFailure(verb: 'recordChargeback', rowId: $paymentId, error: $e);
         }
-
-        // No flip, no side effects, no Transition: the timeline and the notice only.
-        self::afterFact(newId: (int) $newId, orderId: $orderId, amount: $amount, targetId: $paymentId, kind: 'charged_back');
 
         return self::factResult(self::OUTCOME_RECORDED, (int) $newId, amount: $amount->getAmount());
     }
@@ -9268,10 +9617,12 @@ class PaymentLedger
     }
 
     /**
-     * The timeline entry and the admin notice of a committed fact row.
+     * The timeline entry and the admin notice of a fact row, written inside the
+     * transaction that commits it (2.2.0).
      *
      * Each runs on its own: a failure is logged ERROR with the row id and never
-     * changes the verb's answer.
+     * changes the verb's answer, except one that ended the transaction, which
+     * reaches the verb with nothing written.
      *
      * @param int $newId The fact row just committed.
      * @param int $orderId Its order.
@@ -9287,6 +9638,10 @@ class PaymentLedger
         try {
             self::logFactRow($newId, $orderId);
         } catch (Throwable $e) {
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
+
             self::ensureLogger();
             Log::add(sprintf('fact row #%d is recorded, but its timeline entry failed: %s', $newId, $e->getMessage()), Log::ERROR, 'com_alfa.payments');
         }
@@ -9294,6 +9649,10 @@ class PaymentLedger
         try {
             self::notifyFact(kind: $kind, newId: $newId, orderId: $orderId, amount: $amount, targetId: $targetId);
         } catch (Throwable $e) {
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
+
             self::ensureLogger();
             Log::add(sprintf('fact row #%d is recorded, but its notification failed: %s', $newId, $e->getMessage()), Log::ERROR, 'com_alfa.payments');
         }
@@ -9389,12 +9748,12 @@ class PaymentLedger
     }
 
     /**
-     * Write the timeline entry for a committed reversal or chargeback row.
+     * Write the timeline entry for a reversal or chargeback row.
      *
-     * Called after the transaction closes, as logCreatedRow() is. The amount is
-     * shown at the order's frozen scale.
+     * Called inside the transaction that commits the row, as logCreatedRow() is
+     * (2.2.0). The amount is shown at the order's frozen scale.
      *
-     * @param int $rowId Committed fact row PK.
+     * @param int $rowId Fact row PK.
      * @param int $orderId Order PK.
      *
      *
@@ -9480,13 +9839,15 @@ class PaymentLedger
     /**
      * Log and mark a refund the provider settled against the ledger's check.
      *
-     * The books follow the provider: the row is already settled and committed.
-     * What is left is to make the case impossible to miss, in the form a
-     * refund the gateway paid but the ledger did not record takes: a CRITICAL
-     * line in the payments log, in the ledger's own words, and a notice in the
-     * administrator's bell, in plain words, that links to the order. Neither
-     * is ever fatal: a log or a notice that cannot be written does not turn a
-     * committed settle into a failure for its caller.
+     * The books follow the provider: the row is settled in the open
+     * transaction, and the mark commits with it (2.2.0). What is left is to
+     * make the case impossible to miss, in the form a refund the gateway paid
+     * but the ledger did not record takes: a CRITICAL line in the payments
+     * log, in the ledger's own words, written once the row committed, and a
+     * notice in the administrator's bell, in plain words, that links to the
+     * order. Neither is ever fatal: a log or a notice that cannot be written
+     * does not turn the settle into a failure for its caller, except a failure
+     * that ended the transaction.
      *
      * @param int $refundId The refund row just settled.
      * @param int $orderId Its order.
@@ -9498,21 +9859,22 @@ class PaymentLedger
      */
     private static function markUnreconciledSettle(int $refundId, int $orderId, array $refusal): void
     {
-        try {
-            self::ensureLogger();
-            Log::add(
-                sprintf(
-                    'Refund #%d of order #%d was settled as the provider confirmed it, against the ledger\'s check: %s; reconcile manually.',
-                    $refundId,
-                    $orderId,
-                    rtrim((string) $refusal['reason'], '.'),
-                ),
-                Log::CRITICAL,
-                'com_alfa.payments',
-            );
-        } catch (Throwable) {
-            // The notice below still reaches staff.
-        }
+        $line = sprintf(
+            'Refund #%d of order #%d was settled as the provider confirmed it, against the ledger\'s check: %s; reconcile manually.',
+            $refundId,
+            $orderId,
+            rtrim((string) $refusal['reason'], '.'),
+        );
+
+        // A log line that claims what happened is written once it committed.
+        PostCommit::defer(db: self::db(), label: 'the unreconciled settle log line of refund #' . $refundId, work: static function () use ($line): void {
+            try {
+                self::ensureLogger();
+                Log::add($line, Log::CRITICAL, 'com_alfa.payments');
+            } catch (Throwable) {
+                // The notice still reaches staff.
+            }
+        });
 
         try {
             $amount = $refusal['amount']->format();
@@ -9561,30 +9923,98 @@ class PaymentLedger
     }
 
     /**
-     * Post-write work shared by update() and updateIfStatus(): change-diff
-     * activity logging, download entitlements and payment-method status
-     * automation. The CAS path calls it only on WRITE_OK, so the settle
-     * side effects fire exactly once per payment.
+     * What a write of update() or updateIfStatus() owes, written inside its transaction before the commit, so it commits
+     * with the row (2.2.0): the 'payment.edited' timeline row, and the singles that run once the outermost
+     * transaction committed and Alfa's named locks are released. The CAS path calls it only for a row it changed, so
+     * the settle's work is owed exactly once per payment.
      *
-     * With $bookkeeping the merchant-visible half is suppressed; see the
-     * seam comment at the transaction_status branch below. It runs only for
-     * a row that takes money in ({@see self::takesMoneyIn()}).
+     * A row that takes money in ({@see self::takesMoneyIn()}), outside bookkeeping, whose transaction_status the write
+     * changed: its download access when it turns completed, the documents due for the order's current status,
+     * then the method's status automation when the method maps the new status (payment.automation, with the order's
+     * status read under the order lock the write holds). A linked refund the write settles: its payment's flip.
+     *
+     * @param int $id Payment row PK just written
+     * @param int $orderId Parent order PK, locked by the write
+     * @param object $oldSnapshot The row as read under the lock, before the write
+     * @param array $data Fields the write carried (amount already float)
+     * @param bool $bookkeeping Suppress the merchant-visible side effects
+     *
+     * @since  2.2.0
+     */
+    private static function writeConsequences(int $id, int $orderId, object $oldSnapshot, array $data, bool $bookkeeping): void
+    {
+        self::logEditedRow(id: $id, orderId: $orderId, oldSnapshot: $oldSnapshot, data: $data);
+
+        $from = (string) ($oldSnapshot->transaction_status ?? '');
+        $to = (string) ($data['transaction_status'] ?? $from);
+
+        // SUPPRESSION SEAM (->bookkeeping() / $bookkeeping)
+        // These are the merchant-visible half of a status change: download
+        // access opens and closes for the WHOLE order, and the automation map
+        // drives the ORDER's status through Transition (status email, stock,
+        // activity entry). A bookkeeping write records where one ROW ended up
+        // (it does not claim the order reached a phase), so they are skipped,
+        // or closing a dead gateway attempt would email a cancellation to a
+        // buyer who is paying on another tab and revoke files another row paid
+        // for. Only a row that takes the customer's money in speaks for the
+        // order: a refund, reversal or chargeback records money going back, so
+        // its status never grants files, retries a document or moves the
+        // order's workflow. A write that leaves the status as it was owes
+        // nothing: a repeated gateway callback issues no second chance.
+        if (\array_key_exists('transaction_status', $data) && $to !== $from && !$bookkeeping && self::takesMoneyIn(row: $oldSnapshot, data: $data)) {
+            // A payment turning completed grants download entitlements, for the
+            // admin mark-paid action AND every gateway plugin writing through
+            // this helper, reconciled to the order's status when it runs:
+            // payment alone does not entitle. Written first, so it runs first
+            // and freshly minted raw tokens are cached when the transition's
+            // status email renders links.
+            if ($to === self::STATUS_COMPLETED) {
+                Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['payment' => $id]);
+            }
+
+            // A status that issues documents only when paid skipped at
+            // transition time while money was due; the order will not
+            // transition again, so settling it is the second chance: for the
+            // status the order is in when it runs.
+            Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['current' => true]);
+
+            // The method's status map, read from the snapshot's method as the
+            // automation reads it, run after the commit and the lock release.
+            $methodId = (int) ($oldSnapshot->id_payment_method ?? 0);
+
+            if (self::automationMethod(methodId: $methodId, status: $to) !== null) {
+                Tasks::single(handler: PaymentAutomation::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+                    'payment' => $id,
+                    'method' => $methodId,
+                    'from' => $from,
+                    'to' => $to,
+                    'order_status' => self::lockedOrderStatus(orderId: $orderId),
+                ]);
+            }
+        }
+
+        // NEVER suppressed: a linked refund settled (or re-amounted while
+        // settled) by this write refunds its payment once its settled refunds
+        // cover it, as on every other settle path (since 2.1.0). The wallet
+        // leg is not here either: settleWalletForPayment() runs inside the
+        // write's own transaction, before this.
+        if (self::settlesLinkedRefund(stored: $oldSnapshot, data: $data, orderId: $orderId)) {
+            self::oweRefundFlip(paymentId: (int) $oldSnapshot->id_refunded_payment, orderId: $orderId);
+        }
+    }
+
+    /**
+     * The 'payment.edited' timeline row of a write: the fields it changed.
      *
      * @param int $id Payment row PK just written
      * @param int $orderId Parent order PK
      * @param object $oldSnapshot Pre-write row snapshot
-     * @param array $data Fields the write carried (amount already float)
-     * @param bool $bookkeeping Suppress the merchant-visible side effects
+     * @param array $data Fields the write carried
      *
-     * @since  2.0.0
+     * @since  2.2.0
      */
-    private static function applyWriteSideEffects(
-        int $id,
-        int $orderId,
-        object $oldSnapshot,
-        array $data,
-        bool $bookkeeping = false,
-    ): void {
+    private static function logEditedRow(int $id, int $orderId, object $oldSnapshot, array $data): void
+    {
         // Diff ONLY the fields this call actually carries. The builder sends just
         // what was set, so diffing the whole list would read every absent column
         // as '' (buildDiff defaults a miss to '') and log a phantom change:
@@ -9615,62 +10045,42 @@ class PaymentLedger
                 $id,
             );
         }
+    }
 
-        if (array_key_exists('transaction_status', $data)) {
-            // SUPPRESSION SEAM (->bookkeeping() / $bookkeeping)
-            // These two are the merchant-visible half of a status change:
-            // Entitlements opens and closes download access for the WHOLE
-            // order, and the automation map drives the ORDER's status through
-            // Transition (status email, stock, activity entry). A bookkeeping
-            // write records where one ROW ended up (it does not claim the
-            // order reached a phase), so both are skipped, or closing a dead
-            // gateway attempt would email a cancellation to a buyer who is
-            // paying on another tab and revoke files another row paid for.
-            // Only a row that takes the customer's money in speaks for the
-            // order: a refund, reversal or chargeback records money going back,
-            // so its status never grants files, retries a document or moves
-            // the order's workflow.
-            if (!$bookkeeping && self::takesMoneyIn(row: $oldSnapshot, data: $data)) {
-                // A payment turning completed grants download entitlements;
-                // this catches the admin mark-paid action AND every gateway
-                // plugin writing through this helper. A single of the write
-                // (2.1.4), reconciled to the order's status once the write
-                // committed: payment alone does not entitle. Written BEFORE the
-                // automation map's, so it runs first and freshly minted raw
-                // tokens are cached when the transition's status email renders
-                // links.
-                $newStatus = (string) $data['transaction_status'];
+    /**
+     * The order's status as it stands under the order row lock the caller's open transaction holds.
+     *
+     * @param int $orderId The order.
+     *
+     * @since  2.2.0
+     */
+    private static function lockedOrderStatus(int $orderId): int
+    {
+        $db = self::db();
 
-                if ($newStatus === self::STATUS_COMPLETED && (string) ($oldSnapshot->transaction_status ?? '') !== $newStatus) {
-                    Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['payment' => $id]);
-                }
+        return (int) $db->setQuery(
+            'SELECT ' . $db->quoteName('id_order_status') . ' FROM ' . $db->quoteName('#__alfa_orders')
+            . ' WHERE ' . $db->quoteName('id') . ' = ' . $orderId . ' FOR UPDATE',
+        )->loadResult();
+    }
 
-                // A status that issues documents only when paid skipped at
-                // transition time while money was due; the order will not
-                // transition again, so settling it is the second chance: for
-                // the status the order is in when it runs (2.1.4, a single).
-                Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['current' => true]);
+    /**
+     * The transaction status a payment row holds now, or null when the row no longer exists: what the guards of the
+     * singles a write owes compare with the status the write left.
+     *
+     * @param int $id Payment row PK.
+     *
+     * @since  2.2.0
+     */
+    public static function statusOf(int $id): ?string
+    {
+        $db = self::db();
+        $status = $db->setQuery(
+            'SELECT ' . $db->quoteName('transaction_status') . ' FROM ' . $db->quoteName(self::TABLE)
+            . ' WHERE ' . $db->quoteName(self::PK) . ' = ' . $id,
+        )->loadResult();
 
-                self::applyStatusAutomation(
-                    orderId:   $orderId,
-                    payment:   $oldSnapshot,
-                    oldStatus: (string) ($oldSnapshot->transaction_status ?? ''),
-                    newStatus: (string) $data['transaction_status'],
-                );
-            }
-
-            // NEVER suppressed: returning spent wallet money is money truth,
-            // not presentation: leaving a customer's credit consumed by a
-            // row the books just voided is the one outcome no caller wants.
-            // THE WALLET LEG IS NOT HERE ANY MORE. It used to fire from this
-            // post-commit block, which is why a compensating rollback could
-            // not take the money back with it (the refunded->completed edge is
-            // not a reversal trigger), and why a PHP Error thrown by a plugin
-            // in Entitlements or applyStatusAutomation above (both caught
-            // Exception, not Throwable) skipped the return while the status
-            // flip stood. settleWalletForPayment() now runs inside the write's
-            // own transaction; see update()/updateIfStatus().
-        }
+        return $status === null ? null : (string) $status;
     }
 
     /**
@@ -10182,15 +10592,6 @@ class PaymentLedger
      */
     private static bool $staffWayOut = false;
 
-    /**
-     * True only while splitReservation() writes a part inside its own transaction: create() then leaves the flip of
-     * the payment to the settle, which asks it once the split has committed ({@see self::flipIfCovered()}). Never
-     * set by a caller.
-     *
-     * @since  2.1.0
-     */
-    private static bool $deferFlip = false;
-
     /** @var bool Set while the outermost refundPayment() call runs ({@see self::keepRefusedMoney()}). */
     private static bool $keepsRefused = false;
 
@@ -10600,87 +11001,103 @@ class PaymentLedger
     }
 
     /**
-     * Move the ORDER when a payment changes status, per the method's map.
+     * Move the ORDER when a payment changed status, per the method's map: what the payment.automation single runs once
+     * the write committed and Alfa's named locks are released, after its guards ({@see PaymentAutomation}, 2.2.0).
      *
-     * Reads `status_on_<newStatus>` from the payment method's params: a
-     * PLUGIN-DECLARED map, so a gateway that never declares the fields simply
-     * automates nothing. Never throws and never forces: automation must not
-     * pull an order out of the cancelled family.
+     * Reads `status_on_<newStatus>` from the payment method's params when it
+     * runs: a PLUGIN-DECLARED map, so a gateway that never declares the
+     * fields simply automates nothing. Never forces: automation must not pull
+     * an order out of the cancelled family. A failure is logged and reaches
+     * the task, which retries it.
      *
      * @param int $orderId Parent order PK
-     * @param object $payment Pre-update row snapshot (carries the method id)
+     * @param int $paymentId The payment row
+     * @param int $methodId The row's method, as the write read it
      * @param string $oldStatus Status the row left
      * @param string $newStatus Status the row reached
+     * @param int|null $expectedOrderStatus The status the order must still be in, checked under the order row lock
+     *                                      (Transition::expectStatus()); null for none.
      *
+     * @return string What the ask came to: one of Transition's OUTCOME_ constants (busy: asking again may move it;
+     *                superseded: the order was no longer in the expected status, nothing moved).
      *
      * @since  2.0.0
      */
-    private static function applyStatusAutomation(
-        int $orderId,
-        object $payment,
-        string $oldStatus,
-        string $newStatus,
-    ): void {
-        $nested = TransactionState::isOpen(self::db());
-
+    public static function applyStatusAutomation(int $orderId, int $paymentId, int $methodId, string $oldStatus, string $newStatus, ?int $expectedOrderStatus = null): string
+    {
         try {
-            $methodId = (int) ($payment->id_payment_method ?? 0);
-
-            if ($newStatus === '' || $newStatus === $oldStatus || $methodId <= 0 || $orderId <= 0) {
-                return;
-            }
-
-            $db = self::db();
-
-            $query = $db->getQuery(true)
-                ->select($db->quoteName(['type', 'params']))
-                ->from($db->quoteName('#__alfa_payments'))
-                ->where($db->quoteName('id') . ' = :id')
-                ->bind(':id', $methodId);
-            $db->setQuery(query: $query);
-            $method = $db->loadObject();
+            $method = $newStatus !== $oldStatus && $orderId > 0 ? self::automationMethod(methodId: $methodId, status: $newStatus) : null;
 
             if ($method === null) {
-                return;
+                return Transition::OUTCOME_UNMOVED;
             }
 
-            $params = json_decode((string) $method->params, true) ?: [];
-            $targetStatusId = (int) ($params['status_on_' . $newStatus] ?? 0);
+            $transition = Transition::for($orderId)
+                ->to($method['target'])
+                ->byPlugin($method['type'])
+                ->note('Payment #' . $paymentId . ' -> ' . $newStatus);
 
-            if ($targetStatusId <= 0) {
-                return;
+            if ($expectedOrderStatus !== null) {
+                $transition->expectStatus($expectedOrderStatus);
             }
 
-            $moved = Transition::for($orderId)
-                ->to($targetStatusId)
-                ->byPlugin((string) $method->type)
-                ->note('Payment #' . (int) ($payment->id ?? 0) . ' -> ' . $newStatus)
-                ->save();
+            $outcome = $transition->outcome(moved: $transition->save());
 
-            if (!$moved) {
+            if ($outcome === Transition::OUTCOME_UNMOVED) {
                 self::reportMoveNotMade(
                     orderId:        $orderId,
-                    targetStatusId: $targetStatusId,
-                    cause:          'payment #' . (int) ($payment->id ?? 0) . ' -> ' . $newStatus,
+                    targetStatusId: $method['target'],
+                    cause:          'payment #' . $paymentId . ' -> ' . $newStatus,
                 );
             }
-        } catch (Throwable $e) {
-            // A deadlock that ended the caller's transaction is the caller's
-            // to hear: answered here, the caller would carry on as if its
-            // work were still pending.
-            if ($nested && !TransactionState::isOpen(self::db())) {
-                throw $e;
-            }
 
-            // Throwable, not Exception: the payment row is committed by the
-            // time this runs, so an Error raised under the transition must be
-            // logged here and never reach the caller of the write as a throw.
+            return $outcome;
+        } catch (Throwable $e) {
+            // Throwable, not Exception: the payment row is committed by the time this runs. The failure is logged here,
+            // as before, and reaches the task, which retries it.
             Log::add(
                 entry:    'Payment status automation failed for order ' . $orderId . ': ' . $e->getMessage(),
                 priority: Log::ERROR,
                 category: 'com_alfa.orders',
             );
+
+            throw $e;
         }
+    }
+
+    /**
+     * The order status a payment method's map moves the order to when a row of the method reaches a status, with the
+     * method's type; null when the map moves nothing (no such method, or no status_on_<status>).
+     *
+     * @param int $methodId The payment method.
+     * @param string $status The transaction status reached.
+     *
+     * @return array{type: string, target: int}|null
+     *
+     * @since  2.2.0
+     */
+    private static function automationMethod(int $methodId, string $status): ?array
+    {
+        if ($methodId <= 0 || $status === '') {
+            return null;
+        }
+
+        $db = self::db();
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['type', 'params']))
+            ->from($db->quoteName('#__alfa_payments'))
+            ->where($db->quoteName('id') . ' = :id')
+            ->bind(':id', $methodId, ParameterType::INTEGER);
+        $method = $db->setQuery(query: $query)->loadObject();
+
+        if ($method === null) {
+            return null;
+        }
+
+        $params = json_decode((string) $method->params, true) ?: [];
+        $target = (int) ($params['status_on_' . $status] ?? 0);
+
+        return $target > 0 ? ['type' => (string) $method->type, 'target' => $target] : null;
     }
 
     /**
@@ -11542,17 +11959,30 @@ class PaymentLedger
      *
      * @param int $id Payment row PK
      * @param int $orderId Order PK (for activity log)
+     * @param string $writer The payment plugin deleting (2.2.0, PaymentsPlugin::deletePayment()): only a row recorded as
+     *                       its own ({@see self::writerRefusal()}). '' for staff and for core.
      *
      * @return bool True on success
      *
      * @since  1.0.0
      */
-    public static function delete(int $id, int $orderId): bool
+    public static function delete(int $id, int $orderId, string $writer = ''): bool
     {
         $payment = self::getRaw($id);
 
         // No payment row of an order that names no currency is removed.
         OrderCurrency::of(orderId: (int) ($payment->id_order ?? $orderId));
+
+        // A payment plugin deletes only its own rows (2.2.0): another plugin's row, or one that records none, is refused.
+        if ($writer !== '') {
+            $notTheirs = $payment ? self::writerRefusal(stored: $payment, data: [], writer: $writer) : sprintf('payment #%d does not exist', $id);
+
+            if ($notTheirs !== null) {
+                self::warn('delete(): ' . $notTheirs);
+
+                return false;
+            }
+        }
 
         // A PROVIDER FACT IS HISTORY. A reversal or a chargeback is never
         // deleted, and neither is a row one of them names.
@@ -11657,27 +12087,43 @@ class PaymentLedger
             return false;
         }
 
-        $success = self::deleteFromTable($id);
+        // The delete and its timeline row commit together (2.2.0).
+        $db = self::db();
+        $db->transactionStart(true);
 
-        if ($success && $payment) {
-            $methodName = $payment->payment_method ?? '';
-            $amount = number_format((float) ($payment->amount ?? 0), 2);
+        try {
+            if (!self::deleteFromTable($id)) {
+                TransactionState::rollBackLevel($db);
 
-            OrderModel::logOrderActivity(
-                $orderId,
-                'payment.deleted',
-                Text::sprintf('COM_ALFA_PAYMENT_DELETED_LOG', $methodName, $amount),
-                [
-                    'amount' => (float) ($payment->amount ?? 0),
-                    'payment_method' => $methodName,
-                    'transaction_status' => $payment->transaction_status ?? '',
-                    'payment_type' => $payment->payment_type ?? '',
-                ],
-                $id,
-            );
+                return false;
+            }
+
+            if ($payment) {
+                $methodName = $payment->payment_method ?? '';
+                $amount = number_format((float) ($payment->amount ?? 0), 2);
+
+                OrderModel::logOrderActivity(
+                    $orderId,
+                    'payment.deleted',
+                    Text::sprintf('COM_ALFA_PAYMENT_DELETED_LOG', $methodName, $amount),
+                    [
+                        'amount' => (float) ($payment->amount ?? 0),
+                        'payment_method' => $methodName,
+                        'transaction_status' => $payment->transaction_status ?? '',
+                        'payment_type' => $payment->payment_type ?? '',
+                    ],
+                    $id,
+                );
+            }
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel($db, $e);
+
+            throw $e;
         }
 
-        return $success;
+        TransactionState::commitLevel($db);
+
+        return true;
     }
 
     /**
@@ -12977,14 +13423,27 @@ class PaymentLedger
             return ['refunds' => $own] + $none;
         }
 
-        try {
-            $plugin = Factory::getApplication()->bootPlugin($element, 'alfa-payments');
+        // The gateway of record, through the plugin helper (2.2.0, design 2.15.5): while it is disabled, missing or
+        // cannot be loaded its reports cannot be read, so the block holds, naming the plugin and how to restore it.
+        $plugins = AlfaPluginHelper::get();
 
-            if (!$plugin instanceof PaymentsPlugin) {
-                return $none;
+        try {
+            $plugin = $plugins->bootSingle(PluginId::from('alfa-payments', $element));
+        } catch (PluginUnavailable|InvalidArgumentException $unavailable) {
+            try {
+                self::ensureLogger();
+                Log::add(sprintf('Payment #%d: its provider refunds cannot be read: %s', $paymentId, $unavailable->getMessage()), Log::WARNING, 'com_alfa.payments');
+            } catch (Throwable) {
+                // The refusal below holds whether or not the log can be written.
             }
 
-            $answer = $plugin->unbookedProviderRefunds(paymentId: $paymentId);
+            $why = $unavailable instanceof PluginUnavailable && $unavailable->reason === PluginUnavailable::NOT_LOADED ? 'COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF' : 'COM_ALFA_REFUND_REPORTS_PLUGIN_UNAVAILABLE';
+
+            return ['refunds' => [], 'reserved' => [], 'unread' => Text::sprintf($why, 'alfa-payments.' . $element), 'booked' => []];
+        }
+
+        try {
+            $answer = $plugins->invoke($plugin, 'unbookedProviderRefunds', $paymentId);
             $currency = OrderCurrency::of(orderId: (int) ($payment->id_order ?? 0));
         } catch (Throwable $e) {
             // Staff see a fixed sentence naming the plugin; the exception's own text goes to the log only.

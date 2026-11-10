@@ -28,9 +28,9 @@ use Throwable;
  *
  * Rebuilds are **delete-first inside a transaction**, so the swap is one atomic
  * replace: a failed rebuild leaves the item's previous rows untouched, is logged
- * rather than raised, and the next save runs it again. Writes are idempotent and
- * guarded by {@see IndexRebuildLock} so overlapping saves cannot interleave.
- * That transaction is a savepoint when a caller already holds one: a second
+ * rather than raised, and the next save runs it again. Writes are idempotent; the
+ * caller holds the items' locks ({@see IndexRebuildLock}, taken by {@see ProjectionManager}),
+ * so overlapping rebuilds of an item cannot interleave. That transaction is a savepoint when a caller already holds one: a second
  * START TRANSACTION would commit the caller's work on the spot.
  *
  * @since  2.0.0
@@ -48,23 +48,18 @@ class ItemFieldValueProjection implements ProjectionInterface
 
     private ItemFieldValueCollector $collector;
 
-    private IndexRebuildLock $lock;
-
     /**
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      * @param ItemFieldValueCollector|null $collector Injected for testing; defaults to a new collector.
-     * @param IndexRebuildLock|null $lock Injected for testing; defaults to a new lock.
      *
      * @since  2.0.0
      */
     public function __construct(
         ?DatabaseInterface $db = null,
         ?ItemFieldValueCollector $collector = null,
-        ?IndexRebuildLock $lock = null,
     ) {
         $this->db = $db ?? Factory::getContainer()->get('DatabaseDriver');
         $this->collector = $collector ?? new ItemFieldValueCollector($this->db);
-        $this->lock = $lock ?? new IndexRebuildLock($this->db);
     }
 
     /**
@@ -74,12 +69,6 @@ class ItemFieldValueProjection implements ProjectionInterface
     public function syncItem(int $itemId): void
     {
         if ($itemId <= 0) {
-            return;
-        }
-
-        // Another connection is already rebuilding this item; its full
-        // delete+insert will reflect the current source of truth, so skip.
-        if (!$this->lock->acquire($itemId)) {
             return;
         }
 
@@ -108,8 +97,6 @@ class ItemFieldValueProjection implements ProjectionInterface
             }
 
             $this->logWarning('syncItem(' . $itemId . ') failed: ' . $e->getMessage());
-        } finally {
-            $this->lock->release($itemId);
         }
     }
 
@@ -118,6 +105,34 @@ class ItemFieldValueProjection implements ProjectionInterface
      * @since  2.0.0
      */
     public function syncItems(array $itemIds): void
+    {
+        $this->syncChunks(itemIds: $itemIds, strict: false);
+    }
+
+    /**
+     * Rebuild the rows of several items and let a failure reach the caller (2.2.0): the catalogue.rebuild job clears
+     * an item's mark only when its rebuild committed. Each chunk is rolled back at its own level first.
+     *
+     * @param int[] $itemIds The item primary keys.
+     *
+     * @throws Throwable Whatever a chunk met.
+     *
+     * @since  2.2.0
+     */
+    public function syncItemsOrFail(array $itemIds): void
+    {
+        $this->syncChunks(itemIds: $itemIds, strict: true);
+    }
+
+    /**
+     * The chunks of syncItems() and syncItemsOrFail().
+     *
+     * @param int[] $itemIds The item primary keys.
+     * @param bool $strict Rethrow every failure (true), or log one that left the caller's transaction open (false).
+     *
+     * @since  2.2.0
+     */
+    private function syncChunks(array $itemIds, bool $strict): void
     {
         $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds))));
 
@@ -147,8 +162,8 @@ class ItemFieldValueProjection implements ProjectionInterface
                     throw $e;
                 }
             } catch (Throwable $e) {
-                // As in syncItem(): the caller hears a failure that ended its transaction.
-                if ($nested && (!TransactionState::isOpen(db: $this->db) || TransactionState::endedBy(db: $this->db, failure: $e))) {
+                // As in syncItem(): the caller hears a failure that ended its transaction, and a strict caller every one.
+                if ($strict || ($nested && (!TransactionState::isOpen(db: $this->db) || TransactionState::endedBy(db: $this->db, failure: $e)))) {
                     throw $e;
                 }
 
@@ -171,8 +186,8 @@ class ItemFieldValueProjection implements ProjectionInterface
      *
      * The set-shaped delete {@see ProjectionManager} prefers: one
      * `DELETE ... WHERE item_id IN (...)` per chunk instead of one statement per
-     * item. No {@see IndexRebuildLock} or transaction here: a pure delete is
-     * idempotent and has no insert phase that a concurrent rebuild could race.
+     * item. No transaction here: a pure delete is idempotent; the caller holds
+     * the items' locks ({@see ProjectionManager::deleteForItems()}).
      *
      * @param int[] $itemIds The item primary keys.
      *

@@ -13,6 +13,7 @@
  *     read-only action is fetched. The session token rides in the URL either way.
  *   - a `refresh` flag in a single-action reply reloads the page after the result
  *     is shown, for actions whose outcome changes what the page displays.
+ *   - a `location` in a chunked action's plan opens that page instead (a queued job's progress page).
  *
  * On success the bar turns green and the button stays disabled (reload to re-run);
  * on error the bar turns red and the button is re-enabled for a retry.
@@ -88,6 +89,12 @@
 
         request(btn.getAttribute('data-plan-url'), ctx.mutating)
             .then(function (data) {
+                // The action queued a job: its progress page follows it.
+                if (data && data.location) {
+                    window.location.assign(data.location);
+                    return;
+                }
+
                 const plan = (data && data.plan) || [];
                 ctx.grandTotal = plan.reduce(function (sum, t) { return sum + (t.total || 0); }, 0) || 1;
                 processPlan(plan, 0, 0, 0, ctx);

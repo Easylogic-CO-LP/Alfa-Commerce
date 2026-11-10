@@ -11,16 +11,23 @@ namespace Alfa\Component\Alfa\Site\View\Items;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Search\ResultSetRenderEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Alfa\Component\Alfa\Site\Helper\ResultAttributes;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Facet\NarrowingFilters;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Throwable;
 
 /**
  * View class for a list of items
@@ -47,6 +54,34 @@ class HtmlView extends BaseHtmlView
 
     /** @var bool Whether the listing's subcategory strip renders on THIS request */
     protected $showCategories = true;
+
+    /** @var bool Joomla's page heading (the menu item's Show Page Heading), as Joomla's own components print it */
+    protected bool $showPageHeading = false;
+
+    /**
+     * @var ResultAttribution|null What the rendered result set carries (2.2.0): its handle (or none), its shown order;
+     *                             rendered only through resultSetAttributes() and resultAttributes()
+     */
+    protected ?ResultAttribution $resultAttribution = null;
+
+    /** @var int|null The position a single card's reload carried (2.2.0), at least 1; null for none */
+    protected ?int $cardPosition = null;
+
+    /** @var bool The category's title above the listing (show_category_title: category, then menu item, then global) */
+    protected bool $showCategoryTitle = false;
+
+    /**
+     * @var bool The category's description above the listing (show_category_description, the same chain), only when it
+     *           has text or an image
+     */
+    protected bool $showCategoryDescription = false;
+
+    /**
+     * @var bool Whether the page opens on its results (2.2.0, design 2.20): a later page reached by its link, or a
+     *           request that submits a filter. The template marks the results region (data-results-reveal); list-form.js
+     *           scrolls it into view and gives it the focus on load.
+     */
+    protected bool $revealResults = false;
 
     /** @var string Resolved default card sub-template (the "item" slot) for rows without their own */
     protected $cardTpl = 'item';
@@ -110,6 +145,14 @@ class HtmlView extends BaseHtmlView
                 view: 'items',
                 slot: 'item',
             );
+
+            // THE CARD KEEPS ITS PLACE IN THE RESULT SET (2.2.0): the swap sends the position the card
+            // it replaces carried, and the card renders it back through the same call. Only a whole
+            // number from 1 counts; anything else renders none. The handle stays on the container.
+            $position = trim($input->getString('position', ''));
+            $this->cardPosition = ctype_digit($position) && (int) $position >= 1 ? (int) $position : null;
+            $this->resultAttribution = new ResultAttribution(engine: self::engineKey());
+            $this->announceResultSet(kind: ResultSetRenderEvent::KIND_CARD);
 
             parent::display($this->cardTplFor($this->item));
 
@@ -181,11 +224,11 @@ class HtmlView extends BaseHtmlView
         // Get items data
         $this->items = $itemsModel->getItems();
 
-        // THE ATTRIBUTION EDGE, read AFTER getItems() because that is what runs the search.
-        // Null whenever this listing is not an attributable search (no keyword, a
-        // non-recording intent, a free-tier engine, analytics off), and the template must
-        // then declare nothing rather than a zero.
-        $this->searchEventId = $itemsModel->getSearchEventId();
+        // THE ATTRIBUTION, read AFTER getItems() because that is what runs the search: the
+        // provider's handle (or none) and the shown order. With no handle the templates render
+        // no attribution metadata at all.
+        $this->resultAttribution = $itemsModel->getResultAttribution() ?? new ResultAttribution(engine: self::engineKey());
+        $this->keepOutOfPageCache();
 
         $this->pagination = $itemsModel->getPagination();
         $this->state = $itemsModel->getState();
@@ -209,12 +252,125 @@ class HtmlView extends BaseHtmlView
         // Get category-related data ($this->category was already fetched above)
         $this->categories = $this->showCategories ? $itemsModel->getItemsCategories() : [];
 
+        // Above the strip: the category's title and its description (the page heading is _prepareDocument()'s).
+        $this->decideCategoryBlocks();
+
         // Resolve price settings once for all items
         $this->priceSettings = PriceSettings::get();
 
+        // THE SHOPPER ASKED FOR THE PRODUCTS (2.2.0, design 2.20): page 2 by its link, or a filter the request submits,
+        // opens on the results rather than the page's top. The server decides, from what it already knows (the page the
+        // state shows, the filter the request carries), so no address or filter name is parsed in JavaScript. A menu
+        // item's preset filters are the page itself, not a submission.
+        $this->revealResults = (int) $this->state->get('list.start', 0) > 0 || self::carriesValue(value: $input->get('filter', [], 'array'));
+
         $this->_prepareDocument();
 
+        // Every rendered result set is announced, from the view and never from a template, so no override can lose it.
+        $this->announceResultSet(kind: \in_array($input->getCmd('tmpl', ''), ['', 'index', 'offline'], true) ? ResultSetRenderEvent::KIND_PAGE : ResultSetRenderEvent::KIND_FRAGMENT);
+
         parent::display($tpl);
+    }
+
+    /**
+     * The results container's attribution attributes (2.2.0): the handle and the shown order, only when a handle was
+     * minted. The listing template's supported override contract, with resultAttributes().
+     *
+     * @return string The attributes, each preceded by a space; '' for none.
+     *
+     * @since  2.2.0
+     */
+    public function resultSetAttributes(): string
+    {
+        $attribution = $this->resultAttribution;
+
+        if ($attribution === null || !$attribution->hasHandle()) {
+            return '';
+        }
+
+        return ResultAttributes::render([ResultAttributes::HANDLE => $attribution->handle, ResultAttributes::ORDER => $attribution->order]);
+    }
+
+    /**
+     * A result's attribution attributes (2.2.0): its global position, only when the result set carries a handle, or,
+     * on a single card's reload, the position the reload carried.
+     *
+     * @param int|null $position The result's global position, from 1.
+     *
+     * @return string The attributes, each preceded by a space; '' for none.
+     *
+     * @since  2.2.0
+     */
+    public function resultAttributes(?int $position = null): string
+    {
+        if ($this->cardPosition !== null) {
+            return ResultAttributes::render([ResultAttributes::POSITION => $this->cardPosition]);
+        }
+
+        if ($this->resultAttribution === null || !$this->resultAttribution->hasHandle()) {
+            return '';
+        }
+
+        return ResultAttributes::render([ResultAttributes::POSITION => $position]);
+    }
+
+    /**
+     * Announce the rendered result set (onAlfaResultSetRender; mode A, a display phase): the alfa-search group imported
+     * first, each listener isolated, so one that fails is logged by the helper, named, and the others and the listing
+     * go on. A listener may add its own assets and script options.
+     *
+     * @param string $kind ResultSetRenderEvent::KIND_PAGE, KIND_FRAGMENT or KIND_CARD.
+     *
+     * @since  2.2.0
+     */
+    private function announceResultSet(string $kind): void
+    {
+        try {
+            $plugins = AlfaPluginHelper::get();
+            $plugins->importGroup('alfa-search');
+            $event = new ResultSetRenderEvent('onAlfaResultSetRender', [
+                'subject' => $this,
+                'context' => 'com_alfa.items',
+                'kind' => $kind,
+                'engine' => self::engineKey(),
+                'attribution' => $this->resultAttribution ?? new ResultAttribution(engine: self::engineKey()),
+                'position' => $this->cardPosition,
+            ]);
+            $plugins->dispatchIsolated($event);
+        } catch (Throwable $e) {
+            try {
+                Log::add('Items view: a listener of onAlfaResultSetRender failed; the listing renders: ' . $e->getMessage(), Log::WARNING, 'com_alfa.search');
+            } catch (Throwable) {
+                // A log that cannot be written must not break the listing.
+            }
+        }
+    }
+
+    /**
+     * A handle that belongs to this response alone is never shared through Joomla's page cache (2.2.0): for this
+     * request, onPageCacheIsExcluded answers true. allowCache(false) would not do it: the page cache never reads it.
+     *
+     * @since  2.2.0
+     */
+    private function keepOutOfPageCache(): void
+    {
+        if ($this->resultAttribution === null || !$this->resultAttribution->excludesSharing()) {
+            return;
+        }
+
+        AlfaPluginHelper::get()->listen('onPageCacheIsExcluded', static function ($event): void {
+            $event->addResult(true);
+        });
+    }
+
+    /**
+     * The configured engine's key (the component option search_engine).
+     *
+     * @since  2.2.0
+     */
+    private static function engineKey(): string
+    {
+        return (string) ComponentHelper::getParams('com_alfa')->get('search_engine', 'database');
     }
 
     /**
@@ -245,10 +401,121 @@ class HtmlView extends BaseHtmlView
      */
     protected function _prepareDocument(): void
     {
+        $this->addPageHeading();
         $this->addBreadcrumbs();
         $this->addMetaTags();
         $this->addCanonicalUrl();
         $this->addRobotsMeta();
+    }
+
+    /**
+     * The category's title and description above the listing, IN THIS ORDER after Joomla's page heading (when the menu
+     * item's option enables it, addPageHeading()): each by Alfa's own setting, never by Show Page Heading; the
+     * description only when it has something to show. A listing of every product has no category: only the page
+     * heading can show there.
+     *
+     * @since  2.2.0
+     */
+    protected function decideCategoryBlocks(): void
+    {
+        $hasCategory = !empty($this->category->id);
+
+        $this->showCategoryTitle = $hasCategory && $this->categoryShows(name: 'show_category_title');
+        $this->showCategoryDescription = $hasCategory && $this->categoryShows(name: 'show_category_description')
+            && self::hasContent(html: (string) ($this->category->desc ?? ''));
+    }
+
+    /**
+     * Whether one of the category's listing blocks shows: the category's own value (its list options) when it set one,
+     * else the menu item's, else the global (SiteApplication::getParams() has merged those two, Use Global leaving the
+     * global), else shown. Only null and '' are "not set": 0 is a value.
+     *
+     * @param string $name The option: show_category_title or show_category_description.
+     *
+     * @return bool True when the block shows.
+     *
+     * @since  2.2.0
+     */
+    private function categoryShows(string $name): bool
+    {
+        $own = $this->category->list_options[$name] ?? null;
+
+        if ($own !== null && $own !== '') {
+            return (bool) (int) $own;
+        }
+
+        $inherited = $this->params->get($name);
+
+        return $inherited === null || $inherited === '' ? true : (bool) (int) $inherited;
+    }
+
+    /**
+     * Whether a request value carries anything: a non-empty string, or an array holding one at any depth (a filter
+     * form submits its empty controls too).
+     *
+     * @param mixed $value The value as the request has it.
+     *
+     * @since  2.2.0
+     */
+    private static function carriesValue(mixed $value): bool
+    {
+        if (\is_array($value)) {
+            foreach ($value as $inner) {
+                if (self::carriesValue(value: $inner)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return trim((string) $value) !== '';
+    }
+
+    /**
+     * Whether a description has anything to show: text once its tags are stripped and its white space trimmed, or an
+     * image. An editor's empty paragraph has neither.
+     *
+     * @param string $html The description as stored.
+     *
+     * @return bool True when it has text or an image.
+     *
+     * @since  2.2.0
+     */
+    private static function hasContent(string $html): bool
+    {
+        if (preg_match('/<(?:img|picture|svg|video|iframe)\b/i', $html) === 1) {
+            return true;
+        }
+
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return preg_replace('/[\s\x{00A0}\x{200B}]+/u', '', $text) !== '';
+    }
+
+    /**
+     * The text of Joomla's page heading when the menu item gave none, as Joomla's own category listing sets it: on
+     * this listing's own menu item (the same category, or every product), the menu item's Page Title, else its title;
+     * elsewhere the category's name. A Page Heading the merchant typed always wins (def()).
+     *
+     * @since  2.2.0
+     */
+    protected function addPageHeading(): void
+    {
+        $menu = $this->app->getMenu()->getActive();
+        $categoryId = (int) ($this->category->id ?? 0);
+        $ownMenu = $menu !== null
+            && ($menu->query['option'] ?? '') === 'com_alfa'
+            && ($menu->query['view'] ?? '') === 'items'
+            && (int) ($menu->query['category_id'] ?? 0) === $categoryId;
+
+        $this->params->def('page_heading', $ownMenu
+            ? $this->params->get('page_title', $menu->title)
+            : (string) ($this->category->name ?? ''));
+
+        // Shown when the menu item's Show Page Heading says so and there is a heading to show.
+        $this->showPageHeading = (bool) $this->params->get('show_page_heading', 0)
+            && trim((string) $this->params->get('page_heading', '')) !== '';
     }
 
     /**

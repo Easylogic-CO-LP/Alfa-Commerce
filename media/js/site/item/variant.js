@@ -274,6 +274,13 @@
         var itemId = container.dataset.itemId;
         var scope = control.dataset.itemReload === 'price' ? 'price' : 'item';
         var query = selectionQuery(form);
+
+        // The card keeps its place in the result set: the position it carries goes with the
+        // reload, and the server renders it back on the fresh card (the handle stays on the
+        // container, which the swap keeps). A card without one sends none.
+        if (container.dataset.position) {
+            query.set('position', container.dataset.position);
+        }
         var url = form.dataset.action + (form.dataset.action.indexOf('?') === -1 ? '?' : '&') + query.toString();
 
         // An address on another origin is never fetched and nothing is swapped.

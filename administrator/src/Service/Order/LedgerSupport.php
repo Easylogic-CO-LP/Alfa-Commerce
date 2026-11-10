@@ -639,6 +639,11 @@ trait LedgerSupport
             $db->setQuery($query);
             $db->execute();
         } catch (Exception $e) {
+            // A failure that ended the transaction the delete runs in reaches the caller (2.2.0: delete() has one).
+            if (TransactionState::endedBy($db, $e)) {
+                throw $e;
+            }
+
             self::warn('deleteFromTable() failed: ' . $e->getMessage());
             return false;
         }

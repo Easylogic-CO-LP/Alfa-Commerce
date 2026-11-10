@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\View\Orders;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
 /**
@@ -25,6 +26,8 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  */
 class JsonApiView extends BaseApiView
 {
+    use ListsRequestTasks;
+
     /**
      * The fields to render item in the documents
      *
@@ -149,6 +152,9 @@ class JsonApiView extends BaseApiView
                 $item = $this->prepareItem($model->getItemWithoutCurrency(orderId: $e->orderId()));
             }
         }
+
+        // The request's singles about this order too: an integration sees an e-mail held without asking again.
+        $this->addRequestTasks(subjectType: 'order', subjectId: (int) ($item->id ?? 0));
 
         return parent::displayItem($item);
     }

@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Event\Media\BeforeDeleteEvent;
 use Alfa\Component\Alfa\Administrator\Event\Media\BeforeProcessEvent;
 use Alfa\Component\Alfa\Administrator\Event\Media\ThumbnailEvent;
 use Alfa\Component\Alfa\Administrator\Event\Media\ValidateEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Exception;
 use FilesystemIterator;
 use Joomla\CMS\Component\ComponentHelper;
@@ -26,8 +27,6 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
@@ -45,6 +44,42 @@ class MediaHelper
      * @since  2.0.0
      */
     private const MEDIA_GROUP = 'alfa-media';
+
+    /**
+     * The longest image description (alt) a media row holds: its column is varchar(75). The tile's input, saveMedia
+     * and the API's media rows all hold to it, so a longer one never fails a gallery save (2.2.0).
+     *
+     * @var int
+     * @since  2.2.0
+     */
+    public const ALT_MAX_LENGTH = 75;
+
+    /**
+     * The thumbnail box a site uses when it stores none (2.2.0: 500 x 500; Options' default and the installer's,
+     * ComponentOptions::DEFAULTS).
+     *
+     * @var int
+     * @since  2.2.0
+     */
+    public const THUMBNAIL_BOX = 500;
+
+    /**
+     * A row's thumbnail_origin when its thumbnail was made from the row's own image (2.2.0): the Recreate thumbnails job
+     * may make it again.
+     *
+     * @var string
+     * @since  2.2.0
+     */
+    public const THUMBNAIL_FROM_IMAGE = 'image';
+
+    /**
+     * A row's thumbnail_origin when its thumbnail is a picture the merchant chose on the tile (2.2.0): the Recreate
+     * thumbnails job leaves it as it is. A row written before 2.2.0 stores neither (NULL).
+     *
+     * @var string
+     * @since  2.2.0
+     */
+    public const THUMBNAIL_CHOSEN = 'chosen';
 
     /**
      * Standard image MIME types accepted out of the box.
@@ -323,35 +358,13 @@ class MediaHelper
         if ((bool) ComponentHelper::getParams('com_alfa')->get('media_full_deletion', 1)) {
             $rows = $db->setQuery(
                 $db->getQuery(true)
-                    ->select($db->quoteName(['path', 'thumbnail']))
+                    ->select($db->quoteName(['id', 'path', 'thumbnail']))
                     ->from($db->quoteName('#__alfa_media'))
                     ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
                     ->whereIn($db->quoteName('item_id'), $itemIds),
             )->loadObjectList();
 
-            foreach ($rows as $row) {
-                foreach ([$row->path, $row->thumbnail] as $file) {
-                    $file = ltrim((string) $file, '/');
-
-                    // Skip empties and external URLs (type=url media stores an absolute URL).
-                    if ($file === ''
-                        || str_starts_with($file, 'http://')
-                        || str_starts_with($file, 'https://')
-                        || str_starts_with($file, '//')) {
-                        continue;
-                    }
-
-                    $absolute = JPATH_ROOT . '/' . $file;
-
-                    if (is_file($absolute)) {
-                        try {
-                            File::delete($absolute);
-                        } catch (Throwable $e) {
-                            // Best-effort: a missing/locked file must not block the delete.
-                        }
-                    }
-                }
-            }
+            self::deleteFilesOfRows(rows: $rows);
         }
 
         $db->setQuery(
@@ -403,7 +416,7 @@ class MediaHelper
         foreach (array_chunk($mediaIds, self::DELETE_BATCH_SIZE) as $batch) {
             $rows = $db->setQuery(
                 $db->getQuery(true)
-                    ->select($db->quoteName(['path', 'thumbnail']))
+                    ->select($db->quoteName(['id', 'path', 'thumbnail']))
                     ->from($db->quoteName('#__alfa_media'))
                     ->whereIn($db->quoteName('id'), $batch),
             )->loadObjectList();
@@ -411,28 +424,7 @@ class MediaHelper
             // Let a plugin clean up derivatives before the rows/files go away.
             self::dispatchBeforeDelete($rows);
 
-            foreach ($rows as $row) {
-                foreach ([$row->path, $row->thumbnail] as $file) {
-                    $file = ltrim((string) $file, '/');
-
-                    if ($file === ''
-                        || str_starts_with($file, 'http://')
-                        || str_starts_with($file, 'https://')
-                        || str_starts_with($file, '//')) {
-                        continue;
-                    }
-
-                    $absolute = JPATH_ROOT . '/' . $file;
-
-                    if (is_file($absolute)) {
-                        try {
-                            File::delete($absolute);
-                        } catch (Throwable $e) {
-                            // Best-effort: a missing/locked file must not block the delete.
-                        }
-                    }
-                }
-            }
+            self::deleteFilesOfRows(rows: $rows);
 
             $db->setQuery(
                 $db->getQuery(true)
@@ -444,6 +436,134 @@ class MediaHelper
         }
 
         return $deleted;
+    }
+
+    /**
+     * Delete the local files of these rows, each only when no other media row names it as its path or its thumbnail
+     * (2.2.0: two rows may name one file, a pick of an image already in the save folder or a tile thumbnail taken
+     * from it, and deleting one row must never take the other's image). The rows themselves are the caller's to
+     * delete; a file that only they name goes, a file another row names stays. External URLs and empty columns are
+     * skipped; a file that is missing or locked never blocks the delete.
+     *
+     * @param object[] $rows Media rows (id, path, thumbnail) about to be deleted.
+     *
+     * @since  2.2.0
+     */
+    private static function deleteFilesOfRows(array $rows): void
+    {
+        $files = [];
+        $ids = [];
+
+        foreach ($rows as $row) {
+            $ids[] = (int) $row->id;
+
+            foreach ([$row->path, $row->thumbnail] as $file) {
+                $file = self::localFile(path: (string) $file);
+
+                if ($file !== '') {
+                    $files[$file] = true;
+                }
+            }
+        }
+
+        foreach (array_diff(array_keys($files), self::filesNamedByOtherRows(files: array_keys($files), exceptIds: $ids)) as $file) {
+            $absolute = JPATH_ROOT . '/' . $file;
+
+            if (is_file($absolute)) {
+                try {
+                    File::delete($absolute);
+                } catch (Throwable $e) {
+                    // Best-effort: a missing/locked file must not block the delete.
+                }
+            }
+        }
+    }
+
+    /**
+     * The site-relative file a path or thumbnail column names, or '' for an empty column or an external URL (a type
+     * url row stores an absolute URL).
+     *
+     * @param string $path The column as stored.
+     *
+     * @return string The relative path, no leading slash.
+     *
+     * @since  2.2.0
+     */
+    private static function localFile(string $path): string
+    {
+        $file = ltrim(trim($path), '/');
+
+        if ($file === ''
+            || str_starts_with($file, 'http://')
+            || str_starts_with($file, 'https://')
+            || str_starts_with($file, '//')
+            || str_contains($file, '://')) {
+            return '';
+        }
+
+        return $file;
+    }
+
+    /**
+     * Which of these files another media row names as its path or its thumbnail (2.2.0): every row but the given
+     * ones, a stored value with or without its leading slash.
+     *
+     * @param string[] $files Site-relative files, no leading slash.
+     * @param int[] $exceptIds The rows that do not count (the ones being deleted or rewritten).
+     *
+     * @return string[] The files still named elsewhere.
+     *
+     * @since  2.2.0
+     */
+    public static function filesNamedByOtherRows(array $files, array $exceptIds = []): array
+    {
+        $files = array_values(array_unique(array_filter(array_map(static fn ($file): string => ltrim((string) $file, '/'), $files))));
+
+        if ($files === []) {
+            return [];
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $named = [];
+
+        foreach (array_chunk($files, self::DELETE_BATCH_SIZE) as $batch) {
+            $values = implode(',', array_map([$db, 'quote'], array_merge($batch, array_map(static fn (string $file): string => '/' . $file, $batch))));
+            $query = $db->getQuery(true)
+                ->select($db->quoteName(['path', 'thumbnail']))
+                ->from($db->quoteName('#__alfa_media'))
+                ->where('(' . $db->quoteName('path') . ' IN (' . $values . ') OR ' . $db->quoteName('thumbnail') . ' IN (' . $values . '))');
+            $except = array_values(array_filter(array_map('intval', $exceptIds), static fn (int $id): bool => $id > 0));
+
+            if ($except !== []) {
+                $query->whereNotIn($db->quoteName('id'), $except);
+            }
+
+            foreach ($db->setQuery($query)->loadObjectList() ?: [] as $row) {
+                foreach ([$row->path, $row->thumbnail] as $file) {
+                    $named[ltrim((string) $file, '/')] = true;
+                }
+            }
+        }
+
+        return array_values(array_intersect($files, array_keys($named)));
+    }
+
+    /**
+     * Whether a site-relative file lies inside a folder: the folder's own path followed by a separator, so a save
+     * folder images/commerce never takes in images/commerce-old (2.2.0).
+     *
+     * @param string $file Site-relative file.
+     * @param string $folder Site-relative folder.
+     *
+     * @return bool True when it lies inside.
+     *
+     * @since  2.2.0
+     */
+    public static function insideFolder(string $file, string $folder): bool
+    {
+        $folder = trim($folder, '/');
+
+        return $folder !== '' && str_starts_with(ltrim($file, '/'), $folder . '/');
     }
 
     /**
@@ -696,9 +816,28 @@ class MediaHelper
         $dropIndex = 0;
         $ordering = 0;
 
+        // The stored path and thumbnail of every existing row the form sends: a tile left as it was keeps its own
+        // thumbnail, and only its own (processThumbnail()).
+        $existingIds = array_values(array_filter(
+            array_map('intval', array_filter(array_keys($mediaData), static fn ($id): bool => !str_contains((string) $id, 'new-'))),
+            static fn (int $id): bool => $id > 0,
+        ));
+        $stored = $existingIds === [] ? [] : ($db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'path', 'thumbnail']))
+                ->from($db->quoteName('#__alfa_media'))
+                ->whereIn($db->quoteName('id'), $existingIds),
+        )->loadObjectList('id') ?: []);
+
         foreach ($mediaData as $id => $media) {
             // Check if media is new
             $isNew = str_contains($id, 'new-');
+            $alt = self::cappedAlt(alt: (string) ($media['alt'] ?? ''));
+            $finalThumbnail = '';
+            // What the thumbnail was made from (2.2.0): the row's own image, or a picture chosen on the tile; null for
+            // none. An existing row's tile left as it was keeps its stored origin ($keepOrigin).
+            $thumbnailOrigin = null;
+            $keepOrigin = false;
 
             // Determine type of newly added media (drag & dropped OR selected by Joomla's media picker)
             $isDrop = str_starts_with($media['source'], 'blob:');
@@ -712,9 +851,22 @@ class MediaHelper
                     rawThumbnail:       $media['thumbnail'],
                     defaultThumbPath:   $urlDefaultThumbnail,
                     absolutePath:       $absolutePath,
-                    saveFolder:         $saveFolder,
                     params:             $params,
+                    stored:             $isNew ? null : ($stored[(int) $id] ?? null),
                 );
+
+                if (!$isNew && isset($stored[(int) $id]) && self::keepsStoredThumbnail(cleanThumb: self::thumbnailSource(rawThumbnail: $media['thumbnail']), stored: $stored[(int) $id])) {
+                    $keepOrigin = true;
+                } elseif ($finalThumbnail !== '') {
+                    // A new pick whose thumbnail is the picked file, or an existing row's tile pointed at its own image,
+                    // is made from the row's image; any other picture was chosen on the tile.
+                    $imageSource = $isNew
+                        ? ($isPicker ? ltrim(rawurldecode(str_replace('picker://', '', HTMLHelper::cleanImageURL($media['source'])->url)), '/') : null)
+                        : (isset($stored[(int) $id]) ? ltrim((string) $stored[(int) $id]->path, '/') : null);
+                    $thumbnailOrigin = $imageSource !== null && self::thumbnailSource(rawThumbnail: $media['thumbnail']) === $imageSource
+                        ? self::THUMBNAIL_FROM_IMAGE
+                        : self::THUMBNAIL_CHOSEN;
+                }
             }
 
             // New media
@@ -756,7 +908,8 @@ class MediaHelper
                     }
                 } elseif ($isPicker) { // Joomla Media Picker Handler
                     $cleanPath = HTMLHelper::cleanImageURL($media['source']);
-                    $cleanPath = str_replace('picker://', '', $cleanPath->url);
+                    // The media field stores a URL: a file name with a space arrives as %20 (2.2.0).
+                    $cleanPath = rawurldecode(str_replace('picker://', '', $cleanPath->url));
 
                     // Containment: the resolved file must sit inside one of the
                     // media roots, not merely inside the web root: a picker path
@@ -839,7 +992,8 @@ class MediaHelper
                         'item_id' => $itemId,
                         'path' => $media['source'],
                         'thumbnail' => $finalThumbnail,
-                        'alt' => $media['alt'],
+                        'thumbnail_origin' => $thumbnailOrigin,
+                        'alt' => $alt,
                         'ordering' => $ordering,
                         'type' => $media['type'],
                         'origin' => $mediaOrigin,
@@ -899,18 +1053,19 @@ class MediaHelper
                         // FINAL file now that $dest is settled (optimised or copied as-is).
                         $color = $storeOk ? self::dominantColor($dest) : '';
 
-                        // Blob URLs are browser-only and unreachable server-side, so on first save
-                        // we generate the thumbnail from the main image. On subsequent saves the
-                        // thumbnail is already a real path, so the processThumbnail() call at the
-                        // top of the loop handles it instead and this block is skipped.
-                        if ($storeOk && (str_contains($media['thumbnail'], 'blob:')) && $isDrop) {
+                        // A new image with no thumbnail of its own gets one from its stored main
+                        // image: a drop (its blob URL is browser-only and unreachable server-side)
+                        // and an API pick that names none (2.2.0: every image's thumbnail is real).
+                        // On subsequent saves the thumbnail is the row's own, which the
+                        // processThumbnail() call at the top of the loop keeps.
+                        if ($storeOk && ((str_contains($media['thumbnail'], 'blob:') && $isDrop) || $finalThumbnail === '')) {
                             $finalThumbnail = self::processThumbnail(
                                 rawThumbnail:       $relativeDest,
                                 defaultThumbPath:   $urlDefaultThumbnail,
                                 absolutePath:       $absolutePath,
-                                saveFolder:         $saveFolder,
                                 params:             $params,
                             );
+                            $thumbnailOrigin = $finalThumbnail === '' ? null : self::THUMBNAIL_FROM_IMAGE;
                         }
 
                         if ($storeOk) {
@@ -918,8 +1073,9 @@ class MediaHelper
                                 'item_id' => $itemId,
                                 'path' => $relativeDest,
                                 'thumbnail' => $finalThumbnail,
+                                'thumbnail_origin' => $thumbnailOrigin,
                                 'color' => $color,
-                                'alt' => $media['alt'],
+                                'alt' => $alt,
                                 'ordering' => $ordering,
                                 'type' => $media['type'],
                                 'origin' => $mediaOrigin,
@@ -962,12 +1118,14 @@ class MediaHelper
 
                         // Remove both thumbnail and main image, but only files that
                         // actually resolve inside the media folder: a tampered path
-                        // column can never lead a delete outside it.
+                        // column can never lead a delete outside it; and never a file
+                        // another row names (2.2.0).
                         if ($result) {
                             $mediaRoot = realpath($absolutePath);
+                            $namedElsewhere = self::filesNamedByOtherRows(files: [(string) $result->path, (string) $result->thumbnail], exceptIds: [(int) $id]);
 
                             foreach ([$result->path, $result->thumbnail] as $path) {
-                                if (!$path) {
+                                if (!$path || \in_array(ltrim((string) $path, '/'), $namedElsewhere, true)) {
                                     continue;
                                 }
 
@@ -999,10 +1157,16 @@ class MediaHelper
                     // client here; only an external URL may be re-pointed.
                     $obj = (object) [
                         'id' => (int) $id,
-                        'alt' => $media['alt'],
+                        'alt' => $alt,
                         'ordering' => $ordering,
                         'thumbnail' => $finalThumbnail,
                     ];
+
+                    // The origin follows the thumbnail; a tile left as it was keeps its own (a row written before
+                    // 2.2.0 keeps NULL).
+                    if (!$keepOrigin) {
+                        $obj->thumbnail_origin = $finalThumbnail === '' ? null : $thumbnailOrigin;
+                    }
 
                     // Allow re-pointing a type=url record to another http/https URL
                     // only, never a local filesystem path.
@@ -1012,7 +1176,7 @@ class MediaHelper
                         $obj->path = $source;
                     }
 
-                    $db->updateObject('#__alfa_media', $obj, 'id');
+                    $db->updateObject('#__alfa_media', $obj, 'id', true);
                 }
             }
             $ordering++;
@@ -1023,30 +1187,26 @@ class MediaHelper
     /**
      * Processes and saves a thumbnail image.
      *
-     * Returns an empty string if the thumbnail is missing or matches the default placeholder,
-     * returns the existing path if it's already within the save folder,
-     * otherwise processes the source image and saves a new thumbnail.
+     * Returns an empty string if the thumbnail is missing or matches the default placeholder; returns the row's own
+     * stored thumbnail when the tile still shows it (an existing row re-saved as it was: its stored thumbnail, or its
+     * path where it stores none or stores its path), so a re-save writes no file; otherwise makes a new thumbnail of
+     * the given image at the configured box. A file that merely lies inside the save folder is NOT kept as it is
+     * (2.2.0): it may be another row's image, and a new row then gets its own copy, never another row's file.
      *
-     * @param string $rawThumbnail Raw (relative) thumbnail path.
+     * @param string $rawThumbnail Raw (relative) thumbnail path, possibly URL-encoded and with a fragment.
      * @param string $defaultThumbPath Path of the default placeholder thumbnail to compare against.
      * @param string $absolutePath Absolute filesystem path to the media save directory.
-     * @param string $saveFolder Relative path of the media save folder (e.g., 'images/commerce').
      * @param object $params Component parameters object.
+     * @param object|null $stored The row's stored path and thumbnail when it already exists; null for a new row.
      *
-     * @return string Relative path of the saved thumbnail, or empty string if none.
+     * @return string Relative path of the thumbnail, or empty string if none.
      * @since  1.0.0
      */
-    private static function processThumbnail(string $rawThumbnail, string $defaultThumbPath, string $absolutePath, string $saveFolder, object $params): string
+    private static function processThumbnail(string $rawThumbnail, string $defaultThumbPath, string $absolutePath, object $params, ?object $stored = null): string
     {
-        // Thumbnail SIZE is a component concern (a thumbnail must never be the
-        // full image). FORMAT/QUALITY are plugin concerns, applied only when a
-        // plugin handles the event; otherwise the always-on baseline resize runs.
-        $thumbnailWidth = (int) $params->get('media_thumbnail_width', 200);
-        $thumbnailHeight = (int) $params->get('media_thumbnail_height', 200);
-        $allowedMimes = self::resolveAllowedMimes($params->get('media_mime'));
-
-        // Strip URL fragments (e.g., cache busters) and normalize leading slashes
-        $cleanThumb = ltrim(strtok($rawThumbnail, '#'), '/');
+        // Strip URL fragments (e.g., cache busters), decode what the media field encoded (a space is %20, 2.2.0) and
+        // normalize leading slashes.
+        $cleanThumb = self::thumbnailSource(rawThumbnail: $rawThumbnail);
         $cleanDefault = ltrim($defaultThumbPath, '/');
 
         // Save empty string when no thumbnail is set or user selected the default placeholder
@@ -1054,11 +1214,9 @@ class MediaHelper
             return '';
         }
 
-        // Already processed: return as-is to avoid re-generating on subsequent saves
-        if (str_starts_with($cleanThumb, $saveFolder)) {
-            if (file_exists(JPATH_ROOT . '/' . $cleanThumb)) {
-                return $cleanThumb;
-            }
+        // The row's own thumbnail, unchanged: kept as stored, with no file written.
+        if ($stored !== null && self::keepsStoredThumbnail(cleanThumb: $cleanThumb, stored: $stored)) {
+            return (string) $stored->thumbnail;
         }
 
         // Containment: the source is a client-supplied relative path, so it must
@@ -1077,26 +1235,93 @@ class MediaHelper
             return '';
         }
 
-        $baseName = pathinfo($cleanThumb, PATHINFO_FILENAME); // Handle cases where there's no extension (e.g., "README")
+        return self::makeThumbnail(source: $sourcePath, dest: self::thumbnailDestination(source: $cleanThumb, absolutePath: $absolutePath), params: $params);
+    }
 
-        // Keep the source extension for the thumbnail; a plugin may convert it.
-        $outputFormat = pathinfo($cleanThumb, PATHINFO_EXTENSION) ?: 'jpg';
+    /**
+     * A thumbnail as the tile or the API sends it, read as a site-relative file: its fragment (a cache buster, the media
+     * field's joomlaImage part) dropped, what the media field encoded decoded (a space arrives as %20, 2.2.0), no leading
+     * slash.
+     *
+     * @param string $rawThumbnail The thumbnail as sent.
+     *
+     * @return string Site-relative file, or '' for none.
+     *
+     * @since  2.2.0
+     */
+    private static function thumbnailSource(string $rawThumbnail): string
+    {
+        return ltrim(rawurldecode((string) strtok($rawThumbnail, '#')), '/');
+    }
 
-        $uniqueName = self::getUniqueFilename(
-            name:           $baseName,
+    /**
+     * Whether a tile still shows the row's own stored thumbnail (an existing row re-saved as it was): its stored
+     * thumbnail, or its path where it stores none or stores its path. Such a tile writes no file and keeps its origin.
+     *
+     * @param string $cleanThumb The tile's thumbnail, read by {@see self::thumbnailSource()}.
+     * @param object $stored The row's stored path and thumbnail.
+     *
+     * @since  2.2.0
+     */
+    private static function keepsStoredThumbnail(string $cleanThumb, object $stored): bool
+    {
+        $ownThumbnail = ltrim((string) $stored->thumbnail, '/');
+        $ownPath = ltrim((string) $stored->path, '/');
+
+        return $cleanThumb === $ownThumbnail || ($cleanThumb === $ownPath && ($ownThumbnail === '' || $ownThumbnail === $ownPath));
+    }
+
+    /**
+     * Where a new thumbnail of an image is written (2.2.0, saveMedia's and the Recreate thumbnails job's one naming): in
+     * the save folder, `<the image's name>-thumb` with the image's extension, at a name whose stem no file on disk has in
+     * any extension and no media row names, so a plugin writing another format can never overwrite another file.
+     *
+     * @param string $source The image, site-relative.
+     * @param string $absolutePath Absolute path of the save folder.
+     *
+     * @return string Absolute path proposed for the thumbnail.
+     *
+     * @since  2.2.0
+     */
+    public static function thumbnailDestination(string $source, string $absolutePath): string
+    {
+        return rtrim($absolutePath, '/') . '/' . self::getUniqueFilename(
+            name:           pathinfo($source, PATHINFO_FILENAME),
             basePath:       $absolutePath,
-            outputFormat:   $outputFormat,
+            outputFormat:   pathinfo($source, PATHINFO_EXTENSION) ?: 'jpg',
             suffix:         '-thumb',
         );
+    }
 
-        $destPath = $absolutePath . '/' . $uniqueName;
+    /**
+     * Write a thumbnail of an image at the configured box (2.2.0: the one writer, for a saved tile and for the Recreate
+     * thumbnails job): the plugin layer first (onAlfaMediaThumbnail, which owns the format and the quality), else the
+     * always-on baseline resize, else, only when GD cannot resize, a plain copy. An existing file at the destination is
+     * overwritten.
+     *
+     * @param string $source Absolute path of the image.
+     * @param string $dest Absolute path proposed for the thumbnail.
+     * @param object|null $params Component parameters; null to read them.
+     *
+     * @return string Relative path of the file written (a plugin may change its extension), or '' when none was.
+     *
+     * @since  2.2.0
+     */
+    public static function makeThumbnail(string $source, string $dest, ?object $params = null): string
+    {
+        // Thumbnail SIZE is a component concern (a thumbnail must never be the
+        // full image). FORMAT/QUALITY are plugin concerns, applied only when a
+        // plugin handles the event; otherwise the always-on baseline resize runs.
+        [$thumbnailWidth, $thumbnailHeight] = self::thumbnailBox(params: $params);
+        $params ??= ComponentHelper::getParams('com_alfa');
+        $allowedMimes = self::resolveAllowedMimes($params->get('media_mime'));
 
         // Hand thumbnail processing to the plugin layer, carrying the component's
         // thumbnail dimensions as the target size. The plugin owns FORMAT/QUALITY.
         $result = self::dispatchProcess(
             eventName:    'onAlfaMediaThumbnail',
-            source:       $sourcePath,
-            dest:         $destPath,
+            source:       $source,
+            dest:         $dest,
             origin:       'thumbnail',
             field:        'thumbnail',
             maxWidth:     $thumbnailWidth,
@@ -1105,25 +1330,84 @@ class MediaHelper
         );
 
         if ($result['processed']) {
-            // Plugin resized/converted it; use the path it actually wrote.
-            return ltrim(str_replace(JPATH_ROOT . '/', '', $result['dest']), '/');
+            // Plugin resized/converted it; use the path it actually wrote, and only a file that is there (2.2.0): a
+            // plugin that claims the thumbnail and writes nothing leaves no thumbnail, never a name of no file.
+            $written = ltrim(str_replace(JPATH_ROOT . '/', '', $result['dest']), '/');
+
+            return $written !== '' && is_file(JPATH_ROOT . '/' . $written) ? $written : '';
         }
 
         // No plugin -> always-on baseline resize so the thumbnail is never the
         // full image. Falls back to a plain copy only if GD resize fails.
-        if (!self::resizeThumbnail($sourcePath, $destPath, $thumbnailWidth, $thumbnailHeight)) {
+        if (!self::resizeThumbnail($source, $dest, $thumbnailWidth, $thumbnailHeight)) {
             try {
-                File::copy($sourcePath, $destPath);
+                File::copy($source, $dest);
             } catch (Throwable $e) {
                 return '';
             }
         }
 
-        return ltrim(str_replace(JPATH_ROOT . '/', '', $destPath), '/');
+        return ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+    }
+
+    /**
+     * The thumbnail box, width and height: the site's stored values, else 500 x 500 (2.2.0).
+     *
+     * @param object|null $params Component parameters; null to read them.
+     *
+     * @return array{0: int, 1: int} Width, height.
+     *
+     * @since  2.2.0
+     */
+    public static function thumbnailBox(?object $params = null): array
+    {
+        $params ??= ComponentHelper::getParams('com_alfa');
+
+        return [
+            max(1, (int) $params->get('media_thumbnail_width', self::THUMBNAIL_BOX)),
+            max(1, (int) $params->get('media_thumbnail_height', self::THUMBNAIL_BOX)),
+        ];
+    }
+
+    /**
+     * An image description as a row holds it: at most {@see self::ALT_MAX_LENGTH} characters. A longer one is
+     * shortened, and the editor is told once per save, in plain words, instead of the save failing on the column
+     * (2.2.0). The form's own input stops at the same length, and the API refuses a longer one.
+     *
+     * @param string $alt The description as sent.
+     *
+     * @return string The description as stored.
+     *
+     * @since  2.2.0
+     */
+    private static function cappedAlt(string $alt): string
+    {
+        if (StringHelper::strlen($alt) <= self::ALT_MAX_LENGTH) {
+            return $alt;
+        }
+
+        static $told = false;
+
+        if (!$told) {
+            $told = true;
+
+            try {
+                Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_MEDIA_ALT_TOO_LONG'), 'warning');
+            } catch (Throwable) {
+                // No application to tell (a CLI caller): the description is shortened all the same.
+            }
+        }
+
+        return StringHelper::substr($alt, 0, self::ALT_MAX_LENGTH);
     }
 
     /**
      * Generates a unique filename to prevent overwriting existing files.
+     *
+     * UNIQUE BY STEM (2.2.0): a media plugin may write another format than the one proposed (the Media Optimizer set to
+     * WebP turns photo.jpg into photo.webp), so a name is free only when no file on disk has its stem in any extension
+     * and no media row names a file of that stem (a row whose file is gone keeps its name); otherwise a second upload of
+     * one name would overwrite the first item's image.
      *
      * @param string $name Original or alias based filename (e.g., 'photo.jpg')
      * @param string $basePath The directory path to check for conflicts.
@@ -1146,13 +1430,49 @@ class MediaHelper
             $name .= '-' . OutputFilter::stringURLSafe($suffix);
         }
 
-        // Increment until unique
+        // Increment until no file and no row has the stem.
         $candidate = $name;
-        while (file_exists($basePath . '/' . $candidate . '.' . $outputFormat)) {
+        while (self::stemTaken(basePath: $basePath, stem: $candidate)) {
             $candidate = StringHelper::increment($candidate, 'dash');
         }
 
         return $candidate . '.' . $outputFormat;
+    }
+
+    /**
+     * Whether a stem is taken in a folder: a file of that stem in any extension (or none), or a media row naming one as
+     * its path or its thumbnail, stored with or without a leading slash.
+     *
+     * @param string $basePath Absolute path of the folder.
+     * @param string $stem The name without its extension.
+     *
+     * @since  2.2.0
+     */
+    private static function stemTaken(string $basePath, string $stem): bool
+    {
+        $folder = rtrim($basePath, '/');
+        $pattern = preg_replace('/[\\[\\]*?{}]/', '\\\\$0', $folder . '/' . $stem) . '.*';
+
+        if (file_exists($folder . '/' . $stem) || (glob($pattern, GLOB_NOSORT) ?: []) !== []) {
+            return true;
+        }
+
+        $relative = ltrim(str_starts_with($folder, JPATH_ROOT . '/') ? substr($folder, \strlen(JPATH_ROOT) + 1) : $folder, '/');
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $likes = [];
+
+        foreach ([$relative . '/' . $stem, '/' . $relative . '/' . $stem] as $file) {
+            $like = $db->quote($db->escape($file, true) . '.%', false);
+            $likes[] = $db->quoteName('path') . ' LIKE ' . $like;
+            $likes[] = $db->quoteName('thumbnail') . ' LIKE ' . $like;
+        }
+
+        return (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_media'))
+                ->where('(' . implode(' OR ', $likes) . ')'),
+        )->loadResult() > 0;
     }
 
     /**
@@ -1624,21 +1944,12 @@ class MediaHelper
     }
 
     /**
-     * Hand one media event to every enabled alfa-media plugin, and to no one else.
+     * Raise one media event on the shared dispatcher (2.2.0, design 2.15.3): mode A, the alfa-media group imported
+     * first, under Alfa's isolated policy, so every enabled and loaded listener hears it whatever its group, and one
+     * that throws is logged while the next runs, as the media pipeline always absorbed a failing plugin.
      *
-     * WHY NOT THE APPLICATION DISPATCHER. importPlugin('alfa-media') followed by a dispatch on
-     * Factory::getApplication()->getDispatcher() reached far more than alfa-media: the `alfa`
-     * platform group is already registered on that same dispatcher by AlfaComponent::boot(), so
-     * platform plugins received media events by accident: inside a com_alfa request, and not
-     * outside one. That is not a contract anyone could rely on, in either direction.
-     *
-     * A private dispatcher would scope it, but PluginHelper::import() REBINDS a cached legacy
-     * CMSPlugin's dispatcher to whichever one it was imported with, for the rest of the request,
-     * so scoping one call can silently mute a plugin's own later dispatches. Booting and calling
-     * directly, exactly as PanelDispatcher and AlfaAdminDispatcher do, cannot rebind anything.
-     *
-     * The same event instance travels through every plugin in turn, so isValid(), getFinalPath()
-     * and isProcessed() accumulate across them just as they did on the shared dispatcher.
+     * The same event instance travels through every listener in turn, so isValid(), getFinalPath() and isProcessed()
+     * accumulate across them.
      *
      * @param AbstractEvent $event The media event.
      *
@@ -1648,25 +1959,9 @@ class MediaHelper
      */
     private static function dispatchMedia(AbstractEvent $event): AbstractEvent
     {
-        $app = Factory::getApplication();
-        $method = $event->getName();
-
-        foreach (PluginHelper::getPlugin(self::MEDIA_GROUP) as $descriptor) {
-            try {
-                $plugin = $app->bootPlugin($descriptor->name, self::MEDIA_GROUP);
-
-                if (method_exists($plugin, $method)) {
-                    $plugin->$method($event);
-                }
-            } catch (Throwable $e) {
-                Log::add(
-                    'MediaHelper: ' . self::MEDIA_GROUP . '/' . $descriptor->name . ' - ' . $method
-                        . ' - ' . $e->getMessage(),
-                    Log::WARNING,
-                    'com_alfa.media',
-                );
-            }
-        }
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup(self::MEDIA_GROUP);
+        $plugins->dispatchIsolated($event);
 
         return $event;
     }

@@ -1,0 +1,113 @@
+/**
+ * Alfa Commerce: the order-completed page (2.2.0)
+ *
+ * The page's own layout under its root (.com-alfa.order-completed): the order's facts,
+ * the lines, the addresses and the actions. The money summary keeps the cart's styles
+ * (cart.css, the cart.summary layout's classes). Colours come from the shop's tokens
+ * only; logical properties only, so a right-to-left page mirrors.
+ *
+ * Printed, the page shows the lines, the totals and the addresses in black on white
+ * and hides its own actions; the template's chrome stays the template's.
+ *
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+.com-alfa.order-completed .order-facts,
+.com-alfa.order-completed .order-address dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+    margin: 0 0 1rem;
+}
+
+.com-alfa.order-completed .order-facts > div,
+.com-alfa.order-completed .order-address dl > div {
+    display: contents;
+}
+
+.com-alfa.order-completed .order-facts dt,
+.com-alfa.order-completed .order-address dt {
+    font-weight: 700;
+}
+
+.com-alfa.order-completed .order-facts dd,
+.com-alfa.order-completed .order-address dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.com-alfa.order-completed .order-items {
+    margin-block: 1rem;
+}
+
+/* A product name or an option value may hold a word longer than a phone's width: it wraps rather than widen the page. */
+.com-alfa.order-completed .order-item-name,
+.com-alfa.order-completed .order-item-options {
+    overflow-wrap: anywhere;
+}
+
+.com-alfa.order-completed .order-item-options {
+    margin: 0.25rem 0 0;
+    padding-inline-start: 1rem;
+    color: var(--alfa-muted-color);
+    font-size: 0.9em;
+}
+
+.com-alfa.order-completed .order-item-quantity,
+.com-alfa.order-completed .order-item-total {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.com-alfa.order-completed .order-item-total {
+    text-align: end;
+}
+
+/* The summary sits under the lines' total column, as on the cart. */
+.com-alfa.order-completed .order-items .cart-summary {
+    margin-block-start: 0.75rem;
+    margin-inline-start: auto;
+    max-inline-size: 24rem;
+}
+
+.com-alfa.order-completed .order-addresses {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1rem;
+    margin-block: 1rem;
+}
+
+.com-alfa.order-completed .order-address {
+    padding: 0.75rem;
+    border: 1px solid var(--alfa-hairline);
+    background-color: var(--alfa-surface);
+    color: var(--alfa-surface-color, inherit);
+}
+
+.com-alfa.order-completed .order-address h3 {
+    margin-block: 0 0.5rem;
+    font-size: 1.05em;
+}
+
+.com-alfa.order-completed .order-completed-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-block: 1rem;
+}
+
+@media print {
+    .com-alfa.order-completed .order-completed-actions {
+        display: none;
+    }
+
+    .com-alfa.order-completed .order-items,
+    .com-alfa.order-completed .order-items *,
+    .com-alfa.order-completed .order-addresses,
+    .com-alfa.order-completed .order-addresses * {
+        color: #000;
+        background: #fff;
+        border-color: #000;
+    }
+}

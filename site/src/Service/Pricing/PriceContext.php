@@ -16,6 +16,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Joomla\CMS\Factory;
 use Joomla\CMS\User\User;
 use RuntimeException;
@@ -31,7 +32,12 @@ use RuntimeException;
  *   userId       - Joomla user id (null = guest)
  *   userGroups   - Array of Joomla usergroup ids. Always contains 0 ("any group"
  *                  sentinel) so public prices are always matched.
- *   locationId   - Place id from #__alfa_places (null = unknown / any place)
+ *   locationId   - Place id from #__alfa_places (null = unknown / any place).
+ *                  A buyer's place enters only through fromSession() and
+ *                  withLocation(), and only when it may price a visitor
+ *                  (PlaceTree::eligible(): it and every place above it
+ *                  published); otherwise it is the unknown place, as 0 is.
+ *                  forIndex() is the index writer's slot and takes any place.
  *
  * NOTE: currencyId stores the DB PRIMARY KEY of #__alfa_currencies, not the
  * ISO numeric code (e.g. 978 for EUR). PriceComputationEngine uses
@@ -136,6 +142,8 @@ class PriceContext
      *           Set this in your location-detection middleware, e.g.:
      *             Factory::getApplication()->getSession()
      *                 ->set('alfa.location_id', $detectedPlaceId);
+     *           A place that may not price a visitor (unpublished, or inside
+     *           an unpublished place) is the unknown place.
      *
      * Identity: the signed-in account, or the anonymous visitor for a guest
      *           (withCustomer()).
@@ -156,8 +164,8 @@ class PriceContext
             }
         }
 
-        // Location
-        $locationId = (int) $session->get('alfa.location_id', 0) ?: null;
+        // Location: only a place that may price a visitor (an unpublished country is the unknown place)
+        $locationId = self::pricingPlace(placeId: (int) $session->get('alfa.location_id', 0));
 
         // Identity
         // The signed-in visitor's account, or the anonymous visitor for a guest,
@@ -240,7 +248,9 @@ class PriceContext
     /**
      * Return a new context with a different location (place).
      *
-     * Pass null to represent "unknown location" (only universal rows apply).
+     * Pass null to represent "unknown location" (only universal rows apply). A
+     * place that may not price a visitor (PlaceTree::eligible()) is the unknown
+     * location too: the cart's delivery place and the order builder's bind here.
      *
      * Usage:
      *   $deContext = PriceContext::fromSession()->withLocation(85); // Germany
@@ -255,8 +265,25 @@ class PriceContext
             $this->currencyId,
             $this->userId,
             $this->userGroups,
-            ($placeId !== null && $placeId > 0) ? $placeId : null,
+            self::pricingPlace(placeId: (int) ($placeId ?? 0)),
         );
+    }
+
+    /**
+     * The place a buyer is priced at: the place when it may price a visitor
+     * (it and every place above it published), else the unknown place (null),
+     * as an id of 0 is. Decided once, here: every price a buyer sees comes from
+     * fromSession() or withLocation().
+     *
+     * @param int $placeId The `#__alfa_places` id, or 0.
+     *
+     * @return int|null The place, or null for the unknown place.
+     *
+     * @since  2.2.0
+     */
+    private static function pricingPlace(int $placeId): ?int
+    {
+        return $placeId > 0 && PlaceTree::eligible(placeId: $placeId) ? $placeId : null;
     }
 
     /**

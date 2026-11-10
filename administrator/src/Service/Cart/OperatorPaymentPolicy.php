@@ -9,8 +9,11 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\Cart;
 
-use Joomla\CMS\Factory;
-use Joomla\Database\DatabaseInterface;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use InvalidArgumentException;
+use Joomla\CMS\Log\Log;
 use Throwable;
 
 defined('_JEXEC') or die;
@@ -72,56 +75,18 @@ final class OperatorPaymentPolicy
             return self::$answers[$type];
         }
 
-        if (!self::isEnabled($type)) {
-            return self::$answers[$type] = false;
-        }
+        // The plugin helper is the one availability authority (2.2.0): a plugin disabled, missing, outside the
+        // request's view levels or unloadable answers no; one that fails while answering answers no, logged.
+        $plugins = AlfaPluginHelper::get();
 
         try {
-            $plugin = Factory::getApplication()->bootPlugin($type, 'alfa-payments');
-        } catch (Throwable $e) {
+            return self::$answers[$type] = (bool) $plugins->invoke($plugins->bootSingle(PluginId::from('alfa-payments', $type)), 'supportsOperatorPlacement');
+        } catch (PluginUnavailable|InvalidArgumentException) {
             return self::$answers[$type] = false;
-        }
-
-        if ($plugin === null || !method_exists($plugin, 'supportsOperatorPlacement')) {
-            return self::$answers[$type] = false;
-        }
-
-        return self::$answers[$type] = (bool) $plugin->supportsOperatorPlacement();
-    }
-
-    /**
-     * Is the plugin behind this method enabled?
-     *
-     * Asked separately because bootPlugin() does not ask it. It boots by folder
-     * and element and hands back an instance whether or not the merchant has
-     * the plugin switched on, so every caller that cares has to check for
-     * itself. This one cares: a withdrawn gateway must not be reachable from
-     * the back office, and the storefront's own behaviour is left exactly as it
-     * is rather than being repaired from here.
-     *
-     * @param string $type The plugin element.
-     *
-     *
-     * @since  2.0.0
-     */
-    public static function isEnabled(string $type): bool
-    {
-        try {
-            $db = Factory::getContainer()->get(DatabaseInterface::class);
-
-            $query = $db->getQuery(true)
-                ->select('COUNT(*)')
-                ->from($db->quoteName('#__extensions'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
-                ->where($db->quoteName('folder') . ' = ' . $db->quote('alfa-payments'))
-                ->where($db->quoteName('enabled') . ' = 1')
-                ->where($db->quoteName('element') . ' = :element')
-                ->bind(':element', $type);
-
-            return (int) $db->setQuery($query)->loadResult() > 0;
         } catch (Throwable $e) {
-            // A question that cannot be answered is answered NO.
-            return false;
+            Log::add('Operator placement: the payment plugin ' . $type . ' failed while answering whether staff may place with it: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+
+            return self::$answers[$type] = false;
         }
     }
 

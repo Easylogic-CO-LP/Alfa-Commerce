@@ -28,7 +28,7 @@ use Throwable;
  * lived inside `mod_alfa_search`, every other surface that wanted the same behaviour had
  * exactly two options, and both were wrong: reimplement it, or reach into a module and
  * inherit its parameters, its language keys and its layout path. The storefront filter
- * input and the premium Enterprise search module are both such surfaces.
+ * input and an installed engine's own search module are both such surfaces.
  *
  * WHAT THIS DELIBERATELY DOES NOT DO: each of these belongs to the calling surface, and
  * lumping them in here is what made the original class unreusable:
@@ -133,7 +133,7 @@ final class CatalogSearchService
     private function activeEngine(): ?SearchEngineInterface
     {
         if ($this->activeEngine === null) {
-            $this->activeEngine = (new SearchEngineRegistry())->active() ?? false;
+            $this->activeEngine = SearchEngineRegistry::shared()->active() ?? false;
         }
 
         return $this->activeEngine === false ? null : $this->activeEngine;
@@ -206,7 +206,7 @@ final class CatalogSearchService
      *
      * SECTION ORDER IS DECIDED HERE, AT ASSEMBLY: today's policy is the canonical
      * products -> categories -> manufacturers; the list shape is what lets a future
-     * (premium) policy put the section a query names first without any contract change.
+     * policy put the section a query names first without any contract change.
      *
      * @param CatalogSearchRequest $request What to search for, and how widely.
      *
@@ -247,7 +247,7 @@ final class CatalogSearchService
         // Products: the engine path. The model's passback carries the analytics handle
         // out of retrieval; this envelope is how it reaches the SURFACE, which is the
         // only party that can stamp it on a click beacon.
-        ['rows' => $rows, 'eventId' => $eventId] = $this->itemRows(
+        ['rows' => $rows, 'eventId' => $eventId, 'responseSpecific' => $responseSpecific, 'order' => $order] = $this->itemRows(
             keyword:     $keyword,
             limit:       $request->productLimit,
             withLayouts: $request->withLayouts,
@@ -292,6 +292,8 @@ final class CatalogSearchService
                 ? $this->suggestions(keyword: $keyword, lang: $request->lang, limit: $request->suggestionLimit)
                 : [],
             eventId:     $eventId,
+            responseSpecific: $responseSpecific,
+            order:       $order,
         );
     }
 
@@ -418,7 +420,7 @@ final class CatalogSearchService
      * the rows.
      *
      * THE PASSBACK IS THE POINT: the provider mints the analytics event deep inside
-     * `getListQuery()` and the model surfaces it via `getSearchEventId()`; without
+     * `getListQuery()` and the model surfaces it via `getResultAttribution()`; without
      * reading it HERE, every service consumer would be structurally unable to attribute
      * a click, because the handle would die inside the model.
      *
@@ -427,7 +429,7 @@ final class CatalogSearchService
      * @param bool $withLayouts Item-field display surfaces on the rows.
      * @param SearchIntent $intent Why this search runs; reaches the engine's recorder.
      *
-     * @return array{rows: object[], eventId: int|string|null}
+     * @return array{rows: object[], eventId: int|string|null, responseSpecific: bool, order: string}
      *
      * @since  2.0.0
      */
@@ -437,7 +439,7 @@ final class CatalogSearchService
             $model = $this->mvcFactory->createModel('Items', 'Site', ['ignore_request' => true]);
 
             if (!$model) {
-                return ['rows' => [], 'eventId' => null];
+                return ['rows' => [], 'eventId' => null, 'responseSpecific' => false, 'order' => ResultSetContext::RELEVANCE];
             }
 
             // Under `ignore_request` the constructor marks state as already set, so
@@ -458,16 +460,31 @@ final class CatalogSearchService
             $model->setState('list.media', $withImage);
             $model->setState('list.price', $withPrice);
 
+            // THE ORDER IS THE MODEL'S, READ ONCE ITS STATE IS SET (2.2.0, A-C11-1): this read takes no sort from the page
+            // request (ignore_request), so it is shown by relevance from its first row, and what the context tells a
+            // provider and what the payload says is what the model shows, never a constant. A caller that declares
+            // intent=search renders its own results: this read backs a rendered result set, so a provider may mint a
+            // handle for it. No other intent carries a context.
+            $order = method_exists($model, 'shownOrder') ? $model->shownOrder() : ResultSetContext::RELEVANCE;
+
+            if (method_exists($model, 'setResultSetContext')) {
+                $model->setResultSetContext($intent === SearchIntent::SEARCH ? new ResultSetContext(order: $order, offset: 0) : null);
+            }
+
             $items = $model->getItems();
+
+            $attribution = method_exists($model, 'getResultAttribution') ? $model->getResultAttribution() : null;
 
             return [
                 'rows' => \is_array($items) ? $items : [],
-                'eventId' => method_exists($model, 'getSearchEventId') ? $model->getSearchEventId() : null,
+                'eventId' => $attribution?->handle,
+                'responseSpecific' => (bool) $attribution?->responseSpecific,
+                'order' => $order,
             ];
         } catch (Throwable $e) {
             $this->log('Items search failed', ['keyword' => $keyword, 'error' => $e->getMessage()]);
 
-            return ['rows' => [], 'eventId' => null];
+            return ['rows' => [], 'eventId' => null, 'responseSpecific' => false, 'order' => ResultSetContext::RELEVANCE];
         }
     }
 
@@ -564,8 +581,8 @@ final class CatalogSearchService
      * @param string $keyword Cleaned keyword (service hygiene already applied).
      * @param string $lang Language tag in display form.
      * @param SearchIntent $intent The request's declared intent. THIS MUST TRAVEL: the
-     *                             intent now selects retrieval width (TYPEAHEAD carries
-     *                             the enterprise prefix group), so an aux query left on
+     *                             intent now selects retrieval width (TYPEAHEAD may carry
+     *                             an engine's prefix group), so an aux query left on
      *                             the constructor default would hand prefix-widened
      *                             sections to a declared SEARCH, and the fail-closed
      *                             default would fail OPEN into the widest retrieval.

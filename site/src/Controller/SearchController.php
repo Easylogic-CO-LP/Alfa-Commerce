@@ -35,14 +35,14 @@ use Throwable;
  * it however it likes.
  *
  * WHICH MEANS A PRESENTATION PACKAGE STILL KEEPS ITS OWN RENDER TRANSPORT: `mod_alfa_search`
- * continues to answer `com_ajax` with its own HTML dropdown, and the premium module will do
- * the same with its own markup. That is NOT the duplication the architecture warns about:
+ * continues to answer `com_ajax` with its own HTML dropdown, and an installed engine's module will
+ * do the same with its own markup. That is NOT the duplication the architecture warns about:
  * duplicated SEARCH LOGIC is the hazard, and it is now impossible, because every path goes
  * through {@see CatalogSearchService}. Duplicated RENDERING is not a hazard; it is the
  * product.
  *
- * Consumers this exists for: the catalogue filter input, the premium module, third-party
- * templates, and any API integration.
+ * Consumers this exists for: the catalogue filter input, an installed engine's module,
+ * third-party templates, and any API integration.
  *
  * NO CSRF TOKEN, DELIBERATELY. These are side-effect-free reads of published catalogue data
  * (the same rows the storefront renders to anonymous visitors) and requiring a session
@@ -154,7 +154,7 @@ class SearchController extends BaseController
                 // integration) declares `intent=search` to be counted.
                 //
                 // IT NO LONGER ONLY SELECTS RECORDING. An engine may read the intent to
-                // choose retrieval WIDTH (the Enterprise engine completes the final token
+                // choose retrieval WIDTH (an installed engine may complete the final token
                 // as a prefix for a shopper still typing, and refuses to for a search they
                 // expressed) and this endpoint's candidate cap follows it. Still safely
                 // spoofable: both settings are legitimate answers to the same catalogue,
@@ -163,6 +163,13 @@ class SearchController extends BaseController
                 // costs is worse completions for that caller alone.
                 intent: SearchIntent::fromDeclared($input->getCmd('intent', '')),
             ));
+
+            // A HANDLE THAT BELONGS TO THIS RESPONSE ALONE IS NEVER SHARED (2.2.0): the
+            // endpoint answers before Joomla's page cache could store it, and sends no
+            // Cache-Control of its own otherwise, so a proxy is told here.
+            if ($results->eventId !== null && $results->responseSpecific) {
+                $this->app->setHeader('Cache-Control', 'no-store, private', true);
+            }
 
             return CatalogSearchPayload::fromResults(
                 results: $results,

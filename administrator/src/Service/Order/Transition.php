@@ -18,6 +18,8 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Document\AutoIssuePolicy;
+use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
@@ -61,13 +63,15 @@ use WeakReference;
  *                      (Tasks): the stock drain, the download entitlements,
  *                      the documents, the status e-mail unless silent(), and
  *                      onOrderStatusChange. All of it commits with the status
- *                      or rolls back with it (2.1.4).
+ *                      or rolls back with it (2.1.4). Each single only when
+ *                      its handler can have work (2.2.0).
  *
  * The singles run once the outermost transaction has committed and Alfa's
  * named locks are released, in that order, each recorded as it ends: at once
  * when save() opened the transaction (before it returns, so the stock getters
  * answer), after the caller's commit when nested (the getters answer null
- * until then), never after a rollback. A request that dies leaves them to
+ * until then; with no stock single they answer "nothing to apply" at once),
+ * never after a rollback. A request that dies leaves them to
  * recovery. An e-mail whose outcome is unknown, and onOrderStatusChange, are
  * never run twice automatically: staff decide (Tools > Tasks).
  *
@@ -75,6 +79,34 @@ use WeakReference;
  */
 class Transition
 {
+    /**
+     * What a save() came to (outcome()): the order moved.
+     *
+     * @since  2.2.0
+     */
+    public const OUTCOME_MOVED = 'moved';
+
+    /**
+     * What a save() came to: not moved, and asking again would not move it (a refusal that stands, or nothing to move).
+     *
+     * @since  2.2.0
+     */
+    public const OUTCOME_UNMOVED = 'unmoved';
+
+    /**
+     * What a save() came to: refused because the order row was busy; asking again may move it.
+     *
+     * @since  2.2.0
+     */
+    public const OUTCOME_BUSY = 'busy';
+
+    /**
+     * What a save() came to: refused because the order was no longer in the status expectStatus() named.
+     *
+     * @since  2.2.0
+     */
+    public const OUTCOME_SUPERSEDED = 'superseded';
+
     /**
      * Order PK.
      */
@@ -118,6 +150,20 @@ class Transition
     protected string $note = '';
 
     /**
+     * The status the order must still be in for the move to be made, checked under the order row lock; null for none.
+     *
+     * @since  2.2.0
+     */
+    private ?int $expectedStatusId = null;
+
+    /**
+     * Whether the last save() was refused because the order was no longer in the expected status.
+     *
+     * @since  2.2.0
+     */
+    private bool $refusedSuperseded = false;
+
+    /**
      * Stock adjustment result of the last save() (['action' => ..., 'count'
      * => ...] or null): for callers that surface it to the admin UI.
      */
@@ -154,6 +200,13 @@ class Transition
      * @since  2.0.0
      */
     private bool $retried = false;
+
+    /**
+     * Whether the last save() was refused because the database was busy.
+     *
+     * @since  2.2.0
+     */
+    private bool $refusedBusy = false;
 
     /**
      * The transitions waiting for their stock drain's outcome, by the drain's task id: the drain runs as the first
@@ -210,6 +263,22 @@ class Transition
     public function from(int $statusId): self
     {
         $this->fromStatusId = $statusId;
+
+        return $this;
+    }
+
+    /**
+     * Move only while the order is still in this status: asked under the order row lock, where no other writer can
+     * change the answer before the move. An order found in another status is not moved (refusedSuperseded()); for an
+     * automation owed by an earlier write, so a late run never moves an order another writer moved meanwhile.
+     *
+     * @param int $statusId The status the order had when the move was owed.
+     *
+     * @since  2.2.0
+     */
+    public function expectStatus(int $statusId): self
+    {
+        $this->expectedStatusId = $statusId;
 
         return $this;
     }
@@ -368,6 +437,45 @@ class Transition
     public function getStockFailure(): ?string
     {
         return $this->stockFailure;
+    }
+
+    /**
+     * Whether the last save() was refused because the database was busy: the order row held by another writer past
+     * the lock wait, or a second deadlock. Such a move may succeed when asked again; any other refusal stands.
+     *
+     * @since  2.2.0
+     */
+    public function refusedBusy(): bool
+    {
+        return $this->refusedBusy;
+    }
+
+    /**
+     * Whether the last save() was refused because the order, read under its row lock, was no longer in the status
+     * expectStatus() named: another writer moved it, and nothing was moved.
+     *
+     * @since  2.2.0
+     */
+    public function refusedSuperseded(): bool
+    {
+        return $this->refusedSuperseded;
+    }
+
+    /**
+     * What the last save() came to, given its answer: one of the OUTCOME_ constants.
+     *
+     * @param bool $moved What save() answered.
+     *
+     * @since  2.2.0
+     */
+    public function outcome(bool $moved): string
+    {
+        return match (true) {
+            $moved => self::OUTCOME_MOVED,
+            $this->refusedBusy => self::OUTCOME_BUSY,
+            $this->refusedSuperseded => self::OUTCOME_SUPERSEDED,
+            default => self::OUTCOME_UNMOVED,
+        };
     }
 
     /**
@@ -615,6 +723,8 @@ class Transition
      */
     public function save(): bool
     {
+        $this->refusedBusy = false;
+        $this->refusedSuperseded = false;
         $this->stockResult = null;
         $this->stockRefusal = null;
         $this->stockReservedFloor = null;
@@ -685,6 +795,14 @@ class Transition
             }
 
             $lockedStatusId = (int) $lockedRow->id_order_status;
+
+            // The status the move was owed in, asked where no other writer can change the answer (2.2.0).
+            if ($this->expectedStatusId !== null && $lockedStatusId !== $this->expectedStatusId) {
+                TransactionState::rollBackLevel($db);
+                $this->refusedSuperseded = true;
+
+                return false;
+            }
 
             // WHERE THE ORDER IS, AS OF NOW. Everything below decides on this
             // value, taken while holding the row, so two callers cannot both
@@ -779,6 +897,9 @@ class Transition
             return false;
         }
 
+        // Whether the change wrote its stock single; without one there is nothing to apply (2.2.0).
+        $stockOwed = false;
+
         try {
             // Leaving the cancelled family only happens on a conscious admin act.
             if (
@@ -844,7 +965,9 @@ class Transition
             // fast path is untouched: a claim-equal move enqueues nothing and
             // costs nothing. It does not need to: a miss stays outstanding on
             // the order's own obligation until it is answered.
-            if ($ownsSideEffects && StockPolicy::claimFor($oldStatusId) !== StockPolicy::claimFor($this->toStatusId)) {
+            $claimChanged = $ownsSideEffects && StockPolicy::claimFor($oldStatusId) !== StockPolicy::claimFor($this->toStatusId);
+
+            if ($claimChanged) {
                 InventoryEffectOutbox::enqueue(
                     sourceType: 'order_claim',
                     sourceId:   $this->orderId,
@@ -857,7 +980,7 @@ class Transition
             // Everything else the change owes, written with it (2.1.4): its timeline records and its singles commit
             // with the status or roll back with it. Exactly one caller owns them (above).
             if ($ownsSideEffects) {
-                $this->writeConsequences(oldStatusId: $oldStatusId, unpaidException: $unpaidException, facts: $facts);
+                $stockOwed = $this->writeConsequences(oldStatusId: $oldStatusId, unpaidException: $unpaidException, facts: $facts, claimChanged: $claimChanged);
             }
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
@@ -891,7 +1014,12 @@ class Transition
         }
 
         // The singles of the change ran in commitLevel() when save() opened the transaction (the stock drain first,
-        // its outcome handed to this object); nested, they wait for the caller's commit and lock release.
+        // its outcome handed to this object); nested, they wait for the caller's commit and lock release. A change
+        // that owes the shelf nothing answers so at once.
+        if ($ownsSideEffects && !$stockOwed) {
+            $this->stockResult = ['action' => 'none', 'count' => 0];
+        }
+
         return true;
     }
 
@@ -935,6 +1063,7 @@ class Transition
             }
         }
 
+        $this->refusedBusy = true;
         $reason = $number === 1205
             ? 'the order row is held by another writer'
             : 'the database ended the change twice to resolve a deadlock';
@@ -964,22 +1093,33 @@ class Transition
      * Write what the change owes, inside its window: the stock drain's single first (the batch runs it before the
      * rest), the timeline records, then the singles of the change in the order they run.
      *
+     * A single is written only when its handler can have work, decided from what this transaction reads (2.2.0, D4): a
+     * status setting, recipient or plugin changed between the commit and a later run is read as it was here. A guard
+     * that cannot be read owes its single ({@see self::owes()}).
+     *
      * @param int $oldStatusId The status the order left.
      * @param bool $unpaidException Whether a status requiring payment was entered with money due.
      * @param object|null $facts The order's payment facts, when the gate read them.
+     * @param bool $claimChanged Whether the change moved the order's stock claim (its obligation enqueued above).
+     *
+     * @return bool Whether the stock single was written.
      *
      * @since  2.1.4
      */
-    private function writeConsequences(int $oldStatusId, bool $unpaidException, ?object $facts): void
+    private function writeConsequences(int $oldStatusId, bool $unpaidException, ?object $facts, bool $claimChanged): bool
     {
         $orderId = $this->orderId;
         $toStatusId = $this->toStatusId;
         $actor = $this->pluginName !== '' ? "plugin:{$this->pluginName}" : 'user:' . $this->resolveUserId();
 
         // The stock drain (the obligation above, and one an earlier change left owed): first in the batch, its
-        // outcome handed back to this object for the stock getters.
-        $stockTask = Tasks::single(handler: OrderStock::NAME, subjectType: 'order', subjectId: $orderId, payload: ['from' => $oldStatusId, 'to' => $toStatusId]);
-        self::$awaiting[$stockTask] = WeakReference::create($this);
+        // outcome handed back to this object for the stock getters. Only when there is one to drain.
+        $stockOwed = $claimChanged || $this->owes(handler: OrderStock::NAME, guard: static fn (): bool => InventoryEffectOutbox::owesOrderClaim(orderId: $orderId));
+
+        if ($stockOwed) {
+            $stockTask = Tasks::single(handler: OrderStock::NAME, subjectType: 'order', subjectId: $orderId, payload: ['from' => $oldStatusId, 'to' => $toStatusId]);
+            self::$awaiting[$stockTask] = WeakReference::create($this);
+        }
 
         // The timeline, atomic with the status: a request that dies after the commit cannot lose it. A record that
         // cannot be written raises the critical staff notice and its log line (logOrderActivity()); the e-mail single
@@ -1026,20 +1166,61 @@ class Transition
             );
         }
 
-        Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
-        Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+        // Download access: a cancelled status revokes it, a status that grants downloads grants it, any other leaves it.
+        if ($this->owes(handler: OrderEntitlements::NAME, guard: static fn (): bool => OrderStatusHelper::isCancelled($toStatusId) || Entitlements::grantsDownloads($toStatusId))) {
+            Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+        }
 
-        if (!$this->silent) {
+        if ($this->owes(handler: OrderDocuments::NAME, guard: static fn (): bool => AutoIssuePolicy::issuesForStatus(statusId: $toStatusId))) {
+            Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+        }
+
+        if (!$this->silent && $this->owes(handler: OrderStatusEmail::NAME, guard: static fn (): bool => EmailService::notifiesForStatus(statusId: $toStatusId))) {
             Tasks::single(handler: OrderStatusEmail::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
         }
 
-        Tasks::single(handler: OrderStatusEvent::NAME, subjectType: 'order', subjectId: $orderId, payload: [
-            'from' => $oldStatusId,
-            'to' => $toStatusId,
-            'actor' => $actor,
-            'note' => $this->note,
-            'at' => Factory::getDate('now', 'UTC')->toSql(),
-        ]);
+        if ($this->owes(handler: OrderStatusEvent::NAME, guard: static fn (): bool => OrderStatusEvent::hasListeners())) {
+            Tasks::single(handler: OrderStatusEvent::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+                'from' => $oldStatusId,
+                'to' => $toStatusId,
+                'actor' => $actor,
+                'note' => $this->note,
+                'at' => Factory::getDate('now', 'UTC')->toSql(),
+            ]);
+        }
+
+        return $stockOwed;
+    }
+
+    /**
+     * Whether a single of the change has work, by its guard (2.2.0, D4). A guard only spares a row; its handler decides
+     * again when it runs, as in 2.1.4. So a guard that cannot be read writes the single, with a WARNING line naming the
+     * handler and the order, and never refuses the change. A failure that ended the transaction (a deadlock) is
+     * rethrown: the change then fails as any of its writes would.
+     *
+     * @param string $handler The single's handler.
+     * @param callable $guard fn(): bool, the guard.
+     *
+     * @since  2.2.0
+     */
+    private function owes(string $handler, callable $guard): bool
+    {
+        try {
+            return $guard();
+        } catch (Throwable $e) {
+            if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $e)) {
+                throw $e;
+            }
+
+            Log::add(
+                entry:    'Transition for order ' . $this->orderId . ': the ' . $handler . ' guard could not be read; the single is written and its handler decides when it runs: '
+                          . $e::class . ': ' . $e->getMessage(),
+                priority: Log::WARNING,
+                category: 'com_alfa.orders',
+            );
+
+            return true;
+        }
     }
 
     /**

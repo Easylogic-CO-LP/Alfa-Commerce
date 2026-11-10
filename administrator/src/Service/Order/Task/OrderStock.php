@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
 
@@ -21,7 +23,8 @@ use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
  * The obligation stays the stock domain's own record (#__alfa_inventory_effect_outbox): this single only runs its
  * drain first in the change's batch, so the change's other work sees the stock moved. Draining is absolute, so a
  * second run finds nothing left. A drain that leaves the movement owed or refused says so (the stock notice and the
- * timeline) and the obligation keeps its own recovery (Tools > Database Sync), so the task itself always ends done.
+ * timeline) and the obligation keeps its own recovery: this single owes the stock.effects.drain job (2.2.0), and Tools >
+ * Database Sync applies what is owed, so the task itself always ends done.
  *
  * @since  2.1.4
  */
@@ -61,6 +64,11 @@ final class OrderStock extends OrderTaskHandler
             taskId: $run->id(),
             outcome: Transition::drainFor(orderId: $run->subjectId(), oldStatusId: (int) ($payload['from'] ?? 0), toStatusId: (int) ($payload['to'] ?? 0)),
         );
+
+        // An obligation the drain left owed is the stock.effects.drain job's (2.2.0).
+        if (InventoryEffectOutbox::owesOrderClaim(orderId: $run->subjectId())) {
+            StockEffectsDrainJob::enqueue();
+        }
     }
 
     /**

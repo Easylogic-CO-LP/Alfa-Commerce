@@ -73,8 +73,8 @@ final class OrderHistoryHelper
                 'shipment.deleted' => self::shipmentDeleted(context: $context, order: $order),
                 'order.status_changed' => self::statusChanged(context: $context, entry: $entry),
                 'order.transition_refused' => self::statusRefused(context: $context, entry: $entry),
-                'order.email_failed', 'order.email_held', 'order.email_resent', 'order.hook_failed', 'order.hook_held',
-                'order.hook_rerun', 'order.task_resolved' => self::text(text: $context['text'] ?? null),
+                'order.email_sent', 'order.email_failed', 'order.email_held', 'order.email_resent', 'order.hook_failed',
+                'order.hook_held', 'order.hook_rerun', 'order.task_resolved', 'order.automation_superseded' => self::text(text: $context['text'] ?? null),
                 default => null,
             };
         } catch (Throwable) {

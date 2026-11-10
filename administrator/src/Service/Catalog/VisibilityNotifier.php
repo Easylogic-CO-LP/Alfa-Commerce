@@ -13,10 +13,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\VisibilityChangedEvent;
-use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
-use Joomla\Event\DispatcherInterface;
 use Throwable;
 
 /**
@@ -104,15 +102,15 @@ final class VisibilityNotifier
         }
 
         try {
-            $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
+            $plugins = AlfaPluginHelper::get();
 
             // Both groups: search engines live in `alfa-search`, while a feature
             // package (analytics, a vendor portal) may also hold a projection.
-            PluginHelper::importPlugin(type: 'alfa-search', plugin: null, autocreate: true, dispatcher: $dispatcher);
-            PluginHelper::importPlugin(type: 'alfa', plugin: null, autocreate: true, dispatcher: $dispatcher);
+            // An after phase (2.2.0, mode A, isolated).
+            $plugins->importGroup('alfa-search');
+            $plugins->importGroup('alfa');
 
-            $dispatcher->dispatch(
-                'onCatalogVisibilityChanged',
+            $plugins->dispatchIsolated(
                 new VisibilityChangedEvent('onCatalogVisibilityChanged', [
                     'itemIds' => $itemIds,
                     'categoryIds' => $categoryIds,

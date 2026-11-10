@@ -73,6 +73,32 @@
                 <option value="1">JYES</option>
             </field>
 
+            <!-- Floor of the category -> menu item -> global chain: the category's title and its description above
+                 a catalogue listing. Not Joomla's Show Page Heading, which stays the menu item's own heading. -->
+            <field
+                    name="show_category_title"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_SHOW_CATEGORY_TITLE"
+                    description="COM_ALFA_CONFIG_SHOW_CATEGORY_TITLE_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field
+                    name="show_category_description"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_SHOW_CATEGORY_DESCRIPTION"
+                    description="COM_ALFA_CONFIG_SHOW_CATEGORY_DESCRIPTION_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
             <field
                     name="show_items_filters"
                     type="radio"
@@ -778,12 +804,14 @@
         </fieldset>
 
         <fieldset name="mediazone_thumbnails" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_THUMBNAILS">
+            <!-- The box every thumbnail fits in, uploads and library picks alike: 500 x 500 unless the site stores its
+                 own (2.2.0). After a change, Tools > Media recreates the thumbnails. -->
             <field
                     name="media_thumbnail_width"
                     type="int"
                     label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_WIDTH_LABEL"
                     min="50"
-                    default="200"
+                    default="500"
                     max="500"
                     description=""
             />
@@ -793,7 +821,7 @@
                     type="int"
                     label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_HEIGHT_LABEL"
                     min="50"
-                    default="200"
+                    default="500"
                     max="500"
                     description=""
             />

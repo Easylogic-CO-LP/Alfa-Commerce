@@ -18,7 +18,8 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemDisplayEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
-use Alfa\Component\Alfa\Administrator\Plugin\ItemFieldsPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
@@ -32,7 +33,6 @@ use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\ParameterType;
 use Throwable;
@@ -303,8 +303,6 @@ class ItemModel extends BaseItemModel
      */
     protected function dispatchFieldSurfaces(object $item): void
     {
-        $app = Factory::getApplication();
-
         $item->cart = [
             'layout' => 'cart.add',
             'layoutData' => [],
@@ -319,14 +317,18 @@ class ItemModel extends BaseItemModel
         // engine then owns every live toggle from the identical rule + state.
         $showonBag = StateBagBuilder::fromItem($item);
 
+        // Each field's own plugin, through the plugin helper (2.2.0, mode B): booted through Joomla's list (a disabled
+        // or missing one, or another family's, takes no part), asked only when it declares the hook.
+        $plugins = AlfaPluginHelper::get();
+
         foreach ($item->fields as $field) {
             try {
-                $plugin = $app->bootPlugin((string) $field->type, 'alfa-item-fields');
+                $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
             } catch (Throwable $e) {
                 continue;
             }
 
-            if (!$plugin instanceof ItemFieldsPlugin) {
+            if (!$plugins->declares($plugin, 'onItemView')) {
                 continue;
             }
 
@@ -337,7 +339,7 @@ class ItemModel extends BaseItemModel
                 'selections' => $item->fieldSelections ?? [],
             ]);
 
-            $plugin->onItemView($event);
+            $plugins->dispatchTo($plugin, $event);
 
             // Contract guard: the surface's selector kind must match the field's
             // combination role (variant->sel[]/item, option->opt[]/price). Loud in dev.
@@ -381,28 +383,14 @@ class ItemModel extends BaseItemModel
             );
         }
 
-        // Feature plugins (onItemDisplay): boot-and-call after the field
-        // surfaces so their contributions land on the same slot map, owner
-        // defaulted to the contributor. The alfa group is already booted by
-        // AlfaComponent::boot(), so bootPlugin only returns instances.
-        foreach (PluginHelper::getPlugin('alfa') as $alfaPlugin) {
-            $plugin = $app->bootPlugin($alfaPlugin->name, 'alfa');
-
-            if (!method_exists($plugin, 'onItemDisplay')) {
-                continue;
-            }
-
-            $displayEvent = new ItemDisplayEvent('onItemDisplay', ['item' => $item]);
-            $plugin->onItemDisplay($displayEvent);
-
-            Surfaces::appendTo(
-                $item->surfaces,
-                $displayEvent,
-                'alfa',
-                $alfaPlugin->name,
-                ItemSurface::BuyForm->value,
-            );
-        }
+        // Feature plugins (onItemDisplay, 2.2.0): one event on the shared dispatcher after the
+        // field surfaces (mode A, a display phase, isolated), so their contributions land on
+        // the same slot map, each owner defaulted to the plugin it names.
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa');
+        $displayEvent = new ItemDisplayEvent('onItemDisplay', ['item' => $item]);
+        $plugins->dispatchIsolated($displayEvent);
+        $displayEvent->harvestInto($item->surfaces);
 
         // Sale-tag badges: a flagged discount's name onto the product-page slots.
         // Appended AFTER the surface reset above and once the price/discounts are

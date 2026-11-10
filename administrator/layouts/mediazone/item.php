@@ -22,6 +22,7 @@
 
 	extract($displayData);
 
+	use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 	use Joomla\CMS\Component\ComponentHelper;
 	use Joomla\CMS\Language\Text;
 	use Joomla\CMS\HTML\HTMLHelper;
@@ -112,6 +113,7 @@
                    id="media-alt-<?= $mediaId; ?>"
                    name="jform[media][<?= $mediaId; ?>][alt]"
                    value="<?= $altText; ?>"
+                   maxlength="<?= MediaHelper::ALT_MAX_LENGTH; ?>"
                    class="form-control"
                    placeholder="<?= Text::_('COM_ALFA_MEDIA_DESCRIPTION_INPUT_PLACEHOLDER'); ?>">
         </div>

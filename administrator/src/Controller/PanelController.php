@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Menu\MenuBuilder;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Panel\PanelIdentity;
 use Alfa\Component\Alfa\Administrator\Panel\PanelResolver;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
@@ -127,7 +128,7 @@ class PanelController extends BaseController
         } catch (Throwable $e) {
             // A save that threw is never a silent no-op: tell the user, keep the submission so
             // it is not lost, and re-show the edit screen.
-            $this->failed($identity, $identity->editUrl($this->input->getInt('id', 0)), true);
+            $this->failed($identity, $identity->editUrl($this->input->getInt('id', 0)), true, $e);
 
             return;
         }
@@ -171,7 +172,7 @@ class PanelController extends BaseController
         try {
             PanelDispatcher::toOwner($identity, $event, 'onAlfaPanelDelete', false);
         } catch (Throwable $e) {
-            $this->failed($identity, $this->listUrl($identity));
+            $this->failed($identity, $this->listUrl($identity), false, $e);
 
             return;
         }
@@ -215,7 +216,7 @@ class PanelController extends BaseController
         try {
             PanelDispatcher::toOwner($identity, $event, 'onAlfaPanelTask', false);
         } catch (Throwable $e) {
-            $this->failed($identity, $this->listUrl($identity));
+            $this->failed($identity, $this->listUrl($identity), false, $e);
 
             return;
         }
@@ -263,12 +264,15 @@ class PanelController extends BaseController
      * @param PanelIdentity $identity The panel.
      * @param string $back The URL to return to (edit for save, list otherwise).
      * @param bool $keepInput Whether to stash the POST so the edit form restores it.
+     * @param Throwable|null $why What failed: an owner that declares no handler for the mutation (the helper's
+     *                            NO_HANDLER) is said as such (2.2.0, A-C14B-12).
      *
      * @since  2.0.0
      */
-    private function failed(PanelIdentity $identity, string $back, bool $keepInput = false): void
+    private function failed(PanelIdentity $identity, string $back, bool $keepInput = false, ?Throwable $why = null): void
     {
-        $this->app->enqueueMessage(Text::_('COM_ALFA_PANEL_ACTION_FAILED'), 'error');
+        $noHandler = $why instanceof PluginUnavailable && $why->reason === PluginUnavailable::NO_HANDLER;
+        $this->app->enqueueMessage(Text::_($noHandler ? 'COM_ALFA_PANEL_NO_HANDLER' : 'COM_ALFA_PANEL_ACTION_FAILED'), 'error');
 
         if ($keepInput && method_exists($this->app, 'setUserState')) {
             $this->app->setUserState($identity->stateKey('form'), $this->input->post->getArray());

@@ -15,13 +15,13 @@ namespace Alfa\Component\Alfa\Administrator\Card;
 use Alfa\Component\Alfa\Administrator\Event\Card\CollectCardsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Card\CoreCardProvider;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Uri\Uri;
 use Throwable;
 
@@ -228,7 +228,7 @@ final class CardRegistry
     }
 
     /**
-     * Core first, then every enabled platform plugin, each stamped with its owner.
+     * Core first, then every listener of the shared dispatcher, each card named by its owner.
      *
      * @param string $screen Screen id.
      *
@@ -238,52 +238,22 @@ final class CardRegistry
      */
     private static function collect(string $screen): array
     {
-        $app = Factory::getApplication();
         $event = new CollectCardsEvent(CollectCardsEvent::NAME, ['screen' => $screen]);
-        $skipped = [];
 
-        // Core through the same door as everyone else; the plugin path is therefore
+        // Core through the same event as everyone else, its cards named core.com_alfa; the plugins' path is therefore
         // exercised on every page load rather than only when a plugin is installed.
         (new CoreCardProvider())->onAlfaCollectCards($event);
-        $event->attributeTo(CoreCardProvider::OWNER_GROUP, CoreCardProvider::OWNER_NAME);
 
-        $group = PanelDispatcher::PLATFORM_GROUP;
+        // Every listener on the shared dispatcher (2.2.0, design 2.15.3: mode A, a display phase, isolated), the
+        // platform group imported first; each card names its plugin, and a contributor loads its own language.
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup(PanelDispatcher::PLATFORM_GROUP);
+        $failures = $plugins->dispatchIsolated($event);
 
-        try {
-            PluginHelper::importPlugin(type: $group, plugin: null, autocreate: true);
-            $descriptors = PluginHelper::getPlugin($group);
-        } catch (Throwable $e) {
-            // No plugin list (install, CLI) simply means core-only cards.
-            $descriptors = [];
-            $skipped[] = 'platform group unavailable (' . $e->getMessage() . ')';
-        }
-
-        foreach ($descriptors as $descriptor) {
-            try {
-                $plugin = $app->bootPlugin($descriptor->name, $group);
-
-                if (!method_exists($plugin, CollectCardsEvent::NAME)) {
-                    continue;
-                }
-
-                // The plugin's own language, so the keys its cards name resolve where
-                // the host prints them.
-                AlfaHelper::loadPluginLanguage(group: $group, element: (string) $descriptor->name);
-
-                $plugin->{CollectCardsEvent::NAME}($event);
-                $event->attributeTo($group, (string) $descriptor->name);
-            } catch (Throwable $e) {
-                // Pin whatever the thrower managed to add TO the thrower before the
-                // next contributor's stamp could claim it, then carry on.
-                $event->attributeTo($group, (string) $descriptor->name);
-                $skipped[] = $group . '/' . $descriptor->name . ' (' . $e->getMessage() . ')';
-            }
-        }
-
-        if ($skipped !== []) {
+        if ($failures !== []) {
             // Never silent: a dashboard that is quietly missing a panel looks healthy.
             Log::add(
-                entry:    'CardRegistry: skipped broken card contributors on screen ' . $screen . ': ' . implode('; ', $skipped),
+                entry:    'CardRegistry: skipped broken card contributors on screen ' . $screen . ': ' . implode('; ', array_map(static fn ($f): string => $f->listener . ' (' . $f->error->getMessage() . ')', $failures)),
                 priority: Log::WARNING,
                 category: 'com_alfa.cards',
             );
@@ -308,6 +278,9 @@ final class CardRegistry
 
     /**
      * Load the language of every contributor represented in a resolved card list.
+     *
+     * The one host load of a contributor's strings kept in 2.2.0: the cards are cached across requests, so a
+     * contributor's handler (where it loads its own language) does not run on every page that draws its cached card.
      *
      * @param array<string, array<int, array<string, mixed>>> $cards Cards keyed by surface.
      *

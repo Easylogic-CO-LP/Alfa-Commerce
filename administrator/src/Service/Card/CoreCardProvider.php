@@ -17,12 +17,14 @@ use Alfa\Component\Alfa\Administrator\Event\Card\CollectCardsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ChartHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardStatsService;
 use Alfa\Component\Alfa\Administrator\Service\Stats\StatsCards;
+use Alfa\Component\Alfa\Administrator\Service\Task\RunnerHealth;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Component\ComponentHelper;
@@ -70,6 +72,13 @@ final class CoreCardProvider
     public const OWNER_NAME = 'com_alfa';
 
     /**
+     * Core's contributor identity, group.element (2.2.0): the reserved owner, never booted as a plugin.
+     *
+     * @since  2.2.0
+     */
+    public const ID = self::OWNER_GROUP . '.' . self::OWNER_NAME;
+
+    /**
      * @var int How many rows the latest-orders card lists.
      * @since  2.0.0
      */
@@ -109,7 +118,7 @@ final class CoreCardProvider
         // and the link goes, rather than offering a page the dispatcher would refuse.
         $documentsUrl = static fn (string $url): string => AlfaHelper::can(section: 'documents', action: 'view') ? $url : '';
 
-        $event->metrics('orders.today', 'COM_ALFA_DASHCARD_ORDERS_TODAY')
+        $event->metrics(self::ID, 'orders.today', 'COM_ALFA_DASHCARD_ORDERS_TODAY')
             ->ordering(100)
             ->setLayout('card.metric')
             ->width(25)
@@ -119,7 +128,7 @@ final class CoreCardProvider
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => ['value' => (string) $this->ordersToday()]);
 
-        $event->metrics('orders.awaiting', 'COM_ALFA_DASHCARD_ORDERS_AWAITING')
+        $event->metrics(self::ID, 'orders.awaiting', 'COM_ALFA_DASHCARD_ORDERS_AWAITING')
             ->ordering(200)
             ->setLayout('card.metric')
             ->width(25)
@@ -138,7 +147,7 @@ final class CoreCardProvider
         // would then have been the same number twice. Today is the reading nothing else
         // gives, and it makes the whole metrics row consistent: four figures about
         // right now, with the period cards below them.
-        $event->metrics('money.takings', 'COM_ALFA_DASHCARD_TAKINGS')
+        $event->metrics(self::ID, 'money.takings', 'COM_ALFA_DASHCARD_TAKINGS')
             ->ordering(300)
             ->setLayout('card.metric')
             ->width(25)
@@ -148,7 +157,7 @@ final class CoreCardProvider
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => ['value' => $this->takingsToday()]);
 
-        $event->metrics('stock.low', 'COM_ALFA_DASHCARD_STOCK_LOW')
+        $event->metrics(self::ID, 'stock.low', 'COM_ALFA_DASHCARD_STOCK_LOW')
             ->ordering(400)
             ->setLayout('card.metric')
             ->width(25)
@@ -158,7 +167,7 @@ final class CoreCardProvider
             ->when($canSeeItems)
             ->setLayoutData(fn (): array => ['value' => (string) $this->lowStockUnits()]);
 
-        $event->main('orders.latest', 'COM_ALFA_DASHCARD_LATEST')
+        $event->main(self::ID, 'orders.latest', 'COM_ALFA_DASHCARD_LATEST')
             ->ordering(110)
             ->setLayout('card.orders')
             ->icon('list')
@@ -174,7 +183,7 @@ final class CoreCardProvider
         // right-now tiles, the latest orders, the hero, and the alert strip. Ordering 100
         // and 110, well below AdminCard::ORDERING_DEFAULT, so a contributor with no
         // opinion lands after both.
-        $event->main('money.trend', 'COM_ALFA_DASHCARD_TREND')
+        $event->main(self::ID, 'money.trend', 'COM_ALFA_DASHCARD_TREND')
             ->ordering(100)
             ->setLayout('card.chart')
             ->width(100)
@@ -186,12 +195,32 @@ final class CoreCardProvider
         // touched are the one thing on this screen that asks to be acted on, and a
         // merchant should not have to scroll past every chart to find out. It renders
         // NOTHING when both are zero, so the quiet shop still opens on its figures.
-        $event->top('orders.attention', 'COM_ALFA_DASHCARD_ATTENTION')
+        $event->top(self::ID, 'orders.attention', 'COM_ALFA_DASHCARD_ATTENTION')
             ->ordering(100)
             ->setLayout('card.attention')
             ->width(100)
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => $this->attentionCard());
+
+        // The background work's health notice (2.2.0), in the same strip, to a user who may use Tools. It renders
+        // nothing while the notice does not stand.
+        $event->top(self::ID, 'runner.health', 'COM_ALFA_DASHCARD_RUNNER_HEALTH')
+            ->ordering(90)
+            ->setLayout('card.health')
+            ->width(100)
+            ->when(static fn (): bool => (bool) Factory::getApplication()->getIdentity()?->authorise('alfa.tools', 'com_alfa'))
+            ->setLayoutData(static function (): array {
+                if (!NotificationHelper::isOpen(dedupKey: RunnerHealth::KEY)) {
+                    return [];
+                }
+
+                $waiting = RunnerHealth::waiting();
+
+                return $waiting['count'] === 0 ? [] : [
+                    'text' => Text::sprintf('COM_ALFA_NOTIFY_RUNNER_HEALTH_MSG', $waiting['since'], $waiting['count']),
+                    'url' => Route::_(RunnerHealth::URL, false),
+                ];
+            });
     }
 
     /**

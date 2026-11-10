@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 defined('_JEXEC') or die;
 
 //use \Joomla\CMS\Object\CMSObject;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use DateTimeZone;
 use Exception;
@@ -21,7 +22,6 @@ use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryInterface;
 
@@ -432,16 +432,19 @@ class AlfaHelper
 
         $pluginGroup = self::pluginGroup(type: $type);
 
-        $plugins = PluginHelper::getPlugin($pluginGroup);// Get a list of all plugins in the specified group
+        // The group's enabled plugins as Joomla lists them, through the plugin helper (2.2.0): 'id' is the plugin's
+        // group.element, 'params' its configuration as JSON.
+        $plugins = AlfaPluginHelper::get();
 
-        foreach ($plugins as $plugin) {// Process each shipment payment group plugin.
+        foreach ($plugins->available($pluginGroup) as $plugin) {
             $plugin_types[] =
                 [
-                    'id' => $plugin->id,
-                    'name' => $plugin->name,
-                    'params' => $plugin->params,
+                    'id' => $plugin->key(),
+                    'name' => $plugin->element,
+                    'params' => (string) ($plugins->params($plugin) ?? '{}'),
                 ];
         }
+
         return $plugin_types;
     }
 

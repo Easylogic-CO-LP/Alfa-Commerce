@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\View\Taxes;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
 use Alfa\Component\Alfa\Api\View\PublishesStoredFigures;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
@@ -21,6 +22,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  */
 class JsonApiView extends BaseApiView
 {
+    use ListsRequestTasks;
     use PublishesStoredFigures;
 
     /**

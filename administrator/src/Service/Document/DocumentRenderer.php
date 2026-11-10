@@ -78,11 +78,12 @@ final class DocumentRenderer
         $series = self::loadSeries(db: $db, seriesId: (int) $document->id_series);
         $layoutId = self::layoutId(document: $document, series: $series);
 
+        $lines = self::loadLines(db: $db, documentId: $documentId);
         $displayData = [
             'document' => $document,
             'series' => $series,
-            'lines' => self::loadLines(db: $db, documentId: $documentId),
-            'taxes' => self::loadTaxes(db: $db, documentId: $documentId),
+            'lines' => $lines,
+            'taxes' => self::namedTaxes(taxes: self::loadTaxes(db: $db, documentId: $documentId), lines: $lines),
             'corrects' => $document->id_corrects
                 ? self::loadHeader(db: $db, documentId: (int) $document->id_corrects)
                 : null,
@@ -578,6 +579,45 @@ final class DocumentRenderer
         $db->setQuery(query: $query);
 
         return $db->loadObjectList() ?: [];
+    }
+
+    /**
+     * Each frozen summary row with the tax names its lines froze.
+     *
+     * A summary row is the lines of one rate and VAT category, summed at issue
+     * (DocumentIssuer::buildTaxSummary()). Its `tax_names` are the distinct
+     * names those same lines froze, in the order the lines print, so two rules
+     * at one rate print apart; a row whose lines froze none (every document
+     * issued before 2.2.0) has none and prints its rate alone. Read from the
+     * frozen lines only: a rule renamed since never reaches a document.
+     *
+     * @param object[] $taxes The frozen summary rows.
+     * @param object[] $lines The frozen lines, in print order.
+     *
+     * @return object[] The rows, each with `tax_names` (string[]).
+     *
+     * @since  2.2.0
+     */
+    private static function namedTaxes(array $taxes, array $lines): array
+    {
+        $key = static fn (object $row): string => number_format((float) $row->tax_rate, 3, '.', '') . '|' . (string) ($row->vat_category ?? '');
+        $names = [];
+
+        foreach ($lines as $line) {
+            // The lines a summary row was summed from: buildTaxSummary() passes over a line of no money.
+            if (((float) $line->total_tax_incl === 0.0 && (float) $line->total_tax_excl === 0.0) || (string) ($line->tax_name ?? '') === '') {
+                continue;
+            }
+
+            $names[$key($line)][(string) $line->tax_name] = true;
+        }
+
+        foreach ($taxes as $tax) {
+            // A name of digits alone is an integer key: each is handed back as the text it is.
+            $tax->tax_names = array_map('strval', array_keys($names[$key($tax)] ?? []));
+        }
+
+        return $taxes;
     }
 
     /**

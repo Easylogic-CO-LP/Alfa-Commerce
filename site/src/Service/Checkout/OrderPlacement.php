@@ -50,8 +50,11 @@ use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
-use Alfa\Component\Alfa\Administrator\Service\Cart\CommercialPlugins;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CustomerDetailsValidator;
 use Alfa\Component\Alfa\Administrator\Service\Cart\OperatorPaymentPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\PlacementEventContext;
@@ -70,13 +73,14 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use Exception;
+use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseDriver;
+use Joomla\Event\EventInterface;
 use Joomla\Utilities\IpHelper;
 use RuntimeException;
 use stdClass;
@@ -597,8 +601,9 @@ class OrderPlacement
                 // And how its figures were formed: under its method's entry mode,
                 // or as the carrier stated them.
                 $this->order->shipping_charge_basis = $this->completedTotals['shipping_basis'];
-                // And the ordered rates it was calculated with: the combined
-                // rate cannot reproduce a chain's per-rate rounding.
+                // And the ordered rates it was calculated with, each with its
+                // rule's name: the combined rate cannot reproduce a chain's
+                // per-rate rounding, and a document names the rules.
                 $this->order->shipping_tax_chain = $this->completedTotals['shipping_chain'];
                 $this->order->total_paid_tax_incl = $this->completedTotals['paid_incl'];
                 $this->order->total_paid_tax_excl = $this->completedTotals['paid_excl'];
@@ -642,12 +647,14 @@ class OrderPlacement
             // The cart is already gone: discarded inside the transaction, as
             // the last step of conversion.
 
-            // What the placement owes runs now, in the order it was written
-            // (2.1.4): the download access of the initial status first (its
-            // fresh raw tokens are cached for the e-mail's links), then the
-            // confirmation e-mail, then whatever a gateway hook's own status
-            // change owes. Each is recorded as it ends; a failure never
-            // blocks the placement.
+            // What the placement owes runs now, in one batch, in the order it
+            // was written (2.1.4): the download access of the initial status
+            // first, then the confirmation e-mail. A payment the wallet or a
+            // gateway hook completed in the hold runs its own work, the order's
+            // move included, just before the confirmation (2.2.0), so the
+            // e-mail reads the order moved, with the links its new status
+            // grants; that status's own e-mail follows the confirmation. Each
+            // is recorded as it ends; a failure never blocks the placement.
             $held = false;
             PostCommit::resume(db: $this->db, name: self::HOLD);
 
@@ -657,21 +664,21 @@ class OrderPlacement
             // onOrderStatusChange. This is the ONE order moment that happens in the
             // SHOPPER'S OWN REQUEST (later transitions run in gateway callbacks or admin
             // sessions), which is why search-conversion attribution listens here and
-            // nowhere else. `alfa` is already imported by the component boot; the search
-            // group is loaded deliberately: it is where the first consumer lives. A
-            // listener failure is logged and swallowed: the order is already placed, and
-            // no observer may break or appear to break a completed checkout.
+            // nowhere else. The search group is imported deliberately, it is where the
+            // first consumer lives, and the alfa group with it. An after phase (2.2.0, mode
+            // A, isolated): a listener failure is logged and the next listener runs; the
+            // order is already placed, and no observer may break or appear to break a
+            // completed checkout.
             try {
-                PluginHelper::importPlugin('alfa-search');
+                $plugins = AlfaPluginHelper::get();
+                $plugins->importGroup('alfa-search');
+                $plugins->importGroup('alfa');
 
                 // The broadcast carries the order itself, so it is one of the
                 // reload's dependants: with nothing to carry there is nothing
                 // to broadcast, and the skip is already reported above.
                 if ($this->order !== null) {
-                    $this->app->getDispatcher()->dispatch(
-                        'onAlfaOrderPlaced',
-                        new OrderPlacedEvent(order: $this->order, orderId: (int) $orderId),
-                    );
+                    $plugins->dispatchIsolated(new OrderPlacedEvent(order: $this->order, orderId: (int) $orderId));
                 }
             } catch (Throwable $e) {
                 Log::add(
@@ -905,19 +912,49 @@ class OrderPlacement
      * the operator capability, because a withdrawn plugin is withdrawn from
      * everybody.
      *
-     * PluginHelper::isEnabled() is the same authority the webhook endpoints
-     * use, and it answers false for disabled, uninstalled and wrong-group
-     * alike.
+     * The plugin helper's bootSingle() is the one authority (2.2.0): it refuses
+     * a plugin that is disabled, missing (its files gone) or unloadable (its boot
+     * throws), as the webhook endpoints do, so none of them can be handed an
+     * order.
      *
      * @param string $group The plugin folder.
      * @param string $type The method's plugin element.
      *
+     * @return LoadedPlugin|null The plugin, or null when it cannot be used (the reason logged).
      *
      * @since  2.0.0
      */
-    protected function methodPluginLive(string $group, string $type): bool
+    protected function methodPlugin(string $group, string $type): ?LoadedPlugin
     {
-        return $type !== '' && PluginHelper::isEnabled($group, $type);
+        if ($type === '') {
+            return null;
+        }
+
+        try {
+            return AlfaPluginHelper::get()->bootSingle(PluginId::from($group, $type));
+        } catch (PluginUnavailable|InvalidArgumentException $e) {
+            Log::add('Placement: the plugin behind a ' . $group . ' method cannot be used: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+
+            return null;
+        }
+    }
+
+    /**
+     * Run one selected plugin's targeted handler (2.2.0, mode B): the plugin declares it, or it takes no part.
+     *
+     * @param LoadedPlugin $plugin The plugin, from methodPlugin().
+     * @param EventInterface $event The event.
+     *
+     * @since  2.2.0
+     */
+    private function toMethodPlugin(LoadedPlugin $plugin, EventInterface $event): void
+    {
+        $plugins = AlfaPluginHelper::get();
+
+        // What leaves the handler is the handler's own failure, as the caller's net treats it.
+        if ($plugins->declares($plugin, $event->getName())) {
+            $plugins->dispatchTo($plugin, $event);
+        }
     }
 
     protected function paymentMethodPermitted(): bool
@@ -1128,20 +1165,34 @@ class OrderPlacement
                 return false;
             }
 
-            // Feature-plugin checkout validation (onOrderPlaceValidate,
-            // boot-and-call): a plugin may veto the placement with
-            // customer-facing messages; rejections accumulate on one
-            // shared event and abort before anything is written.
+            // Feature-plugin checkout validation (onOrderPlaceValidate): each
+            // `alfa` plugin the customer's view levels admit, in their order,
+            // once, through its own targeted declaration (2.2.0); a
+            // plugin may veto the placement with customer-facing messages, and
+            // one that throws refuses it. Rejections accumulate on one shared
+            // event and abort before anything is written.
             $validateEvent = new OrderPlaceValidateEvent('onOrderPlaceValidate', [
                 'context' => $this->eventContext(),
             ]);
+            $plugins = AlfaPluginHelper::get();
 
-            foreach (CommercialPlugins::for($this->user) as $alfaPlugin) {
-                $plugin = $this->app->bootPlugin($alfaPlugin->name, 'alfa');
-
-                if (method_exists($plugin, 'onOrderPlaceValidate')) {
-                    $plugin->onOrderPlaceValidate($validateEvent);
+            // A plugin the customer's view levels admit but Joomla does not load for the user placing the order (staff
+            // lacking one of the customer's levels) cannot check this placement, nor add its charges to the totals: the
+            // placement is refused naming it, before anything is written (2.2.0, s95).
+            try {
+                $plugins->dispatchToEach($plugins->admitted($this->user, 'alfa'), $validateEvent);
+            } catch (PluginUnavailable $unavailable) {
+                if ($unavailable->reason !== PluginUnavailable::NOT_LOADED) {
+                    throw $unavailable;
                 }
+
+                $this->fail(
+                    'COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR',
+                    ['plugin' => (string) $unavailable->plugin],
+                    'Placement refused: ' . $unavailable->getMessage(),
+                );
+
+                return false;
             }
 
             if ($validateEvent->isRejected()) {
@@ -1234,11 +1285,13 @@ class OrderPlacement
                 return false;
             }
 
-            if (!empty($this->payment_type) && !$this->methodPluginLive('alfa-payments', $this->payment_type)) {
+            $paymentPlugin = !empty($this->payment_type) ? $this->methodPlugin('alfa-payments', $this->payment_type) : null;
+
+            if (!empty($this->payment_type) && $paymentPlugin === null) {
                 $this->fail(
                     'COM_ALFA_ORDER_INVALID_PAYMENT_METHOD',
                     ['method' => $this->payment_type],
-                    'Placement refused: the plugin behind payment method "' . $this->payment_type . '" is not enabled.',
+                    'Placement refused: the plugin behind payment method "' . $this->payment_type . '" is not enabled, missing or cannot be loaded.',
                     null,
                     'error',
                 );
@@ -1246,13 +1299,9 @@ class OrderPlacement
                 return false;
             }
 
-            if (!empty($this->payment_type)) {
+            if ($paymentPlugin !== null) {
                 try {
-                    $event = new PaymentOrderBeforePlaceEvent('onOrderBeforePlace', ['subject' => $this->eventContext()]);
-                    $plugin = $this->app->bootPlugin($this->payment_type, 'alfa-payments');
-                    if ($plugin && method_exists($plugin, 'onOrderBeforePlace')) {
-                        $plugin->onOrderBeforePlace($event);
-                    }
+                    $this->toMethodPlugin($paymentPlugin, new PaymentOrderBeforePlaceEvent('onOrderBeforePlace', ['subject' => $this->eventContext()]));
                 } catch (Throwable $e) {
                     // \Throwable, not Exception: a plugin's TypeError is not an
                     // Exception and used to escape every net on this path (up
@@ -1274,11 +1323,13 @@ class OrderPlacement
             }
 
             $this->getShipmentType($shipmentMethodId);
-            if (!empty($this->shipment_type) && !$this->methodPluginLive('alfa-shipments', $this->shipment_type)) {
+            $shipmentPlugin = !empty($this->shipment_type) ? $this->methodPlugin('alfa-shipments', $this->shipment_type) : null;
+
+            if (!empty($this->shipment_type) && $shipmentPlugin === null) {
                 $this->fail(
                     'COM_ALFA_ORDER_INVALID_SHIPMENT_METHOD',
                     ['method' => $this->shipment_type],
-                    'Placement refused: the plugin behind shipment method "' . $this->shipment_type . '" is not enabled.',
+                    'Placement refused: the plugin behind shipment method "' . $this->shipment_type . '" is not enabled, missing or cannot be loaded.',
                     null,
                     'error',
                 );
@@ -1286,13 +1337,9 @@ class OrderPlacement
                 return false;
             }
 
-            if (!empty($this->shipment_type)) {
+            if ($shipmentPlugin !== null) {
                 try {
-                    $event = new ShipmentOrderBeforePlaceEvent('onOrderBeforePlace', ['subject' => $this->eventContext()]);
-                    $plugin = $this->app->bootPlugin($this->shipment_type, 'alfa-shipments');
-                    if ($plugin && method_exists($plugin, 'onOrderBeforePlace')) {
-                        $plugin->onOrderBeforePlace($event);
-                    }
+                    $this->toMethodPlugin($shipmentPlugin, new ShipmentOrderBeforePlaceEvent('onOrderBeforePlace', ['subject' => $this->eventContext()]));
                 } catch (Throwable $e) {
                     Log::add(
                         'Shipment plugin "' . $this->shipment_type . '" failed in onOrderBeforePlace: '
@@ -1341,27 +1388,25 @@ class OrderPlacement
                 $this->payment_type = '';
             }
 
-            if (!empty($this->payment_type) && $this->order && !$this->methodPluginLive('alfa-payments', $this->payment_type)) {
+            $paymentPlugin = !empty($this->payment_type) && $this->order ? $this->methodPlugin('alfa-payments', $this->payment_type) : null;
+
+            if (!empty($this->payment_type) && $this->order && $paymentPlugin === null) {
                 // Past the commit, so refusing is not an option; but booting a
                 // withdrawn gateway against a real order is worse than not
                 // having its ledger row. Recorded so the absence is reported.
                 $failed[] = 'payment';
                 Log::add(
                     'Skipped onOrderAfterPlace for order #' . (int) $this->order->id
-                        . ': the plugin behind payment method "' . $this->payment_type . '" is not enabled.',
+                        . ': the plugin behind payment method "' . $this->payment_type . '" is not enabled, missing or cannot be loaded.',
                     Log::ERROR,
                     'com_alfa.orders',
                 );
                 $this->payment_type = '';
             }
 
-            if (!empty($this->payment_type) && $this->order) {
+            if ($paymentPlugin !== null && !empty($this->payment_type) && $this->order) {
                 try {
-                    $event = new PaymentOrderAfterPlaceEvent('onOrderAfterPlace', ['subject' => $this->order]);
-                    $plugin = $this->app->bootPlugin($this->payment_type, 'alfa-payments');
-                    if ($plugin && method_exists($plugin, 'onOrderAfterPlace')) {
-                        $plugin->onOrderAfterPlace($event);
-                    }
+                    $this->toMethodPlugin($paymentPlugin, new PaymentOrderAfterPlaceEvent('onOrderAfterPlace', ['subject' => $this->order]));
                 } catch (Throwable $e) {
                     // \Throwable, not Exception: a plugin's TypeError is not an
                     // Exception and used to escape every net on this path,
@@ -1379,27 +1424,25 @@ class OrderPlacement
                 }
             }
 
-            if (!empty($this->shipment_type) && $this->order && !$this->methodPluginLive('alfa-shipments', $this->shipment_type)) {
+            $shipmentPlugin = !empty($this->shipment_type) && $this->order ? $this->methodPlugin('alfa-shipments', $this->shipment_type) : null;
+
+            if (!empty($this->shipment_type) && $this->order && $shipmentPlugin === null) {
                 // Same reasoning as the payment side above: the order is already
                 // committed, so the carrier's row simply does not get created and
                 // the absence is recorded rather than hidden.
                 $failed[] = 'shipment';
                 Log::add(
                     'Skipped onOrderAfterPlace for order #' . (int) $this->order->id
-                        . ': the plugin behind shipment method "' . $this->shipment_type . '" is not enabled.',
+                        . ': the plugin behind shipment method "' . $this->shipment_type . '" is not enabled, missing or cannot be loaded.',
                     Log::ERROR,
                     'com_alfa.orders',
                 );
                 $this->shipment_type = '';
             }
 
-            if (!empty($this->shipment_type) && $this->order) {
+            if ($shipmentPlugin !== null && !empty($this->shipment_type) && $this->order) {
                 try {
-                    $event = new ShipmentOrderAfterPlaceEvent('onOrderAfterPlace', ['subject' => $this->order]);
-                    $plugin = $this->app->bootPlugin($this->shipment_type, 'alfa-shipments');
-                    if ($plugin && method_exists($plugin, 'onOrderAfterPlace')) {
-                        $plugin->onOrderAfterPlace($event);
-                    }
+                    $this->toMethodPlugin($shipmentPlugin, new ShipmentOrderAfterPlaceEvent('onOrderAfterPlace', ['subject' => $this->order]));
                 } catch (Throwable $e) {
                     $failed[] = 'shipment';
                     Log::add(

@@ -51,14 +51,15 @@ class SearchProviderFactory
 
     /**
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
-     * @param SearchEngineRegistry|null $registry Injected for testing.
+     * @param SearchEngineRegistry|null $registry Injected for testing; by default the request's own (2.2.0: the engines
+     *                                            are discovered once per request, whoever asks).
      *
      * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null, ?SearchEngineRegistry $registry = null)
     {
         $this->db = $db ?? Factory::getContainer()->get('DatabaseDriver');
-        $this->registry = $registry ?? new SearchEngineRegistry();
+        $this->registry = $registry ?? SearchEngineRegistry::shared();
     }
 
     /**

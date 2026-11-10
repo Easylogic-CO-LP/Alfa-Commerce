@@ -64,6 +64,7 @@ final class CartSnapshotFactory
                 contributions: $computation->contributions(),
                 grand: $totals->grandTotal(),
                 grandExcl: $totals->grandTotalExcl(),
+                contributionsNotLoaded: $computation->contributionsNotLoaded(),
             ),
             rules: new CartRulesView(
                 applied: $rules->applied(),

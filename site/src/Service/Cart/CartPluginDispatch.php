@@ -16,7 +16,9 @@ use Alfa\Component\Alfa\Administrator\Event\Shipments\CalculateShippingCostEvent
 use Alfa\Component\Alfa\Administrator\Event\Shipments\CartViewAssetsEvent as ShipmentsCartViewAssetsEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\CartViewEvent as ShipmentsCartViewEvent;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
-use Alfa\Component\Alfa\Administrator\Service\Cart\CommercialPlugins;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\CartAssetsRequest;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\ContributionLine;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\ContributionRequest;
@@ -31,12 +33,11 @@ use Alfa\Component\Alfa\Site\Service\Shipping\ShippingCharge;
 use Alfa\Component\Alfa\Site\Service\Shipping\ShippingPriceEntryModeResolver;
 use Alfa\Component\Alfa\Site\Service\Shipping\ShippingTaxResolver;
 use Closure;
+use InvalidArgumentException;
 use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\User\User;
-use Joomla\Event\SubscriberInterface;
 use Throwable;
 
 defined('_JEXEC') or die;
@@ -136,32 +137,37 @@ final class CartPluginDispatch
         // generic refusal here would replace a precise cause with a vague one.
         $asked = false;
 
-        if (PluginHelper::isEnabled('alfa-shipments', (string) $currentType)) {
-            $plugin = $this->app->bootPlugin($currentType, 'alfa-shipments');
+        // The cart's chosen carrier, through the plugin helper (2.2.0, mode B): disabled, missing or unloadable, not
+        // asked; one that declares no quote handler, not asked either.
+        $plugins = AlfaPluginHelper::get();
 
-            if (method_exists($plugin, $eventName)) {
+        try {
+            $carrier = $plugins->bootSingle(PluginId::from('alfa-shipments', (string) $currentType));
+        } catch (PluginUnavailable|InvalidArgumentException) {
+            $carrier = null;
+        }
+
+        if ($carrier !== null && $plugins->declares($carrier, $eventName)) {
+            try {
+                $plugins->dispatchTo($carrier, $event);
                 $asked = true;
+            } catch (Throwable $e) {
+                // A carrier that throws is a carrier that cannot price
+                //
+                // This runs while a SHOPPER is looking at their cart, so a
+                // stored value the carrier cannot read (a postcode column
+                // holding something that is not a postcode, a payload
+                // written by hand) has to come out as "this method is not
+                // available", the same as any other refusal. Uncaught, it
+                // was a white page over a cart with goods in it.
+                //
+                // NOT the presentation policy, deliberately. That one logs
+                // and carries on, which is right for an optional badge
+                // beside a method and wrong for the price of carrying the
+                // goods: this WITHDRAWS the method instead.
+                $this->quoteFailed($currentType, $e);
 
-                try {
-                    $plugin->{$eventName}($event);
-                } catch (Throwable $e) {
-                    // A carrier that throws is a carrier that cannot price
-                    //
-                    // This runs while a SHOPPER is looking at their cart, so a
-                    // stored value the carrier cannot read (a postcode column
-                    // holding something that is not a postcode, a payload
-                    // written by hand) has to come out as "this method is not
-                    // available", the same as any other refusal. Uncaught, it
-                    // was a white page over a cart with goods in it.
-                    //
-                    // NOT the presentation policy, deliberately. That one logs
-                    // and carries on, which is right for an optional badge
-                    // beside a method and wrong for the price of carrying the
-                    // goods: this WITHDRAWS the method instead.
-                    $this->quoteFailed($currentType, $e);
-
-                    return ShippingQuote::unavailable('COM_ALFA_SHIPMENT_QUOTE_FAILED');
-                }
+                return ShippingQuote::unavailable('COM_ALFA_SHIPMENT_QUOTE_FAILED');
             }
         }
 
@@ -253,39 +259,39 @@ final class CartPluginDispatch
 
     /**
      * The charges the commercial plugins add, as they were contributed:
-     * [plugin name, CartContribution] pairs, in dispatch order. Folding them
-     * into money is the computation's business, and the pricing engine's.
+     * [contributor (group.element), CartContribution] pairs, in delivery order.
+     * One event for the whole sequence (2.2.0), each `alfa` plugin
+     * the customer's view levels admit called once, in their order, through its
+     * own targeted declaration; a plugin that throws is logged and the next one
+     * runs. Folding the charges into money is the computation's business, and
+     * the pricing engine's.
+     *
+     * A PLUGIN THE CUSTOMER'S LEVELS ADMIT BUT JOOMLA DOES NOT LOAD FOR THE
+     * REQUEST'S USER (staff lacking one of the customer's levels) cannot add its
+     * charges: it is named in notLoaded, so the cart carries the refusal beside
+     * its totals and the placement refuses, rather than total the cart without it.
+     *
+     * @return array{charges: list<array{0: string, 1: \Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\CartContribution}>, notLoaded: list<string>}
      *
      * @since  2.0.0
      */
     public function contributions(HydratedCart $cart, User $customer, Money $subtotal): array
     {
-        $collected = [];
-        $request = $this->contributionRequest($cart, $subtotal);
+        $plugins = AlfaPluginHelper::get();
+        $event = new CartTotalsEvent('onCartTotals', ['subject' => $this->contributionRequest($cart, $subtotal)]);
+        $notLoaded = [];
 
-        foreach (CommercialPlugins::for($customer) as $alfaPlugin) {
-            $plugin = $this->app->bootPlugin($alfaPlugin->name, 'alfa');
-
-            if (!method_exists($plugin, 'onCartTotals')) {
-                continue;
-            }
-
-            $event = new CartTotalsEvent('onCartTotals', ['subject' => $request]);
-
-            try {
-                $plugin->onCartTotals($event);
-
-                foreach ($event->getContributions() as $contribution) {
-                    $collected[] = [$alfaPlugin->name, $contribution];
-                }
-            } catch (Throwable $e) {
-                $this->pluginFailed('Cart totals contribution failed (' . $alfaPlugin->name . ')', $e);
+        foreach ($plugins->dispatchToEachIsolated($plugins->admitted($customer, 'alfa'), $event) as $failure) {
+            if ($failure->error instanceof PluginUnavailable && $failure->error->reason === PluginUnavailable::NOT_LOADED) {
+                $notLoaded[] = $failure->listener;
 
                 continue;
             }
+
+            $this->pluginFailed('Cart totals contribution failed (' . $failure->listener . ')', $failure->error);
         }
 
-        return $collected;
+        return ['charges' => $event->getContributions(), 'notLoaded' => $notLoaded];
     }
 
     /**
@@ -317,20 +323,26 @@ final class CartPluginDispatch
     ): array {
         $isPayment = $kind === 'payment';
         $group = $isPayment ? 'alfa-payments' : 'alfa-shipments';
-        $subscribed = [];
+        $plugins = AlfaPluginHelper::get();
         $views = [];
 
         foreach ($offered as $method) {
             $type = (string) ($method->type ?? '');
             $methodId = (int) ($method->id ?? 0);
-            $plugin = $this->app->bootPlugin($type, $group);
 
-            if ($plugin instanceof SubscriberInterface && empty($subscribed[$type])) {
-                $this->app->getDispatcher()->addSubscriber($plugin);
-                $subscribed[$type] = true;
+            // Each offered method's plugin, through the plugin helper (2.2.0, mode B): its ambient subscriptions
+            // engaged once through Joomla's own import (in place of a second registration by hand), the view
+            // delivered to its declared handler; a plugin unavailable, or with no view, draws nothing.
+            try {
+                $id = PluginId::from($group, $type);
+                $plugin = $plugins->bootSingle($id);
+            } catch (PluginUnavailable|InvalidArgumentException) {
+                continue;
             }
 
-            if (!\is_object($plugin) || !method_exists($plugin, 'onCartView')) {
+            $plugins->importSingle($id);
+
+            if (!$plugins->declares($plugin, 'onCartView')) {
                 continue;
             }
 
@@ -350,7 +362,7 @@ final class CartPluginDispatch
             // The alternative is the one this catch exists to prevent: one
             // carrier's template bug taking down every cart in the shop.
             try {
-                $plugin->onCartView($event);
+                $plugins->dispatchTo($plugin, $event);
 
                 $pluginName = (string) $event->getLayoutPluginName();
                 $pluginType = (string) $event->getLayoutPluginType();
@@ -419,10 +431,16 @@ final class CartPluginDispatch
             $byType[$type][(int) ($method->id ?? 0)] = Method::of(record: $method);
         }
 
-        foreach ($byType as $type => $methods) {
-            $plugin = $this->app->bootPlugin($type, $group);
+        $plugins = AlfaPluginHelper::get();
 
-            if (!\is_object($plugin) || !method_exists($plugin, 'onCartViewAssets')) {
+        foreach ($byType as $type => $methods) {
+            try {
+                $plugin = $plugins->bootSingle(PluginId::from($group, $type));
+            } catch (PluginUnavailable|InvalidArgumentException) {
+                continue;
+            }
+
+            if (!$plugins->declares($plugin, 'onCartViewAssets')) {
                 continue;
             }
 
@@ -433,7 +451,7 @@ final class CartPluginDispatch
                 : new ShipmentsCartViewAssetsEvent('onCartViewAssets', ['subject' => $request]);
 
             try {
-                $plugin->onCartViewAssets($event);
+                $plugins->dispatchTo($plugin, $event);
             } catch (Throwable $e) {
                 $this->pluginFailed(
                     $kind . ' assets failed (onCartViewAssets, ' . $group . '/' . $type . ')',

@@ -62,11 +62,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                         <tbody>
                         <?php foreach ($this->items as $i => $item) : ?>
                             <?php
-                            // Per-row view-access gate (kept here, not in SQL: ACL is per-user).
-                            if (!NotificationHelper::canSee($item, $user)) {
-                                continue;
-                            }
-
+                            // Every row is one the reader may see: the model's query holds the view rules.
                             $severity = \in_array($item->severity, ['success', 'info', 'warning', 'danger'], true) ? $item->severity : 'info';
                             $safeUrl  = NotificationHelper::safeUrl((string) $item->url);
                             $hasLink  = $safeUrl !== '' && NotificationHelper::canUseLink($item, $user);

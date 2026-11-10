@@ -43,7 +43,9 @@ defined('_JEXEC') or die;
  * waits for its release, even with no transaction open, so nothing deferred
  * runs while another request is refused as busy on that lock. Work deferred
  * with no transaction open inside a lock scope is already committed, so no
- * rollback discards it.
+ * rollback discards it. Work that waits so may claim what it will run from
+ * the commit on (its reserve hook, 2.2.0): a batch of tasks is reserved for
+ * its run, so recovery in another request leaves it alone meanwhile.
  *
  * The queue also holds the connection's notice journal (2.1.4): each notification
  * write raised inside a transaction, recorded by its single ({@see Tasks::notice()}),
@@ -60,7 +62,7 @@ final class PostCommit
     /**
      * The waiting work of each connection, oldest first.
      *
-     * @var WeakMap<DatabaseDriver, list<array{level: int, label: string, work: callable, journal?: array<string, mixed>}>>|null
+     * @var WeakMap<DatabaseDriver, list<array{level: int, label: string, work: callable, journal?: array<string, mixed>, reserve?: callable}>>|null
      *
      * @since  2.0.0
      */
@@ -104,15 +106,22 @@ final class PostCommit
      * only the outermost rollback does. For work that reads what committed
      * when it runs, such as a batch of tasks.
      *
+     * Work that a lock scope or a hold keeps waiting after its commit may ask
+     * for what it will run to be claimed for it then (2.2.0, D7): its reserve
+     * hook runs at each commit made while it waits, after the notice journal,
+     * and at once when it is queued inside a lock scope with no transaction
+     * open. A failure of the hook is logged like a failure of the work.
+     *
      * @param DatabaseDriver $db The connection the work's transaction runs on.
      * @param string $label What the work does, as the log names it.
      * @param callable $work fn(): void.
+     * @param callable|null $reserve fn(): void, or null for none.
      *
      * @since  2.1.4
      */
-    public static function deferToOutermost(DatabaseDriver $db, string $label, callable $work): void
+    public static function deferToOutermost(DatabaseDriver $db, string $label, callable $work, ?callable $reserve = null): void
     {
-        self::queue(db: $db, level: min(1, TransactionState::level($db)), label: $label, work: $work);
+        self::queue(db: $db, level: min(1, TransactionState::level($db)), label: $label, work: $work, reserve: $reserve);
     }
 
     /**
@@ -122,7 +131,7 @@ final class PostCommit
      *
      * @param DatabaseDriver $db The connection.
      * @param string $label What the entry is, as the log names it.
-     * @param array{task: int, batch: string, op: array<string, mixed>} $entry The single, its batch, the write.
+     * @param array{task: int, batch: string, op: array<string, mixed>, raised?: string} $entry The single, its batch, the write; raised: when a write merged into an earlier single was raised.
      *
      * @since  2.1.4
      */
@@ -133,6 +142,30 @@ final class PostCommit
         $items[] = ['level' => max(0, TransactionState::level($db)), 'label' => $label, 'work' => static function (): void {
         }, 'journal' => $entry];
         $queues[$db] = $items;
+    }
+
+    /**
+     * The notice journal still waiting on the connection, oldest first: the writes raised in its open transaction (a
+     * committed transaction's are written at its commit), each with the level that owns it, so a rolled-back savepoint
+     * has taken its own.
+     *
+     * @param DatabaseDriver $db The connection.
+     *
+     * @return list<array{task: int, batch: string, op: array<string, mixed>, raised?: string}>
+     *
+     * @since  2.2.0
+     */
+    public static function journaled(DatabaseDriver $db): array
+    {
+        $entries = [];
+
+        foreach (self::queues()[$db] ?? [] as $item) {
+            if (isset($item['journal'])) {
+                $entries[] = $item['journal'];
+            }
+        }
+
+        return $entries;
     }
 
     /**
@@ -181,7 +214,7 @@ final class PostCommit
      *
      * When the connection still holds the lock although no scope of Alfa's holds it any more (its release failed, or
      * other code took it again), the scope is kept open: nothing deferred runs on the connection in this request, and
-     * the singles it wrote reach recovery once the lock is gone.
+     * the singles it wrote reach recovery once the lock is gone and their reservation (2.2.0) has lapsed.
      *
      * @param DatabaseDriver $db The connection that released the lock.
      * @param string $name The lock's name.
@@ -269,10 +302,11 @@ final class PostCommit
      * @param int $level The level that owns the work.
      * @param string $label What the work does.
      * @param callable $work The work.
+     * @param callable|null $reserve Its reserve hook ({@see self::deferToOutermost()}).
      *
      * @since  2.1.4
      */
-    private static function queue(DatabaseDriver $db, int $level, string $label, callable $work): void
+    private static function queue(DatabaseDriver $db, int $level, string $label, callable $work, ?callable $reserve = null): void
     {
         if ($level < 1 && !self::inLock($db)) {
             self::run(db: $db, label: $label, work: $work);
@@ -282,8 +316,13 @@ final class PostCommit
 
         $queues = self::queues();
         $items = $queues[$db] ?? [];
-        $items[] = ['level' => max(0, $level), 'label' => $label, 'work' => $work];
+        $items[] = ['level' => max(0, $level), 'label' => $label, 'work' => $work] + ($reserve !== null ? ['reserve' => $reserve] : []);
         $queues[$db] = $items;
+
+        // Queued inside a lock scope with no transaction open: what it will run is committed already.
+        if ($level < 1 && $reserve !== null) {
+            self::run(db: $db, label: 'the reservation of ' . $label, work: $reserve);
+        }
     }
 
     /**
@@ -302,7 +341,9 @@ final class PostCommit
      * requests and the work after it read the notifications its transactions
      * raised. Inside a lock scope the work its writes defer (their
      * announcements) waits with the work the commit released, after the work
-     * of earlier commits, in the order it runs without a lock scope.
+     * of earlier commits, in the order it runs without a lock scope; then each
+     * waiting item's reserve hook runs (2.2.0), so what the release will run
+     * is claimed for it from this commit on.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -346,6 +387,12 @@ final class PostCommit
                 unset($queues[$db]);
             } else {
                 $queues[$db] = $items;
+            }
+
+            foreach ($items as $item) {
+                if (isset($item['reserve'])) {
+                    self::run(db: $db, label: 'the reservation of ' . $item['label'], work: $item['reserve']);
+                }
             }
 
             return;

@@ -14,19 +14,24 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent as PaymentsOrderCompleteViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent as PaymentsOrderProcessViewEvent;
-use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
-use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
-use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
+use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
+use InvalidArgumentException;
+use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use stdClass;
+use Throwable;
 
 /**
  * View class for a list of Alfa.
@@ -73,11 +78,20 @@ class HtmlView extends BaseHtmlView
     protected $newBillingPicked = false;
 
     /**
-     * The number the customer knows the completed order by, as its confirmation e-mail gives it.
+     * The order-completed page's order, the one read-only value its template reads (2.2.0, design 2.17); null when the
+     * order is not available to this visitor.
      *
-     * @since  2.1.1
+     * @since  2.2.0
      */
-    protected string $orderNumber = '';
+    protected ?OrderConfirmation $confirmation = null;
+
+    /**
+     * Whether the order's gateway of record cannot be loaded now: the order pages show the neutral line and change
+     * nothing (2.2.0, design 2.15.5).
+     *
+     * @since  2.2.0
+     */
+    protected bool $providerUnavailable = false;
 
     /** @var string Resolved sub-template for the "cart_items" slot */
     protected $cartItemsTpl = 'cart_items';
@@ -114,6 +128,15 @@ class HtmlView extends BaseHtmlView
 
         $this->state = $model->getState();
         $this->params = $app->getParams('com_alfa');
+
+        // THE ORDER-COMPLETED PAGE (2.2.0, design 2.17): an order read by the site read service, never the cart, its
+        // form or the checkout's state.
+        if ($this->_layout == 'default_order_completed') {
+            $this->displayOrderCompleted($tpl);
+
+            return;
+        }
+
         $this->form = $model->getForm();
 
         // Cart participates with SLOTS only: its main layout stays untouched
@@ -145,6 +168,14 @@ class HtmlView extends BaseHtmlView
 
         if ($reading !== null && $reading->isEmpty()) {
             $this->_layout = 'default_cart_empty';
+
+            // THE EMPTY PAGE STILL LISTENS. Its layout is also the JSON partial the
+            // cart tasks answer with, where an asset call would throw, so the view
+            // declares the script that reveals the layout's notice when another
+            // surface changes the cart, and the stylesheet that styles the notice
+            // as on a page emptied in place, with the tokens it reads.
+            $this->getDocument()->getWebAssetManager()->useStyle('com_alfa.tokens')->useStyle('com_alfa.cart');
+            $this->getDocument()->getWebAssetManager()->useScript('com_alfa.cart');
         }
 
         if ($this->_layout == 'default') {
@@ -176,8 +207,7 @@ class HtmlView extends BaseHtmlView
             $reading->declareAssets($this->getDocument());
         }
 
-        if ($this->_layout == 'default_order_process' ||
-            $this->_layout == 'default_order_completed') {
+        if ($this->_layout == 'default_order_process') {
             $orderId = $app->getUserState('com_alfa.order_id');
 
             if ($orderId == null) {
@@ -200,130 +230,274 @@ class HtmlView extends BaseHtmlView
             // Always present so the layout templates can safely check it.
             $this->event = new stdClass();
 
-            if ($this->_layout == 'default_order_process') {
-                $selectedPayment = $orderData->selected_payment ?? null;
-                $paymentType = $selectedPayment->type ?? '';
+            // THE GATEWAY OF RECORD (2.2.0, design 2.15.5): the order's own snapshot of the plugin
+            // that took its payment, never the live method row, which staff may have edited.
+            $selectedPayment = $orderData->selected_payment ?? null;
+            $paymentType = (string) ($orderData->payment_method_type ?? '');
 
-                $onProcessPaymentEventName = 'onOrderProcessView';
-                $paymentEvent = new PaymentsOrderProcessViewEvent($onProcessPaymentEventName, [
-                    'subject' => $orderData,
-                    'method' => $selectedPayment,
-                ]);
+            $paymentEvent = new PaymentsOrderProcessViewEvent('onOrderProcessView', [
+                'subject' => $orderData,
+                'method' => $selectedPayment,
+            ]);
 
-                // Engage the payment plugin only when the order has one. bootPlugin()
-                // returns a DummyPlugin otherwise: neither a SubscriberInterface nor
-                // owner of the event method.
-                if ($paymentType !== '') {
-                    $plugin = $this->app->bootPlugin($paymentType, 'alfa-payments');
-
-                    if ($plugin instanceof \Joomla\Event\SubscriberInterface) {
-                        $this->app->getDispatcher()->addSubscriber($plugin);
-                    }
-
-                    if (method_exists($plugin, $onProcessPaymentEventName)) {
-                        $plugin->{$onProcessPaymentEventName}($paymentEvent);
-                    }
-
-                    if (empty($paymentEvent->getLayoutPluginName())) {
-                        $paymentEvent->setLayoutPluginName($paymentType);
-                    }
-                    if (empty($paymentEvent->getLayoutPluginType())) {
-                        $paymentEvent->setLayoutPluginType('alfa-payments');
-                    }
-                    if ($paymentEvent->hasRedirect()) {
-                        $this->app->redirect(
-                            $paymentEvent->getRedirectUrl(),
-                            $paymentEvent->getRedirectCode() ?? 303,
-                        );
-
-                        return;
-                    }
-                }
-
-                // No payment, or the plugin produced no layout -> show the completed page.
-                if (empty($paymentEvent->getLayout())) {
-                    $this->app->redirect(
-                        Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed', false),
-                        $paymentEvent->getRedirectCode() ?? 303,
-                    );
-
-                    return;
-                }
-
+            if ($paymentType !== '' && $this->askGatewayOfRecord($paymentType, $paymentEvent) !== 'asked') {
+                // The gateway of record cannot be loaded, or its handler failed: the page says so in
+                // neutral words and changes nothing; it never moves on to the completed page for it,
+                // which would read as a payment taken (2.2.0, s96).
+                $this->providerUnavailable = true;
                 $this->event->onOrderProcessView = $paymentEvent;
+                $this->_prepareDocument();
+
+                parent::display($tpl);
+
+                return;
             }
 
-            if ($this->_layout == 'default_order_completed') {
-                $selectedPayment = $orderData->selected_payment ?? null;
-                $paymentType = $selectedPayment->type ?? '';
+            if ($paymentEvent->hasRedirect()) {
+                $this->app->redirect(
+                    $paymentEvent->getRedirectUrl(),
+                    $paymentEvent->getRedirectCode() ?? 303,
+                );
 
-                $onOrderCompleteViewEventName = 'onOrderCompleteView';
-                $paymentEvent = new PaymentsOrderCompleteViewEvent($onOrderCompleteViewEventName, [
-                    'subject' => $orderData,
-                    'method' => $selectedPayment,
-                ]);
+                return;
+            }
 
-                // Engage the payment plugin only when the order has one. bootPlugin()
-                // returns a DummyPlugin otherwise: neither a SubscriberInterface nor
-                // owner of the event method.
-                if ($paymentType !== '') {
-                    $plugin = $this->app->bootPlugin($paymentType, 'alfa-payments');
+            // No payment, or the plugin produced no layout -> show the completed page.
+            if (empty($paymentEvent->getLayout())) {
+                $this->app->redirect(
+                    Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed', false),
+                    $paymentEvent->getRedirectCode() ?? 303,
+                );
 
-                    if ($plugin instanceof \Joomla\Event\SubscriberInterface) {
-                        $this->app->getDispatcher()->addSubscriber($plugin);
-                    }
+                return;
+            }
 
-                    if (method_exists($plugin, $onOrderCompleteViewEventName)) {
-                        $plugin->{$onOrderCompleteViewEventName}($paymentEvent);
-                    }
+            $this->event->onOrderProcessView = $paymentEvent;
+        }
 
-                    if (empty($paymentEvent->getLayoutPluginName())) {
-                        $paymentEvent->setLayoutPluginName($paymentType);
-                    }
-                    if (empty($paymentEvent->getLayoutPluginType())) {
-                        $paymentEvent->setLayoutPluginType('alfa-payments');
-                    }
-                    if ($paymentEvent->hasRedirect()) {
-                        $this->app->redirect(
-                            $paymentEvent->getRedirectUrl(),
-                            $paymentEvent->getRedirectCode() ?? 303,
-                        );
+        $this->_prepareDocument();
 
-                        return;
-                    }
-                }
+        parent::display($tpl);
+    }
 
-                // Always set: the template renders the plugin layout unconditionally;
-                // Layout::render outputs nothing when the layout is empty (e.g. an
-                // order with no payment method).
-                $this->event->onOrderCompleteView = $paymentEvent;
+    /**
+     * Ask the order's gateway of record for its page (2.2.0, mode B): its ambient subscriptions engaged, the view event
+     * delivered to its declared handler, the layout owner defaulted to it. A gateway with no handler for the page is
+     * asked nothing. Any Throwable leaving the handler is its failure: logged, and the caller renders no plugin block
+     * (the process page shows the neutral line and stays).
+     *
+     * @param string $paymentType The order's snapshot of the gateway's plugin element.
+     * @param PaymentsOrderProcessViewEvent|PaymentsOrderCompleteViewEvent $event The view event.
+     *
+     * @return string 'asked'; 'unavailable' when the gateway of record is disabled, missing or cannot be loaded;
+     *                'failed' when its handler threw.
+     *
+     * @since  2.2.0
+     */
+    private function askGatewayOfRecord(string $paymentType, PaymentsOrderProcessViewEvent|PaymentsOrderCompleteViewEvent $event): string
+    {
+        $plugins = AlfaPluginHelper::get();
 
-                // Purchased downloads: only a NOTICE here ("links were emailed").
-                // Composing real URLs would rotate the tokens (this is a separate
-                // request from the grant, so the raw tokens are gone) and kill
-                // the links the customer just received by email.
-                $this->hasDownloads = false;
+        try {
+            $id = PluginId::from('alfa-payments', $paymentType);
+            $gateway = $plugins->bootSingle($id);
+        } catch (PluginUnavailable|InvalidArgumentException $e) {
+            Log::add('Order page: the gateway of record cannot be loaded (' . $e->getMessage() . '); the page shows the neutral line.', Log::WARNING, 'com_alfa.payments');
 
-                foreach (Entitlements::getForOrder(orderId: (int) $orderData->id) as $entitlement) {
-                    if (Entitlements::isServable(status: (int) $entitlement->status)) {
-                        $this->hasDownloads = true;
-                        break;
-                    }
-                }
+            return 'unavailable';
+        }
 
-                // Where the confirmation went: shown so a guest sees a typo at once.
-                $this->customerEmail = OrderIdentity::notificationEmail($orderData);
-                $this->orderNumber = EmailService::orderNumber(order: $orderData);
+        $plugins->importSingle($id);
 
-                // Terminal state: the order is loaded ($orderData) and every consumer
-                // of the session order id has already run (gateway return via
-                // PaymentController; another gateway resolves from its payload; retry links
-                // carry the id in the URL). Clear it so the completion can't be
-                // replayed and a stale id can't re-enter the process/payment page.
-                $this->app->setUserState('com_alfa.order_id', null);
+        if ($plugins->declares($gateway, $event->getName())) {
+            try {
+                $plugins->dispatchTo($gateway, $event);
+            } catch (Throwable $e) {
+                Log::add('Order page: ' . $id . ' failed in ' . $event->getName() . ' (' . $e::class . ': ' . $e->getMessage() . '); the page renders without it.', Log::ERROR, 'com_alfa.payments');
+
+                return 'failed';
             }
         }
 
+        if (empty($event->getLayoutPluginName())) {
+            $event->setLayoutPluginName($paymentType);
+        }
+
+        if (empty($event->getLayoutPluginType())) {
+            $event->setLayoutPluginType('alfa-payments');
+        }
+
+        return 'asked';
+    }
+
+    /**
+     * The order-completed page (2.2.0, design 2.17): two addresses, one page.
+     *
+     * The ARRIVAL address (layout=default_order_completed, no id and no key) is where every gateway and the process
+     * page land the buyer: it reads the order the checkout completed from the session, clears it (the page's one
+     * write) and answers 303 to the KEYED address, which carries the order's id and key and renders the order on every
+     * request: it writes nothing, so a reload, the back button or a second tab shows the same page. The order is read
+     * through the model by the site read service; access is the key, and for a customer account's order that customer
+     * logged in as well.
+     *
+     * @param string|null $tpl Template name.
+     *
+     * @throws Exception
+     * @since  2.2.0
+     */
+    private function displayOrderCompleted(?string $tpl): void
+    {
+        $app = $this->app;
+        $input = $app->getInput();
+
+        // THE RESPONSE'S PROTECTIONS, on the redirect and on every keyed answer: the key is in the address, so the
+        // answer is never stored by a browser or a proxy, never indexed, and the address never leaves the site in a
+        // Referer. An uncachable response is answered by Joomla with its own Cache-Control (no-store, no-cache,
+        // must-revalidate), sent last whatever a view sets. Joomla's page cache stores a guest's GET by its address and
+        // reads no header, so this request answers its exclusion event itself (asked after the render, before anything
+        // is stored).
+        $app->allowCache(false);
+        $app->setHeader('X-Robots-Tag', 'noindex, nofollow', true);
+        $app->setHeader('Referrer-Policy', 'same-origin', true);
+        AlfaPluginHelper::get()->listen('onPageCacheIsExcluded', static function ($event): void {
+            $event->addResult(true);
+        });
+
+        if (!$input->exists('id') && !$input->exists('key')) {
+            $this->arriveAtCompletedOrder($tpl);
+
+            return;
+        }
+
+        // The address's two values, read raw and judged here (A-C16-7): each one plain value, the id a positive whole
+        // number as the arrival writes it. Anything else (an array such as id[]=, a malformed number) is no order of
+        // this visitor's and gets the page's own answer, never a thrown error page.
+        $id = $input->get('id', null, 'raw');
+        $key = $input->get('key', null, 'raw');
+
+        if (!self::isPlain($id) || !preg_match('/^[1-9][0-9]{0,9}$/', (string) $id) || !self::isPlain($key)) {
+            $this->displayOrderNotAvailable($tpl);
+
+            return;
+        }
+
+        try {
+            $this->confirmation = $this->getModel()->getCompletedOrder(id: (int) $id, key: (string) $key);
+        } catch (NotAllowed) {
+            // A customer account's order: its customer logs in and comes back to this address. The page's own words,
+            // never an exception's.
+            $app->enqueueMessage(Text::_('COM_ALFA_ORDER_COMPLETED_LOGIN_REQUIRED'), 'notice');
+            $app->redirect(Route::_(
+                'index.php?option=com_users&view=login&return=' . base64_encode(Uri::getInstance()->toString()),
+                false,
+            ));
+
+            return;
+        }
+
+        if ($this->confirmation === null) {
+            $this->displayOrderNotAvailable($tpl);
+
+            return;
+        }
+
+        // THE GATEWAY'S BLOCK (mode B, design 2.15.5): the completion view goes to the order's gateway of record alone,
+        // the plugin the order recorded, with the order's own row as its subject. A gateway that cannot be loaded or
+        // whose handler throws leaves its block out, and the page says so in neutral words: never a word of payment
+        // the order does not hold.
+        $this->event = new stdClass();
+        $paymentEvent = new PaymentsOrderCompleteViewEvent('onOrderCompleteView', [
+            'subject' => $this->confirmation->gatewaySubject(),
+            'method' => $this->confirmation->gatewayMethod(),
+        ]);
+
+        if ($this->confirmation->gateway !== '') {
+            if ($this->askGatewayOfRecord($this->confirmation->gateway, $paymentEvent) !== 'asked') {
+                $this->providerUnavailable = true;
+            } elseif ($paymentEvent->hasRedirect()) {
+                // The gateway's own choice, as before.
+                $app->redirect($paymentEvent->getRedirectUrl(), $paymentEvent->getRedirectCode() ?? 303);
+
+                return;
+            }
+        }
+
+        $this->event->onOrderCompleteView = $paymentEvent;
+        $this->getDocument()->setMetaData('robots', 'noindex, nofollow');
+        $this->_prepareDocument();
+
+        parent::display($tpl);
+    }
+
+    /**
+     * Whether a value read raw from the request is one plain value: a string or a whole number, never an array, an
+     * object or a boolean.
+     *
+     * @param mixed $value The value as the input holds it.
+     *
+     * @since  2.2.0
+     */
+    private static function isPlain(mixed $value): bool
+    {
+        return \is_string($value) || \is_int($value);
+    }
+
+    /**
+     * The arrival address: the session's order, cleared once, then 303 to its keyed address. The query a gateway added
+     * to the arrival address (a result flag its completion view reads) goes along, so no gateway changes.
+     *
+     * @param string|null $tpl Template name.
+     *
+     * @throws Exception
+     * @since  2.2.0
+     */
+    private function arriveAtCompletedOrder(?string $tpl): void
+    {
+        $app = $this->app;
+        $orderId = (int) $app->getUserState('com_alfa.order_id');
+
+        if ($orderId <= 0) {
+            $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_ENDED'), 'message');
+            // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
+            $app->redirect(Uri::root());
+
+            return;
+        }
+
+        // Every reader of the session's order id has run by now (the gateway's return through PaymentController,
+        // another gateway from its own payload, retry links carrying the id in their address). Cleared here, once,
+        // so a stale id never re-enters the process page.
+        $app->setUserState('com_alfa.order_id', null);
+
+        $key = $this->getModel()->getCompletedOrderKey(id: $orderId);
+
+        if ($key === '') {
+            $this->displayOrderNotAvailable($tpl);
+
+            return;
+        }
+
+        $query = array_diff_key(Uri::getInstance()->getQuery(true), array_flip(['option', 'view', 'layout', 'id', 'key', 'task']));
+        $address = 'index.php?' . http_build_query(['option' => 'com_alfa', 'view' => 'cart', 'layout' => 'default_order_completed', 'id' => $orderId, 'key' => $key] + $query);
+
+        $app->redirect(Route::_($address, false), 303);
+    }
+
+    /**
+     * The answer for an order this visitor may not see: status 404 and the page's one line, nothing about the order.
+     * Rendered by the page itself, not thrown: a thrown error page is stored by Joomla's page cache under the address,
+     * and this request has excluded itself from it.
+     *
+     * @param string|null $tpl Template name.
+     *
+     * @throws Exception
+     * @since  2.2.0
+     */
+    private function displayOrderNotAvailable(?string $tpl): void
+    {
+        $this->confirmation = null;
+        $this->app->setHeader('status', 404, true);
+        $this->getDocument()->setMetaData('robots', 'noindex, nofollow');
         $this->_prepareDocument();
 
         parent::display($tpl);

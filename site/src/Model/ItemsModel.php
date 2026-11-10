@@ -25,11 +25,15 @@ use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ListLimitsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ItemFieldValueProjection;
 use Alfa\Component\Alfa\Administrator\Service\Search\QueryNormalizer;
+use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
+use Alfa\Component\Alfa\Administrator\Service\Search\ResultSetContext;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEntity;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchIntent;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchProviderFactory;
@@ -51,11 +55,9 @@ use Alfa\Component\Alfa\Site\Service\Variant\CombinationResolver;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\ParameterType;
-use Joomla\Event\SubscriberInterface;
 use Throwable;
 
 /**
@@ -92,7 +94,7 @@ class ItemsModel extends UrlListModel
      * candidate universe.
      *
      * Without it the provider runs at {@see SearchQuery}'s 1000 default on every
-     * keystroke, and the enterprise prefix group makes two-character tokens genuinely
+     * keystroke, and an engine's prefix group can make two-character tokens genuinely
      * mass-match: retrieval scores, returns and FIELD()-orders a thousand ids so a
      * dropdown can show eight rows. An expressed SEARCH keeps the full default: a
      * results LISTING pages through its candidates, so truncating them would silently
@@ -180,34 +182,156 @@ class ItemsModel extends UrlListModel
     protected array $relevanceIds = [];
 
     /**
-     * The analytics handle the current search was recorded under, or null.
+     * What the rendered result set of the current read carries (2.2.0): the provider's handle (opaque, or null), the
+     * shown order, whether the handle belongs to this response alone, the configured engine. Null for a read that backs
+     * no rendered result set (a facet re-read, a programmatic read without a context). Carried, never interpreted.
      *
-     * Carried out of the provider so the SURFACE can declare the attribution edge on the
-     * rendered result set. OPAQUE AND ENGINE-ISSUED (`int|string`; see
-     * {@see SearchResult::$eventId}): the model carries it, never interprets it. Null
-     * whenever the search was not recorded (a TYPEAHEAD lookup, a non-Enterprise
-     * engine, or analytics switched off) and null must render no attribution at all
-     * rather than a zero.
-     *
-     *
-     * @since  2.0.0
+     * @since  2.2.0
      */
-    protected int|string|null $searchEventId = null;
+    protected ?ResultAttribution $resultAttribution = null;
 
     /**
-     * The analytics handle of the search behind the current result set.
+     * The rendered result set a programmatic caller says this read backs (the search endpoint's intent=search read),
+     * or null. The request-driven listing builds its own for every page (populateState()); a facet sub-model never
+     * carries one (createFilterSubModel() does not copy it).
      *
-     * Read by the view so the template can declare the attribution edge. Only meaningful
-     * after {@see self::getItems()} has run.
-     *
-     * @return int|string|null Engine-issued handle, or null when this result set is not
-     *                         attributable.
-     *
-     * @since  2.0.0
+     * @since  2.2.0
      */
-    public function getSearchEventId(): int|string|null
+    protected ?ResultSetContext $resultSetContext = null;
+
+    /**
+     * True while this read counts its own result set to clamp the start (renderedOffset()): that count is a read no
+     * one sees, so it carries no context.
+     *
+     * @since  2.2.0
+     */
+    private bool $countingForStart = false;
+
+    /**
+     * The attribution of the current result set: what the view renders and the lifecycle event carries.
+     *
+     * Only meaningful after {@see self::getItems()} has run.
+     *
+     * @return ResultAttribution|null Null when this read backs no rendered result set.
+     *
+     * @since  2.2.0
+     */
+    public function getResultAttribution(): ?ResultAttribution
     {
-        return $this->searchEventId;
+        return $this->resultAttribution;
+    }
+
+    /**
+     * The shown order's key for each column the listing sorts by (2.2.0): a closed map, so a raw ordering string (an
+     * SQL alias) is never published.
+     *
+     * @var array<string, string>
+     *
+     * @since  2.2.0
+     */
+    private const ORDER_KEYS = [
+        'a.ordering' => 'ordering', 'ordering' => 'ordering', 'name' => 'name', 'a.id' => 'id', 'id' => 'id',
+        'a.sku' => 'sku', 'sku' => 'sku', 'a.stock' => 'stock', 'stock' => 'stock', 'created' => 'created',
+        'a.created' => 'created', 'pf.final_price' => 'price', 'price' => 'price', 'pf.price' => 'price',
+        'pf.discount_amount' => 'discount_amount', 'pf.discount_percent' => 'discount_percent',
+    ];
+
+    /**
+     * The order a result set of this read is shown in (2.2.0): `relevance` when nothing else was asked for (the test
+     * the ordering block applies to an engine's ids), else `sort:<key>:<direction>` from the closed map. Computed before
+     * the provider runs, so it travels on the query; a read whose engine returns no ids renders nothing to attribute.
+     *
+     * Public because two readers outside the listing's own query take it (A-C11-1, A-C11-7): CatalogSearchService
+     * (the search endpoint's item read: its context and the `order` its payload reports) and getListQuery() here, for
+     * a request-driven read. What is said is always what is shown.
+     *
+     * @since  2.2.0
+     */
+    public function shownOrder(): string
+    {
+        $filter = (string) $this->getState('filter.search', '');
+
+        if ($filter !== '' && stripos($filter, 'id:') !== 0 && !$this->explicitlySorted() && $this->sortIsFallback()) {
+            return ResultSetContext::RELEVANCE;
+        }
+
+        $column = (string) $this->state->get('list.ordering', 'id');
+        $direction = strtolower((string) $this->state->get('list.direction', 'DESC')) === 'asc' ? 'asc' : 'desc';
+
+        return 'sort:' . (self::ORDER_KEYS[$column] ?? 'id') . ':' . $direction;
+    }
+
+    /**
+     * Whether the request chose a sort: searchtools submits list[fullordering] whenever one is chosen, so its presence
+     * means "asked for", whatever the value. One of the two tests relevance needs (with {@see self::sortIsFallback()}).
+     *
+     * @since  2.2.0
+     */
+    private function explicitlySorted(): bool
+    {
+        // A programmatic read (ignore_request: the search endpoint, a module) never takes its sort from the page
+        // request it happens to run in (A-C11-1): its caller sets the state it means.
+        if ($this->ignoreRequest) {
+            return false;
+        }
+
+        $requestedList = (array) $this->app->getInput()->get('list', [], 'array');
+
+        return ($requestedList['fullordering'] ?? '') !== '';
+    }
+
+    /**
+     * Whether the state's sort is only the fallback: empty (a programmatic caller sets none) or the listing's default.
+     * A sort remembered in state from an earlier page is not.
+     *
+     * @since  2.2.0
+     */
+    private function sortIsFallback(): bool
+    {
+        $stateOrdering = (string) $this->getState('list.fullordering', '');
+        $orderCol = (string) $this->state->get('list.ordering', 'id');
+        $orderDirn = (string) $this->state->get('list.direction', 'DESC');
+
+        return $stateOrdering === '' || $this->isDefault('list', 'fullordering', $orderCol . ' ' . $orderDirn);
+    }
+
+    /**
+     * The offset a rendered read's cards are numbered from (A-C11-2): pagination's own start (getStart()), which clamps
+     * a start past the last page to that page, not the raw list.start. A start above 0 is clamped against the result
+     * set's total, which the count of this same read gives (the count pagination runs anyway, cached by the list model
+     * for it): the count is built with no context, so a provider is told the offset only once the cards' is known.
+     *
+     * @since  2.2.0
+     */
+    private function renderedOffset(): int
+    {
+        if ((int) $this->getState('list.start', 0) <= 0) {
+            return 0;
+        }
+
+        $this->countingForStart = true;
+
+        try {
+            return max(0, (int) $this->getStart());
+        } finally {
+            $this->countingForStart = false;
+        }
+    }
+
+    /**
+     * Say that this read backs a rendered result set (a programmatic caller rendering its own results).
+     *
+     * @param ResultSetContext|null $context The result set's order and offset; null for none.
+     *
+     * @return $this
+     *
+     * @since  2.2.0
+     */
+    public function setResultSetContext(?ResultSetContext $context): self
+    {
+        $this->resultSetContext = $context;
+
+        return $this;
     }
 
     /**
@@ -293,6 +417,11 @@ class ItemsModel extends UrlListModel
                 ? SearchIntent::CONTINUATION->value
                 : SearchIntent::SEARCH->value,
         );
+
+        // EVERY PAGE OF A REQUEST-DRIVEN LISTING IS A RENDERED RESULT SET (2.2.0): its read
+        // carries a ResultSetContext, so a provider may mint a handle for any of its pages.
+        // Not copied to a facet sub-model, whose re-read nobody sees.
+        $this->setState('search.rendered', true);
 
         $this->applyMenuPresets();
 
@@ -910,7 +1039,14 @@ class ItemsModel extends UrlListModel
         // so a relevance order left over from an earlier build would be applied to a later query
         // that has no search at all: ordering rows by ids that are not even in its WHERE.
         $this->relevanceIds = [];
-        $this->searchEventId = null;
+
+        // THE RESULT SET THIS READ BACKS, decided BEFORE the provider runs: what core knows (the
+        // shown order, the offset) travels on the query. Null for a read nobody sees.
+        $context = $this->countingForStart ? null : ($this->resultSetContext ?? ($this->getState('search.rendered')
+            ? new ResultSetContext(order: $this->shownOrder(), offset: $this->renderedOffset())
+            : null));
+        $engine = (string) ComponentHelper::getParams('com_alfa')->get('search_engine', 'database');
+        $this->resultAttribution = $context === null ? null : new ResultAttribution(order: $context->order, engine: $engine);
 
         // Make the ShowOn-pruned selection effective before anything reads
         // filter.fields: a facet hidden by a rule must not filter the results.
@@ -1033,6 +1169,7 @@ class ItemsModel extends UrlListModel
                                 ? self::TYPEAHEAD_CANDIDATE_LIMIT
                                 : 1000,
                             intent: $intent,
+                            context: $context,
                         ),
                     );
 
@@ -1049,8 +1186,13 @@ class ItemsModel extends UrlListModel
                             Log::ERROR,
                             'com_alfa',
                         );
-                    } else {
-                        $this->searchEventId = $result->eventId;
+                    } elseif ($context !== null) {
+                        $this->resultAttribution = new ResultAttribution(
+                            handle: $result->eventId,
+                            order: $context->order,
+                            responseSpecific: $result->responseSpecific,
+                            engine: $engine,
+                        );
                     }
 
                     if (empty($ids)) {
@@ -1233,8 +1375,7 @@ class ItemsModel extends UrlListModel
         // settles it: searchtools submits list[fullordering] whenever a sort is actually chosen,
         // so its PRESENCE means "asked for", whatever the value. Comparing to the default still
         // matters as well, for a sort remembered in state from an earlier page.
-        $requestedList = (array) $this->app->getInput()->get('list', [], 'array');
-        $explicitlySorted = ($requestedList['fullordering'] ?? '') !== '';
+        $explicitlySorted = $this->explicitlySorted();
 
         // EMPTY STATE COUNTS AS "NOBODY ASKED", and that arm exists for the SERVICE path:
         // a programmatic caller (`ignore_request`: CatalogSearchService, the dropdowns, the
@@ -1243,11 +1384,7 @@ class ItemsModel extends UrlListModel
         // was computed and then discarded in favour of the model's `a.id DESC` fallback on
         // every service search since the extraction. A caller that DOES want a specific
         // order still gets it by setting the state, which is non-empty and non-default.
-        $stateOrdering = (string) $this->getState('list.fullordering', '');
-
-        $relevanceOrder = $this->relevanceIds !== []
-            && !$explicitlySorted
-            && ($stateOrdering === '' || $this->isDefault('list', 'fullordering', $orderCol . ' ' . $orderDirn));
+        $relevanceOrder = $this->relevanceIds !== [] && !$explicitlySorted && $this->sortIsFallback();
 
         if ($relevanceOrder) {
             // FIELD() maps each id to its position in the engine's list. Ids are integers cast
@@ -2052,42 +2189,13 @@ class ItemsModel extends UrlListModel
      */
     protected function dispatchItemsListPrepare(array $items): void
     {
-        $app = Factory::getApplication();
-        $dispatcher = $app->getDispatcher();
-
-        foreach (PluginHelper::getPlugin('alfa-item-fields') as $pluginInfo) {
-            try {
-                $plugin = $app->bootPlugin((string) $pluginInfo->name, 'alfa-item-fields');
-
-                if (!$plugin) {
-                    continue;
-                }
-
-                // Engage the plugin on the dispatcher once for the request (same
-                // as payments/shipments), so it participates in the event system
-                // for whatever fires next. The per-field decoration already ran
-                // via direct calls, which need no prior subscription.
-                if ($plugin instanceof SubscriberInterface) {
-                    $dispatcher->addSubscriber($plugin);
-                }
-
-                if (method_exists($plugin, 'onItemsListPrepare')) {
-                    $plugin->onItemsListPrepare(
-                        new ItemsListPrepareEvent('onItemsListPrepare', ['subject' => $items]),
-                    );
-                }
-            } catch (Throwable $e) {
-                // Degrading is right: the listing renders without this plugin
-                // - but doing it silently meant a contribution could vanish
-                // from every product card with nothing anywhere saying why.
-                Log::add(
-                    'onItemsListPrepare failed in plugin "' . (string) $pluginInfo->name . '", listing rendered without it: '
-                    . $e->getMessage(),
-                    Log::ERROR,
-                    'com_alfa',
-                );
-            }
-        }
+        // Mode A, a display phase, isolated (2.2.0): the item-fields group imported once through
+        // Joomla's own import (so each plugin is registered once per request), the page raised
+        // once on the shared dispatcher; a listener that throws is logged with its name and the
+        // listing renders without its contribution.
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa-item-fields');
+        $plugins->dispatchIsolated(new ItemsListPrepareEvent('onItemsListPrepare', ['subject' => $items]));
     }
 
     /**
@@ -2111,7 +2219,7 @@ class ItemsModel extends UrlListModel
      */
     protected function dispatchItemListPrepare(object $item): array
     {
-        $app = Factory::getApplication();
+        $plugins = AlfaPluginHelper::get();
         $drawnFieldIds = [];
         $listed = array_flip($item->listingFieldIds);
 
@@ -2124,9 +2232,10 @@ class ItemsModel extends UrlListModel
             }
 
             try {
-                $plugin = $app->bootPlugin((string) $field->type, 'alfa-item-fields');
+                // The field's own plugin, through the plugin helper (2.2.0, mode B).
+                $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
 
-                if (!$plugin || !method_exists($plugin, 'onItemListPrepare')) {
+                if (!$plugins->declares($plugin, 'onItemListPrepare')) {
                     continue;
                 }
 
@@ -2134,7 +2243,7 @@ class ItemsModel extends UrlListModel
                     'onItemListPrepare',
                     ['subject' => $item, 'method' => $field],
                 );
-                $plugin->onItemListPrepare($event);
+                $plugins->dispatchTo($plugin, $event);
 
                 // Contract guard: selector kind must match the field's combination
                 // role (variant->sel[]/item, option->opt[]/price). Loud in dev.
@@ -2846,9 +2955,11 @@ class ItemsModel extends UrlListModel
         }
 
         try {
-            $plugin = $this->app->bootPlugin($type, 'alfa-item-fields');
+            // The field's own plugin, through the plugin helper (2.2.0, mode B).
+            $plugins = AlfaPluginHelper::get();
+            $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', $type));
 
-            if (!$plugin || !method_exists($plugin, 'onItemFieldValueFacetGroups')) {
+            if (!$plugins->declares($plugin, 'onItemFieldValueFacetGroups')) {
                 return $cache[$key] = $empty;
             }
 
@@ -2866,7 +2977,7 @@ class ItemsModel extends UrlListModel
                 ['subject' => $field, 'valueRows' => $values],
             );
 
-            $plugin->onItemFieldValueFacetGroups($event);
+            $plugins->dispatchTo($plugin, $event);
 
             return $cache[$key] = [
                 'groups' => $event->getGroups(),

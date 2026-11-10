@@ -119,19 +119,11 @@ final class MenuBuilder
      */
     private function collect(): BuildMenuEvent
     {
-        $event = new BuildMenuEvent('onAlfaBuildMenu', []);
+        // The component's own entries and headings enter with the event, before any plugin is asked (2.2.0): a plugin
+        // may position the heading it owns but never move Sales below its own.
+        $event = new BuildMenuEvent('onAlfaBuildMenu', ['coreItems' => $this->coreItems(), 'coreSections' => $this->coreSections()]);
 
-        // Core places its headings first, so a plugin may position the heading it
-        // owns but never move Sales below its own.
-        foreach ($this->coreSections() as $section => $ordering) {
-            $event->section($section, $ordering);
-        }
-
-        foreach ($this->coreItems() as $item) {
-            $event->add($item);
-        }
-
-        PanelDispatcher::broadcast($event, 'onAlfaBuildMenu');
+        PanelDispatcher::broadcast($event);
 
         return $event;
     }

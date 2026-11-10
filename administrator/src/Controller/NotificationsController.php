@@ -16,6 +16,9 @@ use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Setup\CollationCheck;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageNotice;
+use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
+use Alfa\Component\Alfa\Administrator\Service\Task\RunnerHealth;
+use Alfa\Component\Alfa\Administrator\Service\Task\RunnerTrigger;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
@@ -67,9 +70,11 @@ class NotificationsController extends BaseController
         // off cannot warn about itself, so the bell fetch notices it; no scheduler needed.
         InventoryEffectOutbox::syncNotice();
 
-        // And for work a save owes and its request did not finish: recovery every few minutes, never the normal path;
-        // finished tasks are pruned at most once an hour.
+        // And for work a save owes and its request did not finish: its attention notice every few minutes, and the
+        // background work's health notice (2.2.0); the work itself runs in the bell's tick below. Finished tasks are
+        // pruned at most once an hour.
         Tasks::recoverThrottled();
+        RunnerHealth::sync();
         Tasks::pruneThrottled();
 
         // And for expired notifications: deleted here at most once an hour, never on a
@@ -86,6 +91,13 @@ class NotificationsController extends BaseController
         $this->app->sendHeaders();
 
         echo NotificationHelper::renderBadge((bool) $this->input->getInt('open', 0));
+
+        // Then, when work is due, the bell's tick (2.2.0, design 2.7): the request every Alfa Commerce page already
+        // makes, so the background work keeps running while Alfa Sync is disabled. The badge is answered first and the
+        // response finished where the server allows; otherwise the badge waits at most the tick.
+        if (Runner::due()) {
+            RunnerTrigger::afterResponse(trigger: 'bell', budgetMs: Runner::TICK_MS, inlineMs: Runner::TICK_MS);
+        }
 
         $this->app->close();
     }

@@ -161,7 +161,7 @@ use RuntimeException;
 
 defined('_JEXEC') or die;
 
-abstract class ShipmentsPlugin extends Plugin
+abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterface
 {
     use HasOrderContextTrait;
     use HasTransportUrlsTrait;
@@ -193,17 +193,59 @@ abstract class ShipmentsPlugin extends Plugin
     }
 
     /**
+     * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
+     * shared dispatcher, never in getSubscribedEvents().
+     *
+     * @since  2.2.0
+     */
+    public const TARGETED_EVENTS = [
+        'onItemView',
+        'onCartView',
+        'onCartViewAssets',
+        'onCalculateShippingCost',
+        'onOrderBeforePlace',
+        'onOrderAfterPlace',
+        'onShipmentResponse',
+        'onShipmentWebhook',
+        'onGetActions',
+        'onExecuteAction',
+        'onAdminOrderDelete',
+        // A carrier's own data (2.1.0's Clear Data), addressed to it alone (2.2.0, part C14b).
+        'onClearData',
+    ];
+
+    /**
      * Events this plugin subscribes to.
      *
      * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {
-        return [
-            'onItemView' => 'onItemView',
-            'onCartView' => 'onCartView',
-            'onCartViewAssets' => 'onCartViewAssets',
-        ];
+        // 2.2.0: every Alfa event a carrier handles is addressed to it alone (TARGETED_EVENTS); a carrier that needs
+        // an ambient Joomla event merges its own map.
+        return [];
+    }
+
+    /**
+     * Alfa's targeted-handler declaration (2.2.0, design 2.15.2): each event of TARGETED_EVENTS this plugin
+     * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
+     * shared dispatcher.
+     *
+     * @return array<string, string>
+     *
+     * @since  2.2.0
+     */
+    public function getTargetedHandlers(): array
+    {
+        $handlers = [];
+
+        foreach (static::TARGETED_EVENTS as $event) {
+            if (\is_callable([$this, $event])) {
+                $handlers[$event] = $event;
+            }
+        }
+
+        return $handlers;
     }
 
     /**
@@ -256,7 +298,8 @@ abstract class ShipmentsPlugin extends Plugin
      */
     protected function shipment(object $order): ShipmentLedger
     {
-        return ShipmentLedger::for($order);
+        // The row is this plugin's: it records this plugin's element, and the ledger refuses a method of another type.
+        return ShipmentLedger::for($order)->writtenBy(element: (string) $this->_name);
     }
 
     /**
@@ -276,6 +319,10 @@ abstract class ShipmentsPlugin extends Plugin
      * (status_on_<status> in params.xml) fire automatically when a shipment
      * status changes; never move the order yourself for a mapped phase.
      *
+     * The builder names this plugin as its writer, so save(), saveVerdict() and settleAttempt() alike write only a
+     * parcel recorded as this plugin's, move it only to another method of this plugin, and never name another plugin
+     * for it; anything else is refused and nothing is written (2.2.0).
+     *
      * @param int $shipmentId Existing shipment row PK
      *
      * @return ShipmentLedger Builder: chain setters, finish with ->save()
@@ -286,7 +333,7 @@ abstract class ShipmentsPlugin extends Plugin
      */
     protected function shipmentUpdate(int $shipmentId): ShipmentLedger
     {
-        return ShipmentLedger::load($shipmentId);
+        return ShipmentLedger::load($shipmentId)->writtenBy(element: (string) $this->_name);
     }
 
     //  SHIPMENT READ / DELETE / ITEMS (no builder needed)
@@ -294,7 +341,8 @@ abstract class ShipmentsPlugin extends Plugin
     /**
      * Delete an order shipment record.
      *
-     * Automatically clears item assignments before deletion.
+     * Automatically clears item assignments before deletion. Only a parcel recorded as this plugin's: another plugin's
+     * parcel, or one that records no plugin, is refused and nothing is deleted (2.2.0).
      *
      * @param int $id Shipment row PK
      * @param int $orderId Order PK (for activity log)
@@ -305,7 +353,7 @@ abstract class ShipmentsPlugin extends Plugin
      */
     protected function deleteShipment(int $id, int $orderId): bool
     {
-        return ShipmentLedger::delete($id, $orderId);
+        return ShipmentLedger::delete($id, $orderId, writer: (string) $this->_name);
     }
 
     /**
@@ -340,7 +388,8 @@ abstract class ShipmentsPlugin extends Plugin
      * Assign order items to a shipment.
      *
      * Clears previous assignments for this shipment, then sets new ones.
-     * Scoped to order to prevent cross-order item assignment.
+     * Scoped to order to prevent cross-order item assignment, and to this
+     * plugin's own parcels: another plugin's parcel is refused (2.2.0).
      *
      * @param int $shipmentId Shipment PK
      * @param int $orderId Order PK (security scope)
@@ -352,7 +401,7 @@ abstract class ShipmentsPlugin extends Plugin
      */
     protected function assignShipmentItems(int $shipmentId, int $orderId, array $itemIds): bool
     {
-        return ShipmentLedger::assignItems($shipmentId, $orderId, $itemIds);
+        return ShipmentLedger::assignItems($shipmentId, $orderId, $itemIds, writer: (string) $this->_name);
     }
 
     //  FRONTEND HOOKS (abstract: plugin MUST implement)

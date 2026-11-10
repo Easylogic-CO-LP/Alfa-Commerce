@@ -144,7 +144,8 @@ final class OrderLabels
         'reconciled' => 'COM_ALFA_ORDER_HISTORY_ACTION_RECONCILED',
         'granted' => 'COM_ALFA_ORDER_HISTORY_ACTION_GRANTED',
         'revoked' => 'COM_ALFA_ORDER_HISTORY_ACTION_REVOKED',
-        // The work an order's change owes after its save (2.1.4).
+        // The work an order's change owes after its save (2.1.4); an e-mail sent, with the recipients it reached (2.2.0).
+        'email_sent' => 'COM_ALFA_ORDER_HISTORY_ACTION_EMAIL_SENT',
         'email_held' => 'COM_ALFA_ORDER_HISTORY_ACTION_EMAIL_HELD',
         'email_failed' => 'COM_ALFA_ORDER_HISTORY_ACTION_EMAIL_FAILED',
         'email_resent' => 'COM_ALFA_ORDER_HISTORY_ACTION_EMAIL_RESENT',
@@ -152,6 +153,8 @@ final class OrderLabels
         'hook_failed' => 'COM_ALFA_ORDER_HISTORY_ACTION_HOOK_FAILED',
         'hook_rerun' => 'COM_ALFA_ORDER_HISTORY_ACTION_HOOK_RERUN',
         'task_resolved' => 'COM_ALFA_ORDER_HISTORY_ACTION_TASK_RESOLVED',
+        // A status automation the order no longer stood for (2.2.0): its move was overtaken, not made.
+        'automation_superseded' => 'COM_ALFA_ORDER_HISTORY_AUTOMATION_SUPERSEDED',
     ];
 
     /**

@@ -22,12 +22,12 @@ use Alfa\Component\Alfa\Administrator\Event\Admin\AdminPrepareDataEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AdminValidateEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminAware;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
-use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminDispatcher;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Event\Model\AfterDeleteEvent;
 use Joomla\CMS\Event\Model\AfterSaveEvent;
 use Joomla\CMS\Event\Model\BeforeDeleteEvent;
@@ -35,7 +35,6 @@ use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Model\AdminModel;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Table\Table;
 use Joomla\Database\DatabaseDriver;
 use RuntimeException;
@@ -269,7 +268,7 @@ abstract class AlfaAdminModel extends AdminModel
         // SCHEMA FIRST. A field must exist before a value can be bound to it, and loadForm() binds
         // immediately after this method returns.
         if ($this->alfaDispatches(AdminFormEvent::NAME)) {
-            AlfaAdminDispatcher::dispatch(new AdminFormEvent(new AlfaAdminContext(
+            self::alfaRaise(new AdminFormEvent(new AlfaAdminContext(
                 entity: $this->alfaEntity,
                 view: $this->alfaView(),
                 screen: AlfaAdminContext::SCREEN_EDIT,
@@ -304,7 +303,7 @@ abstract class AlfaAdminModel extends AdminModel
             data: $values,
         );
 
-        AlfaAdminDispatcher::dispatch(new AdminPrepareDataEvent($context));
+        self::alfaRaise(new AdminPrepareDataEvent($context));
 
         // Held, not bound here: loadForm() binds the component's own data right after this
         // returns, so a contributor's value has to go on AFTER that or it would be overwritten by
@@ -376,7 +375,7 @@ abstract class AlfaAdminModel extends AdminModel
         );
 
         try {
-            AlfaAdminDispatcher::dispatch(new AdminValidateEvent($context));
+            self::alfaRaise(new AdminValidateEvent($context));
         } catch (Throwable $e) {
             // An abortable phase rethrows a handler's exception; a refused save must still look
             // like a refused save to the controller, not like an error page.
@@ -438,7 +437,7 @@ abstract class AlfaAdminModel extends AdminModel
             db: $this->alfaDriver(),
             label: AdminAfterSaveEvent::NAME . ' of ' . $entity . ' #' . $id,
             work: function () use ($id, $entity, $view, $user, $token, $isNew, $data): void {
-                AlfaAdminDispatcher::dispatch(new AdminAfterSaveEvent(new AlfaAdminContext(
+                self::alfaRaise(new AdminAfterSaveEvent(new AlfaAdminContext(
                     entity: $entity,
                     view: $view,
                     screen: AlfaAdminContext::SCREEN_SAVE,
@@ -525,7 +524,7 @@ abstract class AlfaAdminModel extends AdminModel
             db: $this->alfaDriver(),
             label: AdminAfterDeleteEvent::NAME . ' of ' . $this->alfaEntity,
             work: static function () use ($context): void {
-                AlfaAdminDispatcher::dispatch(new AdminAfterDeleteEvent($context));
+                self::alfaRaise(new AdminAfterDeleteEvent($context));
             },
         );
 
@@ -564,9 +563,10 @@ abstract class AlfaAdminModel extends AdminModel
     protected function alfaAskContentBeforeDelete(array $pks): bool
     {
         try {
+            // Joomla's content event with Joomla's semantics, delivered through the plugin helper (2.2.0).
             $table = $this->getTable();
-            $dispatcher = $this->getDispatcher();
-            PluginHelper::importPlugin($this->events_map['delete'], null, true, $dispatcher);
+            $plugins = AlfaPluginHelper::get();
+            $plugins->importGroup($this->events_map['delete']);
 
             foreach ($pks as $pk) {
                 if (!$table->load($pk) || !$this->canDelete($table)) {
@@ -575,7 +575,7 @@ abstract class AlfaAdminModel extends AdminModel
 
                 $event = new BeforeDeleteEvent($this->event_before_delete, ['context' => $this->option . '.' . $this->name, 'subject' => $table]);
 
-                if (\in_array(false, $dispatcher->dispatch($this->event_before_delete, $event)->getArgument('result', []), true)) {
+                if (\in_array(false, $plugins->dispatch($event)->getArgument('result', []), true)) {
                     $this->setError($table->getError());
 
                     return false;
@@ -643,7 +643,7 @@ abstract class AlfaAdminModel extends AdminModel
         );
 
         try {
-            AlfaAdminDispatcher::dispatch(new AdminBeforeSaveEvent($context));
+            self::alfaRaise(new AdminBeforeSaveEvent($context));
         } catch (Throwable $e) {
             $this->setError($e->getMessage());
 
@@ -675,10 +675,10 @@ abstract class AlfaAdminModel extends AdminModel
             return $call();
         }
 
-        $dispatcher = $this->getDispatcher();
+        $plugins = AlfaPluginHelper::get();
         $was = $this->{$event};
         $label = $name . ' of ' . $this->alfaEntity;
-        $capture = static function ($captured) use ($dispatcher, $db, $name, $label): void {
+        $capture = static function ($captured) use ($plugins, $db, $name, $label): void {
             $arguments = $captured->getArguments();
 
             if (\is_object($arguments['subject'] ?? null)) {
@@ -688,18 +688,18 @@ abstract class AlfaAdminModel extends AdminModel
             PostCommit::defer(
                 db: $db,
                 label: $label,
-                work: static function () use ($dispatcher, $name, $arguments): void {
-                    $dispatcher->dispatch($name, $name === 'onContentAfterSave' ? new AfterSaveEvent($name, $arguments) : new AfterDeleteEvent($name, $arguments));
+                work: static function () use ($plugins, $name, $arguments): void {
+                    $plugins->dispatch($name === 'onContentAfterSave' ? new AfterSaveEvent($name, $arguments) : new AfterDeleteEvent($name, $arguments));
                 },
             );
         };
         $this->{$event} = self::AFTER_THE_COMMIT;
-        $dispatcher->addListener(self::AFTER_THE_COMMIT, $capture);
+        $plugins->listen(self::AFTER_THE_COMMIT, $capture);
 
         try {
             return $call();
         } finally {
-            $dispatcher->removeListener(self::AFTER_THE_COMMIT, $capture);
+            $plugins->forget(self::AFTER_THE_COMMIT, $capture);
             $this->{$event} = $was;
         }
     }
@@ -731,7 +731,7 @@ abstract class AlfaAdminModel extends AdminModel
         );
 
         try {
-            AlfaAdminDispatcher::dispatch(new AdminBeforeDeleteEvent($context));
+            self::alfaRaise(new AdminBeforeDeleteEvent($context));
         } catch (Throwable $e) {
             $this->setError($e->getMessage());
 

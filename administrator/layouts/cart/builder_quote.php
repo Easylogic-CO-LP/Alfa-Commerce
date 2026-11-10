@@ -36,7 +36,7 @@ $price = $displayData['price'];
         <div class="form-label"><?php echo Text::_('COM_ALFA_CART_TABLE_DISCOUNT'); ?></div>
         <div class="fs-5 fw-semibold">
             <?php if ($price->hasDiscount()) : ?>
-                <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotal()->format()); ?></span>
+                <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotalWithTax()->format()); ?></span>
             <?php elseif ($price->hasExplicitPrice()) : ?>
                 <?php // A negotiated price is its own surface, not a discount. ?>
                 <span class="badge bg-info-subtle text-info-emphasis">

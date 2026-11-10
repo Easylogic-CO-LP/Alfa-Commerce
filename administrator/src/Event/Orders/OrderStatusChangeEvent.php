@@ -21,6 +21,12 @@
  * A listener exception NEVER blocks the transition: the dispatcher call site
  * catches Throwable and logs plugin/order/old->new/stack trace.
  *
+ * A listener never depends on the current user or the current application
+ * (2.2.0): the event can be dispatched by the shop's background work, which
+ * runs as the neutral system actor (an empty user, id 0) on whatever request
+ * carried its tick: a storefront visit, a member of staff's page, an API call,
+ * the cron command or the web cron.
+ *
  * Consumers: subscriptions plugin (activate/cancel on family entry), sales
  * documents plugin, vendor ledger accrual.
  *

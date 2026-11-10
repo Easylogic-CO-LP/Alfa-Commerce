@@ -119,11 +119,13 @@ class ToolactionController extends BaseController
             return;
         }
 
+        // An action that queued a job answers the job's progress page: the screen opens it instead of the bar.
         $this->ajaxRespond([
             'plan' => [[
                 'table' => $action,
                 'total' => $event->getTotal() ?? 1,
             ]],
+            'location' => $event->getLocation(),
         ]);
     }
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
   "name": "com_alfa",
-  "version": "2.1.4",
+  "version": "2.2.0",
   "license": "GNU General Public License version 3 or later; see LICENSE",
   "assets": [
     {
@@ -398,6 +398,23 @@
       }
     },
     {
+      "name": "com_alfa.order-completed",
+      "type": "style",
+      "uri": "com_alfa/site/order-completed.css",
+      "dependencies": [
+        "com_alfa.general",
+        "com_alfa.cart"
+      ]
+    },
+    {
+      "name": "com_alfa.order-completed",
+      "type": "script",
+      "uri": "com_alfa/site/cart/order-completed.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.glightbox",
       "type": "script",
       "uri": "com_alfa/libraries/glightbox.min.js",
@@ -563,6 +580,39 @@
       "name": "com_alfa.tours",
       "type": "script",
       "uri": "com_alfa/admin/tours.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.site.runner-kick",
+      "type": "script",
+      "uri": "com_alfa/site/runner/runner-kick.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.admin.runner-kick",
+      "type": "script",
+      "uri": "com_alfa/admin/runner-kick.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.admin.task-progress",
+      "type": "script",
+      "uri": "com_alfa/admin/task-progress.js",
       "dependencies": [
         "core"
       ],

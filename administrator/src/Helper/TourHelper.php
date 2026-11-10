@@ -13,11 +13,11 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Document\Document;
 use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Toolbar\Toolbar;
 use Joomla\Database\DatabaseInterface;
 use Throwable;
@@ -156,16 +156,16 @@ final class TourHelper
     {
         $group = PanelDispatcher::PLATFORM_GROUP;
 
+        // The group's enabled plugins as Joomla lists them, through the plugin helper (2.2.0): their strings are
+        // loaded, nothing is imported or booted.
         try {
-            PluginHelper::importPlugin(type: $group, plugin: null, autocreate: true);
-            $descriptors = PluginHelper::getPlugin($group);
-            $language = Factory::getApplication()->getLanguage();
+            $plugins = AlfaPluginHelper::get()->available($group);
         } catch (Throwable $e) {
             return;                                 // a broken contributor costs the page nothing
         }
 
-        foreach ($descriptors as $descriptor) {
-            AlfaHelper::loadPluginLanguage(group: $group, element: (string) $descriptor->name);
+        foreach ($plugins as $plugin) {
+            AlfaHelper::loadPluginLanguage(group: $group, element: $plugin->element);
         }
     }
 

@@ -15,8 +15,11 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
+use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\Service\ShowOn\SubmitAuthority;
+use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\FormModel;
 
 /**
@@ -296,6 +299,46 @@ class CartModel extends FormModel
     public function isNewUserInfoPicked(): bool
     {
         return Factory::getApplication()->getUserState('com_alfa.cart.userinfo_pick') === 'new';
+    }
+
+    /**
+     * The order the order-completed page shows, opened by its keyed address (2.2.0,
+     * design 2.17): the site read service's one read-only value. Only reads.
+     *
+     * @param int $id The order id the address carries.
+     * @param string $key The key the address carries.
+     *
+     * @return OrderConfirmation|null Null when the order is not available to this visitor: no
+     *                                such order, an empty or wrong key, or another customer's order.
+     *
+     * @throws NotAllowed When the order is a customer account's and nobody is logged in.
+     *
+     * @since  2.2.0
+     */
+    public function getCompletedOrder(int $id, string $key): ?OrderConfirmation
+    {
+        $access = OrderConfirmation::access(orderId: $id, key: $key, viewerId: $this->currentUserId());
+
+        if ($access === OrderConfirmation::LOGIN) {
+            throw new NotAllowed(Text::_('COM_ALFA_ORDER_COMPLETED_LOGIN_REQUIRED'), 403);
+        }
+
+        return $access === OrderConfirmation::GRANTED ? OrderConfirmation::read(orderId: $id) : null;
+    }
+
+    /**
+     * The key of the order a checkout has just completed, for the arrival address's
+     * redirect to the keyed one (2.2.0, design 2.17).
+     *
+     * @param int $id The order id the session held.
+     *
+     * @return string '' when the order is gone or carries no key.
+     *
+     * @since  2.2.0
+     */
+    public function getCompletedOrderKey(int $id): string
+    {
+        return OrderConfirmation::keyOf(orderId: $id);
     }
 
     /**

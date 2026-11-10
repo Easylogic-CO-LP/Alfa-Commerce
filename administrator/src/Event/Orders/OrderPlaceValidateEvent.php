@@ -9,36 +9,48 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Orders;
 
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\SelectionContributorsInterface;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\PlacementEventContext;
+use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractImmutableEvent;
+use Joomla\CMS\Log\Log;
 
 defined('_JEXEC') or die;
 
 /**
- * Checkout validation event: BOOT-AND-CALL on every feature plugin
- * (`onOrderPlaceValidate`) before the order draft is built. A plugin may VETO
- * the placement with a customer-facing message; the checkout aborts and shows
- * every collected rejection:
+ * Checkout validation event (`onOrderPlaceValidate`), before the order draft is
+ * built: delivered in turn to each `alfa` plugin the CUSTOMER's view levels
+ * admit, in their order, through the plugin's own targeted declaration (2.2.0), never the shared dispatcher. A plugin may VETO the placement with
+ * a customer-facing message, naming itself; the checkout aborts and shows every
+ * collected rejection, and a plugin that throws refuses the placement too:
  *
  *   public function onOrderPlaceValidate(OrderPlaceValidateEvent $event): void
  *   {
  *       if ($cartNeedsAnAccount && $event->getContext()->customerId === 0) {
- *           $event->reject(Text::_('PLG_..._LOGIN_REQUIRED'));
+ *           $event->reject('alfa.accounts', Text::_('PLG_..._LOGIN_REQUIRED'));
  *       }
  *   }
  *
- * One shared event travels through all plugins (rejections accumulate); no
- * per-plugin state is produced here, unlike the render events.
+ * One shared event travels through all plugins (rejections accumulate). A
+ * rejection naming another plugin than the one answering is dropped and logged.
  *
  * @since  2.0.0
  */
-class OrderPlaceValidateEvent extends AbstractImmutableEvent
+class OrderPlaceValidateEvent extends AbstractImmutableEvent implements SelectionContributorsInterface
 {
     /**
      * @var string[] Customer-facing rejection messages.
      * @since  2.0.0
      */
     private array $messages = [];
+
+    /**
+     * The plugin the selection loop is calling now; null outside it.
+     *
+     * @since  2.2.0
+     */
+    private ?PluginId $answeringPlugin = null;
 
     /**
      * The cart being converted, as a plugin may see it: its id, its lines and
@@ -56,14 +68,39 @@ class OrderPlaceValidateEvent extends AbstractImmutableEvent
     /**
      * Veto the placement with a customer-facing message.
      *
+     * @param string $contributor The refusing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $message Translated message shown to the customer.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function reject(string $message): void
+    public function reject(string $contributor, string $message): void
     {
+        $owner = PluginId::of($contributor);
+
+        if ($this->answeringPlugin !== null && $this->answeringPlugin->key() !== $owner->key()) {
+            Log::add('Placement: ' . $this->answeringPlugin . ' refused the placement in the name of ' . $owner . '; dropped.', Log::WARNING, 'com_alfa.orders');
+
+            return;
+        }
+
+        Log::add('Placement: ' . $owner . ' refused the placement: ' . $message, Log::INFO, 'com_alfa.orders');
         $this->messages[] = $message;
+    }
+
+    /**
+     * The plugin whose handler runs now in the selection loop; null once it returned.
+     *
+     * @internal The plugin helper calls it around each handler of a selection loop; a plugin never calls it.
+     *
+     * @param PluginId|null $plugin The plugin.
+     *
+     * @since  2.2.0
+     */
+    public function answering(?PluginId $plugin): void
+    {
+        $this->answeringPlugin = $plugin;
     }
 
     /**

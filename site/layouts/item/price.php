@@ -69,28 +69,51 @@ $cssClass = 'item-prices' . (!empty($options['css_class']) ? ' ' . trim($options
 // Totals are money. A unit is presentation: each is printed by the one unit
 // rule from the facts the result states, for the quantity it was priced at.
 
+// A SAVING FOLLOWS THE BASIS OF THE FIGURES IT SITS BESIDE (2.2.0, A-C16-12). The block has a net part (the base
+// and the subtotal, before tax) and a tax-included part (the price with tax and the total). Its net part shows the
+// tax-excluded saving (the base less the subtotal); its tax-included part the tax-included saving (the price with tax
+// less the total). A block showing both bases carries each saving in its own part.
+// A SAVING SITS ONLY BESIDE PRICES OF ITS OWN BASIS (2.2.0, A-INT-4). The rows run base, net saving, subtotal, tax,
+// price with tax, tax-included saving, total. A saving row is shown only when a price of its basis is shown beside it
+// and the nearest price above it and the nearest below it, the tax row aside, are each of its basis or absent: the
+// net saving never sits right above the price with tax or the total, the tax-included saving never right under the
+// base or the subtotal. So with the base, the subtotal and the total shown but not the price with tax, the block
+// shows the net saving alone, not a second Discount row between the subtotal and the total.
+// WITH NO PRICE SHOWN, THE STOREFRONT'S OWN BASIS (2.2.0, A-INT-6): a block that shows no price of either basis (the
+// tax and the discount alone) shows the tax-included saving, so a discount row switched on never vanishes; with no
+// price beside it there is nothing to mix.
+$hasDiscount = $prices->hasDiscount();
+$discountShown = !empty($settings['discount_amount_show']) && $hasDiscount;
+$showBase = !empty($settings['base_price_show']);
+$showSubtotal = !empty($settings['base_price_with_discounts_show']);
+$showWithTax = !empty($settings['base_price_with_tax_show']);
+$showFinal = !empty($settings['final_price_show']);
+$netSaving = $discountShown && ($showBase || $showSubtotal) && ($showSubtotal || (!$showWithTax && !$showFinal));
+$grossSaving = $discountShown && ($showWithTax || (!$showBase && !$showSubtotal));
+
 $figures = $showTotals
 	? [
-		'base'          => $prices->getBaseTotal()->format(),
-		'discount'      => $prices->getSavingsTotal()->format(),
-		'subtotal'      => $prices->getSubtotal()->format(),
-		'tax'           => $prices->getTaxTotal()->format(),
-		'base_with_tax' => $prices->getBaseTotalWithTax()->format(),
-		'final'         => $prices->getTotal()->format(),
+		'base'              => $prices->getBaseTotal()->format(),
+		'discount'          => $prices->getSavingsTotalWithoutTax()->format(),
+		'subtotal'          => $prices->getSubtotal()->format(),
+		'tax'               => $prices->getTaxTotal()->format(),
+		'base_with_tax'     => $prices->getBaseTotalWithTax()->format(),
+		'discount_with_tax' => $prices->getSavingsTotalWithTax()->format(),
+		'final'             => $prices->getTotal()->format(),
 	]
 	// Only the figures this block shows are printed.
 	: PriceUnits::page(price: $prices, figures: array_keys(array_filter([
-		'base'          => !empty($settings['base_price_show']),
-		'discount'      => !empty($settings['discount_amount_show']) && $prices->hasDiscount(),
-		'subtotal'      => !empty($settings['base_price_with_discounts_show']),
-		'tax'           => !empty($settings['tax_amount_show']),
-		'base_with_tax' => !empty($settings['base_price_with_tax_show']),
-		'final'         => !empty($settings['final_price_show']),
+		'base'              => !empty($settings['base_price_show']),
+		'discount'          => $netSaving,
+		'subtotal'          => !empty($settings['base_price_with_discounts_show']),
+		'tax'               => !empty($settings['tax_amount_show']),
+		'base_with_tax'     => !empty($settings['base_price_with_tax_show']),
+		'discount_with_tax' => $grossSaving,
+		'final'             => !empty($settings['final_price_show']),
 	])));
 
 // Common values (same for both modes)
 $discountPercent = $prices->getSavingsPercent();
-$hasDiscount = $prices->hasDiscount();
 
 ?>
 
@@ -119,8 +142,8 @@ $hasDiscount = $prices->hasDiscount();
         </div>
 	<?php endif; ?>
 
-	<?php // DISCOUNT AMOUNT ?>
-	<?php if (!empty($settings['discount_amount_show']) && $hasDiscount): ?>
+	<?php // DISCOUNT AMOUNT, net: beside the base and the subtotal ?>
+	<?php if ($netSaving): ?>
         <div class="price-discount">
 			<?php if (!empty($settings['discount_amount_show_label'])): ?>
                 <span class="price-label"><?php echo Text::_('COM_ALFA_PRICE_DISCOUNT'); ?>:</span>
@@ -161,6 +184,21 @@ $hasDiscount = $prices->hasDiscount();
                 <span class="price-label"><?php echo Text::_('COM_ALFA_PRICE_WITH_TAX'); ?>:</span>
 			<?php endif; ?>
             <span class="price-value"><?php echo $figures['base_with_tax']; ?></span>
+        </div>
+	<?php endif; ?>
+
+	<?php // DISCOUNT AMOUNT, tax included: beside the price with tax and the total ?>
+	<?php if ($grossSaving): ?>
+        <div class="price-discount price-discount-with-tax">
+			<?php if (!empty($settings['discount_amount_show_label'])): ?>
+                <span class="price-label"><?php echo Text::_('COM_ALFA_PRICE_DISCOUNT'); ?>:</span>
+			<?php endif; ?>
+            <span class="price-value discount-value">
+				-<?php echo $figures['discount_with_tax']; ?>
+				<?php if ($discountPercent > 0): ?>
+                    <span class="discount-percent">(-<?php echo $discountPercent; ?>%)</span>
+				<?php endif; ?>
+			</span>
         </div>
 	<?php endif; ?>
 

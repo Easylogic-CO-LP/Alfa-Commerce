@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
@@ -20,7 +21,9 @@ use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
+use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Response\JsonResponse;
+use Joomla\String\StringHelper;
 use RuntimeException;
 
 /**
@@ -228,8 +231,8 @@ trait HasApiGuards
             }
 
             if ($this->app->getSession()->get('http_status_code_409', false)) {
-                $this->app->getSession()->clear('http_status_code_409');
-                $this->app->setHeader('status', 409, true);
+                $this->app->getSession()->remove('http_status_code_409');
+                $this->app->setHeader('status', '409', true);
                 $this->app->setHeader('Content-Type', 'application/json');
                 $this->app->sendHeaders();
                 echo new JsonResponse([
@@ -242,8 +245,8 @@ trait HasApiGuards
         }
 
         if ($this->app->getSession()->get('http_status_code_404', false)) {
-            $this->app->getSession()->clear('http_status_code_404');
-            $this->app->setHeader('status', 404, true);
+            $this->app->getSession()->remove('http_status_code_404');
+            $this->app->setHeader('status', '404', true);
             $this->app->setHeader('Content-Type', 'application/json');
             $this->app->sendHeaders();
             echo new JsonResponse([
@@ -254,7 +257,7 @@ trait HasApiGuards
             $this->app->close();
         }
 
-        $this->app->setHeader('status', 204);
+        $this->app->setHeader('status', '204');
     }
 
     /**
@@ -383,10 +386,18 @@ trait HasApiGuards
             $thumbnail = '';
         }
 
+        $alt = (string) ($row['alt'] ?? '');
+
+        // The column holds 75 characters (MediaHelper::ALT_MAX_LENGTH): a longer description is refused in plain words
+        // before anything is saved, as the form's own input stops at that length (2.2.0).
+        if (StringHelper::strlen($alt) > MediaHelper::ALT_MAX_LENGTH) {
+            throw new Save(Text::_('COM_ALFA_MEDIA_ALT_TOO_LONG'), 400);
+        }
+
         return [
             'source' => $source,
             'thumbnail' => $thumbnail,
-            'alt' => (string) ($row['alt'] ?? ''),
+            'alt' => $alt,
             'type' => $type,
             'delete' => (int) ($row['delete'] ?? 0),
         ];
@@ -481,7 +492,8 @@ trait HasApiGuards
         $inflector = InflectorFactory::create()->build();
         $model = $this->getModel($inflector->singularize($this->contentType));
 
-        if (!$model) {
+        // Only an edit model reads the stored record (every model this path reaches is one).
+        if (!$model instanceof AdminModel) {
             return $data;
         }
 
