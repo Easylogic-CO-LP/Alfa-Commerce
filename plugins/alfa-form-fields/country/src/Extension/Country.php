@@ -14,6 +14,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\FormFieldsPlugin;
 use DOMElement;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Form\FormHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\Registry\Registry;
 
@@ -25,12 +26,19 @@ defined('_JEXEC') or die;
  * it is the delivery place that shipping zones and method scopes are
  * evaluated against.
  *
+ * A place is offered when it and every parent place are published (the
+ * market rule of CategoryPickerPolicy). A saved address that holds a place
+ * no longer offered keeps its label, chooses nothing and asks the customer
+ * to choose again (CountryField and its layout); validate="options" refuses
+ * the old place when the form is sent.
+ *
  * @since  1.0.0
  */
 final class Country extends FormFieldsPlugin
 {
     /**
-     * Build the field as a native list of the published places in tree order.
+     * Build the field as a list of the offered places in tree order, rendered
+     * by the plugin's own field class (CountryField).
      *
      * @param PrepareDomEvent $event The field and the fieldset to append to.
      *
@@ -58,19 +66,19 @@ final class Country extends FormFieldsPlugin
             }
         }
 
-        $node->setAttribute('type', 'list');
+        // Our own field class: Joomla's list, plus the message for a saved place no longer offered.
+        $node->setAttribute('type', 'country');
+        FormHelper::addFieldPrefix('Alfa\\Plugin\\AlfaFormFields\\Country\\Field');
         $node->setAttribute('filter', 'integer');
         $node->setAttribute('validate', 'options');
         $node->setAttribute('data-alfa-delivery-place', '1');
-
-        if ($default > 0 && $node->getElementsByTagName('default')->length === 0) {
-            $node->appendChild($node->ownerDocument->createElement('default', (string) $default));
-        }
 
         $placeholder = $node->ownerDocument->createElement('option');
         $placeholder->setAttribute('value', '');
         $placeholder->appendChild($node->ownerDocument->createTextNode(Text::_('PLG_ALFA_FORM_FIELDS_COUNTRY_SELECT')));
         $node->appendChild($placeholder);
+
+        $offered = [];
 
         foreach (self::publishedPlaces() as $place) {
             if ($allowed !== [] && !in_array((int) $place->id, $allowed, true)) {
@@ -83,6 +91,19 @@ final class Country extends FormFieldsPlugin
                 $node->ownerDocument->createTextNode(str_repeat('- ', (int) $place->depth) . $place->name),
             );
             $node->appendChild($option);
+            $offered[(int) $place->id] = true;
+        }
+
+        // A preselection is a place the field offers: one that is not offered (unpublished since, or left out of the
+        // offered places) preselects nothing, or a new customer would be told the shop no longer delivers there.
+        $defaults = $node->getElementsByTagName('default');
+
+        if ($defaults->length > 0) {
+            if (!isset($offered[(int) trim($defaults->item(0)->textContent)])) {
+                $node->removeChild($defaults->item(0));
+            }
+        } elseif ($default > 0 && isset($offered[$default])) {
+            $node->appendChild($node->ownerDocument->createElement('default', (string) $default));
         }
 
         return $node;
@@ -90,7 +111,9 @@ final class Country extends FormFieldsPlugin
 
     /**
      * The published places in tree order (each country followed by its
-     * regions, siblings by name), read once per request.
+     * regions, siblings by name), read once per request. A place under a
+     * parent place that is not published is not reached (the tree is walked
+     * from the countries down), the market rule of CategoryPickerPolicy.
      *
      * @return object[] Rows with id, name, parent_id and depth.
      *

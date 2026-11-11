@@ -5,6 +5,11 @@
  * the totals box. Reports and print read the SAME frozen summary, never
  * re-derived from lines (rounding truth).
  *
+ * Each row prints the tax names its lines froze before its rate ("VAT 24%"),
+ * the names a row carries in `tax_names` (DocumentRenderer); a row with none,
+ * as on every document issued before 2.2.0, prints its rate alone, exactly as
+ * it always has.
+ *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
@@ -50,7 +55,8 @@ $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF
                     <?php foreach ($taxes as $tax) : ?>
                         <tr>
                             <td style="text-align: left;">
-                                <?php echo rtrim(rtrim(number_format((float) $tax->tax_rate, 2, ',', ''), '0'), ','); ?>%
+                                <?php echo (($tax->tax_names ?? []) === [] ? '' : htmlspecialchars(implode(', ', $tax->tax_names), ENT_COMPAT, 'UTF-8') . ' ')
+                                    . rtrim(rtrim(number_format((float) $tax->tax_rate, 2, ',', ''), '0'), ','); ?>%
                                 <?php if (!empty($tax->exemption_code)) : ?>
                                     (<?php echo htmlspecialchars((string) $tax->exemption_code, ENT_COMPAT, 'UTF-8'); ?>)
                                 <?php endif; ?>

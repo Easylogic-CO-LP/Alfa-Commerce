@@ -13,6 +13,8 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 use Joomla\CMS\User\User;
 
 /**
@@ -36,31 +38,24 @@ final class AdminActions
     private array $actions = [];
 
     /**
-     * @var string The plugin group currently contributing.
-     * @since  2.0.0
-     */
-    private string $ownerGroup = '';
-
-    /**
-     * @var string The plugin element currently contributing.
-     * @since  2.0.0
-     */
-    private string $ownerElement = '';
-
-    /**
      * Declare an action.
      *
+     * @param string $contributor The declaring plugin, group.element (2.2.0): its tmpl folder is the
+     *                            action's layout default, and its identity the permission derivation's.
      * @param string $key The action's identity key (unique per contributor).
      *
      * @return ActionBuilder For chaining.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
+     *
      * @since  2.0.0
      */
-    public function action(string $key): ActionBuilder
+    public function action(string $contributor, string $key): ActionBuilder
     {
+        $owner = PluginId::of($contributor);
         $action = new ActionBuilder(key: $key);
 
-        $action->setPluginType($this->ownerGroup)->setPluginName($this->ownerElement);
+        $action->setPluginType($owner->group)->setPluginName($owner->element);
 
         $this->actions[] = $action;
 
@@ -89,24 +84,6 @@ final class AdminActions
         }
 
         return $out;
-    }
-
-    /**
-     * Name the plugin whose handler is about to run, so its actions' layouts default to its
-     * own tmpl folder.
-     *
-     * FRAMEWORK ONLY: called by {@see AlfaAdminDispatcher} between handlers.
-     *
-     * @param string $group The contributing plugin's group.
-     * @param string $element The contributing plugin's element.
-     *
-     *
-     * @since  2.0.0
-     */
-    public function setOwner(string $group, string $element): void
-    {
-        $this->ownerGroup = $group;
-        $this->ownerElement = $element;
     }
 
     /**

@@ -13,9 +13,12 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentResponseEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentWebhookEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use InvalidArgumentException;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 
@@ -26,6 +29,8 @@ use Joomla\CMS\Uri\Uri;
  */
 class PaymentController extends BaseController
 {
+    use ProviderCallbacks;
+
     /**
      * Handle the payment gateway return: load the order stored in the session, dispatch the
      * onPaymentResponse event to the order's payment plugin, and follow any redirect it requests.
@@ -45,20 +50,16 @@ class PaymentController extends BaseController
         // an order this controller has no business loading.
         $paymentType = $this->input->getCmd('method', '');
 
-        if ($paymentType === '' || !PluginHelper::isEnabled('alfa-payments', $paymentType)) {
+        // The plugin the address names, booted through the plugin helper (2.2.0): never another one. A plugin that
+        // is disabled, missing or cannot be loaded is refused with a neutral message.
+        $plugins = AlfaPluginHelper::get();
+
+        try {
+            $paymentPlugin = $plugins->bootSingle(PluginId::from('alfa-payments', $paymentType));
+        } catch (PluginUnavailable|InvalidArgumentException) {
             $app->enqueueMessage(Text::_('COM_ALFA_PAYMENT_ORDER_ID_MISSING'), 'error');
             // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
             $app->redirect(Uri::root());
-
-            return;
-        }
-
-        // The gateway plugin may be uninstalled between checkout and return; a
-        // missing plugin must not fatal the customer's return from the gateway.
-        $paymentPlugin = $app->bootPlugin($paymentType, 'alfa-payments');
-
-        if ($paymentPlugin === null || !method_exists($paymentPlugin, 'onPaymentResponse')) {
-            $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
 
             return;
         }
@@ -75,7 +76,14 @@ class PaymentController extends BaseController
             'method' => $paymentType,
         ]);
 
-        $paymentPlugin->onPaymentResponse($paymentEvent);
+        if (!$plugins->declares($paymentPlugin, 'onPaymentResponse')) {
+            $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
+
+            return;
+        }
+
+        // What leaves the handler is the handler's own failure (Joomla's error page, as before 2.2.0).
+        $plugins->dispatchTo($paymentPlugin, $paymentEvent);
 
         if ($paymentEvent->hasRedirect()) {
             $app->redirect($paymentEvent->getRedirectUrl());
@@ -95,8 +103,6 @@ class PaymentController extends BaseController
      */
     public function webhook()
     {
-        $app = $this->app;
-
         // No CSRF token check: webhooks are posted by the gateway's server, which
         // cannot carry a Joomla session token. Authenticity is the plugin's duty
         // (gateway signature / shared secret / verification API call).
@@ -105,23 +111,8 @@ class PaymentController extends BaseController
 
         $onWebhookPaymentEventName = 'onPaymentWebhook';
 
-        // bootPlugin() never consults enabled; a DISABLED gateway must be dead
-        // at its sessionless endpoint too, or disabling a compromised gateway
-        // would not close it.
-        if ($paymentType === '' || !PluginHelper::isEnabled('alfa-payments', $paymentType)) {
-            $this->answerWebhook(404, 'Not found');
-            return;
-        }
-
-        $paymentPlugin = $app->bootPlugin($paymentType, 'alfa-payments');
-
-        // bootPlugin() returns a DummyPlugin (never null) for a missing
-        // directory; method_exists is the only real existence test.
-        if (!method_exists($paymentPlugin, $onWebhookPaymentEventName)) {
-            $this->answerWebhook(404, 'Not found');
-            return;
-        }
-
+        // A DISABLED plugin is refused at its sessionless endpoint (2.2.0: 503 with Retry-After, so the provider
+        // retries once it is enabled again, and an alert for staff), never handed the delivery.
         // subject = null, ALWAYS. This endpoint is addressed by the gateway's
         // server, and the only thing that can prove a message is genuine is the
         // gateway's own signature, which only the gateway's plugin knows how
@@ -137,35 +128,8 @@ class PaymentController extends BaseController
             'method' => $paymentType,
         ]);
 
-        $paymentPlugin->{$onWebhookPaymentEventName}($paymentEvent);
-
-        $this->answerWebhook(
-            $paymentEvent->getResponseCode(),
-            $paymentEvent->getResponseBody(),
-            $paymentEvent->getContentType(),
-        );
-    }
-
-    /**
-     * Emit a raw HTTP answer to the gateway and terminate the request.
-     *
-     * @param int $code HTTP status code
-     * @param string $body Response body
-     * @param string $contentType Content-Type header value
-     *
-     *
-     * @since  1.0.0
-     */
-    private function answerWebhook(int $code, string $body, string $contentType = 'text/plain; charset=utf-8'): void
-    {
-        $app = $this->app;
-
-        $app->setHeader('status', $code, true);
-        $app->setHeader('Content-Type', $contentType, true);
-        $app->sendHeaders();
-
-        echo $body;
-
-        $app->close();
+        // Delivered to the plugin of record only (2.2.0, design 2.15.5): unavailable, 503 with Retry-After and the
+        // alert; a handler that throws, 500; no webhook handler, 404. Never a 2xx for a delivery not processed.
+        $this->deliverWebhook('alfa-payments', $paymentType, $paymentEvent);
     }
 }

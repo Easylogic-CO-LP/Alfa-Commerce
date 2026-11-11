@@ -12,10 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\CatalogEntityChangedEvent;
-use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
-use Joomla\Event\DispatcherInterface;
 use Throwable;
 
 /**
@@ -63,15 +61,16 @@ final class EntityChangeNotifier
         }
 
         try {
-            $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
+            $plugins = AlfaPluginHelper::get();
 
             // Both groups, mirroring VisibilityNotifier: search engines live in
-            // `alfa-search`, while a feature package may also keep a copy.
-            PluginHelper::importPlugin(type: 'alfa-search', plugin: null, autocreate: true, dispatcher: $dispatcher);
-            PluginHelper::importPlugin(type: 'alfa', plugin: null, autocreate: true, dispatcher: $dispatcher);
+            // `alfa-search`, while a feature package may also keep a copy. An
+            // after phase (2.2.0, mode A, isolated): one listener's failure is
+            // logged and the next listener still hears the change.
+            $plugins->importGroup('alfa-search');
+            $plugins->importGroup('alfa');
 
-            $dispatcher->dispatch(
-                'onAlfaCatalogEntityChanged',
+            $plugins->dispatchIsolated(
                 new CatalogEntityChangedEvent('onAlfaCatalogEntityChanged', [
                     'entity' => $entity,
                     'ids' => $ids,

@@ -182,10 +182,37 @@ final class RebuildStore
     }
 
     /**
+     * Record that an engine's rebuild activates its generation, once (2.2.0): a compare-and-set on the row, which the
+     * caller's chunk transaction holds until its fence, so another tick of the same job finds it recorded and does not
+     * activate the generation again.
+     *
+     * @param string $engine The engine's key.
+     * @param string $generation The generation the row names.
+     *
+     * @return bool True when this call recorded it; false when it was recorded already, or the row is gone.
+     *
+     * @since  2.2.0
+     */
+    public function markActivated(string $engine, string $generation): bool
+    {
+        $this->db->setQuery(
+            $this->db->getQuery(true)
+                ->update($this->db->quoteName(self::TABLE))
+                ->set($this->db->quoteName('activated') . ' = 1')
+                ->where($this->db->quoteName('engine') . ' = :engine')
+                ->where($this->db->quoteName('generation') . ' = :generation')
+                ->where($this->db->quoteName('activated') . ' = 0')
+                ->bind(':engine', $engine)
+                ->bind(':generation', $generation),
+        )->execute();
+
+        return $this->db->getAffectedRows() === 1;
+    }
+
+    /**
      * Forget a rebuild and everything recorded against it.
      *
      * @param string $engine Engine key.
-     *
      *
      * @since  2.0.0
      */

@@ -453,12 +453,71 @@ class PriceResult
     }
 
     /**
+     * What the discounts saved, TAX INCLUDED: whole-line, the line's struck gross total less its gross total.
+     *
+     * The figure a cart prints beside the struck total it strikes (getBaseTotalWithTax()), so the struck total less
+     * this saving is always the line's total. For a discount applied after tax it is the discount stage's own amount;
+     * for one applied before tax it carries the tax the discount took off with it (10,00 off 200,00 under 24 percent
+     * tax saves 12,40). Zero for a line without a discount. A display figure: what the discount stage removed stays
+     * getSavingsTotal(), and nothing is priced from this one.
+     *
+     * @since  2.2.0
+     */
+    public function getSavingsTotalWithTax(): Money
+    {
+        if (!$this->hasDiscount()) {
+            return Money::zero($this->getCurrency());
+        }
+
+        return $this->baseTotalWithTax->subtract($this->total)->nonNegative();
+    }
+
+    /**
      * Get savings per unit
      * @since  1.0.0
      */
     public function getSavingsPrice(): Money
     {
         return $this->divideByQuantity($this->getSavingsTotal());
+    }
+
+    /**
+     * The tax-included saving per unit: getSavingsTotalWithTax() divided like every other per-unit face. The saving a
+     * price block prints beside its tax-included figures (2.2.0, A-C16-12).
+     *
+     * @since  2.2.0
+     */
+    public function getSavingsPriceWithTax(): Money
+    {
+        return $this->divideByQuantity($this->getSavingsTotalWithTax());
+    }
+
+    /**
+     * What the discounts saved, TAX EXCLUDED: whole-line, the base total less the subtotal, the two net figures a
+     * price block shows (2.2.0, A-C16-12). The saving printed beside them, and the one the price JSON publishes. For
+     * a discount applied before tax it is the discount stage's own amount; for one applied after tax it is that
+     * amount without the tax it carried (5 percent off 248,00 with tax saves 12,40, of which 10,00 net). Zero for a
+     * line without a discount. A display figure: nothing is priced from it.
+     *
+     * @since  2.2.0
+     */
+    public function getSavingsTotalWithoutTax(): Money
+    {
+        if (!$this->hasDiscount()) {
+            return Money::zero($this->getCurrency());
+        }
+
+        return $this->baseTotal->subtract($this->subtotal)->nonNegative();
+    }
+
+    /**
+     * The tax-excluded saving per unit: getSavingsTotalWithoutTax() divided like every other per-unit face.
+     *
+     * @since  2.2.0
+     */
+    public function getSavingsPriceWithoutTax(): Money
+    {
+        return $this->divideByQuantity($this->getSavingsTotalWithoutTax());
     }
 
     /**
@@ -777,7 +836,8 @@ class PriceResult
             'subtotal' => $this->subtotal->format($includeSymbol),
             'tax_total' => $this->taxTotal->format($includeSymbol),
             'total' => $this->total->format($includeSymbol),
-            'savings_total' => $this->getSavingsTotal()->format($includeSymbol),
+            // Tax excluded, as toArray() publishes it (2.2.0, A-C16-12).
+            'savings_total' => $this->getSavingsTotalWithoutTax()->format($includeSymbol),
         ];
 
         // Optionally include unit prices
@@ -786,7 +846,7 @@ class PriceResult
             $formatted['subtotal_price'] = $this->getSubtotalPrice()->format($includeSymbol);
             $formatted['tax_price'] = $this->getTaxPrice()->format($includeSymbol);
             $formatted['price'] = $this->getPrice()->format($includeSymbol);
-            $formatted['savings_price'] = $this->getSavingsPrice()->format($includeSymbol);
+            $formatted['savings_price'] = $this->getSavingsPriceWithoutTax()->format($includeSymbol);
         }
 
         return $formatted;
@@ -828,11 +888,16 @@ class PriceResult
                 'amount' => PublishedDecimal::money($this->getPrice()),
                 'formatted' => $this->getPrice()->format(),
             ],
+            // The saving on ONE basis, tax excluded, labelled so (2.2.0, A-C16-12): the base total less the subtotal,
+            // for a discount applied before tax or after it. A storefront block prints the tax-included saving
+            // beside its tax-included figures (getSavingsTotalWithTax()); this payload stays tax excluded throughout:
+            // the discounts' total below is the same figure under the same label (A-INT-3).
             'savings' => [
-                'total_amount' => PublishedDecimal::money($this->getSavingsTotal()),
-                'total_formatted' => $this->getSavingsTotal()->format(),
-                'price_amount' => PublishedDecimal::money($this->getSavingsPrice()),
-                'price_formatted' => $this->getSavingsPrice()->format(),
+                'basis' => 'tax_excluded',
+                'total_amount' => PublishedDecimal::money($this->getSavingsTotalWithoutTax()),
+                'total_formatted' => $this->getSavingsTotalWithoutTax()->format(),
+                'price_amount' => PublishedDecimal::money($this->getSavingsPriceWithoutTax()),
+                'price_formatted' => $this->getSavingsPriceWithoutTax()->format(),
                 'percent' => PublishedDecimal::percent($this->getSavingsPercent()),
                 'has_discount' => $this->hasDiscount(),
             ],
@@ -849,10 +914,42 @@ class PriceResult
                 'line_saving_with_tax_amount' => PublishedDecimal::money($this->getLineSavingWithTax()),
                 'line_saving_percent' => PublishedDecimal::percent($this->getLineSavingPercent()),
             ],
-            'discounts' => $this->discounts->toArray(),
+            'discounts' => $this->publishedDiscounts(),
             'taxes' => $this->taxes->toArray(),
             'breakdown' => $this->breakdown->toArray(),
         ];
+    }
+
+    /**
+     * The applied discounts as the price JSON publishes them (2.2.0, A-INT-3): on the payload's one basis, tax
+     * excluded, and labelled so. Their total is what the discounts saved without tax, the figure savings.total_amount
+     * states (getSavingsTotalWithoutTax()), never the discount stage's own amount, which after tax is tax included (5
+     * percent off 200,00 net under 24 percent tax, applied after tax: 10,00, where the stage removed 12,40). Each
+     * rule's own fixed amount is the rule's term, stated on the basis the rule applies on, and carries that basis
+     * beside it: tax_excluded for a rule applied before tax, tax_included for one applied after it. No money figure of
+     * the group is left without its basis.
+     *
+     * @return array<string, mixed>
+     * @since  2.2.0
+     */
+    private function publishedDiscounts(): array
+    {
+        $saved = $this->getSavingsTotalWithoutTax();
+        $discounts = [
+            'basis' => 'tax_excluded',
+            'total' => [
+                'amount' => PublishedDecimal::money($saved),
+                'formatted' => $saved->format(),
+            ],
+        ] + $this->discounts->toArray();
+
+        foreach ($discounts['applied'] as $index => $rule) {
+            if (\is_array($rule['amount'] ?? null)) {
+                $discounts['applied'][$index]['amount']['basis'] = ($rule['timing'] ?? '') === 'after_tax' ? 'tax_included' : 'tax_excluded';
+            }
+        }
+
+        return $discounts;
     }
 
     /**

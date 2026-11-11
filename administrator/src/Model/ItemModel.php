@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemAfterSaveEvent;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemPrepareFormEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
@@ -20,7 +21,9 @@ use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
@@ -41,6 +44,8 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryTrackingExcepti
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitRetirementException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Component\ComponentHelper;
@@ -247,8 +252,24 @@ class ItemModel extends AlfaAdminModel
             return true;
         }
 
-        foreach ($pks as $id) {
-            AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
+        // The batch rule (2.2.0): every item marked owed its rebuild by one statement and written in the same
+        // transaction, so a catalogue job sees a mark only with its change; then rebuilt per chunk under its locks with
+        // its mark cleared, so a request that stops after the commit leaves each item not yet rebuilt marked.
+        $db = $this->alfaDriver();
+        $db->transactionStart(asSavepoint: true);
+
+        try {
+            ProjectionManager::mark(itemIds: $pks);
+
+            foreach ($pks as $id) {
+                AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
+            }
+
+            TransactionState::commitLevel(db: $db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
         }
 
         // Manufacturer ids and per-language names are copied into every item's
@@ -299,11 +320,25 @@ class ItemModel extends AlfaAdminModel
             return false;
         }
 
+        // The batch rule (2.2.0), as batchManufacturer(): the marks by one statement, committed with the write.
+        $db = $this->alfaDriver();
         $affectedCategories = [];
-        foreach ($pks as $id) {
-            $oldCats = AlfaHelper::getAssocsFromDb($id, '#__alfa_items_categories', 'item_id', 'category_id');
-            $affectedCategories = array_merge($affectedCategories, array_map('intval', $oldCats));
-            AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id', 'category_id');
+        $db->transactionStart(asSavepoint: true);
+
+        try {
+            ProjectionManager::mark(itemIds: $pks);
+
+            foreach ($pks as $id) {
+                $oldCats = AlfaHelper::getAssocsFromDb($id, '#__alfa_items_categories', 'item_id', 'category_id');
+                $affectedCategories = array_merge($affectedCategories, array_map('intval', $oldCats));
+                AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id', 'category_id');
+            }
+
+            TransactionState::commitLevel(db: $db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
         }
 
         // Clear cache for all affected categories (old + new)
@@ -366,7 +401,10 @@ class ItemModel extends AlfaAdminModel
                 'itemId' => (int) ($data['id'] ?? $this->getState($this->getName() . '.id', 0)),
             ]);
 
-            Factory::getApplication()->getDispatcher()->dispatch('onItemPrepareForm', $event);
+            // A display phase (2.2.0, mode A, isolated): a listener that throws is logged and the next one runs.
+            $plugins = AlfaPluginHelper::get();
+            $plugins->importGroup('alfa');
+            $plugins->dispatchIsolated($event);
         } catch (Throwable $e) {
             Log::add(
                 entry:    'onItemPrepareForm listener failed: ' . $e->getMessage() . "\n" . $e->getTraceAsString(),
@@ -560,10 +598,11 @@ class ItemModel extends AlfaAdminModel
      * CALL ORDER: the price index sync MUST be the very last step because
      * it reads all associated data committed in the steps before it:
      *
+     *   0. the item's lock and mark - the rebuild owed, recorded before any write (2.2.0)
      *   1. parent::save()           - commits the #__alfa_items row
      *   2. setPrices()              - commits #__alfa_items_prices rows
      *   3. setAssocsToDb() x 4     - commits categories, manufacturers, users, usergroups
-     *   4. PriceIndexSyncService    - reads everything above, writes the index
+     *   4. ProjectionManager        - reads everything above, writes every projection, clears the mark
      *
      * STOCK. The row never carries stock, nor an existing product's tracking
      * setting: every stock, tracking and combination refusal that can be known is
@@ -801,301 +840,335 @@ class ItemModel extends AlfaAdminModel
             return $this->refuseSave(messages: $aliasClashes['refuse']);
         }
 
-        if (!parent::save($data)) {
-            return false;
-        }
+        // The rebuild this save owes is recorded before its first write (2.2.0): an existing item's mark in a
+        // statement of its own right before the row write, a new item's in its insert. The item's lock is taken right
+        // before the mark and held through the save's commits and the rebuild of step 4, so no other rebuild clears the
+        // mark while this save's later writes are still to commit. A save that dies after a commit leaves the mark,
+        // which a tick turns into the catalogue job. A lock not granted within its wait never fails the save: the mark
+        // and the row are written, and step 4 leaves the rebuild to the catalogue job (the lock logged why).
+        $itemLock = new IndexRebuildLock();
+        $locked = $pk > 0 ? array_keys($itemLock->acquire(itemIds: [$pk]), IndexRebuildLock::GRANTED, true) : [];
 
-        $currentId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id'); //get the id from joomla state
-
-        if ($stockPlan['flagChange']) {
-            $trackingChange = null;
-            $trackingError = null;
-
-            try {
-                $trackingChange = (new InventoryService())->changeTracking(
-                    itemId:         $currentId,
-                    combinationId:  null,
-                    value:          $stockPlan['flag'],
-                    openingTargets: $stockPlan['transition'] === 'on' ? $stockPlan['openings'] : null,
-                    context:        InventoryContext::ambient(),
-                );
-            } catch (Throwable $refusal) {
-                $trackingError = $refusal;
-            }
-
-            $this->reportTrackingChange(itemId: $currentId, result: $trackingChange, error: $trackingError);
-        }
-
-        // MULTILINGUAL: persist per-language translations (name, alias, short_desc,
-        // full_desc, meta_title, meta_desc). A blank alias slug is generated,
-        // sanitised and made globally unique (an item can belong to many categories).
-        MultilingualHelper::saveMultilingualData(
-            currentId:         $currentId,
-            primaryColumnName: 'id_item',
-            tableName:         '#__alfa_items',
-            data:              $data,
-            aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
-        );
-
-        foreach ($aliasClashes['warn'] as $warning) {
-            $app->enqueueMessage($warning, 'warning');
-        }
-
-        if (!empty($data['media'])) {
-            $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();
-
-            MediaHelper::saveMedia(
-                mediaData:      $data['media'],
-                droppedMedia:   $newDropped,
-                itemId:         $currentId,
-                mediaOrigin:    $this->name,
-                customFileName: $data['alias_' . $defaultLangTag] ?? '',
-            );
-        }
-
-        $currentId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id'); //get the id from joomla state
-
-        // AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
-        // Check if $categoryIdDefault is set, if not set it to the first category
-        $categoryIdDefault = $data['id_category_default'];
-        $categories = $data['categories'] ?? [];
-
-        if (!isset($categoryIdDefault) && !empty($categories)) {
-            $categoryIdDefault = $categories[0]; // assuming categories are indexed as an array
-        }
-
-        // Check if $defaultCategoryId exists in $data['categories'], if not, add it
-        if (!in_array($categoryIdDefault, $categories)) {
-            $data['categories'][] = $categoryIdDefault;
-        }
-        // END OF AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
-
-        // Step 2: save prices
-        // ?? null, not ?? []: absent must stay a no-op (setPrices bails on a
-        // non-array), because [] means "delete every price row". Without the
-        // coalesce a body that omits prices raised an undefined-key warning
-        // straight into the API's JSON response.
-        $this->setPrices($currentId, $data['prices'] ?? null);
-
-        // Step 3: save all associations
-        // Get old categories BEFORE overwriting so we can clear their cache too
-        $oldCategories = AlfaHelper::getAssocsFromDb($currentId, '#__alfa_items_categories', 'item_id', 'category_id');
-        $newCategories = $data['categories'] ?? [];
-
-        AlfaHelper::setAssocsToDb($currentId, $newCategories, '#__alfa_items_categories', 'item_id', 'category_id');
-        AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
-
-        // Clear category cache for all affected categories (old + new)
-        $affectedCategories = array_unique(array_merge(
-            array_map('intval', $oldCategories),
-            array_map('intval', $newCategories),
-        ));
-        foreach ($affectedCategories as $catId) {
-            if ($catId > 0) {
-                CategoryHelper::clearCache($catId);
-            }
-        }
-
-        AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
-        AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
-
-        // Anyone holding a materialised copy of catalogue visibility needs to know.
-        VisibilityNotifier::changed(itemIds: [$currentId]);
-
-        // ITEM FIELDS: no wizard step; option values are ADDED via the
-        // picker popup (item.addOptions), informational values save via
-        // their popup (item.saveFieldSettings), combinations via the
-        // explicit generator. The item save persists the LIST edits:
-        // option deltas + deferred option removals (variants-grid mechanics).
-        ItemFieldsAdminHelper::saveItemOptions(
-            itemId:          $currentId,
-            payload:         (array) ($data['options'] ?? []),
-            deletedValueIds: (string) ($data['deleted_option_value_ids'] ?? ''),
-        );
-        ItemFieldsAdminHelper::deleteItemInfoValues(
-            itemId:          $currentId,
-            deletedValueIds: (string) ($data['deleted_info_value_ids'] ?? ''),
-        );
-        ItemFieldsAdminHelper::saveItemInfoOrder(
-            itemId:          $currentId,
-            orderedValueIds: (array) ($data['info_values'] ?? []),
-        );
-        // Per-item GROUP order: the option/info field groups, dragged by header.
-        ItemFieldsAdminHelper::saveItemFieldOrder(
-            itemId:          $currentId,
-            orderedFieldIds: (array) ($data['field_order'] ?? []),
-        );
-        // Per-item REQUIRED overrides ('' = inherit the field's global flag).
-        ItemFieldsAdminHelper::saveItemFieldRequired(
-            itemId:  $currentId,
-            payload: (array) ($data['field_required'] ?? []),
-        );
-
-        // DOWNLOADS: persist the Downloads-tab metadata grid (title, limits,
-        // variant binding, state); file bytes stay on the AJAX tasks
-        // (upload/replace/delete need multipart + immediate GC).
-        Entitlements::saveItemDownloadsMeta(
-            itemId:  $currentId,
-            payload: (array) ($data['item_downloads'] ?? []),
-        );
-
-        // Field plugin config is NOT saved here: it is written through the
-        // field's row actions (the configure popup -> FieldParams), so the
-        // item save stays out of plugin-owned config entirely.
-
-        // COMBINATIONS: persist the grid edits first (they reference rows from
-        // before this save). Combinations are NOT auto-generated here; the
-        // admin generates them explicitly from the grid's Generate panel
-        // (additive by design), so no orphan handling is needed.
-        // A refusal here means the stock or a variant's price rows changed after
-        // the pre-flight: the grid edits roll back as a whole while the product
-        // row stands, so the save reports it as its own error and carries on.
-        // Every refusal the grid throws is a complete sentence, so it follows the
-        // saved notice whole.
         try {
-            ItemFieldsAdminHelper::saveCombinations(
-                itemId:                 $currentId,
-                payload:                (array) ($data['combinations'] ?? []),
-                defaultId:              (string) ($data['combinations_default'] ?? ''),
-                deletedCombinationIds:  (string) ($data['deleted_combination_ids'] ?? ''),
-            );
-        } catch (RuntimeException $combinationError) {
-            Log::add(
-                entry:    'Item ' . $currentId . ' saved, but its combination changes were refused: '
-                          . $combinationError->getMessage(),
-                priority: Log::ERROR,
-                category: 'com_alfa.inventory',
+            if ($pk > 0) {
+                ProjectionManager::mark(itemIds: [$pk]);
+            } else {
+                $data['projection_dirty_at'] = ProjectionManager::markNow();
+            }
+
+            if (!parent::save($data)) {
+                return false;
+            }
+
+            $currentId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id'); //get the id from joomla state
+
+            if ($pk <= 0 && $currentId > 0) {
+                // The new row carries its mark; it is written again under the lock, so a rebuild that took the new
+                // item before this save did leaves the save's later writes marked.
+                $locked = array_keys($itemLock->acquire(itemIds: [$currentId]), IndexRebuildLock::GRANTED, true);
+                ProjectionManager::mark(itemIds: [$currentId]);
+            }
+
+            if ($stockPlan['flagChange']) {
+                $trackingChange = null;
+                $trackingError = null;
+
+                try {
+                    $trackingChange = (new InventoryService())->changeTracking(
+                        itemId:         $currentId,
+                        combinationId:  null,
+                        value:          $stockPlan['flag'],
+                        openingTargets: $stockPlan['transition'] === 'on' ? $stockPlan['openings'] : null,
+                        context:        InventoryContext::ambient(),
+                    );
+                } catch (Throwable $refusal) {
+                    $trackingError = $refusal;
+                }
+
+                $this->reportTrackingChange(itemId: $currentId, result: $trackingChange, error: $trackingError);
+            }
+
+            // MULTILINGUAL: persist per-language translations (name, alias, short_desc,
+            // full_desc, meta_title, meta_desc). A blank alias slug is generated,
+            // sanitised and made globally unique (an item can belong to many categories).
+            MultilingualHelper::saveMultilingualData(
+                currentId:         $currentId,
+                primaryColumnName: 'id_item',
+                tableName:         '#__alfa_items',
+                data:              $data,
+                aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
             );
 
-            $app->enqueueMessage(
-                msg:  Text::sprintf('COM_ALFA_ITEM_SAVED_VARIANTS_NOT_CHANGED', $combinationError->getMessage()),
-                type: 'error',
-            );
-        }
+            foreach ($aliasClashes['warn'] as $warning) {
+                $app->enqueueMessage($warning, 'warning');
+            }
 
-        // STOCK ADAPTER (see the extraction above): converge the item-level
-        // unit to the changed figures through the kernel. It runs only for a
-        // product that tracks stock as STORED after the row save, never in a save
-        // that switched tracking (the switch booked its own opening stock), and
-        // never for a product with combinations, which has no item-level unit.
-        // Archived combinations are kept only for order history, so a product
-        // whose combinations are all archived is a plain product again.
-        $db = $this->getDatabase();
-        $hasCombinations = (int) $db->setQuery(
-            $db->getQuery(true)
-                ->select('COUNT(*)')
-                ->from($db->quoteName('#__alfa_item_combinations'))
-                ->where($db->quoteName('item_id') . ' = ' . $currentId)
-                ->where(CombinationState::currentSql(column: $db->quoteName('state'))),
-        )->loadResult() > 0;
-        $storedManageStock = (int) $db->setQuery(
-            $db->getQuery(true)
-                ->select('COALESCE(' . $db->quoteName('manage_stock') . ', 0)')
-                ->from($db->quoteName('#__alfa_items'))
-                ->where($db->quoteName('id') . ' = ' . $currentId),
-        )->loadResult();
+            if (!empty($data['media'])) {
+                $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();
 
-        if ($stockPlan['transition'] === null && !$hasCombinations && $storedManageStock === 1) {
-            // A REFUSED STOCK ADJUSTMENT IS NOT A FAILED SAVE. The row and its
-            // combinations are already committed, so the save is reported as the
-            // success it is and the stock refusal as its own error naming the
-            // reason; the operator corrects the quantity and saves again.
-            try {
-                $this->applyStockAdapter(
+                MediaHelper::saveMedia(
+                    mediaData:      $data['media'],
+                    droppedMedia:   $newDropped,
                     itemId:         $currentId,
-                    locationStock:  $locationStock,
-                    stockProvided:  $stockProvided,
-                    stockRequested: $stockRequested,
-                    stockBaseline:  $stockPlan['baseline'],
+                    mediaOrigin:    $this->name,
+                    customFileName: $data['alias_' . $defaultLangTag] ?? '',
                 );
-            } catch (Throwable $stockError) {
+            }
+
+            $currentId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id'); //get the id from joomla state
+
+            // AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
+            // Check if $categoryIdDefault is set, if not set it to the first category
+            $categoryIdDefault = $data['id_category_default'];
+            $categories = $data['categories'] ?? [];
+
+            if (!isset($categoryIdDefault) && !empty($categories)) {
+                $categoryIdDefault = $categories[0]; // assuming categories are indexed as an array
+            }
+
+            // Check if $defaultCategoryId exists in $data['categories'], if not, add it
+            if (!in_array($categoryIdDefault, $categories)) {
+                $data['categories'][] = $categoryIdDefault;
+            }
+            // END OF AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
+
+            // Step 2: save prices
+            // ?? null, not ?? []: absent must stay a no-op (setPrices bails on a
+            // non-array), because [] means "delete every price row". Without the
+            // coalesce a body that omits prices raised an undefined-key warning
+            // straight into the API's JSON response.
+            $this->setPrices($currentId, $data['prices'] ?? null);
+
+            // Step 3: save all associations
+            // Get old categories BEFORE overwriting so we can clear their cache too
+            $oldCategories = AlfaHelper::getAssocsFromDb($currentId, '#__alfa_items_categories', 'item_id', 'category_id');
+            $newCategories = $data['categories'] ?? [];
+
+            AlfaHelper::setAssocsToDb($currentId, $newCategories, '#__alfa_items_categories', 'item_id', 'category_id');
+            AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
+
+            // Clear category cache for all affected categories (old + new)
+            $affectedCategories = array_unique(array_merge(
+                array_map('intval', $oldCategories),
+                array_map('intval', $newCategories),
+            ));
+            foreach ($affectedCategories as $catId) {
+                if ($catId > 0) {
+                    CategoryHelper::clearCache($catId);
+                }
+            }
+
+            AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
+            AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+
+            // Anyone holding a materialised copy of catalogue visibility needs to know.
+            VisibilityNotifier::changed(itemIds: [$currentId]);
+
+            // ITEM FIELDS: no wizard step; option values are ADDED via the
+            // picker popup (item.addOptions), informational values save via
+            // their popup (item.saveFieldSettings), combinations via the
+            // explicit generator. The item save persists the LIST edits:
+            // option deltas + deferred option removals (variants-grid mechanics).
+            ItemFieldsAdminHelper::saveItemOptions(
+                itemId:          $currentId,
+                payload:         (array) ($data['options'] ?? []),
+                deletedValueIds: (string) ($data['deleted_option_value_ids'] ?? ''),
+            );
+            ItemFieldsAdminHelper::deleteItemInfoValues(
+                itemId:          $currentId,
+                deletedValueIds: (string) ($data['deleted_info_value_ids'] ?? ''),
+            );
+            ItemFieldsAdminHelper::saveItemInfoOrder(
+                itemId:          $currentId,
+                orderedValueIds: (array) ($data['info_values'] ?? []),
+            );
+            // Per-item GROUP order: the option/info field groups, dragged by header.
+            ItemFieldsAdminHelper::saveItemFieldOrder(
+                itemId:          $currentId,
+                orderedFieldIds: (array) ($data['field_order'] ?? []),
+            );
+            // Per-item REQUIRED overrides ('' = inherit the field's global flag).
+            ItemFieldsAdminHelper::saveItemFieldRequired(
+                itemId:  $currentId,
+                payload: (array) ($data['field_required'] ?? []),
+            );
+
+            // DOWNLOADS: persist the Downloads-tab metadata grid (title, limits,
+            // variant binding, state); file bytes stay on the AJAX tasks
+            // (upload/replace/delete need multipart + immediate GC).
+            Entitlements::saveItemDownloadsMeta(
+                itemId:  $currentId,
+                payload: (array) ($data['item_downloads'] ?? []),
+            );
+
+            // Field plugin config is NOT saved here: it is written through the
+            // field's row actions (the configure popup -> FieldParams), so the
+            // item save stays out of plugin-owned config entirely.
+
+            // COMBINATIONS: persist the grid edits first (they reference rows from
+            // before this save). Combinations are NOT auto-generated here; the
+            // admin generates them explicitly from the grid's Generate panel
+            // (additive by design), so no orphan handling is needed.
+            // A refusal here means the stock or a variant's price rows changed after
+            // the pre-flight: the grid edits roll back as a whole while the product
+            // row stands, so the save reports it as its own error and carries on.
+            // Every refusal the grid throws is a complete sentence, so it follows the
+            // saved notice whole.
+            try {
+                ItemFieldsAdminHelper::saveCombinations(
+                    itemId:                 $currentId,
+                    payload:                (array) ($data['combinations'] ?? []),
+                    defaultId:              (string) ($data['combinations_default'] ?? ''),
+                    deletedCombinationIds:  (string) ($data['deleted_combination_ids'] ?? ''),
+                );
+            } catch (RuntimeException $combinationError) {
                 Log::add(
-                    entry:    'Item ' . $currentId . ' saved, but its stock could not be adjusted: '
-                              . $stockError->getMessage(),
+                    entry:    'Item ' . $currentId . ' saved, but its combination changes were refused: '
+                              . $combinationError->getMessage(),
                     priority: Log::ERROR,
                     category: 'com_alfa.inventory',
                 );
 
-                // Stock reserved after the pre-flight is refused by the kernel under
-                // the record's lock; the operator reads the floor it keeps. Its
-                // sentence is complete, so it follows the saved notice whole.
                 $app->enqueueMessage(
-                    msg:  match (true) {
-                        $stockError instanceof InventoryIntegrityException => $this->inventoryRefusalMessage(error: $stockError),
-                        $stockError instanceof InventoryReservedFloorException => Text::sprintf(
-                            'COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED',
-                            $this->inventoryRefusalMessage(error: $stockError),
-                        ),
-                        default => Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_REFUSED', $stockError->getMessage()),
-                    },
+                    msg:  Text::sprintf('COM_ALFA_ITEM_SAVED_VARIANTS_NOT_CHANGED', $combinationError->getMessage()),
                     type: 'error',
                 );
             }
-        }
 
-        // Persist the policy overrides (NULL = global default).
-        if ($policyValues !== null) {
+            // STOCK ADAPTER (see the extraction above): converge the item-level
+            // unit to the changed figures through the kernel. It runs only for a
+            // product that tracks stock as STORED after the row save, never in a save
+            // that switched tracking (the switch booked its own opening stock), and
+            // never for a product with combinations, which has no item-level unit.
+            // Archived combinations are kept only for order history, so a product
+            // whose combinations are all archived is a plain product again.
             $db = $this->getDatabase();
-            $db->setQuery(
+            $hasCombinations = (int) $db->setQuery(
                 $db->getQuery(true)
-                    ->update($db->quoteName('#__alfa_items'))
-                    ->set($db->quoteName('backorder') . ' = ' . ($policyValues['backorder'] === null ? 'NULL' : $db->quote($policyValues['backorder'])))
-                    ->set($db->quoteName('min_qty') . ' = ' . ($policyValues['min_qty'] === null ? 'NULL' : (float) $policyValues['min_qty']))
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_item_combinations'))
+                    ->where($db->quoteName('item_id') . ' = ' . $currentId)
+                    ->where(CombinationState::currentSql(column: $db->quoteName('state'))),
+            )->loadResult() > 0;
+            $storedManageStock = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COALESCE(' . $db->quoteName('manage_stock') . ', 0)')
+                    ->from($db->quoteName('#__alfa_items'))
                     ->where($db->quoteName('id') . ' = ' . $currentId),
-            )->execute();
-        }
+            )->loadResult();
 
-        // A changed sale rule changes stock verdicts: the inventory service records
-        // it, which moves the inventory version every cached verdict is keyed on.
-        // The save stands whatever happens to that record.
-        if ($saleRulesBefore !== null && $saleRulesBefore !== $this->saleRuleFacts(itemId: $currentId)) {
+            if ($stockPlan['transition'] === null && !$hasCombinations && $storedManageStock === 1) {
+                // A REFUSED STOCK ADJUSTMENT IS NOT A FAILED SAVE. The row and its
+                // combinations are already committed, so the save is reported as the
+                // success it is and the stock refusal as its own error naming the
+                // reason; the operator corrects the quantity and saves again.
+                try {
+                    $this->applyStockAdapter(
+                        itemId:         $currentId,
+                        locationStock:  $locationStock,
+                        stockProvided:  $stockProvided,
+                        stockRequested: $stockRequested,
+                        stockBaseline:  $stockPlan['baseline'],
+                    );
+                } catch (Throwable $stockError) {
+                    Log::add(
+                        entry:    'Item ' . $currentId . ' saved, but its stock could not be adjusted: '
+                                  . $stockError->getMessage(),
+                        priority: Log::ERROR,
+                        category: 'com_alfa.inventory',
+                    );
+
+                    // Stock reserved after the pre-flight is refused by the kernel under
+                    // the record's lock; the operator reads the floor it keeps. Its
+                    // sentence is complete, so it follows the saved notice whole.
+                    $app->enqueueMessage(
+                        msg:  match (true) {
+                            $stockError instanceof InventoryIntegrityException => $this->inventoryRefusalMessage(error: $stockError),
+                            $stockError instanceof InventoryReservedFloorException => Text::sprintf(
+                                'COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED',
+                                $this->inventoryRefusalMessage(error: $stockError),
+                            ),
+                            default => Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_REFUSED', $stockError->getMessage()),
+                        },
+                        type: 'error',
+                    );
+                }
+            }
+
+            // Persist the policy overrides (NULL = global default).
+            if ($policyValues !== null) {
+                $db = $this->getDatabase();
+                $db->setQuery(
+                    $db->getQuery(true)
+                        ->update($db->quoteName('#__alfa_items'))
+                        ->set($db->quoteName('backorder') . ' = ' . ($policyValues['backorder'] === null ? 'NULL' : $db->quote($policyValues['backorder'])))
+                        ->set($db->quoteName('min_qty') . ' = ' . ($policyValues['min_qty'] === null ? 'NULL' : (float) $policyValues['min_qty']))
+                        ->where($db->quoteName('id') . ' = ' . $currentId),
+                )->execute();
+            }
+
+            // A changed sale rule changes stock verdicts: the inventory service records
+            // it, which moves the inventory version every cached verdict is keyed on.
+            // The save stands whatever happens to that record.
+            if ($saleRulesBefore !== null && $saleRulesBefore !== $this->saleRuleFacts(itemId: $currentId)) {
+                try {
+                    (new InventoryService())->recordSaleRules(itemId: $currentId, context: InventoryContext::ambient());
+                } catch (Throwable $recordError) {
+                    Log::add(
+                        entry:    'Item ' . $currentId . ' saved, but its sale rule change was not recorded: '
+                                  . $recordError->getMessage(),
+                        priority: Log::ERROR,
+                        category: 'com_alfa.inventory',
+                    );
+                }
+            }
+
+            // Step 4: rebuild every catalog projection (price, item-field values, ...)
+            // for this item. MUST be the last step: projections read the prices and
+            // associations committed above. The manager isolates and logs each
+            // projection's failures, so a sync problem never blocks the save. Without
+            // the item's lock the rebuild is owed to the catalogue job instead.
+            if ($locked !== []) {
+                (new ProjectionManager())->syncItem($currentId);
+            } else {
+                ProjectionManager::owe(itemIds: [$currentId]);
+            }
+
+            // The move into the archive held out of the row write, made as the list
+            // makes it; publish() reports a refusal and redoes the projections.
+            if ($archiveMove !== null) {
+                $moved = [$currentId];
+
+                $this->publish(pks: $moved, value: $archiveMove);
+            }
+
+            // Feature plugins persist their injected-field data into their OWN
+            // tables here (subscription settings, bundle contents, ...). Read-only
+            // payload; a listener failure never blocks the item save.
             try {
-                (new InventoryService())->recordSaleRules(itemId: $currentId, context: InventoryContext::ambient());
-            } catch (Throwable $recordError) {
+                $event = new ItemAfterSaveEvent('onItemAfterSave', [
+                    'itemId' => $currentId,
+                    'data' => $data,
+                    'isNew' => $pk <= 0,
+                ]);
+
+                // An after phase (2.2.0, mode A, isolated).
+                $plugins = AlfaPluginHelper::get();
+                $plugins->importGroup('alfa');
+                $plugins->dispatchIsolated($event);
+            } catch (Throwable $e) {
                 Log::add(
-                    entry:    'Item ' . $currentId . ' saved, but its sale rule change was not recorded: '
-                              . $recordError->getMessage(),
+                    entry:    'onItemAfterSave listener failed for item ' . $currentId . ': '
+                              . $e->getMessage() . "\n" . $e->getTraceAsString(),
                     priority: Log::ERROR,
-                    category: 'com_alfa.inventory',
+                    category: 'com_alfa',
                 );
             }
+
+            return true;
+        } finally {
+            $itemLock->release(itemIds: $locked);
         }
-
-        // Step 4: rebuild every catalog projection (price, item-field values, ...)
-        // for this item. MUST be the last step: projections read the prices and
-        // associations committed above. The manager isolates and logs each
-        // projection's failures, so a sync problem never blocks the save.
-        (new ProjectionManager())->syncItem($currentId);
-
-        // The move into the archive held out of the row write, made as the list
-        // makes it; publish() reports a refusal and redoes the projections.
-        if ($archiveMove !== null) {
-            $moved = [$currentId];
-
-            $this->publish(pks: $moved, value: $archiveMove);
-        }
-
-        // Feature plugins persist their injected-field data into their OWN
-        // tables here (subscription settings, bundle contents, ...). Read-only
-        // payload; a listener failure never blocks the item save.
-        try {
-            $event = new ItemAfterSaveEvent('onItemAfterSave', [
-                'itemId' => $currentId,
-                'data' => $data,
-                'isNew' => $pk <= 0,
-            ]);
-
-            Factory::getApplication()->getDispatcher()->dispatch('onItemAfterSave', $event);
-        } catch (Throwable $e) {
-            Log::add(
-                entry:    'onItemAfterSave listener failed for item ' . $currentId . ': '
-                          . $e->getMessage() . "\n" . $e->getTraceAsString(),
-                priority: Log::ERROR,
-                category: 'com_alfa',
-            );
-        }
-
-        return true;
     }
 
     /**
@@ -1110,6 +1183,11 @@ class ItemModel extends AlfaAdminModel
      * way or the other in a single fan-out, never one projection call per key.
      *
      * Non-fatal: sync failures are logged but never block the publish operation.
+     *
+     * THE BATCH RULE (2.2.0). The products the write changes (those not in the target state yet) are marked owed
+     * their rebuild by one statement (per 1,000 ids) in the state write's transaction, then rebuilt or removed a chunk of 100 at a time under the items' locks, each mark cleared
+     * by compare-and-set: a request that stops after the commit leaves every item not yet rebuilt marked for the
+     * catalogue job. A batch takes no lock before its mark: it cannot hold a thousand locks.
      *
      * ARCHIVING IS AN INVENTORY TRANSITION. An archived product has left current
      * commerce, and every stock identity of it is kept only for its order
@@ -1147,7 +1225,7 @@ class ItemModel extends AlfaAdminModel
     public function publish(&$pks, $value = 1, bool $queueRefusal = true)
     {
         $value = (int) $value;
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $requested = (array) $pks;
         $ids = array_values(array_filter(array_map('intval', $requested), static fn (int $pk): bool => $pk > 0));
 
@@ -1165,6 +1243,9 @@ class ItemModel extends AlfaAdminModel
                 $crossing = $this->archiveCrossing(ids: $ids, value: $value);
 
                 if ($crossing === []) {
+                    // The batch rule (2.2.0): the items marked owed their rebuild by one statement in the state
+                    // write's transaction, so the change is never committed unmarked.
+                    $this->markChanging(ids: $ids, value: $value);
                     // Let Joomla handle the actual state change in the database
                     $result = parent::publish(pks: $pks, value: $value);
                 }
@@ -1213,6 +1294,7 @@ class ItemModel extends AlfaAdminModel
                             );
                         }
 
+                        $this->markChanging(ids: $ids, value: $value);
                         $written = (bool) parent::publish(pks: $pks, value: $value);
 
                         if (!$written || array_diff($crossing, array_map('intval', (array) $pks)) !== []) {
@@ -1514,6 +1596,35 @@ class ItemModel extends AlfaAdminModel
         }
 
         return $crossing;
+    }
+
+    /**
+     * Mark owed their rebuild the products a state write is about to change (2.2.0, the batch rule): those whose state
+     * is not the target yet, read in the write's transaction, by one statement per 1,000 ids. A product already in the
+     * target state is left out of the write by the framework (AdminModel::publish()) and out of the rebuild after it,
+     * so it is not marked either.
+     *
+     * @param int[] $ids The selection.
+     * @param int $value The target state.
+     *
+     * @since  2.2.0
+     */
+    private function markChanging(array $ids, int $value): void
+    {
+        if ($ids === []) {
+            return;
+        }
+
+        $db = $this->getDatabase();
+        $changing = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName('#__alfa_items'))
+                ->where($db->quoteName('id') . ' IN (' . implode(',', array_map('intval', $ids)) . ')')
+                ->where($db->quoteName('state') . ' <> ' . (int) $value),
+        )->loadColumn() ?: [];
+
+        ProjectionManager::mark(itemIds: array_map('intval', $changing));
     }
 
     /**
@@ -1878,7 +1989,7 @@ class ItemModel extends AlfaAdminModel
             return;
         }
 
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $unapplied = false;
 
         $db->transactionStart(asSavepoint: true);
@@ -2758,6 +2869,20 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * A product's name in the staff member's language, for a refusal that names it (UX-42); its number when it has none.
+     *
+     * @param int $itemId The product.
+     *
+     * @since  2.2.0
+     */
+    private static function nameForStaff(int $itemId): string
+    {
+        $name = (string) MultilingualHelper::getTranslatedValue(id: $itemId, tableName: '#__alfa_items', primaryColumnName: 'id_item', field: 'name');
+
+        return $name !== '' ? $name : '#' . $itemId;
+    }
+
+    /**
      * Method to delete one or more records.
      *
      * Every product the request names leaves the active catalogue only while it
@@ -2800,7 +2925,7 @@ class ItemModel extends AlfaAdminModel
     {
         $pks = array_map('intval', (array) $pks);
         sort($pks);
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
 
         // Permission first: a refused user never reaches the stock checks.
         if (!$this->canDelete((object) [])) {
@@ -2934,187 +3059,239 @@ class ItemModel extends AlfaAdminModel
             return false;
         }
 
-        $db->transactionStart(true);
+        // EACH PRODUCT'S REBUILD LOCK FIRST (2.2.0, A-C18-13), the one a save takes before its mark (C8), ascending and
+        // with its wait, then the transaction, and the locks given back only once the transaction and what follows it
+        // have ended: a rebuild or a save of a product being deleted waits for the delete and then finds the product
+        // gone, at any isolation level. A lock not granted in its wait refuses the delete before anything is touched.
+        $itemLock = new IndexRebuildLock();
+        $lockStatus = $existing === [] ? [] : $itemLock->acquire(itemIds: $existing);
+        $locked = array_keys($lockStatus, IndexRebuildLock::GRANTED, true);
+        $busy = array_values(array_diff(array_keys($lockStatus), $locked));
+
+        if ($busy !== []) {
+            $itemLock->release(itemIds: $locked);
+            $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $busy[0]), (int) $busy[0]));
+
+            return false;
+        }
+
+        $busyRemoval = null;
 
         try {
-            foreach ($existing as $pk) {
-                $service->lockItemStock(itemId: $pk);
+            $db->transactionStart(true);
 
-                if ($this->orderHistoryLineCount(itemId: $pk, lock: true) > 0) {
-                    $refusal = Text::sprintf('COM_ALFA_ITEM_DELETE_SOLD_MEANWHILE', $pk);
+            try {
+                foreach ($existing as $pk) {
+                    $service->lockItemStock(itemId: $pk);
 
-                    // Every close of this level discards what was deferred inside it.
-                    TransactionState::rollBackLevel(db: $db, failure: new RuntimeException($refusal));
-                    $this->setError(error: $refusal);
+                    if ($this->orderHistoryLineCount(itemId: $pk, lock: true) > 0) {
+                        $refusal = Text::sprintf('COM_ALFA_ITEM_DELETE_SOLD_MEANWHILE', $pk);
+
+                        // Every close of this level discards what was deferred inside it.
+                        TransactionState::rollBackLevel(db: $db, failure: new RuntimeException($refusal));
+                        $this->setError(error: $refusal);
+
+                        return false;
+                    }
+
+                    $service->retireUnits(
+                        itemId:         $pk,
+                        combinationIds: null,
+                        sourceType:     'catalog_edit',
+                        sourceId:       $pk,
+                        context:        InventoryContext::ambient(),
+                    );
+                }
+
+                // THE PRICE INDEX ROWS GO THROUGH ITS WRITER, BEFORE THE PRODUCT ROWS (2.2.0, A-C18-5): the foreign key
+                // would otherwise take them with the product, and nothing would announce them. Inside this transaction, so
+                // the event follows its commit and a delete rolled back announces nothing.
+                // Its failure fails the delete (A-C18-14): nothing is removed behind the event's back.
+                if ($existing !== []) {
+                    try {
+                        (new PriceIndexSyncService())->deleteForItems(
+                            itemIds: $existing,
+                            cause: PricesChangedEvent::CAUSE_ITEM,
+                            causeId: \count($existing) === 1 ? (int) $existing[0] : 0,
+                        );
+                    } catch (Throwable $removal) {
+                        // A lock wait that timed out (1205) or a deadlock (1213) is the products being written right
+                        // now: rolled back below and said in plain words. Anything else is rolled back and thrown.
+                        if (\in_array(MysqlError::number(error: $removal), [1205, 1213], true)) {
+                            $busyRemoval = $removal;
+                        }
+
+                        throw $removal;
+                    }
+                }
+
+                // On success $deletePks holds exactly the rows that were removed
+                // (uncanDeletable ones are unset by the parent).
+                $this->alfaDeleteAsked = true;
+                $result = parent::delete(pks: $deletePks);
+
+                if (!$result) {
+                    TransactionState::rollBackLevel(db: $db, failure: new RuntimeException('The products were not deleted.'));
+                    $pks = $deletePks;
 
                     return false;
                 }
 
-                $service->retireUnits(
-                    itemId:         $pk,
-                    combinationIds: null,
-                    sourceType:     'catalog_edit',
-                    sourceId:       $pk,
-                    context:        InventoryContext::ambient(),
+                $surviving = $existing === [] ? 0 : (int) $db->setQuery(
+                    $db->getQuery(true)
+                        ->select('COUNT(*)')
+                        ->from($db->quoteName('#__alfa_items'))
+                        ->whereIn($db->quoteName('id'), $existing),
+                )->loadResult();
+
+                if ($surviving > 0) {
+                    TransactionState::rollBackLevel(db: $db, failure: new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_DELETE')));
+                    $this->setError(error: Text::_('JLIB_APPLICATION_ERROR_DELETE'));
+
+                    return false;
+                }
+
+                $pks = $deletePks;
+
+                // The combination rows and their value links go with the product.
+                if ($comboIds !== []) {
+                    $db->setQuery(
+                        $db->getQuery(true)
+                            ->delete($db->quoteName('#__alfa_item_combination_values'))
+                            ->whereIn($db->quoteName('combination_id'), $comboIds),
+                    )->execute();
+
+                    $db->setQuery(
+                        $db->getQuery(true)
+                            ->delete($db->quoteName('#__alfa_item_combinations'))
+                            ->whereIn($db->quoteName('id'), $comboIds),
+                    )->execute();
+                }
+
+                TransactionState::commitLevel(db: $db);
+            } catch (InventoryUnitRetirementException $retirement) {
+                TransactionState::rollBackLevel(db: $db, failure: $retirement);
+
+                $this->setError(error: $this->stockHeldMessage(
+                    key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
+                    itemId:   $retirement->itemId,
+                    blockers: $retirement->blockers,
+                ));
+
+                return false;
+            } catch (Throwable $e) {
+                // After a deadlock in the retirement the whole transaction is gone,
+                // on the server and in the driver's count.
+                TransactionState::rollBackLevel(db: $db, failure: $e);
+
+                // The removal met another writer (A-C18-14): nothing was deleted, and the merchant is told so.
+                if ($e === $busyRemoval) {
+                    Log::add('Item delete: the price index rows of item(s) ' . implode(', ', $existing) . ' could not be removed, nothing was deleted: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+                    $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
+
+                    return false;
+                }
+
+                throw $e;
+            }
+
+            // A deleted product has no figures left to repair.
+            foreach ($pks as $pk) {
+                InventoryIntegrityNotice::clear(itemId: (int) $pk);
+            }
+
+            // The combinations' media, field configs and translations.
+            if ($comboIds !== []) {
+                MediaHelper::deleteMediaForItems(itemIds: $comboIds, origin: 'combination');
+                FieldParams::deleteForVariants(scope: FieldParams::SCOPE_COMBINATION, scopeIds: $comboIds);
+                MultilingualHelper::deleteMultilingualData(
+                    ids:               $comboIds,
+                    primaryColumnName: 'id_item_combination',
+                    tableName:         '#__alfa_item_combinations',
                 );
             }
 
-            // On success $deletePks holds exactly the rows that were removed
-            // (uncanDeletable ones are unset by the parent).
-            $this->alfaDeleteAsked = true;
-            $result = parent::delete(pks: $deletePks);
-
-            if (!$result) {
-                TransactionState::rollBackLevel(db: $db, failure: new RuntimeException('The products were not deleted.'));
-                $pks = $deletePks;
-
-                return false;
-            }
-
-            $surviving = $existing === [] ? 0 : (int) $db->setQuery(
-                $db->getQuery(true)
-                    ->select('COUNT(*)')
-                    ->from($db->quoteName('#__alfa_items'))
-                    ->whereIn($db->quoteName('id'), $existing),
-            )->loadResult();
-
-            if ($surviving > 0) {
-                TransactionState::rollBackLevel(db: $db, failure: new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_DELETE')));
-                $this->setError(error: Text::_('JLIB_APPLICATION_ERROR_DELETE'));
-
-                return false;
-            }
-
-            $pks = $deletePks;
-
-            // The combination rows and their value links go with the product.
-            if ($comboIds !== []) {
+            // Catalog children and pivots keyed by the item.
+            foreach ([
+                '#__alfa_items_prices' => 'item_id',
+                '#__alfa_item_option_values' => 'item_id',
+                '#__alfa_item_info_values' => 'item_id',
+                '#__alfa_item_downloads' => 'item_id',
+                '#__alfa_items_categories' => 'item_id',
+                '#__alfa_items_manufacturers' => 'item_id',
+                '#__alfa_items_usergroups' => 'item_id',
+                '#__alfa_items_users' => 'item_id',
+            ] as $table => $column) {
                 $db->setQuery(
                     $db->getQuery(true)
-                        ->delete($db->quoteName('#__alfa_item_combination_values'))
-                        ->whereIn($db->quoteName('combination_id'), $comboIds),
-                )->execute();
-
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->delete($db->quoteName('#__alfa_item_combinations'))
-                        ->whereIn($db->quoteName('id'), $comboIds),
+                        ->delete($db->quoteName($table))
+                        ->whereIn($db->quoteName($column), $pks),
                 )->execute();
             }
 
-            TransactionState::commitLevel(db: $db);
-        } catch (InventoryUnitRetirementException $retirement) {
-            TransactionState::rollBackLevel(db: $db, failure: $retirement);
+            // LIVE CART LINES HOLDING THE ITEM, and the clocks of the carts that
+            // lose one. Cart storage is owned by CartRepository; this model states
+            // the intent and the repository knows that a line takes its field rows
+            // with it and that a changed cart must be stamped.
+            //
+            // POSITION IS DELIBERATE. This runs AFTER the item transaction has
+            // committed, exactly where it ran before. The repository is
+            // savepoint-aware, which would make it safe to run inside that
+            // transaction, but moving it there would change when a cart is emptied
+            // relative to the item disappearing: a separate decision, not a
+            // side effect of extraction.
+            //
+            // The set is the REQUESTED item ids, not the surviving $pks, which is
+            // what the pre-captured line ids described before. That preserves
+            // today's behaviour including its edge: an item the parent refused to
+            // delete still loses its cart lines.
+            (new CartRepository($db))->removeLinesForItems($requestedItemIds);
 
-            $this->setError(error: $this->stockHeldMessage(
-                key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
-                itemId:   $retirement->itemId,
-                blockers: $retirement->blockers,
-            ));
+            // Storage objects: GC only when nothing references the key
+            // (sold entitlement snapshots keep their objects alive).
+            foreach ($downloadRows as $downloadRow) {
+                Storage::deleteIfOrphaned(disk: $downloadRow->storage_disk, key: $downloadRow->storage_key);
+            }
 
-            return false;
-        } catch (Throwable $e) {
-            // After a deadlock in the retirement the whole transaction is gone,
-            // on the server and in the driver's count.
-            TransactionState::rollBackLevel(db: $db, failure: $e);
+            // Remove the items' projection rows in one fan-out. FK CASCADE already
+            // handles hard deletes; this is the safety net for soft-delete / trash.
+            (new ProjectionManager())->deleteForItems(itemIds: $pks);
 
-            throw $e;
-        }
-
-        // A deleted product has no figures left to repair.
-        foreach ($pks as $pk) {
-            InventoryIntegrityNotice::clear(itemId: (int) $pk);
-        }
-
-        // The combinations' media, field configs and translations.
-        if ($comboIds !== []) {
-            MediaHelper::deleteMediaForItems(itemIds: $comboIds, origin: 'combination');
-            FieldParams::deleteForVariants(scope: FieldParams::SCOPE_COMBINATION, scopeIds: $comboIds);
+            // MULTILINGUAL: remove the per-language rows for the deleted items.
             MultilingualHelper::deleteMultilingualData(
-                ids:               $comboIds,
-                primaryColumnName: 'id_item_combination',
-                tableName:         '#__alfa_item_combinations',
+                ids:               $pks,
+                primaryColumnName: 'id_item',
+                tableName:         '#__alfa_items',
             );
+
+            // Remove the items' media (rows; files when media_full_deletion is on).
+            MediaHelper::deleteMediaForItems($pks, 'item');
+
+            // Remove the items' field plugin configs (item-level + variant rows).
+            FieldParams::deleteForItems(itemIds: $pks);
+
+            // The membership changed, so the cached trees are wrong
+            //
+            // CategoryHelper caches category trees AND their product counts
+            // persistently, with a hard-coded one-year lifetime and caching forced
+            // on regardless of the site's global setting. save() and
+            // batchCategory() already clear it when they change which items belong
+            // where; publishing, unpublishing, trashing, archiving and deleting
+            // change which items COUNT as members, which is the same fact from the
+            // tree's point of view.
+            //
+            // Cleared unconditionally rather than only for items that have
+            // categories: clearCache() cleans the whole group in one call whatever
+            // id it is given, over-invalidating is harmless, and under-invalidating
+            // is the defect being fixed. Measured on the demo: a trashed product
+            // kept being counted (34 served against 33 recomputed), and a DELETED
+            // one kept its place too.
+            CategoryHelper::clearCache();
+
+            return true;
+        } finally {
+            $itemLock->release(itemIds: $locked);
         }
-
-        // Catalog children and pivots keyed by the item.
-        foreach ([
-            '#__alfa_items_prices' => 'item_id',
-            '#__alfa_item_option_values' => 'item_id',
-            '#__alfa_item_info_values' => 'item_id',
-            '#__alfa_item_downloads' => 'item_id',
-            '#__alfa_items_categories' => 'item_id',
-            '#__alfa_items_manufacturers' => 'item_id',
-            '#__alfa_items_usergroups' => 'item_id',
-            '#__alfa_items_users' => 'item_id',
-        ] as $table => $column) {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->quoteName($table))
-                    ->whereIn($db->quoteName($column), $pks),
-            )->execute();
-        }
-
-        // LIVE CART LINES HOLDING THE ITEM, and the clocks of the carts that
-        // lose one. Cart storage is owned by CartRepository; this model states
-        // the intent and the repository knows that a line takes its field rows
-        // with it and that a changed cart must be stamped.
-        //
-        // POSITION IS DELIBERATE. This runs AFTER the item transaction has
-        // committed, exactly where it ran before. The repository is
-        // savepoint-aware, which would make it safe to run inside that
-        // transaction, but moving it there would change when a cart is emptied
-        // relative to the item disappearing: a separate decision, not a
-        // side effect of extraction.
-        //
-        // The set is the REQUESTED item ids, not the surviving $pks, which is
-        // what the pre-captured line ids described before. That preserves
-        // today's behaviour including its edge: an item the parent refused to
-        // delete still loses its cart lines.
-        (new CartRepository($db))->removeLinesForItems($requestedItemIds);
-
-        // Storage objects: GC only when nothing references the key
-        // (sold entitlement snapshots keep their objects alive).
-        foreach ($downloadRows as $downloadRow) {
-            Storage::deleteIfOrphaned(disk: $downloadRow->storage_disk, key: $downloadRow->storage_key);
-        }
-
-        // Remove the items' projection rows in one fan-out. FK CASCADE already
-        // handles hard deletes; this is the safety net for soft-delete / trash.
-        (new ProjectionManager())->deleteForItems(itemIds: $pks);
-
-        // MULTILINGUAL: remove the per-language rows for the deleted items.
-        MultilingualHelper::deleteMultilingualData(
-            ids:               $pks,
-            primaryColumnName: 'id_item',
-            tableName:         '#__alfa_items',
-        );
-
-        // Remove the items' media (rows; files when media_full_deletion is on).
-        MediaHelper::deleteMediaForItems($pks, 'item');
-
-        // Remove the items' field plugin configs (item-level + variant rows).
-        FieldParams::deleteForItems(itemIds: $pks);
-
-        // The membership changed, so the cached trees are wrong
-        //
-        // CategoryHelper caches category trees AND their product counts
-        // persistently, with a hard-coded one-year lifetime and caching forced
-        // on regardless of the site's global setting. save() and
-        // batchCategory() already clear it when they change which items belong
-        // where; publishing, unpublishing, trashing, archiving and deleting
-        // change which items COUNT as members, which is the same fact from the
-        // tree's point of view.
-        //
-        // Cleared unconditionally rather than only for items that have
-        // categories: clearCache() cleans the whole group in one call whatever
-        // id it is given, over-invalidating is harmless, and under-invalidating
-        // is the defect being fixed. Measured on the demo: a trashed product
-        // kept being counted (34 served against 33 recomputed), and a DELETED
-        // one kept its place too.
-        CategoryHelper::clearCache();
-
-        return true;
     }
 
     /**

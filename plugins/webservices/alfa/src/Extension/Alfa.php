@@ -146,6 +146,14 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             new Route(['POST'], 'v1/alfa/documents/:id/void', 'documents.void', ['id' => '\d+'], $defaults),
             new Route(['GET'], 'v1/alfa/documenttypes', 'documenttypes.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/documenttypes/:id', 'documenttypes.displayItem', ['id' => '\d+'], $defaults),
+
+            // Tasks: what a save left to the shop's background work, and that work. A task is read by its creator or
+            // with the permission of its work, and one the caller may not read answers 404, so its existence is never
+            // revealed. The list is Tools' only. Process is the one route whose purpose is the long work: a 2-second
+            // tick on that job, then 200, or 202 with Location and Retry-After while it still waits.
+            new Route(['GET'], 'v1/alfa/tasks', 'tasks.displayList', [], $defaults),
+            new Route(['GET'], 'v1/alfa/tasks/:id', 'tasks.displayItem', ['id' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/tasks/:id/process', 'tasks.process', ['id' => '\d+'], $defaults),
         ]);
     }
 }

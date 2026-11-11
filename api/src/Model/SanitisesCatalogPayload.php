@@ -138,7 +138,12 @@ trait SanitisesCatalogPayload
      * decimals that give the line back), never the money of one piece: a payable
      * 0.00496 is "0.00496", not "0.00". Every figure is an exact decimal string
      * ({@see PublishedDecimal}). Its formatted text is the storefront's, in the
-     * Auto form. minor_units is set only when the value sits on the scale.
+     * Auto form. minor_units is set only when the value sits on the scale. The
+     * savings are on one basis, tax excluded (savings.basis "tax_excluded": the
+     * base less the subtotal, 2.2.0), whatever the storefront prints beside its
+     * tax-included figures; the discounts' total states the same figure under
+     * the same label (discounts.basis, A-INT-3), and a rule's own fixed amount
+     * names the basis it is stated on.
      *
      * @param PriceResult $price The priced result.
      *

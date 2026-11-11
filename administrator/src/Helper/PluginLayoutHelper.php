@@ -26,9 +26,11 @@
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\FileLayout;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use Throwable;
@@ -74,8 +76,15 @@ class PluginLayoutHelper
             return self::getEmptyLayout();
         }
 
-        // Step 1: Try plugin's own tmpl/ directory
-        $pluginPath = dirname(PluginHelper::getLayoutPath($pluginType, $pluginName, $fileName));
+        // Step 1: Try plugin's own tmpl/ directory (the template's override first), through the plugin helper (2.2.0)
+        try {
+            $pluginPath = dirname(AlfaPluginHelper::get()->layoutPath(PluginId::from($pluginType, $pluginName), $fileName));
+        } catch (InvalidArgumentException) {
+            self::warn("pluginLayout() called with a plugin that cannot exist: type=\"{$pluginType}\", name=\"{$pluginName}\".");
+
+            return self::getEmptyLayout();
+        }
+
         $pluginFile = $pluginPath . '/' . $fileName . '.php';
 
         if (file_exists($pluginFile)) {

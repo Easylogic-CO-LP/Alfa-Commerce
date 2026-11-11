@@ -22,6 +22,7 @@
 
 	extract($displayData);
 
+	use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 	use Joomla\CMS\Component\ComponentHelper;
 	use Joomla\CMS\Language\Text;
 	use Joomla\CMS\HTML\HTMLHelper;
@@ -112,8 +113,12 @@
                    id="media-alt-<?= $mediaId; ?>"
                    name="jform[media][<?= $mediaId; ?>][alt]"
                    value="<?= $altText; ?>"
+                   maxlength="<?= MediaHelper::ALT_MAX_LENGTH; ?>"
                    class="form-control"
+                   aria-describedby="media-alt-hint-<?= $mediaId; ?>"
                    placeholder="<?= Text::_('COM_ALFA_MEDIA_DESCRIPTION_INPUT_PLACEHOLDER'); ?>">
+            <?php // The field stops at the length a description can hold: said under it (UX-48). ?>
+            <div class="form-text" id="media-alt-hint-<?= $mediaId; ?>"><?= Text::sprintf('COM_ALFA_MEDIA_DESCRIPTION_HINT', MediaHelper::ALT_MAX_LENGTH); ?></div>
         </div>
 
         <div class="media-field media-field-path">

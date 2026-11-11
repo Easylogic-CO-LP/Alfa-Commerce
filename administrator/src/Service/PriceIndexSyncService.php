@@ -16,15 +16,24 @@ namespace Alfa\Component\Alfa\Administrator\Service;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\PriceChange;
+use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
+use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\DatabaseDriver;
 use RuntimeException;
+use stdClass;
 use Throwable;
 
 /**
@@ -57,13 +66,18 @@ use Throwable;
  *
  * Preparation
  * A set customers hold for the first time is REQUESTED by the request that
- * brought it (an account, a group or a pricing rule saved) and PREPARED later,
- * by the scheduled task (prepareGroupSets()): a chunk of products at a time,
- * each chunk one transaction together with the set's checkpoint, one preparer
- * at a time. The set is marked prepared after its last chunk; a set without
+ * brought it (an account, a group or a pricing rule saved), which also gives
+ * it its price.set.prepare job, and PREPARED by that job (2.2.0;
+ * prepareSetChunk()): a chunk of products at a time, each chunk one
+ * transaction together with the set's checkpoint, one preparer at a time (the
+ * job runner's heavy slot). The set is marked prepared after its last chunk; a set without
  * that mark is never read, whatever rows it has, so a preparation that failed
  * or was cut off is invisible until a later run finishes it. A set nobody
  * holds any more is dropped by the request that left it so.
+ *
+ * Every write of an item's rows, a preparation's chunk included, holds the
+ * item's lock (2.2.0, IndexRebuildLock): the item and the sets' progress are
+ * read after the grant and the rows commit before the release.
  *
  * Public API
  *   syncItem($itemId)           - re-index one item after save/re-publish
@@ -73,9 +87,10 @@ use Throwable;
  *   syncGroupSets()             - request the sets customers hold, drop the ones nobody holds
  *   syncAll()                   - rewrite every published product of the prepared sets
  *   deleteForItem($itemId)      - remove all index rows for one item
- *   prepareGroupSets()          - prepare the requested sets (the scheduled task)
- *   ensurePreparationTask()     - create that task unless one exists (the installer)
- *   preparationState()          - the sets waiting and the task's last run (Tools)
+ *   prepareSetChunk($setId, $n) - one chunk of a waiting set's preparation (the price.set.prepare job)
+ *   alignSets()                 - the sets customers hold brought in line (the job, at each claim)
+ *   queueWaitingSets()          - a job for every waiting set (the update to 2.2.0)
+ *   preparationState()          - the sets waiting, each with its job (Tools)
  *   accountGroupSet($userId)    - the set of pricing groups one account holds
  *   holdsGroupSet($groupSet)    - whether the index knows a set, prepared or waiting
  *   pricingGroups()             - the groups a price row, a discount or a tax names (the read side)
@@ -114,6 +129,15 @@ use Throwable;
  *
  * All sync failures are non-fatal: logged as warnings, admin save never blocked.
  *
+ * THE PRICE-CHANGE EVENT (2.2.0, onAlfaPricesChanged, {@see PricesChangedEvent}). This writer is the only place that
+ * writes the index, so it is the one that announces it. Each public write runs as one announcement
+ * ({@see self::announcing()}) carrying its cause (the caller's: a product, a discount, a tax, a category, a
+ * manufacturer, a set's preparation, or a rebuild by default); a write made inside another one joins it. While
+ * something listens, each chunk reads its rows before rewriting them and keeps the rows it writes, and the rows that
+ * differ join the announcement once the chunk's level has committed; the announcement goes out once, after the
+ * outermost commit that holds its chunks (PostCommit), so a rollback takes its changes with it. With no listener
+ * nothing is read.
+ *
  * @since  1.0.0
  */
 class PriceIndexSyncService
@@ -122,6 +146,19 @@ class PriceIndexSyncService
 
     /** Chunk size for bulk item syncs: balances memory vs DB round-trips. */
     private const CHUNK_SIZE = 50;
+
+    /** Items per removal statement: the projection manager's chunk, so a bulk removal runs the statements it ran before 2.2.0. */
+    private const REMOVE_CHUNK_SIZE = 100;
+
+    /**
+     * The bound on one onAlfaPricesChanged (2.2.0, A-C18-4): once a write outside a caller's transaction has collected
+     * this many changed rows (about 1.5 MB), what it holds goes out as its own event and the collection starts again.
+     * An event so carries about this many rows, at most one chunk's more; a larger write is announced by several,
+     * each exact for its rows.
+     *
+     * @since  2.2.0
+     */
+    public const ANNOUNCE_LIMIT = 5000;
 
     /** Sentinel valid_from for the segment that is live right now. */
     private const EPOCH = '1000-01-01 00:00:00';
@@ -132,24 +169,45 @@ class PriceIndexSyncService
     /** The sets of pricing groups the index is keyed by. */
     private const SETS_TABLE = '#__alfa_price_group_sets';
 
-    /**
-     * The scheduler routine that prepares requested sets (plg_task_alfapricesets).
-     *
-     * @since  2.0.0
-     */
-    public const PREPARE_TASK = 'alfapricesets.prepare';
-
-    /** How often the task the installer creates runs, in minutes. */
-    private const PREPARE_EVERY_MINUTES = 5;
-
-    /** How long one run of that task works, in seconds. */
-    private const PREPARE_SECONDS = 20;
-
     /** Whether this process's connection may concatenate a list of any length (the accounts' sets). */
     private static bool $longLists = false;
 
     /** What the last calculation that failed in writeChunk() raised. */
     private string $lastFailure = '';
+
+    /** What stopped the last chunk of a preparation that was rolled back (2.2.0: the job raises it as its cause). */
+    private ?Throwable $chunkFailure = null;
+
+    /**
+     * The write being announced (2.2.0): its cause, whether anything listens, and what its committed chunks changed.
+     * Opened by the outermost announcing call of the process; the calls inside it join it.
+     *
+     * @var stdClass|null {cause: string, causeId: int, listening: bool, items: array<int, true>, sets: array<int, true>, changes: PriceChange[]}
+     * @since  2.2.0
+     */
+    private static ?stdClass $announcement = null;
+
+    /**
+     * Whether an onAlfaPricesChanged is being delivered now, and the announcements raised meanwhile (a listener that
+     * writes prices): sent in their order once the running delivery ends (2.2.0, A-C18-7).
+     *
+     * @since  2.2.0
+     */
+    private static bool $delivering = false;
+
+    /**
+     * @var stdClass[] The announcements waiting for the running delivery to end.
+     * @since  2.2.0
+     */
+    private static array $deliveries = [];
+
+    /**
+     * What the last chunk written changed, and the sets it wrote: held until the chunk's level commits.
+     *
+     * @var array{changes: PriceChange[], sets: int[]}
+     * @since  2.2.0
+     */
+    private array $chunkChanges = ['changes' => [], 'sets' => []];
 
     /**
      * The groups a price row, a discount or a tax names, as read for this process.
@@ -186,20 +244,28 @@ class PriceIndexSyncService
      *
      * Called from ItemModel::save() and ItemModel::publish() when an item is
      * re-published (state = 1). All associated data must already be committed.
+     *
+     * @param int $itemId The item.
+     * @param string $cause Why, as onAlfaPricesChanged says it (2.2.0; a PricesChangedEvent::CAUSE_ constant).
+     * @param int $causeId What caused it; 0 for a rebuild.
+     *
      * @since  1.0.0
      */
-    public function syncItem(int $itemId): void
+    public function syncItem(int $itemId, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): void
     {
         if ($itemId <= 0) {
             return;
         }
 
-        try {
-            [, $groupSets] = $this->alignGroupSets();
-            $this->writeIndexRows([$itemId], $this->getActiveContextCombinations(groupSets: $groupSets));
-        } catch (Throwable $e) {
-            $this->logWarning("syncItem({$itemId}) failed: " . $e->getMessage());
-        }
+        self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemId): void {
+            try {
+                [, $groupSets] = $this->alignGroupSets();
+                $this->writeIndexRows([$itemId], $this->getActiveContextCombinations(groupSets: $groupSets));
+            } catch (Throwable $e) {
+                $this->logWarning("syncItem({$itemId}) failed: " . $e->getMessage());
+                ProjectionManager::owe(itemIds: [$itemId]);
+            }
+        });
     }
 
     /**
@@ -211,30 +277,76 @@ class PriceIndexSyncService
      * are computed without the removed discount/tax.
      *
      * @param int[] $itemIds
+     * @param string $cause Why, as onAlfaPricesChanged says it (2.2.0; a PricesChangedEvent::CAUSE_ constant).
+     * @param int $causeId What caused it; 0 for a rebuild.
+     *
      * @return int Number of index rows written
      * @since  1.0.0
      */
-    public function syncItems(array $itemIds): int
+    public function syncItems(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): int
+    {
+        return self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemIds): int {
+            // Not strict: a chunk whose calculation failed is rolled back, logged and skipped, and the other chunks
+            // are written (the rule saves and the publish path rebuild every product they can).
+            try {
+                return $this->rebuildItems(itemIds: $itemIds, strict: false);
+            } catch (Throwable $e) {
+                $this->logWarning('syncItems() failed: ' . $e->getMessage());
+                ProjectionManager::owe(itemIds: $itemIds);
+
+                return 0;
+            }
+        });
+    }
+
+    /**
+     * Re-index a list of items and let a failure reach the caller (2.2.0): the manager clears an item's mark only when
+     * its rebuild committed, so it must hear a rebuild that failed; syncItems() owes one to the catalogue job instead.
+     * The manager's rebuilds call it (PriceProjection::syncItemsOrFail()), holding the items' locks.
+     *
+     * @param int[] $itemIds The items.
+     * @param string $cause Why, as onAlfaPricesChanged says it (a PricesChangedEvent::CAUSE_ constant).
+     * @param int $causeId What caused it; 0 for a rebuild.
+     *
+     * @return int Number of index rows written.
+     *
+     * @throws Throwable Whatever the rebuild met; a failure that ended the caller's transaction among them, and a
+     *                   calculation that failed (its chunk rolled back, its rows as they were).
+     *
+     * @since  2.2.0
+     */
+    public function syncItemsOrFail(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): int
+    {
+        return self::announcing(cause: $cause, causeId: $causeId, work: fn (): int => $this->rebuildItems(itemIds: $itemIds, strict: true));
+    }
+
+    /**
+     * The re-index of syncItems() and syncItemsOrFail(): the groups' sets aligned, then the items written.
+     *
+     * @param int[] $itemIds The items.
+     * @param bool $strict A chunk whose calculation failed throws (syncItemsOrFail()); false skips that chunk, logged.
+     *
+     * @return int Number of index rows written.
+     *
+     * @since  2.2.0
+     */
+    private function rebuildItems(array $itemIds, bool $strict): int
     {
         $itemIds = array_filter(array_map('intval', $itemIds));
 
-        try {
-            // Even with no item left in scope: the rule may have named a group
-            // for the first time, or been the last to name one.
-            [, $groupSets] = $this->alignGroupSets();
+        // Even with no item left in scope: the rule may have named a group
+        // for the first time, or been the last to name one.
+        [, $groupSets] = $this->alignGroupSets();
 
-            if (empty($itemIds)) {
-                return 0;
-            }
-
-            return $this->writeIndexRows(
-                array_values($itemIds),
-                $this->getActiveContextCombinations(groupSets: $groupSets),
-            );
-        } catch (Throwable $e) {
-            $this->logWarning('syncItems() failed: ' . $e->getMessage());
+        if (empty($itemIds)) {
             return 0;
         }
+
+        return $this->writeIndexRows(
+            array_values($itemIds),
+            $this->getActiveContextCombinations(groupSets: $groupSets),
+            strict: $strict,
+        );
     }
 
     /**
@@ -257,6 +369,20 @@ class PriceIndexSyncService
             return 0;
         }
 
+        return self::announcing(cause: PricesChangedEvent::CAUSE_DISCOUNT, causeId: $discountId, work: fn (): int => $this->syncDiscountScope(discountId: $discountId));
+    }
+
+    /**
+     * The work of syncByDiscount(), inside its announcement.
+     *
+     * @param int $discountId The discount.
+     *
+     * @return int Number of index rows written.
+     *
+     * @since  2.2.0
+     */
+    private function syncDiscountScope(int $discountId): int
+    {
         try {
             if ($this->discountAppliesGlobally($discountId)) {
                 return $this->syncAll();
@@ -300,6 +426,20 @@ class PriceIndexSyncService
             return 0;
         }
 
+        return self::announcing(cause: PricesChangedEvent::CAUSE_TAX, causeId: $taxId, work: fn (): int => $this->syncTaxScope(taxId: $taxId));
+    }
+
+    /**
+     * The work of syncByTax(), inside its announcement.
+     *
+     * @param int $taxId The tax.
+     *
+     * @return int Number of index rows written.
+     *
+     * @since  2.2.0
+     */
+    private function syncTaxScope(int $taxId): int
+    {
         try {
             if ($this->taxAppliesGlobally($taxId)) {
                 return $this->syncAll();
@@ -328,8 +468,8 @@ class PriceIndexSyncService
      * Request every set of pricing groups customers hold that the index does not
      * know yet, and drop every set nobody holds any more, with its slots.
      *
-     * A requested set is only recorded: the scheduled task prepares it
-     * (prepareGroupSets()), so the request that brought it writes no row of it
+     * A requested set is only recorded, with its price.set.prepare job, which
+     * prepares it (2.2.0), so the request that brought it writes no row of it
      * and returns at once. Nothing else is rewritten, so a change that leaves
      * every customer in a set the index already knows costs nothing more: a new
      * group, a renamed group, an account saved into the set it had.
@@ -360,8 +500,8 @@ class PriceIndexSyncService
      *
      * Safe to run at any time: INSERT ... ON DUPLICATE KEY UPDATE is idempotent.
      * It prepares no set: a set still waiting is written only up to the product
-     * its preparation has passed, and the rest of it is the scheduled task's (so
-     * after an installation, which prepares nothing, the task builds the index).
+     * its preparation has passed, and the rest of it is its job's (so after an
+     * installation, which prepares nothing, the jobs build the index).
      * The sets nobody holds are dropped.
      *
      * Known limitation: a catalogue-wide rule save (a discount or tax for every
@@ -370,22 +510,28 @@ class PriceIndexSyncService
      * limit. Planned after the stable release: a versioned, atomic pricing
      * publish (POST-V1-FOLLOWUPS PV1-05).
      *
+     * @param string $cause Why, as onAlfaPricesChanged says it (2.2.0; inside a discount's or a tax's write, theirs).
+     * @param int $causeId What caused it; 0 for a rebuild.
+     *
      * @return int Total number of index rows written
      * @since  1.0.0
      */
-    public function syncAll(): int
+    public function syncAll(string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): int
     {
-        try {
-            [, $groupSets] = $this->alignGroupSets();
+        return self::announcing(cause: $cause, causeId: $causeId, work: function (): int {
+            try {
+                [, $groupSets] = $this->alignGroupSets();
 
-            return $this->writeIndexRows(
-                $this->getAllPublishedItemIds(),
-                $this->getActiveContextCombinations(groupSets: $groupSets),
-            );
-        } catch (Throwable $e) {
-            $this->logWarning('syncAll() failed: ' . $e->getMessage());
-            return 0;
-        }
+                return $this->writeIndexRows(
+                    $this->getAllPublishedItemIds(),
+                    $this->getActiveContextCombinations(groupSets: $groupSets),
+                );
+            } catch (Throwable $e) {
+                $this->logWarning('syncAll() failed: ' . $e->getMessage());
+
+                return 0;
+            }
+        });
     }
 
     /**
@@ -394,206 +540,243 @@ class PriceIndexSyncService
      * Call when an item is unpublished, trashed, or soft-deleted so it
      * disappears from the filter immediately without waiting for a full rebuild.
      * Hard deletes are also handled automatically by the FK ON DELETE CASCADE.
+     *
+     * @param int $itemId The item.
+     * @param string $cause Why, as onAlfaPricesChanged says it (2.2.0; a PricesChangedEvent::CAUSE_ constant).
+     * @param int $causeId What caused it; 0 for a rebuild.
+     *
      * @since  1.0.0
      */
-    public function deleteForItem(int $itemId): void
+    public function deleteForItem(int $itemId, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): void
     {
-        if ($itemId <= 0) {
+        if ($itemId > 0) {
+            $this->deleteForItems(itemIds: [$itemId], cause: $cause, causeId: $causeId);
+        }
+    }
+
+    /**
+     * Remove every index row of some items (unpublished, trashed or removed), a chunk at a time (2.2.0: the price
+     * projection's removal, so the index has one writer and its removed rows are announced). Outside a transaction a
+     * chunk that fails is logged and the others still go; inside one (a delete's, A-C18-14) the failure is thrown to
+     * the caller, whose transaction then rolls back whole.
+     *
+     * @param int[] $itemIds The items.
+     * @param string $cause Why, as onAlfaPricesChanged says it (a PricesChangedEvent::CAUSE_ constant).
+     * @param int $causeId What caused it; 0 for a rebuild.
+     *
+     * @since  2.2.0
+     */
+    public function deleteForItems(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): void
+    {
+        $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds), static fn (int $itemId): bool => $itemId > 0)));
+
+        if ($itemIds === []) {
             return;
         }
 
-        try {
-            $query = $this->db->getQuery(true)
-                ->delete($this->db->quoteName('#__alfa_items_price_index'))
-                ->where($this->db->quoteName('item_id') . ' = ' . (int) $itemId);
+        self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemIds): void {
+            foreach (array_chunk($itemIds, self::REMOVE_CHUNK_SIZE) as $chunk) {
+                try {
+                    $before = self::detecting() ? $this->readIndexRows(itemIds: $chunk, groupSetIds: null) : null;
+                    $query = $this->db->getQuery(true)
+                        ->delete($this->db->quoteName('#__alfa_items_price_index'))
+                        ->whereIn($this->db->quoteName('item_id'), $chunk);
 
-            $this->db->setQuery($query)->execute();
-        } catch (Throwable $e) {
-            $this->logWarning("deleteForItem({$itemId}) failed: " . $e->getMessage());
-        }
-    }
+                    $this->db->setQuery($query)->execute();
 
-    /**
-     * Prepare the sets of pricing groups that wait for it: the work of the
-     * scheduled task.
-     *
-     * One preparer at a time: a named lock of the database server, asked for
-     * with a wait; a run that does not get it writes nothing and says so. The
-     * sets customers hold are brought in line first, so memberships written
-     * where no event reaches the shop are followed too. Then each waiting set,
-     * oldest request first, is written a chunk of published products at a
-     * time from its checkpoint on; a chunk and the checkpoint commit together.
-     * After the last chunk the set is marked prepared, and from then on it is
-     * read. A chunk that fails is rolled back, the set waits for the next run,
-     * and this run goes on with the next set. The run stops at the first chunk
-     * that ends after the time it was given.
-     *
-     * @param float $seconds How long the run may work; it always writes one chunk when a set waits.
-     * @param int $wait How long to wait, in seconds, for a preparer already at work.
-     *
-     * A product whose pricing throws does not stop a set: its chunk is priced
-     * again a product at a time, and that product is left out of the set (no
-     * row, so no figure for its customers), logged and recorded on the set. It
-     * is not tried again by the task; saving the product prices it again.
-     *
-     * @return array{prepared: int, written: int, waiting: int, busy: bool, failed: int[], leftOut: list<array{set: int, product: int, message: string}>}
-     *                                                                                                                                                    Sets marked prepared, index rows written, sets still waiting, whether another preparer held the lock, the
-     *                                                                                                                                                    sets whose chunk failed otherwise, and the products left out of a set in this run.
-     *
-     * @since  2.0.0
-     */
-    public function prepareGroupSets(float $seconds = 20.0, int $wait = 10): array
-    {
-        $run = ['prepared' => 0, 'written' => 0, 'waiting' => 0, 'busy' => false, 'failed' => [], 'leftOut' => []];
-        $deadline = microtime(true) + max(0.0, $seconds);
-        $lock = $this->preparerLock();
-
-        if ((int) $this->db->setQuery('SELECT GET_LOCK(' . $lock . ', ' . max(0, $wait) . ')')->loadResult() !== 1) {
-            $run['busy'] = true;
-
-            return $run;
-        }
-
-        try {
-            $this->alignGroupSets();
-
-            foreach ($this->waitingGroupSets() as $set) {
-                $setId = (int) $set->id;
-                $through = (int) $set->prepared_through;
-                $combinations = $this->getActiveContextCombinations(groupSets: [
-                    $setId => ['groups' => self::groupsOfList(list: (string) $set->group_list), 'through' => null, 'leftOut' => []],
-                ]);
-                $globalEdges = $this->getGlobalBoundaries();
-
-                while (true) {
-                    $chunk = $this->publishedItemIdsAfter(after: $through);
-
-                    if ($chunk === []) {
-                        $run['prepared'] += $this->markPrepared(setId: $setId);
-
-                        break;
+                    if ($before !== null) {
+                        $this->chunkChanges = ['changes' => self::rowChanges(before: $before, after: []), 'sets' => array_values(array_unique(array_map(static fn (array $row): int => $row['set'], $before)))];
+                        $this->keepChunkChanges();
+                    }
+                } catch (Throwable $e) {
+                    // Inside a caller's transaction the failure is the caller's (2.2.0, A-C18-14): a lock wait timeout
+                    // or a deadlock swallowed here would let a delete go on, and its cascade take rows no event named.
+                    if ($this->db instanceof DatabaseDriver && TransactionState::isOpen(db: $this->db)) {
+                        throw $e;
                     }
 
-                    $written = $this->prepareChunk(setId: $setId, chunk: $chunk, combinations: $combinations, globalEdges: $globalEdges, leftOut: $run['leftOut']);
-
-                    if ($written === null) {
-                        // Not committed: the chunk failed, or the set was dropped meanwhile.
-                        if ($this->groupSetWaits(setId: $setId)) {
-                            $run['failed'][] = $setId;
-                        }
-
-                        break;
-                    }
-
-                    $run['written'] += $written;
-                    $through = max($chunk);
-
-                    if (\count($chunk) < self::CHUNK_SIZE) {
-                        $run['prepared'] += $this->markPrepared(setId: $setId);
-
-                        break;
-                    }
-
-                    if (microtime(true) >= $deadline) {
-                        break 2;
-                    }
-                }
-
-                if (microtime(true) >= $deadline) {
-                    break;
+                    $this->logWarning('deleteForItems() failed for a chunk of ' . \count($chunk) . ' item(s): ' . $e->getMessage());
                 }
             }
+        });
+    }
 
-            $run['waiting'] = \count($this->waitingGroupSets());
-        } finally {
-            $this->db->setQuery('SELECT RELEASE_LOCK(' . $lock . ')')->execute();
+    /**
+     * Prepare one chunk of a waiting set of pricing groups: the work of the price.set.prepare job (2.2.0), one chunk
+     * per call, run by the job runner before its chunk transaction (the job keeps its own transactions).
+     *
+     * From the set's checkpoint (prepared_through) the next published products, at most $limit, are written for the
+     * set and the checkpoint moves past them in one transaction, the set's row held for it (prepareChunk()); when no
+     * product is left, or fewer than asked were left, the set is marked prepared and from then on it is read. A product
+     * whose pricing throws is left out of the set and recorded on it, as before.
+     *
+     * The chunk's item locks are taken first (ascending, with the wait), the set and the products are read after the
+     * grant, and the locks are released after the commit: a save that waits for a product then reads the set's
+     * checkpoint past it and writes the set's rows itself. A product whose lock another writer kept for the whole wait
+     * is passed over and owed to the catalogue job, which writes its rows once the checkpoint has passed it. A product
+     * whose lock failed (the database cannot lock for this connection) is written without it: the job holds the heavy
+     * slot, and every request meeting the same failure enqueues instead.
+     *
+     * The state answered: chunk (more to come), prepared (the set is now read), gone (the set no longer waits: dropped,
+     * or already prepared) or failed (the chunk was rolled back; the set still waits; failure is what stopped it).
+     *
+     * @param int $setId The set.
+     * @param int $limit At most this many products.
+     *
+     * @return array{state: string, written: int, products: int, through: int, failure?: Throwable|null} The chunk's outcome.
+     *
+     * @since  2.2.0
+     */
+    public function prepareSetChunk(int $setId, int $limit): array
+    {
+        return self::announcing(cause: PricesChangedEvent::CAUSE_SET, causeId: $setId, work: fn (): array => $this->prepareSetChunkAnnounced(setId: $setId, limit: $limit));
+    }
+
+    /**
+     * The work of prepareSetChunk(), inside its announcement (cause set).
+     *
+     * @param int $setId The set.
+     * @param int $limit At most this many products.
+     *
+     * @return array{state: string, written: int, products: int, through: int, failure?: Throwable|null} The chunk's outcome.
+     *
+     * @since  2.2.0
+     */
+    private function prepareSetChunkAnnounced(int $setId, int $limit): array
+    {
+        $waiting = ' WHERE ' . $this->db->quoteName('id') . ' = ' . $setId . ' AND ' . $this->db->quoteName('prepared_at') . ' IS NULL';
+        $through = $this->db->setQuery('SELECT ' . $this->db->quoteName('prepared_through') . ' FROM ' . $this->db->quoteName(self::SETS_TABLE) . $waiting)->loadResult();
+
+        if ($through === null) {
+            return ['state' => 'gone', 'written' => 0, 'products' => 0, 'through' => 0];
         }
 
-        return $run;
+        $through = (int) $through;
+        $limit = max(1, $limit);
+        $chunk = $this->publishedItemIdsAfter(after: $through, limit: $limit);
+
+        if ($chunk === []) {
+            return ['state' => $this->markPrepared(setId: $setId) === 1 ? 'prepared' : 'gone', 'written' => 0, 'products' => 0, 'through' => $through];
+        }
+
+        $this->chunkFailure = null;
+        $lock = new IndexRebuildLock($this->db);
+        $status = $lock->acquire(itemIds: $chunk);
+        $granted = array_keys($status, IndexRebuildLock::GRANTED, true);
+        $busy = array_keys($status, IndexRebuildLock::TIMEOUT, true);
+
+        try {
+            $set = $this->db->setQuery('SELECT ' . $this->db->quoteName('group_list') . ' FROM ' . $this->db->quoteName(self::SETS_TABLE) . $waiting)->loadObject();
+
+            if ($set === null) {
+                return ['state' => 'gone', 'written' => 0, 'products' => 0, 'through' => $through];
+            }
+
+            $combinations = $this->getActiveContextCombinations(groupSets: [
+                $setId => ['groups' => self::groupsOfList(list: (string) $set->group_list), 'through' => null, 'leftOut' => []],
+            ]);
+            $leftOut = [];
+            $written = $this->prepareChunk(
+                setId:        $setId,
+                chunk:        array_values(array_diff($chunk, $busy)),
+                through:      (int) max($chunk),
+                combinations: $combinations,
+                globalEdges:  $this->getGlobalBoundaries(),
+                leftOut:      $leftOut,
+            );
+        } finally {
+            $lock->release(itemIds: $granted);
+        }
+
+        if ($written !== null) {
+            ProjectionManager::owe(itemIds: $busy);
+        }
+
+        if ($written === null) {
+            // Not committed: the chunk failed, or the set was dropped meanwhile.
+            return ['state' => $this->groupSetWaits(setId: $setId) ? 'failed' : 'gone', 'written' => 0, 'products' => 0, 'through' => $through, 'failure' => $this->chunkFailure];
+        }
+
+        if (\count($chunk) < $limit) {
+            $this->markPrepared(setId: $setId);
+
+            return ['state' => 'prepared', 'written' => $written, 'products' => \count($chunk), 'through' => (int) max($chunk)];
+        }
+
+        return ['state' => 'chunk', 'written' => $written, 'products' => \count($chunk), 'through' => (int) max($chunk)];
     }
 
     /**
-     * The scheduled task that prepares requested sets, as the component's
-     * installer creates it: enabled, every five minutes from now, under the
-     * component's own title for it.
+     * How many products are published: what one set's preparation walks.
      *
-     * @return array The data com_scheduler's Task model saves.
-     *
-     * @since  2.0.0
+     * @since  2.2.0
      */
-    public static function preparationTaskData(): array
+    public function publishedItemCount(): int
     {
-        // Reloaded: an update's request may have read the previous version's file before this one was copied.
-        Factory::getApplication()->getLanguage()->load(extension: 'com_alfa', basePath: JPATH_ADMINISTRATOR, reload: true);
-
-        return [
-            'id' => 0,
-            'title' => Text::_('COM_ALFA_PRICE_SETS_TASK_TITLE'),
-            'type' => self::PREPARE_TASK,
-            'state' => 1,
-            'execution_rules' => [
-                'rule-type' => 'interval-minutes',
-                'interval-minutes' => self::PREPARE_EVERY_MINUTES,
-                'exec-day' => gmdate('d'),
-                'exec-time' => gmdate('H:i'),
-            ],
-            'params' => ['seconds' => self::PREPARE_SECONDS],
-        ];
+        return (int) $this->db->setQuery(
+            'SELECT COUNT(*) FROM ' . $this->db->quoteName('#__alfa_items') . ' WHERE ' . $this->db->quoteName('state') . ' = 1',
+        )->loadResult();
     }
 
     /**
-     * Make sure a scheduled task prepares requested sets: create it, enabled,
-     * unless a task of its routine exists in any state (a task the shop
-     * disabled stays as the shop left it). Joomla's lazy scheduler then runs it
-     * with no cron entry; a cron entry of cli/joomla.php scheduler:run is
-     * optional. Called by the component's installer on install and on update.
+     * The id of the set of pricing groups a digest names, while it waits.
      *
-     * Created through com_scheduler's Task model, so the schedule's arithmetic
-     * and the task's permissions are the scheduler's own.
+     * @param string $digest The set's digest.
      *
-     * @return int|null The id of the task created; null when one existed.
+     * @return int|null Null when no set of that digest waits.
      *
-     * @throws RuntimeException When the task could not be saved.
-     *
-     * @since  2.0.0
+     * @since  2.2.0
      */
-    public static function ensurePreparationTask(): ?int
+    public function waitingSetId(string $digest): ?int
     {
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $existing = $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('id'))
-                ->from($db->quoteName('#__scheduler_tasks'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote(self::PREPARE_TASK)),
-            0,
-            1,
+        $id = $this->db->setQuery(
+            'SELECT ' . $this->db->quoteName('id') . ' FROM ' . $this->db->quoteName(self::SETS_TABLE)
+            . ' WHERE ' . $this->db->quoteName('digest') . ' = ' . $this->db->quote($digest) . ' AND ' . $this->db->quoteName('prepared_at') . ' IS NULL',
         )->loadResult();
 
-        if ($existing !== null) {
-            return null;
-        }
-
-        $model = Factory::getApplication()->bootComponent('com_scheduler')
-            ->getMVCFactory()->createModel('Task', 'Administrator', ['ignore_request' => true]);
-
-        if (!$model->save(self::preparationTaskData())) {
-            throw new RuntimeException(implode(' ', array_map(
-                static fn ($error): string => $error instanceof Throwable ? $error->getMessage() : (string) $error,
-                $model->getErrors(),
-            )) ?: 'the scheduled task was not saved');
-        }
-
-        return (int) $model->getState('task.id');
+        return $id === null ? null : (int) $id;
     }
 
     /**
-     * What the staff are shown of the preparation: the sets that wait, and the
-     * scheduled task that prepares them.
+     * Bring the sets of pricing groups in line with those customers hold, as every sync entry point does: the
+     * price.set.prepare job asks it at each claim, so memberships written where no event reaches the shop are
+     * followed too (the scheduled task's first step before 2.2.0). New sets get their jobs; sets nobody holds go.
      *
-     * @return array{waiting: list<array{groups: int[], requested_at: string, done: int, products: int}>, leftOut: int[], lastRun: ?array{at: string, exit: int}, scheduledTasks: int}
-     *                                                                                                                                                                                 Each waiting set with its groups, when it was requested and how many of the published products it holds;
-     *                                                                                                                                                                                 the products that could not be priced for a set when it was prepared; the last run of the task, if any;
-     *                                                                                                                                                                                 how many enabled tasks of it run on a schedule (not only by hand).
+     * @since  2.2.0
+     */
+    public function alignSets(): void
+    {
+        $this->alignGroupSets();
+    }
+
+    /**
+     * Give every waiting set its price.set.prepare job (the update to 2.2.0: the sets the scheduled task left
+     * waiting become the jobs' work; each resumes from its checkpoint).
+     *
+     * @return int The waiting sets, each with its job now.
+     *
+     * @since  2.2.0
+     */
+    public function queueWaitingSets(): int
+    {
+        $digests = $this->db->setQuery(
+            'SELECT ' . $this->db->quoteName('digest') . ' FROM ' . $this->db->quoteName(self::SETS_TABLE)
+            . ' WHERE ' . $this->db->quoteName('prepared_at') . ' IS NULL ORDER BY ' . $this->db->quoteName('requested_at') . ', ' . $this->db->quoteName('id'),
+        )->loadColumn() ?: [];
+
+        foreach ($digests as $digest) {
+            PriceSetPrepareJob::enqueueFor(digest: (string) $digest);
+        }
+
+        return \count($digests);
+    }
+
+    /**
+     * What the staff are shown of the preparation: each waiting set with its groups, when it was requested, how many of
+     * the published products it holds and its job; and the products that could not be priced for a set when it was
+     * prepared.
+     *
+     * @return array{waiting: list<array{groups: int[], requested_at: string, done: int, products: int, job: array{id: int, state: string, done: int, total: int, error: string}|null}>, leftOut: int[]}
      *
      * @since  2.0.0
      */
@@ -606,7 +789,7 @@ class PriceIndexSyncService
         $waiting = [];
 
         foreach ($db->setQuery(
-            'SELECT ' . implode(', ', $db->quoteName(['group_list', 'requested_at', 'prepared_through'])) . ' FROM ' . $db->quoteName(self::SETS_TABLE)
+            'SELECT ' . implode(', ', $db->quoteName(['digest', 'group_list', 'requested_at', 'prepared_through'])) . ' FROM ' . $db->quoteName(self::SETS_TABLE)
             . ' WHERE ' . $db->quoteName('prepared_at') . ' IS NULL ORDER BY ' . $db->quoteName('requested_at') . ', ' . $db->quoteName('id'),
         )->loadObjectList() as $set) {
             $through = (int) $set->prepared_through;
@@ -618,22 +801,8 @@ class PriceIndexSyncService
                     . $db->quoteName('id') . ' <= ' . $through,
                 )->loadResult(),
                 'products' => $products,
+                'job' => Runner::latestJob(scopeKey: PriceSetPrepareJob::scopeFor(digest: (string) $set->digest)),
             ];
-        }
-
-        $tasks = $db->setQuery(
-            'SELECT ' . implode(', ', $db->quoteName(['state', 'execution_rules', 'last_execution', 'last_exit_code'])) . ' FROM ' . $db->quoteName('#__scheduler_tasks')
-            . ' WHERE ' . $db->quoteName('type') . ' = ' . $db->quote(self::PREPARE_TASK)
-            . ' ORDER BY ' . $db->quoteName('last_execution') . ' DESC',
-        )->loadObjectList();
-        $lastRun = null;
-
-        foreach ($tasks as $task) {
-            if ($task->last_execution !== null) {
-                $lastRun = ['at' => (string) $task->last_execution, 'exit' => (int) $task->last_exit_code];
-
-                break;
-            }
         }
 
         $leftOut = [];
@@ -648,16 +817,7 @@ class PriceIndexSyncService
         $leftOut = array_values(array_unique($leftOut));
         sort($leftOut);
 
-        return [
-            'waiting' => $waiting,
-            'leftOut' => $leftOut,
-            'lastRun' => $lastRun,
-            'scheduledTasks' => \count(array_filter(
-                $tasks,
-                static fn (object $task): bool => (int) $task->state === 1
-                    && (json_decode((string) $task->execution_rules, true)['rule-type'] ?? 'manual') !== 'manual',
-            )),
-        ];
+        return ['waiting' => $waiting, 'leftOut' => $leftOut];
     }
 
     // Scope helpers: called by model delete hooks BEFORE the actual delete
@@ -859,12 +1019,21 @@ class PriceIndexSyncService
      * Items where base_price = 0 (no price row matched) are skipped. A set still
      * waiting for its preparation is written only for the items it has passed.
      *
+     * Each chunk is written under its items' locks (2.2.0, IndexRebuildLock); an item not granted, and a chunk that
+     * failed, are owed to the catalogue job (ProjectionManager::owe()).
+     *
      * @param int[] $itemIds
      * @param array $combinations From getActiveContextCombinations()
+     * @param bool $strict A chunk whose calculation failed, or whose locks were not granted, throws once rolled back
+     *                     (2.2.0, the manager's rebuilds through syncItemsOrFail()); false owes that chunk to the
+     *                     catalogue job and moves on to the next, the failure logged.
      * @return int Total rows written
+     *
+     * @throws RuntimeException When strict and a calculation failed or a lock was not granted.
+     *
      * @since  1.0.0
      */
-    private function writeIndexRows(array $itemIds, array $combinations): int
+    private function writeIndexRows(array $itemIds, array $combinations, bool $strict = false): int
     {
         if (empty($itemIds) || empty($combinations)) {
             return 0;
@@ -872,35 +1041,152 @@ class PriceIndexSyncService
 
         $written = 0;
         $globalEdges = $this->getGlobalBoundaries();
+        $lock = new IndexRebuildLock($this->db);
+        /** @var DatabaseDriver $db */
+        $db = $this->db;
+        $nested = TransactionState::isOpen(db: $db);
+        $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds), static fn (int $itemId): bool => $itemId > 0)));
+        sort($itemIds);
 
         foreach (array_chunk($itemIds, self::CHUNK_SIZE) as $chunk) {
-            // Segments are rebuilt wholesale (their keys and count change
-            // with the windows; an update could never know which old rows
-            // became obsolete). The transaction makes the swap atomic, so a
-            // concurrent catalog query never sees the gap.
-            $this->db->transactionStart(true);
+            // The chunk's item locks first, ascending, with the wait (2.2.0): the items, and how far each waiting set
+            // has come, are read after the grant, and the rows commit before the release. An item not granted is left
+            // out and owed to the catalogue job; a strict caller (which holds the locks already) hears it.
+            $status = $lock->acquire(itemIds: $chunk);
+            $granted = array_keys($status, IndexRebuildLock::GRANTED, true);
+            $refused = array_values(array_diff($chunk, $granted));
+
+            if ($refused !== [] && $strict) {
+                $lock->release(itemIds: $granted);
+
+                throw new RuntimeException('Price index: the rebuild locks of item(s) ' . implode(', ', $refused) . ' were not granted; their rows were kept as they were.');
+            }
+
+            ProjectionManager::owe(itemIds: $refused);
+
+            if ($granted === []) {
+                continue;
+            }
 
             try {
-                $chunkWritten = $this->writeChunk(chunk: $chunk, combinations: $combinations, globalEdges: $globalEdges);
-
-                if ($chunkWritten === null) {
-                    // A calculation was skipped after the delete; restore this
-                    // chunk's prior (complete) rows and move on. Other chunks are
-                    // unaffected; the failure was already logged.
-                    $this->db->transactionRollback(true);
-
-                    continue;
+                $chunkWritten = $this->writeLockedChunk(chunk: $granted, combinations: $combinations, globalEdges: $globalEdges);
+            } catch (Throwable $e) {
+                // A strict caller, or one whose transaction the failure ended, hears it; otherwise the chunk is owed
+                // and the others go on.
+                if ($strict || ($nested && (!TransactionState::isOpen(db: $db) || TransactionState::endedBy(db: $db, failure: $e)))) {
+                    throw $e;
                 }
 
-                $this->db->transactionCommit(true);
-                $written += $chunkWritten;
-            } catch (Throwable $e) {
-                TransactionState::rollBackLevel(db: $this->db, failure: $e);
-                throw $e;
+                $this->logWarning('A chunk of the price index failed and is left to the catalogue rebuild: ' . $e->getMessage());
+                $chunkWritten = null;
+            } finally {
+                $lock->release(itemIds: $granted);
             }
+
+            if ($chunkWritten !== null) {
+                $written += $chunkWritten;
+
+                continue;
+            }
+
+            // A calculation was skipped after the delete; the chunk's prior (complete) rows were restored. Other
+            // chunks are unaffected; the failure was already logged. A strict caller hears that these items were not
+            // rebuilt; otherwise they are owed to the catalogue job.
+            if ($strict) {
+                throw new RuntimeException('Price index: a calculation failed for item(s) ' . implode(', ', $granted) . '; their rows were kept as they were.');
+            }
+
+            ProjectionManager::owe(itemIds: $granted);
         }
 
         return $written;
+    }
+
+    /**
+     * One chunk of writeIndexRows(), its items' locks held: the waiting sets' progress read again, then the chunk's
+     * rows swapped in one transaction level.
+     *
+     * Segments are rebuilt wholesale (their keys and count change with the windows; an update could never know which
+     * old rows became obsolete). The transaction makes the swap atomic, so a concurrent catalog query never sees the
+     * gap.
+     *
+     * @param int[] $chunk The items, their locks held.
+     * @param array $combinations From getActiveContextCombinations().
+     * @param array $globalEdges From getGlobalBoundaries().
+     *
+     * @return int|null Rows written; null when a calculation was skipped and the chunk's rows were restored.
+     *
+     * @throws Throwable A failure of the chunk, its level rolled back.
+     *
+     * @since  2.2.0
+     */
+    private function writeLockedChunk(array $chunk, array $combinations, array $globalEdges): ?int
+    {
+        $combinations = $this->withSetsAsNow(combinations: $combinations);
+
+        if ($combinations === []) {
+            return 0;
+        }
+
+        $this->db->transactionStart(true);
+
+        try {
+            $chunkWritten = $this->writeChunk(chunk: $chunk, combinations: $combinations, globalEdges: $globalEdges);
+
+            if ($chunkWritten !== null) {
+                $this->db->transactionCommit(true);
+                // Committed: what the chunk changed joins the announcement (2.2.0).
+                $this->keepChunkChanges();
+
+                return $chunkWritten;
+            }
+        } catch (Throwable $e) {
+            $this->dropChunkChanges();
+            TransactionState::rollBackLevel(db: $this->db, failure: $e);
+
+            throw $e;
+        }
+
+        $this->dropChunkChanges();
+        $this->db->transactionRollback(true);
+
+        return null;
+    }
+
+    /**
+     * The combinations with each set's progress as the database holds it now: read under a chunk's item locks, so a
+     * set whose preparation passed the chunk's items meanwhile is written for them, a set prepared meanwhile for every
+     * item, and a set dropped meanwhile for none (2.2.0). The preparer holds its chunk's item locks until its commit,
+     * so a preparation that covers an item is either committed here or waits for this chunk.
+     *
+     * @param array $combinations From getActiveContextCombinations().
+     *
+     * @return array The combinations still to write, their through and leftOut as now.
+     *
+     * @since  2.2.0
+     */
+    private function withSetsAsNow(array $combinations): array
+    {
+        $setIds = array_values(array_unique(array_map(static fn (array $combo): int => (int) $combo['group_set_id'], $combinations)));
+        $now = $setIds === [] ? [] : ($this->db->setQuery(
+            'SELECT ' . implode(', ', $this->db->quoteName(['id', 'prepared_at', 'prepared_through', 'left_out'])) . ' FROM ' . $this->db->quoteName(self::SETS_TABLE)
+            . ' WHERE ' . $this->db->quoteName('id') . ' IN (' . implode(',', $setIds) . ')',
+        )->loadObjectList('id') ?: []);
+        $out = [];
+
+        foreach ($combinations as $combo) {
+            $set = $now[(int) $combo['group_set_id']] ?? null;
+
+            if ($set === null) {
+                continue;
+            }
+
+            $combo['through'] = $set->prepared_at === null ? (int) $set->prepared_through : null;
+            $combo['leftOut'] = self::groupsOfList(list: (string) $set->left_out);
+            $out[] = $combo;
+        }
+
+        return $out;
     }
 
     /**
@@ -952,6 +1238,20 @@ class PriceIndexSyncService
             if ($items !== []) {
                 $setsByItems[implode(',', $items)][] = $setId;
             }
+        }
+
+        // While something listens (2.2.0): the rows about to be rewritten, read once before the delete, and the rows
+        // written kept below, so the chunk can say which rows changed.
+        $detect = self::detecting();
+        $before = [];
+        $after = [];
+
+        if ($detect) {
+            $setsWritten = array_keys(array_filter($itemsOf, static fn (array $items): bool => $items !== []));
+            $before = $setsWritten === [] ? [] : array_filter(
+                $this->readIndexRows(itemIds: $chunk, groupSetIds: $setsWritten),
+                static fn (array $row): bool => \in_array($row['item'], $itemsOf[$row['set']] ?? [], true),
+            );
         }
 
         foreach ($setsByItems as $items => $setIds) {
@@ -1079,6 +1379,17 @@ class PriceIndexSyncService
                         $group['until'][$itemId] ?? null,
                     );
 
+                    if ($detect) {
+                        $row = [
+                            'item' => $itemId, 'combination' => 0, 'currency' => $currencyId, 'place' => $placeId, 'set' => $groupSetId,
+                            'from' => $group['start'] ?? self::EPOCH, 'until' => $group['until'][$itemId] ?? null,
+                            // The column's text, decimal(24,8): the four-decimal value printed fixed-point and
+                            // padded to eight, never through a float's eighth decimal.
+                            'final' => sprintf('%.4F', $finalPrice) . '0000',
+                        ];
+                        $after[self::rowKey(row: $row)] = $row;
+                    }
+
                     $written++;
                 }
             }
@@ -1103,7 +1414,292 @@ class PriceIndexSyncService
             }
         }
 
+        $this->chunkChanges = $detect
+            ? ['changes' => self::rowChanges(before: $before, after: $after), 'sets' => array_keys(array_filter($itemsOf, static fn (array $items): bool => $items !== []))]
+            : ['changes' => [], 'sets' => []];
+
         return $written;
+    }
+
+    // The price-change event (2.2.0)
+
+    /**
+     * Run one write of the index as one announcement of onAlfaPricesChanged: whether anything listens is asked once
+     * (the alfa group imported first), the committed chunks' changes join it, and it goes out once, after the outermost
+     * commit that holds them (PostCommit::defer(): at once with no transaction open, dropped by a rollback). A write
+     * made inside another one joins it and keeps its cause. A write that changes more than ANNOUNCE_LIMIT rows outside
+     * a caller's transaction is announced by several events as its chunks commit, each exact for its rows, the same
+     * cause and cause id, no row twice; inside a caller's transaction its rows are held until the outermost commit.
+     *
+     * @param string $cause Why the rows are written (a PricesChangedEvent::CAUSE_ constant).
+     * @param int $causeId What caused it; 0 for a rebuild.
+     * @param callable $work fn(): mixed, the write.
+     *
+     * @return mixed What the write answers.
+     *
+     * @since  2.2.0
+     */
+    public static function announcing(string $cause, int $causeId, callable $work): mixed
+    {
+        if (self::$announcement !== null) {
+            return $work();
+        }
+
+        $announcement = (object) ['cause' => $cause, 'causeId' => max(0, $causeId), 'listening' => self::listening(), 'items' => [], 'sets' => [], 'changes' => []];
+        self::$announcement = $announcement;
+
+        try {
+            return $work();
+        } finally {
+            self::$announcement = null;
+
+            if ($announcement->listening) {
+                $db = Factory::getContainer()->get('DatabaseDriver');
+                $deliver = static function () use ($announcement): void {
+                    self::deliver(announcement: $announcement);
+                };
+
+                $db instanceof DatabaseDriver ? PostCommit::defer(db: $db, label: PricesChangedEvent::NAME, work: $deliver) : $deliver();
+            }
+        }
+    }
+
+    /**
+     * Whether anything listens to onAlfaPricesChanged on the shared dispatcher, the alfa group imported first.
+     *
+     * @since  2.2.0
+     */
+    private static function listening(): bool
+    {
+        try {
+            $plugins = AlfaPluginHelper::get();
+            $plugins->importGroup('alfa');
+
+            return $plugins->hasListeners(PricesChangedEvent::NAME);
+        } catch (Throwable $e) {
+            Log::add('[PriceIndexSyncService] Whether anything listens to ' . PricesChangedEvent::NAME . ' could not be asked; nothing is announced: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+
+            return false;
+        }
+    }
+
+    /**
+     * Whether the write running now detects its changes: an announcement is open and something listens.
+     *
+     * @since  2.2.0
+     */
+    private static function detecting(): bool
+    {
+        return self::$announcement?->listening === true;
+    }
+
+    /**
+     * The last chunk committed: what it changed joins the announcement once every level around it has committed
+     * (PostCommit::defer(), dropped with a level that rolls back).
+     *
+     * @since  2.2.0
+     */
+    private function keepChunkChanges(): void
+    {
+        $kept = $this->chunkChanges;
+        $this->dropChunkChanges();
+        $announcement = self::$announcement;
+
+        if ($announcement === null || !$announcement->listening || ($kept['changes'] === [] && $kept['sets'] === [])) {
+            return;
+        }
+
+        $db = $this->db;
+        $join = static function () use ($announcement, $kept, $db): void {
+            foreach ($kept['changes'] as $change) {
+                $announcement->changes[] = $change;
+                $announcement->items[$change->itemId] = true;
+            }
+
+            foreach ($kept['sets'] as $setId) {
+                $announcement->sets[$setId] = true;
+            }
+
+            // THE BOUND (A-C18-4). Past the limit, with no transaction open around the write, what is collected is
+            // committed: it goes out as its own event and the collection starts again, so a listener never holds the
+            // whole of a catalogue-wide write in memory. Inside a caller's transaction the rows wait for its commit.
+            if (\count($announcement->changes) >= self::ANNOUNCE_LIMIT && !($db instanceof DatabaseDriver && TransactionState::isOpen($db))) {
+                $part = clone $announcement;
+                $announcement->changes = [];
+                $announcement->items = [];
+                $announcement->sets = [];
+                self::deliver(announcement: $part);
+            }
+        };
+
+        $this->db instanceof DatabaseDriver ? PostCommit::defer(db: $this->db, label: PricesChangedEvent::NAME, work: $join) : $join();
+    }
+
+    /**
+     * Forget what the last chunk changed: it was rolled back, or never written.
+     *
+     * @since  2.2.0
+     */
+    private function dropChunkChanges(): void
+    {
+        $this->chunkChanges = ['changes' => [], 'sets' => []];
+    }
+
+    /**
+     * Deliver an announcement that holds changes: onAlfaPricesChanged on the shared dispatcher, an after phase (mode A,
+     * isolated: a listener's failure is logged and the next one runs). One raised while another is being delivered
+     * waits for it (A-C18-7).
+     *
+     * @param stdClass $announcement The announcement.
+     *
+     * @since  2.2.0
+     */
+    private static function deliver(stdClass $announcement): void
+    {
+        if ($announcement->changes === []) {
+            return;
+        }
+
+        // A listener that writes prices raises its own announcement while this one is delivered: it waits, and goes
+        // out when this delivery ends, so every listener hears the events in the order their writes committed.
+        if (self::$delivering) {
+            self::$deliveries[] = $announcement;
+
+            return;
+        }
+
+        self::$delivering = true;
+
+        try {
+            self::dispatch(announcement: $announcement);
+
+            while (self::$deliveries !== []) {
+                self::dispatch(announcement: array_shift(self::$deliveries));
+            }
+        } finally {
+            self::$delivering = false;
+            self::$deliveries = [];
+        }
+    }
+
+    /**
+     * Send one announcement: onAlfaPricesChanged on the shared dispatcher, an after phase (mode A, isolated).
+     *
+     * @param stdClass $announcement The announcement, holding changes.
+     *
+     * @since  2.2.0
+     */
+    private static function dispatch(stdClass $announcement): void
+    {
+        $itemIds = array_keys($announcement->items);
+        $setIds = array_keys($announcement->sets);
+        sort($itemIds);
+        sort($setIds);
+
+        try {
+            $plugins = AlfaPluginHelper::get();
+            $plugins->importGroup('alfa');
+            $plugins->dispatchIsolated(new PricesChangedEvent(PricesChangedEvent::NAME, [
+                'itemIds' => $itemIds,
+                'cause' => $announcement->cause,
+                'causeId' => $announcement->causeId,
+                'groupSetIds' => $setIds,
+                'changes' => $announcement->changes,
+            ]));
+        } catch (Throwable $e) {
+            Log::add('[PriceIndexSyncService] ' . PricesChangedEvent::NAME . ' was not delivered: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+        }
+    }
+
+    /**
+     * The index rows of some items, as stored: of the given sets of pricing groups, or of every set.
+     *
+     * @param int[] $itemIds The items.
+     * @param int[]|null $groupSetIds The sets; null for every set.
+     *
+     * @return array<string, array{item: int, combination: int, currency: int, place: int, set: int, from: string, until: string|null, final: string}> By row key.
+     *
+     * @since  2.2.0
+     */
+    private function readIndexRows(array $itemIds, ?array $groupSetIds): array
+    {
+        $db = $this->db;
+        // The ids as integers in the statement's text, not bound: the locking clause is appended to the text, which
+        // carries no bound value.
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['item_id', 'combination_id', 'currency_id', 'place_id', 'group_set_id', 'valid_from', 'valid_until', 'final_price']))
+            ->from($db->quoteName('#__alfa_items_price_index'))
+            ->where($db->quoteName('item_id') . ' IN (' . implode(',', array_map('intval', $itemIds)) . ')');
+
+        if ($groupSetIds !== null) {
+            $query->where($db->quoteName('group_set_id') . ' IN (' . implode(',', array_map('intval', $groupSetIds)) . ')');
+        }
+
+        $rows = [];
+
+        // A LOCKING READ (A-C18-8): the rows the delete takes next, as they stand, also inside a caller's transaction
+        // whose snapshot is older than the last commit.
+        foreach ($db->setQuery((string) $query . ' FOR UPDATE')->loadObjectList() ?: [] as $stored) {
+            $row = [
+                'item' => (int) $stored->item_id, 'combination' => (int) $stored->combination_id, 'currency' => (int) $stored->currency_id,
+                'place' => (int) $stored->place_id, 'set' => (int) $stored->group_set_id, 'from' => (string) $stored->valid_from,
+                'until' => $stored->valid_until === null ? null : (string) $stored->valid_until, 'final' => (string) $stored->final_price,
+            ];
+            $rows[self::rowKey(row: $row)] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * A row's identity: the index's primary key.
+     *
+     * @param array{item: int, combination: int, currency: int, place: int, set: int, from: string} $row The row.
+     *
+     * @since  2.2.0
+     */
+    private static function rowKey(array $row): string
+    {
+        return $row['item'] . '|' . $row['combination'] . '|' . $row['currency'] . '|' . $row['place'] . '|' . $row['set'] . '|' . $row['from'];
+    }
+
+    /**
+     * The rows that changed between two readings of the same rows, by key: a final price or a window end that differs,
+     * a row new, a row gone.
+     *
+     * @param array<string, array> $before The rows before, by key.
+     * @param array<string, array> $after The rows after, by key.
+     *
+     * @return PriceChange[]
+     *
+     * @since  2.2.0
+     */
+    private static function rowChanges(array $before, array $after): array
+    {
+        $changes = [];
+
+        foreach ($after + $before as $key => $row) {
+            $old = $before[$key] ?? null;
+            $new = $after[$key] ?? null;
+
+            if ($old !== null && $new !== null && $old['final'] === $new['final'] && $old['until'] === $new['until']) {
+                continue;
+            }
+
+            $changes[] = new PriceChange(
+                itemId:        $row['item'],
+                combinationId: $row['combination'],
+                currencyId:    $row['currency'],
+                placeId:       $row['place'],
+                groupSetId:    $row['set'],
+                validFrom:     $row['from'],
+                validUntil:    ($new ?? $old)['until'],
+                oldFinalPrice: $old['final'] ?? null,
+                newFinalPrice: $new['final'] ?? null,
+            );
+        }
+
+        return $changes;
     }
 
     /**
@@ -1548,7 +2144,7 @@ class PriceIndexSyncService
 
     /**
      * Record sets of pricing groups as requested: known to the index, waiting
-     * for the scheduled task to prepare them.
+     * for their price.set.prepare job (2.2.0), which each gets here.
      *
      * @param array<string, int[]> $groupSets Key => groups; none, no statement.
      *
@@ -1573,8 +2169,14 @@ class PriceIndexSyncService
             'INSERT IGNORE INTO ' . $this->db->quoteName(self::SETS_TABLE)
             . ' (' . implode(', ', $this->db->quoteName(['group_list', 'digest', 'requested_at'])) . ') VALUES ' . implode(', ', $rows),
         )->execute();
+        $recorded = (int) $this->db->getAffectedRows();
 
-        return (int) $this->db->getAffectedRows();
+        // Requesting a set enqueues its preparation, in the same request and transaction as the set's row (2.2.0).
+        foreach (array_keys($groupSets) as $digest) {
+            PriceSetPrepareJob::enqueueFor(digest: (string) $digest);
+        }
+
+        return $recorded;
     }
 
     /**
@@ -1615,24 +2217,6 @@ class PriceIndexSyncService
     }
 
     /**
-     * The sets of pricing groups waiting for their preparation, oldest request first.
-     *
-     * @return object[] Each with id, group_list, prepared_through.
-     *
-     * @since  2.0.0
-     */
-    private function waitingGroupSets(): array
-    {
-        $query = $this->db->getQuery(true)
-            ->select($this->db->quoteName(['id', 'group_list', 'prepared_through']))
-            ->from($this->db->quoteName(self::SETS_TABLE))
-            ->where($this->db->quoteName('prepared_at') . ' IS NULL')
-            ->order($this->db->quoteName('requested_at') . ' ASC, ' . $this->db->quoteName('id') . ' ASC');
-
-        return $this->db->setQuery($query)->loadObjectList();
-    }
-
-    /**
      * Whether one set of pricing groups is still known and waiting.
      *
      * @param int $setId The set.
@@ -1664,7 +2248,8 @@ class PriceIndexSyncService
      * commits without it.
      *
      * @param int $setId The set being prepared.
-     * @param int[] $chunk The products, ascending.
+     * @param int[] $chunk The products to write, ascending (none when every product of the chunk is passed over).
+     * @param int $through The checkpoint the chunk moves the set to: its last product.
      * @param array $combinations From getActiveContextCombinations(), for this set alone.
      * @param string[] $globalEdges From getGlobalBoundaries().
      * @param array $leftOut The run's products left out; this chunk's are added.
@@ -1673,7 +2258,7 @@ class PriceIndexSyncService
      *
      * @since  2.0.0
      */
-    private function prepareChunk(int $setId, array $chunk, array $combinations, array $globalEdges, array &$leftOut): ?int
+    private function prepareChunk(int $setId, array $chunk, int $through, array $combinations, array $globalEdges, array &$leftOut): ?int
     {
         $sets = $this->db->quoteName(self::SETS_TABLE);
         $holdSet = fn (): bool => $this->db->setQuery(
@@ -1686,8 +2271,11 @@ class PriceIndexSyncService
 
         try {
             $this->lastFailure = '';
-            $written = $holdSet() ? $this->writeChunk(chunk: $chunk, combinations: $combinations, globalEdges: $globalEdges) : null;
+            $this->dropChunkChanges();
+            $written = $holdSet() ? ($chunk === [] ? 0 : $this->writeChunk(chunk: $chunk, combinations: $combinations, globalEdges: $globalEdges)) : null;
             $left = [];
+            // What this chunk changes, announced once its level commits (2.2.0).
+            $kept = $written === null ? ['changes' => [], 'sets' => []] : $this->chunkChanges;
 
             if ($written === null && $this->lastFailure !== '') {
                 $this->lastFailure = '';
@@ -1708,6 +2296,7 @@ class PriceIndexSyncService
                     }
 
                     if ($one === null) {
+                        $this->dropChunkChanges();
                         $this->db->transactionRollback(true);
                         $left[] = ['set' => $setId, 'product' => $itemId, 'message' => $this->lastFailure];
                         $this->logWarning(message: "Product {$itemId} could not be priced for set {$setId} and is left out of it: " . $this->lastFailure);
@@ -1718,26 +2307,31 @@ class PriceIndexSyncService
 
                     $this->db->transactionCommit(true);
                     $written += $one;
+                    $kept = ['changes' => array_merge($kept['changes'], $this->chunkChanges['changes']), 'sets' => array_values(array_unique(array_merge($kept['sets'], $this->chunkChanges['sets'])))];
                 }
             }
 
             if ($written === null) {
+                $this->dropChunkChanges();
                 $this->db->transactionRollback(true);
 
                 return null;
             }
 
             $this->db->setQuery(
-                'UPDATE ' . $sets . ' SET ' . $this->db->quoteName('prepared_through') . ' = ' . (int) max($chunk)
+                'UPDATE ' . $sets . ' SET ' . $this->db->quoteName('prepared_through') . ' = ' . $through
                 . ($left === [] ? '' : ', ' . $this->db->quoteName('left_out') . ' = CONCAT_WS(' . $this->db->quote(',') . ', NULLIF('
                     . $this->db->quoteName('left_out') . ', ' . $this->db->quote('') . '), ' . $this->db->quote(implode(',', array_column($left, 'product'))) . ')')
                 . ' WHERE ' . $this->db->quoteName('id') . ' = ' . $setId,
             )->execute();
             $this->db->transactionCommit(true);
+            $this->chunkChanges = $kept;
+            $this->keepChunkChanges();
             array_push($leftOut, ...$left);
 
             return $written;
         } catch (Throwable $e) {
+            $this->dropChunkChanges();
             // A failure that ended the transaction this preparation was
             // called inside is that caller's to hear, never a chunk left for
             // later: the caller would commit work the server has discarded.
@@ -1745,6 +2339,7 @@ class PriceIndexSyncService
                 throw $e;
             }
 
+            $this->chunkFailure = $e;
             $this->logWarning(message: "Preparing set {$setId} stopped at a chunk, which was rolled back: " . $e->getMessage());
 
             return null;
@@ -1776,12 +2371,13 @@ class PriceIndexSyncService
      * The next chunk of published products after a checkpoint.
      *
      * @param int $after The last product already written.
+     * @param int $limit At most this many.
      *
-     * @return int[] Ascending; at most one chunk.
+     * @return int[] Ascending; at most $limit.
      *
      * @since  2.0.0
      */
-    private function publishedItemIdsAfter(int $after): array
+    private function publishedItemIdsAfter(int $after, int $limit = self::CHUNK_SIZE): array
     {
         $query = $this->db->getQuery(true)
             ->select($this->db->quoteName('id'))
@@ -1789,22 +2385,9 @@ class PriceIndexSyncService
             ->where($this->db->quoteName('state') . ' = 1')
             ->where($this->db->quoteName('id') . ' > ' . $after)
             ->order($this->db->quoteName('id') . ' ASC')
-            ->setLimit(self::CHUNK_SIZE);
+            ->setLimit(max(1, $limit));
 
         return array_map('intval', $this->db->setQuery($query)->loadColumn());
-    }
-
-    /**
-     * The name of the lock one preparer holds, as an SQL expression. The
-     * database server's locks are shared by every database it serves, so the
-     * name carries this shop's database and table prefix.
-     *
-     *
-     * @since  2.0.0
-     */
-    private function preparerLock(): string
-    {
-        return "CONCAT('alfa.price_group_sets.', LEFT(SHA1(CONCAT(DATABASE(), " . $this->db->quote($this->db->getPrefix()) . ')), 20))';
     }
 
     /**

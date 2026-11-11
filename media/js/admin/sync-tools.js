@@ -8,14 +8,20 @@
  *
  * Optional per-button behaviour, all declared as data attributes by the layout:
  *   - data-confirm-message -> native confirm() before anything runs.
+ *   - a form with data-alfa-confirm (Tools > Tasks, a new web-cron address) asks it first; declining sends nothing.
  *   - data-mutating -> every request is a POST carrying a fresh one-time key
  *     (`once`), which the endpoint demands of a state-changing action; a
  *     read-only action is fetched. The session token rides in the URL either way.
  *   - a `refresh` flag in a single-action reply reloads the page after the result
  *     is shown, for actions whose outcome changes what the page displays.
+ *   - a `location` in a chunked action's plan opens that page instead (a queued job's progress page), as a fresh
+ *     request even when it is the page already open (only its fragment would differ, and the browser would merely
+ *     scroll); beside the button only "Opening its progress page...", no bar: what happened (a request that joined a
+ *     job already waiting or running) is in the message area of the page that opens.
  *
  * On success the bar turns green and the button stays disabled (reload to re-run);
- * on error the bar turns red and the button is re-enabled for a retry.
+ * on error the bar turns red, the error is said beside the button in plain words, and the button is re-enabled for a
+ * retry. A button never just goes grey (2.2.0, entry 20).
  *
  * Server replies use Joomla's JsonResponse envelope: { success, message, data }.
  */
@@ -25,6 +31,15 @@
     function init() {
         document.querySelectorAll('.alfa-tool-btn').forEach(function (btn) {
             btn.addEventListener('click', function () { run(btn); });
+        });
+
+        // A form whose submission cannot be taken back asks first (the web-cron address that stops the old one, UX-11).
+        document.querySelectorAll('form[data-alfa-confirm]').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!window.confirm(form.getAttribute('data-alfa-confirm'))) {
+                    event.preventDefault();
+                }
+            });
         });
     }
 
@@ -45,6 +60,7 @@
         const wrap = btn.closest('.card-body').querySelector('.alfa-progress');
         const ctx = {
             btn: btn,
+            track: wrap.querySelector('.progress'),
             bar: wrap.querySelector('.progress-bar'),
             status: wrap.querySelector('[data-status]'),
             mutating: btn.hasAttribute('data-mutating'),
@@ -52,6 +68,8 @@
 
         btn.disabled = true;
         wrap.style.display = 'block';
+        // A chunked action's bar shows once its plan has work to walk: a plan that opens a job's page draws none.
+        ctx.track.hidden = btn.getAttribute('data-action') === 'backfill';
         resetBar(ctx.bar);
         ctx.status.classList.remove('text-danger');
         ctx.status.textContent = '...';
@@ -88,6 +106,15 @@
 
         request(btn.getAttribute('data-plan-url'), ctx.mutating)
             .then(function (data) {
+                // The action queued a job: its progress page follows it, and says there what happened (a request that
+                // joined a job already waiting or running). Beside the button, only that the page opens; no bar.
+                if (data && data.location) {
+                    ctx.status.textContent = openingText();
+                    openPage(data.location);
+                    return;
+                }
+
+                ctx.track.hidden = false;
                 const plan = (data && data.plan) || [];
                 ctx.grandTotal = plan.reduce(function (sum, t) { return sum + (t.total || 0); }, 0) || 1;
                 processPlan(plan, 0, 0, 0, ctx);
@@ -147,6 +174,21 @@
             .catch(function (err) { fail(ctx, err); });
     }
 
+    // Open a page as a fresh request. When it is the page already open but for its fragment, assigning it would only
+    // scroll (no request, the button left grey): the address takes the fragment and the page is loaded again.
+    function openPage(location) {
+        const target = new URL(location, window.location.href);
+
+        if (target.origin === window.location.origin && target.pathname === window.location.pathname
+            && target.search === window.location.search) {
+            window.history.replaceState(null, '', target.href);
+            window.location.reload();
+            return;
+        }
+
+        window.location.assign(target.href);
+    }
+
     // A key no request has presented before. The server records each one it
     // consumes, so a repeat of the same submission is refused there; the key
     // itself carries nothing and is never reused here.
@@ -168,9 +210,14 @@
         return fetch(url, options)
             .then(function (r) {
                 if (!r.ok) {
-                    throw new Error('HTTP ' + r.status);
+                    // The answer's own message when it carries one, else a plain sentence with the status.
+                    return r.json().catch(function () { return null; }).then(function (json) {
+                        throw new Error((json && json.message) || failedText(r.status));
+                    });
                 }
-                return r.json();
+                // An answer that is not JSON (a login page after the session ended, a PHP notice before the JSON) is said
+                // in the same plain sentence, never as the parser's own message.
+                return r.json().catch(function () { throw new Error(failedText(r.status)); });
             })
             .then(function (json) {
                 if (!json || json.success === false) {
@@ -216,6 +263,18 @@
             : 'Error: ' + err.message;
         ctx.status.textContent = errPrefix;
         ctx.btn.disabled = false; // allow a retry
+    }
+
+    function openingText() {
+        return (window.Joomla && Joomla.Text)
+            ? Joomla.Text._('COM_ALFA_TOOLS_JOB_OPENING', 'Opening its progress page...')
+            : 'Opening its progress page...';
+    }
+
+    function failedText(status) {
+        return (window.Joomla && Joomla.Text)
+            ? Joomla.Text._('COM_ALFA_TOOLS_REQUEST_FAILED', 'The server\'s answer could not be read (HTTP %s).').replace('%s', String(status))
+            : 'The server\'s answer could not be read (HTTP ' + status + ').';
     }
 
     function doneText() {

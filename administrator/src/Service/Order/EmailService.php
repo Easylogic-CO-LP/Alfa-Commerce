@@ -28,6 +28,7 @@ use Joomla\CMS\Log\Log;
 use Joomla\CMS\Mail\Mail;
 use Joomla\CMS\Mail\MailerFactoryInterface;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Database\ParameterType;
 use RuntimeException;
 use Throwable;
 
@@ -795,6 +796,41 @@ class EmailService
                 category: 'com_alfa.orderemail',
             );
         }
+    }
+
+    /**
+     * Whether entering a status sends anything: the status tells the customer, or has an administrator recipient who
+     * may receive mail (not blocked, an address set). The two facts {@see self::deliverForStatus()} returns on at once
+     * when both are missing, read in one statement: what a status change reads to decide whether its e-mail single has
+     * work (2.2.0).
+     *
+     * @param int $statusId The status entered.
+     *
+     * @since  2.2.0
+     */
+    public static function notifiesForStatus(int $statusId): bool
+    {
+        if ($statusId <= 0) {
+            return false;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $recipients = $db->getQuery(true)
+            ->select('1')
+            ->from($db->quoteName('#__alfa_orderstatus_recipients', 'r'))
+            ->join('INNER', $db->quoteName('#__users', 'u') . ' ON ' . $db->quoteName('u.id') . ' = ' . $db->quoteName('r.id_user'))
+            ->where($db->quoteName('r.id_orderstatus') . ' = ' . $db->quoteName('s.id'))
+            ->where($db->quoteName('u.block') . ' = 0')
+            ->where($db->quoteName('u.email') . " <> ''");
+        $query = $db->getQuery(true)
+            ->select($db->quoteName('s.notify_customer'))
+            ->select('EXISTS (' . $recipients . ') AS ' . $db->quoteName('admins'))
+            ->from($db->quoteName('#__alfa_orders_statuses', 's'))
+            ->where($db->quoteName('s.id') . ' = :statusId')
+            ->bind(':statusId', $statusId, ParameterType::INTEGER);
+        $row = $db->setQuery($query)->loadObject();
+
+        return $row !== null && ((int) ($row->notify_customer ?? 0) === 1 || (int) ($row->admins ?? 0) === 1);
     }
 
     /**

@@ -11,20 +11,24 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskHandler;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettleListener;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettlement;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Language;
 use Joomla\CMS\Language\LanguageFactoryInterface;
+use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
 
 /**
  * What every task an order's change owes has in common: the order it is about, and the records it leaves on the
  * order's timeline when staff act on it (Resend, Run again, Mark resolved: who, when, why) and, for an e-mail and
- * onOrderStatusChange, when it ends failed or held.
+ * onOrderStatusChange, when it ends failed or held; an e-mail's failed or held record also lists the recipients it had
+ * already reached (2.2.0).
  *
  * Each record keeps its sentence as a language key with its parameters in its context (`text`), which the History tab
  * renders in the reader's language (OrderHistoryHelper::line()); its summary is the same sentence in English, the
@@ -92,9 +96,70 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
             $language->load(extension: 'com_alfa', basePath: JPATH_ADMINISTRATOR);
         }
 
-        $args = array_map(static fn (mixed $arg): mixed => \is_array($arg) ? self::english(text: $arg) : $arg, $text['args']);
+        $args = array_map(static fn (mixed $arg): mixed => match (true) {
+            // The record's English: a status by its name, recipients by their units and their UTC times.
+            \is_array($arg) && \array_key_exists('status', $arg) => (string) (AlfaHelper::getOrderStatuses()[(int) $arg['status']]->name ?? '#' . (int) $arg['status']),
+            \is_array($arg) && \is_array($arg['recipients'] ?? null) => implode(', ', array_map(
+                static fn (array $one): string => $one['unit'] . ($one['at'] !== '' ? ' (' . substr($one['at'], 0, 19) . ' UTC)' : ''),
+                $arg['recipients'],
+            )),
+            \is_array($arg) => self::english(text: $arg),
+            default => $arg,
+        }, $text['args']);
 
         return vsprintf($language->_($text['key']), $args);
+    }
+
+    /**
+     * The units this task's history records sent, each with the time it was recorded: [['unit' => ..., 'at' => ...]],
+     * in the order sent. A unit carried from the task it resends or runs again is that task's, and left out.
+     *
+     * @param list<array<string, mixed>> $history The task's history.
+     *
+     * @return list<array{unit: string, at: string}>
+     *
+     * @since  2.2.0
+     */
+    protected static function sentUnits(array $history): array
+    {
+        $sent = [];
+
+        foreach ($history as $entry) {
+            if (isset($entry['unit']) && ($entry['outcome'] ?? '') === TaskRun::DONE && !isset($entry['carried_from'])) {
+                $sent[(string) $entry['unit']] = ['unit' => (string) $entry['unit'], 'at' => (string) ($entry['at'] ?? '')];
+            }
+        }
+
+        return array_values($sent);
+    }
+
+    /**
+     * The units sent, as a sentence's argument: stored as they are, said where the line is read, each recipient with the
+     * time it was handed over in the reader's time zone (UX-47).
+     *
+     * @param list<array{unit: string, at: string}> $sent What sentUnits() answered.
+     *
+     * @return array{recipients: list<array{unit: string, at: string}>}
+     *
+     * @since  2.2.0
+     */
+    protected static function sentList(array $sent): array
+    {
+        return ['recipients' => $sent];
+    }
+
+    /**
+     * What a failed or held run of this task had already delivered, for its record; none by default.
+     *
+     * @param TaskSettlement $settlement The run.
+     *
+     * @return list<array{unit: string, at: string}>
+     *
+     * @since  2.2.0
+     */
+    protected function alreadySent(TaskSettlement $settlement): array
+    {
+        return [];
     }
 
     /**
@@ -107,6 +172,30 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
     protected function outcomeEvent(string $state): string
     {
         return '';
+    }
+
+    /**
+     * Record an automation the order no longer stood for (2.2.0): an INFO line in the tasks log and one row on the
+     * order's timeline, so a move left out is never silent. Nothing is moved; the task ends done.
+     *
+     * @param TaskRun $run The task.
+     *
+     * @since  2.2.0
+     */
+    protected function superseded(TaskRun $run): void
+    {
+        $orderId = $run->subjectId();
+        // The status by its id, said by its name where the line is read (UX-45).
+        $text = self::text('COM_ALFA_ORDER_TASK_SUPERSEDED', $this->what($run->payload()), $run->id(), ['status' => self::currentStatus(orderId: $orderId) ?? 0]);
+        $summary = self::english(text: $text);
+        Tasks::log(entry: 'Task #' . $run->id() . ' (' . $run->handler() . ') superseded: ' . $summary, priority: Log::INFO);
+        OrderModel::logOrderActivity(
+            orderId: $orderId,
+            event: 'order.automation_superseded',
+            summary: $summary,
+            context: ['task' => $run->id(), 'handler' => $run->handler(), 'text' => $text],
+            actorId: 0,
+        );
     }
 
     /**
@@ -172,6 +261,14 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
             return;
         }
 
+        // A failed or held run also says what it had already delivered (2.2.0): that delivery outlives the task.
+        $sent = $settlement->event === TaskSettlement::RUN || $settlement->event === TaskSettlement::INTERRUPTED ? $this->alreadySent(settlement: $settlement) : [];
+
+        if ($sent !== []) {
+            $text = self::text('COM_ALFA_ORDER_TASK_ALREADY_SENT', $text, self::sentList(sent: $sent));
+            $context['sent'] = $sent;
+        }
+
         OrderModel::logOrderActivity(
             orderId: $settlement->subjectId,
             event: $event,
@@ -215,7 +312,8 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
                 : self::text('COM_ALFA_ORDER_TASK_HELD', $what, $task);
         } else {
             $failed = $this->listed($settlement->units, ['failed']);
-            $error = rtrim(trim($settlement->error), '.');
+            // The work's own failure as its key and arguments, said where the line is read (UX-09).
+            $error = Tasks::errorArgument(stored: $settlement->error);
             $text = $this->failedSummary(settlement: $settlement, what: $what) ?? match (true) {
                 $failed !== '' => self::text('COM_ALFA_ORDER_TASK_FAILED_FOR', $what, $task, $failed),
                 $error !== '' => self::text('COM_ALFA_ORDER_TASK_FAILED', $what, $task, $error),

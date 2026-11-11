@@ -19,7 +19,6 @@ use Alfa\Component\Alfa\Administrator\Event\Admin\AdminRenderEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AdminToolbarEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminAware;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
-use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminDispatcher;
 use Throwable;
 
 /**
@@ -152,9 +151,9 @@ trait HasAdminEvents
             items: \is_array($this->items ?? null) ? $this->items : null,
         );
 
-        AlfaAdminDispatcher::dispatch(new AdminRenderEvent($context));
+        self::alfaRaise(new AdminRenderEvent($context));
 
-        return $context->html;
+        return $context->html();
     }
 
     /**
@@ -199,7 +198,7 @@ trait HasAdminEvents
             return;
         }
 
-        AlfaAdminDispatcher::dispatch(new AdminToolbarEvent(new AlfaAdminContext(
+        self::alfaRaise(new AdminToolbarEvent(new AlfaAdminContext(
             entity: $this->alfaEntity,
             view: $this->alfaView(),
             screen: $this->alfaScreen(),
@@ -276,7 +275,7 @@ trait HasAdminEvents
                 rowData: $this->alfaRowData(),
             );
 
-            AlfaAdminDispatcher::dispatch(new AdminListRowActionsEvent($context));
+            self::alfaRaise(new AdminListRowActionsEvent($context));
 
             $this->pluginRowActions = $context->actions->getActions(user: $context->user);
         }
@@ -298,7 +297,7 @@ trait HasAdminEvents
             bulkActions: new AdminActions(),
         );
 
-        AlfaAdminDispatcher::dispatch(new AdminListBulkActionsEvent($context));
+        self::alfaRaise(new AdminListBulkActionsEvent($context));
 
         $this->pluginBulkActions = $context->bulkActions->getActions(user: $context->user);
     }

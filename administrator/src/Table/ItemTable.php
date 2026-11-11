@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Table;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Joomla\CMS\Table\Table;
 use Joomla\Database\DatabaseDriver;
@@ -56,6 +57,18 @@ class ItemTable extends Table
     private const STATE_COLUMN = 'state';
 
     /**
+     * The mark of a rebuild owed (2.2.0). Its own statements write it (the item
+     * save before its row, a rebuild's compare-and-set, a lock or rebuild that
+     * failed), so an update never carries it: the value the row write loaded
+     * would erase a mark written meanwhile. An insert stores the mark the new
+     * item's save gives it.
+     *
+     * @var string
+     * @since  2.2.0
+     */
+    private const MARK_COLUMN = 'projection_dirty_at';
+
+    /**
      * Indicates that columns fully support the NULL value in the database
      *
      * @var bool
@@ -96,7 +109,8 @@ class ItemTable extends Table
      *
      * The state of an existing item is held out of the row write the same way and
      * written right after it by writeCurrentState(), which never moves the item
-     * into or out of the archive.
+     * into or out of the archive. So is the mark of an existing item's rebuild
+     * owed (2.2.0): only its own statements write it.
      *
      * @param bool $updateNulls True to update fields even if they are null.
      *
@@ -114,6 +128,7 @@ class ItemTable extends Table
             if ($this->hasPrimaryKey()) {
                 $columns[] = self::TRACKING_COLUMN;
                 $columns[] = self::STATE_COLUMN;
+                $columns[] = self::MARK_COLUMN;
             }
 
             foreach ($columns as $column) {
@@ -135,8 +150,9 @@ class ItemTable extends Table
 
         $hold();
 
-        $dispatcher = $this->getDispatcher();
-        $dispatcher->addListener(eventName: 'onTableBeforeStore', callback: $holdAfterListeners, priority: PHP_INT_MIN);
+        // Alfa's own code listener on Joomla's table event, through the plugin helper (2.2.0): last of all listeners.
+        $plugins = AlfaPluginHelper::get();
+        $plugins->listen(eventName: 'onTableBeforeStore', listener: $holdAfterListeners, priority: PHP_INT_MIN);
 
         try {
             $stored = parent::store(updateNulls: $updateNulls);
@@ -147,7 +163,7 @@ class ItemTable extends Table
 
             return $stored;
         } finally {
-            $dispatcher->removeListener(eventName: 'onTableBeforeStore', listener: $holdAfterListeners);
+            $plugins->forget(eventName: 'onTableBeforeStore', listener: $holdAfterListeners);
 
             foreach ($held as $column => $value) {
                 $this->$column = $value;

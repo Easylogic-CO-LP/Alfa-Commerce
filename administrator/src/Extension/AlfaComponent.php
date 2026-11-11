@@ -12,8 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\Extension;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Menu\MenuInjector;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
+use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Joomla\CMS\Association\AssociationServiceInterface;
 use Joomla\CMS\Association\AssociationServiceTrait;
 use Joomla\CMS\Component\Router\RouterServiceInterface;
@@ -22,10 +24,7 @@ use Joomla\CMS\Extension\BootableExtensionInterface;
 use Joomla\CMS\Extension\MVCComponent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLRegistryAwareTrait;
-use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Psr\Container\ContainerInterface;
-use Throwable;
 
 /**
  * Component class for Alfa
@@ -66,6 +65,20 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
      */
     public const CONDITION_TRASHED = -2;
 
+    /**
+     * The request's plugin helper, set by the service provider.
+     *
+     * @since  2.2.0
+     */
+    private AlfaPluginHelper $pluginHelper;
+
+    /**
+     * The request's search engine registry, so the engines are discovered once per request (2.2.0).
+     *
+     * @since  2.2.0
+     */
+    private ?SearchEngineRegistry $searchEngines = null;
+
     /** @inheritdoc
      * @since  1.0.0
      */
@@ -93,23 +106,48 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
         // site-wide system plugins. An empty group is a no-op, so the
         // core stands alone with zero feature plugins installed.
         //
-        // Guarded: import instantiates every enabled plugin of the group, so a
-        // single plugin whose class cannot load (missing file, stale autoload
-        // map) would otherwise take down every com_alfa page, admin and
-        // storefront alike. Healthy plugins still boot individually at their
-        // dispatch sites.
-        try {
-            PluginHelper::importPlugin('alfa');
-        } catch (Throwable $e) {
-            Log::add('AlfaComponent: feature plugin import failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.panel');
-        }
+        // Through the plugin helper (2.2.0), one plugin at a time: a single plugin
+        // whose class cannot load (missing file, stale autoload map) is logged with
+        // its identity and the rest of the group imports, so it cannot take down
+        // every com_alfa page, admin and storefront alike.
+        $this->getPluginHelper()->importGroup('alfa');
 
         // Place the Alfa admin menu into Joomla's native sidebar on every com_alfa admin
         // page, registered here (once, before dispatch) so no view has to render it.
-        $app = Factory::getApplication();
-
-        if ($app->isClient('administrator')) {
-            $app->getDispatcher()->addListener('onAfterDispatch', [MenuInjector::class, 'onAfterDispatch']);
+        if (Factory::getApplication()->isClient('administrator')) {
+            $this->getPluginHelper()->listen('onAfterDispatch', [MenuInjector::class, 'onAfterDispatch']);
         }
+    }
+
+    /**
+     * The plugin helper, com_alfa's single boundary to Joomla's plugin system (2.2.0, design 2.15.2).
+     *
+     * @param AlfaPluginHelper $helper The request's helper.
+     *
+     * @since  2.2.0
+     */
+    public function setPluginHelper(AlfaPluginHelper $helper): void
+    {
+        $this->pluginHelper = $helper;
+    }
+
+    /**
+     * The plugin helper (AlfaPluginHelper::get() reads it here).
+     *
+     * @since  2.2.0
+     */
+    public function getPluginHelper(): AlfaPluginHelper
+    {
+        return $this->pluginHelper;
+    }
+
+    /**
+     * The request's search engine registry (SearchEngineRegistry::shared() reads it here): one discovery per request.
+     *
+     * @since  2.2.0
+     */
+    public function getSearchEngineRegistry(): SearchEngineRegistry
+    {
+        return $this->searchEngines ??= new SearchEngineRegistry();
     }
 }

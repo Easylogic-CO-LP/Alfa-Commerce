@@ -12,7 +12,9 @@ namespace Alfa\Component\Alfa\Administrator\Event\Catalog;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionInterface;
+use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
@@ -31,7 +33,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *
  *     public function onCollectCatalogProjections(CollectCatalogProjectionsEvent $event): void
  *     {
- *         $event->addProjection(new ExampleProjection(), 'plg_alfa-search_example');
+ *         $event->addProjection(new ExampleProjection(), 'alfa-search.example');
  *     }
  *
  * A projection that materialises VISIBILITY needs one more thing, because a
@@ -44,22 +46,24 @@ use Joomla\CMS\Event\AbstractEvent;
 class CollectCatalogProjectionsEvent extends AbstractEvent
 {
     /**
-     * Contribute a projection under its owning extension's identity.
+     * Contribute a projection under its owning plugin's identity.
      *
      * @param ProjectionInterface $projection The projection instance.
-     * @param string $element Owning extension element (e.g. 'plg_alfa-search_example').
+     * @param string $contributor The owning plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $version The package version.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function addProjection(ProjectionInterface $projection, string $element, string $version = ''): void
+    public function addProjection(ProjectionInterface $projection, string $contributor, string $version = ''): void
     {
+        $owner = PluginId::of($contributor);
         $entries = (array) ($this->arguments['projections'] ?? []);
 
         $entries[] = [
             'projection' => $projection,
-            'element' => trim($element),
+            'contributor' => $owner->key(),
             'version' => trim($version),
         ];
 
@@ -69,7 +73,7 @@ class CollectCatalogProjectionsEvent extends AbstractEvent
     /**
      * The collected projection entries.
      *
-     * @return array<int, array{projection: ProjectionInterface, element: string, version: string}>
+     * @return array<int, array{projection: ProjectionInterface, contributor: string, version: string}>
      *
      * @since  2.0.0
      */

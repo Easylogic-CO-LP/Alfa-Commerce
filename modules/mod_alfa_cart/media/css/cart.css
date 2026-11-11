@@ -171,15 +171,21 @@
     color:var(--mod-alfa-cart-toggler-color, currentColor);
 }
 
+/* The counter is a pill that grows with its number: one digit is a circle, more
+   digits widen it on one line. The full number, never capped or hidden. */
 .mod-alfa-cart .cart-toggler::after {
   background-color: var(--mod-alfa-cart-counter-color, #FF0000);
   font-size: .75rem;
-  width: 18px;
+  min-width: 18px;
+  width: auto;
+  padding-inline: 5px;
+  box-sizing: border-box;
   line-height: 18px;
   text-align: center;
+  white-space: nowrap;
   color: #fff;
   z-index: 2;
-  border-radius: 50%;
+  border-radius: 9px;
   position: absolute;
   right: -4px;
   top: -3px;

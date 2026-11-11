@@ -14,6 +14,8 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
 
 use Alfa\Component\Alfa\Administrator\Event\Lists\ColumnBuilder;
 use Alfa\Component\Alfa\Administrator\Event\Lists\HasColumns;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 
 /**
  * The one result accumulator of onAlfaAdminListColumns: every entity's grid, sharing the
@@ -21,14 +23,14 @@ use Alfa\Component\Alfa\Administrator\Event\Lists\HasColumns;
  *
  * The fluent descriptor ({@see ColumnBuilder}) and the template-side renderer
  * ({@see \Alfa\Component\Alfa\Administrator\Helper\Columns}) are unchanged and NOT re-invented
- * here; this class adds only what a broadcast dispatch needs that a per-plugin event did not:
- * an owner stamp. The orders dialect handed each plugin its OWN fresh event and defaulted the
- * layout owner afterwards, which cannot work when every plugin writes into one accumulator, so
- * the dispatcher names the current contributor between handlers and each new column is stamped
- * as it is opened.
+ * here; this class adds only what a broadcast needs that a per-plugin event did not: the
+ * contributor. Every plugin writes into one accumulator, so each column names the plugin that
+ * declares it (its `group.element`, 2.2.0), which defaults the column's layouts to that plugin's
+ * own tmpl folder. The identity is attribution, never an authorisation; nothing is inferred from
+ * the listener.
  *
  * A plugin may still point at another plugin's layout by calling setPluginType()/setPluginName()
- * on the descriptor: the stamp is a default, not a lock.
+ * on the descriptor: the contributor is a default, not a lock.
  *
  * @since  2.0.0
  */
@@ -39,63 +41,38 @@ final class AdminColumns
     }
 
     /**
-     * @var string The plugin group currently contributing.
-     * @since  2.0.0
-     */
-    private string $ownerGroup = '';
-
-    /**
-     * @var string The plugin element currently contributing.
-     * @since  2.0.0
-     */
-    private string $ownerElement = '';
-
-    /**
      * Declare a list column. Identical contract to the orders grid:
      *
-     *     $context->columns->column('risk')
+     *     $context->columns->column('alfa.fraud', 'risk')
      *         ->title('PLG_ALFA_FRAUD_RISK_COLUMN')
      *         ->after('status')
      *         ->setLayout('column_risk')
-     *         ->setData(fn (object $row): ?array => $context->rowData[(int) $row->id] ?? null);
+     *         ->setData(fn (object $row): ?array => $context->rowValues((int) $row->id));
      *
      * The anchor passed to after() is one of the dispatching screen's core column keys; an
      * unknown or omitted anchor appends the column after the last core column. The data
      * resolver runs once per row at render time and returning null renders an empty cell, so
      * the table always stays rectangular.
      *
-     * Resolve the row's value out of {@see AlfaAdminContext::$rowData} rather than querying
+     * Resolve the row's value out of {@see AlfaAdminContext::rowValues()} rather than querying
      * inside the closure: onAlfaAdminListRowData hands the whole page's ids exactly so the
      * whole column costs ONE query no matter how many rows or plugins are involved.
      *
+     * @param string $contributor The declaring plugin, group.element (2.2.0).
      * @param string $key The column's identity key (unique per contributor).
      *
      * @return ColumnBuilder For chaining.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
+     *
      * @since  2.0.0
      */
-    public function column(string $key): ColumnBuilder
+    public function column(string $contributor, string $key): ColumnBuilder
     {
-        return $this->openColumn($key)
-            ->setPluginType($this->ownerGroup)
-            ->setPluginName($this->ownerElement);
-    }
+        $owner = PluginId::of($contributor);
 
-    /**
-     * Name the plugin whose handler is about to run, so its columns' layouts default to its
-     * own tmpl folder.
-     *
-     * FRAMEWORK ONLY: called by {@see AlfaAdminDispatcher} between handlers.
-     *
-     * @param string $group The contributing plugin's group.
-     * @param string $element The contributing plugin's element.
-     *
-     *
-     * @since  2.0.0
-     */
-    public function setOwner(string $group, string $element): void
-    {
-        $this->ownerGroup = $group;
-        $this->ownerElement = $element;
+        return $this->openColumn($key)
+            ->setPluginType($owner->group)
+            ->setPluginName($owner->element);
     }
 }

@@ -4,6 +4,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Attach event listeners to the cart container
     const cartContainer = document.querySelector('[data-cart-outer]');
 
+    // The cart page announces alfa:cart:changed under this name and ignores its own.
+    const CART_CHANGED_SOURCE = 'cart-page';
+
     // NO CART MARKUP ON THIS PAGE, SO NOTHING TO WIRE.
     //
     // This file is not only the cart page's: a carrier's locker picker declares it
@@ -13,7 +16,23 @@ document.addEventListener("DOMContentLoaded", () => {
     // shop listing, and the administrator's order builder, none of which carry a
     // cart container. Both listeners in this handler hang off that one element,
     // and reaching for it threw a TypeError on every one of those pages.
+    //
+    // The empty cart page loads it too (the view declares it there) and wires only
+    // the listener below.
     if (!cartContainer) {
+        // THE EMPTY CART PAGE renders its empty layout alone: no sections and no
+        // checkout form to redraw. When another surface changes the cart, the page
+        // reveals the notice its layout printed, and the shopper reloads when ready.
+        if (document.querySelector('[data-cart-changed-notice]')) {
+            document.addEventListener('alfa:cart:changed', (event) => {
+                if (event.detail && event.detail.source === CART_CHANGED_SOURCE) {
+                    return;
+                }
+
+                revealChangedNotice(document);
+            });
+        }
+
         return;
     }
 
@@ -21,12 +40,36 @@ document.addEventListener("DOMContentLoaded", () => {
     let shipmentUpdateController = new AbortController();
     let paymentUpdateController = new AbortController();
     let methodsRefreshController = new AbortController();
+    let sectionsController = new AbortController();
+
+    // Another surface changed the cart: the server's sections replace this page's.
+    // The page's own changes are already on screen from their answer, so its own
+    // signal is ignored.
+    document.addEventListener('alfa:cart:changed', (event) => {
+        if (event.detail && event.detail.source === CART_CHANGED_SOURCE) {
+            return;
+        }
+
+        // AN EMPTIED PAGE CANNOT BE REDRAWN IN PLACE. Its sections and its checkout
+        // form left with the last line, and the re-read swaps sections only, so the
+        // page reveals the notice its empty layout printed.
+        if (!cartContainer.querySelector('[data-cart-items]')) {
+            revealChangedNotice(cartContainer);
+            return;
+        }
+
+        rereadSections();
+    });
 
     // Clear cart button listener
     cartContainer.addEventListener('click', (event) => {
         if (event.target.matches('[data-action="cart-clear"], [data-action="cart-clear"] *')) {
             event.preventDefault();
-            clearCart();
+
+            // Emptying the cart cannot be undone, so the shopper is asked first (2.2.0, UX-77).
+            if (window.confirm(Joomla.Text._('COM_ALFA_CART_CLEAR_CONFIRM'))) {
+                clearCart();
+            }
         }
 
         // Remove item button listener
@@ -199,6 +242,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function clearCart() {
 
+        // A change supersedes a re-read still on its way: its answer is newer.
+        sectionsController.abort();
+
         const basePath = Joomla.getOptions('system.paths').base || '';
         let url = basePath + '/index.php?option=com_alfa&task=cart.clearCart&format=json';
 
@@ -224,6 +270,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 if(responseData.success){
                     const cartOuter = document.querySelector('[data-cart-outer]');
                     cartOuter.innerHTML = responseData.data;
+
+                    // The contents changed here; the other cart surfaces re-read theirs.
+                    announceCartChanged('clear');
                 }else{
                     console.error(responseData.message);
                 }
@@ -271,6 +320,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // Create a new AbortController instance for the new request
         quantityUpdateController = new AbortController();
 
+        // A change supersedes a re-read still on its way: its answer is newer.
+        sectionsController.abort();
 
         let clickedElement = event.target;
 
@@ -362,6 +413,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.dispatchEvent(new CustomEvent('alfaCartMethodsRefreshed', {
                     detail: { data: responseData }
                 }));
+
+                // The contents changed here; the other cart surfaces re-read theirs.
+                // A remove is the quantity 0 write, read from what was posted.
+                announceCartChanged(Number(params.get('quantity')) === 0 ? 'remove' : 'quantity');
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -369,6 +424,71 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
+    }
+
+    /**
+     * Tell the other cart surfaces that this page changed the cart's contents. A
+     * notification only, never the answer: each surface re-reads its own endpoint.
+     *
+     * @param {string} action quantity, remove or clear
+     */
+    function announceCartChanged(action) {
+        document.dispatchEvent(new CustomEvent('alfa:cart:changed', {
+            bubbles: true,
+            detail: { source: CART_CHANGED_SOURCE, action: action },
+        }));
+    }
+
+    /**
+     * Re-read the page's sections after another surface changed the cart: a look,
+     * not a change. The cart.sections task takes no token, reads no input and
+     * stores no form state; a newer re-read supersedes an older one. It never
+     * announces alfa:cart:changed; the method panels were redrawn, so it tells
+     * them with alfaCartMethodsRefreshed.
+     */
+    async function rereadSections() {
+        sectionsController.abort();
+        sectionsController = new AbortController();
+
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        const url = basePath + '/index.php?option=com_alfa&task=cart.sections&format=json';
+
+        try {
+            const response = await fetch(url, { signal: sectionsController.signal });
+
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+
+            const responseData = await response.json();
+
+            if (!responseData.success) {
+                throw new Error('Operation was not successful : ' + responseData.message);
+            }
+
+            applyMethodsResponse(cartContainer, responseData);
+
+            document.dispatchEvent(new CustomEvent('alfaCartMethodsRefreshed', {
+                detail: { data: responseData }
+            }));
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Error:', error);
+            }
+        }
+    }
+
+    /**
+     * Reveal the notice an empty cart layout printed: the cart changed elsewhere
+     * and the page offers the reload. Markup comes from the layout; a layout
+     * without the notice shows nothing.
+     */
+    function revealChangedNotice(root) {
+        const notice = root.querySelector('[data-cart-changed-notice]');
+
+        if (notice) {
+            notice.hidden = false;
+        }
     }
 
     async function shipmentChanged(eventTarget){
@@ -380,6 +500,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Create a new AbortController instance for the new request
         shipmentUpdateController = new AbortController();
+
+        // A change supersedes a re-read still on its way: its answer is newer.
+        sectionsController.abort();
 
         let clickedElement = event.target;
 
@@ -506,6 +629,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         methodsRefreshController = new AbortController();
 
+        // A change supersedes a re-read still on its way: its answer is newer.
+        sectionsController.abort();
+
         const basePath = Joomla.getOptions('system.paths').base || '';
         const url = basePath + '/index.php?option=com_alfa&task=cart.refreshMethods&format=json';
 
@@ -550,6 +676,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Create a new AbortController instance for the new request
         paymentUpdateController = new AbortController();
+
+        // A change supersedes a re-read still on its way: its answer is newer.
+        sectionsController.abort();
 
         let clickedElement = event.target;
 

@@ -23,6 +23,9 @@ $wa->useStyle('com_alfa.general')
 	->useStyle('com_alfa.cart')
 	->useScript('com_alfa.cart');
 
+// The question Clear cart asks before it empties the cart (cart.js).
+Text::script('COM_ALFA_CART_CLEAR_CONFIRM');
+
 //echo $this->form;
 
 ?>

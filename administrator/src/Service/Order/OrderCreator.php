@@ -62,11 +62,8 @@ final class OrderCreator
     private const DEFAULT_CURRENCY_NUMBER = 978;
 
     /**
-     * Column width of `#__alfa_order_items`.`tax_name`.
-     *
-     * A single catalogue tax name cannot exceed this (the per-language name
-     * column is VARCHAR(255)) but a combined name joined with ' + ' can.
-     * Clamping there beats losing the sale to a label.
+     * The width clampTaxName() fits a name to: a catalogue tax name's own width (the per-language name column is
+     * VARCHAR(255)). For a plugin's column of that width; core's order line keeps the name whole (2.2.0).
      *
      * @since  2.0.0
      */
@@ -598,10 +595,9 @@ final class OrderCreator
         // caller carries no PriceResult.
         $row->payable_unit = isset($line['payable_unit']) ? $unit($line['payable_unit']) : null;
         $row->tax_rate = (float) ($line['tax_rate'] ?? 0);
-        $row->tax_name = self::clampTaxName(
-            name:    (string) ($line['tax_name'] ?? ''),
-            context: 'order ' . $orderId . ', item ' . $row->id_item,
-        );
+        // The applied tax's name, whole (2.2.0: the column is text): a combined rules' name joined with ' + ' can
+        // pass 255 characters, and a name on a fiscal document is never shortened.
+        $row->tax_name = (string) ($line['tax_name'] ?? '');
         $row->discount_percent = (float) ($line['discount_percent'] ?? 0);
         $row->discount_amount_tax_excl = $money($line['discount_amount_tax_excl'] ?? 0);
         $row->discount_amount_tax_incl = $money($line['discount_amount_tax_incl'] ?? 0);
@@ -612,16 +608,14 @@ final class OrderCreator
     }
 
     /**
-     * Fit an applied-tax name to the order line's column, and say so when it did not fit.
+     * Fit an applied-tax name to a column of TAX_NAME_MAX characters, and say so when it did not fit: a helper for a
+     * plugin that keeps a copy of the name in a column of its own of that width (the Subscriptions plugin does).
      *
-     * Combined taxes are named by joining every additive rate with ' + '
-     * (PriceComputationEngine::processTaxes()), so a shop with several combined
-     * rates can produce a label no column holds. Strict mode rejects the whole
-     * INSERT, which rolled the entire checkout back: the shopper lost the sale
-     * to a label. The name is a snapshot, so it is cut only when it genuinely
-     * cannot fit, and the cut is logged with enough of the original to identify
-     * the rule that produced it. Log only, never enqueueMessage(): a clamped
-     * label is not something to show a shopper at checkout.
+     * Core no longer calls it (2.2.0): the order line's tax name is text and every core writer stores the name whole,
+     * because a combined rules' name joined with ' + ' (PriceComputationEngine::processTaxes()) can pass 255
+     * characters and a name on a fiscal document is never shortened. The name is cut only when it cannot fit, and the
+     * cut is logged with enough of the original to identify the rule that produced it; log only, never
+     * enqueueMessage().
      *
      * @param string $name The applied tax name as the pricing layer produced it.
      * @param string $context Where the line is being written, for the log.

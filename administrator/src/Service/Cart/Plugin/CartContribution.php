@@ -48,7 +48,6 @@ final class CartContribution
      * @param float $amount Magnitude: currency for '+', percent for '%'.
      * @param float $taxRate The contribution's OWN tax rate (percent).
      * @param int $sortOrder Fold/display order; lower folds first.
-     * @param string $source Owning plugin element (the collector fills it when empty).
      *
      * @since  2.0.0
      */
@@ -59,7 +58,6 @@ final class CartContribution
         public readonly float $amount,
         public readonly float $taxRate = 0.0,
         public readonly int $sortOrder = 0,
-        public readonly string $source = '',
     ) {
         if (!\in_array($operation, ['+', '%'], true)) {
             throw new InvalidArgumentException(

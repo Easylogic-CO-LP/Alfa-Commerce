@@ -11,10 +11,10 @@ namespace Alfa\Component\Alfa\Site\Dispatcher;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\PluginHelper;
 use RuntimeException;
 
 /**
@@ -39,12 +39,12 @@ class Dispatcher extends ComponentDispatcher
             throw new RuntimeException(Text::_('COM_ALFA_MAINTENANCE_STOREFRONT'), 503);
         }
 
-        // Register the item-fields plugins' getSubscribedEvents maps with the
-        // GLOBAL dispatcher: bootPlugin() alone never does, so without this a
-        // plugin could only answer our direct targeted calls. With it, a
-        // configurator can also subscribe to ambient events (onBeforeRender,
-        // onBeforeCompileHead, ...) and fire on every com_alfa page.
-        PluginHelper::importPlugin('alfa-item-fields');
+        // Register the item-fields plugins' getSubscribedEvents maps (their ambient
+        // events: onBeforeRender, onBeforeCompileHead, ...) with the shared
+        // dispatcher through the plugin helper (2.2.0), one plugin at a time, so a
+        // configurator fires on every com_alfa page; its field hooks are addressed
+        // to it alone and never listed there.
+        AlfaPluginHelper::get()->importGroup('alfa-item-fields');
 
         parent::dispatch();
     }

@@ -24,6 +24,7 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Joomla\CMS\Component\ComponentHelper;
@@ -31,7 +32,6 @@ use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use RuntimeException;
 use Throwable;
 
@@ -5591,34 +5591,23 @@ final class InventoryService
 
         $event = new \Alfa\Component\Alfa\Administrator\Event\Inventory\CollectStockAllocationProvidersEvent(
             'onCollectStockAllocationProviders',
-            ['providers' => []],
+            [],
         );
 
-        // Boot-and-call over the `alfa-inventory` CAPABILITY group: an allocation strategy
-        // is live checkout-path domain policy, so it ships as a capability provider (like a
-        // search engine or payment method), woken only here, never heard by anything else.
-        // The `alfa` platform group is deliberately NOT asked: shared-backend plugins have no
-        // business on the reserve path. (This retired the last app-dispatcher collect route,
-        // together with DocumentTypeRegistry::syncProviders().)
-        try {
-            foreach (PluginHelper::getPlugin('alfa-inventory') as $descriptor) {
-                try {
-                    $plugin = Factory::getApplication()->bootPlugin($descriptor->name, 'alfa-inventory');
+        // The `alfa-inventory` CAPABILITY group imported, then the event raised on the shared dispatcher (2.2.0, design
+        // 2.15.3: mode A, isolated): an allocation strategy is live checkout-path domain policy, so it ships as a
+        // capability provider (like a search engine or payment method), imported only here. Each provider names its
+        // plugin; one that fails is logged and the others answer. With no application, no contributed strategy:
+        // defaultAllocation() remains in charge.
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa-inventory');
 
-                    if (method_exists($plugin, 'onCollectStockAllocationProviders')) {
-                        $plugin->onCollectStockAllocationProviders($event);
-                    }
-                } catch (Throwable $e) {
-                    Log::add(
-                        entry:    "InventoryService: allocation provider plugin '{$descriptor->name}' failed to boot and was skipped: " . $e->getMessage(),
-                        priority: Log::ERROR,
-                        category: 'com_alfa.inventory',
-                    );
-                }
-            }
-        } catch (Throwable) {
-            // No plugin list (install, CLI harness) simply means no contributed strategies;
-            // defaultAllocation() remains in charge.
+        foreach ($plugins->dispatchIsolated($event) as $failure) {
+            Log::add(
+                entry:    "InventoryService: allocation provider listener '{$failure->listener}' failed and was skipped: " . $failure->error->getMessage(),
+                priority: Log::ERROR,
+                category: 'com_alfa.inventory',
+            );
         }
 
         $chain = $event->getProviders();
@@ -5628,29 +5617,34 @@ final class InventoryService
     }
 
     /**
-     * Boot the package plugin group and dispatch an inventory event.
-     *
-     * BEFORE events veto by throwing: those exceptions PROPAGATE (they
-     * are the contract). Only the plugin-group import is shielded: in
-     * session-less contexts (CLI harnesses) the import cannot run and
-     * the event system is simply inert there; the web path is the real
-     * path.
+     * Raise a BEFORE inventory event on the shared dispatcher (2.2.0, mode A, a before phase), the alfa group imported
+     * first: a listener vetoes by throwing, and that exception PROPAGATES (it is the contract). With no application the
+     * event reaches the listeners already registered.
      *
      * @param AbstractEvent $event The event to dispatch.
-     *
      *
      * @since  2.0.0
      */
     private function dispatch(AbstractEvent $event): void
     {
-        try {
-            PluginHelper::importPlugin('alfa');
-            $dispatcher = Factory::getApplication()->getDispatcher();
-        } catch (Throwable) {
-            return;
-        }
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa');
+        $plugins->dispatch($event);
+    }
 
-        $dispatcher->dispatch($event->getName(), $event);
+    /**
+     * Raise an AFTER inventory event (2.2.0, mode A, an after phase, isolated): a listener's failure is logged with its
+     * name and the next listener runs; nothing reaches the command's caller.
+     *
+     * @param AbstractEvent $event The event.
+     *
+     * @since  2.2.0
+     */
+    private function raiseAfter(AbstractEvent $event): void
+    {
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa');
+        $plugins->dispatchIsolated($event);
     }
 
     /**
@@ -5673,7 +5667,7 @@ final class InventoryService
      */
     private function announce(string $label, AbstractEvent $event): void
     {
-        PostCommit::defer(db: $this->db, label: $label, work: fn () => $this->dispatch($event));
+        PostCommit::defer(db: $this->db, label: $label, work: fn () => $this->raiseAfter($event));
     }
 
     /**

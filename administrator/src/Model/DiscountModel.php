@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
@@ -305,7 +306,11 @@ class DiscountModel extends AlfaAdminModel
                 );
             }
 
-            $priceIndexSyncService->syncItems(array_keys(array_flip(array_merge($affectedItemIds, $previousAffectedItemIds))));
+            $priceIndexSyncService->syncItems(
+                array_keys(array_flip(array_merge($affectedItemIds, $previousAffectedItemIds))),
+                cause: PricesChangedEvent::CAUSE_DISCOUNT,
+                causeId: (int) $currentId,
+            );
         } catch (Throwable $syncException) {
             Log::add(
                 '[DiscountModel::save] Price index sync failed for discount ' . $currentId . ': ' . $syncException->getMessage(),
@@ -474,7 +479,7 @@ class DiscountModel extends AlfaAdminModel
         // so final_price may rise and discount_amount may drop back to 0.
         if (!empty($affectedItemIds)) {
             try {
-                $priceIndexSyncService->syncItems($affectedItemIds);
+                $priceIndexSyncService->syncItems($affectedItemIds, cause: PricesChangedEvent::CAUSE_DISCOUNT, causeId: \count($pks) === 1 ? (int) reset($pks) : 0);
             } catch (Throwable $syncException) {
                 Log::add(
                     '[DiscountModel::delete] Price index re-sync failed after deleting discounts: ' . $syncException->getMessage(),

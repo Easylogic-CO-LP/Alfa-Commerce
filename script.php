@@ -135,7 +135,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @var string
      */
-    public const SCHEMA_VERSION = '2.1.4';
+    public const SCHEMA_VERSION = '2.2.0';
 
     /**
      * Whether this run completes an install that never finished: preflight ran
@@ -237,6 +237,28 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_cart_rule_condition_values' => 'idx_id_condition',
         '#__alfa_cart_rules_users' => 'idx_rule_user',
         '#__alfa_cart_rules_usergroups' => 'idx_rule_group',
+    ];
+
+    /**
+     * The cache groups an update cleans once (2.2.0, A-C16-6): Joomla's page cache, where 2.1.4 could store a guest's
+     * completed order under the arrival address and serve it to the next guest, and every group the component writes
+     * (the dashboard's cards, the setup checks, the storefront's category tree, the integrity verdict and the
+     * throttles of the notices, the tasks and the stock effects), whose entries the version before computed. A
+     * group added to the component is added here; the release tests compare this list with the source.
+     *
+     * @var string[]
+     * @since 2.2.0
+     */
+    public const UPDATE_CACHE_GROUPS = [
+        'page',
+        'com_alfa.cards',
+        'com_alfa.setup',
+        'com_alfa.categories',
+        'com_alfa.collation',
+        'com_alfa.integrity',
+        'com_alfa.notifications',
+        'com_alfa.stockeffects',
+        'com_alfa.tasks',
     ];
 
     // Installer lifecycle hooks
@@ -489,6 +511,9 @@ class com_alfaInstallerScript extends InstallerScript
                 return false;
             }
         }
+
+        // Nothing is refused any more: the job runner waits until the update is done (2.2.0).
+        $this->pauseRunner();
 
         return true;
     }
@@ -1032,6 +1057,173 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
+     * The inventory console plugin goes on an update from before 2.2.0 (design 3.2): its one command,
+     * alfa:inventory:audit, is registered by plg_console_alfa under the same name. Joomla's installer uninstalls it;
+     * the message names its state: removed, not installed, or still installed (refused), the last as a warning that
+     * names where to uninstall it. A failure is said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.0
+     */
+    private function retireInventoryConsolePlugin(): void
+    {
+        $db    = Factory::getContainer()->get('DatabaseDriver');
+        $state = 'absent';
+
+        try
+        {
+            $extensionId = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('extension_id'))
+                    ->from($db->quoteName('#__extensions'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                    ->where($db->quoteName('folder') . ' = ' . $db->quote('console'))
+                    ->where($db->quoteName('element') . ' = ' . $db->quote('alfainventory'))
+            )->loadResult();
+
+            if ($extensionId > 0)
+            {
+                // The update's own removal: its message says so, and no warning about the plugin's data is raised (a
+                // class an older copy left loaded in this request lacks the method, and the warning then stays).
+                if (method_exists(\Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions::class, 'retiring'))
+                {
+                    \Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions::retiring(extensionId: $extensionId);
+                }
+
+                $installer = new Installer();
+                $installer->setDatabase($db);
+                $state = $installer->uninstall('plugin', $extensionId) ? 'removed' : 'kept';
+            }
+        }
+        catch (\Throwable $e)
+        {
+            $state = 'kept';
+        }
+
+        $plugin = $state === 'removed'
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed', values: [])
+            : ($state === 'kept'
+                ? $this->installerText(
+                    key:      'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_KEPT',
+                    fallback: 'still installed and no longer used: uninstall it in Extensions: Manage (System > Manage > Extensions)',
+                    values:   [],
+                )
+                : $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_ABSENT', fallback: 'not installed', values: []));
+        Factory::getApplication()->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_CONSOLE_PLUGIN_MOVED',
+            fallback: 'Alfa Commerce %1$s registers its console commands through the plugin "Console - Alfa Commerce":'
+                . ' alfa:inventory:audit keeps its name, so a cron line that runs it keeps working; the plugin'
+                . ' "Console - Alfa Inventory" %2$s.',
+            values:   [$this->packageVersion, $plugin],
+        ), $state === 'kept' ? 'warning' : 'message');
+    }
+
+    /**
+     * The update's step from the scheduled task to the job runner for the list prices of customer groups (2.2.0):
+     * every waiting set gets its price.set.prepare job, plg_task_alfapricesets is uninstalled through Joomla's
+     * installer, and any scheduled task of its routine left behind is deleted; each of the three on its own, so a
+     * failure of one never skips the next. A failure is said, never a failed update: the jobs are given again by the
+     * next request of a set, and Tools > Database Sync shows what waits. The message names the plugin's state:
+     * removed, not installed, or still installed (refused by Joomla's installer), the last as a warning that names
+     * where to uninstall it.
+     *
+     * @return  void
+     * @since   2.2.0
+     */
+    private function retirePriceSetsTask(): void
+    {
+        $app      = Factory::getApplication();
+        $db       = Factory::getContainer()->get('DatabaseDriver');
+        $failures = [];
+        $converted = 0;
+        $rows      = 0;
+        $state     = 'absent';
+
+        // Three steps, each on its own: a failure of one never skips the next.
+        try
+        {
+            $converted = (new \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService())->queueWaitingSets();
+        }
+        catch (\Throwable $e)
+        {
+            $failures[] = $e->getMessage();
+        }
+
+        try
+        {
+            $extensionId = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('extension_id'))
+                    ->from($db->quoteName('#__extensions'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                    ->where($db->quoteName('folder') . ' = ' . $db->quote('task'))
+                    ->where($db->quoteName('element') . ' = ' . $db->quote('alfapricesets'))
+            )->loadResult();
+
+            if ($extensionId > 0)
+            {
+                // The update's own removal: its message says so, and no warning about the plugin's data is raised (a
+                // class an older copy left loaded in this request lacks the method, and the warning then stays).
+                if (method_exists(\Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions::class, 'retiring'))
+                {
+                    \Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions::retiring(extensionId: $extensionId);
+                }
+
+                $installer = new Installer();
+                $installer->setDatabase($db);
+                $state = $installer->uninstall('plugin', $extensionId) ? 'removed' : 'kept';
+            }
+        }
+        catch (\Throwable $e)
+        {
+            $state      = 'kept';
+            $failures[] = $e->getMessage();
+        }
+
+        try
+        {
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->delete($db->quoteName('#__scheduler_tasks'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('alfapricesets.prepare'))
+            )->execute();
+            $rows = (int) $db->getAffectedRows();
+        }
+        catch (\Throwable $e)
+        {
+            $failures[] = $e->getMessage();
+        }
+
+        if ($failures !== [])
+        {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_PRICE_SETS_MOVE_FAILED',
+                fallback: 'Alfa Commerce %1$s could not finish moving the list prices of customer groups to its own background work: %2$s'
+                    . ' Tools > Database Sync shows the combinations that wait, and its button prepares them.',
+                values:   [$this->packageVersion, implode(' ', $failures)],
+            ), 'warning');
+        }
+
+        // A plugin that stayed reads in its scheduler routine what 2.2.0 removed: it must go by hand, said as a warning.
+        $plugin = $state === 'removed'
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed', values: [])
+            : ($state === 'kept'
+                ? $this->installerText(
+                    key:      'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_KEPT',
+                    fallback: 'still installed and no longer used: uninstall it in Extensions: Manage (System > Manage > Extensions)',
+                    values:   [],
+                )
+                : $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_ABSENT', fallback: 'not installed', values: []));
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_PRICE_SETS_MOVED',
+            fallback: 'Alfa Commerce %1$s prepares the list prices of customer groups in its own background work: %2$d waiting'
+                . ' combination(s) of customer groups moved to it, the plugin "Task - Alfa list prices for customer groups" %3$s,'
+                . ' %4$d scheduled task(s) of it removed.',
+            values:   [$this->packageVersion, $converted, $plugin, $rows],
+        ), $state === 'kept' ? 'warning' : 'message');
+    }
+
+    /**
      * An installer message in the site's language, falling back to English.
      *
      * A clean install has no com_alfa language file on disk when preflight runs,
@@ -1269,6 +1461,25 @@ class com_alfaInstallerScript extends InstallerScript
      */
     public function postflight($type, $parent): bool
     {
+        try {
+            return $this->postflightSteps(type: $type, parent: $parent);
+        } finally {
+            // Last, whatever the steps did (2.2.0).
+            $this->resumeRunner();
+        }
+    }
+
+    /**
+     * The steps of {@see self::postflight()}.
+     *
+     * @param   string  $type    Install route.
+     * @param   object  $parent  The installer adapter.
+     *
+     * @return  bool
+     * @since  2.2.0
+     */
+    private function postflightSteps($type, $parent): bool
+    {
         $type = $this->postflightType(type: $type);
 
         if (!in_array($type, ['install', 'update'], true))
@@ -1307,6 +1518,13 @@ class com_alfaInstallerScript extends InstallerScript
         if ($type === 'update')
         {
             $this->removeObsoleteFilesOnUpdate(parent: $parent);
+        }
+
+        // On update, what the version before cached is cleaned once (A-C16-6): a stored page or card it drew is never
+        // served by this version.
+        if ($type === 'update')
+        {
+            $this->cleanCachesOnUpdate();
         }
 
         // File integrity is verified online against the signed canonical checksums on the
@@ -1361,26 +1579,6 @@ class com_alfaInstallerScript extends InstallerScript
             Factory::getApplication()->enqueueMessage('Alfa guided tours seeding skipped: ' . $e->getMessage(), 'warning');
         }
 
-        // The scheduled task that prepares the list prices of new combinations of customer
-        // groups: without it a new combination is never prepared. Created enabled, every
-        // five minutes, unless a task of its routine exists (one the shop disabled stays so);
-        // the lazy scheduler runs it with no cron. The task plugin is installed by now. Joomla's
-        // own record, so it is made over an unfinished Clear everything too.
-        try
-        {
-            $taskId = \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService::ensurePreparationTask();
-
-            if ($taskId !== null)
-            {
-                $app->enqueueMessage(sprintf('Scheduled task #%d created: it prepares the list prices of customer groups every 5 minutes.', $taskId));
-            }
-        }
-        catch (\Throwable $e)
-        {
-            $app->enqueueMessage('The scheduled task that prepares the list prices of customer groups was not created: ' . $e->getMessage()
-                . ' Create one under System > Scheduled Tasks.', 'warning');
-        }
-
         // A Clear everything that has not finished (failed, stopped, or still at work: the installer is
         // never refused) may have left core's schema half made: the new files are in place, and Run again
         // makes the whole schema from this package's install SQL and takes the steps below then.
@@ -1403,6 +1601,35 @@ class com_alfaInstallerScript extends InstallerScript
         //    package's schema: say so among them.
         $this->completeLinkKeys();
         $this->recordSchemaVersion();
+
+        // The list prices of a new combination of customer groups are prepared by the job runner (2.2.0). On an update
+        // from an earlier release, after the Clear-everything check (core's tables must be whole): the sets the
+        // scheduled task left waiting become their jobs (each resumes from its checkpoint), the task's plugin goes
+        // through Joomla's installer, whose uninstall removes its scheduled tasks, and a task row of its routine left
+        // is deleted. One message gives the counts; a plugin still installed is said as a warning.
+        if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.0', '<'))
+        {
+            $this->retirePriceSetsTask();
+
+            // The console commands moved to plg_console_alfa (2.2.0): the inventory console plugin goes, its command
+            // keeping its name, so a server's cron line keeps working.
+            $this->retireInventoryConsolePlugin();
+        }
+
+        // The web cron's key (2.2.0): made when none is kept; nobody sees it, staff make the one they copy in
+        // Tools > Tasks. A failure is said, never a failed install: the web cron refuses every call until a key exists.
+        try
+        {
+            \Alfa\Component\Alfa\Administrator\Service\Task\RunnerCronKey::ensure();
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_CRON_KEY_FAILED',
+                fallback: 'Alfa Commerce %1$s could not make the web cron\'s key: %2$s The cron command still runs the background work.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+        }
 
         // 0b. Each shipping method owns its shipping taxes and the entry mode of its
         //     prices (2.1.0): the two former Options are moved onto every method once.
@@ -1569,6 +1796,21 @@ class com_alfaInstallerScript extends InstallerScript
                 '80d5742932fe0952fd19dbf10e155c9e14a1d50c816fd4c587289e7e41d1749b',
                 '0eebbb828b0f97ded189b9593d371d0e82ff1cb9ef676062927077f6fbefbca9',
             ],
+        ],
+        '2.2.0' => [
+            // Its events go through the plugin helper (src/Plugin/AlfaPluginHelper.php).
+            'administrator/components/com_alfa/src/Event/Admin/AlfaAdminDispatcher.php' => [
+                'cc0cd06974294fb3856f05e4c1b3c54d8231cab2b5bc3ba9c55096aac534b3d4',
+                'eca4a3b0575420a1cc78ed69e4c63f601f21d8872ae4ce226261a9a441b35c46',
+            ],
+            // Its query moved into the plugin helper's Joomla layer (src/Plugin/JoomlaPluginLayer.php).
+            'administrator/components/com_alfa/src/Service/Cart/CommercialPlugins.php' => [
+                '149b5e8278c2a4f912a6e2b0bc3ce9e7f6e05a5ea1248e59506968e66992e952',
+                '5dc0327b08cb3b7e54f58f5b2e6a1aa2f78fb48c61d152191af2957ffc756b2b',
+            ],
+            // A price row form nothing loaded (no form, model, field or premium extension named it); the item
+            // editor's prices are AlfapricesField's own editor. Its content hash (PackageHelper::contentHash()).
+            'administrator/components/com_alfa/forms/price.xml' => ['74af1fca867e1535090b791e348a19700ca2fcadda1de7f0c6dc093475dd3b4f'],
         ],
     ];
 
@@ -2187,6 +2429,83 @@ class com_alfaInstallerScript extends InstallerScript
 
         if ($languageProblem !== '') {
             $log(sprintf('%s: no obsolete language file was removed: %s.', $prefix, $languageProblem), \Joomla\CMS\Log\Log::WARNING);
+        }
+    }
+
+    /**
+     * Clean each of {@see self::UPDATE_CACHE_GROUPS} once, through Joomla's cache API, so whatever storage the site
+     * configured is cleaned. A group that cannot be cleaned is written to the maintenance log and the update goes on:
+     * its entries expire on their own.
+     *
+     * @return  void
+     * @since   2.2.0
+     */
+    private function cleanCachesOnUpdate(): void
+    {
+        foreach (self::UPDATE_CACHE_GROUPS as $group) {
+            try {
+                $cleaned = Factory::getContainer()
+                    ->get(\Joomla\CMS\Cache\CacheControllerFactoryInterface::class)
+                    ->createCacheController('callback', ['defaultgroup' => $group])
+                    ->cache
+                    ->clean($group);
+            } catch (\Throwable $e) {
+                $cleaned = false;
+                self::maintenanceLog(line: sprintf('Update to %s: the cache group %s could not be cleaned: %s', self::SCHEMA_VERSION, $group, $e->getMessage()), priority: \Joomla\CMS\Log\Log::WARNING);
+
+                continue;
+            }
+
+            if ($cleaned === false) {
+                self::maintenanceLog(line: sprintf('Update to %s: the cache group %s could not be cleaned.', self::SCHEMA_VERSION, $group), priority: \Joomla\CMS\Log\Log::WARNING);
+            }
+        }
+    }
+
+    /**
+     * Pause the job runner while the package is installed or updated (2.2.0): `runner.paused_until` in #__alfa_meta,
+     * now + 10 minutes by the database clock. Every tick returns at once while it lies ahead; postflight deletes it, and
+     * an update that dies half-way lets it expire. Nothing to pause when the Alfa tables are not there yet (a first
+     * install). A failure is logged and never refuses the install.
+     *
+     * @return  void
+     * @since   2.2.0
+     */
+    private function pauseRunner(): void
+    {
+        try {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+
+            if (!\in_array($db->getPrefix() . 'alfa_meta', $db->getTableList(), true)) {
+                return;
+            }
+
+            $db->setQuery(
+                'INSERT INTO ' . $db->quoteName('#__alfa_meta') . ' (' . $db->quoteName('name') . ', ' . $db->quoteName('value') . ')'
+                . " VALUES ('runner.paused_until', DATE_FORMAT(UTC_TIMESTAMP() + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s'))"
+                . ' ON DUPLICATE KEY UPDATE ' . $db->quoteName('value') . " = DATE_FORMAT(UTC_TIMESTAMP() + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s')",
+            )->execute();
+        } catch (\Throwable $e) {
+            \Joomla\CMS\Log\Log::add('Alfa Commerce: the job runner could not be paused for the update: ' . $e->getMessage(), \Joomla\CMS\Log\Log::WARNING, 'jerror');
+        }
+    }
+
+    /**
+     * End the pause of {@see self::pauseRunner()}. A failure is logged; the pause then expires on its own.
+     *
+     * @return  void
+     * @since   2.2.0
+     */
+    private function resumeRunner(): void
+    {
+        try {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+
+            if (\in_array($db->getPrefix() . 'alfa_meta', $db->getTableList(), true)) {
+                $db->setQuery('DELETE FROM ' . $db->quoteName('#__alfa_meta') . " WHERE " . $db->quoteName('name') . " = 'runner.paused_until'")->execute();
+            }
+        } catch (\Throwable $e) {
+            \Joomla\CMS\Log\Log::add('Alfa Commerce: the pause of the job runner could not be ended; it expires within ten minutes: ' . $e->getMessage(), \Joomla\CMS\Log\Log::WARNING, 'jerror');
         }
     }
 

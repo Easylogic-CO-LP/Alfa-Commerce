@@ -13,9 +13,12 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ShipmentResponseEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ShipmentWebhookEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use InvalidArgumentException;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 
@@ -39,6 +42,8 @@ use Joomla\CMS\Uri\Uri;
  */
 class ShipmentController extends BaseController
 {
+    use ProviderCallbacks;
+
     /**
      * The buyer's return from a carrier-hosted picker.
      *
@@ -60,20 +65,16 @@ class ShipmentController extends BaseController
         // an order this controller has no business loading.
         $shipmentType = $this->input->getCmd('method', '');
 
-        if ($shipmentType === '' || !PluginHelper::isEnabled('alfa-shipments', $shipmentType)) {
+        // The plugin the address names, booted through the plugin helper (2.2.0): never another one. A plugin that
+        // is disabled, missing or cannot be loaded is refused with a neutral message.
+        $plugins = AlfaPluginHelper::get();
+
+        try {
+            $shipmentPlugin = $plugins->bootSingle(PluginId::from('alfa-shipments', $shipmentType));
+        } catch (PluginUnavailable|InvalidArgumentException) {
             $app->enqueueMessage(Text::_('COM_ALFA_SHIPMENT_METHOD_MISSING'), 'error');
             // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
             $app->redirect(Uri::root());
-
-            return;
-        }
-
-        // The plugin may be uninstalled between checkout and return; a missing
-        // plugin must not fatal the buyer's return from the carrier.
-        $shipmentPlugin = $app->bootPlugin($shipmentType, 'alfa-shipments');
-
-        if (!method_exists($shipmentPlugin, 'onShipmentResponse')) {
-            $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
 
             return;
         }
@@ -86,7 +87,14 @@ class ShipmentController extends BaseController
             'method' => $shipmentType,
         ]);
 
-        $shipmentPlugin->onShipmentResponse($shipmentEvent);
+        if (!$plugins->declares($shipmentPlugin, 'onShipmentResponse')) {
+            $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
+
+            return;
+        }
+
+        // What leaves the handler is the handler's own failure (Joomla's error page, as before 2.2.0).
+        $plugins->dispatchTo($shipmentPlugin, $shipmentEvent);
 
         if ($shipmentEvent->hasRedirect()) {
             $app->redirect($shipmentEvent->getRedirectUrl());
@@ -108,8 +116,6 @@ class ShipmentController extends BaseController
      */
     public function webhook()
     {
-        $app = $this->app;
-
         // No CSRF token check: webhooks are posted by the carrier's server,
         // which cannot carry a Joomla session token. Authenticity is the
         // plugin's duty (carrier signature / shared secret / tracking API).
@@ -118,25 +124,8 @@ class ShipmentController extends BaseController
 
         $onWebhookShipmentEventName = 'onShipmentWebhook';
 
-        // bootPlugin() never consults enabled; a DISABLED carrier must be dead
-        // at its sessionless endpoint too, or disabling a compromised plugin
-        // would not close it.
-        if ($shipmentType === '' || !PluginHelper::isEnabled('alfa-shipments', $shipmentType)) {
-            $this->answerWebhook(404, 'Not found');
-
-            return;
-        }
-
-        $shipmentPlugin = $app->bootPlugin($shipmentType, 'alfa-shipments');
-
-        // bootPlugin() returns a DummyPlugin (never null) for a missing
-        // directory; method_exists is the only real existence test.
-        if (!method_exists($shipmentPlugin, $onWebhookShipmentEventName)) {
-            $this->answerWebhook(404, 'Not found');
-
-            return;
-        }
-
+        // A DISABLED plugin is refused at its sessionless endpoint (2.2.0: 503 with Retry-After, so the provider
+        // retries once it is enabled again, and an alert for staff), never handed the delivery.
         // subject = null, ALWAYS. A static webhook URL names no parcel, and the
         // only thing that can prove a message is genuine is the carrier's own
         // signature, which only the carrier's plugin knows how to check.
@@ -145,35 +134,8 @@ class ShipmentController extends BaseController
             'method' => $shipmentType,
         ]);
 
-        $shipmentPlugin->{$onWebhookShipmentEventName}($shipmentEvent);
-
-        $this->answerWebhook(
-            $shipmentEvent->getResponseCode(),
-            $shipmentEvent->getResponseBody(),
-            $shipmentEvent->getContentType(),
-        );
-    }
-
-    /**
-     * Emit a raw HTTP answer to the carrier and terminate the request.
-     *
-     * @param int $code HTTP status code
-     * @param string $body Response body
-     * @param string $contentType Content-Type header value
-     *
-     *
-     * @since  2.0.0
-     */
-    private function answerWebhook(int $code, string $body, string $contentType = 'text/plain; charset=utf-8'): void
-    {
-        $app = $this->app;
-
-        $app->setHeader('status', $code, true);
-        $app->setHeader('Content-Type', $contentType, true);
-        $app->sendHeaders();
-
-        echo $body;
-
-        $app->close();
+        // Delivered to the plugin of record only (2.2.0, design 2.15.5): unavailable, 503 with Retry-After and the
+        // alert; a handler that throws, 500; no webhook handler, 404. Never a 2xx for a delivery not processed.
+        $this->deliverWebhook('alfa-shipments', $shipmentType, $shipmentEvent);
     }
 }

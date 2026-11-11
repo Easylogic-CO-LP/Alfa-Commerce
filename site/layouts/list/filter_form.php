@@ -18,10 +18,12 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Search\SearchInputLayoutEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Joomla\CMS\Component\ComponentHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 
@@ -77,26 +79,45 @@ if ($searchField && $searchField->getAttribute('data-alfa-search')) {
           id="adminForm">
 
 		<?php
-		// THE CONFIGURED ENGINE MAY TAKE OVER THE INPUT: tier-specific frontend behaviour
-		// ships with the tier, never with the component. The click beacon is the concrete
-		// case: it consumes an attribution only the Enterprise engine ever issues, so the
-		// engine's own layout loads it from the PLUGIN's media; the component ships no
-		// script that 99% of installations could never use. With no listener (no search
-		// plugins installed, or none configured) this renders the stock searchtools input
-		// exactly as before. `method` carries the configured engine key, so exactly ONE
-		// plugin ever claims the input; redirects are deliberately not honoured here.
-		PluginHelper::importPlugin('alfa-search');
-
+		// THE CONFIGURED ENGINE MAY TAKE OVER THE INPUT: an engine's input rendering ships with
+		// the engine, never with the component. This renders the input only; an engine's
+		// consumer of the result set's attribution loads when the items view announces the
+		// result set (onAlfaResultSetRender). The question goes to the configured engine's
+		// plugin ALONE (2.2.0, mode B): no other listener can take the input. With no such
+		// plugin (the database search, an engine core ships itself, a plugin disabled or
+		// failing) this renders the stock searchtools input exactly as before. `method`
+		// carries the configured engine key; redirects are deliberately not honoured here.
 		$inputEvent = new SearchInputLayoutEvent('onAlfaSearchInputLayout', [
 			'subject' => $view,
 			'method'  => (string) ComponentHelper::getParams('com_alfa')->get('search_engine', 'database'),
 			// This layout serves several list views (items AND manufacturers today), so the
-			// surface travels with the question: a listener may dress them differently, or
+			// surface travels with the question: the engine may dress them differently, or
 			// claim only one.
 			'context' => 'com_alfa.' . $view->getName(),
 		]);
+		// The request's registry: the engines are discovered once per page, whoever asks (2.2.0).
+		$enginePlugin = SearchEngineRegistry::shared()->configuredPlugin();
 
-		Factory::getApplication()->getDispatcher()->dispatch($inputEvent->getName(), $inputEvent);
+		if ($enginePlugin !== null) {
+			$plugins = AlfaPluginHelper::get();
+
+			try {
+				$engine = $plugins->bootSingle($enginePlugin);
+			} catch (PluginUnavailable $unavailable) {
+				$engine = null;
+				Log::add('Search input: ' . $unavailable->getMessage() . ' The stock input renders.', Log::DEBUG, 'com_alfa.search');
+			}
+
+			// Anything leaving the engine's own handler is its failure: the stock input renders.
+			if ($engine !== null && $plugins->declares($engine, 'onAlfaSearchInputLayout')) {
+				try {
+					$plugins->dispatchTo($engine, $inputEvent);
+				} catch (Throwable $e) {
+					Log::add('Search input: ' . $enginePlugin . ' failed (' . $e::class . ': ' . $e->getMessage() . '); the stock input renders.', Log::WARNING, 'com_alfa.search');
+					$inputEvent = new SearchInputLayoutEvent('onAlfaSearchInputLayout', ['subject' => $view, 'method' => '', 'context' => 'com_alfa.' . $view->getName()]);
+				}
+			}
+		}
 
 		if ($inputEvent->getLayout() !== '') {
 			echo Layout::render(

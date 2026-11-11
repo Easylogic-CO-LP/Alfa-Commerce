@@ -19,6 +19,8 @@ use Joomla\CMS\HTML\Registry;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\Helper\AssociationsHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\JoomlaPluginLayer;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 
@@ -49,6 +51,9 @@ return new class implements ServiceProviderInterface
 		// Frontend language-switch associations (mod_languages / languagefilter).
 		$container->set(AssociationExtensionInterface::class, new AssociationsHelper());
 
+		// The single boundary to Joomla's plugin system (2.2.0, design 2.15.2): one helper per request.
+		$container->share(AlfaPluginHelper::class, static fn (): AlfaPluginHelper => new AlfaPluginHelper(new JoomlaPluginLayer()));
+
 		$container->set(
 			ComponentInterface::class,
 			function (Container $container)
@@ -59,6 +64,7 @@ return new class implements ServiceProviderInterface
 				$component->setMVCFactory($container->get(MVCFactoryInterface::class));
 				$component->setRouterFactory($container->get(RouterFactoryInterface::class));
 				$component->setAssociationExtension($container->get(AssociationExtensionInterface::class));
+				$component->setPluginHelper($container->get(AlfaPluginHelper::class));
 
 				return $component;
 			}

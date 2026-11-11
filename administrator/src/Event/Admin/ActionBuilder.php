@@ -23,7 +23,7 @@ use Joomla\Input\Input;
  * labelled thing that submits a task, so they share one builder and differ only in the event
  * that collects them.
  *
- *     $context->actions->action('resend')
+ *     $context->actions->action('alfa.mailer', 'resend')
  *         ->title('PLG_ALFA_NOTIFY_RESEND')
  *         ->icon('icon-mail')
  *         ->task('notify.resend')

@@ -19,27 +19,29 @@ use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\EntityChangeNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
+use Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailRecreation;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
-use Alfa\Component\Alfa\Administrator\Service\Projection\ItemFieldValueProjection;
-use Alfa\Component\Alfa\Administrator\Service\Projection\PriceProjection;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
-use Alfa\Component\Alfa\Administrator\Service\Search\CatalogDocumentSource;
 use Alfa\Component\Alfa\Administrator\Service\Search\ItemSearchProjection;
 use Alfa\Component\Alfa\Administrator\Service\Search\RebuildableEngine;
-use Alfa\Component\Alfa\Administrator\Service\Search\RebuildRunner;
 use Alfa\Component\Alfa\Administrator\Service\Search\RebuildStore;
-use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineInterface;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchScope;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\SearchRebuildJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\ThumbnailsRecreateJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskAttention;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskRetention;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\Router\Route;
 use Throwable;
 
 /**
@@ -89,38 +91,30 @@ final class CoreToolProvider
     public const OWNER_NAME = 'com_alfa';
 
     /**
-     * Items per chunk when rebuilding the catalogue projections.
+     * Core's contributor identity, group.element (2.2.0): the reserved owner, never booted as a plugin.
      *
-     * A request-time and memory bound on core's own work, unrelated to any engine's
-     * write batch: these projections have no engine to ask, which is precisely what
-     * distinguishes them from a search index.
+     * @since  2.2.0
+     */
+    public const ID = self::OWNER_GROUP . '.' . self::OWNER_NAME;
+
+    /**
+     * The wall-clock budget of one step of a tool that works a job (2.2.0), in milliseconds: the 2,000 ms tick on that
+     * job the progress of a job is fed by.
      *
      * @var int
      *
-     * @since  2.0.0
+     * @since  2.2.0
      */
-    private const PROJECTION_CHUNK = 200;
+    private const JOB_STEP_MS = 2000;
 
     /**
-     * Records per backfill chunk. Larger than the projection chunk because a backfill
-     * row is one INSERT of copied text, while a projection row fans out per language
-     * and per index.
+     * Records per backfill chunk: a backfill row is one INSERT of copied text.
      *
      * @var int
      *
      * @since  2.0.0
      */
     private const BACKFILL_CHUNK = 500;
-
-    /**
-     * Stock movements per chunk of the apply-outstanding action. Small, because each
-     * one can run a stock reconciliation and the inventory listeners behind it.
-     *
-     * @var int
-     *
-     * @since  2.0.0
-     */
-    private const STOCK_EFFECTS_CHUNK = 25;
 
     /**
      * The wall-clock budget of one chunk of Run outstanding tasks, in milliseconds.
@@ -170,7 +164,7 @@ final class CoreToolProvider
         // The setup checklist's manual re-run: an unknown surface id opens its own
         // Tools tab (ToolRegistry::extraSurfaces), so "Setup" appears without the
         // Tools template learning anything.
-        $event->add('setup.checklist', 'COM_ALFA_TOOLS_SETUP_TITLE')
+        $event->add(self::ID, 'setup.checklist', 'COM_ALFA_TOOLS_SETUP_TITLE')
             ->icon('checkbox')
             ->mutating()
             ->css('btn-secondary')
@@ -182,7 +176,7 @@ final class CoreToolProvider
         // The guided-tour pipeline: reseed makes the DB match the shipped JSON files
         // (what postflight does, on demand and forced); export writes the DB back to
         // the files: author visually in Guided Tours, export, commit.
-        $event->add('tours.reseed', 'COM_ALFA_TOOLS_TOURS_RESEED_TITLE')
+        $event->add(self::ID, 'tours.reseed', 'COM_ALFA_TOOLS_TOURS_RESEED_TITLE')
             ->icon('map-signs')
             ->mutating()
             ->css('btn-secondary')
@@ -191,7 +185,7 @@ final class CoreToolProvider
             ->meta('surface_label', 'COM_ALFA_TOOLS_TAB_SETUP')
             ->meta('description', 'COM_ALFA_TOOLS_TOURS_RESEED_DESC');
 
-        $event->add('tours.export', 'COM_ALFA_TOOLS_TOURS_EXPORT_TITLE')
+        $event->add(self::ID, 'tours.export', 'COM_ALFA_TOOLS_TOURS_EXPORT_TITLE')
             ->icon('download')
             ->mutating()
             ->css('btn-secondary')
@@ -200,7 +194,7 @@ final class CoreToolProvider
             ->meta('surface_label', 'COM_ALFA_TOOLS_TAB_SETUP')
             ->meta('description', 'COM_ALFA_TOOLS_TOURS_EXPORT_DESC');
 
-        $event->add('tools.users', 'COM_ALFA_TOOLS_USERS_TITLE')
+        $event->add(self::ID, 'tools.users', 'COM_ALFA_TOOLS_USERS_TITLE')
             ->icon('users')
             ->mutating()
             ->css('btn-secondary')
@@ -208,7 +202,7 @@ final class CoreToolProvider
             ->meta('surface', 'dbsync')
             ->meta('description', 'COM_ALFA_TOOLS_USERS_DESC');
 
-        $event->add('tools.languages', 'COM_ALFA_TOOLS_LANG_SCHEMA_TITLE')
+        $event->add(self::ID, 'tools.languages', 'COM_ALFA_TOOLS_LANG_SCHEMA_TITLE')
             ->icon('refresh')
             ->mutating()
             ->css('btn-primary')
@@ -216,7 +210,7 @@ final class CoreToolProvider
             ->meta('surface', 'dbsync')
             ->meta('description', 'COM_ALFA_TOOLS_LANG_SCHEMA_DESC');
 
-        $event->add('tools.backfill', 'COM_ALFA_TOOLS_BACKFILL_TITLE')
+        $event->add(self::ID, 'tools.backfill', 'COM_ALFA_TOOLS_BACKFILL_TITLE')
             ->icon('language')
             ->mutating()
             ->css('btn-warning')
@@ -225,7 +219,7 @@ final class CoreToolProvider
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_BACKFILL_DESC');
 
-        $event->add('tools.projections', 'COM_ALFA_TOOLS_PROJECTIONS_TITLE')
+        $event->add(self::ID, 'tools.projections', 'COM_ALFA_TOOLS_PROJECTIONS_TITLE')
             ->icon('refresh')
             ->mutating()
             ->css('btn-warning')
@@ -234,17 +228,43 @@ final class CoreToolProvider
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_PROJECTIONS_DESC');
 
-        // THE LIST PRICES OF A NEW COMBINATION OF CUSTOMER GROUPS are prepared by a scheduled
-        // task, never by the request that brought the combination. The card says what waits and
-        // how the task last ran; its button reads that again and prepares nothing.
+        // THE GALLERY'S THUMBNAILS RECREATED (2.2.0): one job, two modes, on the Media tab. "Missing" first, the
+        // everyday and safer one, for the images that have none, whose thumbnail is the full image, or whose thumbnail is
+        // smaller than the size allows; "all" after a change of the thumbnail size, asked first (UX-19, UX-91). Each
+        // button queues the job and opens its progress page.
+        $event->add(self::ID, 'media.thumbnails.missing', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_TITLE')
+            ->icon('images')
+            ->mutating()
+            ->css('btn-secondary')
+            ->priority(200)
+            ->meta('surface', 'media')
+            ->meta('chunked', true)
+            ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_DESC');
+
+        $event->add(self::ID, 'media.thumbnails.all', 'COM_ALFA_TOOLS_THUMBNAILS_ALL_TITLE')
+            ->icon('images')
+            ->mutating()
+            ->confirm('COM_ALFA_TOOLS_THUMBNAILS_ALL_CONFIRM')
+            ->css('btn-secondary')
+            ->priority(190)
+            ->meta('surface', 'media')
+            ->meta('chunked', true)
+            ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_ALL_DESC');
+
+        // THE LIST PRICES OF A NEW COMBINATION OF CUSTOMER GROUPS are prepared by its
+        // price.set.prepare job (2.2.0), never by the request that brought the combination. The
+        // card says what waits and how far each job is; its button works the waiting sets' jobs now.
         $priceSets = $this->priceSetsState();
 
-        $priceSetsAction = $event->add('pricing.groupsets', 'COM_ALFA_TOOLS_PRICE_SETS_TITLE')
-            ->icon('clock')
-            ->readOnly()
+        // The card names what it is about; its button says what it does, with the run buttons' icon (UX-22).
+        $priceSetsAction = $event->add(self::ID, 'pricing.groupsets', 'COM_ALFA_TOOLS_PRICE_SETS_TITLE')
+            ->icon('sync')
+            ->meta('button_label', 'COM_ALFA_TOOLS_PRICE_SETS_BTN')
+            ->mutating()
             ->css('btn-secondary')
             ->priority(95)
             ->meta('surface', 'dbsync')
+            ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_PRICE_SETS_DESC');
 
         if ($priceSets['owed']) {
@@ -263,7 +283,7 @@ final class CoreToolProvider
             // A count that fails must not remove the tool that fixes it.
         }
 
-        $stockAction = $event->add('inventory.effects', 'COM_ALFA_TOOLS_STOCK_EFFECTS_TITLE')
+        $stockAction = $event->add(self::ID, 'inventory.effects', 'COM_ALFA_TOOLS_STOCK_EFFECTS_TITLE')
             ->icon('loop')
             ->mutating()
             ->css($stockOwed ? 'btn-warning' : 'btn-secondary')
@@ -287,7 +307,7 @@ final class CoreToolProvider
             // A check that fails must not remove the tool that runs them.
         }
 
-        $tasksAction = $event->add('tasks.run', 'COM_ALFA_TOOLS_TASKS_RUN_TITLE')
+        $tasksAction = $event->add(self::ID, 'tasks.run', 'COM_ALFA_TOOLS_TASKS_RUN_TITLE')
             ->icon('loop')
             ->mutating()
             ->css($tasksOwed ? 'btn-warning' : 'btn-secondary')
@@ -299,6 +319,17 @@ final class CoreToolProvider
         if ($tasksOwed) {
             $tasksAction->meta('notice', 'COM_ALFA_TOOLS_TASKS_RUN_OWED');
         }
+
+        // FINISHED TASKS DELETED NOW (2.2.0): what the runner's hourly prune deletes, by the same rules
+        // (TaskRetention), until nothing they let go is left; the count of what went.
+        $event->add(self::ID, 'tasks.prune', 'COM_ALFA_TOOLS_TASKS_PRUNE_TITLE')
+            ->icon('trash')
+            ->mutating()
+            ->css('btn-secondary')
+            ->priority(90)
+            ->meta('surface', 'tasks')
+            ->meta('chunked', true)
+            ->meta('description', 'COM_ALFA_TOOLS_TASKS_PRUNE_DESC');
 
         // THE PRODUCT INDEX IS THE COMPONENT'S, so the button that rebuilds it is too. The engine
         // is asked only what the component cannot know: what to call this for the engine in use,
@@ -319,7 +350,7 @@ final class CoreToolProvider
                 // A diagnostic that fails must not remove the panel explaining the fix.
             }
 
-            $action = $event->add('search.rebuild', $engine->rebuildLabel())
+            $action = $event->add(self::ID, 'search.rebuild', $engine->rebuildLabel())
                 ->icon('search')
                 ->mutating()
                 ->css($owed ? 'btn-warning' : 'btn-secondary')
@@ -356,9 +387,12 @@ final class CoreToolProvider
             'tools.languages' => $this->syncLanguages($event),
             'tools.backfill' => $this->backfillTranslations($event),
             'tools.projections' => $this->rebuildProjections($event),
-            'pricing.groupsets' => $event->setMessage($this->priceSetsState()['text']),
+            'media.thumbnails.all' => $this->recreateThumbnails(event: $event, mode: ThumbnailRecreation::MODE_ALL),
+            'media.thumbnails.missing' => $this->recreateThumbnails(event: $event, mode: ThumbnailRecreation::MODE_MISSING),
+            'pricing.groupsets' => $this->preparePriceSets($event),
             'inventory.effects' => $this->applyStockEffects($event),
             'tasks.run' => $this->runOutstandingTasks($event),
+            'tasks.prune' => $this->pruneFinishedTasks($event),
             'setup.checklist' => $this->refreshSetupChecklist($event),
             'tours.reseed' => $this->reseedTours($event),
             'tours.export' => $this->exportTours($event),
@@ -369,12 +403,10 @@ final class CoreToolProvider
     /**
      * Apply every stock movement an order or a document still owes.
      *
-     * This is what the notification centre sends the merchant to, in place of a scheduled
-     * task. The plan is a count, for the progress bar only; control flow is the drain. A
-     * chunk that settles nothing (applies nothing and refuses nothing) ends the run,
-     * because a movement that failed a moment ago is claimable again at once and would
-     * otherwise be retried for ever. Finishing retires the warnings whose movement is no
-     * longer owed.
+     * This is what the notification centre sends the merchant to. The plan owes the
+     * stock.effects.drain job (2.2.0); each step works that job for a moment
+     * ({@see self::stepJob()}), whose own rules end the run (a chunk that settles nothing)
+     * and retire the warnings whose movement is no longer owed.
      *
      * A movement the inventory service refused (an order line with no stock identity to
      * move against) is settled for good by the chunk that met it, so it counts as
@@ -391,43 +423,24 @@ final class CoreToolProvider
     {
         try {
             if ($event->isPlanning()) {
+                $joined = self::activeJob(scope: StockEffectsDrainJob::NAME) !== null;
+                StockEffectsDrainJob::enqueue();
                 $event->setTotal(max(1, InventoryEffectOutbox::outstandingCount()));
+                self::followJob(event: $event, scope: StockEffectsDrainJob::NAME, joined: $joined);
 
                 return;
             }
 
-            // The effects dispatch events the `alfa` group listens to; a listener that is
-            // not imported silently misses the movement.
-            PluginHelper::importPlugin('alfa');
+            $this->stepJob(event: $event, scope: StockEffectsDrainJob::NAME, done: static function (): string {
+                $remaining = InventoryEffectOutbox::outstandingCount();
+                $message = $remaining === 0
+                    ? Text::_('COM_ALFA_TOOLS_STOCK_EFFECTS_DONE')
+                    : Text::sprintf('COM_ALFA_TOOLS_STOCK_EFFECTS_REMAINING', $remaining);
+                // Refused movements are never claimed again; every one on record is reported on its own.
+                $refused = InventoryEffectOutbox::refusedCount();
 
-            $offset = $event->getOffset();
-            $stats = InventoryEffectOutbox::drain(limit: self::STOCK_EFFECTS_CHUNK);
-            $remaining = InventoryEffectOutbox::outstandingCount();
-
-            $event->setTotal($offset + $stats['claimed'] + $remaining);
-
-            if (($stats['applied'] + $stats['refused']) > 0 && $remaining > 0) {
-                $event->setNextOffset($offset + $stats['claimed']);
-
-                return;
-            }
-
-            InventoryEffectOutbox::doSyncNotice();
-
-            $message = $remaining === 0
-                ? Text::_('COM_ALFA_TOOLS_STOCK_EFFECTS_DONE')
-                : Text::sprintf('COM_ALFA_TOOLS_STOCK_EFFECTS_REMAINING', $remaining);
-
-            // Refused movements are never claimed again, so $remaining and later
-            // plans leave them out; every one on record is reported on its own.
-            $refused = InventoryEffectOutbox::refusedCount();
-
-            if ($refused > 0) {
-                $message .= ' ' . Text::sprintf('COM_ALFA_TOOLS_STOCK_EFFECTS_REFUSED', $refused);
-            }
-
-            $event->setMessage($message);
-            $event->setRefresh();
+                return $refused > 0 ? $message . ' ' . Text::sprintf('COM_ALFA_TOOLS_STOCK_EFFECTS_REFUSED', $refused) : $message;
+            });
         } catch (Throwable $e) {
             $event->setError($e->getMessage());
         }
@@ -487,6 +500,44 @@ final class CoreToolProvider
     }
 
     /**
+     * Delete the finished tasks the retention rules let go (TaskRetention), a chunk of at most a few seconds at a
+     * time, until none is left. The plan is the count they let go now, for the progress bar; the message says how many
+     * went.
+     *
+     * @param ExecuteToolActionEvent $event The tool request.
+     *
+     * @since  2.2.0
+     */
+    private function pruneFinishedTasks(ExecuteToolActionEvent $event): void
+    {
+        try {
+            if ($event->isPlanning()) {
+                $event->setTotal(max(1, TaskRetention::eligibleCount()));
+
+                return;
+            }
+
+            $offset = $event->getOffset();
+            $deleted = TaskRetention::prune(budgetMs: self::TASKS_CHUNK_MS);
+            $remaining = $deleted > 0 ? TaskRetention::eligibleCount() : 0;
+
+            $event->setTotal($offset + $deleted + $remaining);
+
+            if ($deleted > 0 && $remaining > 0) {
+                $event->setNextOffset($offset + $deleted);
+
+                return;
+            }
+
+            $total = $offset + $deleted;
+            $event->setMessage($total === 0 ? Text::_('COM_ALFA_TOOLS_TASKS_PRUNE_NONE') : Text::plural('COM_ALFA_TOOLS_TASKS_PRUNE_DONE', $total));
+            $event->setRefresh();
+        } catch (Throwable $e) {
+            $event->setError($e->getMessage());
+        }
+    }
+
+    /**
      * Rebuild the projections the CATALOGUE owns, and only those.
      *
      * DELIBERATELY SAYS NOTHING ABOUT SEARCH. Price and field-value indexes exist in
@@ -496,10 +547,9 @@ final class CoreToolProvider
      * and if core also claimed to rebuild it, an administrator would face two buttons
      * asserting the same job, with a second engine adding a third.
      *
-     * Both projections are in-place overwrites with no build state: the rows ARE
-     * the state, so a chunk that fails leaves the previous rows rather than a lie, and
-     * the next save self-heals the gap. That is why this needs no checkpoint table
-     * while a search rebuild does.
+     * Every item is marked owed a rebuild (#__alfa_items.projection_dirty_at, ranges of
+     * 1,000 ids) and the catalogue.rebuild job is owed (2.2.0); each step works that job for
+     * a moment ({@see self::stepJob()}). The job clears each mark as its item is rebuilt.
      *
      * @param ExecuteToolActionEvent $event The execution event.
      *
@@ -509,51 +559,148 @@ final class CoreToolProvider
     private function rebuildProjections(ExecuteToolActionEvent $event): void
     {
         try {
-            $db = Factory::getContainer()->get('DatabaseDriver');
-            $total = (int) $db->setQuery(
-                $db->getQuery(true)->select('COUNT(*)')->from($db->quoteName('#__alfa_items')),
-            )->loadResult();
-
             if ($event->isPlanning()) {
-                $event->setTotal($total);
+                $joined = self::activeJob(scope: CatalogueRebuildJob::NAME) !== null;
+                ProjectionManager::markAllForRebuild();
+                CatalogueRebuildJob::enqueue();
+                $event->setTotal(max(1, ProjectionManager::markedCount()));
+                self::followJob(event: $event, scope: CatalogueRebuildJob::NAME, joined: $joined);
 
                 return;
             }
 
-            $offset = $event->getOffset();
-
-            $ids = array_map('intval', (array) $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName('id'))
-                    ->from($db->quoteName('#__alfa_items'))
-                    ->order($db->quoteName('id') . ' ASC'),
-                $offset,
-                self::PROJECTION_CHUNK,
-            )->loadColumn());
-
-            if ($ids !== []) {
-                (new ProjectionManager([new PriceProjection(), new ItemFieldValueProjection()]))->syncItems($ids);
-            }
-
-            $next = $offset + self::PROJECTION_CHUNK;
-
-            $event->setTotal($total);
-
-            if ($next < $total) {
-                $event->setNextOffset($next);
-
-                return;
-            }
-
-            $event->setMessage(Text::sprintf('COM_ALFA_TOOLS_PROJECTIONS_DONE', $total));
+            $this->stepJob(event: $event, scope: CatalogueRebuildJob::NAME, done: static fn (array $job): string => Text::sprintf('COM_ALFA_TOOLS_PROJECTIONS_DONE', $job['done']));
         } catch (Throwable $e) {
             $event->setError($e->getMessage());
         }
     }
 
     /**
+     * Recreate the gallery's thumbnails in a mode (2.2.0): the plan asks for the job
+     * (ThumbnailRecreation::request(), "all" winning over "missing") and opens its progress page; each step works the
+     * job for a moment ({@see self::stepJob()}), its report the message when it is done.
+     *
+     * @param ExecuteToolActionEvent $event The tool request.
+     * @param string $mode ThumbnailRecreation::MODE_ALL or ThumbnailRecreation::MODE_MISSING.
+     *
+     * @since  2.2.0
+     */
+    private function recreateThumbnails(ExecuteToolActionEvent $event, string $mode): void
+    {
+        try {
+            if ($event->isPlanning()) {
+                $joined = self::activeJob(scope: ThumbnailsRecreateJob::NAME) !== null;
+                ThumbnailRecreation::request(mode: $mode);
+                $event->setTotal(max(1, ThumbnailRecreation::rowCount()));
+                self::followJob(event: $event, scope: ThumbnailsRecreateJob::NAME, joined: $joined);
+
+                return;
+            }
+
+            $this->stepJob(event: $event, scope: ThumbnailsRecreateJob::NAME, done: static function (array $job): string {
+                $report = ThumbnailRecreation::lastReport() ?? ThumbnailRecreation::emptyReport();
+
+                return Text::sprintf('COM_ALFA_TOOLS_THUMBNAILS_DONE', (int) $report['made'], (int) $report['kept'], (int) $report['missing'], (int) $report['failed']);
+            });
+        } catch (Throwable $e) {
+            $event->setError($e->getMessage());
+        }
+    }
+
+    /**
+     * Prepare the waiting sets of customer groups now: each step works the oldest waiting set's job for a moment, until
+     * no set waits.
+     *
+     * @param ExecuteToolActionEvent $event The tool request.
+     *
+     * @since  2.2.0
+     */
+    private function preparePriceSets(ExecuteToolActionEvent $event): void
+    {
+        try {
+            $waiting = PriceIndexSyncService::preparationState()['waiting'];
+
+            if ($event->isPlanning()) {
+                (new PriceIndexSyncService())->queueWaitingSets();
+                $event->setTotal(max(1, array_sum(array_map(static fn (array $set): int => $set['products'] - $set['done'], $waiting))));
+
+                return;
+            }
+
+            $next = null;
+
+            foreach ($waiting as $set) {
+                if (\in_array($set['job']['state'] ?? '', [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) {
+                    $next = $set['job'];
+
+                    break;
+                }
+            }
+
+            if ($next !== null) {
+                $tick = Runner::tick(trigger: 'tools', budgetMs: self::JOB_STEP_MS, onlyJob: $next['id']);
+
+                if ($tick->chunks > 0) {
+                    $event->setNextOffset($event->getOffset() + max(1, $tick->units));
+
+                    return;
+                }
+            }
+
+            $event->setMessage($this->priceSetsState()['text']);
+            $event->setRefresh();
+        } catch (Throwable $e) {
+            $event->setError($e->getMessage());
+        }
+    }
+
+    /**
+     * One step of a tool that works a job (2.2.0): a tick on the scope's newest job, then its progress for the bar.
+     * The tool's request goes on while the job advances; it ends when the job is done (the message the tool gives),
+     * failed, or could not advance now (its retry waits, or another tick holds it), each said in the message.
+     *
+     * @param ExecuteToolActionEvent $event The tool request.
+     * @param string $scope The job's scope.
+     * @param callable(array{id: int, state: string, done: int, total: int, error: string}): string $done The message when the job is done.
+     *
+     * @since  2.2.0
+     */
+    private function stepJob(ExecuteToolActionEvent $event, string $scope, callable $done): void
+    {
+        $job = Runner::latestJob(scopeKey: $scope);
+        $tick = null;
+
+        if ($job !== null && \in_array($job['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) {
+            $tick = Runner::tick(trigger: 'tools', budgetMs: self::JOB_STEP_MS, onlyJob: $job['id']);
+            $job = Runner::latestJob(scopeKey: $scope) ?? $job;
+        }
+
+        if ($job === null) {
+            $event->setTotal(0);
+
+            return;
+        }
+
+        $event->setTotal(max($job['total'], $job['done'] + 1));
+
+        if (\in_array($job['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) && $tick !== null && $tick->chunks > 0) {
+            $event->setNextOffset(max($event->getOffset() + 1, $job['done']));
+
+            return;
+        }
+
+        $label = Text::_((string) Runner::handler(name: explode(':', $scope)[0])?->policy()->label);
+        $event->setMessage(match ($job['state']) {
+            Tasks::STATE_DONE => $done($job),
+            Tasks::STATE_FAILED => Text::sprintf('COM_ALFA_TOOLS_JOB_FAILED', $label, $job['error']),
+            default => Text::sprintf('COM_ALFA_TOOLS_JOB_WAITS', $label, $job['error'] !== '' ? $job['error'] : Text::_('COM_ALFA_TOOLS_JOB_HELD_ELSEWHERE')),
+        });
+        $event->setRefresh();
+    }
+
+    /**
      * What the staff are told of the list prices of customer-group combinations: the ones that
-     * wait for the scheduled task, the task's last run, and whether an enabled task runs it on a schedule.
+     * wait for their job, how far each is, and the products a preparation left out.
      *
      * @return array{owed: bool, text: string} Whether it asks for the merchant's eye, and what it says.
      *
@@ -600,25 +747,7 @@ final class CoreToolProvider
             $parts[] = Text::sprintf('COM_ALFA_TOOLS_PRICE_SETS_LEFT_OUT', \count($state['leftOut']), implode(', ', \array_slice($state['leftOut'], 0, 10)));
         }
 
-        if ($state['lastRun'] === null) {
-            $parts[] = Text::_('COM_ALFA_TOOLS_PRICE_SETS_NEVER_RUN');
-        } else {
-            $parts[] = Text::sprintf(
-                match ($state['lastRun']['exit']) {
-                    0 => 'COM_ALFA_TOOLS_PRICE_SETS_LAST_RUN_OK',
-                    123 => 'COM_ALFA_TOOLS_PRICE_SETS_LAST_RUN_RESUME',
-                    default => 'COM_ALFA_TOOLS_PRICE_SETS_LAST_RUN_FAILED',
-                },
-                HTMLHelper::_('date', $state['lastRun']['at'], Text::_('DATE_FORMAT_LC2')),
-                $state['lastRun']['exit'],
-            );
-        }
-
-        if ($state['scheduledTasks'] === 0) {
-            $parts[] = Text::_('COM_ALFA_TOOLS_PRICE_SETS_NO_TASK');
-        }
-
-        return ['owed' => $state['waiting'] !== [] || $state['leftOut'] !== [] || $state['scheduledTasks'] === 0, 'text' => implode(' ', $parts)];
+        return ['owed' => $state['waiting'] !== [] || $state['leftOut'] !== [], 'text' => implode(' ', $parts)];
     }
 
     /**
@@ -965,10 +1094,11 @@ final class CoreToolProvider
     }
 
     /**
-     * Run the search-index rebuild, one chunk per request.
+     * Rebuild the search index of the configured engine: the plan owes the search.rebuild job of that engine (2.2.0);
+     * each step works it for a moment ({@see self::stepJob()}). The job opens the new generation, walks the catalogue
+     * into it and activates it once, in its last chunk.
      *
      * @param ExecuteToolActionEvent $event The execution event.
-     *
      *
      * @since  2.0.0
      */
@@ -977,145 +1107,76 @@ final class CoreToolProvider
         try {
             $engine = (new SearchEngineRegistry())->configured();
 
-            if ($engine === null) {
+            if (!$engine instanceof RebuildableEngine) {
                 $event->setError(Text::sprintf('COM_ALFA_SEARCH_REBUILD_FAILED', 'no configured engine'));
 
                 return;
             }
 
-            $store = new RebuildStore();
-            $runner = new RebuildRunner(new CatalogDocumentSource(), $engine->indexer());
-
             if ($event->isPlanning()) {
-                $this->beginRebuild($engine, $store, $runner, $event);
+                $joined = self::activeJob(scope: SearchRebuildJob::scopeFor(engine: $engine->key())) !== null;
+                SearchRebuildJob::enqueueFor(engine: $engine->key());
+                $event->setTotal(max(1, (new RebuildStore())->current($engine->key())->total ?? 1));
+                self::followJob(event: $event, scope: SearchRebuildJob::scopeFor(engine: $engine->key()), joined: $joined);
 
                 return;
             }
 
-            $this->advanceRebuild($engine, $store, $runner, $event);
+            $this->stepJob(event: $event, scope: SearchRebuildJob::scopeFor(engine: $engine->key()), done: static function (array $job): string {
+                $scope = self::scopeLabels(parts: SearchScope::fromConfig()->enabled());
+
+                return Text::sprintf('COM_ALFA_SEARCH_REBUILD_DONE', $job['done'], $scope === [] ? Text::_('COM_ALFA_SEARCH_REBUILD_CORE_ONLY') : implode(', ', $scope));
+            });
         } catch (Throwable $e) {
             $event->setError(Text::sprintf('COM_ALFA_SEARCH_REBUILD_FAILED', $e->getMessage()));
         }
     }
 
     /**
-     * How long to wait for an asynchronous engine to drain before activation.
+     * Send the Tools screen to the progress page of the job just queued for a scope (Tools > Tasks, &job=N), whose
+     * 2-second ticks follow it to its end. A request that joined a job already waiting or running (2.6.4: it merges
+     * into that job) is told so, by the job's state, in the message area of the page that opens (2.2.0, entry 20, the
+     * owner's s118, UX-85 and UX-86): a button pressed again never just goes grey.
      *
-     * @return float Seconds.
+     * @param ExecuteToolActionEvent $event The tool request.
+     * @param string $scope The job's scope.
+     * @param bool $joined Whether a job of the scope was waiting or running before this request.
      *
-     * @since  2.0.0
+     * @since  2.2.0
      */
-    private function rebuildTimeout(): float
+    private static function followJob(ExecuteToolActionEvent $event, string $scope, bool $joined = false): void
     {
-        return 30.0;
-    }
+        $job = Runner::latestJob(scopeKey: $scope);
 
-    /**
-     * Open a generation and report how much work it represents.
-     *
-     * The planning pass is the ONE call the client makes exactly once, which makes it
-     * the only place a generation can be opened without racing a retried chunk.
-     *
-     * @param SearchEngineInterface $engine The engine.
-     * @param RebuildStore $store Durable checkpoint.
-     * @param RebuildRunner $runner Core's rebuild algorithm.
-     * @param ExecuteToolActionEvent $event The execution event.
-     *
-     *
-     * @since  2.0.0
-     */
-    private function beginRebuild(
-        SearchEngineInterface $engine,
-        RebuildStore $store,
-        RebuildRunner $runner,
-        ExecuteToolActionEvent $event,
-    ): void {
-        $progress = $runner->start();
-
-        try {
-            $store->open($engine->key(), $progress);
-        } catch (Throwable $e) {
-            // The slot was taken (a rebuild is already running, 409) or the
-            // checkpoint could not be written. Without this, the generation opened
-            // one line up stays pending forever, and pending generations receive
-            // every future live write through writeTargets().
-            $runner->discard($progress);
-
-            throw $e;
-        }
-
-        // AN EMPTY CATALOGUE FINISHES HERE. With zero records the client's chunk loop
-        // never runs, so a generation opened now would stay pending forever, with the
-        // checkpoint holding the engine's rebuild slot until it goes stale. Walking
-        // the empty stream to completion is one step, and ACTIVATING the empty
-        // generation is correct rather than defensive: an emptied catalogue is
-        // correctly served by an empty index, and readiness already knows the
-        // difference between "empty because the shop is empty" and "empty because
-        // never built".
-        if ($progress->total === 0) {
-            $progress = $runner->step($progress);
-            $runner->finish($progress, $this->rebuildTimeout(), $store->writtenDuringRebuild($engine->key()));
-            $store->close($engine->key());
-        }
-
-        $event->setTotal($progress->total);
-    }
-
-    /**
-     * Advance the walk by one chunk, and finish when it runs dry.
-     *
-     * THE CLIENT'S OFFSET IS IGNORED, deliberately. The browser counts records
-     * processed so it can draw a bar; the position the walk actually resumes from is
-     * a keyset cursor held in the checkpoint. Trusting the client's number would make
-     * a retried request re-walk from a stale point, and would put a resumable
-     * operation's correctness in the hands of a page that may have been reloaded.
-     *
-     * @param SearchEngineInterface $engine The engine.
-     * @param RebuildStore $store Durable checkpoint.
-     * @param RebuildRunner $runner Core's rebuild algorithm.
-     * @param ExecuteToolActionEvent $event The execution event.
-     *
-     *
-     * @since  2.0.0
-     */
-    private function advanceRebuild(
-        SearchEngineInterface $engine,
-        RebuildStore $store,
-        RebuildRunner $runner,
-        ExecuteToolActionEvent $event,
-    ): void {
-        $progress = $store->current($engine->key());
-
-        if ($progress === null) {
-            // Nothing in flight: the checkpoint was cleared, or this is a stray call
-            // after completion. Reporting done is honest and idempotent.
-            $event->setTotal(0);
-
+        if ($job === null) {
             return;
         }
 
-        $progress = $runner->step($progress);
-        $store->save($engine->key(), $progress);
+        $event->setLocation(Route::_('index.php?option=com_alfa&view=tools&job=' . (int) $job['id'], false) . '#tasks');
 
-        if (!$progress->enumerated) {
-            $event->setTotal($progress->total)->setNextOffset($progress->processed);
-
-            return;
-        }
-
-        // Reconcile against everything saved while the walk was running, then let core
-        // decide whether the generation may serve. The plugin never makes that call.
-        $runner->finish($progress, $this->rebuildTimeout(), $store->writtenDuringRebuild($engine->key()));
-        $store->close($engine->key());
-
-        $scope = self::scopeLabels(parts: SearchScope::fromConfig()->enabled());
-
-        $event->setTotal($progress->total)
-            ->setMessage(Text::sprintf(
-                'COM_ALFA_SEARCH_REBUILD_DONE',
-                $progress->processed,
-                $scope === [] ? Text::_('COM_ALFA_SEARCH_REBUILD_CORE_ONLY') : implode(', ', $scope),
+        if ($joined && \in_array($job['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) {
+            $event->setMessage(Text::sprintf(
+                $job['state'] === Tasks::STATE_RUNNING ? 'COM_ALFA_TOOLS_JOB_JOINED_RUNNING' : 'COM_ALFA_TOOLS_JOB_JOINED_WAITING',
+                Text::_((string) Runner::handler(name: explode(':', $scope)[0])?->policy()->label),
             ));
+        }
+    }
+
+    /**
+     * The job of a scope that is waiting or running now, or null: asked before a plan queues work, so a request that
+     * joins it is told so ({@see self::followJob()}).
+     *
+     * @param string $scope The job's scope.
+     *
+     * @return array{id: int, state: string, done: int, total: int, error: string}|null
+     *
+     * @since  2.2.0
+     */
+    private static function activeJob(string $scope): ?array
+    {
+        $job = Runner::latestJob(scopeKey: $scope);
+
+        return $job !== null && \in_array($job['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) ? $job : null;
     }
 
     /**

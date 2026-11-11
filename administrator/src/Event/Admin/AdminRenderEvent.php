@@ -28,7 +28,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *         }
  *
  *         $context = $event->getAdminContext();
- *         $context->append(LayoutHelper::render('plugins.alfa.fraud.panel', ['order' => $context->item]));
+ *         $context->append('alfa.fraud', LayoutHelper::render('plugins.alfa.fraud.panel', ['order' => $context->item]));
  *     }
  *
  * Fires once per slot, and every contribution is APPENDED in plugin order; nobody replaces

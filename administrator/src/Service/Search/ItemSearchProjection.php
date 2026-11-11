@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -37,6 +38,15 @@ use Throwable;
  */
 class ItemSearchProjection implements ProjectionInterface
 {
+    /**
+     * The coordinator's key for a write with nowhere to go: no search engine on the shop, or an engine with no
+     * writable generation yet. Nothing an item's rebuild can write: the search index's own rebuild (search.rebuild)
+     * builds it, so it is logged and never fails an item's rebuild.
+     *
+     * @since  2.2.0
+     */
+    private const NO_TARGET = 'engine';
+
     /** @var DatabaseInterface */
     private $db;
 
@@ -75,34 +85,87 @@ class ItemSearchProjection implements ProjectionInterface
         }
 
         try {
-            $documents = [];
-            $obsolete = [];
-
-            foreach ($this->languages() as $language) {
-                $document = $this->builder->buildDocument($itemId, $language->storageKey());
-
-                // Null means "must not be indexed" (unpublished, or nothing
-                // searchable). Remove the document rather than storing a blank one,
-                // so presence in the index always means findable.
-                if ($document === null) {
-                    $obsolete[] = DocumentId::forItem(itemId: $itemId, language: $language);
-
-                    continue;
-                }
-
-                $documents[] = $document;
-            }
-
-            if ($documents !== []) {
-                $this->report($this->coordinator->write($documents), 'syncItem(' . $itemId . ')');
-            }
-
-            if ($obsolete !== []) {
-                $this->report($this->coordinator->delete($obsolete), 'syncItem(' . $itemId . ')');
+            foreach ($this->writeItem(itemId: $itemId) as $result) {
+                $this->report($result, 'syncItem(' . $itemId . ')');
             }
         } catch (Throwable $e) {
             $this->logWarning('syncItem(' . $itemId . ') failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Write the search entries of several items and let a failure reach the caller (2.2.0, the manager's rebuilds):
+     * an engine that throws, or that refuses a document, fails the call, so the manager keeps the item marked and owes
+     * its rebuild to the catalogue job instead of clearing a mark the engine never matched. A shop with no engine, or
+     * an engine with no writable generation, has nothing to write an item into: logged, never a failure.
+     *
+     * @param int[] $itemIds The item primary keys.
+     *
+     * @throws RuntimeException A document the engine refused, named with its reason.
+     * @throws Throwable What the builder or the engine threw.
+     *
+     * @since  2.2.0
+     */
+    public function syncItemsOrFail(array $itemIds): void
+    {
+        foreach (array_values(array_unique(array_filter(array_map('intval', $itemIds)))) as $itemId) {
+            foreach ($this->writeItem(itemId: $itemId) as $result) {
+                $this->report($result, 'syncItemsOrFail(' . $itemId . ')');
+                $refused = array_diff_key($result->failures, [self::NO_TARGET => true]);
+
+                if ($refused !== []) {
+                    $key = (string) array_key_first($refused);
+
+                    throw new RuntimeException(
+                        'The search engine refused ' . \count($refused) . ' document(s) of item ' . $itemId
+                        . ' (first "' . $key . '": ' . $refused[$key] . ').',
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Hand one item's entries to the coordinator: its document in each content language written, and removed where it
+     * must not be indexed (unpublished, or nothing searchable), so presence in the index always means findable.
+     *
+     * @param int $itemId The item.
+     *
+     * @return IndexWriteResult[] What the engine answered, a write and a removal at most.
+     *
+     * @throws Throwable What the builder or the engine threw.
+     *
+     * @since  2.2.0
+     */
+    private function writeItem(int $itemId): array
+    {
+        $documents = [];
+        $obsolete = [];
+
+        foreach ($this->languages() as $language) {
+            $document = $this->builder->buildDocument($itemId, $language->storageKey());
+
+            // Null means "must not be indexed": remove the document rather than storing a blank one.
+            if ($document === null) {
+                $obsolete[] = DocumentId::forItem(itemId: $itemId, language: $language);
+
+                continue;
+            }
+
+            $documents[] = $document;
+        }
+
+        $results = [];
+
+        if ($documents !== []) {
+            $results[] = $this->coordinator->write($documents);
+        }
+
+        if ($obsolete !== []) {
+            $results[] = $this->coordinator->delete($obsolete);
+        }
+
+        return $results;
     }
 
     /**

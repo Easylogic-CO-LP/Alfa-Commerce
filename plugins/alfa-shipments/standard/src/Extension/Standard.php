@@ -908,6 +908,17 @@ final class Standard extends ShipmentsPlugin
      */
     public function onExecuteAction($event): void
     {
+        // Every action that writes acts only on a shipment this plugin wrote (2.2.0): a parcel of another carrier, or
+        // one this plugin's name was never recorded on, is refused before anything is read or written.
+        $shipment = $event->getShipment();
+
+        if (\in_array($event->getAction(), ['mark_shipped', 'mark_delivered', 'cancel'], true)
+            && (!\is_object($shipment) || (string) ($shipment->shipment_method_type ?? '') !== $this->_name)) {
+            $event->setError(Text::sprintf('PLG_ALFA_SHIPMENTS_STANDARD_ERROR_NOT_OWN', (int) ($shipment->id ?? 0)));
+
+            return;
+        }
+
         match ($event->getAction()) {
             'mark_shipped' => $this->handleMarkShipped($event),
             'mark_delivered' => $this->handleMarkDelivered($event),

@@ -13,10 +13,13 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Search\CollectSearchEnginesEvent;
+use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Throwable;
 
 /**
@@ -30,8 +33,8 @@ use Throwable;
  * configuration and therefore of discovery.
  *
  * Discovery REQUIRES a booted CMS application, and that is inherent rather than
- * accidental: engines arrive as plugins, and `PluginHelper::importPlugin()` cannot
- * resolve plugins without one. A rebuild driven from cron or a script must therefore
+ * accidental: engines arrive as plugins, and Joomla cannot import plugins without
+ * one. A rebuild driven from cron or a script must therefore
  * enter through Joomla's console bootstrap (alias `session.cli`, then fetch
  * `Joomla\Console\Application`), exactly as `cli/joomla.php` does. That is a
  * REQUIREMENT on any future CLI driver, not a description of one: no console command
@@ -42,12 +45,10 @@ use Throwable;
  * so it survives any entry point. Only engine discovery is not, because plugins are
  * not.
  *
- * Discovery BOOTS AND CALLS the group directly rather than dispatching. Taking the
- * dispatcher from the container looked like scoping, but the container's dispatcher IS
- * the application's, so every plugin already registered on it, the `alfa` platform
- * group included, received onCollectSearchEngines by accident. Booting each alfa-search
- * plugin and calling the method is what actually scopes discovery to the group that
- * owns it, and it is the same shape PanelDispatcher and AlfaAdminDispatcher use.
+ * Discovery is a broadcast on the shared dispatcher (2.2.0, design 2.15.3: mode A,
+ * isolated), through the plugin helper, the `alfa-search` group imported first: every
+ * listener may contribute an engine, each naming its plugin as group.element, and the
+ * configured engine's plugin alone is then asked for the search input (mode B).
  *
  * It deliberately does NOT boot the component to find a "core" engine. That was tried
  * and it fails under CLI (`bootComponent()` resolves the request URI and throws on a
@@ -86,6 +87,34 @@ final class SearchEngineRegistry
      * @since  2.0.0
      */
     private array $owners = [];
+
+    /**
+     * The registry of a process the component cannot boot in (a console entry point).
+     *
+     * @since  2.2.0
+     */
+    private static ?self $bare = null;
+
+    /**
+     * The request's registry (2.2.0): the component's, so the engines are discovered once per request whoever asks;
+     * a process the component cannot boot in has one of its own.
+     *
+     * @since  2.2.0
+     */
+    public static function shared(): self
+    {
+        try {
+            $component = Factory::getApplication()->bootComponent('com_alfa');
+
+            if ($component instanceof AlfaComponent) {
+                return $component->getSearchEngineRegistry();
+            }
+        } catch (Throwable) {
+            // No application, or none that boots the component here.
+        }
+
+        return self::$bare ??= new self();
+    }
 
     /**
      * Every discovered engine, keyed by engine key.
@@ -185,43 +214,20 @@ final class SearchEngineRegistry
         $this->engines = [];
         $this->owners = [];
 
-        try {
-            // One dedicated group, matching how every other pluggable TYPE in this
-            // component is discovered (alfa-payments, alfa-shipments, alfa-item-fields).
-            // Asking only this group means enabling a search engine never drags in
-            // unrelated feature plugins, and every engine (the one Easylogic ships
-            // and a third-party one) arrives by exactly the same route.
-            $app = Factory::getApplication();
-            $event = new CollectSearchEnginesEvent('onCollectSearchEngines', ['engines' => []]);
+        // The `alfa-search` group imported, then the collection event raised on the shared dispatcher (2.2.0, design
+        // 2.15.3: mode A, isolated). Importing only this group means enabling a search engine never drags in unrelated
+        // feature plugins; each engine names its plugin, and a listener that fails is logged while the others' engines
+        // stand, so one broken package never takes search down for the whole site.
+        $event = new CollectSearchEnginesEvent('onCollectSearchEngines', []);
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup(self::PLUGIN_GROUP);
 
-            foreach (PluginHelper::getPlugin(self::PLUGIN_GROUP) as $descriptor) {
-                // PER PLUGIN, not around the whole loop. With one try outside
-                // this foreach, a single broken engine plugin took down engine
-                // discovery for EVERY engine, including the working ones,
-                // and the site fell back to no search at all.
-                try {
-                    $plugin = $app->bootPlugin($descriptor->name, self::PLUGIN_GROUP);
-
-                    if (method_exists($plugin, 'onCollectSearchEngines')) {
-                        $plugin->onCollectSearchEngines($event);
-                    }
-                } catch (Throwable $e) {
-                    Log::add(
-                        entry:    "SearchEngineRegistry: engine plugin '{$descriptor->name}' failed and was skipped: "
-                                  . $e->getMessage(),
-                        priority: Log::ERROR,
-                        category: 'com_alfa.search',
-                    );
-                }
-            }
-        } catch (Throwable $e) {
+        foreach ($plugins->dispatchIsolated($event) as $failure) {
             Log::add(
-                entry:    'SearchEngineRegistry: engine discovery failed: ' . $e->getMessage(),
-                priority: Log::WARNING,
+                entry:    "SearchEngineRegistry: engine listener '{$failure->listener}' failed and was skipped: " . $failure->error->getMessage(),
+                priority: Log::ERROR,
                 category: 'com_alfa.search',
             );
-
-            return;
         }
 
         foreach ($event->getEngines() as $entry) {
@@ -287,6 +293,31 @@ final class SearchEngineRegistry
         $key = $this->configuredKey();
 
         return $key === '' ? null : ($this->all()[$key] ?? null);
+    }
+
+    /**
+     * The plugin that registered the configured engine (2.2.0, design 2.15.3): onAlfaSearchInputLayout is addressed
+     * to it alone. Null when the database search is configured, the configured engine is not installed, or its owner is
+     * not an alfa-search plugin.
+     *
+     * @since  2.2.0
+     */
+    public function configuredPlugin(): ?PluginId
+    {
+        $key = $this->configuredKey();
+
+        if ($key === '' || !isset($this->all()[$key])) {
+            return null;
+        }
+
+        // The engine's contributor, group.element (2.2.0): asked only when it is an alfa-search plugin.
+        try {
+            $owner = PluginId::of((string) ($this->owners[$key] ?? ''));
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+
+        return $owner->group === self::PLUGIN_GROUP ? $owner : null;
     }
 
     /**

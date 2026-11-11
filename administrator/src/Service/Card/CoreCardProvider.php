@@ -17,20 +17,28 @@ use Alfa\Component\Alfa\Administrator\Event\Card\CollectCardsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ChartHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardStatsService;
 use Alfa\Component\Alfa\Administrator\Service\Stats\StatsCards;
+use Alfa\Component\Alfa\Administrator\Service\Task\RunnerHealth;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskDocument;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use Throwable;
 
 /**
  * The cards Alfa itself places on the store's home screen: what came in today,
@@ -70,10 +78,36 @@ final class CoreCardProvider
     public const OWNER_NAME = 'com_alfa';
 
     /**
+     * Core's contributor identity, group.element (2.2.0): the reserved owner, never booted as a plugin.
+     *
+     * @since  2.2.0
+     */
+    public const ID = self::OWNER_GROUP . '.' . self::OWNER_NAME;
+
+    /**
      * @var int How many rows the latest-orders card lists.
      * @since  2.0.0
      */
     private const LATEST_ROWS = 5;
+
+    /**
+     * The most jobs the background-work card lists while they run or wait (NEW-7).
+     *
+     * @since  2.2.0
+     */
+    private const ACTIVE_JOBS = 5;
+
+    /**
+     * @var string The background-work card's title, on the Dashboard and in its refresh by the staff kick (entry 27).
+     * @since  2.2.0
+     */
+    public const BACKGROUND_TITLE = 'COM_ALFA_DASHCARD_RUNNER_HEALTH';
+
+    /**
+     * @var string The background-work card's layout, on the Dashboard and in its refresh by the staff kick (entry 27).
+     * @since  2.2.0
+     */
+    public const BACKGROUND_LAYOUT = 'card.health';
 
     /**
      * @var DashboardStatsService|null Built once per request, shared by every chart card.
@@ -109,7 +143,7 @@ final class CoreCardProvider
         // and the link goes, rather than offering a page the dispatcher would refuse.
         $documentsUrl = static fn (string $url): string => AlfaHelper::can(section: 'documents', action: 'view') ? $url : '';
 
-        $event->metrics('orders.today', 'COM_ALFA_DASHCARD_ORDERS_TODAY')
+        $event->metrics(self::ID, 'orders.today', 'COM_ALFA_DASHCARD_ORDERS_TODAY')
             ->ordering(100)
             ->setLayout('card.metric')
             ->width(25)
@@ -119,7 +153,7 @@ final class CoreCardProvider
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => ['value' => (string) $this->ordersToday()]);
 
-        $event->metrics('orders.awaiting', 'COM_ALFA_DASHCARD_ORDERS_AWAITING')
+        $event->metrics(self::ID, 'orders.awaiting', 'COM_ALFA_DASHCARD_ORDERS_AWAITING')
             ->ordering(200)
             ->setLayout('card.metric')
             ->width(25)
@@ -138,7 +172,7 @@ final class CoreCardProvider
         // would then have been the same number twice. Today is the reading nothing else
         // gives, and it makes the whole metrics row consistent: four figures about
         // right now, with the period cards below them.
-        $event->metrics('money.takings', 'COM_ALFA_DASHCARD_TAKINGS')
+        $event->metrics(self::ID, 'money.takings', 'COM_ALFA_DASHCARD_TAKINGS')
             ->ordering(300)
             ->setLayout('card.metric')
             ->width(25)
@@ -148,7 +182,7 @@ final class CoreCardProvider
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => ['value' => $this->takingsToday()]);
 
-        $event->metrics('stock.low', 'COM_ALFA_DASHCARD_STOCK_LOW')
+        $event->metrics(self::ID, 'stock.low', 'COM_ALFA_DASHCARD_STOCK_LOW')
             ->ordering(400)
             ->setLayout('card.metric')
             ->width(25)
@@ -158,7 +192,7 @@ final class CoreCardProvider
             ->when($canSeeItems)
             ->setLayoutData(fn (): array => ['value' => (string) $this->lowStockUnits()]);
 
-        $event->main('orders.latest', 'COM_ALFA_DASHCARD_LATEST')
+        $event->main(self::ID, 'orders.latest', 'COM_ALFA_DASHCARD_LATEST')
             ->ordering(110)
             ->setLayout('card.orders')
             ->icon('list')
@@ -174,7 +208,7 @@ final class CoreCardProvider
         // right-now tiles, the latest orders, the hero, and the alert strip. Ordering 100
         // and 110, well below AdminCard::ORDERING_DEFAULT, so a contributor with no
         // opinion lands after both.
-        $event->main('money.trend', 'COM_ALFA_DASHCARD_TREND')
+        $event->main(self::ID, 'money.trend', 'COM_ALFA_DASHCARD_TREND')
             ->ordering(100)
             ->setLayout('card.chart')
             ->width(100)
@@ -186,12 +220,96 @@ final class CoreCardProvider
         // touched are the one thing on this screen that asks to be acted on, and a
         // merchant should not have to scroll past every chart to find out. It renders
         // NOTHING when both are zero, so the quiet shop still opens on its figures.
-        $event->top('orders.attention', 'COM_ALFA_DASHCARD_ATTENTION')
+        $event->top(self::ID, 'orders.attention', 'COM_ALFA_DASHCARD_ATTENTION')
             ->ordering(100)
             ->setLayout('card.attention')
             ->width(100)
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => $this->attentionCard());
+
+        // The background work (2.2.0), in the same strip, to a user who may use Tools: its health notice while it
+        // stands, and one line for each job running or waiting, with its progress and a link to its progress page
+        // (NEW-7; read at page load). While neither is there its data is empty and the card is not shown (entry 27).
+        $event->top(self::ID, 'runner.health', self::BACKGROUND_TITLE)
+            // Live: its job lines change while a job runs, so it is never served from the Dashboard's cache (entry 27).
+            ->live()
+            ->ordering(90)
+            ->setLayout(self::BACKGROUND_LAYOUT)
+            ->width(100)
+            ->when(static fn (): bool => (bool) Factory::getApplication()->getIdentity()?->authorise('alfa.tools', 'com_alfa'))
+            ->setLayoutData(static fn (): array => self::backgroundWork());
+    }
+
+    /**
+     * The background-work card's data, the one source of the card on the Dashboard and of its refresh by the staff kick
+     * (TasksController::backgroundCard(), entry 27): the health notice's sentence while it stands, and the jobs running
+     * or waiting. Empty while neither is there.
+     *
+     * @return array{text?: string, url?: string, jobs?: list<array{text: string, url: string}>}
+     *
+     * @since  2.2.0
+     */
+    public static function backgroundWork(): array
+    {
+        $health = [];
+
+        if (NotificationHelper::isOpen(dedupKey: RunnerHealth::KEY)) {
+            $waiting = RunnerHealth::waiting();
+            $lastRun = RunnerHealth::lastRun();
+            $at = static fn (string $utc): string => HTMLHelper::_('date', $utc, Text::_('DATE_FORMAT_LC5'));
+
+            // The notice's own sentence, its three values given, the times in the reader's zone (UX-30).
+            $health = $waiting['count'] === 0 ? [] : [
+                'text' => Text::sprintf('COM_ALFA_NOTIFY_RUNNER_HEALTH_MSG', $at($waiting['since']), $waiting['count'], $at($lastRun['at'] ?? $waiting['since'])),
+                'url' => Route::_(RunnerHealth::URL, false),
+            ];
+        }
+
+        $jobs = self::activeJobs();
+
+        return $health === [] && $jobs === [] ? [] : $health + ['jobs' => $jobs];
+    }
+
+    /**
+     * The jobs running or waiting, as the Dashboard's background-work card lists them (NEW-7): the job's label and how
+     * far it is ("Recreate thumbnails: 640 of 1500 (42%)", "Not counted yet" for a total not counted), and its progress
+     * page; read from the jobs list of Tools > Tasks, running first. A failed read lists none, logged.
+     *
+     * @return list<array{text: string, url: string}>
+     *
+     * @since  2.2.0
+     */
+    private static function activeJobs(): array
+    {
+        try {
+            $rows = TaskStaff::jobRows(limit: self::ACTIVE_JOBS);
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Dashboard: the jobs could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+
+            return [];
+        }
+
+        $jobs = [];
+
+        foreach ($rows as $row) {
+            if (!\in_array($row['state'], [Tasks::STATE_RUNNING, Tasks::STATE_PENDING], true)) {
+                continue;
+            }
+
+            $total = (int) $row['total_units'];
+            $jobs[] = [
+                'text' => Text::sprintf(
+                    'COM_ALFA_DASHCARD_RUNNER_JOB',
+                    $row['label'] !== '' ? Text::_((string) $row['label']) : (string) $row['handler'],
+                    $total > 0
+                        ? Text::sprintf('COM_ALFA_TASKS_PROGRESS_UNITS', (int) $row['done_units'], $total, TaskDocument::percent(row: $row))
+                        : Text::_('COM_ALFA_TASKS_PROGRESS_NOT_COUNTED'),
+                ),
+                'url' => Route::_('index.php?option=com_alfa&view=tools&job=' . (int) $row['id'], false) . '#tasks',
+            ];
+        }
+
+        return $jobs;
     }
 
     /**

@@ -148,7 +148,7 @@ $popupUrl = static fn (int $lineId): string => Route::_(sprintf(
                     <?php if ($price === null) : ?>
                         <?php echo $dash; ?>
                     <?php elseif ($price->hasDiscount()) : ?>
-                        <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotal()->format()); ?></span>
+                        <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotalWithTax()->format()); ?></span>
                     <?php elseif ($price->hasExplicitPrice()) : ?>
                         <?php // ITS OWN SURFACE, NOT THE DISCOUNT ONE. A negotiated
                               // price is not a promotional adjustment, and the ruling

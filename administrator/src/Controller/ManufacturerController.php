@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasInlineEditTrait;
+use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\EntityChangeNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
@@ -176,7 +177,7 @@ class ManufacturerController extends FormController
             )->loadColumn());
 
             if ($affectedItems !== []) {
-                (new ProjectionManager())->syncItems($affectedItems);
+                (new ProjectionManager())->syncItems($affectedItems, cause: PricesChangedEvent::CAUSE_MANUFACTURER, causeId: $manufacturerId);
             }
         } catch (Throwable $e) {
             Log::add(

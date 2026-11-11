@@ -273,6 +273,32 @@
                     description="COM_ALFA_CATEGORY_INHERIT_DESC"
                     validate="options"
             />
+
+            <!-- The category's title and description above its listing: Inherit takes the menu item's, then the
+                 global's. -->
+            <field
+                    name="show_category_title"
+                    type="list"
+                    label="COM_ALFA_CONFIG_SHOW_CATEGORY_TITLE"
+                    description="COM_ALFA_CATEGORY_INHERIT_DESC"
+                    validate="options"
+            >
+                <option value="">COM_ALFA_INHERIT</option>
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
+            <field
+                    name="show_category_description"
+                    type="list"
+                    label="COM_ALFA_CONFIG_SHOW_CATEGORY_DESCRIPTION"
+                    description="COM_ALFA_CATEGORY_INHERIT_DESC"
+                    validate="options"
+            >
+                <option value="">COM_ALFA_INHERIT</option>
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
         </fieldset>
     </fields>
 </form>

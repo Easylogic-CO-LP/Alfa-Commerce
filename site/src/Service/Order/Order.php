@@ -395,12 +395,14 @@ final class Order
 
     /**
      * The rates the order's carriage was calculated with, in the order they
-     * apply, as exact decimal texts; null when the order states none.
+     * apply, each as its exact decimal text with the name of the tax rule that
+     * applied it; null when the order states none.
      *
      * Placement states it beside the basis, for the parcel row the carrier
-     * writes in onOrderAfterPlace. An order read anywhere else states none.
+     * writes in onOrderAfterPlace, which reads it as a chain
+     * (ShipmentLedger). An order read anywhere else states none.
      *
-     * @return string[]|null
+     * @return array<int, array{rate: string, name: string}>|null
      *
      * @since  2.0.0
      */
@@ -408,7 +410,7 @@ final class Order
     {
         $chain = $this->row->shipping_tax_chain ?? null;
 
-        return $chain === null ? null : array_values(array_map('strval', (array) $chain));
+        return $chain === null ? null : array_values((array) $chain);
     }
 
     /** @return int The chosen gateway's method id. @since 2.0.0 */

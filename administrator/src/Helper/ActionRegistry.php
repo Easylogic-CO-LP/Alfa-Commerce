@@ -23,12 +23,17 @@ use Alfa\Component\Alfa\Administrator\Event\Payments\ExecutePaymentActionEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\GetPaymentActionsEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ExecuteShipmentActionEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\GetShipmentActionsEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginAction;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\Database\DatabaseInterface;
@@ -450,7 +455,6 @@ class ActionRegistry
      */
     public static function resolveActionPage(Input $input): array
     {
-        $app = Factory::getApplication();
         $group = $input->getCmd('group', 'alfa-item-fields');
 
         switch ($group) {
@@ -496,8 +500,21 @@ class ActionRegistry
                     return self::refusedPage(group: $group, type: (string) $field->type, event: $event, messageKey: 'COM_ALFA_ACTION_REFUSED_REPEATED', reason: $refusal);
                 }
 
-                $plugin = $app->bootPlugin((string) $field->type, 'alfa-item-fields');
-                $plugin->onExecuteFieldAction($event);
+                // The field's own plugin, through the plugin helper (2.2.0, mode B): unavailable or without the hook,
+                // refused; its handler's exception is the action's failure.
+                $plugins = AlfaPluginHelper::get();
+
+                try {
+                    $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
+                } catch (PluginUnavailable|InvalidArgumentException $e) {
+                    throw new RuntimeException('Item-field plugin "' . $field->type . '" is not available: ' . $e->getMessage(), 503, $e);
+                }
+
+                if (!$plugins->declares($plugin, 'onExecuteFieldAction')) {
+                    throw new RuntimeException('Item-field plugin "' . $field->type . '" does not run field actions.', 500);
+                }
+
+                $plugins->dispatchTo($plugin, $event);
 
                 return ['group' => $group, 'type' => (string) $field->type, 'event' => $event];
 
@@ -568,6 +585,20 @@ class ActionRegistry
                 // still reported, or without an exact amount. Their forms only
                 // ask; every arm that writes is submitted with a one-time key.
                 $reportAction = self::isReportAction(actionId: $actionId);
+                $gateway = null;
+
+                // THE PLUGIN OF RECORD (2.2.0, design 2.15.5): a gateway action runs on the plugin that took the
+                // payment or not at all; while that plugin is disabled, missing or cannot be loaded, the action is
+                // refused with its name and how to restore it. The ledger's and the reports' own actions call no
+                // gateway and stay available.
+                if (!$reportAction && !str_starts_with($actionId, 'ledger_') && !\in_array($type, PaymentLedger::NON_GATEWAY_TYPES, true)) {
+                    $gateway = self::pluginOfRecord(group: 'alfa-payments', type: $type);
+
+                    if (!$gateway instanceof LoadedPlugin) {
+                        return self::refusedPage(group: $group, type: $type, event: $event, messageKey: '', reason: $gateway, message: self::pluginRefusal(group: 'alfa-payments', type: $type, unavailable: $gateway));
+                    }
+                }
+
                 $refusal = $reportAction ? null : self::refuseUnofferedAction(offered: $offered, actionId: $actionId);
 
                 if ($refusal !== null) {
@@ -605,7 +636,11 @@ class ActionRegistry
                     ];
                 }
 
-                $app->bootPlugin((string) $type, 'alfa-payments')->onExecuteAction($event);
+                if (!$gateway instanceof LoadedPlugin) {
+                    throw new RuntimeException('Payment #' . (int) $payment->id . ' has no plugin of record to act for it.', 409);
+                }
+
+                AlfaPluginHelper::get()->dispatchTo($gateway, $event);
 
                 return ['group' => $group, 'type' => (string) $type, 'event' => $event];
 
@@ -644,6 +679,13 @@ class ActionRegistry
                     'data' => [],
                 ]);
 
+                // The carrier of record, or no action (2.2.0, design 2.15.5).
+                $carrier = self::pluginOfRecord(group: 'alfa-shipments', type: $type);
+
+                if (!$carrier instanceof LoadedPlugin) {
+                    return self::refusedPage(group: $group, type: $type, event: $event, messageKey: '', reason: $carrier, message: self::pluginRefusal(group: 'alfa-shipments', type: $type, unavailable: $carrier));
+                }
+
                 $refusal = self::refuseUnofferedAction($offered, $actionId);
 
                 if ($refusal !== null) {
@@ -656,7 +698,7 @@ class ActionRegistry
                     return self::refusedPage(group: $group, type: $type, event: $event, messageKey: 'COM_ALFA_ACTION_REFUSED_REPEATED', reason: $refusal);
                 }
 
-                $app->bootPlugin((string) $type, 'alfa-shipments')->onExecuteAction($event);
+                AlfaPluginHelper::get()->dispatchTo($carrier, $event);
 
                 return ['group' => $group, 'type' => (string) $type, 'event' => $event];
 
@@ -696,10 +738,11 @@ class ActionRegistry
         string $messageKey,
         string $reason,
         string $shown = '',
+        string $message = '',
     ): array {
         self::trace('Action refused: ' . $reason);
 
-        $event->setError($shown === '' ? Text::_($messageKey) : Text::sprintf($messageKey, $shown));
+        $event->setError($message !== '' ? $message : ($shown === '' ? Text::_($messageKey) : Text::sprintf($messageKey, $shown)));
         $event->setRefresh(true);
 
         return ['group' => $group, 'type' => $type, 'event' => $event];
@@ -1688,13 +1731,14 @@ class ActionRegistry
         int $scopeId,
         int $itemId,
     ): array {
-        $app = Factory::getApplication();
         $fieldId = $field->id ?? '?';
 
         try {
-            $plugin = $app->bootPlugin((string) $field->type, 'alfa-item-fields');
+            // The field's own plugin, through the plugin helper (2.2.0, mode B).
+            $plugins = AlfaPluginHelper::get();
+            $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
 
-            if (!$plugin || !method_exists($plugin, 'onGetFieldActions')) {
+            if (!$plugins->declares($plugin, 'onGetFieldActions')) {
                 return [];
             }
 
@@ -1705,7 +1749,7 @@ class ActionRegistry
                 'field' => $field,
             ]);
 
-            $plugin->onGetFieldActions($event);
+            $plugins->dispatchTo($plugin, $event);
 
             return $event->getActions();
         } catch (Throwable $e) {
@@ -1722,10 +1766,9 @@ class ActionRegistry
      * Unified action resolution: shared by payments and shipments.
      *
      * Steps:
-     *   1. Read params->type from the entity
-     *   2. Boot the plugin via Joomla's bootPlugin()
-     *   3. Verify onGetActions() method exists
-     *   4. Dispatch event and collect actions
+     *   1. Read the row's own method type (its plugin of record)
+     *   2. Boot that plugin through the plugin helper (refused when unavailable)
+     *   3. Deliver onGetActions to its declared handler and collect the actions
      *
      * Errors -> always shown as warnings (admin must know).
      * Trace  -> shown only when JDEBUG is on.
@@ -1779,31 +1822,17 @@ class ActionRegistry
 
             self::trace("{$label} #{$entityId}: type = \"{$pluginType}\"");
 
-            // Step 2: Boot plugin
-            $plugin = $app->bootPlugin($pluginType, $pluginGroup);
+            // Step 2: the plugin of record, through the plugin helper (2.2.0): unavailable, one refusal naming it and
+            // how to restore it, and nothing offered from any other plugin.
+            $plugin = self::pluginOfRecord(group: $pluginGroup, type: $pluginType);
 
-            if (!$plugin) {
-                self::warn(
-                    "{$label} #{$entityId}: Plugin \"{$pluginType}\" ({$pluginGroup}) could not be booted."
-                    . ' Check: 1) Plugin installed? 2) Plugin enabled?'
-                    . ' 3) services/provider.php correct? 4) Namespace correct?',
-                );
+            if (!$plugin instanceof LoadedPlugin) {
+                // Not enqueued: the order page says it at its top and in the row's Actions cell ({@see self::refusal()}),
+                // and a delete that reads the order says nothing of it (UX-33, UX-35, UX-36).
                 return [];
             }
 
-            self::trace("{$label} #{$entityId}: Plugin booted -> " . get_class($plugin));
-
-            // Step 3: Verify method
-            if (!method_exists($plugin, 'onGetActions')) {
-                self::warn(
-                    "{$label} #{$entityId}: " . get_class($plugin)
-                    . ' has no onGetActions() method.'
-                    . ' The deployed plugin file may be outdated; re-upload it.',
-                );
-                return [];
-            }
-
-            // Step 4: Dispatch event
+            // Step 3: deliver the event to its declared handler
             $eventKey = ($label === 'Payment') ? 'payment' : 'shipment';
 
             $event = new $eventClass('onGetActions', [
@@ -1811,7 +1840,7 @@ class ActionRegistry
                 'order' => $order,
             ]);
 
-            $plugin->onGetActions($event);
+            AlfaPluginHelper::get()->dispatchTo($plugin, $event);
 
             // Step 5: Collect actions
             $actions = $event->getActions();
@@ -1841,7 +1870,82 @@ class ActionRegistry
     }
 
     /**
-     * Show a warning: ALWAYS visible.
+     * Why a payment's or a shipment's actions are not offered because its plugin of record cannot be used, or '' when
+     * they are (or the row has no plugin): the order page says it at its top and in the row's Actions cell (UX-35).
+     * Read from the plugin helper each time, the one source of the plugin's state.
+     *
+     * @param object $entity The payment or shipment row.
+     * @param string $group alfa-payments or alfa-shipments.
+     *
+     * @since  2.2.0
+     */
+    public static function refusal(object $entity, string $group): string
+    {
+        $type = self::methodType($entity, $group === 'alfa-shipments' ? 'shipment_method_type' : 'payment_method_type');
+
+        if ($type === '' || \in_array($type, PaymentLedger::NON_GATEWAY_TYPES, true)) {
+            return '';
+        }
+
+        $plugin = self::pluginOfRecord(group: $group, type: $type);
+
+        return $plugin instanceof LoadedPlugin ? '' : self::pluginRefusal(group: $group, type: $type, unavailable: $plugin);
+    }
+
+    /**
+     * The sentence staff read when a row's plugin of record cannot be used: the plugin by the name Extensions: Plugins
+     * shows and why (UX-25, UX-27, UX-35); for a plugin Joomla does not load for this account, its own sentence.
+     *
+     * @param string $group alfa-payments or alfa-shipments.
+     * @param string $type The row's own method type.
+     * @param string $unavailable What pluginOfRecord() answered: the reason, a colon and the message.
+     *
+     * @since  2.2.0
+     */
+    private static function pluginRefusal(string $group, string $type, string $unavailable): string
+    {
+        $reason = strstr($unavailable, ':', true);
+
+        try {
+            $name = AlfaPluginHelper::get()->name(PluginId::from($group, $type));
+        } catch (InvalidArgumentException) {
+            $name = $type;
+        }
+
+        if ($reason === PluginUnavailable::NOT_LOADED) {
+            return Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF', $name);
+        }
+
+        return Text::sprintf(
+            $group === 'alfa-shipments' ? 'COM_ALFA_SHIPMENT_PLUGIN_UNAVAILABLE' : 'COM_ALFA_PAYMENT_PLUGIN_UNAVAILABLE',
+            $name,
+            AlfaPluginHelper::statePhrase(\is_string($reason) ? $reason : PluginUnavailable::UNLOADABLE),
+        );
+    }
+
+    /**
+     * A row's plugin of record, booted through the plugin helper (2.2.0, design 2.15.5); the reason when it cannot be.
+     *
+     * @param string $group The plugin group.
+     * @param string $type The row's own method type.
+     *
+     * @return LoadedPlugin|string The plugin, or why it is unavailable.
+     *
+     * @since  2.2.0
+     */
+    private static function pluginOfRecord(string $group, string $type): LoadedPlugin|string
+    {
+        try {
+            return AlfaPluginHelper::get()->bootSingle(PluginId::from($group, $type));
+        } catch (PluginUnavailable $e) {
+            return $e->reason . ': ' . $e->getMessage();
+        } catch (InvalidArgumentException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    /**
+     * Show a warning: ALWAYS visible, as staff read any other warning (no debug tag, A-UX-1; trace() keeps its own).
      *
      * Used for actual errors that prevent actions from working.
      * Admin must see these regardless of debug mode.
@@ -1854,10 +1958,7 @@ class ActionRegistry
     private static function warn(string $message): void
     {
         try {
-            Factory::getApplication()->enqueueMessage(
-                '<strong>[ActionRegistry]</strong> ' . htmlspecialchars($message),
-                'warning',
-            );
+            Factory::getApplication()->enqueueMessage(htmlspecialchars($message), 'warning');
         } catch (Throwable $e) {
             // Application not available
         }

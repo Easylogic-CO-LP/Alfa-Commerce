@@ -17,6 +17,8 @@ use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
@@ -25,7 +27,6 @@ use Joomla\CMS\Dispatcher\ComponentDispatcher;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 use RuntimeException;
@@ -76,11 +77,10 @@ class Dispatcher extends ComponentDispatcher
         // Said on every Alfa administrator page while plg_system_alfasync is off: nothing of it runs then.
         $this->warnSyncPluginOff();
 
-        // Register the item-fields plugins' getSubscribedEvents maps with the
-        // GLOBAL dispatcher (bootPlugin() alone never does), so a field type
-        // can also hook ambient events (onBeforeRender, onBeforeCompileHead,
-        // ...) on every com_alfa admin page.
-        PluginHelper::importPlugin('alfa-item-fields');
+        // Register the item-fields plugins' getSubscribedEvents maps (their ambient
+        // events: onBeforeRender, onBeforeCompileHead, ...) with the shared
+        // dispatcher through the plugin helper (2.2.0), on every com_alfa admin page.
+        AlfaPluginHelper::get()->importGroup('alfa-item-fields');
 
         // Override-proof tamper banner: when the last integrity sync recorded a real
         // alarm (modified / bad signature), surface it in the admin chrome on every
@@ -151,7 +151,7 @@ class Dispatcher extends ComponentDispatcher
             if (
                 $this->app->isClient('administrator')
                 && $this->input->getCmd('format', 'html') === 'html'
-                && PluginHelper::isEnabled('system', 'guidedtours')
+                && AlfaPluginHelper::get()->isAvailable(PluginId::from('system', 'guidedtours'))
             ) {
                 TourHelper::attachGrammar($this->app->getDocument());
             }
@@ -178,7 +178,7 @@ class Dispatcher extends ComponentDispatcher
                 !$this->app->isClient('administrator')
                 || $this->input->getCmd('format', 'html') !== 'html'
                 || ($task !== '' && $task !== 'display' && !str_ends_with($task, '.display'))
-                || PluginHelper::isEnabled('system', 'alfasync')
+                || AlfaPluginHelper::get()->isAvailable(PluginId::from('system', 'alfasync'))
             ) {
                 return;
             }

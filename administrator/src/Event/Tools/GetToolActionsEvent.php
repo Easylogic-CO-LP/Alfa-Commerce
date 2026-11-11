@@ -12,7 +12,9 @@ namespace Alfa\Component\Alfa\Administrator\Event\Tools;
 
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasPluginActionsTrait;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginAction;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
@@ -30,11 +32,12 @@ use Joomla\CMS\Event\AbstractEvent;
  * outcomes, and no new vocabulary: {@see \Alfa\Component\Alfa\Administrator\Plugin\PluginAction}
  * already carries metadata, ordering, icon, styling, confirmation and modals.
  *
- * OWNERSHIP IS NOT SELF-DECLARED. Each plugin is booted and called individually and
- * whatever it registers is tagged with the plugin that was called, so a contributor
- * cannot claim another's identity and an action always knows who executes it. That
- * is what lets {@see \Alfa\Component\Alfa\Administrator\Helper\ToolRegistry} boot
- * exactly ONE plugin when the action runs.
+ * EVERY ACTION NAMES ITS PLUGIN (2.2.0). The event reaches every listener on the
+ * shared dispatcher, and each action is added with its contributor, group.element,
+ * first (core's own tools as core.com_alfa): attribution, never an authorisation.
+ * That is what lets {@see \Alfa\Component\Alfa\Administrator\Helper\ToolRegistry}
+ * run the action on exactly ONE plugin, the one that listed it, through that
+ * plugin's own declaration of onExecuteToolAction.
  *
  * CORE'S OWN TOOLS COME THROUGH HERE TOO. An extension point the host does not use
  * itself becomes second-class and rots: the admin column builder says it serves
@@ -44,32 +47,63 @@ use Joomla\CMS\Event\AbstractEvent;
  */
 class GetToolActionsEvent extends AbstractEvent
 {
-    use HasPluginActionsTrait;
+    /**
+     * The actions added so far, each owned by the plugin that named itself; written only through add() and addAction().
+     *
+     * @var PluginAction[]
+     *
+     * @since  2.2.0
+     */
+    private array $actions = [];
 
     /**
-     * Actions registered so far, tagged with the contributor that was called.
+     * Add an action using the fluent API, owned by the plugin that names itself.
      *
-     * Called by the registry between contributors, never by a plugin. Reads the
-     * trait's raw list rather than the filtered one so an action a plugin has
-     * deliberately disabled still carries an owner and can be reported honestly
-     * instead of vanishing without explanation.
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $id Action id, unique within the contributor.
+     * @param string $label Button label (a language key).
      *
+     * @return PluginAction For chaining: ->icon()->css()->confirm()
      *
-     * @return void
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
+    public function add(string $contributor, string $id, string $label): PluginAction
+    {
+        $action = new PluginAction(['id' => $id, 'label' => $label]);
+        $this->addAction($contributor, $action);
+
+        return $action;
+    }
+
+    /**
+     * Add a pre-built action, owned by the plugin that names itself.
+     *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param PluginAction $action The action.
+     *
+     * @throws InvalidArgumentException When the contributor is not group.element.
+     *
+     * @since  2.0.0
+     */
+    public function addAction(string $contributor, PluginAction $action): void
+    {
+        $owner = PluginId::of($contributor);
+        $action->metadata['owner_group'] = $owner->group;
+        $action->metadata['owner_name'] = $owner->element;
+        $this->actions[] = $action;
+    }
+
     /**
      * Every valid action, INCLUDING disabled ones.
      *
-     * Overrides the shared trait, which filters disabled actions out, right for the
-     * modal surfaces, where a disabled action has no page to open, and wrong here: a
-     * tool whose prerequisites are unmet should show as a greyed-out card explaining
+     * A tool whose prerequisites are unmet should show as a greyed-out card explaining
      * itself, not vanish and leave the merchant hunting for a button that "was there
      * yesterday". Execution still refuses disabled actions server-side, so visibility
      * never becomes runnability.
      *
-     * @return \Alfa\Component\Alfa\Administrator\Plugin\PluginAction[]
+     * @return PluginAction[]
      *
      * @since  2.0.0
      */
@@ -77,19 +111,7 @@ class GetToolActionsEvent extends AbstractEvent
     {
         return array_values(array_filter(
             $this->actions,
-            static fn ($action): bool => $action->isValid(),
+            static fn (PluginAction $action): bool => $action->isValid(),
         ));
-    }
-
-    public function attributeTo(string $group, string $name): void
-    {
-        foreach ($this->actions as $action) {
-            if (($action->metadata['owner_group'] ?? '') !== '') {
-                continue;
-            }
-
-            $action->metadata['owner_group'] = $group;
-            $action->metadata['owner_name'] = $name;
-        }
     }
 }

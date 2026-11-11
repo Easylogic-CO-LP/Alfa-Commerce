@@ -84,7 +84,7 @@ defined('_JEXEC') or die;
  *
  * @since  2.0.0
  */
-abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterface
+abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterface, TargetedHandlersInterface
 {
     /**
      * The rebuild card is rendered from string keys; without this the merchant reads
@@ -109,6 +109,18 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
     abstract protected function engine(): SearchEngineInterface;
 
     /**
+     * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
+     * shared dispatcher, never in getSubscribedEvents(). onAlfaSearchInputLayout reaches the configured engine's
+     * plugin only.
+     *
+     * @since  2.2.0
+     */
+    public const TARGETED_EVENTS = [
+        'onAlfaSearchInputLayout',
+        'onClearData',
+    ];
+
+    /**
      * Subscribed events.
      *
      * Subclasses that need more should merge rather than replace:
@@ -130,6 +142,28 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
     }
 
     /**
+     * Alfa's targeted-handler declaration (2.2.0, design 2.15.2): each event of TARGETED_EVENTS this plugin
+     * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
+     * shared dispatcher.
+     *
+     * @return array<string, string>
+     *
+     * @since  2.2.0
+     */
+    public function getTargetedHandlers(): array
+    {
+        $handlers = [];
+
+        foreach (static::TARGETED_EVENTS as $event) {
+            if (\is_callable([$this, $event])) {
+                $handlers[$event] = $event;
+            }
+        }
+
+        return $handlers;
+    }
+
+    /**
      * Contribute this engine to the registry.
      *
      * @param CollectSearchEnginesEvent $event The collection event.
@@ -139,18 +173,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
      */
     public function onCollectSearchEngines(CollectSearchEnginesEvent $event): void
     {
-        $event->addEngine($this->engine(), $this->extensionElement(), $this->extensionVersion());
-    }
-
-    /**
-     * This plugin's extension element, for the registry's ownership record.
-     *
-     *
-     * @since  2.0.0
-     */
-    private function extensionElement(): string
-    {
-        return 'plg_' . $this->_type . '_' . $this->_name;
+        $event->addEngine($this->engine(), $this->_type . '.' . $this->_name, $this->extensionVersion());
     }
 
     /**

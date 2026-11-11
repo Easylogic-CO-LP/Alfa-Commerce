@@ -821,9 +821,13 @@ class OrderopsController extends OrdersController
      * force()s, so it reinstates cancelled orders with no client opt-in, and
      * it re-derives the invoice address on every write.
      *
-     * A 200 here guarantees only that the status changed. Stock, emails,
-     * document issuance and plugin listeners are all synchronous but
-     * non-blocking: each logs and continues.
+     * A 200 here means the status changed, and everything the change owes
+     * was written with it, in the same transaction, as tasks: the stock
+     * step, the e-mails, document issuance and the plugin reactions. They
+     * run once that transaction has committed, before this answer, and
+     * meta.tasks lists each with the state it ended in. One that failed or
+     * whose outcome is unknown waits for staff in Tools > Tasks; none is
+     * lost when the request ends early, because a later tick recovers it.
      *
      * @return static
      *

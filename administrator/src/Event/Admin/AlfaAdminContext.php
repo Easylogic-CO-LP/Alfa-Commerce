@@ -12,7 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Toolbar\Toolbar;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseQuery;
@@ -39,9 +42,9 @@ use LogicException;
  *             return;
  *         }
  *
- *         $context->columns->column('risk')->title('PLG_FRAUD_RISK')->after('status')
+ *         $context->columns->column('alfa.fraud', 'risk')->title('PLG_FRAUD_RISK')->after('status')
  *             ->setLayout('column_risk')
- *             ->setData(fn (object $row): ?array => $context->rowData[(int) $row->id] ?? null);
+ *             ->setData(fn (object $row): ?array => $context->rowValues((int) $row->id));
  *     }
  *
  * THREE BANDS OF FIELDS.
@@ -53,9 +56,11 @@ use LogicException;
  *    adds a form tab. Which ones are non-null is a property of the PHASE, and each event
  *    class documents its own; reading one the phase does not set gives null, never a
  *    stale value from another phase.
- *  - RESULTS are the only fields a plugin writes, and a phase permits exactly ONE. The rest
+ *  - RESULTS are the only things a plugin writes, and a phase permits exactly ONE. The rest
  *    are null (accumulator objects) or stay empty; writing to the wrong one is inert at
- *    worst and a TypeError at best, never a silent cross-phase side effect.
+ *    worst and a TypeError at best, never a silent cross-phase side effect. The row values
+ *    and the slot's markup are private: value() and append() are their only writers, each
+ *    naming the contributing plugin, and rowData(), rowValues() and html() read them.
  *
  * The framework builds every context; a plugin only ever receives one. It is deliberately
  * inert (no Input, no database, no plugin boot), so a handler can read it and derive URLs
@@ -266,10 +271,12 @@ final class AlfaAdminContext
      * @param array $data PAYLOAD+RESULT: the record data, mutable in
      *                    PHASE_PREPARE_DATA and PHASE_BEFORE_SAVE.
      * @param array $rowData RESULT: [id => [key => value]] for the whole page
-     *                       (PHASE_LIST_ROW_DATA); read by column resolvers later.
+     *                       (PHASE_LIST_ROW_DATA), written only through value() and read
+     *                       through rowData() and rowValues() by column resolvers later.
      * @param string[] $errors RESULT: a non-empty list vetoes the operation
      *                         (PHASE_VALIDATE, PHASE_BEFORE_DELETE).
-     * @param string $html RESULT: markup for the slot (PHASE_RENDER).
+     * @param string $html RESULT: markup for the slot (PHASE_RENDER), written only through
+     *                     append() and read through html().
      *
      * @since  2.0.0
      */
@@ -294,10 +301,84 @@ final class AlfaAdminContext
         public readonly ?AdminActions $actions = null,
         public readonly ?AdminActions $bulkActions = null,
         public array $data = [],
-        public array $rowData = [],
+        private array $rowData = [],
         public array $errors = [],
-        public string $html = '',
+        private string $html = '',
     ) {
+    }
+
+    /**
+     * Which plugin wrote each row value key (2.2.0): a key belongs to the first plugin that writes it.
+     *
+     * @var array<string, string>
+     * @since  2.2.0
+     */
+    private array $rowDataOwners = [];
+
+    /**
+     * Contribute one value key for the page's rows (2.2.0, PHASE_LIST_ROW_DATA): `$values` holds the value per row id
+     * and lands as [id => [key => value]], where the plugin's columns read it. A key belongs to the first plugin that
+     * writes it; another plugin writing the same key is refused with a log line. The only way a value enters.
+     *
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
+     * @param string $key The value key, read back by the plugin's column.
+     * @param array<int, mixed> $values The value per row id.
+     *
+     * @throws InvalidArgumentException When the contributor is not group.element.
+     *
+     * @since  2.2.0
+     */
+    public function value(string $contributor, string $key, array $values): void
+    {
+        $owner = PluginId::of($contributor)->key();
+
+        if (($this->rowDataOwners[$key] ?? $owner) !== $owner) {
+            Log::add('Alfa admin events: ' . AdminListRowDataEvent::NAME . ': ' . $owner . ' wrote the value key ' . $key . ', which ' . $this->rowDataOwners[$key] . ' already wrote; refused.', Log::WARNING, 'com_alfa.admin');
+
+            return;
+        }
+
+        $this->rowDataOwners[$key] = $owner;
+
+        foreach ($values as $id => $value) {
+            $this->rowData[(int) $id][$key] = $value;
+        }
+    }
+
+    /**
+     * The page's row values: [id => [key => value]] (2.2.0).
+     *
+     * @return array<int, array<string, mixed>>
+     *
+     * @since  2.2.0
+     */
+    public function rowData(): array
+    {
+        return $this->rowData;
+    }
+
+    /**
+     * One row's values, keyed by value key; null when no plugin wrote any for it (2.2.0).
+     *
+     * @param int $id The row id.
+     *
+     * @return array<string, mixed>|null
+     *
+     * @since  2.2.0
+     */
+    public function rowValues(int $id): ?array
+    {
+        return $this->rowData[$id] ?? null;
+    }
+
+    /**
+     * The markup appended for the slot (2.2.0).
+     *
+     * @since  2.2.0
+     */
+    public function html(): string
+    {
+        return $this->html;
     }
 
     /**
@@ -486,36 +567,18 @@ final class AlfaAdminContext
     }
 
     /**
-     * Append markup to the slot being rendered.
+     * Append markup to the slot being rendered: the only way markup enters (2.2.0).
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $html The markup.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function append(string $html): void
+    public function append(string $contributor, string $html): void
     {
+        PluginId::of($contributor);
         $this->html .= $html;
-    }
-
-    /**
-     * Name the plugin whose handler is about to run, so contributed layouts default to their
-     * own author's tmpl folder (the same owner-defaulting the orders column dialect does with
-     * one fresh event per plugin).
-     *
-     * FRAMEWORK ONLY: called by {@see AlfaAdminDispatcher} between handlers. A plugin never
-     * calls this; it can still name another plugin's layout explicitly on the descriptor.
-     *
-     * @param string $group The contributing plugin's group (its #__extensions folder).
-     * @param string $element The contributing plugin's element.
-     *
-     *
-     * @since  2.0.0
-     */
-    public function withContributor(string $group, string $element): void
-    {
-        $this->columns?->setOwner(group: $group, element: $element);
-        $this->actions?->setOwner(group: $group, element: $element);
-        $this->bulkActions?->setOwner(group: $group, element: $element);
     }
 }

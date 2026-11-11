@@ -39,6 +39,19 @@
  *    $payments = $this->getPaymentsByOrder($orderId);
  *    $this->deletePayment($paymentId, $orderId);
  *
+ *  THE GATEWAY'S BOOKS (since 2.2.0):
+ *    $due     = $this->orderBalance(orderId: $orderId);                          // signed Money: > 0 owed, < 0 overpaid
+ *    $holders = $this->countReferenceHolders(reference: $txId, types: [self::TYPE_PAYMENT]);
+ *    $rowId   = $this->findOwnRowByReference(reference: $refundId, types: [self::TYPE_REFUND]); // the one row, or null
+ *    $kind    = $this->refundTypeFor(paymentId: $paymentId, amount: $refund);   // self::REFUND_FULL or self::REFUND_PARTIAL
+ *    $mine    = $this->claimPendingAttempt(paymentId: $paymentId, reference: $sessionId); // one wins, the other is told false
+ *    $first   = $this->firstMethodRow(methodId: $methodId, kind: self::FIRST_PAID); // a method's first settled payment
+ *
+ *  THE RULE: this class is the supported payment API. A gateway never calls
+ *  PaymentLedger and never reads or writes #__alfa_order_payments itself;
+ *  what it needs is a method here. A need this class does not cover is a
+ *  request to core, not a query of the gateway's own.
+ *
  *  LOGGING (inherited from Plugin.php):
  *    $logId = $this->log(['id_order' => $orderId, ...]);
  *    $logs  = $this->loadLogs($orderId, $paymentId);
@@ -63,6 +76,7 @@ namespace Alfa\Component\Alfa\Administrator\Plugin;
 use Alfa\Component\Alfa\Administrator\Helper\PaymentToken;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasOrderContextTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasTransportUrlsTrait;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
@@ -73,12 +87,13 @@ use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
+use Joomla\Database\QueryInterface;
 use Joomla\Event\SubscriberInterface;
 use RuntimeException;
 
 defined('_JEXEC') or die;
 
-abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
+abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, TargetedHandlersInterface
 {
     use HasOrderContextTrait;
     use HasTransportUrlsTrait;
@@ -114,6 +129,10 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
 
     public const REFUND_FULL = PaymentLedger::REFUND_FULL;
     public const REFUND_PARTIAL = PaymentLedger::REFUND_PARTIAL;
+
+    // The kinds of firstMethodRow() (2.2.0): a method's first settled payment, its first refund.
+    public const FIRST_PAID = 'paid';
+    public const FIRST_REFUND = 'refund';
 
     // Conditional-write verdicts (supersedeAttempt, updateIfStatus)
     public const WRITE_OK = PaymentLedger::WRITE_OK;
@@ -243,18 +262,64 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     protected string $processPageUrl;
 
     /**
+     * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
+     * shared dispatcher, never in getSubscribedEvents(). onPaymentStoreReference and onPaymentChargeReference
+     * are addressed by the Subscriptions engine.
+     *
+     * @since  2.2.0
+     */
+    public const TARGETED_EVENTS = [
+        'onItemView',
+        'onCartView',
+        'onCartViewAssets',
+        'onOrderProcessView',
+        'onOrderCompleteView',
+        'onOrderBeforePlace',
+        'onOrderAfterPlace',
+        'onPaymentResponse',
+        'onPaymentWebhook',
+        'onGetActions',
+        'onExecuteAction',
+        'onAdminOrderDelete',
+        'onPaymentCheckup',
+        'onPaymentStoreReference',
+        'onPaymentChargeReference',
+        // A gateway's own data (2.1.0's Clear Data), addressed to it alone (2.2.0, part C14b).
+        'onClearData',
+    ];
+
+    /**
      * Events this plugin subscribes to.
      *
      * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {
-        return [
-            'onItemView' => 'onItemView',
-            'onCartView' => 'onCartView',
-            'onCartViewAssets' => 'onCartViewAssets',
-            'onOrderProcessView' => 'onOrderProcessView',
-        ];
+        // 2.2.0: every Alfa event a gateway handles is addressed to it alone (TARGETED_EVENTS); a gateway that needs
+        // an ambient Joomla event merges its own map.
+        return [];
+    }
+
+    /**
+     * Alfa's targeted-handler declaration (2.2.0, design 2.15.2): each event of TARGETED_EVENTS this plugin
+     * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
+     * shared dispatcher.
+     *
+     * @return array<string, string>
+     *
+     * @since  2.2.0
+     */
+    public function getTargetedHandlers(): array
+    {
+        $handlers = [];
+
+        foreach (static::TARGETED_EVENTS as $event) {
+            if (\is_callable([$this, $event])) {
+                $handlers[$event] = $event;
+            }
+        }
+
+        return $handlers;
     }
 
     /**
@@ -324,12 +389,15 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
 
     //  Payment fluent builder wrappers
     //
-    //  These return an PaymentLedger builder instance.
-    //  The builder validates, auto-fills, and delegates to
-    //  static CRUD methods internally.
+    //  These return a PaymentLedger builder instance. The builder
+    //  validates, auto-fills, and delegates to the ledger internally.
     //
-    //  For direct CRUD access (batch ops, admin form saves),
-    //  use PaymentLedger::create/update/delete() directly.
+    //  The base-class API is the supported one (2.2.0): a gateway writes
+    //  and reads its payments through this class (the builder wrappers,
+    //  the intent verbs, the reads, and the books API: orderBalance(),
+    //  countReferenceHolders(), refundTypeFor(), claimPendingAttempt()),
+    //  and never calls PaymentLedger or writes #__alfa_order_payments
+    //  itself.
 
     /**
      * Create a new payment (returns fluent builder in CREATE mode).
@@ -344,6 +412,11 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *   $paymentId = $this->payment($order)->authorized()->transactionId('ch_3M..')->save();
      *   $paymentId = $this->payment($order)->refund()->amount(50)->completed()->save();
      *
+     * The row records this plugin's element (2.2.0), never the live type of a
+     * method row: the method it names (the order's, or ->method($id)) must be one
+     * of this plugin's, and a refund or chargeback must return this plugin's own
+     * money, or the save answers false and writes nothing.
+     *
      * @param object $order Full order object (->id, ->items, ->id_payment_method)
      *
      * @return PaymentLedger Builder: chain setters, finish with ->save()
@@ -352,7 +425,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      */
     protected function payment(object $order): PaymentLedger
     {
-        return PaymentLedger::for($order);
+        // The row is this plugin's: it records this plugin's element, and the ledger refuses a method of another type.
+        return PaymentLedger::for($order)->writtenBy(element: (string) $this->_name);
     }
 
     /**
@@ -652,6 +726,10 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * gateway payment's provider id, method and pending refunds, for the payment form and the REST API) never refuses
      * it (since 2.1.0). Arm ->expectStatus() where a webhook and a return can race.
      *
+     * The builder names this plugin as its writer, so save(), saveVerdict() and settleAttempt() alike write only a
+     * payment recorded as this plugin's, and move it only to another method of this plugin; anything else is refused
+     * and nothing is written (2.2.0).
+     *
      * @param int $paymentId Existing payment row PK
      *
      * @return PaymentLedger Builder: chain setters, finish with ->save()
@@ -662,7 +740,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      */
     protected function paymentUpdate(int $paymentId): PaymentLedger
     {
-        return PaymentLedger::load($paymentId);
+        return PaymentLedger::load($paymentId)->writtenBy(element: (string) $this->_name);
     }
 
     //  Intent verbs
@@ -703,6 +781,11 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * Payload staged on the builder with ->pluginData() is written by the same
      * compare-and-set as the status, and not at all when the verdict is not
      * WRITE_OK; no second save() for it.
+     *
+     * The builder names this gateway as its writer (paymentUpdate()), so the
+     * compare-and-set holds the plain update's rule: only this gateway's own
+     * rows, moved only to another method of its own; anything else is refused
+     * and answers WRITE_FAILED (2.2.0).
      *
      * Usage:
      *   $write = $this->paymentUpdate((int) $payment->id)
@@ -771,7 +854,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * Compare-and-set from pending, so an attempt that settled while you were
      * deciding reports WRITE_RACED and is left as the winner left it; treat
      * anything but WRITE_OK as "the ledger no longer says what I assumed",
-     * and reload rather than hand the buyer to the gateway.
+     * and reload rather than hand the buyer to the gateway. Only this
+     * gateway's own attempts: another gateway's row is refused, WRITE_FAILED
+     * (2.2.0).
      *
      * Usage:
      *   if ($this->supersedeAttempt((int) $payment->id, 'New gateway visit') !== self::WRITE_OK) {
@@ -787,7 +872,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      */
     protected function supersedeAttempt(int $paymentId, string $reason = ''): int
     {
-        return PaymentLedger::supersedeAttempt($paymentId, $reason);
+        return PaymentLedger::supersedeAttempt($paymentId, $reason, writer: (string) $this->_name);
     }
 
     /**
@@ -1044,7 +1129,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * Answer the provider 200 on OUTCOME_RECORDED, OUTCOME_DUPLICATE and
      * OUTCOME_NOTHING_LEFT; 200 and report on OUTCOME_REFUSED; 503 on
-     * OUTCOME_FAILED so the provider redelivers. Never throws.
+     * OUTCOME_FAILED so the provider redelivers. Never throws. Only this
+     * gateway's own rows: another gateway's row is refused (2.2.0).
      *
      * @param int $rowId The refund or chargeback row.
      * @param Money|null $amount What did not stand; null means all not yet reversed.
@@ -1057,14 +1143,15 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      */
     protected function recordReversal(int $rowId, ?Money $amount = null, array $options = []): array
     {
-        return PaymentLedger::recordReversal(rowId: $rowId, amount: $amount, options: $options);
+        return PaymentLedger::recordReversal(rowId: $rowId, amount: $amount, options: ['plugin' => $this->_name] + $options);
     }
 
     /**
      * Record money the customer's bank took back from a completed payment of this gateway.
      *
      * Never capped, never flips the payment, never moves the order. Outcomes
-     * and options as recordReversal().
+     * and options as recordReversal(); another gateway's payment is refused
+     * (2.2.0).
      *
      * @param int $paymentId The completed payment.
      * @param Money $amount What the bank took back, in the order's currency.
@@ -1076,7 +1163,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      */
     protected function recordChargeback(int $paymentId, Money $amount, array $options = []): array
     {
-        return PaymentLedger::recordChargeback(paymentId: $paymentId, amount: $amount, options: $options);
+        return PaymentLedger::recordChargeback(paymentId: $paymentId, amount: $amount, options: ['plugin' => $this->_name] + $options);
     }
 
     /**
@@ -1315,6 +1402,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * Delete an order payment record.
      *
+     * Only a payment recorded as this plugin's: another plugin's row, or one that records no plugin, is refused and
+     * nothing is deleted (2.2.0).
+     *
      * @param int $id Payment row PK
      * @param int $orderId Order PK (for activity log)
      *
@@ -1324,7 +1414,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      */
     protected function deletePayment(int $id, int $orderId): bool
     {
-        return PaymentLedger::delete($id, $orderId);
+        return PaymentLedger::delete($id, $orderId, writer: (string) $this->_name);
     }
 
     /**
@@ -1354,18 +1444,20 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      *     $this->getPaymentMethod($orderId, (int) $payment->id_payment_method);
      *
-     * Resolution, first hit wins, and every step is evidence rather than
-     * inference: the id a payment row named -> the order's chosen method, but
-     * only while the ORDER'S persisted `payment_method_type` says this gateway
-     * -> the newest of this gateway's own attempts, scoped by each row's
-     * persisted type.
+     * EXACT, NEVER A SIBLING (2.2.0): a method id asked is answered with that
+     * method, while it is one of this plugin's, or with nothing; it never falls
+     * back to the order's chosen method or to another of this plugin's methods,
+     * which may hold other credentials. Asked by order alone, the answer is the
+     * order's chosen method, and only while the ORDER'S persisted
+     * `payment_method_type` names this plugin and the method row is still one
+     * of its own.
      *
      * THERE IS NO FALLBACK. It returns NULL rather than reaching for a
      * plausible method, because every plausible method is a different set of
      * credentials. Foreign methods are never returned either: an order paid
      * through another gateway resolves to nothing here.
      *
-     * @param int $orderId Order PK (0 = fallback only).
+     * @param int $orderId Order PK (0 when only a method id is asked).
      * @param int $methodId #__alfa_payments.id a payment row named, if any.
      *
      * @return object|null NULL when this gateway has no method to answer with.
@@ -1386,16 +1478,16 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * The resolution {@see self::getPaymentMethod()} memoises.
      *
-     * @param int $orderId Order PK (0 = fallback only).
+     * @param int $orderId Order PK (0 when only a method id is asked).
      * @param int $methodId #__alfa_payments.id a payment row named, if any.
      *
      * @since  2.0.0
      */
     private function resolvePaymentMethod(int $orderId, int $methodId): ?object
     {
-        // 1. The row the caller already holds. Type-guarded by loadPaymentMethod.
-        if ($methodId > 0 && ($method = $this->loadPaymentMethod($methodId)) !== null) {
-            return $method;
+        // 1. The method asked for: exactly that one, type-guarded by loadPaymentMethod, or nothing.
+        if ($methodId > 0) {
+            return $this->loadPaymentMethod($methodId);
         }
 
         if ($orderId <= 0) {
@@ -1404,10 +1496,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
-        // 2. What the customer chose, but only if the ORDER says this gateway
-        //    took it. The persisted type is the authority: the header's
-        //    id_payment_method can be re-pointed, and on a split-payment order
-        //    it names one gateway while another holds the money.
+        // 2. Asked by order alone: what the customer chose, but only if the ORDER says this gateway took it. The
+        //    persisted type is the authority: the header's id_payment_method can be re-pointed, and on a
+        //    split-payment order it names one gateway while another holds the money.
         $query = $db->getQuery(true)
             ->select([$db->quoteName('id_payment_method'), $db->quoteName('payment_method_type')])
             ->from($db->quoteName('#__alfa_orders'))
@@ -1416,36 +1507,15 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
 
         $header = $db->loadObject();
 
-        if ($header !== null && (string) ($header->payment_method_type ?? '') === $this->_name) {
-            $chosenId = (int) $header->id_payment_method;
-
-            if ($chosenId > 0 && $chosenId !== $methodId && ($method = $this->loadPaymentMethod($chosenId)) !== null) {
-                return $method;
-            }
+        if ($header === null || (string) ($header->payment_method_type ?? '') !== $this->_name) {
+            return null;
         }
 
-        // 3. What actually took money here, newest first, already scoped to
-        //    this gateway by the row's own persisted type.
-        foreach ($this->gatewayPayments($orderId) as $row) {
-            $rowMethodId = (int) ($row->id_payment_method ?? 0);
-
-            if ($rowMethodId > 0 && ($method = $this->loadPaymentMethod($rowMethodId)) !== null) {
-                return $method;
-            }
-        }
-
-        // NO FOURTH STEP. This used to fall back to "the oldest published method
-        // of this type", so a deleted-and-recreated method let an in-flight
-        // settlement land on a successor. That was a guess wearing a rationale:
-        // the successor may carry different credentials, a different acquirer
-        // MID, or a different account entirely, and the guess was invisible.
-        //
-        // Deletion is now REFUSED while orders or ledger rows reference a
-        // method (PaymentModel::delete), so the case the fallback existed for
-        // cannot arise, and where it somehow does, answering NULL makes the
-        // gateway fail closed instead of settling against someone else's
-        // credentials.
-        return null;
+        // NO OTHER STEP. A method id that names nothing of this plugin's used to fall to the order's chosen method,
+        // and an order chosen elsewhere to the newest of this plugin's own rows: both could answer a sibling method,
+        // another set of credentials. Before 2.0 a further step took "the oldest published method of this type";
+        // method deletion is refused while orders or ledger rows reference a method (PaymentModel::delete).
+        return $this->loadPaymentMethod((int) $header->id_payment_method);
     }
 
     /**
@@ -1769,6 +1839,302 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     protected function getPaymentsByOrder(int $orderId): array
     {
         return PaymentLedger::getByOrder($orderId);
+    }
+
+    //  THE GATEWAY'S BOOKS (2.2.0)
+    //
+    //  What a gateway asks of the books beyond the builder and the intent
+    //  verbs: the order's signed balance, how many of its own rows hold a
+    //  provider reference and the one row that does, the refund type of one of
+    //  its payments, the claim of a pending attempt for a reference, and a
+    //  method's first settled payment or refund. Each answers with a value
+    //  (Money, a count, an id, a type, won or lost, three facts), never a row,
+    //  a query or the ledger itself.
+
+    /**
+     * The order's signed balance, as the ledger computes it everywhere: the
+     * order's total less what the shop still holds (collected payments less the
+     * refunds and chargebacks that took part of them back).
+     *
+     *   > 0  the customer still owes it: no capture or charge may exceed it
+     *   = 0  settled
+     *   < 0  overpaid: the shop holds more than the order is owed
+     *
+     * Not amountToCollect(), which is clamped at zero and answers what a new
+     * charge should be; this one is never clamped.
+     *
+     * Usage:
+     *   $due = $this->orderBalance(orderId: (int) $order->id());
+     *   if ($row->amount->greaterThan($due)) { ...refuse the capture... }
+     *
+     * @param int $orderId The order.
+     *
+     * @return Money Signed, in the order's currency and scale.
+     *
+     * @throws InvalidArgumentException An order id under 1.
+     * @throws OrderCurrencyException When the order does not exist or names no currency.
+     *
+     * @since  2.2.0
+     */
+    protected function orderBalance(int $orderId): Money
+    {
+        if ($orderId <= 0) {
+            throw new InvalidArgumentException('orderBalance(): an order id is required.');
+        }
+
+        return PaymentLedger::balance(orderId: $orderId);
+    }
+
+    /**
+     * How many of this gateway's rows of the given types hold exactly this
+     * provider reference: the replay and settlement check (a reference held by
+     * more than one row proves nothing about any of them).
+     *
+     * Only rows this gateway recorded count (their own payment_method_type, as
+     * gatewayPayments() reads them), and a reference counts only as its whole
+     * value, byte for byte: another letter case, a trailing space or a longer
+     * value is another reference.
+     *
+     * Usage:
+     *   if ($this->countReferenceHolders(reference: $txId, types: [self::TYPE_PAYMENT]) !== 1) { ...prove nothing... }
+     *
+     * @param string $reference The provider reference, whole.
+     * @param string[] $types The row types to count, each one of self::TYPE_PAYMENT, self::TYPE_AUTHORIZATION,
+     *                        self::TYPE_REFUND, self::TYPE_REVERSAL and self::TYPE_CHARGEBACK.
+     *
+     * @return int The rows, 0 when none holds it.
+     *
+     * @throws InvalidArgumentException An empty reference, no type, or a type the books do not know.
+     *
+     * @since  2.2.0
+     */
+    protected function countReferenceHolders(string $reference, array $types): int
+    {
+        return \count($this->referenceRows(method: 'countReferenceHolders()', reference: $reference, types: $types));
+    }
+
+    /**
+     * The one row of this gateway, of the given types, that holds exactly this
+     * provider reference: the row a provider event names (a refund row the
+     * provider confirms by its own reference, for example). The same rows count
+     * as for countReferenceHolders(): this gateway's own, the reference whole and
+     * byte for byte.
+     *
+     * Usage:
+     *   $refundRowId = $this->findOwnRowByReference(reference: $providerRefundId, types: [self::TYPE_REFUND]);
+     *
+     * @param string $reference The provider reference, whole.
+     * @param string[] $types The row types to look in, each one of self::TYPE_PAYMENT, self::TYPE_AUTHORIZATION,
+     *                        self::TYPE_REFUND, self::TYPE_REVERSAL and self::TYPE_CHARGEBACK.
+     *
+     * @return int|null The row's id when exactly one of this gateway's rows of those types holds the reference; null
+     *                  when none does or several do (a reference held twice names no row). Never another gateway's.
+     *
+     * @throws InvalidArgumentException An empty reference, no type, or a type the books do not know.
+     *
+     * @since  2.2.0
+     */
+    protected function findOwnRowByReference(string $reference, array $types): ?int
+    {
+        $rows = $this->referenceRows(method: 'findOwnRowByReference()', reference: $reference, types: $types);
+
+        return \count($rows) === 1 ? $rows[0] : null;
+    }
+
+    /**
+     * The first ledger row that proves one of this plugin's methods in use: its first payment that settled
+     * (self::FIRST_PAID: completed, or refunded in full since: the full refund flips the payment it returns, which
+     * still took the money) or its first refund row (self::FIRST_REFUND). Only rows recorded as this plugin's count:
+     * a wallet spend carrying the order's method id, or another gateway's money on a method retyped since, is not
+     * this method's.
+     *
+     * A configuration and checkup read, for display only (the method's edit page: "proven in use"): never a basis for
+     * choosing a method, a row or credentials, and no transaction path may call it.
+     *
+     * One query, LIMIT 1: each kind of row is one branch fixing the method, the row type and the status (the
+     * idx_payment_method key), joined by UNION ALL; the lowest id wins.
+     *
+     * Usage:
+     *   $first = $this->firstMethodRow(methodId: $methodId, kind: self::FIRST_PAID);
+     *
+     * @param int $methodId One of this plugin's methods.
+     * @param string $kind self::FIRST_PAID or self::FIRST_REFUND.
+     *
+     * @return array{id: int, order: int, moment: string}|null The row's id, its order and when the money moved; null
+     *                                                         when there is none, or the method is not one of this
+     *                                                         plugin's.
+     *
+     * @throws InvalidArgumentException A kind this method does not know.
+     *
+     * @since  2.2.0
+     */
+    protected function firstMethodRow(int $methodId, string $kind): ?array
+    {
+        if (!\in_array($kind, [self::FIRST_PAID, self::FIRST_REFUND], true)) {
+            throw new InvalidArgumentException('firstMethodRow(): the kind is self::FIRST_PAID or self::FIRST_REFUND.');
+        }
+
+        if ($this->loadPaymentMethod($methodId) === null) {
+            return null;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $predicates = $kind === self::FIRST_PAID
+            ? [
+                PaymentLedger::settledPaymentPredicate(),
+                '(' . $db->quoteName('payment_type') . ' = ' . $db->quote(self::TYPE_PAYMENT)
+                    . ' AND ' . $db->quoteName('transaction_status') . ' = ' . $db->quote(self::STATUS_REFUNDED) . ')',
+            ]
+            : [PaymentLedger::refundPredicate()];
+        $element = (string) $this->_name;
+        $branches = array_map(
+            static fn (string $predicate): QueryInterface => $db->getQuery(true)
+                ->select($db->quoteName(['id', 'id_order']))
+                ->select(PaymentLedger::moneyMoment() . ' AS ' . $db->quoteName('moment'))
+                ->from($db->quoteName('#__alfa_order_payments'))
+                ->where($db->quoteName('id_payment_method') . ' = ' . $methodId)
+                ->where($predicate)
+                ->where($db->quoteName('payment_method_type') . ' = ' . $db->quote($element))
+                ->order($db->quoteName('id') . ' ASC')
+                ->setLimit(1),
+            $predicates,
+        );
+        $query = array_shift($branches);
+
+        if ($branches !== []) {
+            $query = $query->toQuerySet();
+
+            foreach ($branches as $branch) {
+                $query->unionAll($branch);
+            }
+
+            $query->order($db->quoteName('id') . ' ASC');
+        }
+
+        $row = $db->setQuery($query, 0, 1)->loadObject();
+
+        return $row === null ? null : ['id' => (int) $row->id, 'order' => (int) $row->id_order, 'moment' => (string) $row->moment];
+    }
+
+    /**
+     * The ids of this gateway's rows of the given types holding exactly a reference: the key narrows, the value is
+     * compared whole and byte for byte.
+     *
+     * @param string $method The asking method, for its refusal.
+     * @param string $reference The provider reference, whole.
+     * @param string[] $types The row types.
+     *
+     * @return int[] Ascending.
+     *
+     * @throws InvalidArgumentException An empty reference, no type, or a type the books do not know.
+     *
+     * @since  2.2.0
+     */
+    private function referenceRows(string $method, string $reference, array $types): array
+    {
+        $known = [self::TYPE_PAYMENT, self::TYPE_AUTHORIZATION, self::TYPE_REFUND, self::TYPE_REVERSAL, self::TYPE_CHARGEBACK];
+        $types = array_values(array_unique(array_map('strval', $types)));
+
+        if ($reference === '' || $types === [] || array_diff($types, $known) !== []) {
+            throw new InvalidArgumentException($method . ': a reference and at least one known row type are required.');
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $gateway = (string) $this->_name;
+        $hash = (string) PaymentLedger::referenceHash(reference: $reference);
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['id', 'transaction_id']))
+            ->from($db->quoteName('#__alfa_order_payments'))
+            ->where($db->quoteName('payment_method_type') . ' = :gateway')
+            ->whereIn($db->quoteName('payment_type'), $types, ParameterType::STRING)
+            ->where($db->quoteName('transaction_id_hash') . ' = :hash')
+            ->order($db->quoteName('id') . ' ASC')
+            ->bind(':gateway', $gateway)
+            ->bind(':hash', $hash);
+
+        return array_values(array_map(
+            static fn (object $row): int => (int) $row->id,
+            array_filter($db->setQuery($query)->loadObjectList() ?: [], static fn (object $row): bool => (string) $row->transaction_id === $reference),
+        ));
+    }
+
+    /**
+     * Whether a refund of this amount on one of this gateway's payments is a
+     * full or a partial refund, as the ledger books it: full only when the
+     * refunds alone then cover the payment (a chargeback never makes a refund
+     * full).
+     *
+     * Usage:
+     *   $bookedAs = $this->refundTypeFor(paymentId: $paymentId, amount: $refund) === self::REFUND_FULL ? 'refund' : 'refund_partial';
+     *
+     * @param int $paymentId One of this gateway's payment rows.
+     * @param Money|null $amount The refund, positive, in the order's currency; null means what is left to refund on it.
+     *
+     * @return string self::REFUND_FULL or self::REFUND_PARTIAL.
+     *
+     * @throws InvalidArgumentException When the row is not a payment of this gateway, or the amount is not positive.
+     *
+     * @since  2.2.0
+     */
+    protected function refundTypeFor(int $paymentId, ?Money $amount = null): string
+    {
+        $row = $paymentId > 0 ? PaymentLedger::get($paymentId) : null;
+
+        if ($row === null || (string) ($row->payment_method_type ?? '') !== (string) $this->_name || (string) ($row->payment_type ?? '') !== self::TYPE_PAYMENT) {
+            throw new InvalidArgumentException('refundTypeFor(): payment #' . $paymentId . ' is not a payment of this gateway.');
+        }
+
+        if ($amount !== null && !$amount->isPositive()) {
+            throw new InvalidArgumentException('refundTypeFor(): a refund amount is positive.');
+        }
+
+        return PaymentLedger::refundTypeFor(paymentId: $paymentId, amount: $amount);
+    }
+
+    /**
+     * Claim one of this gateway's pending attempts for a provider reference:
+     * the attempt's one exclusive write.
+     *
+     * The ledger writes the reference only while the row is still this
+     * gateway's pending payment or authorization without a reference, in one
+     * compare-and-set under the order's lock, and records it on the order's
+     * timeline. Two deliveries of one provider event, or two visits racing
+     * for one attempt, cannot both win: the loser is told false and nothing of
+     * its call is written. No money and no status move here; a won claim
+     * writes its amount through paymentUpdate() after.
+     *
+     * Usage:
+     *   if ($this->claimPendingAttempt(paymentId: (int) $payment->id, reference: $sessionId)) {
+     *       ...the attempt is this visit's...
+     *   } else {
+     *       ...another visit or delivery owns it: open a new attempt, or agree with the winner...
+     *   }
+     *
+     * A reference is blank when nothing is left of it after trim(), and a
+     * blank one is refused. Any other is stored whole, byte for byte, its
+     * spaces and letter case kept, so a gateway claims with the very value
+     * it later looks the attempt up by.
+     *
+     * @param int $paymentId The pending attempt.
+     * @param string $reference The provider reference, not blank, stored whole.
+     *
+     * @return bool True when this call claimed it; false when the row is not,
+     *              or no longer, this gateway's pending attempt without a
+     *              reference.
+     *
+     * @throws InvalidArgumentException A payment id under 1 or a blank reference.
+     * @throws RuntimeException When the attempt's order cannot be locked: nothing is written and the attempt stays
+     *                          claimable.
+     *
+     * @since  2.2.0
+     */
+    protected function claimPendingAttempt(int $paymentId, string $reference): bool
+    {
+        if ($paymentId <= 0 || trim($reference) === '') {
+            throw new InvalidArgumentException('claimPendingAttempt(): a payment id and a reference that is not blank are required.');
+        }
+
+        return PaymentLedger::claimReference(id: $paymentId, gateway: (string) $this->_name, reference: $reference);
     }
 
     //  FRONTEND HOOKS (abstract: plugin MUST implement)

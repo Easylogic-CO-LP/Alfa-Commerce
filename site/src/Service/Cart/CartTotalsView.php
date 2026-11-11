@@ -37,6 +37,9 @@ final class CartTotalsView
      * @param object[] $contributions Folded plugin charges, by sort order.
      * @param Money $grand What the shopper pays.
      * @param Money $grandExcl The same, tax excluded.
+     * @param string[] $contributionsNotLoaded The plugins (group.element) the customer's view levels admit that Joomla
+     *                                         does not load for the request's user: their charges are missing and the
+     *                                         placement refuses (2.2.0).
      *
      * @since  2.0.0
      */
@@ -52,6 +55,7 @@ final class CartTotalsView
         public readonly array $contributions,
         public readonly Money $grand,
         public readonly Money $grandExcl,
+        public readonly array $contributionsNotLoaded = [],
     ) {
     }
 }

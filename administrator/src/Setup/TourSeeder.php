@@ -14,8 +14,8 @@ namespace Alfa\Component\Alfa\Administrator\Setup;
 
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use RuntimeException;
@@ -185,15 +185,15 @@ final class TourSeeder
         $files = glob(self::TOURS_PATH . '/*.json') ?: [];
         $group = PanelDispatcher::PLATFORM_GROUP;
 
+        // The group's enabled plugins as Joomla lists them, through the plugin helper (2.2.0); nothing is booted.
         try {
-            PluginHelper::importPlugin(type: $group, plugin: null, autocreate: true);
-            $descriptors = PluginHelper::getPlugin($group);
+            $plugins = AlfaPluginHelper::get()->available($group);
         } catch (Throwable) {
             return $files;                          // no platform group: core's tours stand alone
         }
 
-        foreach ($descriptors as $descriptor) {
-            $own = JPATH_PLUGINS . '/' . $group . '/' . $descriptor->name . '/tours';
+        foreach ($plugins as $plugin) {
+            $own = JPATH_PLUGINS . '/' . $group . '/' . $plugin->element . '/tours';
 
             if (is_dir($own)) {
                 $files = array_merge($files, glob($own . '/*.json') ?: []);

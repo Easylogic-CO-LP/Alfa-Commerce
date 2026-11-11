@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_meta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa Commerce facts it keeps beside its data: the schema version, the download store path and its protection';
 
 INSERT INTO `#__alfa_meta` (`name`, `value`)
-SELECT 'schema_version', '2.1.4' FROM DUAL
+SELECT 'schema_version', '2.2.0' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'schema_version');
 
 -- Begin of the Clear everything block, added in 2.1.0. Keep it whole and apart from other tables.
@@ -667,7 +667,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_inventory_effect_outbox` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Durable stock-effect obligations, written with the fact that requires them, drained until the movement exists';
 
 CREATE TABLE IF NOT EXISTS `#__alfa_inventory_movements` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `item_id` int(11) UNSIGNED NOT NULL,
   `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '0 = item-level unit',
   `location_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
@@ -817,7 +817,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_inventory_transfers` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_inventory_operations` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `operation_id` varchar(40) NOT NULL,
   `command` varchar(20) NOT NULL COMMENT 'reserve | release | commit | restore | reverse_restore | receive | adjust | transfer | expire | reconcile | retire | location_state | unit_state | track_open | track_close | write_off | resolve_line | archive | unarchive | sale_rules | prioritise',
   `source_type` varchar(30) NOT NULL DEFAULT '',
@@ -1139,12 +1139,14 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `modified` datetime NOT NULL,
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
+  `projection_dirty_at` datetime(6) NULL DEFAULT NULL COMMENT 'When a rebuild of this item projections was found owed and not yet done; NULL = current',
   PRIMARY KEY (`id`),
   KEY `idx_available_quantity` (`available_quantity`),
   KEY `idx_state` (`state`),
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
-  KEY `idx_modified_by` (`modified_by`)
+  KEY `idx_modified_by` (`modified_by`),
+  KEY `idx_projection_dirty` (`projection_dirty_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1258,7 +1260,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_price_index` (
 --
 -- The sets of pricing groups customers hold, which the price index is keyed by.
 -- A set nobody held before is requested by the request that brought it and
--- prepared by the scheduled task, a chunk of products at a time; prepared_through
+-- prepared by its price.set.prepare job, a chunk of products at a time; prepared_through
 -- is its checkpoint. prepared_at is written after the last chunk, and a set
 -- without it is never read, whatever rows the index holds of it.
 --
@@ -1397,6 +1399,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_media` (
   `alt` varchar(75) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `ordering` int(11) NOT NULL DEFAULT 0,
   `origin` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `thumbnail_origin` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'What the thumbnail was made from: image (the row image) or chosen (a picture chosen on the tile); NULL before 2.2.0',
   PRIMARY KEY (`id`),
   KEY `idx_alfa_media_origin_item` (`origin`, `item_id`),
   KEY `idx_alfa_media_type` (`type`)
@@ -1586,7 +1589,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orderstatus_recipients` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_order_activity_log` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `id_order` int(11) UNSIGNED NOT NULL,
   `id_employee` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '0 = system or customer',
   `employee_name` varchar(100) NOT NULL DEFAULT '' COMMENT 'Name snapshot at time of event',
@@ -1764,7 +1767,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
   `discount_percent` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Discount percentage (e.g., 20.00 = 20% off)',
   `discount_amount_tax_excl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Discount amount excluding tax',
   `discount_amount_tax_incl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Discount amount including tax',
-  `tax_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'Applied tax name snapshot: same width as the catalogue name column; clamped at the column width, never silently truncated',
+  `tax_name` text NOT NULL DEFAULT ('') COMMENT 'Applied tax name snapshot, whole: the name of combined rules joined with + can pass 255 characters; lines frozen before 2.2.0 keep what they hold',
   `tax_rate` decimal(10,3) NOT NULL DEFAULT 0.000 COMMENT 'Tax percentage (e.g., 24.000 = 24%)',
   `added` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
@@ -1908,7 +1911,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_shipments` (
   `shipping_cost_tax_incl` decimal(24,8) DEFAULT NULL,
   `shipping_tax_rate` decimal(10,3) NOT NULL DEFAULT 0.000 COMMENT 'VAT rate the shipping charge was taxed at (24.000 = 24%); 0.000 = untaxed. Frozen with the amounts: a rate cannot be recovered from rounded amounts.',
   `shipping_charge_basis` varchar(16) NOT NULL DEFAULT 'tax_included' COMMENT 'What the costs were derived from: tax_included (the gross was the input), tax_excluded (the net was the input) or carrier_stated (a carrier stated them; never recalculated). A staff or REST change of the charge is checked through it.',
-  `shipping_tax_chain` varchar(255) NOT NULL DEFAULT '[]' COMMENT 'The tax rates the charge was calculated with, in the order they apply, as exact decimal texts (a JSON list, e.g. ["10","5"]); [] = untaxed. shipping_tax_rate is their combined rate, for display and reconciliation only.',
+  `shipping_tax_chain` text NOT NULL DEFAULT ('[]') COMMENT 'The tax rates the charge was calculated with, in the order they apply, each an exact decimal text with the name of the tax rule that applied it, whole (a JSON list, e.g. [{"rate":"10","name":"VAT"},{"rate":"5","name":"Eco levy"}]; a chain frozen before 2.2.0 holds the rates alone, e.g. ["10","5"]); [] = untaxed. shipping_tax_rate is their combined rate, for display and reconciliation only.',
   `tracking_number` varchar(64) DEFAULT NULL,
   `carrier_name` varchar(255) DEFAULT NULL COMMENT 'Actual carrier name (the courier company handling the parcel)',
   `added` datetime NOT NULL,
@@ -3150,6 +3153,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_document_items` (
   `total_tax_incl` decimal(24,8) NOT NULL DEFAULT 0.00000000,
   `authority_classification` text DEFAULT NULL COMMENT 'JSON income classification slot (transmission plugin)',
   `sort_order` int(11) NOT NULL DEFAULT 0,
+  `tax_name` text NOT NULL DEFAULT ('') COMMENT 'The applied tax rule name frozen at issue, whole: from the order line or the shipping tax chain, on a credit from the corrected document line; empty on documents issued before 2.2.0',
   PRIMARY KEY (`id`),
   KEY `idx_document` (`id_document`),
   KEY `idx_order_item` (`id_order_item`)
@@ -3234,7 +3238,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (
   `batch` char(32) DEFAULT NULL COMMENT 'single: the business transaction that wrote it; its singles run together, in id order. NULL for a job',
   `subject_type` varchar(32) NOT NULL DEFAULT '' COMMENT 'What the task is about, e.g. order; empty = nothing',
   `subject_id` int UNSIGNED NOT NULL DEFAULT 0,
-  `scope_key` varchar(190) DEFAULT NULL COMMENT 'job: what it covers, e.g. price.set:<digest>; one active job per scope. NULL for a single',
+  `scope_key` varchar(190) DEFAULT NULL COMMENT 'job: what it covers, e.g. price.set.prepare:<digest>; one active job per scope. NULL for a single',
   `active_key` varchar(190) GENERATED ALWAYS AS (IF(`state` IN ('pending','running'), `scope_key`, NULL)) STORED,
   `weight` varchar(8) NOT NULL DEFAULT 'light' COMMENT 'light | heavy: one heavy job runs at a time. A single is light',
   `priority` smallint NOT NULL DEFAULT 0 COMMENT 'job claim order; a single runs in id order',
@@ -3264,7 +3268,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (
   KEY `idx_lease` (`type`, `state`, `lease_until`),
   KEY `idx_batch` (`batch`),
   KEY `idx_subject` (`subject_type`, `subject_id`, `id`),
-  KEY `idx_handler_state` (`handler`, `state`),
+  KEY `idx_handler_state_finished` (`handler`, `state`, `finished_at`),
   KEY `idx_finished` (`finished_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa tasks: singles a change owes after its commit, and jobs with steps';
 
@@ -3274,3 +3278,14 @@ CREATE TABLE IF NOT EXISTS `#__alfa_task_slots` (
   `lease_until` datetime(3) DEFAULT NULL,
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Concurrency slots of jobs: one heavy job at a time';
+
+-- The slot rows are data (2.2.0): the heavy class of jobs and the three trigger gates, written into the empty table
+-- (an update writes the same rows with INSERT IGNORE, 2.2.0.sql); a second run changes nothing.
+INSERT INTO `#__alfa_task_slots` (`name`)
+SELECT * FROM (
+            SELECT 'heavy' AS `name`
+  UNION ALL SELECT 'gate.page'
+  UNION ALL SELECT 'gate.endpoint'
+  UNION ALL SELECT 'gate.api'
+) AS `seed`
+WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_task_slots`);

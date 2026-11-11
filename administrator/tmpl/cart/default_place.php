@@ -34,6 +34,8 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodRequirement;
@@ -89,6 +91,13 @@ if ($offers->paymentRequirement === MethodRequirement::Unavailable) {
 } elseif ($offers->paymentRequirement->mustBeNamed() && $offers->selectedPaymentId <= 0) {
     $blockers[] = Text::_('COM_ALFA_CART_BUILDER_PLACE_NO_PAYMENT');
 }
+
+// A plugin that adds charges or checks to this customer's cart and that Joomla does not load for this account: the
+// totals lack its part and placement refuses, so the button is disabled with the same sentence as its reason (UX-40).
+$notLoaded = array_map(
+    static fn (string $plugin): string => Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR', AlfaPluginHelper::get()->name(PluginId::of($plugin))),
+    array_values((array) $snapshot->totals->contributionsNotLoaded),
+);
 ?>
 
 <div class="card mb-3 border-primary">
@@ -270,10 +279,18 @@ if ($offers->paymentRequirement === MethodRequirement::Unavailable) {
                 <?php endif; ?>
 
                 <div class="col-md-3 text-end">
-                    <button type="submit" class="btn btn-lg <?php echo $this->isShopperCart ? 'btn-danger' : 'btn-primary'; ?>" data-alfa-place-once>
+                    <button type="submit" class="btn btn-lg <?php echo $this->isShopperCart ? 'btn-danger' : 'btn-primary'; ?>" data-alfa-place-once<?php
+                        echo $notLoaded === [] ? '' : ' disabled aria-describedby="alfa-place-not-loaded"'; ?>>
                         <span class="icon-checkbox" aria-hidden="true"></span>
                         <?php echo Text::_($this->isShopperCart ? 'COM_ALFA_CART_PLACE_SHOPPER_SUBMIT' : 'COM_ALFA_CART_CHECKOUT_PLACE'); ?>
                     </button>
+                    <?php if ($notLoaded !== []) : ?>
+                        <div class="small text-danger text-start mt-2" id="alfa-place-not-loaded">
+                            <?php foreach ($notLoaded as $reason) : ?>
+                                <p class="mb-1"><?php echo $this->escape($reason); ?></p>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 

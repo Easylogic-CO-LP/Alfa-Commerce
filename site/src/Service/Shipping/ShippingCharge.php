@@ -20,7 +20,8 @@ defined('_JEXEC') or die;
 /**
  * A shipping charge in canonical form: net, tax and gross in one currency,
  * with the rate the tax was charged at, the ordered rates it was calculated
- * with, and how the figures were formed.
+ * with and the name of the tax rule behind each, and how the figures were
+ * formed.
  *
  * THE ONLY SHAPE SHIPPING MONEY TAKES AFTER A CARRIER ANSWERS. The cart, the
  * order, discounts, documents, credits and refunds read these amounts; none
@@ -42,8 +43,10 @@ final class ShippingCharge
      * @param float $taxRate The rate the tax was charged at, in percent, at three places: the chain's
      *                       combined rate, for display, reporting and reconciliation.
      * @param ShippingChargeBasis $basis How the figures were formed: under an entry mode, or as a carrier stated them.
-     * @param string[] $chain The rates the charge was calculated with, in the order they apply, as exact
-     *                        decimal texts; empty for an untaxed charge.
+     * @param array<int, array{rate: string, name: string}> $chain The rates the charge was calculated with, in the
+     *                                                             order they apply, each as its exact decimal text with
+     *                                                             the name of the tax rule that applied it ('' when no
+     *                                                             rule did); empty for an untaxed charge.
      *
      * @throws InvalidArgumentException When the three amounts are not one canonical charge.
      *
@@ -116,7 +119,10 @@ final class ShippingCharge
             return new self($entered, Money::zero($entered->getCurrency()), $entered, 0.0, $basis, []);
         }
 
-        $rates = array_map(static fn (AppliedTax $tax): string => ExactAmount::ofNumber($tax->rate)->text(), array_values($chain));
+        $rates = array_map(
+            static fn (AppliedTax $tax): array => ['rate' => ExactAmount::ofNumber($tax->rate)->text(), 'name' => $tax->name],
+            array_values($chain),
+        );
 
         if ($mode === ShippingPriceEntryMode::TaxIncluded) {
             $net = TaxChain::netOf(gross: $entered, rates: array_map(static fn (AppliedTax $tax): float => $tax->rate, $chain));
@@ -135,7 +141,7 @@ final class ShippingCharge
      * Authoritative: no entry mode and no tax resolution is applied. They are
      * refused unless they are one canonical charge. The one rate the carrier
      * states is the whole of what Alfa knows of how it taxed them, so it is
-     * the charge's chain.
+     * the charge's chain, with no rule's name.
      *
      * @param Money $taxExcl The net charge.
      * @param Money $tax The tax on it.
@@ -150,6 +156,6 @@ final class ShippingCharge
     {
         $rate = round($taxRate, 3);
 
-        return new self($taxExcl, $tax, $taxIncl, $rate, ShippingChargeBasis::CarrierStated, $rate > 0.0 ? [ExactAmount::ofNumber($rate)->text()] : []);
+        return new self($taxExcl, $tax, $taxIncl, $rate, ShippingChargeBasis::CarrierStated, $rate > 0.0 ? [['rate' => ExactAmount::ofNumber($rate)->text(), 'name' => '']] : []);
     }
 }

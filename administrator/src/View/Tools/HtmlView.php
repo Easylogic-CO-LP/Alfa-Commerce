@@ -15,6 +15,8 @@ use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
+use Alfa\Component\Alfa\Administrator\Service\Task\RunnerCronKey;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Joomla\CMS\Access\Exception\NotAllowed;
@@ -23,6 +25,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Throwable;
 
@@ -108,6 +111,46 @@ class HtmlView extends BaseHtmlView
     public array $tasks = ['rows' => [], 'total' => 0, 'users' => [], 'unreadable' => false];
 
     /**
+     * The Tasks tab's jobs ({@see TaskStaff::jobRows()}) and the names of the customer groups their price sets cover.
+     *
+     * @var array{rows: list<array<string, mixed>>, groups: array<int, string>, unreadable: bool}
+     * @since  2.2.0
+     */
+    public array $jobs = ['rows' => [], 'groups' => [], 'engines' => [], 'thumbnailsMode' => null, 'followedJob' => 0, 'failedJobs' => 0, 'unreadable' => false];
+
+    /**
+     * The Tasks tab's runner card: the last tick (runner.last_tick), the cron command, the web-cron address without
+     * its key, and whether a key is kept.
+     *
+     * @var array{lastTick: array<string, mixed>|null, cli: string, cron: string, keyKept: bool}
+     * @since  2.2.0
+     */
+    public array $runner = ['lastTick' => null, 'cli' => '', 'cron' => '', 'keyKept' => false];
+
+    /**
+     * The job the progress page follows (&job=N), or null; jobMissing when &job names no job.
+     *
+     * @var array<string, mixed>|null
+     * @since  2.2.0
+     */
+    public ?array $job = null;
+
+    /**
+     * Whether &job named a job there is not.
+     *
+     * @since  2.2.0
+     */
+    public bool $jobMissing = false;
+
+    /**
+     * A web-cron key made in this request (TasksController::generateKey()): shown in this answer only, never kept,
+     * logged or put in a message.
+     *
+     * @since  2.2.0
+     */
+    public string $newCronKey = '';
+
+    /**
      * Render the Tools page.
      *
      * @param string|null $tpl The template name.
@@ -139,6 +182,19 @@ class HtmlView extends BaseHtmlView
         $this->integrityHtml = ob_get_clean();
 
         $this->tasks = $this->tasks();
+        $this->jobs = $this->jobs();
+        $this->runner = $this->runner();
+        $jobId = Factory::getApplication()->getInput()->getInt('job', 0);
+
+        if ($jobId > 0) {
+            try {
+                $this->job = TaskStaff::job(id: $jobId);
+            } catch (Throwable $e) {
+                Tasks::log(entry: 'Tools: job #' . $jobId . ' could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            }
+
+            $this->jobMissing = $this->job === null;
+        }
 
         $this->addToolbar();
 
@@ -188,6 +244,54 @@ class HtmlView extends BaseHtmlView
         }
 
         return ['rows' => $rows, 'total' => $total, 'users' => $users, 'unreadable' => false];
+    }
+
+    /**
+     * The jobs for the Tasks tab, as the jobs card draws them ({@see TaskStaff::jobsCard()}): the same data the card's
+     * own refresh on the progress page draws (UX-84). This page follows the job of &job=N when it is a progress page.
+     *
+     * @return array{rows: list<array<string, mixed>>, groups: array<int, string>, engines: array<string, string>, thumbnailsMode: string|null, followedJob: int, failedJobs: int, unreadable: bool}
+     *
+     * @since  2.2.0
+     */
+    private function jobs(): array
+    {
+        return TaskStaff::jobsCard(followedJob: Factory::getApplication()->getInput()->getInt('job', 0));
+    }
+
+    /**
+     * The runner card: the last tick, the cron command, and the web-cron address without its key.
+     *
+     * @return array{lastTick: array<string, mixed>|null, cli: string, cron: string, keyKept: bool}
+     *
+     * @since  2.2.0
+     */
+    private function runner(): array
+    {
+        $lastTick = null;
+        $keyKept = false;
+
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $value = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('value'))
+                    ->from($db->quoteName('#__alfa_meta'))
+                    ->where($db->quoteName('name') . ' = ' . $db->quote(Runner::META_LAST_TICK)),
+            )->loadResult();
+            $decoded = \is_string($value) ? json_decode($value, true) : null;
+            $lastTick = \is_array($decoded) ? $decoded : null;
+            $keyKept = RunnerCronKey::kept();
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Tools: the runner state could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+        }
+
+        return [
+            'lastTick' => $lastTick,
+            'cli' => 'php ' . JPATH_ROOT . '/cli/joomla.php alfa:tasks:run',
+            'cron' => rtrim(Uri::root(), '/') . '/index.php?option=com_alfa&task=runner.cron&key=',
+            'keyKept' => $keyKept,
+        ];
     }
 
     /**

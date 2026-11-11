@@ -16,6 +16,7 @@
     <field name="parent_id"
            type="categories"
            model="places"
+           allStates="true"
            showPath="false"
            orderBy="id"
            orderDir="desc"

@@ -63,6 +63,9 @@ final class ComponentOptions
         'items_limit' => 25,
         'items_limits' => '',
         'items_ordering' => 'a.id DESC',
+        // The category's title and description above its listing (shown unless a level says No).
+        'show_category_title' => 1,
+        'show_category_description' => 1,
 
         // Pricing
         'combination_adjust_target' => 'final',
@@ -119,8 +122,9 @@ final class ComponentOptions
         'default_currency' => 978,  // EUR
 
         // Media (main-image format/quality/dimensions live in the optimizer plugin)
-        'media_thumbnail_width' => 200,
-        'media_thumbnail_height' => 200,
+        // The thumbnail box: 500 x 500 from 2.2.0; a site that stores its own keeps it.
+        'media_thumbnail_width' => 500,
+        'media_thumbnail_height' => 500,
         'media_save_location' => '/images/commerce',
         'media_placeholder' => 'media/com_alfa/images/placeholders/no-image.webp',
         'media_placeholder_items' => 1,

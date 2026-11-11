@@ -56,6 +56,8 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\ShipmentAutomation;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedTax;
@@ -76,6 +78,8 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\User\UserFactoryInterface;
+use Joomla\Database\ParameterType;
+use LogicException;
 use RuntimeException;
 use stdClass;
 use Throwable;
@@ -134,6 +138,9 @@ class ShipmentLedger
     /** @var string Primary key column */
     private const PK = 'id';
 
+    /** @var string Between the names of the rules of one chain, as the pricing engine joins combined rules */
+    private const CHAIN_NAME_JOIN = ' + ';
+
     /**
      * Nullable integer columns: form sends '', MySQL rejects for int.
      * Sanitized to null in saveToTable().
@@ -179,6 +186,9 @@ class ShipmentLedger
      * which would defeat the no-op short-circuit in doBuilderUpdate().
      */
     protected ?string $existingShipped = null;
+
+    /** @var string ->writtenBy(): the element of the shipment plugin writing a new row; '' for core's own writes */
+    protected string $writer = '';
 
     //  Fluent builder API
 
@@ -484,6 +494,29 @@ class ShipmentLedger
     }
 
     /**
+     * The shipment plugin writing this new row (2.2.0): ShipmentsPlugin::shipment() names it, a carrier never does.
+     * The row then records that plugin's element as its shipment_method_type, never the live type of a method row,
+     * which an edit can change; the create refuses a method that is not one of the writer's own. Named once: another
+     * element afterwards is refused.
+     *
+     * @param string $element The writing plugin's element.
+     *
+     * @throws LogicException When the builder already names another writer.
+     *
+     * @since  2.2.0
+     */
+    public function writtenBy(string $element): static
+    {
+        if ($this->writer !== '' && $this->writer !== $element) {
+            throw new LogicException('ShipmentLedger::writtenBy(): this row is already written by ' . $this->writer . '.');
+        }
+
+        $this->writer = $element;
+
+        return $this;
+    }
+
+    /**
      * Override the shipment method (normally from order).
      *
      * @param int $methodId Shipment method PK
@@ -560,7 +593,7 @@ class ShipmentLedger
             return self::WRITE_FAILED;
         }
 
-        return self::updateIfStatus((int) $this->shipmentId, $this->toArray(), $expectedStatus);
+        return self::updateIfStatus((int) $this->shipmentId, $this->toArray(), $expectedStatus, writer: $this->writer);
     }
 
     // Introspection
@@ -630,7 +663,7 @@ class ShipmentLedger
         // No row to merge with yet, so the staged keys are the whole payload.
         $this->stagePluginDataForCreate();
 
-        return static::create($this->data);
+        return static::create($this->data, writer: $this->writer);
     }
 
     /**
@@ -661,7 +694,7 @@ class ShipmentLedger
 
         return $this->writeWithPluginData(
             $this->shipmentId,
-            fn (): int|false => static::update($this->shipmentId, $this->data)
+            fn (): int|false => static::update($this->shipmentId, $this->data, writer: $this->writer)
                 ? $this->shipmentId
                 : false,
         );
@@ -706,6 +739,8 @@ class ShipmentLedger
      *
      * @param array $data Shipment data. 'id_order' is REQUIRED.
      * @param bool $entered True for a charge an operator or a REST client entered.
+     * @param string $writer The element of the shipment plugin writing the row ({@see self::writtenBy()}); '' for
+     *                       core's own rows, which keep their own classification (since 2.2.0).
      *
      * @return int|false New shipment row ID, or false on failure
      *
@@ -713,7 +748,7 @@ class ShipmentLedger
      *
      * @since  1.0.0
      */
-    public static function create(array $data, bool $entered = false): int|false
+    public static function create(array $data, bool $entered = false, string $writer = ''): int|false
     {
         $orderId = (int) ($data['id_order'] ?? 0);
 
@@ -817,6 +852,24 @@ class ShipmentLedger
             );
         }
 
+        // The writer's identity (2.2.0). A row a shipment plugin writes records that plugin's element, compared byte for
+        // byte with the method row's type, never stamped from a type an edit could have changed: a method that is not
+        // one of the writer's own is a contract error, and nothing is written.
+        if ($writer !== '') {
+            $named = (int) ($data['id_shipment_method'] ?? 0);
+            $refusal = match (true) {
+                $named <= 0 => sprintf('the row names no method of %s', $writer),
+                (string) ($data['shipment_method_type'] ?? '') !== $writer => sprintf('method #%d is not a method of %s', $named, $writer),
+                default => null,
+            };
+
+            if ($refusal !== null) {
+                self::warn(message: 'create(): ' . $refusal . '; nothing was written.');
+
+                return false;
+            }
+        }
+
         // Auto-fill defaults
         if (empty($data['added'])) {
             $data['added'] = Factory::getDate('now', 'UTC')->toSql();
@@ -828,43 +881,57 @@ class ShipmentLedger
             $data['id_currency'] = OrderCurrency::idOf(orderId: $orderId);
         }
 
-        $success = self::saveToTable($data);
+        // One transaction (2.2.0): the row, its item assignments and its timeline row commit together, as update()'s.
+        $db = self::db();
+        $db->transactionStart(true);
 
-        if (!$success) {
-            return false;
+        try {
+            $success = self::saveToTable($data);
+
+            if (!$success) {
+                TransactionState::rollBackLevel($db);
+
+                return false;
+            }
+
+            $newId = (int) $data[self::PK];
+
+            // Assign items
+            if (!empty($selectedItems)) {
+                self::assignItems($newId, $orderId, $selectedItems);
+            }
+
+            // Log activity
+            $methodName = $data['shipment_method_name'] ?? '';
+            $costIncl = number_format((float) $data['shipping_cost_tax_incl'], 2);
+            $itemNames = self::getItemNames($newId);
+            $logSuffix = $itemNames ? " [{$itemNames}]" : '';
+
+            OrderModel::logOrderActivity(
+                $orderId,
+                'shipment.added',
+                "Added shipment: {$methodName} - {$costIncl}{$logSuffix}",
+                [
+                    'shipping_cost_tax_incl' => (float) $data['shipping_cost_tax_incl'],
+                    'shipping_cost_tax_excl' => (float) $data['shipping_cost_tax_excl'],
+                    'shipping_tax_rate' => (string) $data['shipping_tax_rate'],
+                    'shipping_charge_basis' => (string) $data['shipping_charge_basis'],
+                    'shipping_tax_chain' => (string) $data['shipping_tax_chain'],
+                    'shipment_method_name' => $methodName,
+                    'tracking_number' => $data['tracking_number'] ?? '',
+                    // What was actually recorded (post-clamp), as [linePK => qty];
+                    // $selectedItems may carry requested quantities, not line ids.
+                    'assigned_items' => self::getItemQuantities($newId),
+                ],
+                $newId,
+            );
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel($db, $e);
+
+            throw $e;
         }
 
-        $newId = (int) $data[self::PK];
-
-        // Assign items
-        if (!empty($selectedItems)) {
-            self::assignItems($newId, $orderId, $selectedItems);
-        }
-
-        // Log activity
-        $methodName = $data['shipment_method_name'] ?? '';
-        $costIncl = number_format((float) $data['shipping_cost_tax_incl'], 2);
-        $itemNames = self::getItemNames($newId);
-        $logSuffix = $itemNames ? " [{$itemNames}]" : '';
-
-        OrderModel::logOrderActivity(
-            $orderId,
-            'shipment.added',
-            "Added shipment: {$methodName} - {$costIncl}{$logSuffix}",
-            [
-                'shipping_cost_tax_incl' => (float) $data['shipping_cost_tax_incl'],
-                'shipping_cost_tax_excl' => (float) $data['shipping_cost_tax_excl'],
-                'shipping_tax_rate' => (string) $data['shipping_tax_rate'],
-                'shipping_charge_basis' => (string) $data['shipping_charge_basis'],
-                'shipping_tax_chain' => (string) $data['shipping_tax_chain'],
-                'shipment_method_name' => $methodName,
-                'tracking_number' => $data['tracking_number'] ?? '',
-                // What was actually recorded (post-clamp), as [linePK => qty];
-                // $selectedItems may carry requested quantities, not line ids.
-                'assigned_items' => self::getItemQuantities($newId),
-            ],
-            $newId,
-        );
+        TransactionState::commitLevel($db);
 
         return $newId;
     }
@@ -1013,7 +1080,7 @@ class ShipmentLedger
      *
      * @param array $data The charge as it will be written.
      * @param ShippingPriceEntryMode $mode The entry mode it is entered on.
-     * @param string[] $chain The rates it is taxed with, in order; empty when untaxed.
+     * @param array<int, array{rate: string, name: string}> $chain The rates it is taxed with, in order; empty when untaxed.
      * @param int $orderId Its order, whose money the figures are.
      *
      * @return string|null The refusal as the operator reads it, naming the figures the input makes; null when exact.
@@ -1064,7 +1131,7 @@ class ShipmentLedger
      *
      * @param array $data The carrier's write.
      *
-     * @return string[]|null
+     * @return array<int, array{rate: string, name: string}>|null
      *
      * @since  2.0.0
      */
@@ -1072,8 +1139,9 @@ class ShipmentLedger
     {
         $rate = (string) $data['shipping_tax_rate'];
 
+        // The carrier's one rate names no rule.
         if (!\array_key_exists('shipping_tax_chain', $data)) {
-            return ExactAmount::of($rate)->isPositive() ? [ExactAmount::of($rate)->text()] : [];
+            return ExactAmount::of($rate)->isPositive() ? [['rate' => ExactAmount::of($rate)->text(), 'name' => '']] : [];
         }
 
         $chain = self::chainOf(value: $data['shipping_tax_chain']);
@@ -1097,7 +1165,8 @@ class ShipmentLedger
      * @param int $methodId The parcel's shipping method.
      * @param int $orderId Its order.
      *
-     * @return string[] Exact decimal rate texts, in the order they apply; empty when no shipping tax applies.
+     * @return array<int, array{rate: string, name: string}> Exact decimal rate texts, in the order they apply, each with the name of the
+     *                                                       rule that applies it; empty when no shipping tax applies.
      *
      * @since  2.0.0
      */
@@ -1139,7 +1208,10 @@ class ShipmentLedger
             currency: $currency,
         ));
 
-        return array_map(static fn (AppliedTax $tax): string => ExactAmount::ofNumber($tax->rate)->text(), array_values($chain));
+        return array_map(
+            static fn (AppliedTax $tax): array => ['rate' => ExactAmount::ofNumber($tax->rate)->text(), 'name' => $tax->name],
+            array_values($chain),
+        );
     }
 
     /**
@@ -1151,7 +1223,7 @@ class ShipmentLedger
      * @param int $id The parcel.
      * @param array $data The charge as it will be written.
      * @param object $stored The parcel as it stands.
-     * @param string[] $chain Its frozen chain.
+     * @param array<int, array{rate: string, name: string}> $chain Its frozen chain.
      *
      * @return string|null The refusal as the operator reads it.
      *
@@ -1184,7 +1256,7 @@ class ShipmentLedger
      * itself; a chain by its rates in order and their combined rate.
      *
      * @param array $data The charge as it will be written.
-     * @param string[] $chain The resolved chain.
+     * @param array<int, array{rate: string, name: string}> $chain The resolved chain.
      *
      * @return string|null The refusal as the operator reads it, naming the tax that applies.
      *
@@ -1201,54 +1273,101 @@ class ShipmentLedger
 
         return match (\count($chain)) {
             0 => Text::sprintf('COM_ALFA_SHIPMENT_CHARGE_NO_TAX_APPLIES', ExactAmount::of($stated)->text()),
-            1 => Text::sprintf('COM_ALFA_SHIPMENT_CHARGE_TAX_APPLIES_ONE', $chain[0], ExactAmount::of($stated)->text()),
+            1 => Text::sprintf('COM_ALFA_SHIPMENT_CHARGE_TAX_APPLIES_ONE', $chain[0]['rate'], ExactAmount::of($stated)->text()),
             default => Text::sprintf('COM_ALFA_SHIPMENT_CHARGE_TAX_APPLIES', self::chainShown(chain: $chain), ExactAmount::of($resolved)->text(), ExactAmount::of($stated)->text()),
         };
     }
 
     /**
-     * A chain as written: a list of exact decimal rate texts, each above zero.
+     * A chain as written: a list of entries, each an exact decimal rate text
+     * above zero with the name of the tax rule that applied it
+     * ({"rate": "24", "name": "VAT"}). A chain frozen before 2.2.0 holds the
+     * rate texts alone ("24"); each such entry is read as a rate no rule is
+     * named for.
      *
      * @param mixed $value A list, or its JSON text.
      *
-     * @return string[]|null Null when it is not one.
+     * @return array<int, array{rate: string, name: string}>|null Null when it is not one.
      *
      * @since  2.0.0
      */
     private static function chainOf(mixed $value): ?array
     {
-        $rates = \is_string($value) ? json_decode($value, true) : $value;
+        $entries = \is_string($value) ? json_decode($value, true) : $value;
 
-        if (!\is_array($rates) || !array_is_list($rates)) {
+        if (!\is_array($entries) || !array_is_list($entries)) {
             return null;
         }
 
-        foreach ($rates as $rate) {
-            if (!\is_string($rate) || preg_match('/^\d+(?:\.\d+)?$/D', $rate) !== 1 || !ExactAmount::of($rate)->isPositive()) {
+        $chain = [];
+
+        foreach ($entries as $entry) {
+            $named = \is_array($entry);
+            $rate = $named ? ($entry['rate'] ?? null) : $entry;
+            $name = $named ? ($entry['name'] ?? null) : '';
+
+            if (
+                ($named && \count($entry) !== 2)
+                || !\is_string($rate) || preg_match('/^\d+(?:\.\d+)?$/D', $rate) !== 1 || !ExactAmount::of($rate)->isPositive()
+                || !\is_string($name)
+            ) {
                 return null;
             }
+
+            $chain[] = ['rate' => ExactAmount::of($rate)->text(), 'name' => $name];
         }
 
-        return array_map(static fn (string $rate): string => ExactAmount::of($rate)->text(), $rates);
+        return $chain;
     }
 
     /**
-     * A chain as the column holds it.
+     * The tax name a document line freezes for a parcel's charge: the names of
+     * the rules its chain was calculated with, in the order they apply, joined
+     * as the pricing engine joins combined rules. Empty when the chain names
+     * none: one frozen before 2.2.0, a carrier's own rate, or an untaxed
+     * charge.
      *
-     * @param string[] $chain Exact decimal rate texts, in order.
+     * @param string $stored The parcel's shipping_tax_chain as stored.
+     *
+     * @return string The names; '' when there are none.
+     *
+     * @since  2.2.0
+     */
+    public static function chainTaxName(string $stored): string
+    {
+        $names = array_filter(
+            array_column(self::chainOf(value: $stored) ?? [], 'name'),
+            static fn (string $name): bool => $name !== '',
+        );
+
+        return implode(self::CHAIN_NAME_JOIN, $names);
+    }
+
+    /**
+     * A chain as the column holds it: a JSON list of its entries, each its rate
+     * and the name of its rule, whole (the column is text: a name on a fiscal
+     * document is never shortened).
+     *
+     * @param array<int, array{rate: string, name: string}> $chain The entries, in order.
      *
      *
      * @since  2.0.0
      */
     private static function chainText(array $chain): string
     {
-        return (string) json_encode(array_values($chain));
+        return (string) json_encode(
+            array_map(
+                static fn (array $entry): array => ['rate' => (string) $entry['rate'], 'name' => (string) $entry['name']],
+                array_values($chain),
+            ),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+        );
     }
 
     /**
      * A chain's rates as the tax calculation is handed them, in order.
      *
-     * @param string[] $chain Exact decimal rate texts.
+     * @param array<int, array{rate: string, name: string}> $chain The entries, in order.
      *
      * @return AppliedTax[]
      *
@@ -1256,14 +1375,17 @@ class ShipmentLedger
      */
     private static function applied(array $chain): array
     {
-        return array_map(static fn (string $rate): AppliedTax => new AppliedTax(id: 0, name: '', rate: (float) $rate, jurisdiction: 'national'), $chain);
+        return array_map(
+            static fn (array $entry): AppliedTax => new AppliedTax(id: 0, name: $entry['name'], rate: (float) $entry['rate'], jurisdiction: 'national'),
+            $chain,
+        );
     }
 
     /**
      * A chain's combined rate as the rate column holds it ('15.500' for 10%
      * then 5%), for display, reporting and reconciliation only.
      *
-     * @param string[] $chain Exact decimal rate texts, in order.
+     * @param array<int, array{rate: string, name: string}> $chain The entries, in order.
      *
      *
      * @since  2.0.0
@@ -1276,7 +1398,7 @@ class ShipmentLedger
     /**
      * A chain as an operator reads it: '24%', or '10% then 5%'.
      *
-     * @param string[] $chain Exact decimal rate texts, in order.
+     * @param array<int, array{rate: string, name: string}> $chain The entries, in order.
      *
      *
      * @since  2.0.0
@@ -1285,7 +1407,7 @@ class ShipmentLedger
     {
         $shown = '';
 
-        foreach ($chain as $rate) {
+        foreach (array_column($chain, 'rate') as $rate) {
             $shown = $shown === '' ? $rate . '%' : Text::sprintf('COM_ALFA_SHIPMENT_TAX_CHAIN_THEN', $shown, $rate . '%');
         }
 
@@ -1419,6 +1541,8 @@ class ShipmentLedger
      * @param int $id Shipment row PK
      * @param array $data Fields to update. 'id_order' is REQUIRED.
      * @param bool $entered True for a change an operator or a REST client entered.
+     * @param string $writer The shipping plugin updating through its builder (2.2.0): only a parcel recorded as its own,
+     *                       moved only to another method of its own ({@see self::writerRefusal()}).
      *
      * @return bool True on success
      *
@@ -1426,7 +1550,7 @@ class ShipmentLedger
      *
      * @since  1.0.0
      */
-    public static function update(int $id, array $data, bool $entered = false): bool
+    public static function update(int $id, array $data, bool $entered = false, string $writer = ''): bool
     {
         if ($id <= 0) {
             self::warn('update(): invalid shipment ID');
@@ -1443,13 +1567,28 @@ class ShipmentLedger
         // No shipment row of an order that names no currency is written.
         OrderCurrency::of(orderId: $orderId);
 
-        $written = self::writeUpdate(id: $id, orderId: $orderId, data: $data, entered: $entered);
+        // One transaction (2.2.0): the row, its item assignments, its timeline row and the automation it owes commit
+        // together, as in updateIfStatus().
+        $db = self::db();
+        $db->transactionStart(true);
 
-        if ($written === null) {
-            return false;
+        try {
+            $written = self::writeUpdate(id: $id, orderId: $orderId, data: $data, entered: $entered, writer: $writer);
+
+            if ($written === null) {
+                TransactionState::rollBackLevel($db);
+
+                return false;
+            }
+
+            self::writeConsequences(orderId: $orderId, written: $written);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel($db, $e);
+
+            throw $e;
         }
 
-        self::afterUpdate(orderId: $orderId, written: $written);
+        TransactionState::commitLevel($db);
 
         return true;
     }
@@ -1464,12 +1603,14 @@ class ShipmentLedger
      * @param int $orderId Its order.
      * @param array $data Fields to update; 'items' re-assigns the parcel's lines.
      * @param bool $entered True for a change an operator or a REST client entered.
+     * @param string $writer The shipping plugin updating through its builder or its compare-and-set (2.2.0): held to
+     *                       {@see self::writerRefusal()}.
      *
-     * @return array|null What afterUpdate() reports on, or null when nothing was written.
+     * @return array|null What writeConsequences() reports on, or null when nothing was written.
      *
      * @since  2.0.0
      */
-    private static function writeUpdate(int $id, int $orderId, array $data, bool $entered = false): ?array
+    private static function writeUpdate(int $id, int $orderId, array $data, bool $entered = false, string $writer = ''): ?array
     {
         // Extract items before DB save; how a charge was formed, and with which
         // rates, is decided below, never by a caller.
@@ -1483,6 +1624,14 @@ class ShipmentLedger
         // A row's charge is completed and judged from the row itself.
         if ($oldSnapshot === null) {
             self::warn(message: Text::sprintf('COM_ALFA_SHIPMENT_NOT_FOUND', $id), context: 'update()');
+            return null;
+        }
+
+        // A shipping plugin's update (the writer named, 2.2.0): its own parcels only, moved only to its own methods.
+        $notTheirs = $writer !== '' ? self::writerRefusal(stored: $oldSnapshot, data: $data, writer: $writer) : null;
+
+        if ($notTheirs !== null) {
+            self::warn(message: $notTheirs, context: 'update()');
             return null;
         }
 
@@ -1550,7 +1699,11 @@ class ShipmentLedger
                 $data['shipment_method_name'] = self::resolveMethodName('Shipment', $movedTo);
             }
 
-            $data['shipment_method_type'] = self::resolveMethodType('Shipment', $movedTo);
+            // A shipping plugin's update (the writer named, 2.2.0) never changes the plugin a parcel records:
+            // writerRefusal() let through only a move to another method of its own.
+            if ($writer === '') {
+                $data['shipment_method_type'] = self::resolveMethodType('Shipment', $movedTo);
+            }
         }
 
         $success = self::saveToTable($data);
@@ -1568,20 +1721,75 @@ class ShipmentLedger
     }
 
     /**
-     * What follows a written update: its timeline entry and the order's
-     * status automation.
+     * Why a shipping plugin may not make this write, or null (2.2.0). Asked by writeUpdate(), assignItems() and delete()
+     * when the write names its writer (ShipmentsPlugin::shipmentUpdate(), settleAttempt(), assignShipmentItems(),
+     * deleteShipment()): a plugin acts only on the parcels recorded as its own, moves one only to another method of its
+     * own, and never names another plugin for it. A parcel that records no plugin is no plugin's, as the action registry reads it. Staff
+     * writes and core's name no writer and are not asked.
      *
-     * Never inside a transaction this class holds: the automation moves the
-     * order through Transition and the plugins, whose own transactions would
-     * run inside it.
+     * @param object $stored The parcel as stored.
+     * @param array $data The update payload.
+     * @param string $writer The shipping plugin's element.
+     *
+     * @return string|null Why the write is refused, or null when it may proceed.
+     *
+     * @since  2.2.0
+     */
+    private static function writerRefusal(object $stored, array $data, string $writer): ?string
+    {
+        $id = (int) ($stored->id ?? 0);
+        $recorded = (string) ($stored->shipment_method_type ?? '');
+
+        if ($recorded !== $writer) {
+            return sprintf(
+                'shipment #%d is not a parcel of the %s plugin (%s): a shipping plugin acts only on its own parcels; nothing was changed',
+                $id,
+                $writer,
+                $recorded !== '' ? $recorded : 'no plugin',
+            );
+        }
+
+        if (array_key_exists('shipment_method_type', $data) && (string) $data['shipment_method_type'] !== $writer) {
+            return sprintf(
+                'shipment #%d is written by %s and keeps it: a shipping plugin cannot record %s for it; nothing was changed',
+                $id,
+                $writer,
+                (string) $data['shipment_method_type'] !== '' ? (string) $data['shipment_method_type'] : 'no plugin',
+            );
+        }
+
+        $movedTo = (int) ($data['id_shipment_method'] ?? 0);
+
+        if ($movedTo > 0 && $movedTo !== (int) ($stored->id_shipment_method ?? 0)) {
+            $target = self::resolveMethodType('Shipment', $movedTo);
+
+            if ($target !== $writer) {
+                return sprintf(
+                    'shipment #%d is written by %s and keeps it: method #%d is a method of %s, so the shipment cannot move to it; nothing was changed',
+                    $id,
+                    $writer,
+                    $movedTo,
+                    $target !== '' ? $target : 'no plugin',
+                );
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * What a written update owes, written inside its transaction before the commit, so it commits with the row
+     * (2.2.0): its timeline entry, then, when the write changed the status and the method maps the new one, the
+     * shipment.automation single, run once the outermost transaction committed and Alfa's named locks are released
+     * ({@see ShipmentAutomation}). The order's status in its payload is the transaction's read of it: this ledger
+     * takes no order lock.
      *
      * @param int $orderId The shipment's order.
      * @param array $written What writeUpdate() answered.
      *
-     *
-     * @since  2.0.0
+     * @since  2.2.0
      */
-    private static function afterUpdate(int $orderId, array $written): void
+    private static function writeConsequences(int $orderId, array $written): void
     {
         $id = (int) $written['data'][self::PK];
         $data = $written['data'];
@@ -1589,150 +1797,206 @@ class ShipmentLedger
         $oldItemQuantities = $written['oldItems'];
         $selectedItems = $written['items'];
 
-        // Log changes
-        if ($oldSnapshot) {
-            // Diff ONLY the fields this call actually carries. The builder sends just
-            // what was set, so diffing the whole list would read every absent column
-            // as '' (buildDiff defaults a miss to '') and log a phantom change.
-            $trackFields = array_intersect([
-                'shipping_cost_tax_incl', 'shipping_cost_tax_excl', 'shipping_tax_rate', 'shipping_charge_basis', 'shipping_tax_chain',
-                'id_shipment_method', 'shipment_method_name',
-                'tracking_number', 'carrier_name', 'weight', 'status',
-                'shipped', 'delivered',
-            ], array_keys($data));
+        // Diff ONLY the fields this call actually carries. The builder sends just
+        // what was set, so diffing the whole list would read every absent column
+        // as '' (buildDiff defaults a miss to '') and log a phantom change.
+        $trackFields = array_intersect([
+            'shipping_cost_tax_incl', 'shipping_cost_tax_excl', 'shipping_tax_rate', 'shipping_charge_basis', 'shipping_tax_chain',
+            'id_shipment_method', 'shipment_method_name',
+            'tracking_number', 'carrier_name', 'weight', 'status',
+            'shipped', 'delivered',
+        ], array_keys($data));
 
-            $changes = AlfaHelper::buildDiff($oldSnapshot, $data, $trackFields);
+        $changes = AlfaHelper::buildDiff($oldSnapshot, $data, $trackFields);
 
-            if ($selectedItems !== null) {
-                // Diff [linePK => qty] maps of what was actually recorded, so a
-                // split-quantity change on the same lines is visible too.
-                $newItemQuantities = self::getItemQuantities($id);
-                ksort($oldItemQuantities);
-                ksort($newItemQuantities);
+        if ($selectedItems !== null) {
+            // Diff [linePK => qty] maps of what was actually recorded, so a
+            // split-quantity change on the same lines is visible too.
+            $newItemQuantities = self::getItemQuantities($id);
+            ksort($oldItemQuantities);
+            ksort($newItemQuantities);
 
-                if ($oldItemQuantities !== $newItemQuantities) {
-                    $changes['assigned_items'] = [
-                        'from' => $oldItemQuantities,
-                        'to' => $newItemQuantities,
-                    ];
-                }
+            if ($oldItemQuantities !== $newItemQuantities) {
+                $changes['assigned_items'] = [
+                    'from' => $oldItemQuantities,
+                    'to' => $newItemQuantities,
+                ];
             }
+        }
 
-            if (!empty($changes)) {
-                $changedKeys = implode(', ', array_keys($changes));
-                OrderModel::logOrderActivity(
-                    $orderId,
-                    'shipment.edited',
-                    "Edited shipment #{$id}: {$changedKeys}",
-                    $changes,
-                    $id,
-                );
-            }
+        if (!empty($changes)) {
+            $changedKeys = implode(', ', array_keys($changes));
+            OrderModel::logOrderActivity(
+                $orderId,
+                'shipment.edited',
+                "Edited shipment #{$id}: {$changedKeys}",
+                $changes,
+                $id,
+            );
+        }
 
-            // Method-mapped order automation: AFTER the activity log so the
-            // edit row exists before the transition writes its own entries.
-            if (array_key_exists('status', $data)) {
-                self::applyStatusAutomation(
-                    orderId:   $orderId,
-                    shipment:  $oldSnapshot,
-                    oldStatus: (string) ($oldSnapshot->status ?? ''),
-                    newStatus: (string) $data['status'],
-                );
-            }
+        // Method-mapped order automation: AFTER the activity log so the edit
+        // row exists before the transition writes its own entries. The map is
+        // read from the snapshot's method, as the automation reads it.
+        $from = (string) ($oldSnapshot->status ?? '');
+        $to = (string) ($data['status'] ?? $from);
+        $methodId = (int) ($oldSnapshot->id_shipment_method ?? 0);
+
+        if (\array_key_exists('status', $data) && $to !== $from && self::automationMethod(methodId: $methodId, status: $to) !== null) {
+            Tasks::single(handler: ShipmentAutomation::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+                'shipment' => $id,
+                'method' => $methodId,
+                'from' => $from,
+                'to' => $to,
+                'order_status' => self::orderStatus(orderId: $orderId),
+            ]);
         }
     }
 
     /**
-     * Shipment-method automation: move the ORDER when a shipment enters a
-     * phase the method has mapped.
+     * Shipment-method automation: move the ORDER when a shipment entered a
+     * phase the method has mapped. What the shipment.automation single runs
+     * once the write committed and Alfa's named locks are released, after its
+     * guards ({@see ShipmentAutomation}, 2.2.0).
      *
      * The map is PLUGIN-DECLARED: each shipment plugin's params/params.xml
      * exposes only the phases its lifecycle reaches, as fields named
-     * `status_on_<status>` (stored in the method's params JSON). This helper
-     * just reads the conventional key and executes through Transition, so
-     * stock/downloads/emails/activity-log can never diverge from a manual
-     * admin change. Guards inherited from the builder: same-status = no-op
-     * (duplicate callbacks harmless) and no automatic exit from the
-     * cancelled family (no force() here, ever).
+     * `status_on_<status>` (stored in the method's params JSON), read when it
+     * runs. This helper executes through Transition, so stock, downloads,
+     * emails and the activity log can never diverge from a manual admin
+     * change. Guards inherited from the builder: same-status = no-op
+     * (duplicate callbacks harmless) and no automatic exit from the cancelled
+     * family (no force() here, ever).
      *
      * Drives ONLY #__alfa_orders.id_order_status via Transition; fulfilment
      * fields derive from the shipment status write itself (OrdersModel) and
      * must never be touched here. update()-only, like payments: create()
-     * stays clean.
-     *
-     * Never throws; automation failure must not break the shipment write.
+     * stays clean. A failure is logged and reaches the task, which retries it.
      *
      * @param int $orderId Order PK.
-     * @param object $shipment Pre-update shipment snapshot (carries id and
-     *                         id_shipment_method).
+     * @param int $shipmentId The shipment row.
+     * @param int $methodId The row's method, as the write read it.
      * @param string $oldStatus Previous status.
      * @param string $newStatus New status.
+     * @param int|null $expectedOrderStatus The status the order must still be in, checked under the order row lock
+     *                                      (Transition::expectStatus()); null for none.
+     *
+     * @return string What the ask came to: one of Transition's OUTCOME_ constants (busy: asking again may move it;
+     *                superseded: the order was no longer in the expected status, nothing moved).
      *
      * @since  2.0.0
      */
-    private static function applyStatusAutomation(
-        int $orderId,
-        object $shipment,
-        string $oldStatus,
-        string $newStatus,
-    ): void {
-        $nested = TransactionState::isOpen(self::db());
-
+    public static function applyStatusAutomation(int $orderId, int $shipmentId, int $methodId, string $oldStatus, string $newStatus, ?int $expectedOrderStatus = null): string
+    {
         try {
-            $methodId = (int) ($shipment->id_shipment_method ?? 0);
-
-            if ($newStatus === '' || $newStatus === $oldStatus || $methodId <= 0 || $orderId <= 0) {
-                return;
-            }
-
-            $db = self::db();
-
-            $query = $db->getQuery(true)
-                ->select($db->quoteName(['type', 'params']))
-                ->from($db->quoteName('#__alfa_shipments'))
-                ->where($db->quoteName('id') . ' = :id')
-                ->bind(':id', $methodId);
-            $db->setQuery(query: $query);
-            $method = $db->loadObject();
+            $method = $newStatus !== $oldStatus && $orderId > 0 ? self::automationMethod(methodId: $methodId, status: $newStatus) : null;
 
             if ($method === null) {
-                return;
+                return Transition::OUTCOME_UNMOVED;
             }
 
-            $params = json_decode((string) $method->params, true) ?: [];
-            $targetStatusId = (int) ($params['status_on_' . $newStatus] ?? 0);
+            $transition = Transition::for($orderId)
+                ->to($method['target'])
+                ->byPlugin($method['type'])
+                ->note('Shipment #' . $shipmentId . ' -> ' . $newStatus);
 
-            if ($targetStatusId <= 0) {
-                return;
+            if ($expectedOrderStatus !== null) {
+                $transition->expectStatus($expectedOrderStatus);
             }
 
-            $moved = Transition::for($orderId)
-                ->to($targetStatusId)
-                ->byPlugin((string) $method->type)
-                ->note('Shipment #' . (int) ($shipment->id ?? 0) . ' -> ' . $newStatus)
-                ->save();
+            $outcome = $transition->outcome(moved: $transition->save());
 
-            if (!$moved) {
+            if ($outcome === Transition::OUTCOME_UNMOVED) {
                 self::reportMoveNotMade(
                     orderId:        $orderId,
-                    targetStatusId: $targetStatusId,
-                    cause:          'shipment #' . (int) ($shipment->id ?? 0) . ' -> ' . $newStatus,
+                    targetStatusId: $method['target'],
+                    cause:          'shipment #' . $shipmentId . ' -> ' . $newStatus,
                 );
             }
-        } catch (Throwable $e) {
-            // A deadlock that ended the caller's transaction is the caller's
-            // to hear: answered here, the caller would carry on as if its
-            // work were still pending.
-            if ($nested && !TransactionState::isOpen(self::db())) {
-                throw $e;
-            }
 
+            return $outcome;
+        } catch (Throwable $e) {
+            // Throwable, not Exception: the shipment row is committed by the time this runs. The failure is logged here,
+            // as before, and reaches the task, which retries it.
             Log::add(
                 entry:    'Shipment status automation failed for order ' . $orderId . ': ' . $e->getMessage(),
                 priority: Log::ERROR,
                 category: 'com_alfa.orders',
             );
+
+            throw $e;
         }
+    }
+
+    /**
+     * The order status a shipment method's map moves the order to when a shipment of the method reaches a status, with
+     * the method's type; null when the map moves nothing (no such method, or no status_on_<status>).
+     *
+     * @param int $methodId The shipment method.
+     * @param string $status The status reached.
+     *
+     * @return array{type: string, target: int}|null
+     *
+     * @since  2.2.0
+     */
+    private static function automationMethod(int $methodId, string $status): ?array
+    {
+        if ($methodId <= 0 || $status === '') {
+            return null;
+        }
+
+        $db = self::db();
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['type', 'params']))
+            ->from($db->quoteName('#__alfa_shipments'))
+            ->where($db->quoteName('id') . ' = :id')
+            ->bind(':id', $methodId, ParameterType::INTEGER);
+        $method = $db->setQuery(query: $query)->loadObject();
+
+        if ($method === null) {
+            return null;
+        }
+
+        $params = json_decode((string) $method->params, true) ?: [];
+        $target = (int) ($params['status_on_' . $status] ?? 0);
+
+        return $target > 0 ? ['type' => (string) $method->type, 'target' => $target] : null;
+    }
+
+    /**
+     * The order's status as the open transaction reads it.
+     *
+     * @param int $orderId The order.
+     *
+     * @since  2.2.0
+     */
+    private static function orderStatus(int $orderId): int
+    {
+        $db = self::db();
+
+        return (int) $db->setQuery(
+            'SELECT ' . $db->quoteName('id_order_status') . ' FROM ' . $db->quoteName('#__alfa_orders')
+            . ' WHERE ' . $db->quoteName('id') . ' = ' . $orderId,
+        )->loadResult();
+    }
+
+    /**
+     * The status a shipment row holds now, or null when the row no longer exists: what the guards of the automation a
+     * write owes compare with the status the write left.
+     *
+     * @param int $id Shipment row PK.
+     *
+     * @since  2.2.0
+     */
+    public static function statusOf(int $id): ?string
+    {
+        $db = self::db();
+        $status = $db->setQuery(
+            'SELECT ' . $db->quoteName('status') . ' FROM ' . $db->quoteName(self::TABLE)
+            . ' WHERE ' . $db->quoteName(self::PK) . ' = ' . $id,
+        )->loadResult();
+
+        return $status === null ? null : (string) $status;
     }
 
     /**
@@ -1789,6 +2053,9 @@ class ShipmentLedger
      * @param int $id Shipment row PK
      * @param array $data Update payload; must carry id_order
      * @param string $expectedStatus The status the row must still hold
+     * @param string $writer The shipping plugin writing through this door (2.2.0: its builder's saveVerdict(),
+     *                       settleAttempt()): held to the plain update's rule ({@see self::writerRefusal()}), so a
+     *                       refused write is WRITE_FAILED. '' for staff and for core.
      *
      * @return int WRITE_OK | WRITE_RACED (row moved, nothing written) | WRITE_FAILED
      *
@@ -1796,7 +2063,7 @@ class ShipmentLedger
      *
      * @since  2.0.0
      */
-    public static function updateIfStatus(int $id, array $data, string $expectedStatus): int
+    public static function updateIfStatus(int $id, array $data, string $expectedStatus, string $writer = ''): int
     {
         $orderId = (int) ($data['id_order'] ?? 0);
 
@@ -1838,13 +2105,16 @@ class ShipmentLedger
             // The row is written while it is still held, the same write
             // update() makes: a second delivery queued on the lock then reads
             // the status this one wrote, and is the lost race.
-            $written = self::writeUpdate(id: $id, orderId: $orderId, data: $data);
+            $written = self::writeUpdate(id: $id, orderId: $orderId, data: $data, writer: $writer);
 
             if ($written === null) {
                 TransactionState::rollBackLevel($db);
 
                 return self::WRITE_FAILED;
             }
+
+            // What the write owes commits with it (2.2.0).
+            self::writeConsequences(orderId: $orderId, written: $written);
         } catch (Throwable $e) {
             // A failure that ended the caller's transaction too is the
             // caller's to hear: a refusal would let it commit work the server
@@ -1859,12 +2129,9 @@ class ShipmentLedger
         }
 
         // After the try: a COMMIT that fails is closed by commitLevel() itself,
-        // and reaches the caller.
+        // and reaches the caller. The automation's single runs once the
+        // outermost transaction committed and Alfa's named locks are released.
         TransactionState::commitLevel($db);
-
-        // After the commit: the timeline entry and the order's status
-        // automation, which runs through Transition and the plugins.
-        self::afterUpdate(orderId: $orderId, written: $written);
 
         return self::WRITE_OK;
     }
@@ -1874,6 +2141,8 @@ class ShipmentLedger
      *
      * @param int $id Shipment row PK
      * @param int $orderId Order PK (for activity log)
+     * @param string $writer The shipping plugin deleting (2.2.0, ShipmentsPlugin::deleteShipment()): only a parcel
+     *                       recorded as its own ({@see self::writerRefusal()}). '' for staff and for core.
      *
      * @return bool True on success
      *
@@ -1881,36 +2150,64 @@ class ShipmentLedger
      *
      * @since  1.0.0
      */
-    public static function delete(int $id, int $orderId): bool
+    public static function delete(int $id, int $orderId, string $writer = ''): bool
     {
         $shipment = self::getRaw($id);
 
         // No shipment row of an order that names no currency is removed.
         OrderCurrency::of(orderId: (int) ($shipment->id_order ?? $orderId));
 
-        // Clear item assignments first (FK integrity)
-        self::clearItemAssignments($id, $orderId);
+        // A shipping plugin deletes only its own parcels (2.2.0): another plugin's parcel, or one that records none, is
+        // refused.
+        if ($writer !== '') {
+            $notTheirs = $shipment ? self::writerRefusal(stored: $shipment, data: [], writer: $writer) : Text::sprintf('COM_ALFA_SHIPMENT_NOT_FOUND', $id);
 
-        $success = self::deleteFromTable($id);
+            if ($notTheirs !== null) {
+                self::warn(message: $notTheirs, context: 'delete()');
 
-        if ($success && $shipment) {
-            $methodName = $shipment->shipment_method_name ?? '';
-            $costIncl = number_format((float) ($shipment->shipping_cost_tax_incl ?? 0), 2);
-
-            OrderModel::logOrderActivity(
-                $orderId,
-                'shipment.deleted',
-                "Deleted shipment: {$methodName} - {$costIncl}",
-                [
-                    'shipping_cost_tax_incl' => (float) ($shipment->shipping_cost_tax_incl ?? 0),
-                    'shipment_method_name' => $methodName,
-                    'tracking_number' => $shipment->tracking_number ?? '',
-                ],
-                $id,
-            );
+                return false;
+            }
         }
 
-        return $success;
+        // The item assignments, the row and its timeline row go together (2.2.0).
+        $db = self::db();
+        $db->transactionStart(true);
+
+        try {
+            // Clear item assignments first (FK integrity)
+            self::clearItemAssignments($id, $orderId);
+
+            if (!self::deleteFromTable($id)) {
+                TransactionState::rollBackLevel($db);
+
+                return false;
+            }
+
+            if ($shipment) {
+                $methodName = $shipment->shipment_method_name ?? '';
+                $costIncl = number_format((float) ($shipment->shipping_cost_tax_incl ?? 0), 2);
+
+                OrderModel::logOrderActivity(
+                    $orderId,
+                    'shipment.deleted',
+                    "Deleted shipment: {$methodName} - {$costIncl}",
+                    [
+                        'shipping_cost_tax_incl' => (float) ($shipment->shipping_cost_tax_incl ?? 0),
+                        'shipment_method_name' => $methodName,
+                        'tracking_number' => $shipment->tracking_number ?? '',
+                    ],
+                    $id,
+                );
+            }
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel($db, $e);
+
+            throw $e;
+        }
+
+        TransactionState::commitLevel($db);
+
+        return true;
     }
 
     //  Static read API
@@ -1996,15 +2293,28 @@ class ShipmentLedger
      * @param int $orderId Order PK (security scope)
      * @param array $items List of line PKs, a [linePK => quantity] map, or
      *                     the published API body's [{id_order_item, quantity}] list
+     * @param string $writer The shipping plugin assigning (2.2.0, ShipmentsPlugin::assignShipmentItems()): only a
+     *                       parcel recorded as its own; '' for staff and for core.
      *
      * @return bool True on success
      *
      * @since  1.0.0
      */
-    public static function assignItems(int $shipmentId, int $orderId, array $items): bool
+    public static function assignItems(int $shipmentId, int $orderId, array $items, string $writer = ''): bool
     {
         if ($shipmentId <= 0 || $orderId <= 0) {
             self::warn('assignItems(): shipment and order are both required');
+            return false;
+        }
+
+        // A shipping plugin assigns lines only to its own parcels (2.2.0).
+        $parcel = $writer !== '' ? self::getRaw($shipmentId) : null;
+        $notTheirs = $writer === '' ? null : ($parcel === null
+            ? Text::sprintf('COM_ALFA_SHIPMENT_NOT_FOUND', $shipmentId)
+            : self::writerRefusal(stored: $parcel, data: [], writer: $writer));
+
+        if ($notTheirs !== null) {
+            self::warn(message: $notTheirs, context: 'assignItems()');
             return false;
         }
 

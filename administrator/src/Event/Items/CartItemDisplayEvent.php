@@ -10,42 +10,47 @@
 namespace Alfa\Component\Alfa\Administrator\Event\Items;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
-use Alfa\Component\Alfa\Administrator\Event\ItemFields\Concern\HasSurfaces;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\Concern\ContributedSurfaces;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceBuilder;
+use Alfa\Component\Alfa\Administrator\Plugin\SelectionContributorsInterface;
+use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractImmutableEvent;
 
 defined('_JEXEC') or die;
 
 /**
- * Cart line render event for FEATURE plugins: BOOT-AND-CALL, one fresh event
- * per alfa plugin, after the line's field surfaces are collected. The
- * feature-plugin twin of the per-field onCartItemView: contributions land on
- * the same cart-line slot map ($cartItem->surfaces) the template already
- * renders, never HTML, a layout name + display data:
+ * Cart line render event for FEATURE plugins (onCartItemDisplay), after the line's field surfaces are collected. One
+ * event for the whole line (2.2.0): delivered in turn to each `alfa` plugin the CUSTOMER's view levels admit,
+ * in their order, through the plugin's own targeted declaration, so the line reads the same whoever operates the cart;
+ * a plugin that throws is logged and the next runs. Contributions land on the same cart-line slot map
+ * ($cartItem->surfaces) the template already renders, never HTML, a layout name + display data, each naming its plugin:
  *
  *   public function onCartItemDisplay(CartItemDisplayEvent $event): void
  *   {
- *       $event->main()->setLayout('cart_terms')->setData([...]);
+ *       $event->addSurface('alfa.terms', CartSurface::Main)->setLayout('cart_terms')->setData([...]);
  *   }
  *
- * The caller defaults the layout owner to the invoked plugin
- * (Surfaces::appendTo), exactly like the item-fields dispatches.
+ * A contribution naming another plugin than the one answering is dropped and logged.
  *
  * @since  2.0.0
  */
-class CartItemDisplayEvent extends AbstractImmutableEvent
+class CartItemDisplayEvent extends AbstractImmutableEvent implements SelectionContributorsInterface
 {
-    use HasSurfaces;
+    use ContributedSurfaces;
 
     /**
-     * A row in the line's main details area (under the name/config summary).
+     * Contribute a surface on one of the cart line's slots.
      *
+     * @param string $contributor The contributing plugin, group.element.
+     * @param CartSurface $surface The slot.
      *
-     * @since  2.0.0
+     * @throws InvalidArgumentException When the contributor is not group.element.
+     *
+     * @since  2.2.0
      */
-    public function main(): SurfaceBuilder
+    public function addSurface(string $contributor, CartSurface $surface): SurfaceBuilder
     {
-        return $this->surfaceFor(CartSurface::Main->value);
+        return $this->contributeSurface($contributor, $surface->value);
     }
 
     /**

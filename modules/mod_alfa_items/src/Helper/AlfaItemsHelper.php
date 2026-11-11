@@ -873,7 +873,8 @@ final class AlfaItemsHelper
         $rules = [];
 
         foreach ($groups as $group) {
-            $selector = '.mod-alfa-items-' . $moduleId . ' [data-panel="' . preg_replace('/[^A-Za-z0-9_-]/', '', (string) $group['key']) . '"]';
+            // The child combinator: a panel of this module's own, never one of a module nested inside it.
+            $selector = '.mod-alfa-items-' . $moduleId . ' > [data-panel="' . preg_replace('/[^A-Za-z0-9_-]/', '', (string) $group['key']) . '"]';
             $before = [];
 
             foreach (CardLook::resolve(levels: [$level, $group['look'] ?? []], breakpoints: self::BREAKPOINTS) as $device => $there) {

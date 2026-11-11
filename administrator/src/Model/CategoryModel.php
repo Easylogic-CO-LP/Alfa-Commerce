@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
@@ -413,7 +414,7 @@ class CategoryModel extends AlfaAdminModel
             )->loadColumn());
 
             if ($affectedItems !== []) {
-                (new ProjectionManager())->syncItems($affectedItems);
+                (new ProjectionManager())->syncItems($affectedItems, cause: PricesChangedEvent::CAUSE_CATEGORY, causeId: \count($categoryIds) === 1 ? (int) $categoryIds[0] : 0);
             }
         } catch (Throwable $e) {
             Log::add(
@@ -1108,20 +1109,27 @@ class CategoryModel extends AlfaAdminModel
         }
 
         if ($affectedItems !== []) {
-            (new ProjectionManager())->syncItems($affectedItems);
+            // Both passes are one write of the price index as onAlfaPricesChanged announces it (2.2.0): one event.
+            PriceIndexSyncService::announcing(
+                cause:   PricesChangedEvent::CAUSE_CATEGORY,
+                causeId: \count($pks) === 1 ? (int) reset($pks) : 0,
+                work:    static function () use ($affectedItems): void {
+                    (new ProjectionManager())->syncItems($affectedItems);
 
-            // PRICE INDEX: the items that lost a category lost the rules scoped by
-            // it; every such rule kept another category, so nothing else moved.
-            // Non-fatal: a failure logs a warning but must not undo the delete.
-            try {
-                (new PriceIndexSyncService())->syncItems($affectedItems);
-            } catch (Throwable $priceIndexException) {
-                Log::add(
-                    '[CategoryModel::delete] Price index re-sync failed: ' . $priceIndexException->getMessage(),
-                    Log::WARNING,
-                    'com_alfa',
-                );
-            }
+                    // PRICE INDEX: the items that lost a category lost the rules scoped by
+                    // it; every such rule kept another category, so nothing else moved.
+                    // Non-fatal: a failure logs a warning but must not undo the delete.
+                    try {
+                        (new PriceIndexSyncService())->syncItems($affectedItems);
+                    } catch (Throwable $priceIndexException) {
+                        Log::add(
+                            '[CategoryModel::delete] Price index re-sync failed: ' . $priceIndexException->getMessage(),
+                            Log::WARNING,
+                            'com_alfa',
+                        );
+                    }
+                },
+            );
         }
 
         // MULTILINGUAL: remove the per-language rows for the deleted categories.

@@ -1,4 +1,7 @@
-table {
+/* Alfa's own tables (the cart lines), scoped to the component root: a template's
+   tables on a page that loads this stylesheet keep the template's look. Below
+   600 px each row stacks and each cell names its column from its data-label. */
+.com-alfa table {
   border: 1px solid var(--alfa-hairline);
   border-collapse: collapse;
   margin: 0;
@@ -7,43 +10,43 @@ table {
   table-layout: fixed;
 }
 
-table caption {
+.com-alfa table caption {
   font-size: 1.5em;
   margin: 0.5em 0 0.75em;
 }
 
-table thead tr,
-table tfoot tr{
+.com-alfa table thead tr,
+.com-alfa table tfoot tr{
   background-color: var(--alfa-surface);
 }
 
-table tr {
+.com-alfa table tr {
   border: 1px solid var(--alfa-hairline);
   padding: 0.35em;
 }
 
-table th,
-table td {
+.com-alfa table th,
+.com-alfa table td {
   padding: 0.625em;
   text-align: center;
 }
 
-table th {
+.com-alfa table th {
   font-size: 0.85em;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 @media screen and (max-width: 600px) {
-  table {
+  .com-alfa table {
     border: 0;
   }
 
-  table caption {
+  .com-alfa table caption {
     font-size: 1.3em;
   }
 
-  table thead {
+  .com-alfa table thead {
     border: none;
     clip: rect(0 0 0 0);
     height: 1px;
@@ -54,20 +57,20 @@ table th {
     width: 1px;
   }
 
-  table tr {
+  .com-alfa table tr {
     border-bottom: 3px solid var(--alfa-hairline);
     display: block;
     margin-bottom: 0.625em;
   }
 
-  table td {
+  .com-alfa table td {
     border-bottom: 1px solid var(--alfa-hairline);
     display: block;
     font-size: 0.8em;
     text-align: right;
   }
 
-  table td::before {
+  .com-alfa table td::before {
     /*
     * aria-label has no advantage, it won't be read inside a table
     content: attr(aria-label);
@@ -78,7 +81,7 @@ table th {
     text-transform: uppercase;
   }
 
-  table td:last-child {
+  .com-alfa table td:last-child {
     border-bottom: 0;
   }
 }

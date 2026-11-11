@@ -26,6 +26,15 @@
  * remaining true. A WeakSet cannot be serialised into HTML at all, so it stays correct if
  * anything ever round-trips this subtree through its own innerHTML, where an attribute would
  * come back set on a node whose listeners did not.
+ *
+ * THE RESULTS ARE BROUGHT TO THE SHOPPER (2.2.0, design 2.20). revealResults() scrolls the results region
+ * (`[data-results]`, the pagination and the list) into view when its top is outside the viewport, the sticky offset
+ * (its scroll-margin-top, --alfa-scroll-offset) counted, instantly under prefers-reduced-motion and smoothly otherwise,
+ * then gives it the focus without scrolling again, so keyboard and screen-reader users land on the results. It runs once
+ * for each new result set: after the filters module's swap (`alfa:results:updated`), and on a page the server marked
+ * (`data-results-reveal`: a later page reached by its link, a submitted filter), once its layout is final (the window's
+ * load). Never on `joomla:updated` alone or on a
+ * card's reload: a re-read of the same results moves nothing.
  */
 
 (function () {
@@ -33,6 +42,8 @@
 
     var FORM_SELECTOR = 'form#adminForm';
     var STRIPPED = 'data-alfa-stripped';
+    var REGION_SELECTOR = '[data-results]';
+    var MARKED_SELECTOR = '[data-results][data-results-reveal]';
 
     /** Forms whose behaviour is already installed. Entries die with their nodes. */
     var installed = new WeakSet();
@@ -121,6 +132,29 @@
         }
     }
 
+    /**
+     * Bring the results region into view and focus it.
+     *
+     * @param {Element|null} region The results region.
+     */
+    function revealResults(region) {
+        if (!region) {
+            return;
+        }
+
+        var offset = parseFloat(window.getComputedStyle(region).scrollMarginTop) || 0;
+        var top = region.getBoundingClientRect().top;
+
+        if (top < offset || top >= window.innerHeight) {
+            region.scrollIntoView({
+                block: 'start',
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+            });
+        }
+
+        region.focus({ preventScroll: true });
+    }
+
     // Back/forward cache restores the DOM as submitted, with the stripped fields still
     // disabled. Re-enable exactly the ones this script disabled, nothing else. Registered
     // once, on the document rather than on a form, so it survives every re-render and
@@ -138,11 +172,26 @@
         initFilterForm(event.target);
     });
 
+    // A new result set swapped in: the region inside the replaced container, once per swap.
+    document.addEventListener('alfa:results:updated', function (event) {
+        revealResults(event.target && event.target.querySelector ? event.target.querySelector(REGION_SELECTOR) : null);
+    });
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
             initFilterForm(document);
         });
     } else {
         initFilterForm(document);
+    }
+
+    // A page the server marked is revealed once its layout is final: an image above the region (a subcategory tile)
+    // that arrives after the scroll began would leave the region short of the top.
+    if (document.readyState === 'complete') {
+        revealResults(document.querySelector(MARKED_SELECTOR));
+    } else {
+        window.addEventListener('load', function () {
+            revealResults(document.querySelector(MARKED_SELECTOR));
+        }, { once: true });
     }
 })();

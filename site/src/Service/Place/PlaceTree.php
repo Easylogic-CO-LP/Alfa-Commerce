@@ -14,7 +14,7 @@ use Joomla\CMS\Factory;
 defined('_JEXEC') or die;
 
 /**
- * The place hierarchy, read once per request.
+ * The place hierarchy, read once per process (one request on the web).
  *
  * A DESTINATION IS A LINEAGE, NOT AN ID. A cost zone named for a country has
  * to match an order going to a city inside it, and a tax rule written for a
@@ -29,18 +29,41 @@ defined('_JEXEC') or die;
  * destination it had just been filtered by. Ownership lives here so that the
  * cost is paid once and the plugin API never has to mention it.
  *
+ * ELIGIBLE FOR PRICING (2.2.0). The same read carries each place's state, so
+ * eligible() answers whether a place may price a visitor: it and every place
+ * above it published. PriceContext asks it where a buyer's place enters the
+ * goods' pricing, and ShippingTaxResolver for a shipment's destination; an
+ * unpublished country, or a town inside one, prices as an unknown place, while
+ * its price rows, discounts and taxes stay as they are.
+ *
+ * HOW LONG THE MAPS LIVE. The parent and state maps are statics, read once per
+ * PHP process: on the web that is one request, so a publish or an unpublish is
+ * seen by the next request. A long-running process that prices buyers in a
+ * loop (a future worker; none in core does today) must reset them between
+ * buyers, or it prices with the states it read first.
+ *
  * @since  2.0.0
  */
 final class PlaceTree
 {
     /**
-     * The place -> parent map, loaded on first use and kept for the request.
+     * The place -> parent map, loaded on first use and kept for the process
+     * (one request on the web).
      *
      * @var array<int, int>|null
      *
      * @since  2.0.0
      */
     private static ?array $parents = null;
+
+    /**
+     * The place -> state map, read with the parents.
+     *
+     * @var array<int, int>
+     *
+     * @since  2.2.0
+     */
+    private static array $states = [];
 
     /**
      * A place and the places it belongs to, nearest first.
@@ -73,6 +96,34 @@ final class PlaceTree
     }
 
     /**
+     * Whether a place may price a visitor: it exists, and it and every place
+     * above it are published. A town inside an unpublished country is not,
+     * and neither is a place that no longer exists.
+     *
+     * @param int $placeId The `#__alfa_places` id.
+     *
+     * @return bool True when the place and its parents are published.
+     *
+     * @since  2.2.0
+     */
+    public static function eligible(int $placeId): bool
+    {
+        $places = self::placesFor(placeId: $placeId);
+
+        if ($places === []) {
+            return false;
+        }
+
+        foreach ($places as $place) {
+            if ((self::$states[$place] ?? 0) !== 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * The parent map, loaded once.
      *
      * @return array<int, int>
@@ -88,14 +139,20 @@ final class PlaceTree
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         // A place with no parent stores 0 or NULL; both read as 0 here, because
-        // a NULL column would hand back the whole row as its parent.
-        return self::$parents = $db->setQuery(
+        // a NULL column would hand back the whole row as its parent. The state
+        // rides on the same read (eligible()).
+        $rows = $db->setQuery(
             $db->getQuery(true)
                 ->select([
                     $db->quoteName('id'),
                     'COALESCE(' . $db->quoteName('parent_id') . ', 0) AS ' . $db->quoteName('parent_id'),
+                    $db->quoteName('state'),
                 ])
                 ->from($db->quoteName('#__alfa_places')),
-        )->loadAssocList('id', 'parent_id') ?: [];
+        )->loadAssocList('id') ?: [];
+
+        self::$states = array_map(static fn (array $row): int => (int) $row['state'], $rows);
+
+        return self::$parents = array_map(static fn (array $row): int => (int) $row['parent_id'], $rows);
     }
 }

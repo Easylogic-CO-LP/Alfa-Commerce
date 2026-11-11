@@ -13,21 +13,21 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Tools\ClearDataEvent;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\SchemaRecreator;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
-use Closure;
-use Joomla\CMS\Extension\DummyPlugin;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\User\CurrentUserInterface;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
-use Joomla\Registry\Registry;
 use LogicException;
 use RuntimeException;
 use Throwable;
@@ -42,9 +42,11 @@ use Throwable;
  * plugins), modules `mod_alfa...`. Tools > Extensions and Clear everything leave out Alfa Commerce and the extensions
  * its manifest bundles.
  *
- * WHO SUPPORTS CLEAR DATA. A plugin that has onClearData(ClearDataEvent $event): void, asked with method_exists() on the
- * booted plugin, enabled or not. A plugin without it: "Automatic Clear Data not supported", none of its data is
- * touched. A module is not part of Clear Data: it can only be removed. A package is one row; its Clear Data is its
+ * WHO SUPPORTS CLEAR DATA. A plugin that declares onClearData(ClearDataEvent $event): void as a targeted handler (its
+ * declaration as the plugin helper reads it: TargetedHandlersInterface, its family's constant, or, for a plugin of a
+ * group Joomla loads itself, a public getTargetedHandlers() alone), asked of the plugin booted, enabled or not,
+ * through the plugin helper's maintenance boot (2.2.0, A-C14B-1). A plugin without it: "Automatic Clear Data not
+ * supported", none of its data is touched. A module is not part of Clear Data: it can only be removed. A package is one row; its Clear Data is its
  * plugins' own, each called the same way. Even this question is asked under THE lock, the plugin marked `loading`
  * before it is booted ({@see self::support()}): a plugin whose code cannot be loaded (a parse error is caught; a fatal
  * ends the request) is shown "could not be loaded", never breaks the page twice, and is booted again only when someone
@@ -113,6 +115,16 @@ final class ClearDataExtensions
      * @since  2.1.0
      */
     private static array $packagesUninstalling = [];
+
+    /**
+     * The plugins Alfa Commerce's own update retires in this request, by id: their removal is the update's, and its
+     * message says so, so no warning about their data is raised. Request memory only: nothing is stored.
+     *
+     * @var array<int, true>
+     *
+     * @since  2.2.0
+     */
+    private static array $retiring = [];
 
     /**
      * The site's connection.
@@ -306,13 +318,16 @@ final class ClearDataExtensions
 
         ClearDataStatus::loading(key: $key, loading: true);
 
+        // The plugin's own declaration decides (2.2.0, mode B through the helper's maintenance boot, A-C14B-1).
         try {
             $plugin = $this->boot(entry: $entry);
-            $support = match (true) {
-                $plugin instanceof DummyPlugin => ['status' => 'failed', 'message' => Text::_('COM_ALFA_EXTENSIONS_GONE')],
-                method_exists($plugin, 'onClearData') => ['status' => 'supported', 'message' => ''],
-                default => ['status' => 'unsupported', 'message' => Text::_('COM_ALFA_EXTENSIONS_UNSUPPORTED')],
-            };
+            $support = AlfaPluginHelper::get()->declares($plugin, 'onClearData')
+                ? ['status' => 'supported', 'message' => '']
+                : ['status' => 'unsupported', 'message' => Text::_('COM_ALFA_EXTENSIONS_UNSUPPORTED')];
+        } catch (PluginUnavailable $e) {
+            $support = $e->reason === PluginUnavailable::MISSING
+                ? ['status' => 'failed', 'message' => Text::_('COM_ALFA_EXTENSIONS_GONE')]
+                : ['status' => 'unsupported', 'message' => Text::_('COM_ALFA_EXTENSIONS_UNSUPPORTED')];
         } catch (Throwable $e) {
             $this->logFailure(run: 'clear-data', entry: $entry, error: $e);
             $support = ['status' => 'failed', 'message' => Text::_('COM_ALFA_EXTENSIONS_LOAD_FAILED')];
@@ -445,8 +460,18 @@ final class ClearDataExtensions
         ClearDataStatus::mark(key: $key, status: 'clearing', source: $source);
         ClearDataStatus::loading(key: $key, loading: true);
 
+        // Through the helper's maintenance boot (A-C14B-1): booted enabled or not, given the name, group and params
+        // from its row, its family checked; then its own declaration of onClearData, as everywhere (2.2.0, mode B).
+        $plugins = AlfaPluginHelper::get();
+
         try {
             $instance = $this->boot(entry: $row);
+        } catch (PluginUnavailable $e) {
+            ClearDataStatus::loading(key: $key, loading: false);
+
+            return $e->reason === PluginUnavailable::MISSING
+                ? $this->outcome(key: $key, status: 'unavailable', message: Text::_('COM_ALFA_EXTENSIONS_GONE'), source: $source)
+                : $this->outcome(key: $key, status: 'unsupported', message: Text::_('COM_ALFA_EXTENSIONS_UNSUPPORTED'), source: $source);
         } catch (Throwable $e) {
             ClearDataStatus::loading(key: $key, loading: false);
             $this->logFailure(run: $run, entry: $row, error: $e);
@@ -456,21 +481,16 @@ final class ClearDataExtensions
 
         ClearDataStatus::loading(key: $key, loading: false);
 
-        if ($instance instanceof DummyPlugin) {
-            return $this->outcome(key: $key, status: 'unavailable', message: Text::_('COM_ALFA_EXTENSIONS_GONE'), source: $source);
-        }
-
-        if (!method_exists($instance, 'onClearData')) {
+        if (!$plugins->declares($instance, 'onClearData')) {
             return $this->outcome(key: $key, status: 'unsupported', message: Text::_('COM_ALFA_EXTENSIONS_UNSUPPORTED'), source: $source);
         }
 
-        $this->adopt(plugin: $instance, row: $row);
         $this->loadLanguage(entry: $row);
         $event = new ClearDataEvent('onClearData', ['source' => $source]);
         $thrown = null;
 
         try {
-            $instance->onClearData($event);
+            $plugins->dispatchTo($instance, $event);
         } catch (Throwable $e) {
             $thrown = $e;
         }
@@ -670,11 +690,25 @@ final class ClearDataExtensions
     }
 
     /**
+     * A plugin Alfa Commerce's own update is about to uninstall (a bundled plugin it no longer ships): its uninstall
+     * raises no warning about its data.
+     *
+     * @param int $extensionId The plugin's id.
+     *
+     * @since  2.2.0
+     */
+    public static function retiring(int $extensionId): void
+    {
+        self::$retiring[$extensionId] = true;
+    }
+
+    /**
      * The extension Joomla is about to uninstall, when its uninstall is warned that its data stays: an Alfa plugin, or
      * an Alfa package with plugins, that Alfa Commerce does not bundle; a module, Alfa Commerce and another vendor's
      * extension never. A plugin uninstalled with its package is warned through the package (Joomla asks about the
      * package first, then uninstalls its extensions in the same request); a plugin of a package uninstalled on its
-     * own (Joomla allows it unless the package's manifest blocks it) is warned itself.
+     * own (Joomla allows it unless the package's manifest blocks it) is warned itself. A plugin Alfa Commerce's update
+     * retires ({@see self::retiring()}) never is.
      *
      * @param int $extensionId The extension's id.
      *
@@ -684,6 +718,10 @@ final class ClearDataExtensions
      */
     public function uninstalling(int $extensionId): ?array
     {
+        if (isset(self::$retiring[$extensionId])) {
+            return null;
+        }
+
         $listed = $this->separate();
         $entry = $listed[$extensionId] ?? null;
 
@@ -1038,16 +1076,19 @@ final class ClearDataExtensions
     }
 
     /**
-     * Boot a plugin through Joomla, enabled or not. Booting subscribes it to nothing. A plugin whose code threw while it
-     * loaded throws the same again for the rest of the request ({@see self::$unloadable}).
+     * Boot a plugin enabled or not, through the plugin helper's maintenance boot (2.2.0, A-C14B-1: this connection holds
+     * the lock of Clear everything): the name, group and, from a fresh row, the params its provider leaves out are given
+     * to it. Booting subscribes it to nothing. A plugin whose code threw while it loaded throws the same again for the
+     * rest of the request ({@see self::$unloadable}).
      *
-     * @param array<string, mixed> $entry A plugin entry.
+     * @param array<string, mixed> $entry A plugin entry (with its params when it is a fresh row).
      *
+     * @throws PluginUnavailable MISSING (its files are gone) or WRONG_FAMILY.
      * @throws Throwable What its code threw while it loaded.
      *
      * @since  2.1.0
      */
-    private function boot(array $entry): object
+    private function boot(array $entry): LoadedPlugin
     {
         $key = (string) $entry['key'];
 
@@ -1056,45 +1097,18 @@ final class ClearDataExtensions
         }
 
         try {
-            return Factory::getApplication()->bootPlugin((string) $entry['element'], (string) $entry['folder']);
+            return AlfaPluginHelper::get()->bootForMaintenance(
+                PluginId::from((string) $entry['folder'], (string) $entry['element']),
+                $this->db,
+                isset($entry['params']) ? (string) $entry['params'] : null,
+            );
+        } catch (PluginUnavailable $e) {
+            throw $e;
         } catch (Throwable $e) {
             self::$unloadable[$key] = $e;
 
             throw $e;
         }
-    }
-
-    /**
-     * Give a plugin the name, group and params Joomla gives an enabled one. A plugin's service provider builds it
-     * from PluginHelper::getPlugin(), which knows enabled plugins only, so a disabled one has none; CMSPlugin keeps
-     * the name and group protected and has no setter, so they are set from the plugin's own scope.
-     *
-     * @param object $plugin The booted plugin.
-     * @param array<string, mixed> $row Its row ({@see self::freshRow()}).
-     *
-     * @since  2.1.0
-     */
-    private function adopt(object $plugin, array $row): void
-    {
-        if (!$plugin instanceof CMSPlugin) {
-            return;
-        }
-
-        $identity = function (string $element, string $folder, string $params): void {
-            if ((string) $this->_name === '') {
-                $this->_name = $element;
-            }
-
-            if ((string) $this->_type === '') {
-                $this->_type = $folder;
-            }
-
-            if (!$this->params instanceof Registry) {
-                $this->params = new Registry($params === '' ? '{}' : $params);
-            }
-        };
-
-        Closure::bind($identity, $plugin, CMSPlugin::class)((string) $row['element'], (string) $row['folder'], (string) $row['params']);
     }
 
     /**

@@ -136,12 +136,14 @@ class Dispatcher extends AbstractModuleDispatcher
             $wa->addInlineStyle($cartCss);
         }
 
-        // set counter for the first time the file loaded
-        $data['togglerCounter'] = intval($togglerCounterValue)
+        // What the counter counts: the lines (items) or the units (quantity). The layout
+        // prints it on the toggler, where the module's script reads it after a re-read.
+        $data['togglerCounterMode'] = (int) $togglerCounterValue === 1 ? 'items' : 'quantity';
+
+        // The counter as the page loads.
+        $data['togglerCounter'] = $data['togglerCounterMode'] === 'items'
             ? $data['snapshot']->itemCount
             : $data['snapshot']->quantity;
-        // pass the setting into the javascript file as variable modAlfaCartTogglerCounterValue
-        $wa->addInlineScript('var modAlfaCartTogglerCounterValue = "' . intval($togglerCounterValue) . '";');
 
         $data['priceSettings'] = AlfaCartHelper::buildPriceSettings($params);
 

@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Model\Traits\LocksMethodTypeTrait;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -29,6 +30,8 @@ use Throwable;
  */
 class PaymentModel extends AlfaAdminModel
 {
+    use LocksMethodTypeTrait;
+
     /**
      * @var string Alias to manage history control
      */
@@ -96,6 +99,9 @@ class PaymentModel extends AlfaAdminModel
         if (empty($form)) {
             return false;
         }
+
+        // An order uses this method: its plugin is fixed (2.2.0).
+        $this->lockMethodTypeField(form: $form, id: $id);
 
         // The plugin's settings are seeded from the same data the form was
         // loaded with: the kept post after a failed save, so nothing the admin
@@ -221,6 +227,11 @@ class PaymentModel extends AlfaAdminModel
         // per-language values are safehtml-cleaned like their base field.
         $rawData = $input->post->get('jform', [], 'raw');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
+
+        // The plugin of an order's method cannot change (2.2.0, design 2.15.5).
+        if (!$this->methodTypeChangeAllowed(data: $data)) {
+            return false;
+        }
 
         // The method plugin's settings are written from their group. A REST POST or PATCH that does not send the
         // group reads nothing: a payment method being created starts with none, and an existing one keeps the
@@ -420,5 +431,15 @@ class PaymentModel extends AlfaAdminModel
 
         $table->modified = Factory::getDate()->toSql();
         $table->modified_by = $user->id;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @since  2.2.0
+     */
+    protected function methodTypeReferences(): array
+    {
+        return ['id_payment_method', '#__alfa_order_payments'];
     }
 }

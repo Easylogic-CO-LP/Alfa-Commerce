@@ -18,7 +18,6 @@ use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
 use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
-use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
 use Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps;
 use Joomla\CMS\Factory;
@@ -111,7 +110,7 @@ final class FactoryReset
      */
     public const CORE_STEPS = [
         'ids', 'files', 'tables', 'schema', 'schema_version', 'options', 'delivery_mapping', 'download_store',
-        'users', 'usergroups', 'languages', 'id_floors', 'price_task', 'verify',
+        'users', 'usergroups', 'languages', 'id_floors', 'verify',
     ];
 
     /**
@@ -780,18 +779,6 @@ final class FactoryReset
         $this->at(step: $step = 'id_floors');
         $core->applyFloors(floors: $floors);
 
-        // The scheduled task that prepares list prices, as an installation makes it (Joomla's own record: a site
-        // that never had it gets it here). A failure is said, not a failed reset.
-        $this->at(step: $step = 'price_task');
-        $taskWarning = null;
-
-        try {
-            PriceIndexSyncService::ensurePreparationTask();
-        } catch (Throwable $e) {
-            $taskWarning = 'The scheduled task that prepares the list prices of customer groups was not created: ' . $e->getMessage();
-            MaintenanceAudit::detail(run: $run, line: $taskWarning);
-        }
-
         $this->at(step: $step = 'verify');
         $this->verify(core: $core, floors: $floors, dropped: $dropped, area: $area);
 
@@ -844,7 +831,7 @@ final class FactoryReset
         ];
         MaintenanceState::leave(lastClear: $last);
 
-        return $last + ['phase' => 'done', 'step' => null, 'error' => null, 'store_warning' => $storeWarning, 'task_warning' => $taskWarning];
+        return $last + ['phase' => 'done', 'step' => null, 'error' => null, 'store_warning' => $storeWarning];
     }
 
     /**
