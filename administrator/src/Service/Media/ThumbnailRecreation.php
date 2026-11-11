@@ -32,10 +32,11 @@ use Throwable;
  * thumbnail (its own path or another row's), or smaller than the box allows for its image. A row of type url is never
  * touched; a row whose own image file is missing is reported and left as it is.
  *
- * WHAT THE MERCHANT CHOSE STAYS (2.2.0, REV-C21 MAJOR 1). A thumbnail chosen on the tile (thumbnail_origin chosen) is
- * left as it is in both modes and counted kept, while its file is there. A row written before 2.2.0 (NULL) cannot say
- * what its thumbnail was made from: it is made again as any other, and its previous file is kept on disk, so a
- * picture chosen then can be chosen again, counted apart in the report.
+ * WHAT THE MERCHANT CHOSE STAYS (2.2.0, REV-C21 MAJOR 1). A thumbnail the merchant picked (thumbnail_origin chosen)
+ * is left as it is in both modes and counted kept, while its file is there. Every other row, one written before 2.2.0
+ * (NULL) included, is made again and its previous thumbnail file deleted (no state of before 2.2.0 is kept), under
+ * the same guards for every row: never its own image, never a file outside the save folder, never a file
+ * another row names as its path or thumbnail.
  *
  * WHAT A TICK CAN DECODE (REV-C21 MAJOR 3, measured in c21r2). An image whose decode does not fit the memory the tick
  * has left is not opened: the row is failed with that reason and the walk goes on, so one image too big for the process
@@ -270,13 +271,12 @@ final class ThumbnailRecreation
      *
      * The outcome is 'made', 'kept' (the mode does not ask for it, or the merchant chose it on the tile), 'missing' (the
      * row's own image file is gone) or 'failed' with its reason (self::REASON_MEMORY, self::REASON_WRITE,
-     * self::REASON_CHANGED); `previous` says a row written before 2.2.0 was made and its previous thumbnail stays on
-     * disk, named by no row.
+     * self::REASON_CHANGED). A row made again has its previous thumbnail file deleted (deleteUnnamed()).
      *
      * @param object $row The row (id, path, thumbnail, thumbnail_origin).
      * @param string $mode self::MODE_ALL or self::MODE_MISSING.
      *
-     * @return array{outcome: string, reason: string|null, previous: bool} The outcome, its reason and the previous file.
+     * @return array{outcome: string, reason: string|null} The outcome and its reason.
      *
      * @since  2.2.0
      */
@@ -344,11 +344,6 @@ final class ThumbnailRecreation
             return self::outcome(outcome: 'made');
         }
 
-        if ($origin === null) {
-            // Written before 2.2.0: its thumbnail may be a picture the merchant chose then, so its file stays.
-            return self::outcome(outcome: 'made', previous: is_file(JPATH_ROOT . '/' . $old) && MediaHelper::filesNamedByOtherRows(files: [$old]) === []);
-        }
-
         self::deleteUnnamed(file: $old, saveFolder: self::saveFolder(params: $params));
 
         return self::outcome(outcome: 'made');
@@ -359,15 +354,14 @@ final class ThumbnailRecreation
      *
      * @param string $outcome 'made', 'kept', 'missing' or 'failed'.
      * @param string|null $reason Why it failed.
-     * @param bool $previous Whether a previous thumbnail stays on disk.
      *
-     * @return array{outcome: string, reason: string|null, previous: bool}
+     * @return array{outcome: string, reason: string|null}
      *
      * @since  2.2.0
      */
-    private static function outcome(string $outcome, ?string $reason = null, bool $previous = false): array
+    private static function outcome(string $outcome, ?string $reason = null): array
     {
-        return ['outcome' => $outcome, 'reason' => $reason, 'previous' => $previous];
+        return ['outcome' => $outcome, 'reason' => $reason];
     }
 
     /**
@@ -475,7 +469,7 @@ final class ThumbnailRecreation
      *
      * @param array $report So far (self::emptyReport()'s keys).
      * @param int $id The row.
-     * @param array{outcome: string, reason: string|null, previous: bool} $outcome What recreate() said.
+     * @param array{outcome: string, reason: string|null} $outcome What recreate() said.
      *
      * @return array The report with the row counted, and named when its list has room (a failed row with its reason).
      *
@@ -497,14 +491,6 @@ final class ThumbnailRecreation
             }
         }
 
-        if (!empty($outcome['previous'])) {
-            $report['previous']++;
-
-            if (\count($report['previousIds']) < self::REPORT_IDS) {
-                $report['previousIds'][] = $id;
-            }
-        }
-
         return $report;
     }
 
@@ -513,7 +499,7 @@ final class ThumbnailRecreation
      *
      * @param array|string|null $checkpoint The job's checkpoint, decoded or as stored.
      *
-     * @return array{mode: string, made: int, kept: int, missing: int, failed: int, previous: int, missingIds: int[], failedIds: int[], previousIds: int[], failedReasons: array<string, string>}|null
+     * @return array{mode: string, made: int, kept: int, missing: int, failed: int, missingIds: int[], failedIds: int[], failedReasons: array<string, string>}|null
      *
      * @since  2.2.0
      */
@@ -555,16 +541,16 @@ final class ThumbnailRecreation
     }
 
     /**
-     * An empty report: the counts, the rows named for the image files missing and the thumbnails not made (each with its
-     * reason), and the rows written before 2.2.0 whose previous thumbnail stays on disk.
+     * An empty report: the counts, and the rows named for the image files missing and the thumbnails not made (each with
+     * its reason).
      *
-     * @return array{made: int, kept: int, missing: int, failed: int, previous: int, missingIds: int[], failedIds: int[], previousIds: int[], failedReasons: array<string, string>}
+     * @return array{made: int, kept: int, missing: int, failed: int, missingIds: int[], failedIds: int[], failedReasons: array<string, string>}
      *
      * @since  2.2.0
      */
     public static function emptyReport(): array
     {
-        return ['made' => 0, 'kept' => 0, 'missing' => 0, 'failed' => 0, 'previous' => 0, 'missingIds' => [], 'failedIds' => [], 'previousIds' => [], 'failedReasons' => []];
+        return ['made' => 0, 'kept' => 0, 'missing' => 0, 'failed' => 0, 'missingIds' => [], 'failedIds' => [], 'failedReasons' => []];
     }
 
     /**

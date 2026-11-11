@@ -83,6 +83,20 @@ final class CartSnapshot
     }
 
     /**
+     * Whether the cart needs carrying and no shipping method is chosen yet: its shipping is
+     * then a choice still to make, never a zero (2.2.0, UX-76). The cart page's summary and
+     * the cart module's drawer both read it here.
+     *
+     * @return bool True when shipping awaits the shopper's choice.
+     *
+     * @since  2.2.0
+     */
+    public function shippingAwaitsChoice(): bool
+    {
+        return !$this->isVirtual && $this->offers->selectedShipmentId === 0;
+    }
+
+    /**
      * @return bool Whether a cart was found at all.
      *
      * @since  2.0.0

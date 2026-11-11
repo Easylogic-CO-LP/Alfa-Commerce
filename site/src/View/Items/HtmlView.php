@@ -24,6 +24,7 @@ use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
@@ -82,6 +83,12 @@ class HtmlView extends BaseHtmlView
      *           scrolls it into view and gives it the focus on load.
      */
     protected bool $revealResults = false;
+
+    /**
+     * @var string The results region's name (2.2.0, UX-53): the counter Joomla's pagination prints ("1 - 25 / 132
+     *             items"), so the focus a filter gives the region announces how many products show; empty for none.
+     */
+    protected string $resultsCounter = '';
 
     /** @var string Resolved default card sub-template (the "item" slot) for rows without their own */
     protected $cardTpl = 'item';
@@ -264,6 +271,15 @@ class HtmlView extends BaseHtmlView
         // item's preset filters are the page itself, not a submission.
         $this->revealResults = (int) $this->state->get('list.start', 0) > 0 || self::carriesValue(value: $input->get('filter', [], 'array'));
 
+        // The region's name, in the words of the counter Joomla's pagination prints above the list.
+        $total = (int) $this->pagination->total;
+
+        if ($total > 0) {
+            $first = (int) $this->pagination->limitstart + 1;
+            $limit = (int) $this->pagination->limit;
+            $this->resultsCounter = Text::sprintf('JLIB_HTML_PAGINATION_NUMBERS', $first, $limit > 0 ? min($first + $limit - 1, $total) : $total, $total);
+        }
+
         $this->_prepareDocument();
 
         // Every rendered result set is announced, from the view and never from a template, so no override can lose it.
@@ -411,8 +427,9 @@ class HtmlView extends BaseHtmlView
     /**
      * The category's title and description above the listing, IN THIS ORDER after Joomla's page heading (when the menu
      * item's option enables it, addPageHeading()): each by Alfa's own setting, never by Show Page Heading; the
-     * description only when it has something to show. A listing of every product has no category: only the page
-     * heading can show there.
+     * description only when it has something to show, the title only when it differs from the page heading
+     * (addPageHeading() decides that, once the heading's text is known). A listing of every product has no category:
+     * only the page heading can show there.
      *
      * @since  2.2.0
      */
@@ -514,8 +531,14 @@ class HtmlView extends BaseHtmlView
             : (string) ($this->category->name ?? ''));
 
         // Shown when the menu item's Show Page Heading says so and there is a heading to show.
-        $this->showPageHeading = (bool) $this->params->get('show_page_heading', 0)
-            && trim((string) $this->params->get('page_heading', '')) !== '';
+        $heading = trim((string) $this->params->get('page_heading', ''));
+        $this->showPageHeading = (bool) $this->params->get('show_page_heading', 0) && $heading !== '';
+
+        // NEVER THE SAME HEADING TWICE (2.2.0, UX-52): under a page heading that reads as the category's name, the
+        // category's title would repeat it, so it prints only when it says something the heading does not.
+        if ($this->showPageHeading && $heading === trim((string) ($this->category->name ?? ''))) {
+            $this->showCategoryTitle = false;
+        }
     }
 
     /**

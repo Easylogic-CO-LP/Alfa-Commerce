@@ -1392,7 +1392,7 @@ class MediaHelper
             $told = true;
 
             try {
-                Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_MEDIA_ALT_TOO_LONG'), 'warning');
+                Factory::getApplication()->enqueueMessage(Text::sprintf('COM_ALFA_MEDIA_ALT_TOO_LONG', self::ALT_MAX_LENGTH), 'warning');
             } catch (Throwable) {
                 // No application to tell (a CLI caller): the description is shortened all the same.
             }

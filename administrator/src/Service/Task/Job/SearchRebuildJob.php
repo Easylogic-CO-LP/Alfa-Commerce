@@ -22,7 +22,8 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
-use RuntimeException;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
+use Joomla\CMS\Language\Text;
 use Throwable;
 
 /**
@@ -117,7 +118,7 @@ final class SearchRebuildJob implements JobHandler
         $progress = $store->current($key);
 
         if ($progress === null) {
-            throw new RuntimeException('No open rebuild of the search engine ' . $key . ' was found; the next claim opens one.');
+            throw new TaskError('COM_ALFA_TASKS_ERROR_SEARCH_NOT_OPEN', [self::engineName(key: $key)]);
         }
 
         // The walk is over: the finish, in a chunk of its own, so the heavy slot was renewed at the end of the chunk
@@ -155,7 +156,7 @@ final class SearchRebuildJob implements JobHandler
      *
      * @param string $key The engine's key the job names.
      *
-     * @throws RuntimeException When it is no longer the configured rebuildable engine.
+     * @throws TaskError When it is no longer the configured rebuildable engine.
      *
      * @since  2.2.0
      */
@@ -164,9 +165,24 @@ final class SearchRebuildJob implements JobHandler
         $engine = (new SearchEngineRegistry())->configured();
 
         if (!$engine instanceof RebuildableEngine || $engine->key() !== $key) {
-            throw new RuntimeException('The search engine ' . $key . ' is no longer the configured rebuildable engine; its rebuild cannot go on.');
+            throw new TaskError('COM_ALFA_TASKS_ERROR_SEARCH_ENGINE_CHANGED', [self::engineName(key: $key)]);
         }
 
         return $engine;
+    }
+
+    /**
+     * An engine's name as the engine picker shows it, for a failure staff read; the key when no engine of it is
+     * registered any more.
+     *
+     * @param string $key The engine's key.
+     *
+     * @since  2.2.0
+     */
+    public static function engineName(string $key): string
+    {
+        $engine = SearchEngineRegistry::shared()->all()[$key] ?? null;
+
+        return $engine === null ? $key : Text::_($engine->label());
     }
 }

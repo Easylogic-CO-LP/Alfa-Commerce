@@ -570,3 +570,11 @@ tr.alfa-row-refund > * {
     padding: 0;
     list-style: none;
 }
+
+/* A date on one line from md up, free to wrap on a phone: Tools > Tasks' jobs list, where a "Next try after" date
+   kept on one line widened the State column past the card at 360 px. */
+@media (min-width: 768px) {
+    .alfa-nowrap-md {
+        white-space: nowrap;
+    }
+}

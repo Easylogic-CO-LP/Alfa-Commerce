@@ -17,11 +17,16 @@
  * reads nothing else, queries nothing and decides nothing. Null means the order is not
  * available to this visitor, and the page then says only that (the view answers 404).
  *
- * The money is the cart.summary layout's (C15), fed rows the order froze. The gateway's
+ * The money is the cart.summary layout's (C15), fed rows the order froze; the lines and their
+ * totals are .cart-lines, so they look as the cart's do (cart.css). The gateway's
  * block is its own layout, left out with the neutral line when its plugin cannot be asked.
- * The Print control is bound by the page's script (asset com_alfa.order-completed); its
- * stylesheet prints the lines, the totals and the addresses in black on white and hides
- * the page's own actions.
+ * Print is bound by the page's script (asset com_alfa.order-completed): it opens this same keyed
+ * address with tmpl=component and print=1 (Joomla's own print pattern), whose root the view
+ * marks data-order-print, and prints that view; the key is never written into the page. The
+ * stylesheet prints the lines, the totals and the addresses in black on white and hides the
+ * page's own actions. The page's one h1 is the completed message (or the not-available
+ * heading), its sections h2; the Items heading is the cart's heading row and label
+ * (.cart-lines-heading, .cart-lines-title), so it reads at the cart's Items size.
  *
  * Classes the stylesheet reads (media/com_alfa/css/site/order-completed.css):
  *   .order-completed  .order-facts  .order-items  .order-addresses  .order-address
@@ -55,18 +60,25 @@ $columns = [
 ];
 
 ?>
-<div class="com-alfa cart-wrapper order-completed" data-order-completed>
+<div class="com-alfa cart-wrapper order-completed" data-order-completed<?php echo $this->print ? ' data-order-print' : ''; ?>>
 <?php if ($order === null) : ?>
+
+    <h1 class="order-not-available-heading"><?php echo Text::_('COM_ALFA_ORDER_NOT_AVAILABLE_HEADING'); ?></h1>
 
     <p class="order-not-available"><?php echo Text::_('COM_ALFA_ORDER_NOT_AVAILABLE'); ?></p>
 
+    <?php // The page's own action first and primary, Continue shopping after it, as the process page orders them (NEW-8);
+          // alone, Continue shopping is the page's one way on. ?>
     <div class="order-completed-actions">
-        <a class="action primary" href="<?php echo Uri::root(); ?>"><?php echo Text::_('COM_ALFA_CART_EMPTY_CONTINUE'); ?></a>
+        <?php if ($this->loginUrl !== '') : ?>
+        <a class="action primary" href="<?php echo $this->loginUrl; ?>"><?php echo Text::_('JLOGIN'); ?></a>
+        <?php endif; ?>
+        <a class="action <?php echo $this->loginUrl !== '' ? 'secondary' : 'primary'; ?>" href="<?php echo Uri::root(); ?>"><?php echo Text::_('COM_ALFA_CART_EMPTY_CONTINUE'); ?></a>
     </div>
 
 <?php else : ?>
 
-    <h2 class="order-completed-message"><?php echo Text::_('COM_ALFA_ORDER_COMPLETED_MESSAGE'); ?></h2>
+    <h1 class="order-completed-message"><?php echo Text::_('COM_ALFA_ORDER_COMPLETED_MESSAGE'); ?></h1>
 
     <p class="order-number">
         <?php echo Text::sprintf('COM_ALFA_ORDER_COMPLETED_NUMBER', $this->escape($order->number)); ?>
@@ -129,14 +141,16 @@ $columns = [
     </div>
     <?php endif; ?>
 
-    <section class="order-items">
-        <h3><?php echo Text::_('COM_ALFA_ORDER_COMPLETED_ITEMS'); ?></h3>
+    <section class="order-items cart-lines">
+        <div class="cart-lines-heading">
+            <h2 class="cart-lines-title"><?php echo Text::_('COM_ALFA_ORDER_COMPLETED_ITEMS'); ?></h2>
+        </div>
         <table>
             <thead>
             <tr>
                 <th><?php echo $columns['name']; ?></th>
                 <th><?php echo $columns['quantity']; ?></th>
-                <th><?php echo $columns['total']; ?></th>
+                <th class="cart-money"><?php echo $columns['total']; ?></th>
             </tr>
             </thead>
             <tbody>
@@ -153,13 +167,13 @@ $columns = [
                     <?php endif; ?>
                 </td>
                 <td data-label="<?php echo $columns['quantity']; ?>" class="order-item-quantity"><?php echo (int) $line->quantity; ?></td>
-                <td data-label="<?php echo $columns['total']; ?>" class="order-item-total"><?php echo $line->total->format(); ?></td>
+                <td data-label="<?php echo $columns['total']; ?>" class="order-item-total cart-money"><?php echo $line->total->format(); ?></td>
             </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
 
-        <?php echo Layout::render(layout: 'cart.summary', data: ['rows' => $order->summary]); ?>
+        <?php echo Layout::render(layout: 'cart.summary', data: ['rows' => $order->summary, 'label' => Text::_('COM_ALFA_ORDER_COMPLETED_TOTALS')]); ?>
     </section>
 
     <?php if ($order->delivery !== [] || $order->invoice !== []) : ?>
@@ -167,7 +181,7 @@ $columns = [
         <?php foreach (['COM_ALFA_ORDER_COMPLETED_DELIVERY_ADDRESS' => $order->delivery, 'COM_ALFA_ORDER_COMPLETED_INVOICE_ADDRESS' => $order->invoice] as $heading => $fields) : ?>
         <?php if ($fields !== []) : ?>
         <div class="order-address">
-            <h3><?php echo Text::_($heading); ?></h3>
+            <h2><?php echo Text::_($heading); ?></h2>
             <dl>
                 <?php foreach ($fields as $field) : ?>
                 <div>

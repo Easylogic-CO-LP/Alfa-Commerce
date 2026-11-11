@@ -90,6 +90,30 @@ final class CardRegistry
             self::invalidate();
         }
 
+        $entry = self::cached(screen: $screen, scope: $scope);
+        $cards = self::withLive(cards: $entry['cards'], screen: $screen, surfaces: $entry['live']);
+
+        // collect() loads a contributor's language while asking it for cards, but a
+        // cache HIT skips collect() entirely, and the titles then render as raw
+        // PLG_... keys on the dashboard. Loading is idempotent and keyed per extension,
+        // so doing it here covers both paths for the price of nothing on a repeat.
+        self::loadOwnerLanguages($cards);
+
+        return $cards;
+    }
+
+    /**
+     * A screen's cache entry for this viewer: read from the cache, or computed when the cache cannot be used.
+     *
+     * @param string $screen Screen id.
+     * @param string $scope See forScreen().
+     *
+     * @return array{cards: array<string, array[]>, live: string[]} See cacheEntry().
+     *
+     * @since  2.2.0
+     */
+    private static function cached(string $screen, string $scope): array
+    {
         $app = Factory::getApplication();
         $viewer = (int) ($app->getIdentity()->id ?? 0);
 
@@ -116,7 +140,7 @@ final class CardRegistry
         }
 
         // AND SO IS WHAT THE VIEWER MAY SEE. The predicates run inside the cached
-        // resolve(), so the entry holds their answer: which cards, and which of
+        // cacheEntry(), so the entry holds their answer: which cards, and which of
         // their links. A grant, a revocation or a group change has to reach the
         // dashboard at once, and nothing clears this cache when one is made: the
         // Permissions tab stores each change without a save event, and a group
@@ -141,23 +165,17 @@ final class CardRegistry
             // Per viewer, deliberately: cards carry visibility predicates, so a
             // shared entry would let whoever loaded the page first decide what the
             // next person sees, either leaking figures or hiding them.
-            $cards = (array) $cache->get(
-                [self::class, 'resolve'],
+            $entry = (array) $cache->get(
+                [self::class, 'cacheEntry'],
                 [$screen],
                 'cards.' . $screen . '.u' . $viewer . '.' . $tag . '.' . $base . '.' . $rights . ($scope !== '' ? '.' . $scope : ''),
             );
         } catch (Throwable) {
             // Cache or rights unavailable -> compute directly (correct, just uncached).
-            $cards = self::resolve($screen);
+            $entry = self::cacheEntry($screen);
         }
 
-        // collect() loads a contributor's language while asking it for cards, but a
-        // cache HIT skips collect() entirely, and the titles then render as raw
-        // PLG_... keys on the dashboard. Loading is idempotent and keyed per extension,
-        // so doing it here covers both paths for the price of nothing on a repeat.
-        self::loadOwnerLanguages($cards);
-
-        return $cards;
+        return $entry;
     }
 
     /**
@@ -174,8 +192,13 @@ final class CardRegistry
     public static function forSurface(string $screen, DashboardSurface|string $surface, string $scope = ''): array
     {
         $key = $surface instanceof DashboardSurface ? $surface->value : $surface;
+        $entry = self::cached(screen: $screen, scope: $scope);
 
-        return self::forScreen($screen, false, $scope)[$key] ?? [];
+        // Only this surface's live cards are resolved: a screen asks once per surface (2.2.0, entry 27).
+        $cards = self::withLive(cards: $entry['cards'], screen: $screen, surfaces: array_values(array_intersect($entry['live'], [$key])));
+        self::loadOwnerLanguages($cards);
+
+        return $cards[$key] ?? [];
     }
 
     /**
@@ -192,37 +215,125 @@ final class CardRegistry
         $placed = [];
 
         foreach (self::collect($screen) as $card) {
-            if (!$card->isVisible()) {
-                continue;
-            }
-
-            $data = $card->resolve();
-
-            if ($data === null) {
-                continue;
-            }
-
-            $placed[$card->surface][] = [
-                'id' => $card->id,
-                'title' => $card->title,
-                'subtitle' => $card->subtitle,
-                'icon' => $card->icon,
-                'url' => $card->url,
-                'width' => $card->width,
-                'layout' => $card->layout,
-                'layout_base' => self::layoutBase($card),
-                'ordering' => $card->ordering,
-                'surface' => $card->surface,
-                'data' => $data,
-                'owner_group' => (string) ($card->metadata['owner_group'] ?? ''),
-                'owner_name' => (string) ($card->metadata['owner_name'] ?? ''),
-            ];
+            $placed = self::placed(placed: $placed, card: $card);
         }
 
-        // Ascending, like the admin menu: a surface is layout, not run order.
+        return self::ordered(placed: $placed);
+    }
+
+    /**
+     * What the cache keeps for a screen (the callback of forScreen()'s cache read): every card resolved and placed
+     * except the live ones ({@see AdminCard::$live}), and the surfaces that hold a live card, which are resolved after
+     * the cache read on every request, whether or not they showed anything when the entry was made (2.2.0, entry 27).
+     *
+     * @param string $screen Screen id.
+     *
+     * @return array{cards: array<string, array[]>, live: string[]}
+     *
+     * @since  2.2.0
+     */
+    public static function cacheEntry(string $screen): array
+    {
+        $placed = [];
+        $live = [];
+
+        foreach (self::collect($screen) as $card) {
+            if ($card->live) {
+                $live[$card->surface] = $card->surface;
+
+                continue;
+            }
+
+            $placed = self::placed(placed: $placed, card: $card);
+        }
+
+        return ['cards' => self::ordered(placed: $placed), 'live' => array_values($live)];
+    }
+
+    /**
+     * Cached cards with the live cards of the given surfaces resolved now and placed among them (2.2.0, entry 27).
+     *
+     * @param array<string, array[]> $cards The cached cards, by surface.
+     * @param string $screen Screen id.
+     * @param string[] $surfaces The surfaces whose live cards to resolve; none leaves the cards as they are.
+     *
+     * @return array<string, array[]>
+     *
+     * @since  2.2.0
+     */
+    private static function withLive(array $cards, string $screen, array $surfaces): array
+    {
+        if ($surfaces === []) {
+            return $cards;
+        }
+
+        foreach (self::collect($screen) as $card) {
+            if ($card->live && \in_array($card->surface, $surfaces, true)) {
+                $cards = self::placed(placed: $cards, card: $card);
+            }
+        }
+
+        return self::ordered(placed: $cards);
+    }
+
+    /**
+     * The cards with one more placed on its surface, when the viewer may see it and its data resolves.
+     *
+     * @param array<string, array[]> $placed The cards so far, by surface.
+     * @param AdminCard $card The card.
+     *
+     * @return array<string, array[]>
+     *
+     * @since  2.2.0
+     */
+    private static function placed(array $placed, AdminCard $card): array
+    {
+        if (!$card->isVisible()) {
+            return $placed;
+        }
+
+        $data = $card->resolve();
+
+        // Nothing to show: its data failed, or its data callback answered empty (AdminCard::resolve()).
+        if ($data === null) {
+            return $placed;
+        }
+
+        $placed[$card->surface][] = [
+            'id' => $card->id,
+            'title' => $card->title,
+            'subtitle' => $card->subtitle,
+            'icon' => $card->icon,
+            'url' => $card->url,
+            'width' => $card->width,
+            'layout' => $card->layout,
+            'layout_base' => self::layoutBase($card),
+            'ordering' => $card->ordering,
+            'surface' => $card->surface,
+            'data' => $data,
+            'owner_group' => (string) ($card->metadata['owner_group'] ?? ''),
+            'owner_name' => (string) ($card->metadata['owner_name'] ?? ''),
+        ];
+
+        return $placed;
+    }
+
+    /**
+     * Each surface's cards in their order: ascending, like the admin menu (a surface is layout, not run order).
+     *
+     * @param array<string, array[]> $placed The cards, by surface.
+     *
+     * @return array<string, array[]>
+     *
+     * @since  2.2.0
+     */
+    private static function ordered(array $placed): array
+    {
         foreach ($placed as &$cards) {
             usort($cards, static fn (array $a, array $b): int => $a['ordering'] <=> $b['ordering']);
         }
+
+        unset($cards);
 
         return $placed;
     }

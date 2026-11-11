@@ -16,8 +16,10 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailRecreation;
 use DomainException;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
+use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use Throwable;
 
@@ -77,6 +79,14 @@ final class TaskStaff
      * @since  2.1.4
      */
     public const LIST_LIMIT = 100;
+
+    /**
+     * How recently a waiting job must have advanced to read as running: the staff kick and the progress page drive a job
+     * in steps a few seconds apart, and between two of them its row waits (2.2.0, entry 27).
+     *
+     * @since  2.2.0
+     */
+    public const DRIVEN_SECONDS = 30;
 
     /**
      * The failed and held singles, oldest first, with what staff may do with each.
@@ -141,13 +151,74 @@ final class TaskStaff
     }
 
     /**
+     * What the Tasks tab's jobs card draws (layouts/tasks/jobs.php), the one source of the Tools page and of the card's
+     * refresh on a progress page (TasksController::jobsCard(), UX-84): the jobs, the names of the customer groups their
+     * price sets cover and of the search engines their rebuilds cover, the thumbnails mode a thumbnails job without a
+     * report yet will walk in (each read once, and only when such a job is listed: the layout reads no database), how
+     * many jobs failed (the attention card says so when no single needs attention, UX-02), and the job a progress page
+     * follows (its row says where it is followed, entry 20).
+     *
+     * @param int $followedJob The job the page follows, 0 for none.
+     *
+     * @return array{rows: list<array<string, mixed>>, groups: array<int, string>, engines: array<string, string>, thumbnailsMode: string|null, followedJob: int, failedJobs: int, unreadable: bool}
+     *
+     * @since  2.2.0
+     */
+    public static function jobsCard(int $followedJob): array
+    {
+        try {
+            $rows = self::jobRows();
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Tools: the jobs could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+
+            return ['rows' => [], 'groups' => [], 'engines' => [], 'thumbnailsMode' => null, 'followedJob' => $followedJob, 'failedJobs' => 0, 'unreadable' => true];
+        }
+
+        $thumbnailsMode = null;
+        $engines = [];
+        $search = Job\SearchRebuildJob::NAME . ':';
+
+        foreach ($rows as $row) {
+            $scope = (string) $row['scope_key'];
+
+            if ($thumbnailsMode === null && $scope === Job\ThumbnailsRecreateJob::NAME && ($row['report'] ?? null) === null) {
+                $thumbnailsMode = ThumbnailRecreation::mode();
+            }
+
+            if (str_starts_with($scope, $search) && !isset($engines[substr($scope, \strlen($search))])) {
+                $engines[substr($scope, \strlen($search))] = Job\SearchRebuildJob::engineName(key: substr($scope, \strlen($search)));
+            }
+        }
+
+        $ids = array_values(array_unique(array_merge([], ...array_column($rows, 'groups'))));
+        $groups = [];
+
+        if ($ids !== []) {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $groups = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'title']))
+                    ->from($db->quoteName('#__usergroups'))
+                    ->whereIn($db->quoteName('id'), $ids),
+            )->loadAssocList('id', 'title') ?: [];
+        }
+
+        return [
+            'rows' => $rows, 'groups' => $groups, 'engines' => $engines, 'thumbnailsMode' => $thumbnailsMode, 'followedJob' => $followedJob,
+            'failedJobs' => \count(array_filter($rows, static fn (array $row): bool => $row['state'] === Tasks::STATE_FAILED)), 'unreadable' => false,
+        ];
+    }
+
+    /**
      * The jobs, for Tools > Tasks: running and waiting first, then failed, then the finished ones newest first.
      *
      * @param int $limit The most rows.
      *
      * @return list<array<string, mixed>> Each row's columns, plus label (a language key, '' for a handler this version
-     *                                    does not have) and groups (the customer groups a price set's job prepares,
-     *                                    an empty list for any other job).
+     *                                    does not have), groups (the customer groups a price set's job prepares,
+     *                                    an empty list for any other job) and driven (true for a job running, or
+     *                                    waiting between two steps it took within self::DRIVEN_SECONDS: one being
+     *                                    driven, displayed as running).
      *
      * @since  2.2.0
      */
@@ -159,6 +230,11 @@ final class TaskStaff
         $rows = $db->setQuery(
             $db->getQuery(true)
                 ->select($db->quoteName(['id', 'handler', 'state', 'scope_key', 'done_units', 'total_units', 'failures', 'last_error', 'run_after', 'created_at', 'started_at', 'finished_at']))
+                // Driven: running, or started, due and advanced within DRIVEN_SECONDS (a step's end writes updated_at;
+                // a failed step sets its retry in the future, so a job waiting out its retry is not driven).
+                ->select('(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' OR (' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING)
+                    . ' AND ' . $db->quoteName('started_at') . ' IS NOT NULL AND ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)'
+                    . ' AND ' . $db->quoteName('updated_at') . ' >= UTC_TIMESTAMP(3) - INTERVAL ' . self::DRIVEN_SECONDS . ' SECOND)) AS ' . $db->quoteName('driven'))
                 // The thumbnails job's walk keeps its mode and its report in its checkpoint (2.2.0, part C21).
                 ->select('CASE WHEN ' . $db->quoteName('handler') . ' = ' . $db->quote(Job\ThumbnailsRecreateJob::NAME) . ' THEN ' . $db->quoteName('checkpoint') . ' END AS ' . $db->quoteName('checkpoint'))
                 ->from($db->quoteName(Tasks::TABLE))
@@ -185,6 +261,7 @@ final class TaskStaff
 
         foreach ($rows as &$row) {
             $row['label'] = Runner::handler(name: (string) $row['handler'])?->policy()->label ?? '';
+            $row['driven'] = (bool) $row['driven'];
             $list = str_starts_with((string) $row['scope_key'], $prefix) ? (string) ($lists[substr((string) $row['scope_key'], \strlen($prefix))] ?? '') : '';
             $row['groups'] = $list === '' ? [] : array_map('intval', explode(',', $list));
             $row['report'] = $row['handler'] === Job\ThumbnailsRecreateJob::NAME ? ThumbnailRecreation::reportOf(checkpoint: $row['checkpoint']) : null;
@@ -197,12 +274,27 @@ final class TaskStaff
     }
 
     /**
+     * A job's progress in words for its progress card: "640 of 1500 (43%)", or nothing when its total is 0, where the
+     * card says the state alone, as the jobs list does (UX-04, NEW-6).
+     *
+     * @param int $done The units done.
+     * @param int $total The units in all.
+     * @param int $percent Its percent.
+     *
+     * @since  2.2.0
+     */
+    public static function unitsText(int $done, int $total, int $percent): string
+    {
+        return $total > 0 ? Text::sprintf('COM_ALFA_TASKS_PROGRESS_UNITS', $done, $total, $percent) : '';
+    }
+
+    /**
      * One job as the progress page shows it, or null when there is no job of that id.
      *
      * @param int $id The job.
      *
      * @return array{id: int, label: string, heavy: bool, state: string, done: int, total: int, percent: int, error: string,
-     *               started_at: ?string, finished_at: ?string}|null
+     *               started_at: ?string, finished_at: ?string, report: array<string, mixed>|null}|null
      *
      * @since  2.2.0
      */
@@ -225,7 +317,31 @@ final class TaskStaff
             'error' => (string) $row['last_error'],
             'started_at' => $row['started_at'],
             'finished_at' => $row['finished_at'],
+            'report' => (string) $row['scope_key'] === Job\ThumbnailsRecreateJob::NAME ? self::thumbnailsReport(id: (int) $row['id']) : null,
         ];
+    }
+
+    /**
+     * A thumbnails job's report so far (made, kept, missing, not made), read from its own checkpoint, or null before its
+     * first step (UX-84: the progress card prints it).
+     *
+     * @param int $id The job.
+     *
+     * @return array<string, mixed>|null
+     *
+     * @since  2.2.0
+     */
+    private static function thumbnailsReport(int $id): ?array
+    {
+        $db = self::db();
+
+        return ThumbnailRecreation::reportOf(checkpoint: $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('checkpoint'))
+                ->from($db->quoteName(Tasks::TABLE))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $id, ParameterType::INTEGER),
+        )->loadResult());
     }
 
     /**

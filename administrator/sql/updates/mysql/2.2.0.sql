@@ -14,10 +14,12 @@
 -- the first column of each statement, and the word after MODIFY as that column.
 -- The handler index of the tasks gains finished_at, so each retention rule reads a tight range. It takes a new name:
 -- the database check reads a DROP INDEX as an index that must not exist, so one name dropped and added again would
--- never check clean. First, so the code that names it waits the least.
+-- never check clean. First, so the code that names it waits the least. Both carry Joomla's CAN FAIL marker, as
+-- Joomla's own update files mark index changes: an update that stopped after one of them and is run again finds the
+-- index already dropped or already added, and goes on to the statements after it instead of stopping there.
 
-ALTER TABLE `#__alfa_tasks` DROP INDEX `idx_handler_state`;
-ALTER TABLE `#__alfa_tasks` ADD INDEX `idx_handler_state_finished` (`handler`, `state`, `finished_at`);
+ALTER TABLE `#__alfa_tasks` DROP INDEX `idx_handler_state` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_tasks` ADD INDEX `idx_handler_state_finished` (`handler`, `state`, `finished_at`) /** CAN FAIL **/;
 ALTER TABLE `#__alfa_inventory_movements` MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 ALTER TABLE `#__alfa_inventory_operations` MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 ALTER TABLE `#__alfa_order_activity_log` MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;

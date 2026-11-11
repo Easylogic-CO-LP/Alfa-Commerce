@@ -86,7 +86,8 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                                 </td>
                                 <td class="d-none d-md-table-cell"><?php echo htmlspecialchars(NotificationText::group($item), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="d-none d-md-table-cell">
-                                    <?php echo $item->created ? HTMLHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC5')) : ''; ?>
+                                    <?php // A date never breaks inside itself (UX-32). ?>
+                        <span class="text-nowrap"><?php echo $item->created ? HTMLHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC5')) : ''; ?></span>
                                 </td>
                                 <td class="d-none d-md-table-cell text-center">
                                     <?php if (!empty($item->dismissed)) : ?>

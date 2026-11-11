@@ -65,7 +65,11 @@ document.addEventListener("DOMContentLoaded", () => {
     cartContainer.addEventListener('click', (event) => {
         if (event.target.matches('[data-action="cart-clear"], [data-action="cart-clear"] *')) {
             event.preventDefault();
-            clearCart();
+
+            // Emptying the cart cannot be undone, so the shopper is asked first (2.2.0, UX-77).
+            if (window.confirm(Joomla.Text._('COM_ALFA_CART_CLEAR_CONFIRM'))) {
+                clearCart();
+            }
         }
 
         // Remove item button listener

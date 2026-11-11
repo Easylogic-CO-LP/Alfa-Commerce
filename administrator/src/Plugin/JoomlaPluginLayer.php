@@ -15,6 +15,7 @@ use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Extension\DummyPlugin;
 use Joomla\CMS\Extension\PluginInterface;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\User\User;
@@ -156,6 +157,44 @@ final class JoomlaPluginLayer
         )->loadResult();
 
         return $enabled === null ? null : (int) $enabled === 1;
+    }
+
+    /**
+     * The plugin's name as Extensions: Plugins shows it: its extension row's name, translated through the plugin's own
+     * .sys.ini; null when no row exists (the plugin is not installed). Read beside rowEnabled(), whatever the request's
+     * view levels (2.2.0, UX-25).
+     *
+     * @param PluginId $id The plugin.
+     *
+     * @since  2.2.0
+     */
+    public function rowName(PluginId $id): ?string
+    {
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $group = $id->group;
+        $element = $id->element;
+        $name = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('name'))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                ->where($db->quoteName('folder') . ' = :folder')
+                ->where($db->quoteName('element') . ' = :element')
+                ->bind(':folder', $group)
+                ->bind(':element', $element),
+            0,
+            1,
+        )->loadResult();
+
+        if ($name === null) {
+            return null;
+        }
+
+        $extension = 'plg_' . $group . '_' . $element;
+        $language = Factory::getApplication()->getLanguage();
+        $language->load($extension . '.sys', JPATH_ADMINISTRATOR) || $language->load($extension . '.sys', JPATH_PLUGINS . '/' . $group . '/' . $element);
+
+        return Text::_((string) $name);
     }
 
     /**

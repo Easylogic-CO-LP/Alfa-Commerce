@@ -17,7 +17,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
-use RuntimeException;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 
 /**
  * Rebuild every projection of the items marked owed (2.2.0): the price index, the field values, the search entry and
@@ -97,7 +97,7 @@ final class CatalogueRebuildJob implements JobHandler
         $rebuilt = \count($marked) - \count($notRebuilt);
 
         if ($failed !== [] && $rebuilt === 0 && $busy === []) {
-            throw new RuntimeException('No item of the chunk could be rebuilt (items ' . implode(', ', $failed) . '); the job is retried.');
+            throw new TaskError('COM_ALFA_TASKS_ERROR_CATALOGUE_STEP', [implode(', #', $failed)]);
         }
 
         if ($failed !== []) {

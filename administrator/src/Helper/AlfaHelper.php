@@ -405,7 +405,7 @@ class AlfaHelper
      *
      * @since  1.2.1
      */
-    private static function pluginGroup(string $type): string
+    public static function pluginGroup(string $type): string
     {
         return match ($type) {
             'formfields' => 'alfa-form-fields',

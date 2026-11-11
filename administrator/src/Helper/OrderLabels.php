@@ -155,6 +155,8 @@ final class OrderLabels
         'task_resolved' => 'COM_ALFA_ORDER_HISTORY_ACTION_TASK_RESOLVED',
         // A status automation the order no longer stood for (2.2.0): its move was overtaken, not made.
         'automation_superseded' => 'COM_ALFA_ORDER_HISTORY_AUTOMATION_SUPERSEDED',
+        // A provider's late update for an attempt staff moved to Standard, rejected (2.2.0, UX-44).
+        'callback_rejected' => 'COM_ALFA_ORDER_HISTORY_ACTION_CALLBACK_REJECTED',
     ];
 
     /**

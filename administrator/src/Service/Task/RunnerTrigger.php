@@ -32,6 +32,14 @@ final class RunnerTrigger
     public const MAX_BUFFERS = 16;
 
     /**
+     * The staff tick's answer header that says whether work remains ("1") or not ("0"), read by the kick script of an
+     * open administrator page to tick again or stop (9.44): the 204 keeps no body.
+     *
+     * @since  2.2.0
+     */
+    public const REMAINS_HEADER = 'X-Alfa-Work-Remains';
+
+    /**
      * Close the request's session, so a tick never holds the session lock a member of staff's next page waits on.
      *
      * @since  2.2.0

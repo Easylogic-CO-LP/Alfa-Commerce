@@ -391,7 +391,7 @@ trait HasApiGuards
         // The column holds 75 characters (MediaHelper::ALT_MAX_LENGTH): a longer description is refused in plain words
         // before anything is saved, as the form's own input stops at that length (2.2.0).
         if (StringHelper::strlen($alt) > MediaHelper::ALT_MAX_LENGTH) {
-            throw new Save(Text::_('COM_ALFA_MEDIA_ALT_TOO_LONG'), 400);
+            throw new Save(Text::sprintf('COM_ALFA_MEDIA_ALT_TOO_LONG_API', MediaHelper::ALT_MAX_LENGTH), 400);
         }
 
         return [

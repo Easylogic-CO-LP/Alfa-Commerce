@@ -195,7 +195,8 @@ $itemsCount = count($items);
                         <strong><?php echo Text::_('MOD_ALFA_CART_SHIPPING'); ?>:</strong>
                     </div>
                     <div class="totals-value">
-						<?php echo $snapshot->totals->shipment->format(); ?>
+						<?php // Before a shipping method is chosen, the words, never a zero that reads as free (2.2.0, UX-76).?>
+						<?php echo $snapshot->shippingAwaitsChoice() ? Text::_('MOD_ALFA_CART_SHIPPING_LATER') : $snapshot->totals->shipment->format(); ?>
                     </div>
                 </div>
 				<?php //endif;?>

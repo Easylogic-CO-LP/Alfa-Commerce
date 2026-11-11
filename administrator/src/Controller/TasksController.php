@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasToolsAjaxTrait;
+use Alfa\Component\Alfa\Administrator\Service\Card\CoreCardProvider;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerCronKey;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerTrigger;
@@ -22,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\TickResult;
 use DomainException;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
@@ -29,8 +31,8 @@ use Throwable;
 
 /**
  * The staff actions of Tools > Tasks: Resend, Run again and Mark resolved on a failed or held single, Retry and Mark
- * resolved on a failed job ({@see TaskStaff}); the progress page's calls (process); and a new web-cron key
- * (generateKey). Each is a POST with the form token, by a user with the Tools permission. The actions go back to the
+ * resolved on a failed job ({@see TaskStaff}); the progress page's calls (process, and jobsCard when its job ends); and a
+ * new web-cron key (generateKey). Each is a POST with the form token, by a user with the Tools permission. The actions go back to the
  * Tasks tab with what happened; process answers JSON; generateKey answers the Tools page with the new address, once.
  *
  * @since  2.1.4
@@ -147,12 +149,66 @@ class TasksController extends BaseController
             'state' => $job['state'],
             'stateText' => Text::_('COM_ALFA_TASKS_JOB_STATE_' . strtoupper($job['state'])),
             'percent' => $job['percent'],
-            'text' => Text::sprintf('COM_ALFA_TASKS_PROGRESS_UNITS', $job['done'], $job['total'], $job['percent']),
-            'error' => $job['error'],
+            'text' => TaskStaff::unitsText(done: $job['done'], total: $job['total'], percent: $job['percent']),
+            'error' => Tasks::errorText($job['error']),
+            // A thumbnails job's report, printed in the card when the job ends (UX-84).
+            'report' => $finished && \is_array($job['report'])
+                ? Text::sprintf('COM_ALFA_TASKS_THUMBNAILS_REPORT', (int) $job['report']['made'], (int) $job['report']['kept'], (int) $job['report']['missing'], (int) $job['report']['failed'])
+                : '',
             'finished' => $finished,
             'retry_after' => $reason === '' ? 0 : Runner::ENDPOINT_GAP_SECONDS,
             'reason' => $reason,
             'waitText' => $reason === '' ? '' : Text::_('COM_ALFA_TASKS_PROGRESS_WAIT_' . strtoupper($reason)),
+        ]);
+    }
+
+    /**
+     * The jobs card of the Tasks tab, drawn by its own layout from the one source of its data (TaskStaff::jobsCard()), as
+     * JSON {html}: the progress page swaps it in when its job ends, so the list below the card is never left stale and a
+     * thumbnails job's report shows in its row (UX-84). A POST with the form token, by a user with the Tools permission.
+     *
+     * @since  2.2.0
+     */
+    public function jobsCard(): void
+    {
+        $this->ajaxGuard();
+
+        if (strtoupper($this->input->getMethod()) !== 'POST') {
+            $this->ajaxRespond([], false, Text::_('JINVALID_TOKEN_NOTICE'));
+
+            return;
+        }
+
+        $this->ajaxRespond([
+            'html' => LayoutHelper::render('tasks.jobs', TaskStaff::jobsCard(followedJob: $this->input->post->getInt('id', 0)), JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'),
+        ]);
+    }
+
+    /**
+     * The Dashboard's background-work card, drawn by its own layout from the one source of its data
+     * (CoreCardProvider::backgroundWork()), as JSON {html}: the staff kick swaps it in after each of its ticks while the
+     * card is on the page, so the card follows the job without a reload (entry 27). Its html holds no
+     * [data-alfa-background-card] when there is nothing left to show. A POST with the form token, by a user with the
+     * Tools permission.
+     *
+     * @since  2.2.0
+     */
+    public function backgroundCard(): void
+    {
+        $this->ajaxGuard();
+
+        if (strtoupper($this->input->getMethod()) !== 'POST') {
+            $this->ajaxRespond([], false, Text::_('JINVALID_TOKEN_NOTICE'));
+
+            return;
+        }
+
+        $this->ajaxRespond([
+            'html' => LayoutHelper::render(
+                CoreCardProvider::BACKGROUND_LAYOUT,
+                ['title' => CoreCardProvider::BACKGROUND_TITLE, 'data' => CoreCardProvider::backgroundWork()],
+                JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+            ),
         ]);
     }
 

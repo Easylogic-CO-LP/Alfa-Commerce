@@ -29,6 +29,8 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -263,7 +265,7 @@ $cartId = (int) $this->builderCartId;
               // and the placement refuses, so the operator reads why here, with the totals (2.2.0). ?>
         <?php foreach ($totals->contributionsNotLoaded as $notLoaded) : ?>
             <tr class="table-warning">
-                <td colspan="<?php echo $labelSpan + 2; ?>"><?php echo Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR', $this->escape($notLoaded)); ?></td>
+                <td colspan="<?php echo $labelSpan + 2; ?>"><?php echo Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR', $this->escape(AlfaPluginHelper::get()->name(PluginId::of((string) $notLoaded)))); ?></td>
             </tr>
         <?php endforeach; ?>
 

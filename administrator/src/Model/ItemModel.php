@@ -2869,6 +2869,20 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * A product's name in the staff member's language, for a refusal that names it (UX-42); its number when it has none.
+     *
+     * @param int $itemId The product.
+     *
+     * @since  2.2.0
+     */
+    private static function nameForStaff(int $itemId): string
+    {
+        $name = (string) MultilingualHelper::getTranslatedValue(id: $itemId, tableName: '#__alfa_items', primaryColumnName: 'id_item', field: 'name');
+
+        return $name !== '' ? $name : '#' . $itemId;
+    }
+
+    /**
      * Method to delete one or more records.
      *
      * Every product the request names leaves the active catalogue only while it
@@ -3056,7 +3070,7 @@ class ItemModel extends AlfaAdminModel
 
         if ($busy !== []) {
             $itemLock->release(itemIds: $locked);
-            $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', (int) $busy[0]));
+            $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $busy[0]), (int) $busy[0]));
 
             return false;
         }
@@ -3173,7 +3187,7 @@ class ItemModel extends AlfaAdminModel
                 // The removal met another writer (A-C18-14): nothing was deleted, and the merchant is told so.
                 if ($e === $busyRemoval) {
                     Log::add('Item delete: the price index rows of item(s) ' . implode(', ', $existing) . ' could not be removed, nothing was deleted: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
-                    $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', (int) $existing[0]));
+                    $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
 
                     return false;
                 }

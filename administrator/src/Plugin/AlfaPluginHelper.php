@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Closure;
 use Joomla\CMS\Extension\PluginInterface;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseInterface;
@@ -101,12 +102,77 @@ final class AlfaPluginHelper
     private array $importFailed = [];
 
     /**
+     * The plugins' names read in this request ({@see self::name()}), by group.element.
+     *
+     * @var array<string, string>
+     *
+     * @since  2.2.0
+     */
+    private array $names = [];
+
+    /**
      * @param JoomlaPluginLayer $layer The Joomla integration layer.
      *
      * @since  2.2.0
      */
     public function __construct(private readonly JoomlaPluginLayer $layer)
     {
+    }
+
+    /**
+     * The name of a plugin in every message staff read, a notice, a refusal, a History line, a locked field: the name
+     * Extensions: Plugins shows (UX-25, A-UX-1). A plugin that is not installed has no name there, so its element is
+     * said. group.element is never staff text. Read once per plugin and request.
+     *
+     * @param PluginId $id The plugin.
+     *
+     * @since  2.2.0
+     */
+    public function name(PluginId $id): string
+    {
+        if (!isset($this->names[$id->key()])) {
+            try {
+                $this->names[$id->key()] = $this->layer->rowName($id) ?? $id->element;
+            } catch (Throwable) {
+                return $id->element;
+            }
+        }
+
+        return $this->names[$id->key()];
+    }
+
+    /**
+     * The mark a plugin's name takes where staff pick or read a plugin that is not enabled (UX-38): "disabled" when it
+     * is installed and disabled, "not installed" when it is missing, '' when it is enabled.
+     *
+     * @param PluginId $id The plugin.
+     *
+     * @since  2.2.0
+     */
+    public function mark(PluginId $id): string
+    {
+        return match ($this->layer->rowEnabled($id)) {
+            null => Text::_('COM_ALFA_PLUGIN_MARK_MISSING'),
+            false => Text::_('COM_ALFA_PLUGIN_MARK_DISABLED'),
+            true => '',
+        };
+    }
+
+    /**
+     * Why a plugin of record cannot be used, as a phrase staff read after its name (UX-27, A-UX-2): it is disabled, it is
+     * not installed, or it is installed but could not be loaded. Every other reason has its own message.
+     *
+     * @param string $reason A PluginUnavailable reason.
+     *
+     * @since  2.2.0
+     */
+    public static function statePhrase(string $reason): string
+    {
+        return Text::_(match ($reason) {
+            PluginUnavailable::DISABLED => 'COM_ALFA_PLUGIN_STATE_DISABLED',
+            PluginUnavailable::MISSING => 'COM_ALFA_PLUGIN_STATE_MISSING',
+            default => 'COM_ALFA_PLUGIN_STATE_UNLOADABLE',
+        });
     }
 
     /**

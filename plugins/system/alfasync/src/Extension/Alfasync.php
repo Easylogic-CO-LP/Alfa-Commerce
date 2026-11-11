@@ -254,9 +254,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * actually running.
      *
      * The same event carries the background work's kicks (2.2.0, design 2.7): on a
-     * storefront page, kickFromStorefront(); on an administrator page outside Alfa
-     * Commerce, for a user who manages it, kickFromAdministrator(). Each costs one
-     * due read when nothing is due.
+     * storefront page, kickFromStorefront(); on any administrator page, Alfa
+     * Commerce's own included, for a user who manages it, kickFromAdministrator()
+     * (9.44: an open staff page keeps the work going). Each costs one read when
+     * nothing is due or remains.
      *
      *
      * @since  2.0.0
@@ -276,7 +277,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 return;
             }
 
-            if (!$app->isClient('administrator') || $app->getInput()->getCmd('option', '') === 'com_alfa') {
+            if (!$app->isClient('administrator')) {
                 return;
             }
 
@@ -288,7 +289,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             $this->kickFromAdministrator($app->getDocument());
 
-            if (PluginHelper::isEnabled('system', 'guidedtours')) {
+            if ($app->getInput()->getCmd('option', '') !== 'com_alfa' && PluginHelper::isEnabled('system', 'guidedtours')) {
                 TourHelper::attachGrammar($app->getDocument());
             }
         } catch (Throwable) {
@@ -319,10 +320,13 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * The staff kick (design 2.7): on an administrator page outside Alfa Commerce, of a user who manages it, one due
-     * read; when work is due, the registered script GETs the staff tick with the session token after the page has
-     * loaded. Each such page kicks once; extra ticks return after one claim attempt. During maintenance it reads nothing
-     * and kicks nothing.
+     * The staff kick (design 2.7, amended by 9.44, s120): on an administrator page of a user who manages Alfa Commerce,
+     * one read of the remaining work (Runner::remains(): what is due, and a job another worker holds now); when work
+     * remains, the registered script POSTs to the staff tick after the page has loaded, the session token in the body
+     * (the address carries no token), and again after Runner::STAFF_REPEAT_MS for as long as the tick's answer says
+     * work remains and the page is shown, at most Runner::STAFF_REPEAT_CAP_SECONDS. An open staff page so keeps the
+     * work going: a job started from Tools runs to its end with no click. During maintenance it reads nothing and
+     * kicks nothing.
      *
      * @param HtmlDocument $document The page.
      *
@@ -330,11 +334,16 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      */
     private function kickFromAdministrator(HtmlDocument $document): void
     {
-        if ($this->paused() || !Runner::due()) {
+        if ($this->paused() || !Runner::remains()) {
             return;
         }
 
-        $document->addScriptOptions('com_alfa.runner', ['url' => Uri::base(true) . '/index.php?option=com_alfa&task=runner.tick&format=raw&' . Session::getFormToken() . '=1']);
+        $document->addScriptOptions('com_alfa.runner', [
+            'url' => Uri::base(true) . '/index.php?option=com_alfa&task=runner.tick&format=raw', 'token' => Session::getFormToken(),
+            'header' => RunnerTrigger::REMAINS_HEADER, 'pauseMs' => Runner::STAFF_REPEAT_MS, 'capMs' => Runner::STAFF_REPEAT_CAP_SECONDS * 1000,
+            // The Dashboard's background-work card, drawn again after each tick while it is on the page (entry 27).
+            'cardUrl' => Uri::base(true) . '/index.php?option=com_alfa&task=tasks.backgroundCard',
+        ]);
         $assets = $document->getWebAssetManager();
         $assets->getRegistry()->addExtensionRegistryFile('com_alfa');
         $assets->useScript('com_alfa.admin.runner-kick');

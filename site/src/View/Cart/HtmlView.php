@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent as Pa
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
@@ -92,6 +93,33 @@ class HtmlView extends BaseHtmlView
      * @since  2.2.0
      */
     protected bool $providerUnavailable = false;
+
+    /**
+     * The process page when the gateway of record cannot be loaded (2.2.0, UX-72): the number the customer quotes, and
+     * the process address, which asks the gateway again (Try again). Empty on every other page.
+     *
+     * @since  2.2.0
+     */
+    protected string $orderNumber = '';
+
+    /** @since 2.2.0 */
+    protected string $retryUrl = '';
+
+    /**
+     * The order-not-available page's Log in address for a visitor not logged in, back to this address (2.2.0, UX-57);
+     * empty for a logged-in customer.
+     *
+     * @since  2.2.0
+     */
+    protected string $loginUrl = '';
+
+    /**
+     * The order-completed page's print view (2.2.0, UX-81), Joomla's own print pattern: the same keyed address with
+     * tmpl=component and print=1 shows the order alone, and its root is marked for the page's script to print it.
+     *
+     * @since  2.2.0
+     */
+    protected bool $print = false;
 
     /** @var string Resolved sub-template for the "cart_items" slot */
     protected $cartItemsTpl = 'cart_items';
@@ -246,6 +274,10 @@ class HtmlView extends BaseHtmlView
                 // which would read as a payment taken (2.2.0, s96).
                 $this->providerUnavailable = true;
                 $this->event->onOrderProcessView = $paymentEvent;
+                // Never a dead end (2.2.0, UX-72): the number the customer quotes, and this same address, which asks
+                // the gateway again.
+                $this->orderNumber = EmailService::orderNumber(order: $orderData);
+                $this->retryUrl = Route::_('index.php?option=com_alfa&view=cart&layout=default_order_process');
                 $this->_prepareDocument();
 
                 parent::display($tpl);
@@ -423,6 +455,12 @@ class HtmlView extends BaseHtmlView
         }
 
         $this->event->onOrderCompleteView = $paymentEvent;
+
+        // PRINT, JOOMLA'S WAY (2.2.0, UX-81): the same keyed address with tmpl=component and print=1 is the print view,
+        // which shows the order alone; the page's script opens it from the address it was asked by, so the key is
+        // never written into the page.
+        $this->print = $input->getBool('print', false);
+
         $this->getDocument()->setMetaData('robots', 'noindex, nofollow');
         $this->_prepareDocument();
 
@@ -496,6 +534,13 @@ class HtmlView extends BaseHtmlView
     private function displayOrderNotAvailable(?string $tpl): void
     {
         $this->confirmation = null;
+
+        // A customer's order shows only to that customer logged in: a visitor not logged in is offered the login, back
+        // to this address (2.2.0, UX-57), as the keyed page sends one there itself.
+        if ($this->app->getIdentity()->guest) {
+            $this->loginUrl = Route::_('index.php?option=com_users&view=login&return=' . base64_encode(Uri::getInstance()->toString()));
+        }
+
         $this->app->setHeader('status', 404, true);
         $this->getDocument()->setMetaData('robots', 'noindex, nofollow');
         $this->_prepareDocument();

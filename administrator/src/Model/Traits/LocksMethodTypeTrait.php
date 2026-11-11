@@ -74,7 +74,9 @@ trait LocksMethodTypeTrait
             return;
         }
 
+        // Read only, so not asked for: no required star (UX-38); the field names the plugin, marked when it is not enabled.
         $form->setFieldAttribute('type', 'readonly', 'true');
+        $form->setFieldAttribute('type', 'required', 'false');
         $form->setFieldAttribute('type', 'description', 'COM_ALFA_METHOD_TYPE_LOCKED');
     }
 

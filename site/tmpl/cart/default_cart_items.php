@@ -10,9 +10,10 @@
 \defined('_JEXEC') or die;
 
 /**
- * Cart items sub-template: the line-item table (name, quantity, price, tax, discount,
- * total), then the money summary (layout cart.summary) beside the cart actions, the
- * held coupon codes, the coupon form and the rule nudges.
+ * Cart items sub-template: the heading row (the Items label, Clear cart at its end), the
+ * line-item table (name, quantity, price, tax, discount, total; the money columns are
+ * .cart-money), the money summary (layout cart.summary) read as the table's continuation,
+ * then the held coupon codes, the coupon form and the rule nudges.
  */
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
@@ -45,23 +46,26 @@ $columnLabels = array_map(
 
 ?>
 
-<div data-cart-items>
+<div class="cart-lines" data-cart-items>
 
     <?php // What the cart said about a change made on the page; empty when the page loads. ?>
     <?php echo Layout::render('cart.messages', ['messages' => []]); ?>
 
-    <!-- Items Section -->
-    <h4><?php echo Text::_('COM_ALFA_CART_ITEMS_HEADING'); ?></h4>
+    <?php // The heading row: the Items label at the start edge, Clear cart at the end edge. ?>
+    <div class="cart-lines-heading">
+        <h4 class="cart-lines-title"><?php echo Text::_('COM_ALFA_CART_ITEMS_HEADING'); ?></h4>
+        <button type="button" class="action secondary small" data-action="cart-clear"><?php echo Text::_('COM_ALFA_CART_CLEAR'); ?></button>
+    </div>
 
     <table>
         <thead>
         <tr>
             <th><?php echo $columnLabels['name']; ?></th>
             <th><?php echo $columnLabels['quantity']; ?></th>
-            <th><?php echo $columnLabels['price']; ?></th>
-            <th><?php echo $columnLabels['tax']; ?></th>
-            <th><?php echo $columnLabels['discount']; ?></th>
-            <th><?php echo $columnLabels['total']; ?></th>
+            <th class="cart-money"><?php echo $columnLabels['price']; ?></th>
+            <th class="cart-money"><?php echo $columnLabels['tax']; ?></th>
+            <th class="cart-money"><?php echo $columnLabels['discount']; ?></th>
+            <th class="cart-money"><?php echo $columnLabels['total']; ?></th>
         </tr>
         </thead>
         <tbody>
@@ -173,20 +177,20 @@ $columnLabels = array_map(
                     </div>
                 </td>
 
-                <td data-label="<?php echo $columnLabels['price']; ?>" class="cart-item-col-price cart-item-col">
+                <td data-label="<?php echo $columnLabels['price']; ?>" class="cart-item-col-price cart-item-col cart-money">
 		            <?= $price ? $unitPrice : '-'; ?>
                 </td>
 
-                <td data-label="<?php echo $columnLabels['tax']; ?>" class="cart-item-col-tax cart-item-col">
+                <td data-label="<?php echo $columnLabels['tax']; ?>" class="cart-item-col-tax cart-item-col cart-money">
 	                <?= $payable ? $price->getTaxTotal()->format() : '-'; ?>
                 </td>
 
-                <td data-label="<?php echo $columnLabels['discount']; ?>" class="cart-item-col-discount cart-item-col">
+                <td data-label="<?php echo $columnLabels['discount']; ?>" class="cart-item-col-discount cart-item-col cart-money">
 					<?= $discountTotal; ?>
                 </td>
 
                 <!-- Line Total: the line's own money -->
-                <td data-label="<?php echo $columnLabels['total']; ?>" class="cart-item-col-total">
+                <td data-label="<?php echo $columnLabels['total']; ?>" class="cart-item-col-total cart-money">
 					<?php if ($payable): ?>
                     <?php // A struck "was" total claims a saving, so it is printed only when the line
                           // has one: the same gate the admin statement and the cart summary use. ?>
@@ -208,21 +212,17 @@ $columnLabels = array_map(
     </table>
 
     <?php // THE MONEY, OUT OF THE LINES TABLE: the summary rows, prepared by the
-          // builder (which rows exist, every figure), beside the cart actions. Both
-          // sit inside [data-cart-items], so every answer that swaps it brings them. ?>
-    <div class="cart-totals">
-        <?php echo Layout::render(layout: 'cart.summary', data: [
-            'rows' => CartSummary::rows(
-                totals: $snapshot->totals,
-                rules: $snapshot->rules,
-                currency: $snapshot->currency,
-            ),
-        ]); ?>
-
-        <div class="cart-actions">
-            <button type="button" class="action secondary small" data-action="cart-clear"><?php echo Text::_('COM_ALFA_CART_CLEAR'); ?></button>
-        </div>
-    </div>
+          // builder (which rows exist, every figure), right under the table, which it
+          // continues. Inside [data-cart-items], so every answer that swaps it brings it. ?>
+    <?php echo Layout::render(layout: 'cart.summary', data: [
+        'rows' => CartSummary::rows(
+            totals: $snapshot->totals,
+            rules: $snapshot->rules,
+            currency: $snapshot->currency,
+            shippingAwaitsChoice: $snapshot->shippingAwaitsChoice(),
+        ),
+        'label' => Text::_('COM_ALFA_CART_SUMMARY_LABEL'),
+    ]); ?>
 
 	<?php
 	// EVERY HELD CODE THE ROWS ABOVE DID NOT ALREADY GIVE A REMOVE CONTROL.

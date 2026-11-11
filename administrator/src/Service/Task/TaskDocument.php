@@ -119,7 +119,8 @@ final class TaskDocument
             'finished_at' => $row['finished_at'] ?? null,
             'updated_at' => $row['updated_at'] ?? null,
             'origin' => (string) $row['origin'],
-            'last_error' => $withError ? self::shortError(error: (string) $row['last_error']) : null,
+            // Said in the reader's language when it is a failure of the work's own (UX-09).
+            'last_error' => $withError ? self::shortError(error: Tasks::errorText((string) $row['last_error'])) : null,
             'result' => null,
         ];
     }

@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Language;
+use Joomla\CMS\Language\Text;
 use JsonSerializable;
 use Throwable;
 use ValueError;
@@ -228,6 +230,21 @@ final class NotificationText implements JsonSerializable
     public static function plural(string $key, int $count, mixed ...$args): array
     {
         return ['p' => $key, 'n' => $count, 'a' => array_values($args)];
+    }
+
+    /**
+     * A time as a parameter, stored in UTC and said in the reader's time zone and short date and time format (2.2.0,
+     * UX-30; DATE_FORMAT_LC5 since NEW-5, a notice repeats its times), so a notice never prints a raw UTC time.
+     *
+     * @param string $utc The time, UTC, as the database gives it (Y-m-d H:i:s).
+     *
+     * @return array{dt: string}
+     *
+     * @since  2.2.0
+     */
+    public static function date(string $utc): array
+    {
+        return ['dt' => $utc];
     }
 
     /**
@@ -749,6 +766,10 @@ final class NotificationText implements JsonSerializable
             }
 
             return self::say(language: $language, key: $key, args: [$count, ...(array) ($arg['a'] ?? [])], contentTag: $contentTag, depth: $depth);
+        }
+
+        if (isset($arg['dt'])) {
+            return (string) $arg['dt'] === '' ? '' : HTMLHelper::_('date', (string) $arg['dt'], Text::_('DATE_FORMAT_LC5'));
         }
 
         if (isset($arg['num'])) {

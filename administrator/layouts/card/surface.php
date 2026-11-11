@@ -39,7 +39,8 @@ if ($cards === []) {
 
         if (trim($html) === '') {
             // A layout that renders nothing is a contributor's mistake, not an empty
-            // card: say so once rather than leaving a hole nobody can account for.
+            // card: say so once rather than leaving a hole nobody can account for. (A
+            // card with nothing to show never reaches here: AdminCard::resolve().)
             Log::add(
                 entry:    'CardRegistry: card ' . ($card['owner_group'] ?? '?') . '/' . ($card['owner_name'] ?? '?')
                     . ':' . ($card['id'] ?? '?') . ' named layout "' . ($card['layout'] ?? '') . '" which rendered nothing.',

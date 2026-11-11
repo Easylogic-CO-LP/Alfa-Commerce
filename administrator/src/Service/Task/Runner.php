@@ -22,7 +22,6 @@ use Joomla\CMS\Log\Log;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\ParameterType;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -165,6 +164,12 @@ final class Runner
     /** The budget of a tick on one job asked for now: the progress page and the API's process route. @since  2.2.0 */
     public const PROCESS_MS = 2000;
 
+    /** The staff kick's pause between two ticks while work remains (DESIGN-2.2.0.md 9.44, s120). @since  2.2.0 */
+    public const STAFF_REPEAT_MS = 3000;
+
+    /** How long one administrator page goes on ticking, in seconds; then only a page load ticks. @since  2.2.0 */
+    public const STAFF_REPEAT_CAP_SECONDS = 1800;
+
     /**
      * Candidates read for one claim.
      *
@@ -288,14 +293,48 @@ final class Runner
      */
     public static function due(): bool
     {
+        return self::anyRow(
+            probes: static fn (DatabaseDriver $db): array => self::dueProbes(db: $db),
+            failure: 'the due read failed; no trigger kicks',
+        );
+    }
+
+    /**
+     * Whether work remains for an open administrator page to keep asking for (DESIGN-2.2.0.md 9.44, amending 2.7), in
+     * one statement: what due() reads, and a job running under a live lease, which another worker holds now. The page
+     * keeps asking while such a job runs; the claim rules decide who works it. A failure answers false, logged: the
+     * page stops and the next page load asks again.
+     *
+     * @since  2.2.0
+     */
+    public static function remains(): bool
+    {
+        return self::anyRow(
+            probes: static fn (DatabaseDriver $db): array => [...self::dueProbes(db: $db), 'SELECT 1 FROM ' . $db->quoteName(Tasks::TABLE)
+                . ' WHERE ' . $db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB) . ' AND ' . $db->quoteName('state') . ' = '
+                . $db->quote(Tasks::STATE_RUNNING) . ' AND ' . $db->quoteName('lease_until') . ' >= UTC_TIMESTAMP(3)'],
+            failure: 'the remaining-work read failed; the page stops asking',
+        );
+    }
+
+    /**
+     * Whether any of the probes reads a row, in one statement; a failure answers false, logged.
+     *
+     * @param callable(DatabaseDriver): list<string> $probes The probes, each a SELECT of one column.
+     * @param string $failure What the log says when the read fails.
+     *
+     * @since  2.2.0
+     */
+    private static function anyRow(callable $probes, string $failure): bool
+    {
         $db = self::db();
 
         try {
-            $probes = array_map(static fn (string $probe): string => '(' . $probe . ' LIMIT 1)', self::dueProbes(db: $db));
+            $union = array_map(static fn (string $probe): string => '(' . $probe . ' LIMIT 1)', $probes($db));
 
-            return (bool) $db->setQuery(implode(' UNION ALL ', $probes) . ' LIMIT 1')->loadResult();
+            return (bool) $db->setQuery(implode(' UNION ALL ', $union) . ' LIMIT 1')->loadResult();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the due read failed; no trigger kicks: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: ' . $failure . ': ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
 
             return false;
         }
@@ -775,7 +814,7 @@ final class Runner
         $handler = self::handler(name: (string) $row['handler']);
 
         if ($handler === null) {
-            self::fail(db: $db, id: $id, owner: $owner, error: 'No job handler is named ' . $row['handler'] . ' in this version.', final: true);
+            self::fail(db: $db, id: $id, owner: $owner, error: Tasks::errorKey('COM_ALFA_TASKS_ERROR_NO_HANDLER', (string) $row['handler']), final: true);
             $tally['failed']++;
 
             return 'failed';
@@ -790,7 +829,7 @@ final class Runner
         $checkpoint = $checkpoint === null ? null : (array_diff_key($checkpoint, [self::UNFINISHED_CLAIMS_KEY => true]) ?: null);
 
         if ($unfinished >= self::UNFINISHED_CLAIMS_LIMIT - 1) {
-            self::fail(db: $db, id: $id, owner: $owner, error: 'claimed ' . self::UNFINISHED_CLAIMS_LIMIT . ' times without finishing a chunk', final: true);
+            self::fail(db: $db, id: $id, owner: $owner, error: Tasks::errorKey('COM_ALFA_TASKS_ERROR_NO_PROGRESS', self::UNFINISHED_CLAIMS_LIMIT), final: true);
             $tally['failed']++;
 
             return 'failed';
@@ -902,7 +941,7 @@ final class Runner
             // A handler that swallowed a failure which ended the chunk's transaction (a deadlock) would let the slot's
             // renewal and the fence run in autocommit and commit its progress alone: the chunk failed.
             if (TransactionState::level($db) !== $level) {
-                throw new RuntimeException('Runner: job #' . $run->id . ' (' . $run->handler . '): its chunk ended the chunk\'s transaction; nothing of the chunk is kept.');
+                throw new TaskError('COM_ALFA_TASKS_ERROR_STEP_TRANSACTION');
             }
 
             $kept = (!$heavy || self::renewSlot(db: $db, owner: $owner)) && self::fence(db: $db, run: $run, chunk: $chunk, owner: $owner);

@@ -595,7 +595,7 @@ class ActionRegistry
                     $gateway = self::pluginOfRecord(group: 'alfa-payments', type: $type);
 
                     if (!$gateway instanceof LoadedPlugin) {
-                        return self::refusedPage(group: $group, type: $type, event: $event, messageKey: str_starts_with($gateway, PluginUnavailable::NOT_LOADED . ':') ? 'COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF' : 'COM_ALFA_PAYMENT_PLUGIN_UNAVAILABLE', reason: $gateway, shown: 'alfa-payments.' . $type);
+                        return self::refusedPage(group: $group, type: $type, event: $event, messageKey: '', reason: $gateway, message: self::pluginRefusal(group: 'alfa-payments', type: $type, unavailable: $gateway));
                     }
                 }
 
@@ -683,7 +683,7 @@ class ActionRegistry
                 $carrier = self::pluginOfRecord(group: 'alfa-shipments', type: $type);
 
                 if (!$carrier instanceof LoadedPlugin) {
-                    return self::refusedPage(group: $group, type: $type, event: $event, messageKey: str_starts_with($carrier, PluginUnavailable::NOT_LOADED . ':') ? 'COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF' : 'COM_ALFA_SHIPMENT_PLUGIN_UNAVAILABLE', reason: $carrier, shown: 'alfa-shipments.' . $type);
+                    return self::refusedPage(group: $group, type: $type, event: $event, messageKey: '', reason: $carrier, message: self::pluginRefusal(group: 'alfa-shipments', type: $type, unavailable: $carrier));
                 }
 
                 $refusal = self::refuseUnofferedAction($offered, $actionId);
@@ -738,10 +738,11 @@ class ActionRegistry
         string $messageKey,
         string $reason,
         string $shown = '',
+        string $message = '',
     ): array {
         self::trace('Action refused: ' . $reason);
 
-        $event->setError($shown === '' ? Text::_($messageKey) : Text::sprintf($messageKey, $shown));
+        $event->setError($message !== '' ? $message : ($shown === '' ? Text::_($messageKey) : Text::sprintf($messageKey, $shown)));
         $event->setRefresh(true);
 
         return ['group' => $group, 'type' => $type, 'event' => $event];
@@ -1826,12 +1827,8 @@ class ActionRegistry
             $plugin = self::pluginOfRecord(group: $pluginGroup, type: $pluginType);
 
             if (!$plugin instanceof LoadedPlugin) {
-                self::warn(Text::sprintf(match (true) {
-                    str_starts_with($plugin, PluginUnavailable::NOT_LOADED . ':') => 'COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF',
-                    $pluginGroup === 'alfa-shipments' => 'COM_ALFA_SHIPMENT_PLUGIN_UNAVAILABLE',
-                    default => 'COM_ALFA_PAYMENT_PLUGIN_UNAVAILABLE',
-                }, $pluginGroup . '.' . $pluginType));
-
+                // Not enqueued: the order page says it at its top and in the row's Actions cell ({@see self::refusal()}),
+                // and a delete that reads the order says nothing of it (UX-33, UX-35, UX-36).
                 return [];
             }
 
@@ -1873,6 +1870,60 @@ class ActionRegistry
     }
 
     /**
+     * Why a payment's or a shipment's actions are not offered because its plugin of record cannot be used, or '' when
+     * they are (or the row has no plugin): the order page says it at its top and in the row's Actions cell (UX-35).
+     * Read from the plugin helper each time, the one source of the plugin's state.
+     *
+     * @param object $entity The payment or shipment row.
+     * @param string $group alfa-payments or alfa-shipments.
+     *
+     * @since  2.2.0
+     */
+    public static function refusal(object $entity, string $group): string
+    {
+        $type = self::methodType($entity, $group === 'alfa-shipments' ? 'shipment_method_type' : 'payment_method_type');
+
+        if ($type === '' || \in_array($type, PaymentLedger::NON_GATEWAY_TYPES, true)) {
+            return '';
+        }
+
+        $plugin = self::pluginOfRecord(group: $group, type: $type);
+
+        return $plugin instanceof LoadedPlugin ? '' : self::pluginRefusal(group: $group, type: $type, unavailable: $plugin);
+    }
+
+    /**
+     * The sentence staff read when a row's plugin of record cannot be used: the plugin by the name Extensions: Plugins
+     * shows and why (UX-25, UX-27, UX-35); for a plugin Joomla does not load for this account, its own sentence.
+     *
+     * @param string $group alfa-payments or alfa-shipments.
+     * @param string $type The row's own method type.
+     * @param string $unavailable What pluginOfRecord() answered: the reason, a colon and the message.
+     *
+     * @since  2.2.0
+     */
+    private static function pluginRefusal(string $group, string $type, string $unavailable): string
+    {
+        $reason = strstr($unavailable, ':', true);
+
+        try {
+            $name = AlfaPluginHelper::get()->name(PluginId::from($group, $type));
+        } catch (InvalidArgumentException) {
+            $name = $type;
+        }
+
+        if ($reason === PluginUnavailable::NOT_LOADED) {
+            return Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF', $name);
+        }
+
+        return Text::sprintf(
+            $group === 'alfa-shipments' ? 'COM_ALFA_SHIPMENT_PLUGIN_UNAVAILABLE' : 'COM_ALFA_PAYMENT_PLUGIN_UNAVAILABLE',
+            $name,
+            AlfaPluginHelper::statePhrase(\is_string($reason) ? $reason : PluginUnavailable::UNLOADABLE),
+        );
+    }
+
+    /**
      * A row's plugin of record, booted through the plugin helper (2.2.0, design 2.15.5); the reason when it cannot be.
      *
      * @param string $group The plugin group.
@@ -1894,7 +1945,7 @@ class ActionRegistry
     }
 
     /**
-     * Show a warning: ALWAYS visible.
+     * Show a warning: ALWAYS visible, as staff read any other warning (no debug tag, A-UX-1; trace() keeps its own).
      *
      * Used for actual errors that prevent actions from working.
      * Admin must see these regardless of debug mode.
@@ -1907,10 +1958,7 @@ class ActionRegistry
     private static function warn(string $message): void
     {
         try {
-            Factory::getApplication()->enqueueMessage(
-                '<strong>[ActionRegistry]</strong> ' . htmlspecialchars($message),
-                'warning',
-            );
+            Factory::getApplication()->enqueueMessage(htmlspecialchars($message), 'warning');
         } catch (Throwable $e) {
             // Application not available
         }

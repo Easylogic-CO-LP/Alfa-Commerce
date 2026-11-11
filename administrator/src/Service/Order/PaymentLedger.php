@@ -3237,7 +3237,8 @@ class PaymentLedger
                 [
                     'severity' => 'danger',
                     'group' => NotificationHelper::GROUP_PAYMENTS,
-                    'message' => NotificationText::of('COM_ALFA_NOTIFY_MOVED_CALLBACK_MESSAGE', $orderId, $attempt, $gateway, $shown),
+                    // The plugin by the name Extensions: Plugins shows (UX-25, UX-29).
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_MOVED_CALLBACK_MESSAGE', $orderId, $attempt, AlfaPluginHelper::get()->name(PluginId::from('alfa-payments', $gateway)), $shown),
                     'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
                     'view' => ['action' => 'alfa.payments.view', 'asset' => 'com_alfa'],
                     'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
@@ -12730,7 +12731,7 @@ class PaymentLedger
      */
     private static function reservationRead(int $orderId, int $excludeRow = 0): array
     {
-        $unbooked = ['refunds' => [], 'reserved' => [], 'unread' => [], 'rows' => []];
+        $unbooked = ['refunds' => [], 'reserved' => [], 'unread' => [], 'unavailable' => [], 'rows' => []];
 
         if ($orderId <= 0) {
             return $unbooked;
@@ -12762,6 +12763,11 @@ class PaymentLedger
 
             if ($answer['unread'] !== null) {
                 $unbooked['unread'][$paymentId] = $answer['unread'];
+            }
+
+            // A payment whose plugin of record cannot be asked: its name, for the block's own heading (UX-34).
+            if (isset($answer['plugin'])) {
+                $unbooked['unavailable'][$paymentId] = $answer['plugin'];
             }
         }
 
@@ -13437,9 +13443,16 @@ class PaymentLedger
                 // The refusal below holds whether or not the log can be written.
             }
 
-            $why = $unavailable instanceof PluginUnavailable && $unavailable->reason === PluginUnavailable::NOT_LOADED ? 'COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF' : 'COM_ALFA_REFUND_REPORTS_PLUGIN_UNAVAILABLE';
+            // The plugin by the name Extensions: Plugins shows and why it cannot be asked (UX-25, UX-27); the order page
+            // gives this case a heading and line of its own, since no provider reported anything (UX-34).
+            $name = $plugins->name(PluginId::from('alfa-payments', $element));
+            $notLoaded = $unavailable instanceof PluginUnavailable && $unavailable->reason === PluginUnavailable::NOT_LOADED;
 
-            return ['refunds' => [], 'reserved' => [], 'unread' => Text::sprintf($why, 'alfa-payments.' . $element), 'booked' => []];
+            return [
+                'refunds' => [], 'reserved' => [], 'booked' => [], 'plugin' => $name,
+                'unread' => $notLoaded ? Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF', $name)
+                    : Text::sprintf('COM_ALFA_REFUND_REPORTS_PLUGIN_STATE', $name, AlfaPluginHelper::statePhrase($unavailable instanceof PluginUnavailable ? $unavailable->reason : PluginUnavailable::UNLOADABLE)),
+            ];
         }
 
         try {
@@ -13458,7 +13471,7 @@ class PaymentLedger
                 // The refusal below holds whether or not the log can be written.
             }
 
-            return ['refunds' => [], 'reserved' => [], 'unread' => Text::sprintf('COM_ALFA_REFUND_REPORTS_PLUGIN_FAILED', $element), 'booked' => []];
+            return ['refunds' => [], 'reserved' => [], 'unread' => Text::sprintf('COM_ALFA_REFUND_REPORTS_PLUGIN_FAILED', $plugins->name(PluginId::from('alfa-payments', $element))), 'booked' => []];
         }
 
         $settled = self::settledReports(element: $element, paymentId: $paymentId);

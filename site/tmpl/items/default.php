@@ -71,8 +71,12 @@ $titleTag = $this->showPageHeading ? 'h2' : 'h1';
 
 <?php // THE RESULTS REGION (2.2.0, design 2.20): the pagination and the list. Focusable by its markup (tabindex -1),
       // which an override keeps or drops; list-form.js brings it into view and focuses it after a filter swap
-      // (alfa:results:updated) and on a page the view marks (data-results-reveal: a later page, a submitted filter). ?>
-<section data-results tabindex="-1"<?php echo $this->revealResults ? ' data-results-reveal' : ''; ?>>
+      // (alfa:results:updated) and on a page the view marks (data-results-reveal: a later page, a submitted filter).
+      // Named by the results counter (UX-53), so the focus announces how many products show. ?>
+<section data-results tabindex="-1"<?php echo $this->resultsCounter !== '' ? ' aria-labelledby="alfa-results-counter"' : ''; ?><?php echo $this->revealResults ? ' data-results-reveal' : ''; ?>>
+    <?php if ($this->resultsCounter !== '') : ?>
+    <span id="alfa-results-counter" hidden><?php echo $this->escape($this->resultsCounter); ?></span>
+    <?php endif; ?>
     <?php echo $this->pagination->getListFooter(); ?>
     <?php
     // CLICK ATTRIBUTION IS DECLARED, NEVER INFERRED, and only through the view's two calls

@@ -173,7 +173,7 @@ class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
      */
     protected function what(array $payload): array
     {
-        return self::text('COM_ALFA_ORDER_TASK_STATUS_EMAIL', (int) ($payload['status'] ?? 0));
+        return self::text('COM_ALFA_ORDER_TASK_STATUS_EMAIL', ['status' => (int) ($payload['status'] ?? 0)]);
     }
 
     /**

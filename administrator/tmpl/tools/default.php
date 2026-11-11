@@ -22,10 +22,14 @@ use Joomla\CMS\Session\Session;
 /** @var \Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useScript('com_alfa.sync-tools');
+// The component's administrator stylesheet: the jobs list's dates on one line from md up (alfa-nowrap-md).
+$wa->useStyle('com_alfa.admin');
 
 // Generic completion label for actions whose server reply carries no message.
 Text::script('COM_ALFA_TOOLS_BACKFILL_DONE');
 Text::script('COM_ALFA_SYNC_ERROR_PREFIX');
+Text::script('COM_ALFA_TOOLS_JOB_OPENING');
+Text::script('COM_ALFA_TOOLS_REQUEST_FAILED');
 
 // CSRF token carried in the AJAX URLs (validated server-side via Session::checkToken).
 $token    = Session::getFormToken();
@@ -40,10 +44,10 @@ $ajaxBase = 'index.php?option=com_alfa&' . $token . '=1';
  * tools that priority encodes RUN order, so the tab reads top-to-bottom as
  * "do them in this order".
  */
-$renderSurface = static function (string $surface) use ($ajaxBase): string {
+$renderActions = static function (array $actions) use ($ajaxBase): string {
     $html = '';
 
-    foreach (ToolRegistry::forSurface($surface) as $action) {
+    foreach ($actions as $action) {
         $html .= LayoutHelper::render(
             'actions.toolcard',
             ['action' => $action, 'ajaxBase' => $ajaxBase],
@@ -53,6 +57,13 @@ $renderSurface = static function (string $surface) use ($ajaxBase): string {
 
     return $html;
 };
+$renderSurface = static fn (string $surface): string => $renderActions(ToolRegistry::forSurface($surface));
+
+// Tools > Tasks reads in the order staff act (UX-10): what needs attention and the run that retries it, the jobs and the
+// deletion of finished ones, any other card of the tab, and last how the background work runs (set once, read rarely).
+$tasksActions = ToolRegistry::forSurface('tasks');
+$tasksAction = static fn (string $id): array => array_values(array_filter($tasksActions, static fn ($action): bool => $action->id === $id));
+$tasksOthers = array_values(array_filter($tasksActions, static fn ($action): bool => !\in_array($action->id, ['tasks.run', 'tasks.prune'], true)));
 
 /** Tab ids this template renders itself; anything else a plugin names opens its own tab. */
 $coreSurfaces = ['media', 'dbsync', 'tasks', 'github', 'integrity', 'data', 'extensions'];
@@ -88,14 +99,16 @@ $toolsUser = Factory::getApplication()->getIdentity();
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-    <?php /* Tasks: the job the progress page follows; what a save left failed or with an unknown outcome, for staff to act on;
-             the jobs; how the background work runs; then the recovery run and the prune */ ?>
+    <?php /* Tasks: the job the progress page follows; what a save left failed or with an unknown outcome, for staff to act on,
+             and the run that retries it; the jobs and the prune; how the background work runs (UX-10) */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'tasks', Text::_('COM_ALFA_TOOLS_TAB_TASKS')); ?>
         <?php echo LayoutHelper::render('tasks.progress', ['job' => $this->job, 'missing' => $this->jobMissing, 'id' => Factory::getApplication()->getInput()->getInt('job', 0)], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-        <?php echo LayoutHelper::render('tasks.attention', $this->tasks, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo LayoutHelper::render('tasks.attention', $this->tasks + ['failedJobs' => $this->jobs['failedJobs']], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo $renderActions($tasksAction('tasks.run')); ?>
         <?php echo LayoutHelper::render('tasks.jobs', $this->jobs, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo $renderActions($tasksAction('tasks.prune')); ?>
+        <?php echo $renderActions($tasksOthers); ?>
         <?php echo LayoutHelper::render('tasks.runner', $this->runner + ['newKey' => $this->newCronKey], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-        <?php echo $renderSurface('tasks'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 

@@ -2,12 +2,14 @@
  * Alfa Commerce: the order-completed page (2.2.0)
  *
  * The page's own layout under its root (.com-alfa.order-completed): the order's facts,
- * the lines, the addresses and the actions. The money summary keeps the cart's styles
- * (cart.css, the cart.summary layout's classes). Colours come from the shop's tokens
- * only; logical properties only, so a right-to-left page mirrors.
+ * the lines, the addresses and the actions. The lines and their totals are the cart's
+ * (.cart-lines in cart.css; this page's table has three columns). The process page's answer
+ * when the gateway cannot be loaded uses the same root, number and actions. Colours come from
+ * the shop's tokens only; logical properties only, so a right-to-left page mirrors.
  *
  * Printed, the page shows the lines, the totals and the addresses in black on white
- * and hides its own actions; the template's chrome stays the template's.
+ * and hides its own actions; Print opens the order alone (tmpl=component), so no
+ * template chrome prints with it.
  *
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
@@ -54,21 +56,8 @@
     font-size: 0.9em;
 }
 
-.com-alfa.order-completed .order-item-quantity,
-.com-alfa.order-completed .order-item-total {
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-.com-alfa.order-completed .order-item-total {
-    text-align: end;
-}
-
-/* The summary sits under the lines' total column, as on the cart. */
-.com-alfa.order-completed .order-items .cart-summary {
-    margin-block-start: 0.75rem;
-    margin-inline-start: auto;
-    max-inline-size: 24rem;
+.com-alfa.order-completed.cart-wrapper .cart-lines {
+    --cart-lines-columns: 3;
 }
 
 .com-alfa.order-completed .order-addresses {
@@ -85,7 +74,7 @@
     color: var(--alfa-surface-color, inherit);
 }
 
-.com-alfa.order-completed .order-address h3 {
+.com-alfa.order-completed .order-address h2 {
     margin-block: 0 0.5rem;
     font-size: 1.05em;
 }

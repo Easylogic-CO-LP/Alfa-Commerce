@@ -51,6 +51,7 @@ final class SummaryRow
      * @param bool $reduction Printed as a reduction, with the minus sign.
      * @param Money|null $was A struck figure before a benefit, when there is one.
      * @param bool $free Shipping the rules made free: the word is printed, not the zero.
+     * @param bool $later Shipping not chosen yet: the words "Chosen at checkout" are printed, not the zero.
      * @param string|null $removeCode The coupon code the row's remove control posts, or null for none.
      *
      * @since  2.2.0
@@ -62,6 +63,7 @@ final class SummaryRow
         public readonly bool $reduction = false,
         public readonly ?Money $was = null,
         public readonly bool $free = false,
+        public readonly bool $later = false,
         public readonly ?string $removeCode = null,
     ) {
     }

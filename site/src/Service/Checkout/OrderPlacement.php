@@ -1186,9 +1186,10 @@ class OrderPlacement
                     throw $unavailable;
                 }
 
+                // The plugin by the name Extensions: Plugins shows (UX-25, UX-40).
                 $this->fail(
                     'COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR',
-                    ['plugin' => (string) $unavailable->plugin],
+                    ['plugin' => $unavailable->plugin === null ? '' : $plugins->name($unavailable->plugin)],
                     'Placement refused: ' . $unavailable->getMessage(),
                 );
 

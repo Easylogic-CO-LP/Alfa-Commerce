@@ -35,7 +35,7 @@ use Joomla\CMS\Language\Text;
 final class OrderSummary
 {
     /**
-     * The summary rows in display order: subtotal, tax, discount, shipping, the
+     * The summary rows in display order: subtotal, discount, tax, shipping, the
      * contributions, the rules, total.
      *
      * @param object $breakdown The order's totals as exact decimal texts (OrderTotalHelper::exactFromArrays()).
@@ -69,6 +69,16 @@ final class OrderSummary
             ),
         ];
 
+        // The lines' catalogue discounts, included in the subtotal: directly under it,
+        // with no sign, as the cart row states them (2.2.0, UX-75).
+        if (!$discount->isZero()) {
+            $rows[] = new SummaryRow(
+                type: SummaryRow::DISCOUNT,
+                label: Text::_('COM_ALFA_CART_SUMMARY_DISCOUNT'),
+                amount: $discount,
+            );
+        }
+
         // The tax inside the lines, the figure the cart row states; carriage tax is
         // inside the shipping row's own figure.
         $tax = $subtotal->subtract($money($breakdown->items_tax_excl));
@@ -78,15 +88,6 @@ final class OrderSummary
                 type: SummaryRow::TAX,
                 label: Text::_('COM_ALFA_CART_SUMMARY_TAX'),
                 amount: $tax,
-            );
-        }
-
-        if (!$discount->isZero()) {
-            $rows[] = new SummaryRow(
-                type: SummaryRow::DISCOUNT,
-                label: Text::_('COM_ALFA_CART_SUMMARY_DISCOUNT'),
-                amount: $discount,
-                reduction: true,
             );
         }
 

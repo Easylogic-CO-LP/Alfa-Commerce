@@ -17,7 +17,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
-use RuntimeException;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 
 /**
  * Prepare the list prices of one set of customer groups (2.2.0; it replaces the scheduled task of plg_task_alfapricesets).
@@ -94,7 +94,7 @@ final class PriceSetPrepareJob implements JobHandler
 
         return match ($result['state']) {
             // What stopped the chunk is the failure's cause: the job's stored line then follows it (Tasks::failureLine()).
-            'failed' => throw new RuntimeException('Preparing set ' . $setId . ' stopped at a chunk, which was rolled back; it is retried.', 0, $result['failure'] ?? null),
+            'failed' => throw new TaskError('COM_ALFA_TASKS_ERROR_PRICE_SET_STEP', [$setId], $result['failure'] ?? null),
             'chunk' => new JobChunk(units: $result['products'], checkpoint: ['through' => $result['through']], finished: false),
             default => new JobChunk(units: $result['products'], checkpoint: null, finished: true),
         };

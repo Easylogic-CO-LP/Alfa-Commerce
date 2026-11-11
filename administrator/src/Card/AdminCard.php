@@ -127,6 +127,13 @@ final class AdminCard
     public array $metadata = [];
 
     /**
+     * @var bool Resolved on every request, never from the screen's cache: a card whose content changes while the shop
+     *           works, such as a job's progress (2.2.0, entry 27). Set by live().
+     * @since  2.2.0
+     */
+    public bool $live = false;
+
+    /**
      * @var callable|null Returns the array the layout renders from.
      * @since  2.0.0
      */
@@ -303,6 +310,19 @@ final class AdminCard
     }
 
     /**
+     * Mark the card live: the registry resolves it on every request, after the screen's cache read, so it never shows
+     * what it showed minutes ago; every other card keeps the cache (2.2.0).
+     *
+     * @since  2.2.0
+     */
+    public function live(): static
+    {
+        $this->live = true;
+
+        return $this;
+    }
+
+    /**
      * @param callable $visibility Returns false to hide the card from this viewer.
      *
      *
@@ -365,7 +385,10 @@ final class AdminCard
     }
 
     /**
-     * Resolve what the layout will render from, or null when it cannot be produced.
+     * Resolve what the layout will render from, or null when there is nothing to show: its data failed (logged), or
+     * its data callback answered empty (2.2.0, entry 27). The registry places no card that resolves to null, the same
+     * as a hidden card, so such a card is never drawn and its surface never warns that its layout drew nothing. A card
+     * with no data callback resolves to [] and is drawn.
      *
      *
      * @since  2.0.0
@@ -377,7 +400,9 @@ final class AdminCard
         }
 
         try {
-            return (array) ($this->dataProvider)();
+            $data = (array) ($this->dataProvider)();
+
+            return $data === [] ? null : $data;
         } catch (Throwable $e) {
             // Hidden as before, never in silence (2.2.0, A-C14B-17): its owner, the card and what failed, once per
             // request per card.

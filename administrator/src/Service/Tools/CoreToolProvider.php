@@ -228,34 +228,38 @@ final class CoreToolProvider
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_PROJECTIONS_DESC');
 
-        // THE GALLERY'S THUMBNAILS RECREATED (2.2.0): one job, two modes, on the Media tab. "All" after a
-        // change of the thumbnail size; "missing" for the images that have none, whose thumbnail is the full image, or
-        // whose thumbnail is smaller than the size allows. Each button queues the job and opens its progress page.
-        $event->add(self::ID, 'media.thumbnails.all', 'COM_ALFA_TOOLS_THUMBNAILS_ALL_TITLE')
+        // THE GALLERY'S THUMBNAILS RECREATED (2.2.0): one job, two modes, on the Media tab. "Missing" first, the
+        // everyday and safer one, for the images that have none, whose thumbnail is the full image, or whose thumbnail is
+        // smaller than the size allows; "all" after a change of the thumbnail size, asked first (UX-19, UX-91). Each
+        // button queues the job and opens its progress page.
+        $event->add(self::ID, 'media.thumbnails.missing', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_TITLE')
             ->icon('images')
             ->mutating()
             ->css('btn-secondary')
             ->priority(200)
             ->meta('surface', 'media')
             ->meta('chunked', true)
-            ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_ALL_DESC');
+            ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_DESC');
 
-        $event->add(self::ID, 'media.thumbnails.missing', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_TITLE')
+        $event->add(self::ID, 'media.thumbnails.all', 'COM_ALFA_TOOLS_THUMBNAILS_ALL_TITLE')
             ->icon('images')
             ->mutating()
+            ->confirm('COM_ALFA_TOOLS_THUMBNAILS_ALL_CONFIRM')
             ->css('btn-secondary')
             ->priority(190)
             ->meta('surface', 'media')
             ->meta('chunked', true)
-            ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_DESC');
+            ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_ALL_DESC');
 
         // THE LIST PRICES OF A NEW COMBINATION OF CUSTOMER GROUPS are prepared by its
         // price.set.prepare job (2.2.0), never by the request that brought the combination. The
         // card says what waits and how far each job is; its button works the waiting sets' jobs now.
         $priceSets = $this->priceSetsState();
 
+        // The card names what it is about; its button says what it does, with the run buttons' icon (UX-22).
         $priceSetsAction = $event->add(self::ID, 'pricing.groupsets', 'COM_ALFA_TOOLS_PRICE_SETS_TITLE')
-            ->icon('clock')
+            ->icon('sync')
+            ->meta('button_label', 'COM_ALFA_TOOLS_PRICE_SETS_BTN')
             ->mutating()
             ->css('btn-secondary')
             ->priority(95)
@@ -419,9 +423,10 @@ final class CoreToolProvider
     {
         try {
             if ($event->isPlanning()) {
+                $joined = self::activeJob(scope: StockEffectsDrainJob::NAME) !== null;
                 StockEffectsDrainJob::enqueue();
                 $event->setTotal(max(1, InventoryEffectOutbox::outstandingCount()));
-                self::followJob(event: $event, scope: StockEffectsDrainJob::NAME);
+                self::followJob(event: $event, scope: StockEffectsDrainJob::NAME, joined: $joined);
 
                 return;
             }
@@ -555,10 +560,11 @@ final class CoreToolProvider
     {
         try {
             if ($event->isPlanning()) {
+                $joined = self::activeJob(scope: CatalogueRebuildJob::NAME) !== null;
                 ProjectionManager::markAllForRebuild();
                 CatalogueRebuildJob::enqueue();
                 $event->setTotal(max(1, ProjectionManager::markedCount()));
-                self::followJob(event: $event, scope: CatalogueRebuildJob::NAME);
+                self::followJob(event: $event, scope: CatalogueRebuildJob::NAME, joined: $joined);
 
                 return;
             }
@@ -583,9 +589,10 @@ final class CoreToolProvider
     {
         try {
             if ($event->isPlanning()) {
+                $joined = self::activeJob(scope: ThumbnailsRecreateJob::NAME) !== null;
                 ThumbnailRecreation::request(mode: $mode);
                 $event->setTotal(max(1, ThumbnailRecreation::rowCount()));
-                self::followJob(event: $event, scope: ThumbnailsRecreateJob::NAME);
+                self::followJob(event: $event, scope: ThumbnailsRecreateJob::NAME, joined: $joined);
 
                 return;
             }
@@ -593,7 +600,7 @@ final class CoreToolProvider
             $this->stepJob(event: $event, scope: ThumbnailsRecreateJob::NAME, done: static function (array $job): string {
                 $report = ThumbnailRecreation::lastReport() ?? ThumbnailRecreation::emptyReport();
 
-                return Text::sprintf('COM_ALFA_TOOLS_THUMBNAILS_DONE', (int) $report['made'], (int) $report['kept'], (int) $report['missing'], (int) $report['failed'], (int) $report['previous']);
+                return Text::sprintf('COM_ALFA_TOOLS_THUMBNAILS_DONE', (int) $report['made'], (int) $report['kept'], (int) $report['missing'], (int) $report['failed']);
             });
         } catch (Throwable $e) {
             $event->setError($e->getMessage());
@@ -1107,9 +1114,10 @@ final class CoreToolProvider
             }
 
             if ($event->isPlanning()) {
+                $joined = self::activeJob(scope: SearchRebuildJob::scopeFor(engine: $engine->key())) !== null;
                 SearchRebuildJob::enqueueFor(engine: $engine->key());
                 $event->setTotal(max(1, (new RebuildStore())->current($engine->key())->total ?? 1));
-                self::followJob(event: $event, scope: SearchRebuildJob::scopeFor(engine: $engine->key()));
+                self::followJob(event: $event, scope: SearchRebuildJob::scopeFor(engine: $engine->key()), joined: $joined);
 
                 return;
             }
@@ -1126,20 +1134,49 @@ final class CoreToolProvider
 
     /**
      * Send the Tools screen to the progress page of the job just queued for a scope (Tools > Tasks, &job=N), whose
-     * 2-second ticks follow it to its end.
+     * 2-second ticks follow it to its end. A request that joined a job already waiting or running (2.6.4: it merges
+     * into that job) is told so, by the job's state, in the message area of the page that opens (2.2.0, entry 20, the
+     * owner's s118, UX-85 and UX-86): a button pressed again never just goes grey.
      *
      * @param ExecuteToolActionEvent $event The tool request.
      * @param string $scope The job's scope.
+     * @param bool $joined Whether a job of the scope was waiting or running before this request.
      *
      * @since  2.2.0
      */
-    private static function followJob(ExecuteToolActionEvent $event, string $scope): void
+    private static function followJob(ExecuteToolActionEvent $event, string $scope, bool $joined = false): void
     {
         $job = Runner::latestJob(scopeKey: $scope);
 
-        if ($job !== null) {
-            $event->setLocation(Route::_('index.php?option=com_alfa&view=tools&job=' . (int) $job['id'], false) . '#tasks');
+        if ($job === null) {
+            return;
         }
+
+        $event->setLocation(Route::_('index.php?option=com_alfa&view=tools&job=' . (int) $job['id'], false) . '#tasks');
+
+        if ($joined && \in_array($job['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) {
+            $event->setMessage(Text::sprintf(
+                $job['state'] === Tasks::STATE_RUNNING ? 'COM_ALFA_TOOLS_JOB_JOINED_RUNNING' : 'COM_ALFA_TOOLS_JOB_JOINED_WAITING',
+                Text::_((string) Runner::handler(name: explode(':', $scope)[0])?->policy()->label),
+            ));
+        }
+    }
+
+    /**
+     * The job of a scope that is waiting or running now, or null: asked before a plan queues work, so a request that
+     * joins it is told so ({@see self::followJob()}).
+     *
+     * @param string $scope The job's scope.
+     *
+     * @return array{id: int, state: string, done: int, total: int, error: string}|null
+     *
+     * @since  2.2.0
+     */
+    private static function activeJob(string $scope): ?array
+    {
+        $job = Runner::latestJob(scopeKey: $scope);
+
+        return $job !== null && \in_array($job['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) ? $job : null;
     }
 
     /**

@@ -31,6 +31,7 @@ use DateTimeZone;
 use InvalidArgumentException;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\Exception\ConnectionFailureException;
@@ -135,11 +136,13 @@ final class Tasks
     public const BACKOFF_SECONDS = [60, 300, 1800, 7200, 21600, 86400];
 
     /**
-     * What a task's failure on a database's exception is stored as ({@see self::failureLine()}).
+     * The language keys of the work's own failures, stored as the key and its arguments and said at display in the
+     * reader's language ({@see self::errorKey()}, {@see self::errorText()}; UX-09). A plugin's or an exception's message is
+     * stored as its text.
      *
      * @since  2.2.0
      */
-    public const DATABASE_ERROR = 'a database error';
+    public const ERROR_KEY_PREFIX = 'COM_ALFA_TASKS_ERROR_';
 
     /**
      * The bell's recovery budget, wall clock.
@@ -1471,9 +1474,10 @@ final class Tasks
 
     /**
      * The line a task's failure is stored as: its message, or its class when it has none. A database's exception, the
-     * failure itself or one it was raised from, is stored as "a database error" and its class and full text are logged
-     * with the task, so no stored line carries a schema, a table, a user or a host. The one writer of singles' and
-     * jobs' last errors and history entries (2.2.0).
+     * failure itself or one it was raised from, is stored as COM_ALFA_TASKS_ERROR_DATABASE and its class and full text
+     * are logged with the task, so no stored line carries a schema, a table, a user or a host; a TaskError, the work's
+     * own failure, as its key and arguments (UX-09). The one writer of singles' and jobs' last errors and history
+     * entries (2.2.0).
      *
      * @param Throwable $failure What failed.
      * @param int ...$taskIds The tasks it is stored for.
@@ -1491,11 +1495,69 @@ final class Tasks
                     priority: Log::WARNING,
                 );
 
-                return self::DATABASE_ERROR;
+                return self::errorKey('COM_ALFA_TASKS_ERROR_DATABASE');
             }
         }
 
+        if ($failure instanceof TaskError) {
+            return self::errorKey($failure->key, ...$failure->arguments);
+        }
+
         return $failure->getMessage() !== '' ? $failure->getMessage() : $failure::class;
+    }
+
+    /**
+     * A failure of the work's own, as stored: its language key and arguments (UX-09), said by {@see self::errorText()}.
+     *
+     * @param string $key A key of ERROR_KEY_PREFIX.
+     * @param int|string ...$arguments Its arguments.
+     *
+     * @since  2.2.0
+     */
+    public static function errorKey(string $key, int|string ...$arguments): string
+    {
+        return (string) json_encode(['key' => $key, 'args' => array_values($arguments)], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * A stored failure as a History sentence's argument: a failure of the work's own as a text of its own (key and
+     * arguments, said where the line is read), any other stored line as its text without a final full stop.
+     *
+     * @param string $stored The stored line.
+     *
+     * @return array{key: string, args: list<int|string>}|string
+     *
+     * @since  2.2.0
+     */
+    public static function errorArgument(string $stored): array|string
+    {
+        $error = str_starts_with($stored, '{"key":"' . self::ERROR_KEY_PREFIX) ? json_decode($stored, true) : null;
+
+        return \is_array($error) && \is_string($error['key'] ?? null) && \is_array($error['args'] ?? null)
+            ? ['key' => $error['key'], 'args' => array_values($error['args'])]
+            : rtrim(trim($stored), '.');
+    }
+
+    /**
+     * A stored failure as staff read it: a failure of the work's own in the reader's language, any other stored line
+     * (a plugin's or an exception's message) as it was stored.
+     *
+     * @param string $stored The stored line.
+     *
+     * @since  2.2.0
+     */
+    public static function errorText(string $stored): string
+    {
+        $error = str_starts_with($stored, '{"key":"' . self::ERROR_KEY_PREFIX) ? json_decode($stored, true) : null;
+
+        if (!\is_array($error) || !\is_string($error['key'] ?? null) || !\is_array($error['args'] ?? null)
+            || preg_match('/^' . self::ERROR_KEY_PREFIX . '[A-Z0-9_]+$/', $error['key']) !== 1) {
+            return $stored;
+        }
+
+        $arguments = array_values(array_filter($error['args'], static fn (mixed $argument): bool => \is_int($argument) || \is_string($argument)));
+
+        return Text::sprintf($error['key'], ...$arguments);
     }
 
     /**

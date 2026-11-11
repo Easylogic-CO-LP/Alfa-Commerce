@@ -22,18 +22,20 @@ use Joomla\CMS\Router\Route;
  *
  * Classes the stylesheet reads (media/com_alfa/css/site/cart.css):
  *   .cart-summary  .summary-rows  .summary-row  .summary-<type>
- *   .summary-label  .summary-value  .summary-was  .summary-free  .summary-amount
+ *   .summary-label  .summary-value  .summary-was  .summary-free  .summary-later  .summary-amount
  * A coded rule's row carries its remove form (task=cart.removeCoupon) inside its label,
  * its button named with the code (COM_ALFA_CART_COUPON_REMOVE, the code as %s).
  *
  * Display data:
- *   rows  SummaryRow[]  the rows, in display order
+ *   rows   SummaryRow[]  the rows, in display order
+ *   label  string        the summary's accessible name, translated: the cart's totals or the order's
  *
  * @since  2.2.0
  */
 
 /** @var SummaryRow[] $rows */
 $rows = $displayData['rows'] ?? [];
+$label = (string) ($displayData['label'] ?? '');
 
 if ($rows === []) {
     return;
@@ -43,7 +45,7 @@ $escape = static fn (string $text): string => htmlspecialchars($text, ENT_QUOTES
 $removeLabel = static fn (string $code): string => $escape(Text::sprintf('COM_ALFA_CART_COUPON_REMOVE', $code));
 
 ?>
-<section class="cart-summary" aria-label="<?php echo $escape(Text::_('COM_ALFA_CART_SUMMARY_LABEL')); ?>">
+<section class="cart-summary" aria-label="<?php echo $escape($label); ?>">
     <dl class="summary-rows">
         <?php foreach ($rows as $row): ?>
         <div class="summary-row summary-<?php echo $escape($row->type); ?>">
@@ -66,6 +68,8 @@ $removeLabel = static fn (string $code): string => $escape(Text::sprintf('COM_AL
                 <?php endif; ?>
                 <?php if ($row->free): ?>
                 <strong class="summary-free"><?php echo Text::_('COM_ALFA_FREE_SHIPPING'); ?></strong>
+                <?php elseif ($row->later): ?>
+                <span class="summary-later"><?php echo Text::_('COM_ALFA_CART_SUMMARY_SHIPPING_LATER'); ?></span>
                 <?php else: ?>
                 <span class="summary-amount"><?php echo $row->reduction ? '−' : ''; ?><?php echo $row->amount->format(); ?></span>
                 <?php endif; ?>

@@ -116,7 +116,7 @@ class HtmlView extends BaseHtmlView
      * @var array{rows: list<array<string, mixed>>, groups: array<int, string>, unreadable: bool}
      * @since  2.2.0
      */
-    public array $jobs = ['rows' => [], 'groups' => [], 'unreadable' => false];
+    public array $jobs = ['rows' => [], 'groups' => [], 'engines' => [], 'thumbnailsMode' => null, 'followedJob' => 0, 'failedJobs' => 0, 'unreadable' => false];
 
     /**
      * The Tasks tab's runner card: the last tick (runner.last_tick), the cron command, the web-cron address without
@@ -247,36 +247,16 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The jobs for the Tasks tab, with the names of the customer groups their price sets cover.
+     * The jobs for the Tasks tab, as the jobs card draws them ({@see TaskStaff::jobsCard()}): the same data the card's
+     * own refresh on the progress page draws (UX-84). This page follows the job of &job=N when it is a progress page.
      *
-     * @return array{rows: list<array<string, mixed>>, groups: array<int, string>, unreadable: bool}
+     * @return array{rows: list<array<string, mixed>>, groups: array<int, string>, engines: array<string, string>, thumbnailsMode: string|null, followedJob: int, failedJobs: int, unreadable: bool}
      *
      * @since  2.2.0
      */
     private function jobs(): array
     {
-        try {
-            $rows = TaskStaff::jobRows();
-        } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the jobs could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
-
-            return ['rows' => [], 'groups' => [], 'unreadable' => true];
-        }
-
-        $ids = array_values(array_unique(array_merge([], ...array_column($rows, 'groups'))));
-        $groups = [];
-
-        if ($ids !== []) {
-            $db = Factory::getContainer()->get(DatabaseInterface::class);
-            $groups = $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName(['id', 'title']))
-                    ->from($db->quoteName('#__usergroups'))
-                    ->whereIn($db->quoteName('id'), $ids),
-            )->loadAssocList('id', 'title') ?: [];
-        }
-
-        return ['rows' => $rows, 'groups' => $groups, 'unreadable' => false];
+        return TaskStaff::jobsCard(followedJob: Factory::getApplication()->getInput()->getInt('job', 0));
     }
 
     /**

@@ -28,18 +28,20 @@ use Joomla\CMS\Language\Text;
 final class CartSummary
 {
     /**
-     * The summary rows in display order: subtotal, tax, discount, shipping, the
+     * The summary rows in display order: subtotal, discount, tax, shipping, the
      * contributions, the rules, total.
      *
      * @param CartTotalsView $totals What the cart costs.
      * @param CartRulesView $rules What the cart rules concluded.
      * @param Currency $currency What the cart is priced in.
+     * @param bool $shippingAwaitsChoice No shipping method chosen yet for a cart that needs one
+     *                                   (CartSnapshot::shippingAwaitsChoice()).
      *
      * @return SummaryRow[]
      *
      * @since  2.2.0
      */
-    public static function rows(CartTotalsView $totals, CartRulesView $rules, Currency $currency): array
+    public static function rows(CartTotalsView $totals, CartRulesView $rules, Currency $currency, bool $shippingAwaitsChoice): array
     {
         $hasDiscount = !$totals->discount->isZero();
 
@@ -52,10 +54,19 @@ final class CartSummary
             ),
         ];
 
-        // Tax and catalogue discounts are already inside the subtotal; each row
-        // appears only when there is something to state. The tax is the goods tax,
-        // the figure inside the subtotal it sits under; carriage tax is inside the
-        // shipping row's own figure.
+        // Catalogue discounts and tax are already inside the subtotal; each row
+        // appears only when there is something to state, as a figure included, never
+        // a deduction (2.2.0, UX-75): the discount directly under the subtotal it was
+        // taken from, with no sign. The tax is the goods tax, the figure inside the
+        // subtotal it sits under; carriage tax is inside the shipping row's own figure.
+        if ($hasDiscount) {
+            $rows[] = new SummaryRow(
+                type: SummaryRow::DISCOUNT,
+                label: Text::_('COM_ALFA_CART_SUMMARY_DISCOUNT'),
+                amount: $totals->discount,
+            );
+        }
+
         if (!$totals->tax->isZero()) {
             $rows[] = new SummaryRow(
                 type: SummaryRow::TAX,
@@ -64,18 +75,13 @@ final class CartSummary
             );
         }
 
-        if ($hasDiscount) {
-            $rows[] = new SummaryRow(
-                type: SummaryRow::DISCOUNT,
-                label: Text::_('COM_ALFA_CART_SUMMARY_DISCOUNT'),
-                amount: $totals->discount,
-                reduction: true,
-            );
-        }
-
         // Free shipping is a benefit the engine classified; the row renders that
-        // verdict and compares no numbers. It is always shown.
+        // verdict and compares no numbers. It is always shown. Before a shipping
+        // method is chosen it states that, never a zero that reads as free (2.2.0,
+        // UX-76); a free verdict still says Free.
         $shipping = $totals->shippingBenefit;
+        $free = $shipping->benefit === 'free_shipping';
+        $later = $shippingAwaitsChoice && !$free;
 
         $rows[] = new SummaryRow(
             type: SummaryRow::SHIPPING,
@@ -84,7 +90,8 @@ final class CartSummary
             was: \in_array($shipping->benefit, ['free_shipping', 'partial'], true)
                 ? Money::of($shipping->cost, $currency)
                 : null,
-            free: $shipping->benefit === 'free_shipping',
+            free: $free,
+            later: $later,
         );
 
         foreach ($totals->contributions as $contribution) {

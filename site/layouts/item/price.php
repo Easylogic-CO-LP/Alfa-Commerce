@@ -90,6 +90,11 @@ $showWithTax = !empty($settings['base_price_with_tax_show']);
 $showFinal = !empty($settings['final_price_show']);
 $netSaving = $discountShown && ($showBase || $showSubtotal) && ($showSubtotal || (!$showWithTax && !$showFinal));
 $grossSaving = $discountShown && ($showWithTax || (!$showBase && !$showSubtotal));
+// EACH SAVING NAMED BY ITS BASIS WHEN BOTH SHOW (2.2.0, UX-51): two rows both reading "Discount" read as two discounts
+// on a product that has one. A block showing one saving keeps the plain word.
+$bothSavings = $netSaving && $grossSaving;
+$netSavingLabel = $bothSavings ? Text::_('COM_ALFA_PRICE_DISCOUNT_EXCL_TAX') : Text::_('COM_ALFA_PRICE_DISCOUNT');
+$grossSavingLabel = $bothSavings ? Text::_('COM_ALFA_PRICE_DISCOUNT_INCL_TAX') : Text::_('COM_ALFA_PRICE_DISCOUNT');
 
 $figures = $showTotals
 	? [
@@ -146,7 +151,7 @@ $discountPercent = $prices->getSavingsPercent();
 	<?php if ($netSaving): ?>
         <div class="price-discount">
 			<?php if (!empty($settings['discount_amount_show_label'])): ?>
-                <span class="price-label"><?php echo Text::_('COM_ALFA_PRICE_DISCOUNT'); ?>:</span>
+                <span class="price-label"><?php echo $netSavingLabel; ?>:</span>
 			<?php endif; ?>
             <span class="price-value discount-value">
 				-<?php echo $figures['discount']; ?>
@@ -191,7 +196,7 @@ $discountPercent = $prices->getSavingsPercent();
 	<?php if ($grossSaving): ?>
         <div class="price-discount price-discount-with-tax">
 			<?php if (!empty($settings['discount_amount_show_label'])): ?>
-                <span class="price-label"><?php echo Text::_('COM_ALFA_PRICE_DISCOUNT'); ?>:</span>
+                <span class="price-label"><?php echo $grossSavingLabel; ?>:</span>
 			<?php endif; ?>
             <span class="price-value discount-value">
 				-<?php echo $figures['discount_with_tax']; ?>

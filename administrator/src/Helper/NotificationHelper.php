@@ -232,16 +232,27 @@ class NotificationHelper
             $previous = $open ? (NotificationText::arguments(row: $row)['message'] ?? []) : [];
             $now = Factory::getDate('now', 'UTC')->toSql();
             $count = (int) ($previous[1] ?? 0) + 1;
-            $first = (string) ($previous[2] ?? $now);
+            // The first time as stored: a time parameter ({dt}), or the time itself in a notice raised before 2.2.0's UX
+            // round.
+            $first = (string) (\is_array($previous[2] ?? null) ? ($previous[2]['dt'] ?? $now) : ($previous[2] ?? $now));
             $carrier = $plugin->group === 'alfa-shipments';
+            // The plugin by the name Extensions: Plugins shows, the times in the reader's zone, and why it could not take
+            // the updates (UX-25 to UX-27, UX-30).
+            $name = AlfaPluginHelper::get()->name($plugin);
 
             self::push(
                 $key,
-                NotificationText::of('COM_ALFA_NOTIFY_PLUGIN_UNAVAILABLE_TITLE', $plugin->key()),
+                NotificationText::of('COM_ALFA_NOTIFY_PLUGIN_UNAVAILABLE_TITLE', $name),
                 [
                     'severity' => 'danger',
                     'group' => $carrier ? self::GROUP_SHIPPING : self::GROUP_PAYMENTS,
-                    'message' => NotificationText::of($reason === PluginUnavailable::NOT_LOADED ? 'COM_ALFA_NOTIFY_PLUGIN_NOT_LOADED_MESSAGE' : 'COM_ALFA_NOTIFY_PLUGIN_UNAVAILABLE_MESSAGE', $plugin->key(), $count, $first, $now),
+                    'message' => $reason === PluginUnavailable::NOT_LOADED
+                        ? NotificationText::of('COM_ALFA_NOTIFY_PLUGIN_NOT_LOADED_MESSAGE', $name, $count, NotificationText::date($first), NotificationText::date($now))
+                        : NotificationText::of('COM_ALFA_NOTIFY_PLUGIN_UNAVAILABLE_MESSAGE', $name, $count, NotificationText::date($first), NotificationText::date($now), NotificationText::key(match ($reason) {
+                            PluginUnavailable::DISABLED => 'COM_ALFA_PLUGIN_STATE_DISABLED',
+                            PluginUnavailable::MISSING => 'COM_ALFA_PLUGIN_STATE_MISSING',
+                            default => 'COM_ALFA_PLUGIN_STATE_UNLOADABLE',
+                        })),
                     'url' => 'index.php?option=com_plugins&view=plugins&filter[folder]=' . $plugin->group . '&filter[element]=' . $plugin->element,
                     'view' => ['action' => $carrier ? 'alfa.shipments.view' : 'alfa.payments.view', 'asset' => 'com_alfa'],
                     'constant' => true,

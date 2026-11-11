@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
@@ -95,7 +96,16 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
             $language->load(extension: 'com_alfa', basePath: JPATH_ADMINISTRATOR);
         }
 
-        $args = array_map(static fn (mixed $arg): mixed => \is_array($arg) ? self::english(text: $arg) : $arg, $text['args']);
+        $args = array_map(static fn (mixed $arg): mixed => match (true) {
+            // The record's English: a status by its name, recipients by their units and their UTC times.
+            \is_array($arg) && \array_key_exists('status', $arg) => (string) (AlfaHelper::getOrderStatuses()[(int) $arg['status']]->name ?? '#' . (int) $arg['status']),
+            \is_array($arg) && \is_array($arg['recipients'] ?? null) => implode(', ', array_map(
+                static fn (array $one): string => $one['unit'] . ($one['at'] !== '' ? ' (' . substr($one['at'], 0, 19) . ' UTC)' : ''),
+                $arg['recipients'],
+            )),
+            \is_array($arg) => self::english(text: $arg),
+            default => $arg,
+        }, $text['args']);
 
         return vsprintf($language->_($text['key']), $args);
     }
@@ -124,15 +134,18 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
     }
 
     /**
-     * The units sent, listed for a sentence: each with the time it was handed over, in UTC to the second.
+     * The units sent, as a sentence's argument: stored as they are, said where the line is read, each recipient with the
+     * time it was handed over in the reader's time zone (UX-47).
      *
      * @param list<array{unit: string, at: string}> $sent What sentUnits() answered.
      *
+     * @return array{recipients: list<array{unit: string, at: string}>}
+     *
      * @since  2.2.0
      */
-    protected static function sentList(array $sent): string
+    protected static function sentList(array $sent): array
     {
-        return implode(', ', array_map(static fn (array $one): string => $one['unit'] . ($one['at'] !== '' ? ' (' . substr($one['at'], 0, 19) . ' UTC)' : ''), $sent));
+        return ['recipients' => $sent];
     }
 
     /**
@@ -172,7 +185,8 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
     protected function superseded(TaskRun $run): void
     {
         $orderId = $run->subjectId();
-        $text = self::text('COM_ALFA_ORDER_TASK_SUPERSEDED', $this->what($run->payload()), $run->id(), self::currentStatus(orderId: $orderId) ?? 0);
+        // The status by its id, said by its name where the line is read (UX-45).
+        $text = self::text('COM_ALFA_ORDER_TASK_SUPERSEDED', $this->what($run->payload()), $run->id(), ['status' => self::currentStatus(orderId: $orderId) ?? 0]);
         $summary = self::english(text: $text);
         Tasks::log(entry: 'Task #' . $run->id() . ' (' . $run->handler() . ') superseded: ' . $summary, priority: Log::INFO);
         OrderModel::logOrderActivity(
@@ -298,7 +312,8 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
                 : self::text('COM_ALFA_ORDER_TASK_HELD', $what, $task);
         } else {
             $failed = $this->listed($settlement->units, ['failed']);
-            $error = rtrim(trim($settlement->error), '.');
+            // The work's own failure as its key and arguments, said where the line is read (UX-09).
+            $error = Tasks::errorArgument(stored: $settlement->error);
             $text = $this->failedSummary(settlement: $settlement, what: $what) ?? match (true) {
                 $failed !== '' => self::text('COM_ALFA_ORDER_TASK_FAILED_FOR', $what, $task, $failed),
                 $error !== '' => self::text('COM_ALFA_ORDER_TASK_FAILED', $what, $task, $error),

@@ -58,6 +58,7 @@ use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger;
 use Alfa\Component\Alfa\Administrator\Service\Document\OrderItemLines;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -3431,7 +3432,7 @@ class OrderModel extends AlfaAdminModel
      * Ask a row's plugin of record whether its order may be deleted (2.2.0, mode B; design 2.15.5): its declared
      * onAdminOrderDelete handler decides; a plugin that declares none has no objection. While the plugin is disabled,
      * missing or cannot be loaded its veto cannot be asked, so the order is not deleted, and staff are told which plugin
-     * to restore.
+     * to restore (the refusal kept for delete() to report, {@see self::$deleteRefusals}).
      *
      * @param string $group The plugin group.
      * @param string $type The row's own method type.
@@ -3450,9 +3451,12 @@ class OrderModel extends AlfaAdminModel
             $plugin = $plugins->bootSingle(PluginId::from($group, $type));
         } catch (PluginUnavailable|InvalidArgumentException $e) {
             Log::add('Order ' . $orderId . ' was not deleted: its plugin of record cannot be asked (' . $e->getMessage() . ').', Log::WARNING, 'com_alfa.orders');
-            Factory::getApplication()->enqueueMessage($e instanceof PluginUnavailable && $e->reason === PluginUnavailable::NOT_LOADED
-                ? Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF', $group . '.' . $type)
-                : Text::sprintf('COM_ALFA_ORDER_DELETE_PLUGIN_UNAVAILABLE', $orderId, $group . '.' . $type), 'warning');
+            // The plugin by the name Extensions: Plugins shows, and why it cannot be asked (UX-27, UX-37): delete() says it
+            // once, as the delete's own error (UX-36).
+            $name = $plugins->name(PluginId::from($group, $type));
+            $this->deleteRefusals[] = $e instanceof PluginUnavailable && $e->reason === PluginUnavailable::NOT_LOADED
+                ? Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF', $name)
+                : Text::sprintf('COM_ALFA_ORDER_DELETE_PLUGIN_UNAVAILABLE', $orderId, $name, AlfaPluginHelper::statePhrase($e instanceof PluginUnavailable ? $e->reason : PluginUnavailable::UNLOADABLE));
 
             return false;
         }
@@ -5006,6 +5010,16 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
+     * The refusals of the order delete in progress, one for each order whose plugin of record could not be asked
+     * ({@see self::askPluginOfRecordToDelete()}); delete() says them (UX-36).
+     *
+     * @var list<string>
+     *
+     * @since  2.2.0
+     */
+    private array $deleteRefusals = [];
+
+    /**
      * Delete the selected orders. An order that holds a sales document is never
      * deleted, and neither is one with a refund that is not settled (a
      * reservation: PaymentLedger::orderDeleteRefusal()): both are answered
@@ -5094,7 +5108,11 @@ class OrderModel extends AlfaAdminModel
             // Keyed BY PK: $pks may be sparse (AdminController builds its cid
             // with array_filter, which preserves keys), so a positional index
             // would unset a DIFFERENT order than the one a plugin vetoed.
-            $orders[$pk] = $this->getItem($pk);
+            // Read as this model stores it (its rows objects), not as a subclass
+            // presents it: the API's OrderModel projects payments and shipments
+            // into arrays for its answer, which the plugins' vetoes and the
+            // method types read here cannot take (2.2.0, A-E24-1).
+            $orders[$pk] = self::getItem($pk);
         }
 
         $onAdminOrderDeleteEventName = 'onAdminOrderDelete';
@@ -5162,8 +5180,22 @@ class OrderModel extends AlfaAdminModel
             $pks = array_values(array_diff($pks, $vetoed));
         }
 
+        // A refused delete is one error, as Joomla's list controllers report a failed delete, and never a success message
+        // when nothing was deleted (UX-36): the refusals are the delete's error when no order is left, else each is said
+        // beside the count of the ones deleted. As a refusal of the model's own rule, which the REST delete answers 409
+        // with its sentence rather than a bare 500 (A-E24-1).
+        $refusals = array_values(array_unique($this->deleteRefusals));
+        $this->deleteRefusals = [];
+
         if ($pks === []) {
-            return true;
+            $refusal = implode(' ', $refusals);
+            $this->setError($refusals !== [] ? new DeleteRefusedException(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'), $refusal) : Text::plural('COM_ALFA_N_ITEMS_DELETED', 0));
+
+            return false;
+        }
+
+        foreach ($refusals as $refusal) {
+            $app->enqueueMessage($refusal, 'error');
         }
 
         // The admin delete vetoes, asked here with the plugins', before the
@@ -5304,7 +5336,10 @@ class OrderModel extends AlfaAdminModel
             return false;
         }
 
-        $this->setError(error: implode(' ', $refusals));
+        // A refusal of the model's own rule: the REST delete answers it 409 with its sentence (2.2.0), as the plugin
+        // of record's refusal of delete().
+        $refusal = implode(' ', $refusals);
+        $this->setError(error: new DeleteRefusedException(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'), $refusal));
 
         return true;
     }

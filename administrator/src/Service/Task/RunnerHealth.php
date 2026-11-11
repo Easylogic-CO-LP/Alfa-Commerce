@@ -110,7 +110,8 @@ final class RunnerHealth
                 [
                     'group' => NotificationHelper::GROUP_GENERAL,
                     'severity' => 'warning',
-                    'message' => NotificationText::of('COM_ALFA_NOTIFY_RUNNER_HEALTH_MSG', $waiting['since'], $waiting['count'], $lastRun['at'] ?? $waiting['since']),
+                    // Times said in the reader's zone (UX-30).
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_RUNNER_HEALTH_MSG', NotificationText::date($waiting['since']), $waiting['count'], NotificationText::date($lastRun['at'] ?? $waiting['since'])),
                     'dismissible' => false,
                     'constant' => !NotificationHelper::isOpen(dedupKey: self::KEY),
                     'url' => self::URL,
@@ -126,8 +127,8 @@ final class RunnerHealth
     }
 
     /**
-     * The last tick that ran (runner.last_tick), when there is one: its time (UTC, minutes) and whether it ran within
-     * the threshold.
+     * The last tick that ran (runner.last_tick), when there is one: its time (UTC, said in the reader's zone where it is
+     * read) and whether it ran within the threshold.
      *
      * @return array{at: string, recent: bool}|null
      *
@@ -153,11 +154,12 @@ final class RunnerHealth
 
         $recent = (int) $db->setQuery('SELECT ' . $db->quote($at) . ' >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . self::THRESHOLD_HOURS . ' HOUR)')->loadResult() === 1;
 
-        return ['at' => substr($at, 0, 16) . ' UTC', 'recent' => $recent];
+        return ['at' => substr($at, 0, 19), 'recent' => $recent];
     }
 
     /**
-     * The due work that has waited more than the threshold: how much, and since when (UTC, minutes).
+     * The due work that has waited more than the threshold: how much, and since when (UTC, said in the reader's zone
+     * where it is read).
      *
      * @return array{count: int, since: string}
      *
@@ -179,6 +181,6 @@ final class RunnerHealth
         )->loadAssoc() ?: [];
         $count = (int) ($row['n'] ?? 0);
 
-        return ['count' => $count, 'since' => $count > 0 ? substr((string) $row['since'], 0, 16) . ' UTC' : ''];
+        return ['count' => $count, 'since' => $count > 0 ? substr((string) $row['since'], 0, 19) : ''];
     }
 }
