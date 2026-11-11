@@ -12,6 +12,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // (which each send the absolute new quantity) can't render out of order.
     let quantityUpdateController = new AbortController();
 
+    // The drawer announces alfa:cart:changed under this name and ignores its own.
+    const CART_CHANGED_SOURCE = 'cart-module';
+
+    // A newer re-read supersedes an older one, so the last answer is the one shown.
+    let reloadController = new AbortController();
+
+    // "Open the cart": an add claimed through alfaProductAdded opens the drawer
+    // once the re-read that alfa:cart:changed started has landed.
+    let openAfterSync = false;
+
     cartToggler.addEventListener("click", toggleCart, false);
     cartItemsWrapper.addEventListener("transitionend", onTransitionCartEnd, false);
     cartItemsWrapper.addEventListener("click", toggleCart, false);
@@ -106,21 +116,25 @@ document.addEventListener("DOMContentLoaded", () => {
         await changeQuantity(lineId, quantity);
     });
 
-    // Re-render the drawer when a product is added elsewhere on the page. With
-    // "Open the cart" the drawer is the confirmation: claim the add so the
-    // component shows no card, then open once the fresh markup is in.
-    document.addEventListener("alfaProductAdded", (event) => {
-        const openOnAdd = cartOuter.getAttribute("data-on-add") === "open";
-
-        if (openOnAdd) {
-            event.preventDefault();
+    // Another surface changed the cart: re-read the drawer. The drawer's own
+    // changes are applied from their answer, so its own signal is ignored.
+    document.addEventListener("alfa:cart:changed", (event) => {
+        if (event.detail && event.detail.source === CART_CHANGED_SOURCE) {
+            return;
         }
 
-        reloadCart().then(() => {
-            if (openOnAdd) {
-                openCart();
-            }
-        });
+        syncCart();
+    });
+
+    // With "Open the cart" the drawer is the add's confirmation: claim the add so
+    // the component shows no card. The re-read itself hangs on alfa:cart:changed.
+    document.addEventListener("alfaProductAdded", (event) => {
+        if (cartOuter.getAttribute("data-on-add") !== "open") {
+            return;
+        }
+
+        event.preventDefault();
+        openAfterSync = true;
     });
 
     /**
@@ -201,6 +215,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             applyCartResponse(data.data);
+
+            // The contents changed here; the other cart surfaces re-read theirs. A
+            // remove is the quantity 0 write, read from what was posted.
+            document.dispatchEvent(new CustomEvent('alfa:cart:changed', {
+                bubbles: true,
+                detail: { source: CART_CHANGED_SOURCE, action: Number(params.get('quantity')) === 0 ? 'remove' : 'quantity' },
+            }));
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('mod_alfa_cart: update error', error);
@@ -208,13 +229,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    /** Re-fetch and re-render the drawer without mutating the cart. */
+    /**
+     * Re-fetch and re-render the drawer without mutating the cart. A look: it never
+     * announces alfa:cart:changed. A newer re-read supersedes this one.
+     *
+     * @return {Promise<string>} 'applied', 'aborted' (a newer re-read took over) or 'failed'.
+     */
     async function reloadCart() {
+        reloadController.abort();
+        reloadController = new AbortController();
+
         const basePath = Joomla.getOptions('system.paths').base || '';
         const url = basePath + '/index.php?option=com_ajax&module=alfa_cart&method=reload&format=json';
 
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: reloadController.signal });
 
             if (!response.ok) {
                 throw new Error(response.statusText);
@@ -222,11 +251,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const data = await response.json();
 
-            if (data.success) {
-                applyCartResponse(data.data);
+            if (!data.success) {
+                return 'failed';
             }
+
+            applyCartResponse(data.data);
+
+            return 'applied';
         } catch (error) {
+            if (error.name === 'AbortError') {
+                return 'aborted';
+            }
+
             console.error('mod_alfa_cart: reload error', error);
+
+            return 'failed';
+        }
+    }
+
+    /** Re-read the drawer; open it when an add claimed by "Open the cart" is waiting. */
+    async function syncCart() {
+        const outcome = await reloadCart();
+
+        // A superseded re-read decides nothing: the newer one opens the drawer.
+        if (outcome === 'aborted') {
+            return;
+        }
+
+        // The claimed add showed no card, so the drawer is its only confirmation: it
+        // opens whatever the re-read's outcome, as the "Open the cart" option promises.
+        if (openAfterSync) {
+            openAfterSync = false;
+            openCart();
         }
     }
 
@@ -234,8 +290,14 @@ document.addEventListener("DOMContentLoaded", () => {
     function applyCartResponse(payload) {
         cartOuter.querySelector('[data-cart-items]').outerHTML = payload.tmpl;
 
-        const useItems = parseInt(modAlfaCartTogglerCounterValue, 10) === 1;
-        cartToggler.setAttribute('data-counter', useItems ? payload.total_items : payload.total_quantity);
+        // What the counter counts, as the module's layout printed it on the toggler. A
+        // layout that names no mode (an override older than 2.2.0) keeps the counter it
+        // printed: the script never guesses what the counter counts.
+        const mode = cartToggler.getAttribute('data-counter-mode');
+
+        if (mode === 'items' || mode === 'quantity') {
+            cartToggler.setAttribute('data-counter', mode === 'items' ? payload.total_items : payload.total_quantity);
+        }
     }
 
     /** Open the drawer if it is not already visible. */

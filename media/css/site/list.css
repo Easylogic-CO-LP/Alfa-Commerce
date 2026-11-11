@@ -155,3 +155,14 @@
     inline-size: 100%;
     max-inline-size: 100%;
 }
+
+/* THE RESULTS REGION (2.2.0): brought into view below a sticky header, whose height a template sets as
+   --alfa-scroll-offset; focused by script, its outline shown to keyboard users only. */
+
+#alfa-app [data-results] {
+    scroll-margin-top: var(--alfa-scroll-offset, 0px);
+}
+
+#alfa-app [data-results]:focus:not(:focus-visible) {
+    outline: none;
+}

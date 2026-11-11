@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Order;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
+use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\View\HasAdminEvents;
@@ -477,6 +478,18 @@ class HtmlView extends BaseHtmlView
                 $this->displayWithoutCurrency(model: $model, refusal: $e);
 
                 return;
+            }
+
+            // A payment or a shipment whose plugin of record cannot be used: said once at the top of the page, and in the
+            // row's Actions cell (UX-33, UX-35); a delete that reads the same order says nothing of it (UX-36).
+            foreach ([['alfa-payments', $this->order->payments ?? []], ['alfa-shipments', $this->order->shipments ?? []]] as [$group, $rows]) {
+                foreach ((array) $rows as $row) {
+                    $refusal = \is_object($row) ? ActionRegistry::refusal($row, $group) : '';
+
+                    if ($refusal !== '') {
+                        $app->enqueueMessage($refusal, 'warning');
+                    }
+                }
             }
 
             $this->form = $model->getForm();

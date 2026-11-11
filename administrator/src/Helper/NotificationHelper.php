@@ -12,24 +12,23 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Notifications\NotificationPushedEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Task\NoticeTask;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
-use Closure;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
-use Joomla\Event\DispatcherInterface;
-use ReflectionFunction;
 use RuntimeException;
 use Throwable;
 
@@ -178,6 +177,99 @@ class NotificationHelper
      * @since  2.0.0
      */
     public const STATE_ACTION = 'alfa.notifications.edit.state';
+
+    /**
+     * The operational alert for a callback refused because its plugin of record is disabled, missing or cannot be
+     * loaded (2.2.0, design 2.15.5): one notice per plugin (dedup key plugin.unavailable.<group.element>),
+     * critical, counting the refused deliveries with the first and the last time, seen by staff who may view payments
+     * (a gateway) or shipments (a carrier), its message naming the recovery: enable or reinstall the plugin, then
+     * reconcile what the provider's retries no longer cover.
+     *
+     * The count is exact under concurrent refusals: the read and the write run under a named lock of their own, which
+     * the next refusal waits for (up to five seconds; a refusal that cannot have it still raises the alert, its count
+     * logged as possibly short). A refusal that arrives after staff dismissed the notice starts a new one: the count
+     * from 1 and its own first time (the notice opens again). A plugin that is enabled but whose Access a provider's
+     * request (a guest) does not hold, so Joomla does not load it (PluginUnavailable::NOT_LOADED), is named for that
+     * cause and its remedy, the plugin's Access (A-C14A-29).
+     *
+     * @param PluginId $plugin The plugin of record.
+     * @param string $reason Why it could not take the callback (a PluginUnavailable reason).
+     *
+     * @since  2.2.0
+     */
+    public static function pluginUnavailable(PluginId $plugin, string $reason = ''): void
+    {
+        $key = 'plugin.unavailable.' . $plugin->key();
+        $db = self::driver();
+        $lock = $db->quote('alfa.notify.' . substr(hash('sha256', (string) Factory::getApplication()->get('db') . '.' . $db->getPrefix() . '.' . $key), 0, 32));
+        $locked = false;
+
+        try {
+            $locked = (int) $db->setQuery('SELECT GET_LOCK(' . $lock . ', 5)')->loadResult() === 1;
+        } catch (Throwable $e) {
+            Log::add('Notifications: the lock of ' . $key . ' could not be taken (' . $e->getMessage() . ').', Log::WARNING, 'com_alfa.plugins');
+        }
+
+        if (!$locked) {
+            Log::add('Notifications: ' . $key . ' raised without its lock; its count may be short.', Log::WARNING, 'com_alfa.plugins');
+        } else {
+            // Its onAlfaNotificationPushed waits for the release.
+            PostCommit::enterLock($db, name: $lock);
+        }
+
+        try {
+            $row = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['text_args', 'dismissed']))
+                    ->from($db->quoteName('#__alfa_notifications'))
+                    ->where($db->quoteName('dedup_key') . ' = :key')
+                    ->bind(':key', $key),
+                0,
+                1,
+            )->loadObject();
+            // A notice staff closed is over: the next refusal is the first of a new one.
+            $open = $row !== null && $row->dismissed === null;
+            $previous = $open ? (NotificationText::arguments(row: $row)['message'] ?? []) : [];
+            $now = Factory::getDate('now', 'UTC')->toSql();
+            $count = (int) ($previous[1] ?? 0) + 1;
+            // The first time as stored: a time parameter ({dt}), or the time itself in a notice raised before 2.2.0's UX
+            // round.
+            $first = (string) (\is_array($previous[2] ?? null) ? ($previous[2]['dt'] ?? $now) : ($previous[2] ?? $now));
+            $carrier = $plugin->group === 'alfa-shipments';
+            // The plugin by the name Extensions: Plugins shows, the times in the reader's zone, and why it could not take
+            // the updates (UX-25 to UX-27, UX-30).
+            $name = AlfaPluginHelper::get()->name($plugin);
+
+            self::push(
+                $key,
+                NotificationText::of('COM_ALFA_NOTIFY_PLUGIN_UNAVAILABLE_TITLE', $name),
+                [
+                    'severity' => 'danger',
+                    'group' => $carrier ? self::GROUP_SHIPPING : self::GROUP_PAYMENTS,
+                    'message' => $reason === PluginUnavailable::NOT_LOADED
+                        ? NotificationText::of('COM_ALFA_NOTIFY_PLUGIN_NOT_LOADED_MESSAGE', $name, $count, NotificationText::date($first), NotificationText::date($now))
+                        : NotificationText::of('COM_ALFA_NOTIFY_PLUGIN_UNAVAILABLE_MESSAGE', $name, $count, NotificationText::date($first), NotificationText::date($now), NotificationText::key(match ($reason) {
+                            PluginUnavailable::DISABLED => 'COM_ALFA_PLUGIN_STATE_DISABLED',
+                            PluginUnavailable::MISSING => 'COM_ALFA_PLUGIN_STATE_MISSING',
+                            default => 'COM_ALFA_PLUGIN_STATE_UNLOADABLE',
+                        })),
+                    'url' => 'index.php?option=com_plugins&view=plugins&filter[folder]=' . $plugin->group . '&filter[element]=' . $plugin->element,
+                    'view' => ['action' => $carrier ? 'alfa.shipments.view' : 'alfa.payments.view', 'asset' => 'com_alfa'],
+                    'constant' => true,
+                ],
+            );
+        } finally {
+            if ($locked) {
+                try {
+                    $db->setQuery('SELECT RELEASE_LOCK(' . $lock . ')')->loadResult();
+                } catch (Throwable $e) {
+                    Log::add('Notifications: the lock of ' . $key . ' could not be released (' . $e->getMessage() . ').', Log::WARNING, 'com_alfa.plugins');
+                }
+
+                PostCommit::leaveLock($db, name: $lock, stillHeld: \Alfa\Component\Alfa\Administrator\Service\Order\OrderMoneyLock::stillHeld($db, $lock));
+            }
+        }
+    }
 
     /**
      * Create or replace a notification, deduped by $dedupKey. Re-pushing an existing
@@ -356,10 +448,10 @@ class NotificationHelper
         $key = (string) $data['dedup_key'];
 
         try {
-            $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
+            $plugins = AlfaPluginHelper::get();
 
             if (self::hasApplication()) {
-                PluginHelper::importPlugin(type: 'alfa', plugin: null, autocreate: true, dispatcher: $dispatcher);
+                $plugins->importGroup('alfa');
             } else {
                 self::log(entry: 'NotificationHelper: no application, so no plugin is loaded for '
                     . NotificationPushedEvent::NAME . " of '{$key}'; only listeners already registered hear it.", priority: Log::DEBUG);
@@ -379,54 +471,17 @@ class NotificationHelper
                 'messageKey' => (string) ($data['message_key'] ?? ''),
                 'textArgs' => NotificationText::arguments(row: (object) ['text_args' => $data['text_args'] ?? null]),
             ]);
-            $listeners = $dispatcher->getListeners(NotificationPushedEvent::NAME);
-        } catch (Throwable $e) {
-            self::log(entry: 'NotificationHelper: ' . NotificationPushedEvent::NAME . " of '{$key}' could not be dispatched: "
-                . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
-
-            return;
-        }
-
-        foreach ($listeners as $listener) {
-            if ($event->isStopped()) {
-                break;
-            }
-
-            try {
-                $listener($event);
-            } catch (Throwable $e) {
-                self::log(entry: 'NotificationHelper: ' . self::listenerName(listener: $listener) . ' failed on '
+            // An after phase (2.2.0, mode A): each listener isolated by the helper, its failure reported here too.
+            foreach ($plugins->dispatchIsolated($event) as $failure) {
+                $e = $failure->error;
+                self::log(entry: 'NotificationHelper: ' . $failure->listener . ' failed on '
                     . NotificationPushedEvent::NAME . " of '{$key}' (#{$id}): " . $e::class . ': ' . $e->getMessage()
                     . ' (' . $e->getFile() . ':' . $e->getLine() . ')', priority: Log::ERROR);
             }
+        } catch (Throwable $e) {
+            self::log(entry: 'NotificationHelper: ' . NotificationPushedEvent::NAME . " of '{$key}' could not be dispatched: "
+                . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
         }
-    }
-
-    /**
-     * A listener's name for the log: the class and method it runs.
-     *
-     * @param callable $listener The listener as the dispatcher holds it.
-     *
-     *
-     * @since  2.1.1
-     */
-    private static function listenerName(callable $listener): string
-    {
-        if (\is_array($listener)) {
-            return (\is_object($listener[0]) ? $listener[0]::class : (string) $listener[0]) . '::' . (string) $listener[1];
-        }
-
-        if ($listener instanceof Closure) {
-            $owner = (new ReflectionFunction($listener))->getClosureThis();
-
-            return $owner === null ? 'a closure listener' : $owner::class . ' (closure)';
-        }
-
-        if (\is_string($listener)) {
-            return $listener;
-        }
-
-        return \is_object($listener) ? $listener::class : 'a listener';
     }
 
     /**
@@ -696,10 +751,8 @@ class NotificationHelper
                 continue;
             }
 
-            $op = self::opOf(payload: $row['payload']);
-
-            if (str_starts_with($op['key'], $prefix)) {
-                $owed[(int) $row['task']] = ['raised' => (string) $row['at'], 'op' => $op];
+            if (str_starts_with(self::opOf(payload: $row['payload'])['key'], $prefix)) {
+                $owed[(int) $row['task']] = self::writesOf(payload: $row['payload'], raised: (string) $row['at']);
             }
         }
 
@@ -707,7 +760,7 @@ class NotificationHelper
         // appear, a hard clear removes it, one its row was written after is skipped.
         ksort($owed);
 
-        foreach ($owed as $entry) {
+        foreach (array_merge(...array_values($owed)) as $entry) {
             $key = $entry['op']['key'];
 
             if (self::skips(modified: $modified[$key] ?? '', raised: $entry['raised'])) {
@@ -745,6 +798,14 @@ class NotificationHelper
      */
     public static function applyJournal(array $ops): array
     {
+        // A single holding later writes of its key (2.2.0) is its writes one by one, each raised when it was.
+        $ops = array_merge(...array_map(
+            static fn (array $entry): array => array_map(
+                static fn (array $write): array => ['task' => (int) $entry['task'], 'raised' => $write['raised'], 'op' => $write['op']],
+                self::writesOf(payload: $entry['op'], raised: (string) $entry['raised']),
+            ),
+            $ops,
+        ));
         $last = [];
 
         foreach ($ops as $entry) {
@@ -855,7 +916,7 @@ class NotificationHelper
      * The notice singles still owed whose payload matches one of the patterns, for a UNION ALL after a read of the
      * notifications table with the same four columns: their id, NULL, their creation and their payload. Pending or
      * running, of any request; this connection's own uncommitted ones included, one a rollback removed not. Read through
-     * idx_handler_state (a plain read, no lock), whatever else the statement narrows by.
+     * idx_handler_state_finished (a plain read, no lock), whatever else the statement narrows by.
      *
      * @param list<string> $patterns LIKE patterns ({@see Tasks::noticePattern()}).
      *
@@ -866,7 +927,7 @@ class NotificationHelper
         $db = self::db();
 
         return 'SELECT ' . $db->quoteName('id') . ', NULL, ' . $db->quoteName('created_at') . ', ' . $db->quoteName('payload')
-            . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' FORCE INDEX (' . $db->quoteName('idx_handler_state') . ')'
+            . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' FORCE INDEX (' . $db->quoteName('idx_handler_state_finished') . ')'
             . ' WHERE ' . $db->quoteName('handler') . ' = ' . $db->quote(NoticeTask::NAME)
             . ' AND ' . $db->quoteName('state') . ' IN (' . $db->quote(Tasks::STATE_PENDING) . ', ' . $db->quote(Tasks::STATE_RUNNING) . ')'
             . ' AND (' . implode(' OR ', array_map(static fn (string $pattern): string => $db->quoteName('payload') . ' LIKE ' . $db->quote($pattern), $patterns)) . ')';
@@ -883,10 +944,39 @@ class NotificationHelper
      */
     private static function opOf(mixed $payload): array
     {
-        $op = json_decode((string) $payload, true);
+        $op = \is_array($payload) ? $payload : json_decode((string) $payload, true);
         $op = \is_array($op) ? $op : [];
 
         return ['key' => (string) ($op['key'] ?? ''), 'op' => (string) ($op['op'] ?? '')] + $op;
+    }
+
+    /**
+     * The writes a notice single holds, in the order raised: its own, raised when the single was written, then the later
+     * writes of its key in the same transaction, each raised when it was (`then`, 2.2.0; {@see Tasks::notice()}).
+     *
+     * @param mixed $payload The stored JSON, or the payload decoded.
+     * @param string $raised When the single was written (its creation).
+     *
+     * @return list<array{raised: string, op: array<string, mixed>}>
+     *
+     * @since  2.2.0
+     */
+    private static function writesOf(mixed $payload, string $raised): array
+    {
+        $op = self::opOf(payload: $payload);
+        $then = \is_array($op['then'] ?? null) ? $op['then'] : [];
+        unset($op['then']);
+        $writes = [['raised' => $raised, 'op' => $op]];
+
+        foreach ($then as $later) {
+            if (\is_array($later)) {
+                $at = (string) ($later['raised'] ?? $raised);
+                unset($later['raised']);
+                $writes[] = ['raised' => $at, 'op' => self::opOf(payload: $later)];
+            }
+        }
+
+        return $writes;
     }
 
     /**
@@ -921,10 +1011,8 @@ class NotificationHelper
                 continue;
             }
 
-            $op = self::opOf(payload: $row['payload']);
-
-            if ($op['key'] === $dedupKey) {
-                $owed[(int) $row['task']] = ['raised' => (string) $row['at'], 'op' => $op];
+            if (self::opOf(payload: $row['payload'])['key'] === $dedupKey) {
+                $owed[(int) $row['task']] = self::writesOf(payload: $row['payload'], raised: (string) $row['at']);
             }
         }
 
@@ -932,7 +1020,7 @@ class NotificationHelper
 
         // As the table will hold it: a push makes a missing row live and open, and re-opens a dismissed one only when
         // constant; a soft clear dismisses an open row; a hard clear removes it.
-        foreach ($owed as $entry) {
+        foreach (array_merge(...array_values($owed)) as $entry) {
             $op = $entry['op'];
 
             if (self::skips(modified: $modified, raised: $entry['raised'])) {

@@ -19,7 +19,7 @@
 ?>
 
 <div class="item-list item-categories">
-    <h2 class="item-list-title item-categories-title"><?php echo Text::_('Categories'); ?></h2>
+    <h2 class="item-list-title item-categories-title"><?php echo Text::_('COM_ALFA_TITLE_CATEGORIES'); ?></h2>
 
     <div class="item-list-inner item-categories-inner">
         <?php foreach ($categories as $categoryId => $category) : ?>
@@ -27,7 +27,8 @@
             <?php
             $categoryUrl = Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $categoryId);
             $firstImage  = !empty($category['media']) ? reset($category['media']) : null;
-            $imageAlt    = !empty($firstImage->alt) ? $firstImage->alt : $category['name'] . ' logo';
+            // The merchant's own alt when set; otherwise empty: the link already says the category's name as its text.
+            $imageAlt    = !empty($firstImage->alt) ? $firstImage->alt : '';
             ?>
 
             <div class="item-list-entry item-category">

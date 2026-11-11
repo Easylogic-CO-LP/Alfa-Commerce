@@ -9,13 +9,14 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
 use BadMethodCallException;
 use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageHelper;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Registry\Registry;
 
@@ -310,12 +311,12 @@ final class PaymentCheckupEvent extends PaymentsEvent
      */
     private static function languagePrefix(): string
     {
-        if (!PluginHelper::isEnabled('system', 'languagefilter')) {
+        // The language filter's configuration as Joomla lists it, through the plugin helper (2.2.0); null when it is off.
+        $params = AlfaPluginHelper::get()->params(PluginId::from('system', 'languagefilter'));
+
+        if ($params === null) {
             return '';
         }
-
-        $filter = PluginHelper::getPlugin('system', 'languagefilter');
-        $params = new Registry(\is_object($filter) ? ($filter->params ?? '') : '');
 
         if ((int) $params->get('remove_default_prefix', 0) === 1) {
             return '';

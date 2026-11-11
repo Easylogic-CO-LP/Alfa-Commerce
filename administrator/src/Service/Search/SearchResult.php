@@ -69,11 +69,17 @@ final class SearchResult
          * is a guess that breaks on two tabs, a back button, or any concurrency.
          *
          * OPAQUE AND ENGINE-ISSUED: `int|string` because the handle's shape belongs to
-         * the engine that minted it: the Enterprise engine issues integer event-row ids;
-         * an external engine (hosted search services issue string query ids) is equally
-         * entitled to the channel. Consumers carry it and hand it back; only the minting
-         * engine interprets it. WHICH searches carry one is engine policy: the
-         * Enterprise engine mints on ITEM searches only, one event per expressed search.
+         * the engine that minted it: one engine issues integer event-row ids, a hosted
+         * search service string query ids. Consumers carry it and hand it back; only the
+         * minting engine interprets it.
+         *
+         * THE HANDLE NAMES THE RENDERED RESULT SET OF THIS REQUEST, NOT THE SEARCH (2.2.0).
+         * A provider may return one for any query that carries a ResultSetContext, on any
+         * page and under any intent, and relates the handles of one shopper's pages
+         * internally, as its own analytics model decides. A query without a ResultSetContext
+         * backs no rendered result set (a facet re-read, a type-ahead lookup, a programmatic
+         * read) and gets no handle. Core carries the handle and renders it with the global
+         * position; it never interprets it.
          *
          * NULL IS THE NORMAL CASE, not an error: a TYPEAHEAD search is deliberately not
          * recorded ({@see SearchIntent::recordsAnalytics()}), so there is no parent to
@@ -81,6 +87,15 @@ final class SearchResult
          * as "attribution unavailable" and record nothing, never as "attribute to zero".
          */
         public readonly int|string|null $eventId = null,
+        /**
+         * Whether the handle belongs to this response or visitor alone (2.2.0), so the
+         * response must not be shared through a cache: core then keeps the page out of
+         * Joomla's page cache and sends no-store on JSON. Read only when a handle is
+         * present; core never knows which engine set it.
+         *
+         * @since 2.2.0
+         */
+        public readonly bool $responseSpecific = false,
     ) {
     }
 

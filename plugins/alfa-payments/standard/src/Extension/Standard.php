@@ -63,11 +63,17 @@
  *              - Read/delete wrappers: getPayment(), getPaymentsByOrder(),
  *                deletePayment()
  *              - Those wrappers return a PaymentLedger builder; every WRITE
- *                goes through $this->..., never PaymentLedger::.... Two named
- *                one exception: the ledger's static balance API
- *                (PaymentLedger::refundableRemainder() & co.) serves the
- *                same figures its own money guards enforce (see
- *                handleRefundPartialForm()).
+ *                and every read of the books goes through $this->...,
+ *                never PaymentLedger::... and never a query of
+ *                #__alfa_order_payments: the balance figures
+ *                ($this->refundableRemainder(), $this->refundableNow()),
+ *                the books API ($this->orderBalance(),
+ *                $this->countReferenceHolders(),
+ *                $this->findOwnRowByReference(), $this->refundTypeFor(),
+ *                $this->claimPendingAttempt(), $this->firstMethodRow())
+ *                and the reads (getPayment(), getPaymentsByOrder()). The
+ *                builder records this plugin as the row's writer, and every
+ *                action here acts only on a row this plugin wrote.
  *                The SETTLE is $this->settleAttempt($builder, ...), never
  *                PaymentLedger::updateIfStatus() by hand. It takes the
  *                builder with ->expectStatus() armed, returns the
@@ -236,6 +242,16 @@
  *   3. reads $params['status_on_' . $newStatus]
  *   4. runs Transition::for($orderId)->to($target)->byPlugin($type)->save()
  *
+ * Since 2.2.0 steps 2 to 4 run from the payment.automation task the write
+ * records with the row, in the same transaction: the move itself runs once
+ * that transaction has committed and after any money lock you hold is
+ * released (OrderMoneyLock::run()). At the top level, as here, that is
+ * before save() returns; inside run(), or inside a transaction of your own,
+ * the order has NOT moved yet when save() returns, so never read the
+ * order's new status there. A refund that covers its payment flips the
+ * payment to refunded the same way. A request that stops after the save
+ * loses nothing: the task runs later.
+ *
  * Transition then owns the fan-out: stock, download entitlements, the
  * onOrderStatusChange event, the status email. Never call Transition
  * yourself for this: one funnel means the admin's "Mark as paid", your
@@ -385,7 +401,7 @@
  * Always create a row PENDING and then UPDATE it to completed:
  *
  *   $id = $this->payment($order)->pending()->amount(50)->save();
- *   $this->paymentUpdate($id)->completed()->save();      // <- side effects here
+ *   $this->paymentUpdate($id)->completed()->save();      // <- side effects here, run after the commit
  *
  * The side effects of "completed" (download entitlements and the
  * method's status_on_completed order transition) fire on the UPDATE path
@@ -597,14 +613,12 @@ namespace Alfa\Plugin\AlfaPayments\Standard\Extension;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentCheckupEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
-use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
-use Joomla\Database\QueryInterface;
 use Joomla\Input\Input;
 
 defined('_JEXEC') or die;
@@ -1077,6 +1091,12 @@ final class Standard extends PaymentsPlugin
             return;
         }
 
+        // Only an order this plugin takes (2.2.0): the order's recorded method type is this plugin's and its method is
+        // still one of this plugin's. Another gateway's order gets no row from here.
+        if ($this->getPaymentMethod(orderId: (int) $order->id()) === null) {
+            return;
+        }
+
         // Nothing to collect (customer credit covered the order at
         // placement): no pending row; a 0.00 collectable is audit noise the
         // admin could even "mark paid".
@@ -1279,7 +1299,7 @@ final class Standard extends PaymentsPlugin
         if ($status === self::STATUS_COMPLETED
             && ($payment->payment_type ?? '') === self::TYPE_PAYMENT
             && $this->refundableNow($event->getOrder())->isPositive()
-            && PaymentLedger::refundableRemainder(paymentId: (int) $payment->id)->isPositive()) {
+            && $this->refundableRemainder(paymentId: (int) $payment->id)->isPositive()) {
             // Refund: transitions to refunded + creates refund record. Both refund
             // actions start a refund: the core withholds them while a provider has
             // reported a refund on this order that the books do not hold.
@@ -1342,6 +1362,17 @@ final class Standard extends PaymentsPlugin
      */
     public function onExecuteAction($event): void
     {
+        // Every action that writes acts only on a payment this plugin wrote (2.2.0): a row of another gateway, or one
+        // this plugin's name was never recorded on, is refused before anything is read or written.
+        $payment = $event->getPayment();
+
+        if (\in_array($event->getAction(), ['mark_paid', 'cancel', 'refund', 'refund_partial', 'refund_partial_do'], true)
+            && (!\is_object($payment) || (string) ($payment->payment_method_type ?? '') !== $this->_name)) {
+            $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_STANDARD_ERROR_NOT_OWN', (int) ($payment->id ?? 0)));
+
+            return;
+        }
+
         match ($event->getAction()) {
             'mark_paid' => $this->handleMarkPaid($event),
             'cancel' => $this->handleCancel($event),
@@ -1405,7 +1436,9 @@ final class Standard extends PaymentsPlugin
         // what you set), diffs old vs new to build the activity-log entry,
         // writes #__alfa_order_activity_log, and (because this is the
         // UPDATE path) grants download entitlements and runs the method's
-        // status_on_<status> order transition.
+        // status_on_<status> order transition; since 2.2.0 those run from
+        // tasks after the commit (no money lock is held here, so before
+        // save() returns).
         $result = $this->paymentUpdate((int) $payment->id)
             ->completed()
             ->processedAt($now)
@@ -1562,7 +1595,7 @@ final class Standard extends PaymentsPlugin
         // be rejected over refunds that already happened. Checked before the
         // verb so nothing is asked when nothing is refundable. Money, so "nothing
         // left" is a question about the currency's own smallest unit.
-        $amount = PaymentLedger::refundableRemainder((int) $payment->id);
+        $amount = $this->refundableRemainder(paymentId: (int) $payment->id);
 
         if (!$amount->isPositive()) {
             $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_STANDARD_ERROR_REFUND_EXHAUSTED', $payment->id));
@@ -1624,7 +1657,7 @@ final class Standard extends PaymentsPlugin
         // booked partial and the payment stays completed. refundTypeFor() is
         // the rule refundPayment() applies to the same remainder; the reason,
         // the log row and the message say what it books.
-        $refundType = PaymentLedger::refundTypeFor(paymentId: (int) $payment->id, amount: null);
+        $refundType = $this->refundTypeFor(paymentId: (int) $payment->id, amount: null);
         $isFull = $refundType === self::REFUND_FULL;
         $reason = Text::sprintf($isFull ? 'PLG_ALFA_PAYMENTS_STANDARD_LOG_REFUNDED' : 'PLG_ALFA_PAYMENTS_STANDARD_LOG_REFUNDED_PARTIAL', $payment->id);
 
@@ -1717,7 +1750,7 @@ final class Standard extends PaymentsPlugin
     private function handleRefundPartialForm($event): void
     {
         $payment = $event->getPayment();
-        $max = PaymentLedger::refundableRemainder((int) $payment->id);
+        $max = $this->refundableRemainder(paymentId: (int) $payment->id);
 
         // Below the form's step (one minor unit), nothing is submittable, so
         // answer the notice instead of a dead form. The action stays REGISTERED when
@@ -1773,7 +1806,7 @@ final class Standard extends PaymentsPlugin
         // Money comparison: paying out the exact remainder must not be
         // rejected on a rounding artefact, and the tolerance is the currency's
         // own smallest unit rather than a guessed epsilon.
-        $remainder = PaymentLedger::refundableRemainder((int) $payment->id);
+        $remainder = $this->refundableRemainder(paymentId: (int) $payment->id);
 
         // ONE refund-amount contract: present, a valid decimal, greater than
         // zero, expressible at the order's scale; the same four checks the
@@ -2063,23 +2096,12 @@ final class Standard extends PaymentsPlugin
             Text::_('PLG_ALFA_PAYMENTS_STANDARD_CHECKUP_PUBLISHED_HELP'),
         );
 
-        // 3-4. Proven in use: money taken, then money given back.
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $proofs = [
-            'PAID' => [
-                PaymentLedger::settledPaymentPredicate(),
-                // Refunded in full since. The full Refund that step 4 asks for
-                // flips the payment it returns from completed to refunded
-                // (PaymentLedger::refundPayment), and that payment still took
-                // the money: the ledger's refundable pool counts both.
-                '(' . $db->quoteName('payment_type') . ' = ' . $db->quote(PaymentLedger::TYPE_PAYMENT)
-                    . ' AND ' . $db->quoteName('transaction_status') . ' = ' . $db->quote(PaymentLedger::STATUS_REFUNDED) . ')',
-            ],
-            'REFUND' => [PaymentLedger::refundPredicate()],
-        ];
+        // 3-4. Proven in use: money taken (a payment that settled, or was refunded in full since: the full Refund
+        //      that step 4 asks for flips the payment it returns, which still took the money), then money given back.
+        $proofs = ['PAID' => self::FIRST_PAID, 'REFUND' => self::FIRST_REFUND];
 
-        foreach ($proofs as $step => $predicates) {
-            $proof = $this->firstLedgerRow($methodId, $predicates);
+        foreach ($proofs as $step => $kind) {
+            $proof = $this->firstMethodRow(methodId: (int) $methodId, kind: $kind);
 
             $event->addStep(
                 Text::_('PLG_ALFA_PAYMENTS_STANDARD_CHECKUP_' . $step . '_TITLE'),
@@ -2088,69 +2110,13 @@ final class Standard extends PaymentsPlugin
                 $proof !== null
                     ? Text::sprintf(
                         'PLG_ALFA_PAYMENTS_STANDARD_CHECKUP_' . $step . '_PROOF',
-                        (int) $proof->id,
-                        (int) $proof->id_order,
-                        HTMLHelper::_('date', (string) $proof->moment, Text::_('DATE_FORMAT_LC5')),
+                        $proof['id'],
+                        $proof['order'],
+                        HTMLHelper::_('date', $proof['moment'], Text::_('DATE_FORMAT_LC5')),
                     )
                     : '',
             );
         }
-    }
-
-    /**
-     * Steps 3 and 4: this method's first ledger row of one kind.
-     *
-     * One query, LIMIT 1. Each predicate is one branch that fixes the whole
-     * idx_payment_method key (method, type, status), so each branch is a ref
-     * lookup that stops at its first row. Step 3's two statuses are two
-     * branches joined by UNION ALL, and the lowest id wins. A single
-     * IN (completed, refunded) is a range instead, and on the demo MariaDB
-     * answered it from another index, reading every payment row of the type.
-     *
-     * Store-credit rows are left out: a wallet spend carries the ORDER's
-     * method id (see PaymentLedger::NON_GATEWAY_TYPES), so without that it
-     * would read as money this method took.
-     *
-     * @param int $methodId The method.
-     * @param string[] $predicates Ledger predicates, one per branch, each fixing type and status.
-     *
-     * @return object|null id, id_order and moment (when the money moved), or null.
-     *
-     * @since  2.0.0
-     */
-    private function firstLedgerRow(int $methodId, array $predicates): ?object
-    {
-        if ($methodId <= 0 || $predicates === []) {
-            return null;
-        }
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $credit = implode(',', array_map(static fn (string $type): string => $db->quote($type), PaymentLedger::NON_GATEWAY_TYPES));
-        $branches = array_map(
-            static fn (string $predicate): QueryInterface => $db->getQuery(true)
-                ->select($db->quoteName(['id', 'id_order']))
-                ->select(PaymentLedger::moneyMoment() . ' AS ' . $db->quoteName('moment'))
-                ->from($db->quoteName('#__alfa_order_payments'))
-                ->where($db->quoteName('id_payment_method') . ' = ' . $methodId)
-                ->where($predicate)
-                ->where($db->quoteName('payment_method_type') . ' NOT IN (' . $credit . ')')
-                ->order($db->quoteName('id') . ' ASC')
-                ->setLimit(1),
-            $predicates,
-        );
-        $query = array_shift($branches);
-
-        if ($branches !== []) {
-            $query = $query->toQuerySet();
-
-            foreach ($branches as $branch) {
-                $query->unionAll($branch);
-            }
-
-            $query->order($db->quoteName('id') . ' ASC');
-        }
-
-        return $db->setQuery($query, 0, 1)->loadObject() ?: null;
     }
 
     //  Utility methods

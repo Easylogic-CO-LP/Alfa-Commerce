@@ -13,10 +13,9 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\CartItemDisplayEvent;
-use Alfa\Component\Alfa\Administrator\Plugin\ItemFieldsPlugin;
-use Alfa\Component\Alfa\Administrator\Service\Cart\CommercialPlugins;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Site\Service\Data\PluginPayload;
-use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\User\User;
 use Joomla\Registry\Registry;
 use Throwable;
@@ -40,12 +39,12 @@ defined('_JEXEC') or die;
 final class CartLinePresenter
 {
     /**
-     * @param CMSApplication $app Boots the plugins.
-     * @param User $customer Whose context decides which commercial plugins take part.
+     * @param User $customer Whose context decides which commercial plugins take part (2.2.0: the plugins are booted
+     *                       through the plugin helper, so no application is handed in).
      *
      * @since  2.0.0
      */
-    public function __construct(private readonly CMSApplication $app, private readonly User $customer)
+    public function __construct(private readonly User $customer)
     {
     }
 
@@ -74,13 +73,16 @@ final class CartLinePresenter
             $fieldSurfaces = [];
 
             if ($field !== null) {
+                // The field's own plugin, through the plugin helper (2.2.0, mode B).
+                $plugins = AlfaPluginHelper::get();
+
                 try {
-                    $plugin = $this->app->bootPlugin((string) $field->type, 'alfa-item-fields');
+                    $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
                 } catch (Throwable $e) {
                     $plugin = null;
                 }
 
-                if ($plugin instanceof ItemFieldsPlugin) {
+                if ($plugin !== null && $plugins->declares($plugin, 'onCartItemView')) {
                     // READ THROUGH THE SHARED PAYLOAD READER, handed on as the
                     // plain array the event contract has always carried; the
                     // field plugin's own shape is not this layer's to reshape.
@@ -101,7 +103,7 @@ final class CartLinePresenter
                         'config' => $field->config ?? new Registry($field->params_decoded ?? []),
                     ]);
 
-                    $plugin->onCartItemView($event);
+                    $plugins->dispatchTo($plugin, $event);
 
                     $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
                 }
@@ -130,20 +132,15 @@ final class CartLinePresenter
             }
         }
 
-        foreach (CommercialPlugins::for($this->customer) as $alfaPlugin) {
-            $plugin = $this->app->bootPlugin($alfaPlugin->name, 'alfa');
-
-            if (!method_exists($plugin, 'onCartItemDisplay')) {
-                continue;
-            }
-
-            $displayEvent = new CartItemDisplayEvent('onCartItemDisplay', [
-                'line' => $cartItem,
-                'item' => $item,
-            ]);
-            $plugin->onCartItemDisplay($displayEvent);
-
-            Surfaces::appendTo($cartItem->surfaces, $displayEvent, 'alfa', $alfaPlugin->name, CartSurface::Main->value);
-        }
+        // Feature plugins (onCartItemDisplay, 2.2.0): one event for the line, each
+        // `alfa` plugin the customer's view levels admit called once, in their order, through
+        // its own targeted declaration; a plugin that throws is logged and the next one runs.
+        $plugins = AlfaPluginHelper::get();
+        $displayEvent = new CartItemDisplayEvent('onCartItemDisplay', [
+            'line' => $cartItem,
+            'item' => $item,
+        ]);
+        $plugins->dispatchToEachIsolated($plugins->admitted($this->customer, 'alfa'), $displayEvent);
+        $displayEvent->harvestInto($cartItem->surfaces);
     }
 }

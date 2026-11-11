@@ -9,9 +9,12 @@
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Factory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Throwable;
 
@@ -73,8 +76,9 @@ final class OrderHistoryHelper
                 'shipment.deleted' => self::shipmentDeleted(context: $context, order: $order),
                 'order.status_changed' => self::statusChanged(context: $context, entry: $entry),
                 'order.transition_refused' => self::statusRefused(context: $context, entry: $entry),
-                'order.email_failed', 'order.email_held', 'order.email_resent', 'order.hook_failed', 'order.hook_held',
-                'order.hook_rerun', 'order.task_resolved' => self::text(text: $context['text'] ?? null),
+                'order.email_sent', 'order.email_failed', 'order.email_held', 'order.email_resent', 'order.hook_failed',
+                'order.hook_held', 'order.hook_rerun', 'order.task_resolved', 'order.automation_superseded' => self::text(text: $context['text'] ?? null),
+                'payment.callback_rejected' => self::callbackRejected(context: $context),
                 default => null,
             };
         } catch (Throwable) {
@@ -250,7 +254,13 @@ final class OrderHistoryHelper
         $args = [];
 
         foreach ($text['args'] as $arg) {
-            if (\is_array($arg)) {
+            // A status is stored by its id and said by its name; recipients by their units and times, said in the
+            // reader's time zone (UX-45, UX-47). Any other array is a text of its own.
+            if (\is_array($arg) && \array_key_exists('status', $arg)) {
+                $arg = self::statusName(id: $arg['status']) ?? '#' . (int) $arg['status'];
+            } elseif (\is_array($arg) && \is_array($arg['recipients'] ?? null)) {
+                $arg = self::recipients(sent: $arg['recipients']);
+            } elseif (\is_array($arg)) {
                 $arg = self::text(text: $arg, depth: $depth + 1);
             }
 
@@ -262,6 +272,96 @@ final class OrderHistoryHelper
         }
 
         return Text::sprintf($key, ...$args);
+    }
+
+    /**
+     * The recipients an e-mail reached, for a History line: the customer and the shop by their addresses, each with the
+     * time it was handed over in the reader's time zone (UX-47); a unit of another kind as it was recorded.
+     *
+     * @param array $sent The units sent: [['unit' => 'customer:address', 'at' => UTC time], ...].
+     *
+     * @since  2.2.0
+     */
+    private static function recipients(array $sent): string
+    {
+        $said = array_map(static function (mixed $one): string {
+            $unit = \is_array($one) ? (string) ($one['unit'] ?? '') : '';
+            $at = \is_array($one) && (string) ($one['at'] ?? '') !== '' ? HTMLHelper::_('date', substr((string) $one['at'], 0, 19), 'H:i') : '';
+            [$kind, $address] = str_contains($unit, ':') ? explode(':', $unit, 2) : ['', $unit];
+
+            return match ($kind) {
+                'customer' => Text::sprintf('COM_ALFA_ORDER_TASK_RECIPIENT_CUSTOMER', $address, $at),
+                'admin' => Text::sprintf('COM_ALFA_ORDER_TASK_RECIPIENT_ADMIN', $address, $at),
+                default => $unit,
+            };
+        }, array_values($sent));
+
+        // The last two joined by the language's "and", any before them by commas (NEW-4).
+        $last = array_pop($said);
+
+        return $said === [] ? (string) $last : Text::sprintf('COM_ALFA_ORDER_TASK_RECIPIENTS_AND', implode(', ', $said), (string) $last);
+    }
+
+    /**
+     * The fields of an entry's stored context as its Details box lists them, in its order: the record of the line's
+     * sentence and the handler's name left out (the line above is their reading), the task by its number, the
+     * recipients through the line's own phrases, a gateway by the name Extensions: Plugins shows; any other field as
+     * stored (2.2.0's UX round; the other 2.1.4 field names stay as they are).
+     *
+     * @param array $context The entry's context.
+     *
+     * @return list<array{0: string, 1: string}> Each field's name and what it says.
+     *
+     * @since  2.2.0
+     */
+    public static function details(array $context): array
+    {
+        $fields = [];
+
+        foreach ($context as $name => $value) {
+            $name = (string) $name;
+
+            if ($name === 'text' || $name === 'handler') {
+                continue;
+            }
+
+            $fields[] = [$name, match (true) {
+                $name === 'task' && is_numeric($value) => Text::sprintf('COM_ALFA_ORDER_HISTORY_DETAIL_TASK', (int) $value),
+                $name === 'sent' && \is_array($value) => self::recipients(sent: $value),
+                $name === 'gateway' && \is_string($value) && preg_match('/^[a-z0-9_-]+$/', $value) === 1 => AlfaPluginHelper::get()->name(PluginId::from('alfa-payments', $value)),
+                \is_array($value) => (string) json_encode($value),
+                default => (string) $value,
+            }];
+        }
+
+        return $fields;
+    }
+
+    /**
+     * A provider's late update rejected because staff had moved its payment attempt to Standard (UX-44): the plugin by
+     * the name Extensions: Plugins shows, the attempt and the provider's reference. The stored English summary stays the
+     * record.
+     *
+     * @param array $context The entry's context: attempt, gateway (the plugin's element), reference.
+     *
+     * @since  2.2.0
+     */
+    private static function callbackRejected(array $context): ?string
+    {
+        $gateway = (string) ($context['gateway'] ?? '');
+
+        if ($gateway === '') {
+            return null;
+        }
+
+        $reference = (string) ($context['reference'] ?? '');
+
+        return Text::sprintf(
+            'COM_ALFA_ORDER_HISTORY_CALLBACK_REJECTED',
+            AlfaPluginHelper::get()->name(PluginId::from('alfa-payments', $gateway)),
+            (int) ($context['attempt'] ?? 0),
+            $reference !== '' ? $reference : '-',
+        );
     }
 
     /**

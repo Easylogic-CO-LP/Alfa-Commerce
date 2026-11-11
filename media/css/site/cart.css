@@ -17,13 +17,18 @@
 
 
 
-.cart-item-col-quantity{
-    display: flex;
+/* The quantity cell stays a table cell: its stepper and remove button share an inner
+   row, an inline box that follows the cell's alignment, centred on wide screens and at
+   the end of the stacked cell on phones, opposite the column's label. */
+.com-alfa.cart-wrapper .quantity-control {
+    display: inline-flex;
     /* Remove drops under the spinner instead of overflowing the fixed-width column */
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap:8px;
+    gap: 8px;
+    max-inline-size: 100%;
+    vertical-align: middle;
 }
 
 /* Chosen configuration (variants / options / custom) listed under the line name */
@@ -83,6 +88,15 @@
     font-size: 0.9375rem;
 }
 
+/* The empty cart's notice that the cart changed elsewhere. Under Alfa's root, not the
+   cart wrapper: a fresh empty page renders the empty layout alone (its own .com-alfa
+   root), a page emptied in place inside the wrapper, and the notice looks the same on
+   both. */
+.com-alfa .cart-changed-notice {
+    margin-block-start: 1rem;
+    color: var(--alfa-info-color);
+}
+
 /* Cart page heading (replaces Bootstrap .text-center). */
 .cart-heading {
     text-align: center;
@@ -105,6 +119,22 @@
 .cart-coupon-form .form-control,
 .cart-user-info .form-select {
     max-width: 280px;
+}
+
+/* Phones: the coupon's label above a full-width field, Apply beside it (2.2.0, UX-78). */
+@media screen and (max-width: 600px) {
+    .cart-coupon-form {
+        flex-wrap: wrap;
+    }
+
+    .cart-coupon-form label {
+        flex-basis: 100%;
+    }
+
+    .cart-coupon-form .form-control {
+        flex: 1;
+        max-width: none;
+    }
 }
 
 .cart-invoice-toggle {
@@ -139,4 +169,93 @@
 
 .cart-rule-remove:hover {
     opacity: 1;
+}
+
+/* THE LINES AND THEIR TOTALS, on the cart page and on the order completed page (both .cart-lines; the owner's s117).
+   The lines table (general.css) shares its width equally among its columns, --cart-lines-columns of them; the summary
+   under it (layouts/cart/summary.php) is as wide as the table, its labels start where the table starts and its amounts
+   end on the edge the table's last (Total) column ends on, with the table's hairlines, cell padding and text size; only
+   the Total row is bold. On wide screens every money column (.cart-money: Price, Tax, Discount, Total) ends its figures
+   and its heading at the column's end edge, so the line totals and the summary's amounts stand under each other. On
+   phones the table stacks; the summary keeps its width and its edges, with a line of its own above it, and the stacked
+   cells' text size. An amount never wraps: a longer one (the words for unchosen shipping, a translation) widens its own
+   row's amount column towards the start, its end edge unmoved. The heading row holds the Items label (one size on both
+   pages, .cart-lines-title) and, on the cart, Clear cart at the end edge.
+   Logical properties only, so a right-to-left page mirrors. */
+.com-alfa.cart-wrapper .cart-lines {
+    --cart-lines-columns: 6;
+}
+
+.com-alfa.cart-wrapper .cart-lines-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+}
+
+.com-alfa.cart-wrapper .cart-lines-title {
+    font-size: 1.5em;
+}
+
+.com-alfa.cart-wrapper .summary-rows {
+    margin: 0;
+    border: 1px solid var(--alfa-hairline);
+}
+
+.com-alfa.cart-wrapper .summary-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+}
+
+.com-alfa.cart-wrapper .summary-row + .summary-row {
+    border-block-start: 1px solid var(--alfa-hairline);
+}
+
+/* A long or translated label wraps; an amount never does (below). */
+.com-alfa.cart-wrapper .summary-label,
+.com-alfa.cart-wrapper .summary-value {
+    margin: 0;
+    padding: 0.625em;
+    font-weight: inherit;
+    overflow-wrap: anywhere;
+}
+
+.com-alfa.cart-wrapper .summary-value {
+    text-align: end;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    unicode-bidi: isolate;
+}
+
+.com-alfa.cart-wrapper .summary-was {
+    display: block;
+}
+
+.com-alfa.cart-wrapper .summary-total {
+    font-weight: 700;
+}
+
+/* Phones: the stacked cells' text size (general.css), so the lines and their totals read as one piece. */
+@media screen and (max-width: 600px) {
+    .com-alfa.cart-wrapper .cart-lines .cart-summary {
+        font-size: 0.8em;
+    }
+}
+
+/* Wide screens and the printed order: the summary continues the table, under its last row's line, its amounts in the
+   Total column. */
+@media (min-width: 601px) {
+    .com-alfa.cart-wrapper .cart-lines .cart-money {
+        text-align: end;
+    }
+
+    .com-alfa.cart-wrapper .cart-lines .summary-rows {
+        border-block-start: 0;
+    }
+
+    .com-alfa.cart-wrapper .cart-lines .summary-row {
+        grid-template-columns: minmax(0, 1fr) minmax(calc(100% / var(--cart-lines-columns)), max-content);
+    }
 }

@@ -9,9 +9,11 @@
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\FileLayout;
-use Joomla\CMS\Plugin\PluginHelper;
 
 defined('_JEXEC') or die;
 
@@ -120,7 +122,12 @@ class Layout
             return self::getEmptyLayout();
         }
 
-        $path = dirname(PluginHelper::getLayoutPath($pluginType, $pluginName, $fileName));
+        // The template's override first, else the plugin's tmpl folder, through the plugin helper (2.2.0).
+        try {
+            $path = dirname(AlfaPluginHelper::get()->layoutPath(PluginId::from((string) $pluginType, (string) $pluginName), (string) $fileName));
+        } catch (InvalidArgumentException) {
+            return self::getEmptyLayout();
+        }
 
         if (file_exists($path . '/' . $fileName . '.php')) {
             return new FileLayout($fileName, $path);

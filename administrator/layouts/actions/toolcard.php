@@ -63,6 +63,8 @@ $notice      = (string) ($action->metadata['notice'] ?? '');
 // entity itself to the merchant. Only values that are NOT translations are escaped:
 // provider identifiers and the URLs built above, all of which land in attributes.
 $label = Text::_($action->label);
+// A card whose button does something other than its title names it says so on the button (button_label, UX-22).
+$buttonLabel = isset($action->metadata['button_label']) ? Text::_((string) $action->metadata['button_label']) : $label;
 
 // Translations that land in an ATTRIBUTE only have the attribute-ending character
 // neutralised; entity-escaping them would corrupt them the same way as above.
@@ -89,7 +91,7 @@ $confirm = $action->requires_confirmation
         <button type="button" class="btn <?php echo $e($action->class); ?> alfa-tool-btn"<?php
             echo $attrs, $confirm, $tooltip, $action->enabled ? '' : ' disabled'; ?>>
             <span class="icon-<?php echo $e($action->icon); ?>" aria-hidden="true"></span>
-            <?php echo $label; ?>
+            <?php echo $buttonLabel; ?>
         </button>
 
         <div class="alfa-progress mt-3" style="display:none;">

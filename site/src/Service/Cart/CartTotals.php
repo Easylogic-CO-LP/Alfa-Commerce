@@ -125,7 +125,9 @@ final class CartTotals
     }
 
     /**
-     * What catalogue discounts already took off the lines.
+     * What catalogue discounts already took off the lines, tax included: the sum of each line's
+     * PriceResult::getSavingsTotalWithTax(), the saving the cart line prints beside its struck total (2.2.0,
+     * A-C16-11). The cart is tax included, so a discount applied before tax states the tax it took off with it.
      *
      * @since  2.0.0
      */
@@ -140,7 +142,7 @@ final class CartTotals
                 && \is_object($cartItem->data->price)
                 && $cartItem->data->price->hasDiscount()
             ) {
-                $totalDiscount = $totalDiscount->add($cartItem->data->price->getSavingsTotal());
+                $totalDiscount = $totalDiscount->add($cartItem->data->price->getSavingsTotalWithTax());
             }
         }
 
@@ -148,7 +150,8 @@ final class CartTotals
     }
 
     /**
-     * What the lines would have come to before those discounts.
+     * What the lines would have come to before those discounts: the sum of what the lines strike (a discounted line
+     * its struck gross total, any other its total).
      *
      * @since  2.0.0
      */
@@ -189,7 +192,7 @@ final class CartTotals
      * placement, all of which read the quote itself.
      *
      * @return array ['tax_incl' => Money, 'tax_excl' => Money, 'tax_rate' => float, 'basis' => ShippingChargeBasis|null,
-     *               'chain' => string[]]
+     *               'chain' => array<int, array{rate: string, name: string}>]
      * @since  2.0.0
      */
     public function shipmentCosts(): array
@@ -230,8 +233,10 @@ final class CartTotals
     }
 
     /**
-     * @return string[] The rates the carrier's charge was calculated with, in the order they apply, as exact
-     *                  decimal texts; empty when nothing is taxed.
+     * @return array<int, array{rate: string, name: string}> The rates the carrier's charge was calculated with, in the
+     *                                                       order they apply, each as its exact decimal text with the
+     *                                                       name of the tax rule that applied it; empty when nothing
+     *                                                       is taxed.
      * @since  2.0.0
      */
     public function shipmentTaxChain(): array

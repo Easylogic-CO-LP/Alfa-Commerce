@@ -62,11 +62,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                         <tbody>
                         <?php foreach ($this->items as $i => $item) : ?>
                             <?php
-                            // Per-row view-access gate (kept here, not in SQL: ACL is per-user).
-                            if (!NotificationHelper::canSee($item, $user)) {
-                                continue;
-                            }
-
+                            // Every row is one the reader may see: the model's query holds the view rules.
                             $severity = \in_array($item->severity, ['success', 'info', 'warning', 'danger'], true) ? $item->severity : 'info';
                             $safeUrl  = NotificationHelper::safeUrl((string) $item->url);
                             $hasLink  = $safeUrl !== '' && NotificationHelper::canUseLink($item, $user);
@@ -90,7 +86,8 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                                 </td>
                                 <td class="d-none d-md-table-cell"><?php echo htmlspecialchars(NotificationText::group($item), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="d-none d-md-table-cell">
-                                    <?php echo $item->created ? HTMLHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC5')) : ''; ?>
+                                    <?php // A date never breaks inside itself (UX-32). ?>
+                        <span class="text-nowrap"><?php echo $item->created ? HTMLHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC5')) : ''; ?></span>
                                 </td>
                                 <td class="d-none d-md-table-cell text-center">
                                     <?php if (!empty($item->dismissed)) : ?>

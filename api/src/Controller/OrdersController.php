@@ -18,7 +18,10 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
+use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
+use Joomla\Database\DatabaseInterface;
+use Joomla\Database\ParameterType;
 use RuntimeException;
 use Throwable;
 
@@ -155,7 +158,10 @@ class OrdersController extends ApiController
      * ApiController::delete() as a 500, so the refusal has to be raised here to
      * come out as a 409 carrying the document numbers the operator needs. That
      * holds for a document issued while the delete ran, which the model refuses
-     * under its lock.
+     * under its lock. An id that names no order answers 404 (2.2.0); an order
+     * whose payment or shipping plugin of record cannot be asked is refused by
+     * the model as a DeleteRefusedException, which the guards answer 409 with
+     * its sentence (2.2.0, A-E24-1).
      *
      * @param int|null $id The record id.
      *
@@ -169,6 +175,7 @@ class OrdersController extends ApiController
         $model = $this->getModel('order', '', ['ignore_request' => true]);
 
         if ($model && $orderId > 0) {
+            $this->refuseMissingOrder(orderId: $orderId);
             $this->refuseDocumentedOrder(model: $model, orderId: $orderId);
             $this->refuseOrderWithoutCurrency(orderId: $orderId);
         }
@@ -183,6 +190,32 @@ class OrdersController extends ApiController
             }
 
             throw $e;
+        }
+    }
+
+    /**
+     * Answer 404 when the id names no order (a second delete of the same order among them), as reading it would: the
+     * model's delete would read an order that is not there and answer 204 (2.2.0).
+     *
+     * @param int $orderId The order id.
+     *
+     * @throws ResourceNotFound When no order has that id.
+     *
+     * @since  2.2.0
+     */
+    private function refuseMissingOrder(int $orderId): void
+    {
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $found = (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadResult();
+
+        if ($found === 0) {
+            throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
         }
     }
 

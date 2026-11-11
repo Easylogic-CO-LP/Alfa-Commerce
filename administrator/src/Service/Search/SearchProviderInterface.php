@@ -20,6 +20,15 @@ defined('_JEXEC') or die;
  * Visibility / usergroup / price stay with the catalog query that filters these
  * candidates.
  *
+ * ATTRIBUTION (2.2.0). The handle names the rendered result set of this request, not
+ * the search. A provider may return one for any query that carries a ResultSetContext,
+ * on any page and under any intent, and relates the handles of one shopper's pages
+ * internally, as its own analytics model decides. A query without a ResultSetContext
+ * backs no rendered result set (a facet re-read, a type-ahead lookup, a programmatic
+ * read) and gets no handle. Core carries the handle and renders it with the global
+ * position; it never interprets it. A provider sets SearchResult::$responseSpecific when
+ * its handle belongs to this response or visitor alone.
+ *
  * @since  2.0.0
  */
 interface SearchProviderInterface

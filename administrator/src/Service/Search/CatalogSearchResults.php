@@ -22,13 +22,13 @@ use InvalidArgumentException;
  * of the RESULT (the service decides it at assembly; today's policy is the canonical
  * products -> categories -> manufacturers), so it travels as list order: the same order
  * the wire emits and every surface renders. Named per-entity properties could never
- * express "categories first for this query", which is exactly the seam the premium
- * tier's section-ordering policy needs. Keyed access stays available via
+ * express "categories first for this query", which is exactly the seam a section-ordering
+ * policy needs. Keyed access stays available via
  * {@see self::section()}.
  *
  * THE EVENT HANDLE RIDES THE ENVELOPE because the service is the only place both
  * halves meet: the engine minted it inside product retrieval (surfaced by the model's
- * passback), and the SURFACE (a premium module rendering its own results page, a JSON
+ * passback), and the SURFACE (an engine's module rendering its own results page, a JSON
  * consumer) is what must stamp it on a click beacon. Without it here, every service
  * consumer would be structurally unable to attribute a click.
  *
@@ -73,6 +73,20 @@ final class CatalogSearchResults
          * Non-null means: do not render sections; navigate. See the class docblock.
          */
         public readonly ?string $redirect = null,
+        /**
+         * Whether the handle belongs to this response alone ({@see SearchResult::$responseSpecific}):
+         * the endpoint then sends no-store (2.2.0).
+         *
+         * @since 2.2.0
+         */
+        public readonly bool $responseSpecific = false,
+        /**
+         * The order the products are shown in (2.2.0): the items model's shownOrder() for this read, `relevance`
+         * unless a sort was set on it.
+         *
+         * @since 2.2.0
+         */
+        public readonly string $order = ResultSetContext::RELEVANCE,
     ) {
         foreach ($this->sections as $section) {
             if (!$section instanceof CatalogSearchSection) {

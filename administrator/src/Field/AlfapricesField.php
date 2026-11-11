@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
@@ -61,6 +62,13 @@ class AlfapricesField extends FormField
      * @since  2.0.0
      */
     private static $options = null;
+
+    /**
+     * @var array|null Every place and currency, read once per request: what a held value is named and marked by.
+     *
+     * @since  2.2.0
+     */
+    private static $catalogue = null;
 
     /**
      * @var array[] Per-(item x row dimensions) engine previews, cached for the request.
@@ -151,7 +159,7 @@ class AlfapricesField extends FormField
             'controlBase' => $controlBase,
             'rows' => array_map(static fn ($row) => (array) $row, array_values($rows)),
             'showModify' => $showModify,
-            'options' => self::loadOptions(),
+            'options' => self::optionsFor(rows: $rows),
             'itemId' => $itemId,
             'storedMemberships' => $storedMemberships,
             'preview' => static fn (array $row): array => self::rowPreview(itemId: $itemId, row: $row),
@@ -454,7 +462,9 @@ class AlfapricesField extends FormField
 
     /**
      * The select option lists, loaded once per request and shared by every
-     * editor on the page.
+     * editor on the page: the published currencies, the places that are
+     * published with every parent place (the market rule of
+     * CategoryPickerPolicy), the user groups and the users.
      *
      * @return array{currencies: array, places: array, usergroups: array, users: array}
      *
@@ -474,13 +484,113 @@ class AlfapricesField extends FormField
             return $db->loadAssocList('id', 'val') ?: [];
         };
 
+        $catalogue = self::catalogue();
+        $places = [];
+
+        foreach ($catalogue['places'] as $id => $name) {
+            if (CategoryPickerPolicy::placeReason(id: $id, tree: $catalogue['placeTree']) === null) {
+                $places[$id] = $name;
+            }
+        }
+
+        $currencies = [];
+
+        foreach ($catalogue['currencies'] as $id => $currency) {
+            if ($currency['state'] === 1) {
+                $currencies[$id] = $currency['text'];
+            }
+        }
+
         self::$options = [
-            'currencies' => $load('SELECT `id`, CONCAT(`name`, " (", `code`, ")") AS val FROM `#__alfa_currencies` WHERE state = 1 ORDER BY ordering'),
-            'places' => $load('SELECT `id`, `name` AS val FROM `#__alfa_places` ORDER BY `name`'),
+            'currencies' => $currencies,
+            'places' => $places,
             'usergroups' => $load('SELECT `id`, `title` AS val FROM `#__usergroups` ORDER BY `lft`'),
             'users' => $load('SELECT `id`, `name` AS val FROM `#__users` ORDER BY `name`'),
         ];
 
         return self::$options;
+    }
+
+    /**
+     * The option lists of one editor: the shared lists, plus every place and
+     * currency its own rows hold that the lists do not offer, named with its
+     * state so a held value is still shown and selected (a currency or a
+     * country unpublished since the row was saved). A held place that is not
+     * offered is also listed under placeNotes, for the row's note.
+     *
+     * @param array $rows The editor's rows (assoc arrays or objects).
+     *
+     * @return array{currencies: array, places: array, usergroups: array, users: array, placeNotes: array<int, true>}
+     *
+     * @since  2.2.0
+     */
+    private static function optionsFor(array $rows): array
+    {
+        $options = self::loadOptions() + ['placeNotes' => []];
+        $catalogue = self::catalogue();
+        $held = static function (string $column) use ($rows): array {
+            $ids = array_map(static fn ($row): int => (int) (((array) $row)[$column] ?? 0), $rows);
+
+            return array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+        };
+
+        foreach ($held('country_id') as $id) {
+            if (isset($options['places'][$id]) || !isset($catalogue['places'][$id])) {
+                continue;
+            }
+
+            $options['places'][$id] = CategoryPickerPolicy::placeLabel(
+                text: $catalogue['places'][$id],
+                reason: CategoryPickerPolicy::placeReason(id: $id, tree: $catalogue['placeTree']),
+            );
+            $options['placeNotes'][$id] = true;
+        }
+
+        foreach ($held('currency_id') as $id) {
+            if (isset($options['currencies'][$id]) || !isset($catalogue['currencies'][$id])) {
+                continue;
+            }
+
+            $state = $catalogue['currencies'][$id]['state'] === -2 ? 'COM_ALFA_CURRENCY_MARK_TRASHED' : 'COM_ALFA_CURRENCY_MARK_UNPUBLISHED';
+            $options['currencies'][$id] = $catalogue['currencies'][$id]['text'] . ' (' . Text::_($state) . ')';
+        }
+
+        return $options;
+    }
+
+    /**
+     * Every place (its name and the tree of parents and states) and every
+     * currency (its text and state), read once per request.
+     *
+     * @return array{places: array<int, string>, placeTree: array<int, array{parent: int, state: int}>, currencies: array<int, array{text: string, state: int}>}
+     *
+     * @since  2.2.0
+     */
+    private static function catalogue(): array
+    {
+        if (self::$catalogue !== null) {
+            return self::$catalogue;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $places = $db->setQuery('SELECT `id`, `name`, `parent_id`, `state` FROM `#__alfa_places` ORDER BY `name`')->loadAssocList() ?: [];
+        $currencies = $db->setQuery('SELECT `id`, CONCAT(`name`, " (", `code`, ")") AS `text`, `state` FROM `#__alfa_currencies` ORDER BY `ordering`')->loadAssocList() ?: [];
+        $names = [];
+
+        foreach ($places as $place) {
+            $names[(int) $place['id']] = (string) $place['name'];
+        }
+
+        $byId = [];
+
+        foreach ($currencies as $currency) {
+            $byId[(int) $currency['id']] = ['text' => (string) $currency['text'], 'state' => (int) $currency['state']];
+        }
+
+        return self::$catalogue = [
+            'places' => $names,
+            'placeTree' => CategoryPickerPolicy::treeOf(rows: $places),
+            'currencies' => $byId,
+        ];
     }
 }

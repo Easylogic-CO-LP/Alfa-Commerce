@@ -525,6 +525,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // signal for exactly this (searchtools.js subscribes to it), so one
                 // dispatch re-initialises everything in the new subtree.
                 oldItems.dispatchEvent(new CustomEvent('joomla:updated', { bubbles: true }));
+
+                // A NEW RESULT SET IS IN PLACE (Alfa Commerce 2.2.0): once, after the swap and
+                // after Joomla's own signal, on the results' container, bubbling. A consumer
+                // listening on the document reads the swapped container's attribution here.
+                oldItems.dispatchEvent(new CustomEvent('alfa:results:updated', { bubbles: true, detail: { view: 'items' } }));
             }
 
             // Update URL DETERMINISTICALLY from the query string, never by reading

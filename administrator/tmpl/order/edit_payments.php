@@ -509,6 +509,11 @@ echo LayoutHelper::render(
 							endforeach; ?>
                         </div>
 					<?php endif; ?>
+					<?php // Where its buttons would be: why this payment's plugin offers none (UX-35). ?>
+					<?php $refusal = $canEditOrder ? ActionRegistry::refusal($payment, 'alfa-payments') : ''; ?>
+					<?php if ($refusal !== '') : ?>
+                        <p class="small text-muted mt-1 mb-0" data-alfa-plugin-refusal><?php echo $this->escape($refusal); ?></p>
+					<?php endif; ?>
 
                     <!-- Bootstrap modal for the Edit popup (iframe-based) -->
 					<?php

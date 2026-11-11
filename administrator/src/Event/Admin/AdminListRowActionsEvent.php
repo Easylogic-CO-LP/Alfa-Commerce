@@ -15,7 +15,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
 /**
  * onAlfaAdminListRowActions: extra actions on every row of the grid.
  *
- * READ    entity, view, screen (list), user, state, items, ids, rowData, token
+ * READ    entity, view, screen (list), user, state, items, ids, rowData() and rowValues(), token
  * WRITE   actions: {@see AdminActions}
  *
  * Declared once for the screen, rendered on each row; the descriptor's data resolver is what
@@ -28,7 +28,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *             return;
  *         }
  *
- *         $event->getAdminContext()->actions->action('resend')
+ *         $event->getAdminContext()->actions->action('alfa.mailer', 'resend')
  *             ->title('PLG_ALFA_NOTIFY_RESEND')
  *             ->icon('icon-mail')
  *             ->task('orders.resendNotification')

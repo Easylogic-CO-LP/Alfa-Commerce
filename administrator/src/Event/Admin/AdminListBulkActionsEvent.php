@@ -26,7 +26,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *             return;
  *         }
  *
- *         $event->getAdminContext()->bulkActions->action('export')
+ *         $event->getAdminContext()->bulkActions->action('alfa.export', 'export')
  *             ->title('PLG_ALFA_EXPORT_SELECTED')
  *             ->icon('icon-download')
  *             ->task('orders.exportSelected')

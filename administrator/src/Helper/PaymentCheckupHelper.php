@@ -12,12 +12,15 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentCheckupEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 use Throwable;
@@ -72,16 +75,13 @@ final class PaymentCheckupHelper
 
         $type = (string) $method->type;
 
-        if ($type === '' || !PluginHelper::isEnabled('alfa-payments', $type)) {
+        // The method's plugin, through the plugin helper (2.2.0, mode B): disabled, missing or unloadable, a notice.
+        $plugins = AlfaPluginHelper::get();
+
+        try {
+            $plugin = $plugins->bootSingle(PluginId::from('alfa-payments', $type));
+        } catch (PluginUnavailable|InvalidArgumentException) {
             $data['notice'] = Text::_('COM_ALFA_CHECKUP_PLUGIN_DISABLED');
-
-            return self::draw($data);
-        }
-
-        $plugin = Factory::getApplication()->bootPlugin($type, 'alfa-payments');
-
-        if (!method_exists($plugin, 'onPaymentCheckup')) {
-            $data['notice'] = Text::_('COM_ALFA_CHECKUP_NOT_OFFERED');
 
             return self::draw($data);
         }
@@ -92,8 +92,14 @@ final class PaymentCheckupHelper
 
         $event = new PaymentCheckupEvent('onPaymentCheckup', ['subject' => $method, 'variant' => $variant, 'check' => $check]);
 
+        if (!$plugins->declares($plugin, 'onPaymentCheckup')) {
+            $data['notice'] = Text::_('COM_ALFA_CHECKUP_NOT_OFFERED');
+
+            return self::draw($data);
+        }
+
         try {
-            $plugin->onPaymentCheckup($event);
+            $plugins->dispatchTo($plugin, $event);
         } catch (Throwable $e) {
             // A gateway that fails while describing itself must not take the
             // settings page with it; the operator sees one line, the log the rest.

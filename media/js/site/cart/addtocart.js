@@ -6,6 +6,10 @@
  * the add itself (event.preventDefault() on `alfaProductAdded`, e.g. a cart module
  * opening its drawer) keeps the card away.
  *
+ * On success it also announces `alfa:cart:changed` ({ source: 'add-to-cart', action:
+ * 'add' }), the signal every cart surface re-reads on, after this add has presented
+ * itself; `alfaProductAdded` stays the cancelable "who presents this add" event.
+ *
  * The route comes from the layout: `cart.add` draws it on the button as data-add-url,
  * the add task in the language of the request that drew the button, so a button a
  * later request brings in (a lazily fetched tab, a re-drawn card) carries its own.
@@ -51,6 +55,9 @@
 
     // The add task as the request itself names it.
     const POSTED_TASK = 'cart.addToCart';
+
+    // The name this script announces alfa:cart:changed under.
+    const CART_CHANGED_SOURCE = 'add-to-cart';
 
     let closeTimer = 0;
     let closeAt = 0;
@@ -449,10 +456,17 @@
             // Someone else presents this add (a cart drawer opening): no new card,
             // and a card still on screen from an earlier add leaves.
             closeCard(document.querySelector(CARD));
-            return;
+        } else {
+            showCard(card);
         }
 
-        showCard(card);
+        // The cart's contents changed: every cart surface on the page re-reads its own
+        // reading. A notification only, nothing of this answer travels with it; sent
+        // after the add has presented itself, whoever presented it.
+        document.dispatchEvent(new CustomEvent('alfa:cart:changed', {
+            bubbles: true,
+            detail: { source: CART_CHANGED_SOURCE, action: 'add' },
+        }));
     }
 
     // Delegated on document so the button survives variant.js container swaps (a

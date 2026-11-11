@@ -30,6 +30,12 @@ use Throwable;
  *
  * The storefront has its own narrowing (published categories the visitor may see) and does not use this.
  *
+ * PLACES follow the market rule (2.2.0): a place is offered only when it and every parent place are published; a place
+ * a record already holds is kept, shown and marked, its words saying the state it or a parent is in ("Greece
+ * (unpublished)"). The place pickers of the administrator (payment and shipping methods, carrier zones, the country
+ * field's settings, the price, discount and tax forms, the prices editor) read it through placeReason() and
+ * placeLabel().
+ *
  * @since  2.1.1
  */
 final class CategoryPickerPolicy
@@ -79,6 +85,18 @@ final class CategoryPickerPolicy
         self::PARENT_ARCHIVED => 'COM_ALFA_CATEGORY_MARK_PARENT_ARCHIVED',
         self::PARENT_TRASHED => 'COM_ALFA_CATEGORY_MARK_PARENT_TRASHED',
         self::MISSING => 'COM_ALFA_CATEGORY_MARK_MISSING',
+    ];
+
+    /**
+     * The language key of the words put after a marked place, by reason.
+     *
+     * @var array<string, string>
+     *
+     * @since  2.2.0
+     */
+    private const PLACE_MARKS = [
+        self::UNPUBLISHED => 'COM_ALFA_PLACE_MARK_UNPUBLISHED',
+        self::TRASHED => 'COM_ALFA_PLACE_MARK_TRASHED',
     ];
 
     /**
@@ -222,6 +240,99 @@ final class CategoryPickerPolicy
         Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
 
         return $text . ' (' . Text::_(self::MARKS[$reason]) . ')';
+    }
+
+    /**
+     * Every place's parent and state, the tree the place rule reads.
+     *
+     * @param DatabaseInterface|null $db The database; the application's when absent.
+     *
+     * @return array<int, array{parent: int, state: int}>
+     *
+     * @since  2.2.0
+     */
+    public static function placeTree(?DatabaseInterface $db = null): array
+    {
+        $db ??= Factory::getContainer()->get('DatabaseDriver');
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'parent_id', 'state']))
+                ->from($db->quoteName('#__alfa_places')),
+        )->loadAssocList() ?: [];
+
+        return self::treeOf(rows: $rows);
+    }
+
+    /**
+     * Why a place is marked, or null when it and every parent place are published: trashed when it or a parent place
+     * is in the trash, else unpublished when it or a parent place is not published.
+     *
+     * @param int $id The place.
+     * @param array<int, array{parent: int, state: int}> $tree The tree (placeTree() or treeOf()).
+     *
+     * @return string|null self::TRASHED, self::UNPUBLISHED, self::MISSING, or null.
+     *
+     * @since  2.2.0
+     */
+    public static function placeReason(int $id, array $tree): ?string
+    {
+        if (!isset($tree[$id])) {
+            return self::MISSING;
+        }
+
+        $unpublished = false;
+        $seen = [];
+        $node = $id;
+
+        while ($node > 0 && isset($tree[$node]) && !isset($seen[$node])) {
+            $seen[$node] = true;
+
+            if ($tree[$node]['state'] === -2) {
+                return self::TRASHED;
+            }
+
+            $unpublished = $unpublished || $tree[$node]['state'] !== 1;
+            $node = $tree[$node]['parent'];
+        }
+
+        return $unpublished ? self::UNPUBLISHED : null;
+    }
+
+    /**
+     * Whether a place picker lists a place: offered (it and its parents published), or held by the record.
+     *
+     * @param string|null $reason The place's reason (placeReason()).
+     * @param bool $held Whether the record already holds the place.
+     *
+     * @return bool True when it is listed.
+     *
+     * @since  2.2.0
+     */
+    public static function placeLists(?string $reason, bool $held): bool
+    {
+        return $held || $reason === null;
+    }
+
+    /**
+     * The text a picker shows for a place: its text, then its state in words when it is not offered.
+     *
+     * @param string $text The place's name or indented name.
+     * @param string|null $reason The place's reason (placeReason()).
+     *
+     * @return string The text to show.
+     *
+     * @since  2.2.0
+     */
+    public static function placeLabel(string $text, ?string $reason): string
+    {
+        if ($reason === null || !isset(self::PLACE_MARKS[$reason])) {
+            return $text;
+        }
+
+        // A picker is also drawn on other extensions' screens (a plugin's settings).
+        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
+
+        return $text . ' (' . Text::_(self::PLACE_MARKS[$reason]) . ')';
     }
 
     /**

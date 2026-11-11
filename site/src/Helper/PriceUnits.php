@@ -34,11 +34,12 @@ use InvalidArgumentException;
 final class PriceUnits
 {
     /**
-     * The per-unit figures of a price block, in the order it shows them.
+     * The per-unit figures of a price block, in the order it shows them: the tax-excluded saving (discount) beside the
+     * net figures, the tax-included saving (discount_with_tax) beside the tax-included ones (2.2.0, A-C16-12).
      *
      * @since  2.0.0
      */
-    public const FIGURES = ['base', 'discount', 'subtotal', 'tax', 'base_with_tax', 'final'];
+    public const FIGURES = ['base', 'discount', 'subtotal', 'tax', 'base_with_tax', 'discount_with_tax', 'final'];
 
     /**
      * What one piece of a cart line costs before discounts, from the line's own whole amount and quantity.
@@ -258,7 +259,8 @@ final class PriceUnits
     {
         [$unit, $line] = match ($figure) {
             'base' => [$price->getBasePrice(), $price->getBaseTotal()],
-            'discount' => [$price->getSavingsPrice(), $price->getSavingsTotal()],
+            'discount' => [$price->getSavingsPriceWithoutTax(), $price->getSavingsTotalWithoutTax()],
+            'discount_with_tax' => [$price->getSavingsPriceWithTax(), $price->getSavingsTotalWithTax()],
             'subtotal' => [$price->getSubtotalPrice(), $price->getSubtotal()],
             'tax' => [$price->getTaxPrice(), $price->getTaxTotal()],
             'base_with_tax' => [$price->getBasePriceWithTax(), $price->getBaseTotalWithTax()],

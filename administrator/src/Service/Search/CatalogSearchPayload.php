@@ -98,12 +98,15 @@ final class CatalogSearchPayload
      *                         was-price worth showing.
      *
      * @return array{contract: int, query: string, total: int,
-     *               event: int|string|null, redirect: string|null,
+     *               event: int|string|null, order: string, redirect: string|null,
      *               sections: object, suggestions: list<array{text: string, type: string|null}>}
      *         `sections` is an object map of section name => list of
      *         `{id, name, url, description}`, carrying only the sections that have rows.
      *         `event` is the opaque attribution handle (null = search not recorded) a
      *         consumer rendering its own results page stamps on the click beacon.
+     *         `order` (2.2.0) is the order the products are shown in: `relevance`, or
+     *         `sort:<key>:<direction>`; a product's position is its index in
+     *         sections.products plus 1 (the endpoint sends no per-row position).
      *         `redirect` non-null means: do not render sections; navigate there. Born
      *         with the contract so no consumer can treat a redirected search as empty.
      *
@@ -144,6 +147,10 @@ final class CatalogSearchPayload
             'query' => $query,
             'total' => $results->total(),
             'event' => $results->eventId,
+            // The order the products are shown in (2.2.0, additive within contract 3): the
+            // items model's own, as it told a provider, never a constant. A product's position
+            // is its index in sections.products plus 1.
+            'order' => $results->order,
             // How long the SERVER spent producing this answer, in milliseconds: the
             // docblock's long-reserved slot. Null when the caller did not measure;
             // always present so the empty and populated shapes stay identical.

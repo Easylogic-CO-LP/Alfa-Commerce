@@ -22,7 +22,7 @@ $onAdd = $params->get('on_add', 'refresh') === 'open' ? 'open' : 'refresh';
 ?>
 
 <div class="mod-alfa-cart mod-alfa-cart-<?php echo (int) $module->id; ?> <?php echo $animation?>" data-mod-cart-outer data-on-add="<?php echo $onAdd; ?>">
-    <div class="cart-toggler" data-counter="<?php echo $togglerCounter; ?>">
+    <div class="cart-toggler" data-counter="<?php echo $togglerCounter; ?>" data-counter-mode="<?php echo $togglerCounterMode; ?>">
         <?php if ($imageType == '0' && !empty($imageFile)) {
             echo HtmlHelper::image($imageFile, 'loading-img');
         } elseif ($imageType == '1' && !empty($imageInline)) {

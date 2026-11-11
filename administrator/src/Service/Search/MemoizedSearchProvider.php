@@ -97,8 +97,8 @@ final class MemoizedSearchProvider implements SearchProviderInterface
         // fixed-vocabulary part, so the documented invariant above (keyword last,
         // nothing can spell another combination's key) keeps holding by construction
         // rather than by accident. THE INTENT IS PART OF THE KEY for the same reason
-        // the principals are: the moment an engine widens TYPEAHEAD retrieval (the
-        // enterprise prefix group), the same keyword under two intents legitimately
+        // the principals are: the moment an engine widens TYPEAHEAD retrieval (a
+        // prefix group of an installed engine), the same keyword under two intents legitimately
         // returns DIFFERENT result sets, and a key that omits it hands a keystroke's
         // widened answer to the expressed search that follows it in the same request.
         return implode('|', [
@@ -109,6 +109,13 @@ final class MemoizedSearchProvider implements SearchProviderInterface
             implode(',', $groups),
             $query->entity->value,
             $query->intent->value,
+            // THE RENDERED READ NEVER SHARES AN ENTRY WITH A RE-READ (2.2.0): a facet
+            // sub-model's read carries no context and the listing's does, so whichever
+            // runs first, the handle-bearing answer stays the listing's own. Only for a
+            // provider that can attribute (A-C11-3): core's live-table CatalogJoinProvider
+            // never mints a handle, so its answer is the same with a context or without,
+            // and the two reads share one entry, as before 2.2.0 (no query more).
+            $this->inner instanceof CatalogJoinProvider ? '-' : ($query->context?->key() ?? '-'),
             $query->keyword,
         ]);
     }

@@ -10,10 +10,15 @@
 namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\FormFieldsPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use DOMDocument;
 use DOMElement;
+use InvalidArgumentException;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -21,7 +26,6 @@ use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\ParameterType;
 use Throwable;
 
@@ -289,7 +293,7 @@ class FieldsHelper
                         continue;
                     }
 
-                    $plugin->prepareDom(new PrepareDomEvent('onAlfaFormFieldsPrepareDom', [
+                    AlfaPluginHelper::get()->invoke($plugin, 'prepareDom', new PrepareDomEvent('onAlfaFormFieldsPrepareDom', [
                         'subject' => $field,
                         'fieldset' => $fieldset,
                         'form' => $form,
@@ -306,8 +310,8 @@ class FieldsHelper
                     // which is what the catch already meant to allow.
                     AlfaLog::register();
                     Log::add(
-                        (\is_object($plugin)
-                            ? 'onAlfaFormFieldsPrepareDom threw in plugin "' . ($plugin->name ?? \get_class($plugin))
+                        ($plugin instanceof LoadedPlugin
+                            ? 'onAlfaFormFieldsPrepareDom threw in plugin "' . $plugin->id
                             : 'The form-field plugin could not start: "' . ($field->type ?? ''))
                         . '" for field #' . (int) ($field->id ?? 0) . ' in context "' . $context . '": '
                         . $e->getMessage(),
@@ -579,9 +583,13 @@ class FieldsHelper
             $candidates[] = JPATH_SITE . '/templates/' . $template
                           . '/html/plg_alfa-form-fields_' . $type . '/' . $name . '.php';
         } else {
-            // No explicit template: let PluginHelper resolve active-template
-            // override + plugin default.
-            $candidates[] = PluginHelper::getLayoutPath('alfa-form-fields', $type, $name);
+            // No explicit template: the plugin helper resolves the active
+            // template's override, else the plugin's default (2.2.0).
+            try {
+                $candidates[] = AlfaPluginHelper::get()->layoutPath(PluginId::from('alfa-form-fields', $type), $name);
+            } catch (InvalidArgumentException) {
+                // A type that names no plugin has no layout of its own.
+            }
         }
 
         // Last-resort fallback: plugin's default.php for this type.
@@ -956,25 +964,28 @@ class FieldsHelper
     }
 
     /**
-     * Boot the alfa-form-fields plugin for this field type. Returns null if the plugin is
-     * missing, disabled, or not a FormFieldsPlugin instance.
+     * Boot the alfa-form-fields plugin for this field type through the plugin helper (2.2.0, mode B), its ambient
+     * subscriptions (the Choice field's onBeforeCompileHead) engaged once through Joomla's own import in place of a
+     * second registration by hand. Null when the plugin is missing, disabled, cannot be loaded or is not a
+     * FormFieldsPlugin.
+     *
+     * @param string $type The field type (the plugin element).
+     *
      * @since  1.0.0
      */
-    private static function boot(string $type): ?FormFieldsPlugin
+    private static function boot(string $type): ?LoadedPlugin
     {
-        if ($type === '' || !PluginHelper::getPlugin('alfa-form-fields', $type)) {
+        $plugins = AlfaPluginHelper::get();
+
+        try {
+            $id = PluginId::from('alfa-form-fields', $type);
+            $plugin = $plugins->bootSingle($id);
+        } catch (PluginUnavailable|InvalidArgumentException) {
             return null;
         }
 
-        $app = Factory::getApplication();
-        $plugin = $app->bootPlugin($type, 'alfa-form-fields');
+        $plugins->importSingle($id);
 
-        if ($plugin instanceof FormFieldsPlugin) {
-            $app->getDispatcher()->addSubscriber($plugin);
-
-            return $plugin;
-        }
-
-        return null;
+        return $plugin;
     }
 }

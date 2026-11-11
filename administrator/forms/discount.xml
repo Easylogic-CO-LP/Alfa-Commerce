@@ -222,14 +222,15 @@
     -->
     <field
             name="places"
-            type="sql"
+            type="categories"
+            model="places"
+            showPath="false"
+            orderBy="id"
+            orderDir="desc"
             required="false"
             multiple="true"
             label="COM_ALFA_FORM_CATEGORY_PLACE_LBL"
             layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` AS val FROM `#__alfa_places`"
-            key_field="id"
-            value_field="val"
     >
       <option value="0">COM_ALFA_FORM_PLACE_ALL</option>
     </field>

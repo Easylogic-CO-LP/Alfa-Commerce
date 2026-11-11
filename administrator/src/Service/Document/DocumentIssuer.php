@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
@@ -28,13 +29,14 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
+use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\ParameterType;
 use RuntimeException;
 use stdClass;
@@ -201,7 +203,8 @@ final class DocumentIssuer
      *     original_unit_price_tax_excl, discount_tax_excl,
      *     custom_unit_price_tax_incl (the agreed custom rate the line was
      *     frozen with; absent = NULL, and NULL on a document without money),
-     *     tax_rate, vat_category, vat_exemption_code,
+     *     tax_rate, vat_category, vat_exemption_code (the line's tax name
+     *     is not stated: the issuer freezes it, see normalizeLines()),
      *     total_tax_excl / tax_amount / total_tax_incl (absent = unit x qty,
      *     a fallback for plugin-amended drafts: the core builders always pass
      *     them, from the frozen order line or the corrected document line),
@@ -2684,6 +2687,93 @@ final class DocumentIssuer
     }
 
     /**
+     * The tax names a document's lines freeze, keyed by taxNameKey().
+     *
+     * Each name is the one already frozen where the line's money comes from,
+     * at the rate it was frozen with, and nothing is resolved again from the
+     * tax rules. A CREDIT takes it ONLY from the document it corrects, as it
+     * takes the inventory identity: a line that document froze without a name
+     * carries none (every document issued before 2.2.0), and the order is
+     * never read. Everything else takes an item line's from its order line
+     * (#__alfa_order_items.tax_name) and a shipping line's from its parcel's
+     * tax chain (ShipmentLedger::chainTaxName()). A fee, an adjustment or a
+     * free-text line names none.
+     *
+     * @param int $orderId The documented order.
+     * @param int $correctsId The corrected document, 0 when there is none.
+     *
+     * @return array<string, string>
+     *
+     * @since  2.2.0
+     */
+    private static function frozenTaxNames(int $orderId, int $correctsId): array
+    {
+        if ($orderId <= 0 && $correctsId <= 0) {
+            return [];
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $names = [];
+
+        if ($correctsId > 0) {
+            $query = $db->getQuery(true)
+                ->select($db->quoteName(['line_type', 'id_order_item', 'id_source', 'tax_rate', 'tax_name']))
+                ->from($db->quoteName('#__alfa_document_items'))
+                ->where($db->quoteName('id_document') . ' = :correctsId')
+                ->where($db->quoteName('tax_name') . " <> ''")
+                ->order($db->quoteName('sort_order') . ' ASC, ' . $db->quoteName('id') . ' ASC')
+                ->bind(':correctsId', $correctsId, ParameterType::INTEGER);
+
+            foreach ($db->setQuery(query: $query)->loadObjectList() ?: [] as $row) {
+                $anchor = $row->line_type === DocumentHelper::LINE_ITEM ? (int) $row->id_order_item : (int) $row->id_source;
+                $names[self::taxNameKey(lineType: (string) $row->line_type, anchor: $anchor, rate: (float) $row->tax_rate)] ??= (string) $row->tax_name;
+            }
+
+            return $names;
+        }
+
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['id', 'tax_rate', 'tax_name']))
+            ->from($db->quoteName('#__alfa_order_items'))
+            ->where($db->quoteName('id_order') . ' = :orderId')
+            ->bind(':orderId', $orderId, ParameterType::INTEGER);
+
+        foreach ($db->setQuery(query: $query)->loadObjectList() ?: [] as $row) {
+            $names[self::taxNameKey(lineType: DocumentHelper::LINE_ITEM, anchor: (int) $row->id, rate: (float) $row->tax_rate)] = (string) $row->tax_name;
+        }
+
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['id', 'shipping_tax_rate', 'shipping_tax_chain']))
+            ->from($db->quoteName('#__alfa_order_shipments'))
+            ->where($db->quoteName('id_order') . ' = :orderId')
+            ->bind(':orderId', $orderId, ParameterType::INTEGER);
+
+        foreach ($db->setQuery(query: $query)->loadObjectList() ?: [] as $row) {
+            $names[self::taxNameKey(lineType: DocumentHelper::LINE_SHIPPING, anchor: (int) $row->id, rate: (float) $row->shipping_tax_rate)]
+                = ShipmentLedger::chainTaxName(stored: (string) $row->shipping_tax_chain);
+        }
+
+        return $names;
+    }
+
+    /**
+     * Where a line's tax name is found: its kind, what it is anchored on (the
+     * order line of an item line, the charge of any other) and its rate. A
+     * name frozen at another rate is not this line's.
+     *
+     * @param string $lineType The line's kind.
+     * @param int $anchor Its order line or its charge; 0 for none.
+     * @param float $rate Its tax rate, in percent.
+     *
+     *
+     * @since  2.2.0
+     */
+    private static function taxNameKey(string $lineType, int $anchor, float $rate): string
+    {
+        return $lineType . '|' . $anchor . '|' . number_format($rate, 3, '.', '');
+    }
+
+    /**
      * Normalize draft lines into insert-ready row objects with frozen totals
      * and the frozen inventory identity the line moves.
      *
@@ -2708,6 +2798,9 @@ final class DocumentIssuer
         // identity would issue a stock-moving document whose effect silently
         // moves nothing. Resolving it here makes forgetting impossible.
         $identity = self::frozenIdentity(orderId: $orderId, correctsId: $correctsId);
+        // The tax name freezes here too, from the same sources, so a draft
+        // builder never states one.
+        $taxNames = self::frozenTaxNames(orderId: $orderId, correctsId: $correctsId);
 
         $rows = [];
         $sort = 0;
@@ -2773,6 +2866,10 @@ final class DocumentIssuer
             $row->vat_category = isset($line['vat_category']) ? (int) $line['vat_category'] : null;
             $row->vat_exemption_code = ($line['vat_exemption_code'] ?? null) !== null
                 ? (string) $line['vat_exemption_code'] : null;
+            $anchor = $row->line_type === DocumentHelper::LINE_ITEM ? (int) $row->id_order_item : (int) $row->id_source;
+            $row->tax_name = $anchor > 0
+                ? $taxNames[self::taxNameKey(lineType: $row->line_type, anchor: $anchor, rate: $row->tax_rate)] ?? ''
+                : '';
 
             // Delivery notes carry no money: zero the amounts regardless of input.
             if (!DocumentHelper::isFiscal($docType)) {
@@ -2881,12 +2978,14 @@ final class DocumentIssuer
 
         unset($draft[self::ASKED]);
 
-        PluginHelper::importPlugin('alfa');
+        // A before phase (2.2.0, mode A): Joomla's dispatch(), a listener's exception is the veto.
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa');
         $event = new DocumentBeforeIssueEvent('onDocumentBeforeIssue', ['draft' => $draft]);
         $veto = null;
 
         try {
-            Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
+            $plugins->dispatch($event);
         } catch (Throwable $e) {
             $veto = $e;
         }
@@ -3693,16 +3792,24 @@ final class DocumentIssuer
     }
 
     /**
-     * Import the alfa feature-plugin group and dispatch a document event,
-     * log-and-continue on listener failure (non-blocking contract).
+     * Raise a document event on the shared dispatcher after the alfa group is imported (2.2.0, mode A, an after phase,
+     * isolated): a listener's failure is logged with its name and the next listener runs (non-blocking contract).
      *
      * @since  2.0.0
      */
-    private static function dispatch(string $name, object $event): void
+    private static function dispatch(string $name, AbstractEvent $event): void
     {
         try {
-            PluginHelper::importPlugin('alfa');
-            Factory::getApplication()->getDispatcher()->dispatch($name, $event);
+            $plugins = AlfaPluginHelper::get();
+            $plugins->importGroup('alfa');
+
+            foreach ($plugins->dispatchIsolated($event) as $failure) {
+                self::logQuietly(
+                    entry:    "{$name} listener {$failure->listener} failed: " . $failure->error->getMessage(),
+                    priority: Log::ERROR,
+                    category: 'com_alfa.documents',
+                );
+            }
         } catch (Throwable $e) {
             self::logQuietly(
                 entry:    "{$name} listener failed: " . $e->getMessage() . "\n" . $e->getTraceAsString(),

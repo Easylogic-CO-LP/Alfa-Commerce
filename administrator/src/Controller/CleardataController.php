@@ -175,7 +175,7 @@ class CleardataController extends BaseController
         $images = (array) ($outcome['images'] ?? []);
         $this->app->enqueueMessage(Text::sprintf('COM_ALFA_CLEAR_IMAGES_KEPT', (int) ($images['present'] ?? 0), self::escape(text: (string) ($images['folder'] ?? ''))), 'notice');
 
-        foreach (['store_warning', 'task_warning'] as $warning) {
+        foreach (['store_warning'] as $warning) {
             if (!empty($outcome[$warning])) {
                 $this->app->enqueueMessage(self::escape(text: (string) $outcome[$warning]), 'warning');
             }

@@ -249,12 +249,13 @@ $actionColors = [
                                             </div>
 										<?php endforeach; ?>
 									<?php else : ?>
-                                        <!-- Generic: key-value list -->
+                                        <!-- Generic: key-value list, read by OrderHistoryHelper::details() (2.2.0's UX round: the sentence's
+                                             record and the handler left out, the task, the recipients and a gateway said in words) -->
                                         <div class="mt-2 p-2 bg-body-tertiary rounded" style="font-size:.85em;">
-											<?php foreach ($context as $key => $val) : ?>
+											<?php foreach (OrderHistoryHelper::details($context) as [$key, $val]) : ?>
                                                 <div class="d-flex justify-content-between py-1 border-bottom">
                                                     <span class="fw-bold"><?php echo $this->escape($key); ?></span>
-                                                    <span class="text-muted"><?php echo $this->escape(is_array($val) ? json_encode($val) : $val); ?></span>
+                                                    <span class="text-muted"><?php echo $this->escape($val); ?></span>
                                                 </div>
 											<?php endforeach; ?>
                                         </div>

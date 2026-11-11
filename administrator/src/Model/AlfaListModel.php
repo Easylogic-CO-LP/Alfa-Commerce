@@ -19,7 +19,6 @@ use Alfa\Component\Alfa\Administrator\Event\Admin\AdminListQueryEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AdminListRowDataEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminAware;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
-use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminDispatcher;
 use Alfa\Component\Alfa\Administrator\Model\Traits\HasFormDerivedFiltersTrait;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -153,7 +152,7 @@ abstract class AlfaListModel extends ListModel
             return $query;
         }
 
-        AlfaAdminDispatcher::dispatch(new AdminListQueryEvent(new AlfaAdminContext(
+        self::alfaRaise(new AdminListQueryEvent(new AlfaAdminContext(
             entity: $this->alfaEntity,
             view: $this->alfaView(),
             screen: AlfaAdminContext::SCREEN_LIST,
@@ -223,7 +222,7 @@ abstract class AlfaListModel extends ListModel
             return;
         }
 
-        AlfaAdminDispatcher::dispatch(new AdminListFiltersEvent(new AlfaAdminContext(
+        self::alfaRaise(new AdminListFiltersEvent(new AlfaAdminContext(
             entity: $this->alfaEntity,
             view: $this->alfaView(),
             screen: AlfaAdminContext::SCREEN_LIST,
@@ -293,9 +292,9 @@ abstract class AlfaListModel extends ListModel
                 ids: $ids,
             );
 
-            AlfaAdminDispatcher::dispatch(new AdminListRowDataEvent($rowDataContext));
+            self::alfaRaise(new AdminListRowDataEvent($rowDataContext));
 
-            $this->alfaRowData = $rowDataContext->rowData;
+            $this->alfaRowData = $rowDataContext->rowData();
         }
 
         if (!$wantsColumns) {
@@ -316,7 +315,7 @@ abstract class AlfaListModel extends ListModel
             rowData: $this->alfaRowData,
         );
 
-        AlfaAdminDispatcher::dispatch(new AdminListColumnsEvent($columnsContext));
+        self::alfaRaise(new AdminListColumnsEvent($columnsContext));
 
         $this->alfaColumns = $columnsContext->columns->getColumns();
     }

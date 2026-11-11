@@ -30,7 +30,7 @@ use LogicException;
  *             return;
  *         }
  *
- *         $event->getAdminContext()->columns->column('risk')
+ *         $event->getAdminContext()->columns->column('alfa.fraud', 'risk')
  *             ->title('PLG_FRAUD_RISK')
  *             ->setLayout('column_risk');
  *     }
@@ -38,7 +38,8 @@ use LogicException;
  * Each concrete event documents which context fields its phase makes live and which single
  * accumulator it may write. A payload field another phase owns reads back as null (never a stale
  * value from a different phase), and an accumulator another phase owns is either null (columns,
- * actions) or simply empty (data, rowData, errors, html), so writing to the wrong one is inert
+ * actions) or simply empty (data, errors; the row values and the markup, which only value() and
+ * append() write, under the contributing plugin's name), so writing to the wrong one is inert
  * rather than damaging.
  *
  * ONE ARGUMENT IS ALSO A SAFETY PROPERTY. Joomla's AbstractEvent runs every constructor

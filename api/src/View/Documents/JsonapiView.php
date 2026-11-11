@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\View\Documents;
 
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
 use Alfa\Component\Alfa\Api\View\PublishesStoredFigures;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
@@ -25,6 +26,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  */
 class JsonApiView extends BaseApiView
 {
+    use ListsRequestTasks;
     use PublishesStoredFigures;
 
     /**

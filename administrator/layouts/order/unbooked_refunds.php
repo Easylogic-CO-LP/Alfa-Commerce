@@ -38,7 +38,7 @@
  * Override:    administrator/templates/{template}/html/layouts/com_alfa/order/unbooked_refunds.php
  *
  * @var array $displayData Contains:
- *   - 'unbooked' => array{refunds: array<int, list<array{reportId: string, id: ?string, amount: ?Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string, words?: list<array{kind: string, id: string, amount: string, currency: string, at: string}>}>>, reserved: array<int, list<array{reportId: string, id: ?string, amount: Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>>, unread: array<int, string>, rows: array<int, list<array{id: int, amount: Money, status: string, reference: string, added: string}>>}
+ *   - 'unbooked' => array{refunds: array<int, list<array{reportId: string, id: ?string, amount: ?Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string, words?: list<array{kind: string, id: string, amount: string, currency: string, at: string}>}>>, reserved: array<int, list<array{reportId: string, id: ?string, amount: Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>>, unread: array<int, string>, unavailable: array<int, string>, rows: array<int, list<array{id: int, amount: Money, status: string, reference: string, added: string}>>}
  *   - 'currency' => Currency, the order's
  *
  * @since  2.1.0
@@ -106,8 +106,15 @@ foreach ($refunds as $paymentId => $list) {
     }
 }
 
+// A payment whose plugin of record cannot be asked has nothing reported to show: when that is the block's only cause it
+// gets a heading and a line of its own, which say so (UX-34); with other causes its line joins theirs.
+$unavailable = (array) ($unbooked['unavailable'] ?? []);
+$pluginOnly = $refunds === [] && $unread !== [] && array_diff_key($unread, $unavailable) === [];
+
 foreach ($unread as $paymentId => $why) {
-    $lines[] = Text::sprintf('COM_ALFA_UNBOOKED_REFUNDS_UNREAD', (int) $paymentId, (string) $why);
+    if (!$pluginOnly) {
+        $lines[] = Text::sprintf('COM_ALFA_UNBOOKED_REFUNDS_UNREAD', (int) $paymentId, (string) $why);
+    }
 }
 
 foreach ($reserved as $paymentId => $list) {
@@ -127,6 +134,14 @@ foreach ($rows as $paymentId => $list) {
     }
 }
 ?>
+<?php if ($pluginOnly) : ?>
+    <?php foreach ($unavailable as $paymentId => $plugin) : ?>
+<div class="alert alert-warning" role="alert" data-alfa-unbooked-refunds data-alfa-refunds-plugin>
+    <h4 class="alert-heading h6 mb-2"><?php echo $escape(Text::sprintf('COM_ALFA_UNBOOKED_REFUNDS_PLUGIN_TITLE', (string) $plugin)); ?></h4>
+    <p class="mb-0"><?php echo $escape(Text::sprintf('COM_ALFA_UNBOOKED_REFUNDS_PLUGIN_INTRO', (string) $plugin, (int) $paymentId)); ?></p>
+</div>
+    <?php endforeach; ?>
+<?php endif; ?>
 <?php if ($lines !== []) : ?>
 <div class="alert alert-warning" role="alert" data-alfa-unbooked-refunds>
     <h4 class="alert-heading h6 mb-2"><?php echo $escape(Text::_('COM_ALFA_UNBOOKED_REFUNDS_TITLE')); ?></h4>

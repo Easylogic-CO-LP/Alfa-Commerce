@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
@@ -231,7 +232,7 @@ class ManufacturerModel extends AlfaAdminModel
             )->loadColumn());
 
             if ($affectedItems !== []) {
-                (new ProjectionManager())->syncItems($affectedItems);
+                (new ProjectionManager())->syncItems($affectedItems, cause: PricesChangedEvent::CAUSE_MANUFACTURER, causeId: \count($manufacturerIds) === 1 ? (int) $manufacturerIds[0] : 0);
             }
         } catch (Throwable $e) {
             Log::add(
@@ -371,7 +372,7 @@ class ManufacturerModel extends AlfaAdminModel
             );
 
             if ($affectedItems !== []) {
-                (new ProjectionManager())->syncItems($affectedItems);
+                (new ProjectionManager())->syncItems($affectedItems, cause: PricesChangedEvent::CAUSE_MANUFACTURER, causeId: \count($pks) === 1 ? (int) reset($pks) : 0);
             }
 
             // Remove the manufacturers' media (rows; files when media_full_deletion is on).

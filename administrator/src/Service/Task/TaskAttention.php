@@ -45,7 +45,7 @@ final class TaskAttention
     public const URL = 'index.php?option=com_alfa&view=tools#tasks';
 
     /**
-     * The failed and held singles staff are to see, counted, and the notice's severity.
+     * The failed and held singles staff are to see, and the failed jobs (2.2.0), counted, and the notice's severity.
      *
      * @return array{failed: int, held: int, severity: string}
      *
@@ -80,6 +80,13 @@ final class TaskAttention
                 $counts['severity'] = 'danger';
             }
         }
+
+        // A job that failed for good waits for staff too: its derived state (a price list, a search index) stays as it
+        // was until it is run again.
+        $counts['failed'] += (int) $db->setQuery(
+            'SELECT COUNT(*) FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB)
+            . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_FAILED),
+        )->loadResult();
 
         return $counts;
     }

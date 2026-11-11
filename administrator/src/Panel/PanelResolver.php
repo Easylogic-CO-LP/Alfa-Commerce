@@ -13,9 +13,12 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use InvalidArgumentException;
 use Joomla\Input\Input;
-use Throwable;
 
 /**
  * Turns a request into a {@see PanelIdentity} and boots the plugin behind one: the two
@@ -66,20 +69,21 @@ final class PanelResolver
     }
 
     /**
-     * Boot the owning plugin so its namespace autoloads, load its language from its own
-     * folder (Joomla auto-loads the component's language on this page but never a
-     * plugin's), and return the booted instance.
+     * Boot the owning plugin through the plugin helper (2.2.0, mode B: Joomla's list asked, so a disabled or missing
+     * owner is never booted), load its language from where an installed plugin keeps it (Joomla auto-loads the
+     * component's language on this page but never a plugin's), and return the helper's handle on it.
      *
      * @param PanelIdentity $identity The panel whose plugin to boot.
      *
-     * @return object The booted plugin instance.
+     * @return LoadedPlugin The booted owner, for dispatchTo().
+     *
+     * @throws PluginUnavailable When the owner cannot be booted.
      *
      * @since  2.0.0
      */
-    public static function boot(PanelIdentity $identity): object
+    public static function boot(PanelIdentity $identity): LoadedPlugin
     {
-        $app = Factory::getApplication();
-        $plugin = $app->bootPlugin($identity->element, $identity->group);
+        $plugin = AlfaPluginHelper::get()->bootSingle(PluginId::from($identity->group, $identity->element));
 
         // Through the ONE loader: administrator/language/ first, where an installed
         // plugin's INI actually lives, then the plugin's own folder.
@@ -89,34 +93,24 @@ final class PanelResolver
     }
 
     /**
-     * Is this an installed, enabled plugin in an alfa* group? Guards the boundary at the
-     * source of truth (#__extensions) so an identity can never name a plugin that is not
-     * live.
+     * Is this an installed, enabled plugin in an alfa* group? Asked of the plugin helper, the one availability
+     * authority (2.2.0: PluginHelper::isEnabled(), the list a plugin's provider reads its configuration from), so an
+     * identity can never name a plugin that is not live for this request.
      *
      * @param string $group Plugin group.
      * @param string $element Plugin element.
-     *
      *
      * @since  2.0.0
      */
     private static function isLivePlugin(string $group, string $element): bool
     {
+        if (!str_starts_with($group, 'alfa')) {
+            return false;
+        }
+
         try {
-            $db = Factory::getContainer()->get('DatabaseDriver');
-
-            $query = $db->getQuery(true)
-                ->select('COUNT(*)')
-                ->from($db->quoteName('#__extensions'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
-                ->where($db->quoteName('enabled') . ' = 1')
-                ->where($db->quoteName('folder') . ' = :group')
-                ->where($db->quoteName('element') . ' = :element')
-                ->where($db->quoteName('folder') . ' LIKE ' . $db->quote('alfa%'))
-                ->bind(':group', $group)
-                ->bind(':element', $element);
-
-            return (int) $db->setQuery($query)->loadResult() > 0;
-        } catch (Throwable $e) {
+            return AlfaPluginHelper::get()->isAvailable(PluginId::from($group, $element));
+        } catch (InvalidArgumentException) {
             return false;
         }
     }

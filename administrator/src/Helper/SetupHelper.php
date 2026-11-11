@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use Alfa\Component\Alfa\Administrator\Event\Setup\CollectSetupChecksEvent;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Setup\CoreSetupProvider;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
@@ -22,7 +23,6 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -433,48 +433,18 @@ final class SetupHelper
      */
     private static function collect(): array
     {
-        $app = Factory::getApplication();
-        $event = new CollectSetupChecksEvent(CollectSetupChecksEvent::NAME, []);
+        // Core's checks first, owned by core.com_alfa, in the event before any plugin is asked (its constructor).
+        $event = new CollectSetupChecksEvent(CollectSetupChecksEvent::NAME, ['coreChecks' => (new CoreSetupProvider())->checks()]);
         $skipped = [];
 
-        $core = new CoreSetupProvider();
-        $core->onAlfaCollectSetupChecks($event);
-        $event->attributeTo(CoreSetupProvider::OWNER_GROUP, CoreSetupProvider::OWNER_NAME);
+        // Every listener on the shared dispatcher (2.2.0, design 2.15.3: mode A, a display phase, isolated), the
+        // platform group imported first (a plugin that cannot import is logged and the others are imported); each
+        // check names its plugin.
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup(PanelDispatcher::PLATFORM_GROUP);
 
-        // Import and enumeration guarded SEPARATELY from the per-plugin loop: group
-        // import instantiates every enabled plugin, so one plugin whose class cannot
-        // load would otherwise hide every other contributor's checks.
-        try {
-            PluginHelper::importPlugin(type: PanelDispatcher::PLATFORM_GROUP, plugin: null, autocreate: true);
-        } catch (Throwable $e) {
-            $skipped[] = 'group import (' . $e->getMessage() . ')';
-        }
-
-        try {
-            $descriptors = PluginHelper::getPlugin(PanelDispatcher::PLATFORM_GROUP);
-        } catch (Throwable $e) {
-            // No plugin list (install, CLI) simply means core-only checks.
-            $descriptors = [];
-            $skipped[] = 'platform group unavailable (' . $e->getMessage() . ')';
-        }
-
-        foreach ($descriptors as $descriptor) {
-            try {
-                $plugin = $app->bootPlugin($descriptor->name, PanelDispatcher::PLATFORM_GROUP);
-
-                if (!method_exists($plugin, CollectSetupChecksEvent::NAME)) {
-                    continue;
-                }
-
-                $plugin->{CollectSetupChecksEvent::NAME}($event);
-
-                // Tag before asking the next contributor, and pin a thrower's
-                // half-registered checks to the THROWER (see ToolRegistry).
-                $event->attributeTo(PanelDispatcher::PLATFORM_GROUP, $descriptor->name);
-            } catch (Throwable $e) {
-                $event->attributeTo(PanelDispatcher::PLATFORM_GROUP, $descriptor->name);
-                $skipped[] = PanelDispatcher::PLATFORM_GROUP . '/' . $descriptor->name . ' (' . $e->getMessage() . ')';
-            }
+        foreach ($plugins->dispatchIsolated($event) as $failure) {
+            $skipped[] = $failure->listener . ' (' . $failure->error->getMessage() . ')';
         }
 
         if ($skipped !== []) {

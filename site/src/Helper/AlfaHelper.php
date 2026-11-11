@@ -10,10 +10,12 @@
 namespace Alfa\Component\Alfa\Site\Helper;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Closure;
+use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Plugin\PluginHelper;
 
 defined('_JEXEC') or die;
 
@@ -301,15 +303,22 @@ class AlfaHelper
         // half stayed open, so a buyer could be sent to a withdrawn gateway,
         // pay, and come back to a dead endpoint.
         //
-        // PluginHelper::isEnabled() is the same authority those endpoints use:
-        // core, cached for the request, and it answers false for a plugin that
-        // is disabled, uninstalled or in the wrong group alike, so this fails
-        // closed on all three.
+        // The plugin helper's isAvailable() is the same authority those endpoints
+        // use (Joomla's list, cached for the request): it answers false for a
+        // plugin that is disabled, uninstalled or in the wrong group alike, so
+        // this fails closed on all three, and on a type that names no plugin.
         $group = 'alfa-' . $baseTable . 's';
+        $plugins = AlfaPluginHelper::get();
 
         return array_filter(
             $methods,
-            static fn ($method): bool => PluginHelper::isEnabled($group, (string) ($method->type ?? '')),
+            static function ($method) use ($plugins, $group): bool {
+                try {
+                    return $plugins->isAvailable(PluginId::from($group, (string) ($method->type ?? '')));
+                } catch (InvalidArgumentException) {
+                    return false;
+                }
+            },
         );
     }
 

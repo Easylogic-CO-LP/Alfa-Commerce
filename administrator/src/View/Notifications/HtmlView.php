@@ -94,5 +94,8 @@ class HtmlView extends BaseHtmlView
         }
 
         TourHelper::toolbarHelp($toolbar, $this->getName());
+        // The bell, as on every other Alfa list: a dismiss from this list reloads the page,
+        // so the bell it lands on already counts one fewer.
+        NotificationHelper::toolbarBadge($toolbar);
     }
 }

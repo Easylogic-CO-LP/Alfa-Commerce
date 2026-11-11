@@ -375,6 +375,11 @@ foreach ($mergeMap as $primary => $children) {
 							endforeach; ?>
                         </div>
 					<?php endif; ?>
+					<?php // Where its buttons would be: why this shipment's plugin offers none (UX-35). ?>
+					<?php $refusal = $canEditOrder ? ActionRegistry::refusal($shipment, 'alfa-shipments') : ''; ?>
+					<?php if ($refusal !== '') : ?>
+                        <p class="small text-muted mt-1 mb-0" data-alfa-plugin-refusal><?php echo $this->escape($refusal); ?></p>
+					<?php endif; ?>
 
                     <!-- Bootstrap modal for the Edit popup (iframe-based) -->
 					<?php

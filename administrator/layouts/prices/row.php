@@ -351,6 +351,10 @@ $calendarForm->bind([
             <div class="price-inline">
                 <label for="<?php echo $esc($idBase . '_country_id'); ?>"><?php echo Text::_('COM_ALFA_PRICES_COUNTRY'); ?></label>
                 <?php echo $selectHtml($base . '[country_id]', $idBase . '_country_id', $options['places'], $row['country_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
+                <?php // A row of a place that is not published keeps its place and is saved as stored; it says so. ?>
+                <?php if (!empty($options['placeNotes'][(int) ($row['country_id'] ?? 0)])) : ?>
+                    <small class="form-text text-warning" data-price-place-note><?php echo Text::_('COM_ALFA_PRICE_PLACE_NOT_ELIGIBLE'); ?></small>
+                <?php endif; ?>
             </div>
             <div class="price-inline">
                 <label for="<?php echo $esc($idBase . '_usergroup_id'); ?>" title="<?php echo Text::_('COM_ALFA_PRICES_GROUP_DESC'); ?>"><?php echo Text::_('COM_ALFA_PRICES_GROUP'); ?></label>

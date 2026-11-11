@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\User\User;
+use Joomla\Database\ParameterType;
 use Throwable;
 
 /**
@@ -142,6 +143,39 @@ final class AutoIssuePolicy
         if ((int) ($flags->issues_delivery_note ?? 0) === 1) {
             self::issueGuarded(orderId: $orderId, docType: DocumentHelper::TYPE_DELIVERY_NOTE);
         }
+    }
+
+    /**
+     * Whether entering a status can issue anything: the issuer is Alfa's own, and the status has issue rules or issues a
+     * delivery note. The flags {@see self::issueForStatus()} reads, without the order: what a status change reads to
+     * decide whether its documents single has work (2.2.0). A rule row that matches no order, or the paid gate, is still
+     * decided when the single runs.
+     *
+     * @param int $statusId The status entered.
+     *
+     * @since  2.2.0
+     */
+    public static function issuesForStatus(int $statusId): bool
+    {
+        if ($statusId <= 0 || !DocumentHelper::isIssuerEnabled()) {
+            return false;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['issues_doc_rules', 'issues_delivery_note']))
+            ->from($db->quoteName('#__alfa_orders_statuses'))
+            ->where($db->quoteName('id') . ' = :statusId')
+            ->bind(':statusId', $statusId, ParameterType::INTEGER);
+        $flags = $db->setQuery(query: $query)->loadObject();
+
+        if ($flags === null) {
+            return false;
+        }
+
+        $rules = json_decode((string) ($flags->issues_doc_rules ?? ''), true);
+
+        return (\is_array($rules) && $rules !== []) || (int) ($flags->issues_delivery_note ?? 0) === 1;
     }
 
     /**

@@ -15,7 +15,6 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ScopedFieldEvent;
 use Alfa\Component\Alfa\Administrator\Helper\FieldParams;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Registry\Registry;
 
 /**
@@ -63,32 +62,63 @@ use Joomla\Registry\Registry;
  *
  * @since  2.0.0
  */
-abstract class ItemFieldsPlugin extends Plugin
+abstract class ItemFieldsPlugin extends Plugin implements TargetedHandlersInterface
 {
     /**
-     * The events this plugin group subscribes to. NOTE: the surface hooks are
-     * normally driven by direct booted-plugin calls per field (the view/model
-     * boot $field->type and call the method); they are NOT globally dispatched.
-     * This subscription engages the plugin on the dispatcher for parity with
-     * payments/shipments; the per-handler instanceof guard keeps it safe in the
-     * defensive case where a foreign event is dispatched under a shared name
-     * (only onItemView is shared across the three groups).
+     * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
+     * shared dispatcher, never in getSubscribedEvents().
      *
+     * @since  2.2.0
+     */
+    public const TARGETED_EVENTS = [
+        'onItemView',
+        'onItemListPrepare',
+        'onItemFieldValueFacetGroups',
+        'onCartItemView',
+        'onCalculateItemPrice',
+        'onGetFieldActions',
+        'onExecuteFieldAction',
+        'onValidateCartAdd',
+        'onPrepareForCart',
+        'onClearData',
+    ];
+
+    /**
+     * The events this plugin group subscribes to on the shared dispatcher: only the list page's broadcast
+     * onItemsListPrepare (2.2.0). The surface hooks are addressed to the field's own plugin (TARGETED_EVENTS), so a
+     * broadcast of a shared name such as onItemView never reaches a field plugin.
      *
      * @since  2.0.0
      */
     public static function getSubscribedEvents(): array
     {
+        // 2.2.0: onItemsListPrepare is the group's one broadcast; every other field hook is addressed to the field's
+        // plugin alone (TARGETED_EVENTS).
         return [
-            'onItemView' => 'onItemView',
-            'onItemListPrepare' => 'onItemListPrepare',
             'onItemsListPrepare' => 'onItemsListPrepare',
-            'onCartItemView' => 'onCartItemView',
-            'onGetFieldActions' => 'onGetFieldActions',
-            'onExecuteFieldAction' => 'onExecuteFieldAction',
-            'onCalculateItemPrice' => 'onCalculateItemPrice',
-            'onValidateCartAdd' => 'onValidateCartAdd',
         ];
+    }
+
+    /**
+     * Alfa's targeted-handler declaration (2.2.0, design 2.15.2): each event of TARGETED_EVENTS this plugin
+     * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
+     * shared dispatcher.
+     *
+     * @return array<string, string>
+     *
+     * @since  2.2.0
+     */
+    public function getTargetedHandlers(): array
+    {
+        $handlers = [];
+
+        foreach (static::TARGETED_EVENTS as $event) {
+            if (\is_callable([$this, $event])) {
+                $handlers[$event] = $event;
+            }
+        }
+
+        return $handlers;
     }
 
     //  SURFACE HOOKS: no-op defaults; concrete plugins override
@@ -399,7 +429,7 @@ abstract class ItemFieldsPlugin extends Plugin
      */
     protected function getLayoutPath(string $layout = 'default'): string
     {
-        return PluginHelper::getLayoutPath('alfa-item-fields', $this->_name, $layout);
+        return AlfaPluginHelper::get()->layoutPath(PluginId::from('alfa-item-fields', $this->_name), $layout);
     }
 
     /**

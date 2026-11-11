@@ -90,6 +90,31 @@
                 <option value="0">JNO</option>
             </field>
 
+            <!-- Middle tier: Use Global falls through to the global config; the category's own value wins. -->
+            <field
+                    name="show_category_title"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_CONFIG_SHOW_CATEGORY_TITLE"
+                    description="COM_ALFA_CONFIG_SHOW_CATEGORY_TITLE_DESC"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
+            <field
+                    name="show_category_description"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_CONFIG_SHOW_CATEGORY_DESCRIPTION"
+                    description="COM_ALFA_CONFIG_SHOW_CATEGORY_DESCRIPTION_DESC"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
             <field
                     name="include_subcategories"
                     type="list"

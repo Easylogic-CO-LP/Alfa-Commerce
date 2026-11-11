@@ -188,6 +188,29 @@ class ExecuteToolActionEvent extends AbstractEvent
     }
 
     /**
+     * Ask the Tools screen to open a page instead of following the work itself: the progress page of the job the
+     * action queued. Answered with the plan; '' leaves the screen where it is.
+     *
+     * @param string $location The page's address.
+     *
+     * @since  2.2.0
+     */
+    public function setLocation(string $location): static
+    {
+        $this->arguments['location'] = $location;
+
+        return $this;
+    }
+
+    /**
+     * @since  2.2.0
+     */
+    public function getLocation(): string
+    {
+        return (string) ($this->arguments['location'] ?? '');
+    }
+
+    /**
      * Record that the action failed, without throwing.
      *
      * A maintenance tool reporting "could not reach the search server" is a normal

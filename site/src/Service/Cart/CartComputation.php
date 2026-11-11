@@ -45,6 +45,15 @@ final class CartComputation
 
     /** @var object|null The rules result the contributions were folded over. @since 2.0.0 */
     private ?object $contributionsBasis = null;
+
+    /**
+     * The plugins the customer's view levels admit that Joomla does not load for the request's user, named when the
+     * charges were last collected (2.2.0): their charges are missing, so the cart carries the refusal.
+     *
+     * @var list<string>
+     * @since  2.2.0
+     */
+    private array $contributionsNotLoaded = [];
     private ?int $deliveryPlaceId = null;
     private ?int $assumedShipmentId = null;
 
@@ -156,7 +165,7 @@ final class CartComputation
 
         $this->contributionsBasis = $basis;
         $state = $this->state();
-        $collected = $this->plugins->contributions($state, $state->subject()->customer(), $this->totals()->total());
+        ['charges' => $collected, 'notLoaded' => $this->contributionsNotLoaded] = $this->plugins->contributions($state, $state->subject()->customer(), $this->totals()->total());
 
         if ($collected === []) {
             return $this->contributions = [];
@@ -170,7 +179,7 @@ final class CartComputation
         $currency = $state->currency();
         $folded = [];
 
-        foreach ($collected as [$pluginName, $contribution]) {
+        foreach ($collected as [$contributor, $contribution]) {
             ['excl' => $excl, 'tax' => $tax] = PriceComputationEngine::foldCartContribution(
                 baseExcl:  $baseExcl,
                 operation: $contribution->operation,
@@ -190,8 +199,8 @@ final class CartComputation
 
             $folded[] = (object) [
                 'code' => $contribution->code,
-                'source' => ($contribution->source !== '' ? $contribution->source : $pluginName)
-                    . '.' . $contribution->code,
+                // group.element.code from 2.2.0; rows frozen before keep their source.
+                'source' => $contributor . '.' . $contribution->code,
                 'label' => $contribution->label,
                 'operation' => $contribution->operation,
                 'tax_rate' => $contribution->taxRate,
@@ -206,6 +215,22 @@ final class CartComputation
         usort($folded, static fn (object $a, object $b): int => $a->sort_order <=> $b->sort_order);
 
         return $this->contributions = $folded;
+    }
+
+    /**
+     * The plugins the customer's view levels admit that Joomla does not load for the request's user (staff lacking
+     * one of the customer's levels), as group.element (2.2.0): the charges are collected first. Their charges are
+     * missing from these totals and the placement refuses; the page shows the refusal with the totals.
+     *
+     * @return list<string>
+     *
+     * @since  2.2.0
+     */
+    public function contributionsNotLoaded(): array
+    {
+        $this->contributions();
+
+        return $this->contributionsNotLoaded;
     }
 
     /**

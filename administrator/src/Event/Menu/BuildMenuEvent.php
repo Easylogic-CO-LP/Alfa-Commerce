@@ -13,15 +13,19 @@ namespace Alfa\Component\Alfa\Administrator\Event\Menu;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Menu\MenuItem;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
  * The Alfa admin menu, open for additions: fired at every alfa* plugin (onAlfaBuildMenu).
  *
- * The core entries come from menu.xml; a plugin adds its own the same fluent way it would
- * anywhere else in this component:
+ * The core entries and headings come from menu.xml and enter through the event's constructor,
+ * before any plugin is asked (the coreItems and coreSections arguments, MenuBuilder::collect());
+ * a plugin adds its own, under its identity, the same fluent way it would anywhere else in this
+ * component:
  *
- *   $event->item('synonyms')
+ *   $event->item('alfa-search.enterprise', 'synonyms')
  *         ->section('COM_ALFA_MENU_SEARCH')
  *         ->title('PLG_ALFA_SEARCH_ENTERPRISE_SYNONYMS_TITLE')
  *         ->panel('alfa-search', 'enterprise', 'synonyms')
@@ -33,7 +37,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * filters by ACL and sorts; the plugin only declares.
  *
  * A SECTION IS PLACED THE SAME WAY. A plugin that owns a whole heading says where
- * it belongs among the core ones with {@see self::section()}: an analytics heading
+ * it belongs among the core ones with {@see self::section()}, under its identity: an analytics heading
  * read daily sits above the once-configured Market, not below it merely because a
  * plugin added it. A heading nobody places renders after every placed one.
  *
@@ -58,15 +62,51 @@ class BuildMenuEvent extends AbstractEvent
     protected array $sections = [];
 
     /**
+     * The event, holding the component's own entries and headings (the coreItems argument: MenuItem[], and the
+     * coreSections argument: [language key => ordering], from menu.xml) before any plugin is asked; every later entry
+     * and heading comes through item(), add() or section(), under its contributor.
+     *
+     * @param string $name The event name.
+     * @param array $arguments The arguments; coreItems and coreSections are taken here and not kept as arguments.
+     *
+     * @throws InvalidArgumentException When a core entry is not a MenuItem.
+     *
+     * @since  2.2.0
+     */
+    public function __construct(string $name, array $arguments = [])
+    {
+        $coreItems = $arguments['coreItems'] ?? [];
+        $coreSections = $arguments['coreSections'] ?? [];
+        unset($arguments['coreItems'], $arguments['coreSections']);
+
+        parent::__construct($name, $arguments);
+
+        foreach ($coreItems as $item) {
+            if (!$item instanceof MenuItem) {
+                throw new InvalidArgumentException('A core menu entry is a MenuItem.');
+            }
+
+            $this->items[] = $item;
+        }
+
+        foreach ($coreSections as $section => $ordering) {
+            $this->placeSection((string) $section, (int) $ordering);
+        }
+    }
+
+    /**
      * Add a new item and return it for fluent configuration.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $id Unique id within the menu.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function item(string $id): MenuItem
+    public function item(string $contributor, string $id): MenuItem
     {
+        PluginId::of($contributor);
         $item = new MenuItem($id);
         $this->items[] = $item;
 
@@ -76,13 +116,16 @@ class BuildMenuEvent extends AbstractEvent
     /**
      * Add a pre-built item.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param MenuItem $item The item.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function add(MenuItem $item): static
+    public function add(string $contributor, MenuItem $item): static
     {
+        PluginId::of($contributor);
         $this->items[] = $item;
 
         return $this;
@@ -94,19 +137,35 @@ class BuildMenuEvent extends AbstractEvent
      * First declaration wins: core places its own headings before any plugin is
      * asked, so a plugin can position the heading it owns but not move a core one.
      *
+     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
      * @param string $section The heading's language key, as items name it.
      * @param int $ordering Sort position among headings; core uses 100..900.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function section(string $section, int $ordering): static
+    public function section(string $contributor, string $section, int $ordering): static
+    {
+        PluginId::of($contributor);
+        $this->placeSection($section, $ordering);
+
+        return $this;
+    }
+
+    /**
+     * The first declaration of a heading wins.
+     *
+     * @param string $section The heading's language key.
+     * @param int $ordering Its sort position.
+     *
+     * @since  2.2.0
+     */
+    private function placeSection(string $section, int $ordering): void
     {
         if ($section !== '' && !isset($this->sections[$section])) {
             $this->sections[$section] = $ordering;
         }
-
-        return $this;
     }
 
     /**

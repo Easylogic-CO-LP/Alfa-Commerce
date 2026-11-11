@@ -875,6 +875,43 @@ class CartController extends FormController implements UserFactoryAwareInterface
     }
 
     /**
+     * AJAX task, a look: the cart page's sections as a page load would render them.
+     *
+     * The page asks for it when another surface (the cart module, an add) changed
+     * the cart. It takes the same settled reading the page load takes and answers
+     * the method response; it reads no input and needs no token, and unlike
+     * refreshMethods it stores no form state. It writes only what a page load of
+     * the cart writes (the settle's reconciliation of the chosen methods). Another
+     * site cannot read the answer, which holds only the visitor's own cart, and no
+     * cache may keep it (Cache-Control: no-store). A look answers GET only: any
+     * other method is refused with 405 and no body, before the cart is read.
+     * Closes the application after emitting JSON.
+     *
+     *
+     * @since  2.2.0
+     */
+    public function sections(): void
+    {
+        if (strtoupper((string) $this->input->getMethod()) !== 'GET') {
+            $this->app->setHeader('status', '405 Method Not Allowed', true);
+            $this->app->setHeader('Allow', 'GET', true);
+            $this->app->setHeader('Cache-Control', 'no-store', true);
+            $this->app->sendHeaders();
+            $this->app->close();
+
+            return;
+        }
+
+        $snapshot = CartService::ambient()->checkout($this->deliveryPlace());
+
+        $this->app->setHeader('Content-Type', 'application/json', true);
+        $this->app->setHeader('Cache-Control', 'no-store', true);
+        $this->app->sendHeaders();
+        echo new JsonResponse($this->methodsResponse($snapshot));
+        $this->app->close();
+    }
+
+    /**
      * Where the checkout form says the order is going.
      *
      * The offered methods are filtered by it, so every checkout operation is

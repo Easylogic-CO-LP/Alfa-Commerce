@@ -54,8 +54,11 @@ use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
 use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
+use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
+use Alfa\Component\Alfa\Administrator\Service\Task\RunnerTrigger;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
 use Joomla\CMS\Event\Module\AfterModuleListEvent;
 use Joomla\CMS\Factory;
@@ -65,6 +68,8 @@ use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Session\Session;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Event\Event;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Registry\Registry;
@@ -119,8 +124,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Hide the com_alfa "Tools" admin menu item from users without `alfa.tools`.
             'onPreprocessMenuItems' => 'onPreprocessMenuItems',
 
-            // Carry Alfa's tour grammar onto admin screens that are not ours.
+            // Carry Alfa's tour grammar onto admin screens that are not ours, and the background work's kicks onto
+            // storefront pages and administrator pages that are not Alfa Commerce's.
             'onBeforeCompileHead' => 'onBeforeCompileHead',
+
+            // The API's recovery tick, after its response.
+            'onAfterRespond' => 'onAfterRespond',
 
             // Storefront menu items removed -> the setup checklist must un-tick.
             'onContentAfterDelete' => 'onContentAfterDelete',
@@ -244,6 +253,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * business in com_alfa. The script itself does nothing until a com_alfa tour is
      * actually running.
      *
+     * The same event carries the background work's kicks (2.2.0, design 2.7): on a
+     * storefront page, kickFromStorefront(); on any administrator page, Alfa
+     * Commerce's own included, for a user who manages it, kickFromAdministrator()
+     * (9.44: an open staff page keeps the work going). Each costs one read when
+     * nothing is due or remains.
+     *
      *
      * @since  2.0.0
      */
@@ -252,15 +267,17 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         try {
             $app = Factory::getApplication();
 
-            if (!$app->isClient('administrator') || $app->getInput()->getCmd('format', 'html') !== 'html') {
+            if ($app->getInput()->getCmd('format', 'html') !== 'html' || !$app->getDocument() instanceof HtmlDocument) {
                 return;
             }
 
-            if ($app->getInput()->getCmd('option', '') === 'com_alfa') {
+            if ($app->isClient('site')) {
+                $this->kickFromStorefront($app->getDocument());
+
                 return;
             }
 
-            if (!PluginHelper::isEnabled('system', 'guidedtours')) {
+            if (!$app->isClient('administrator')) {
                 return;
             }
 
@@ -270,9 +287,86 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 return;
             }
 
-            TourHelper::attachGrammar($app->getDocument());
+            $this->kickFromAdministrator($app->getDocument());
+
+            if ($app->getInput()->getCmd('option', '') !== 'com_alfa' && PluginHelper::isEnabled('system', 'guidedtours')) {
+                TourHelper::attachGrammar($app->getDocument());
+            }
         } catch (Throwable) {
-            // Tour polish never costs a page.
+            // Tour polish and the kicks never cost a page.
+        }
+    }
+
+    /**
+     * The storefront kick (design 2.7): one due read; when work is due, the page that takes the page gate (30 s)
+     * carries the registered kick script, which POSTs once after the page has loaded to the guest endpoint. Nothing
+     * about the queue is in the page. Alfa Commerce's own pages kick through the bell instead. During maintenance it
+     * reads nothing and kicks nothing ({@see self::paused()}).
+     *
+     * @param HtmlDocument $document The page.
+     *
+     * @since  2.2.0
+     */
+    private function kickFromStorefront(HtmlDocument $document): void
+    {
+        if ($this->paused() || !Runner::due() || !Runner::openGate(gate: Runner::GATE_PAGE, seconds: Runner::PAGE_GATE_SECONDS)) {
+            return;
+        }
+
+        $document->addScriptOptions('com_alfa.runner', ['url' => Uri::root(true) . '/index.php?option=com_alfa&task=runner.kick&format=raw']);
+        $assets = $document->getWebAssetManager();
+        $assets->getRegistry()->addExtensionRegistryFile('com_alfa');
+        $assets->useScript('com_alfa.site.runner-kick');
+    }
+
+    /**
+     * The staff kick (design 2.7, amended by 9.44, s120): on an administrator page of a user who manages Alfa Commerce,
+     * one read of the remaining work (Runner::remains(): what is due, and a job another worker holds now); when work
+     * remains, the registered script POSTs to the staff tick after the page has loaded, the session token in the body
+     * (the address carries no token), and again after Runner::STAFF_REPEAT_MS for as long as the tick's answer says
+     * work remains and the page is shown, at most Runner::STAFF_REPEAT_CAP_SECONDS. An open staff page so keeps the
+     * work going: a job started from Tools runs to its end with no click. During maintenance it reads nothing and
+     * kicks nothing.
+     *
+     * @param HtmlDocument $document The page.
+     *
+     * @since  2.2.0
+     */
+    private function kickFromAdministrator(HtmlDocument $document): void
+    {
+        if ($this->paused() || !Runner::remains()) {
+            return;
+        }
+
+        $document->addScriptOptions('com_alfa.runner', [
+            'url' => Uri::base(true) . '/index.php?option=com_alfa&task=runner.tick&format=raw', 'token' => Session::getFormToken(),
+            'header' => RunnerTrigger::REMAINS_HEADER, 'pauseMs' => Runner::STAFF_REPEAT_MS, 'capMs' => Runner::STAFF_REPEAT_CAP_SECONDS * 1000,
+            // The Dashboard's background-work card, drawn again after each tick while it is on the page (entry 27).
+            'cardUrl' => Uri::base(true) . '/index.php?option=com_alfa&task=tasks.backgroundCard',
+        ]);
+        $assets = $document->getWebAssetManager();
+        $assets->getRegistry()->addExtensionRegistryFile('com_alfa');
+        $assets->useScript('com_alfa.admin.runner-kick');
+    }
+
+    /**
+     * The API's recovery tick (design 2.7, D8): one due read per API request; when work is due, the request that takes
+     * the API gate (5 s) ticks after its response: 1,000 ms where the server can finish the response first, 250 ms
+     * inline where it cannot. Never under a lock or in a transaction (Runner::tick() refuses), and never during
+     * maintenance.
+     *
+     * @since  2.2.0
+     */
+    public function onAfterRespond(): void
+    {
+        try {
+            if (!Factory::getApplication()->isClient('api') || $this->paused() || !Runner::due() || !Runner::openGate(gate: Runner::GATE_API, seconds: Runner::ENDPOINT_GAP_SECONDS)) {
+                return;
+            }
+
+            RunnerTrigger::afterResponse(trigger: 'api', budgetMs: Runner::TICK_MS, inlineMs: Runner::API_INLINE_MS);
+        } catch (Throwable) {
+            // The API's answer is already sent: its tick never costs it.
         }
     }
 
@@ -435,8 +529,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
     /**
      * The groups customers hold may have changed: have the price index request
-     * the sets of pricing groups they now hold that it does not know (the
-     * scheduled task prepares them) and drop the ones nobody holds. Never
+     * the sets of pricing groups they now hold that it does not know (each
+     * set's price.set.prepare job prepares it) and drop the ones nobody holds. Never
      * breaks the caller's save.
      *
      * @param string $caller The handler, for the log.

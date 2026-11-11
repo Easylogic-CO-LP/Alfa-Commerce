@@ -10,16 +10,18 @@
 \defined('_JEXEC') or die;
 
 /**
- * Cart items sub-template: renders the line-item table (name, quantity, price, tax,
- * discount, total), the applied cart-rule rows, the coupon form and the totals.
+ * Cart items sub-template: the heading row (the Items label, Clear cart at its end), the
+ * line-item table (name, quantity, price, tax, discount, total; the money columns are
+ * .cart-money), the money summary (layout cart.summary) read as the table's continuation,
+ * then the held coupon codes, the coupon form and the rule nudges.
  */
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
+use Alfa\Component\Alfa\Site\Service\Cart\CartSummary;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
-use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
@@ -28,25 +30,42 @@ use Joomla\CMS\Router\Route;
 // belongs to the same moment.
 $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
 
+// One translated name per column, printed by the header and carried by every
+// cell for the stacked phone layout, so the two cannot drift apart.
+$columnLabels = array_map(
+    static fn (string $key): string => htmlspecialchars(Text::_($key), ENT_QUOTES, 'UTF-8'),
+    [
+        'name'     => 'COM_ALFA_CART_TABLE_NAME',
+        'quantity' => 'COM_ALFA_CART_TABLE_QUANTITY',
+        'price'    => 'COM_ALFA_CART_TABLE_PRICE',
+        'tax'      => 'COM_ALFA_CART_TABLE_TAX',
+        'discount' => 'COM_ALFA_CART_TABLE_DISCOUNT',
+        'total'    => 'COM_ALFA_CART_TABLE_TOTAL',
+    ],
+);
+
 ?>
 
-<div data-cart-items>
+<div class="cart-lines" data-cart-items>
 
     <?php // What the cart said about a change made on the page; empty when the page loads. ?>
     <?php echo Layout::render('cart.messages', ['messages' => []]); ?>
 
-    <!-- Items Section -->
-    <h4><?php echo Text::_('COM_ALFA_CART_ITEMS_HEADING'); ?></h4>
+    <?php // The heading row: the Items label at the start edge, Clear cart at the end edge. ?>
+    <div class="cart-lines-heading">
+        <h4 class="cart-lines-title"><?php echo Text::_('COM_ALFA_CART_ITEMS_HEADING'); ?></h4>
+        <button type="button" class="action secondary small" data-action="cart-clear"><?php echo Text::_('COM_ALFA_CART_CLEAR'); ?></button>
+    </div>
 
     <table>
         <thead>
         <tr>
-            <th><?php echo Text::_('COM_ALFA_CART_TABLE_NAME'); ?></th>
-            <th><?php echo Text::_('COM_ALFA_CART_TABLE_QUANTITY'); ?></th>
-            <th><?php echo Text::_('COM_ALFA_CART_TABLE_PRICE'); ?></th>
-            <th><?php echo Text::_('COM_ALFA_CART_TABLE_TAX'); ?></th>
-            <th><?php echo Text::_('COM_ALFA_CART_TABLE_DISCOUNT'); ?></th>
-            <th><?php echo Text::_('COM_ALFA_CART_TABLE_TOTAL'); ?></th>
+            <th><?php echo $columnLabels['name']; ?></th>
+            <th><?php echo $columnLabels['quantity']; ?></th>
+            <th class="cart-money"><?php echo $columnLabels['price']; ?></th>
+            <th class="cart-money"><?php echo $columnLabels['tax']; ?></th>
+            <th class="cart-money"><?php echo $columnLabels['discount']; ?></th>
+            <th class="cart-money"><?php echo $columnLabels['total']; ?></th>
         </tr>
         </thead>
         <tbody>
@@ -72,8 +91,10 @@ $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
 
             // '-' means priced with no discount; the em dash means the column
             // does not apply: the line is unpriced or its money is not counted.
+            // The saving is tax included, as every figure of the cart: the struck
+            // total less this saving is the line's total.
             $discountTotal = $payable
-                ? ($price->hasDiscount() ? $price->getSavingsTotal()->format() : '-')
+                ? ($price->hasDiscount() ? $price->getSavingsTotalWithTax()->format() : '-')
                 : '-';
 
             $total = $price?->getTotal();
@@ -82,7 +103,7 @@ $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
             <tr class="cart-item-outer<?php echo $unavailable ? ' cart-item-unavailable' : ''; ?>" data-item-id="<?php echo $cartItem->id_item; ?>" data-line-id="<?php echo $cartItem->id; ?>">
 
                 <!-- Name + chosen configuration -->
-                <td data-label="Name" class="cart-item-col-name cart-item-col">
+                <td data-label="<?php echo $columnLabels['name']; ?>" class="cart-item-col-name cart-item-col">
 					<?php echo htmlspecialchars($cartItem->data->name); ?>
 					<?php $cartFieldSurfaces = $cartItem->surfaces[CartSurface::Main->value] ?? []; ?>
 					<?php if ($cartFieldSurfaces): ?>
@@ -109,7 +130,10 @@ $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
                 </td>
 
                 <!-- Quantity Controls -->
-                <td data-label="Quantity" class="cart-item-col-quantity cart-item-col">
+                <td data-label="<?php echo $columnLabels['quantity']; ?>" class="cart-item-col-quantity cart-item-col">
+                    <?php // The stepper and the remove button sit in one row of their own, so the
+                          // cell stays a table cell on wide screens and stacks like the others on phones. ?>
+                    <div class="quantity-control">
 					<?php if ($unavailable && !$requantify): ?>
                         <?php // No spinner on an unavailable line: the only action left on
                               // it is taking it out of the cart. ?>
@@ -150,25 +174,26 @@ $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
                             <path d="m19.32 25a1 1 0 0 0 1-1v-12a1 1 0 0 0 -2 0v12a1 1 0 0 0 1 1z"/>
                         </svg>
                     </button>
+                    </div>
                 </td>
 
-                <td data-label="Price" class="cart-item-col-price cart-item-col">
+                <td data-label="<?php echo $columnLabels['price']; ?>" class="cart-item-col-price cart-item-col cart-money">
 		            <?= $price ? $unitPrice : '-'; ?>
                 </td>
 
-                <td data-label="Tax" class="cart-item-col-tax cart-item-col">
+                <td data-label="<?php echo $columnLabels['tax']; ?>" class="cart-item-col-tax cart-item-col cart-money">
 	                <?= $payable ? $price->getTaxTotal()->format() : '-'; ?>
                 </td>
 
-                <td data-label="Discount" class="cart-item-col-discount cart-item-col">
+                <td data-label="<?php echo $columnLabels['discount']; ?>" class="cart-item-col-discount cart-item-col cart-money">
 					<?= $discountTotal; ?>
                 </td>
 
                 <!-- Line Total: the line's own money -->
-                <td data-label="Total" class="cart-item-col-total">
+                <td data-label="<?php echo $columnLabels['total']; ?>" class="cart-item-col-total cart-money">
 					<?php if ($payable): ?>
                     <?php // A struck "was" total claims a saving, so it is printed only when the line
-                          // has one: the same gate the admin statement and the cart footer use. ?>
+                          // has one: the same gate the admin statement and the cart summary use. ?>
                     <?php if ($price->hasDiscount()): ?>
                     <del><?= $baseTotalWithTax->format(); ?></del><br/>
                     <?php endif; ?>
@@ -184,92 +209,20 @@ $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
             </tr>
 		<?php endforeach; ?>
         </tbody>
-
-        <tfoot>
-        <!-- Subtotal with discount (if any) -->
-        <tr>
-            <td colspan="3"></td>
-            <td>
-			    <?php if (!$snapshot->totals->tax->isZero()): ?>
-				    <?php echo $snapshot->totals->tax->format(); ?>
-			    <?php endif; ?>
-            </td>
-            <td>
-			    <?php if (!$snapshot->totals->discount->isZero()): ?>
-                    -<?php echo $snapshot->totals->discount->format(); ?>
-			    <?php endif; ?>
-            </td>
-            <td>
-			    <?php if (!$snapshot->totals->discount->isZero()): ?>
-                    <del><?php echo $snapshot->totals->beforeDiscount->format(); ?></del><br/>
-			    <?php endif; ?>
-                <span><?php echo $snapshot->totals->goods->format(); ?></span>
-            </td>
-        </tr>
-
-        <!-- Shipping. Free shipping is a shipping BENEFIT, never a negative
-             line sitting beside a full charge; the engine classifies it and
-             this row just renders the verdict, it never compares numbers. -->
-		<?php $shipping = $snapshot->totals->shippingBenefit; ?>
-        <tr>
-            <td colspan="4"></td>
-            <td><strong><?php echo Text::_('COM_ALFA_CART_SHIPPING'); ?>:</strong></td>
-            <td>
-				<?php if ($shipping->benefit === 'free_shipping'): ?>
-                    <del class="cart-shipping-was"><?php echo Money::of($shipping->cost, $snapshot->currency)->format(); ?></del>
-                    <strong class="cart-shipping-free"><?php echo Text::_('COM_ALFA_FREE_SHIPPING'); ?></strong>
-				<?php elseif ($shipping->benefit === 'partial'): ?>
-                    <del class="cart-shipping-was"><?php echo Money::of($shipping->cost, $snapshot->currency)->format(); ?></del>
-					<?php echo $snapshot->totals->shipment->format(); ?>
-				<?php else: ?>
-					<?php echo $snapshot->totals->shipment->format(); ?>
-				<?php endif; ?>
-            </td>
-        </tr>
-
-        <!-- Plugin cart contributions: one labeled row each -->
-		<?php foreach ($snapshot->totals->contributions as $contribution): ?>
-        <tr>
-            <td colspan="4"></td>
-            <td><strong><?php echo htmlspecialchars($contribution->label, ENT_QUOTES, 'UTF-8'); ?>:</strong></td>
-            <td><?php echo $contribution->amount_tax_incl_money->format(); ?></td>
-        </tr>
-		<?php endforeach; ?>
-
-        <!-- Applied cart rules: one labeled row per rule, removable when coded -->
-		<?php foreach ($snapshot->rules->applied as $rule): ?>
-			<?php // Already shown on the shipping row above.
-			      if ($rule->discountClass === 'shipping') { continue; } ?>
-        <tr class="cart-rule-row">
-            <td colspan="4"></td>
-            <td>
-                <strong><?php echo htmlspecialchars($rule->name, ENT_QUOTES, 'UTF-8'); ?></strong>
-				<?php if ($rule->code !== null): ?>
-                    <form action="<?php echo Route::_('index.php?option=com_alfa&task=cart.removeCoupon'); ?>"
-                          method="post" class="cart-rule-remove-form">
-                        <input type="hidden" name="coupon_code" value="<?php echo htmlspecialchars($rule->code, ENT_QUOTES, 'UTF-8'); ?>"/>
-                        <button type="submit" class="cart-rule-remove"
-                                title="<?php echo Text::_('COM_ALFA_CART_COUPON_REMOVE'); ?>">&times;</button>
-                        <?php echo HTMLHelper::_('form.token'); ?>
-                    </form>
-				<?php endif; ?>
-            </td>
-            <td>−<?php echo $rule->discountTaxInclMoney($snapshot->currency)->format(); ?></td>
-        </tr>
-		<?php endforeach; ?>
-
-        <!-- Grand Total -->
-        <tr class="grand-total-row">
-            <td colspan="1">
-                <button class="action secondary small" data-action="cart-clear"><?php echo Text::_('COM_ALFA_CART_CLEAR'); ?></button>
-            </td>
-            <td colspan="3"></td>
-            <td><strong><?php echo Text::_('COM_ALFA_CART_TOTAL'); ?>:</strong></td>
-            <td><strong><?php echo $snapshot->totals->grand->format(); ?></strong></td>
-        </tr>
-        </tfoot>
-
     </table>
+
+    <?php // THE MONEY, OUT OF THE LINES TABLE: the summary rows, prepared by the
+          // builder (which rows exist, every figure), right under the table, which it
+          // continues. Inside [data-cart-items], so every answer that swaps it brings it. ?>
+    <?php echo Layout::render(layout: 'cart.summary', data: [
+        'rows' => CartSummary::rows(
+            totals: $snapshot->totals,
+            rules: $snapshot->rules,
+            currency: $snapshot->currency,
+            shippingAwaitsChoice: $snapshot->shippingAwaitsChoice(),
+        ),
+        'label' => Text::_('COM_ALFA_CART_SUMMARY_LABEL'),
+    ]); ?>
 
 	<?php
 	// EVERY HELD CODE THE ROWS ABOVE DID NOT ALREADY GIVE A REMOVE CONTROL.
@@ -278,10 +231,10 @@ $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
 	// stuck for the life of the cart. Two kinds have no control above:
 	//
 	//   * a code stored as CONDITIONS_NOT_MET: real code, conditions not met
-	//     yet, so it never enters the applied-rules loop at all;
-	//   * a SHIPPING-class code: it IS applying, but the loop above `continue`s
-	//     past its row (the discount is shown on the shipping line instead), and
-	//     the remove form lives inside the row it skips.
+	//     yet, so it never enters the applied rules at all;
+	//   * a SHIPPING-class code: it IS applying, but the summary gives it no rule
+	//     row (the discount is shown on the shipping row instead), and the remove
+	//     form lives inside the row it skips.
 	//
 	// So the exclusion is not "applied"; it is "already removable above".
 	$codesWithARemoveControl = [];
@@ -308,8 +261,10 @@ $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
             <form action="<?php echo Route::_('index.php?option=com_alfa&task=cart.removeCoupon'); ?>"
                   method="post" class="cart-rule-remove-form">
                 <input type="hidden" name="coupon_code" value="<?php echo htmlspecialchars($heldCouponCode, ENT_QUOTES, 'UTF-8'); ?>"/>
+                <?php $heldRemoveLabel = htmlspecialchars(Text::sprintf('COM_ALFA_CART_COUPON_REMOVE', $heldCouponCode), ENT_QUOTES, 'UTF-8'); ?>
                 <button type="submit" class="cart-rule-remove"
-                        title="<?php echo Text::_('COM_ALFA_CART_COUPON_REMOVE'); ?>">&times;</button>
+                        title="<?php echo $heldRemoveLabel; ?>"
+                        aria-label="<?php echo $heldRemoveLabel; ?>">&times;</button>
 				<?php echo HTMLHelper::_('form.token'); ?>
             </form>
         </li>

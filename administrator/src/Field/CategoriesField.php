@@ -39,6 +39,12 @@ class CategoriesField extends ListField
      * the category. A list filter (allStates="true") lists every category,
      * unmarked.
      *
+     * A places picker (model="places") follows the market rule of
+     * CategoryPickerPolicy: a place is listed when it and every parent place
+     * are published, or while the field already holds it, and a held place
+     * that is not offered is named with its state. allStates="true" lists
+     * every place, unmarked (the place form's own parent).
+     *
      * @return array The option set keyed by 'cat-<id>'
      * @since  1.0.0
      */
@@ -67,11 +73,12 @@ class CategoriesField extends ListField
         // Resolved once: a per-option membership test would be one query per category.
         $siteVisible = $app->isClient('site') ? self::visibleCategoryIds() : null;
 
-        // The administrator's rule for categories (the storefront narrows on its own, below).
-        $stateRule = $siteVisible === null
-            && (string) ($this->element['model'] ?? 'categories') === 'categories'
-            && (string) ($this->element['allStates'] ?? '') !== 'true';
-        $held = $stateRule ? $this->heldIds() : [];
+        // The administrator's rules for categories and for places (the storefront narrows on its own, below).
+        $modelName = (string) ($this->element['model'] ?? 'categories');
+        $everyState = (string) ($this->element['allStates'] ?? '') === 'true';
+        $stateRule = $siteVisible === null && $modelName === 'categories' && !$everyState;
+        $placeRule = $siteVisible === null && $modelName === 'places' && !$everyState;
+        $held = $stateRule || $placeRule ? $this->heldIds() : [];
         $parentOf = [];
         $categories = $this->loadModelRows();
 
@@ -108,8 +115,8 @@ class CategoriesField extends ListField
             $parentOf[(int) $category->id] = (int) ($category->parent_id ?? 0);
         }
 
-        // Every category's parent and state, for the picker rule's walk up the tree.
-        $tree = $stateRule ? CategoryPickerPolicy::treeOf(rows: $categories) : [];
+        // Every node's parent and state, for the picker rule's walk up the tree.
+        $tree = $stateRule || $placeRule ? CategoryPickerPolicy::treeOf(rows: $categories) : [];
 
         foreach ($categories as $category) {
             // Subtree scope: skip everything outside the current category's subtree
@@ -160,9 +167,18 @@ class CategoriesField extends ListField
                 continue;
             }
 
-            $reason = $stateRule ? CategoryPickerPolicy::reason(id: (int) $category->id, tree: $tree) : null;
+            $reason = match (true) {
+                $stateRule => CategoryPickerPolicy::reason(id: (int) $category->id, tree: $tree),
+                $placeRule => CategoryPickerPolicy::placeReason(id: (int) $category->id, tree: $tree),
+                default => null,
+            };
 
             if ($stateRule && !CategoryPickerPolicy::lists(reason: $reason, held: isset($held[(int) $category->id]))) {
+                continue;
+            }
+
+            // A market picker offers published places only; a place the record holds stays, named with its state.
+            if ($placeRule && !CategoryPickerPolicy::placeLists(reason: $reason, held: isset($held[(int) $category->id]))) {
                 continue;
             }
 
@@ -192,7 +208,11 @@ class CategoriesField extends ListField
 
             $this->options['cat-' . $category->id] = [
                 'value' => $category->id,
-                'text' => $stateRule ? CategoryPickerPolicy::label(text: (string) $text, reason: $reason) : $text,
+                'text' => match (true) {
+                    $stateRule => CategoryPickerPolicy::label(text: (string) $text, reason: $reason),
+                    $placeRule => CategoryPickerPolicy::placeLabel(text: (string) $text, reason: $reason),
+                    default => $text,
+                },
                 'disable' => $disableCurrent,
             ];
         }
@@ -241,7 +261,7 @@ class CategoriesField extends ListField
     }
 
     /**
-     * The categories the field already holds (the record's own value), as a lookup map.
+     * The categories or places the field already holds (the record's own value), as a lookup map.
      *
      * @return array<int, true>
      *

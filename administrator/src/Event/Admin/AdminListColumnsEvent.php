@@ -15,7 +15,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
 /**
  * onAlfaAdminListColumns: extra columns in the grid.
  *
- * READ    entity, view, screen (list), user, state, items, ids, rowData
+ * READ    entity, view, screen (list), user, state, items, ids, rowData() and rowValues()
  * WRITE   columns: {@see AdminColumns}
  *
  * Fires immediately AFTER onAlfaAdminListRowData, so the page's values are already collected
@@ -29,12 +29,12 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *
  *         $context = $event->getAdminContext();
  *
- *         $context->columns->column('risk')
+ *         $context->columns->column('alfa.fraud', 'risk')
  *             ->title('PLG_FRAUD_RISK')
  *             ->after('status')
  *             ->setLayout('column_risk')
- *             ->setData(fn (object $row): ?array => isset($context->rowData[(int) $row->id]['risk'])
- *                 ? ['band' => $context->rowData[(int) $row->id]['risk']]
+ *             ->setData(fn (object $row): ?array => isset($context->rowValues((int) $row->id)['risk'])
+ *                 ? ['band' => $context->rowValues((int) $row->id)['risk']]
  *                 : null);
  *     }
  *

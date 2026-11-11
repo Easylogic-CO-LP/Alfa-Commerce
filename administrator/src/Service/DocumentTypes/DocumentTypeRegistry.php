@@ -14,10 +14,10 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Event\Documents\CollectDocumentTypeProvidersEvent;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Provider\DocumentTypeProviderInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\ParameterType;
 use RuntimeException;
 use Throwable;
@@ -421,30 +421,16 @@ final class DocumentTypeRegistry
      */
     public function pendingProviders(): array
     {
-        $event = new CollectDocumentTypeProvidersEvent('onCollectDocumentTypeProviders', ['providers' => []]);
+        $event = new CollectDocumentTypeProvidersEvent('onCollectDocumentTypeProviders', []);
 
-        try {
-            foreach (PluginHelper::getPlugin('alfa') as $descriptor) {
-                try {
-                    $plugin = Factory::getApplication()->bootPlugin($descriptor->name, 'alfa');
-
-                    if (method_exists($plugin, 'onCollectDocumentTypeProviders')) {
-                        $plugin->onCollectDocumentTypeProviders($event);
-                    }
-                } catch (Throwable $e) {
-                    // Skipping the provider is right; doing it SILENTLY was not.
-                    // A document type simply disappeared from the registry with
-                    // nothing anywhere saying which plugin dropped it.
-                    Log::add(
-                        entry:    "DocumentTypeRegistry: provider plugin '{$descriptor->name}' failed and was skipped: "
-                                  . $e->getMessage(),
-                        priority: Log::ERROR,
-                        category: 'com_alfa.documents',
-                    );
-                }
-            }
-        } catch (Throwable) {
-            return [];
+        // Every listener on the shared dispatcher (2.2.0, design 2.15.3: mode A, isolated), the platform group imported
+        // first. A failing provider is logged with its name, and the others still answer.
+        foreach (self::collect($event) as $listener => $error) {
+            Log::add(
+                entry:    "DocumentTypeRegistry: provider listener '{$listener}' failed and was skipped: " . $error,
+                priority: Log::ERROR,
+                category: 'com_alfa.documents',
+            );
         }
 
         $declared = [];
@@ -485,15 +471,15 @@ final class DocumentTypeRegistry
     }
 
     /**
-     * Discover and run every document type provider: boot-and-call the `alfa` PLATFORM group
-     * and register what each provider declares. A failing provider is logged and skipped:
+     * Discover and run every document type provider: ask every listener, the `alfa` PLATFORM
+     * group imported first, and register what each provider declares. A failing provider is logged and skipped:
      * one bad package never blocks the others.
      *
      * THE `alfa` GROUP ON PURPOSE: registering document types is shared BACKEND integration,
      * an operator-driven sync into the persistent registry, fired only from the admin
      * Document Types screen, so it belongs to the platform layer (a capability that ships
-     * types provides an `alfa`-group companion, the gateway-admin pattern). Boot-and-call rather
-     * than the app dispatcher so only this group hears it, matching every other collect point.
+     * types provides an `alfa`-group companion, the gateway-admin pattern). Since 2.2.0 the
+     * event is raised on the shared dispatcher (mode A), so any listener may answer.
      *
      * @return array{registered: string[], errors: array<string, string>}
      *
@@ -503,28 +489,12 @@ final class DocumentTypeRegistry
     {
         $summary = ['registered' => [], 'errors' => []];
 
-        $event = new CollectDocumentTypeProvidersEvent('onCollectDocumentTypeProviders', ['providers' => []]);
+        $event = new CollectDocumentTypeProvidersEvent('onCollectDocumentTypeProviders', []);
 
-        try {
-            foreach (PluginHelper::getPlugin('alfa') as $descriptor) {
-                try {
-                    $plugin = Factory::getApplication()->bootPlugin($descriptor->name, 'alfa');
-
-                    if (method_exists($plugin, 'onCollectDocumentTypeProviders')) {
-                        $plugin->onCollectDocumentTypeProviders($event);
-                    }
-                } catch (Throwable $e) {
-                    $summary['errors'][$descriptor->name] = $e->getMessage();
-                    Log::add(
-                        entry:    "DocumentTypeRegistry: plugin '{$descriptor->name}' failed to boot: " . $e->getMessage(),
-                        priority: Log::WARNING,
-                        category: 'com_alfa.documents',
-                    );
-                }
-            }
-        } catch (Throwable $e) {
+        foreach (self::collect($event) as $listener => $error) {
+            $summary['errors'][$listener] = $error;
             Log::add(
-                entry:    'DocumentTypeRegistry: could not enumerate platform plugins: ' . $e->getMessage(),
+                entry:    "DocumentTypeRegistry: provider listener '{$listener}' failed: " . $error,
                 priority: Log::WARNING,
                 category: 'com_alfa.documents',
             );
@@ -565,6 +535,28 @@ final class DocumentTypeRegistry
         }
 
         return $summary;
+    }
+
+    /**
+     * Ask every listener for its providers (2.2.0, mode A, isolated), the platform group imported first.
+     *
+     * @param CollectDocumentTypeProvidersEvent $event The collection event.
+     *
+     * @return array<string, string> The listeners that failed, by name, with the failure's message.
+     *
+     * @since  2.2.0
+     */
+    private static function collect(CollectDocumentTypeProvidersEvent $event): array
+    {
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa');
+        $failed = [];
+
+        foreach ($plugins->dispatchIsolated($event) as $failure) {
+            $failed[$failure->listener] = $failure->error->getMessage();
+        }
+
+        return $failed;
     }
 
     /**

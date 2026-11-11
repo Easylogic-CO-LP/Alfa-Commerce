@@ -8,6 +8,8 @@
  *   - rows  (array)  TaskStaff::attentionRows()
  *   - total (int)    TaskStaff::attentionTotal()
  *   - users (array)  user id => name, for the history
+ *   - failedJobs (int) how many background jobs failed: with no task to list, the card says so and where they are,
+ *     so it never tells staff that nothing needs attention while a job does (UX-02)
  *   - unreadable (bool) the tasks could not be read (the table missing or damaged): one line instead of the list
  *
  * @package    Alfa Commerce
@@ -52,6 +54,8 @@ $form = static function (string $task, int $id, string $inner): string {
         <?php if (!empty($displayData['unreadable'])) : ?>
             <div class="alert alert-warning mb-0"><span class="icon-warning" aria-hidden="true"></span>
                 <?php echo Text::_('COM_ALFA_TASKS_UNREADABLE'); ?></div>
+        <?php elseif ($rows === [] && (int) ($displayData['failedJobs'] ?? 0) > 0) : ?>
+            <p class="mb-0"><?php echo Text::sprintf('COM_ALFA_TASKS_NONE_JOBS_FAILED', (int) $displayData['failedJobs']); ?></p>
         <?php elseif ($rows === []) : ?>
             <p class="mb-0"><?php echo Text::_('COM_ALFA_TASKS_NONE'); ?></p>
         <?php else : ?>
@@ -102,7 +106,7 @@ $form = static function (string $task, int $id, string $inner): string {
                         </td>
                         <td>
                             <?php if ((string) $row['last_error'] !== '') : ?>
-                                <p class="mb-1"><?php echo $e($row['last_error']); ?></p>
+                                <p class="mb-1"><?php echo $e(Tasks::errorText((string) $row['last_error'])); ?></p>
                             <?php endif; ?>
                             <?php foreach (['done' => 'COM_ALFA_TASKS_UNITS_DONE', 'failed' => 'COM_ALFA_TASKS_UNITS_FAILED', 'unknown' => 'COM_ALFA_TASKS_UNITS_UNKNOWN'] as $outcome => $key) : ?>
                                 <?php if ($units[$outcome] !== []) : ?>
@@ -123,7 +127,7 @@ $form = static function (string $task, int $id, string $inner): string {
                                                 (<?php echo $e($entry['unit']); ?>)
                                             <?php endif; ?>
                                             <?php if (isset($entry['error'])) : ?>
-                                                <span class="text-muted"><?php echo $e($entry['error']); ?></span>
+                                                <span class="text-muted"><?php echo $e(Tasks::errorText((string) $entry['error'])); ?></span>
                                             <?php endif; ?>
                                             <?php if (isset($entry['carried_from'])) : ?>
                                                 <span class="text-muted"><?php echo Text::sprintf('COM_ALFA_TASKS_CARRIED', (int) $entry['carried_from']); ?></span>

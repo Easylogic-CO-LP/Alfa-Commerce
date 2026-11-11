@@ -45,7 +45,9 @@ if ($itemName === '') {
     $itemName = trim((string) ($item->sku ?? '')) ?: Text::sprintf('COM_ALFA_ITEM_UNNAMED', (int) $item->id);
 }
 ?>
-<article class="list-item" data-item-id="<?php echo (int) $item->id; ?>"<?php echo isset($this->itemPosition) ? ' data-position="' . (int) $this->itemPosition . '"' : ''; ?>>
+<?php // The card's global position through the view's call (2.2.0): only on a result set with a handle, or on a
+      // reload that carried it; an override keeps the call. ?>
+<article class="list-item" data-item-id="<?php echo (int) $item->id; ?>"<?php echo $this->resultAttributes(position: isset($this->itemPosition) ? (int) $this->itemPosition : null); ?>>
 
     <?php if (!empty($item->medias[0]->thumbnail)): ?>
         <div class="item-image">

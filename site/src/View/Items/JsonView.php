@@ -102,8 +102,29 @@ class JsonView extends BaseJsonView
             $app->close();
         }
 
+        // THE SAME ATTRIBUTION AS THE LISTING (2.2.0): this read is the listing's, so a provider
+        // may mint for it. `event` and `order` for the result set, each item's global position
+        // from 1, and no-store when the handle belongs to this response alone.
+        $attribution = $itemsModel->getResultAttribution();
+        $hasHandle = $attribution !== null && $attribution->hasHandle();
+        $offset = (int) ($this->pagination->limitstart ?? 0);
+
+        if ($hasHandle && \is_array($this->items)) {
+            foreach (array_values($this->items) as $index => $item) {
+                if (\is_object($item)) {
+                    $item->position = $offset + $index + 1;
+                }
+            }
+        }
+
+        if ($attribution !== null && $attribution->excludesSharing()) {
+            header('Cache-Control: no-store, private');
+        }
+
         // Build response data
         $data = [
+            'event' => $hasHandle ? $attribution->handle : null,
+            'order' => $hasHandle ? $attribution->order : null,
             'items' => $this->items,
             'pagination' => $this->preparePaginationData(),
             'state' => $this->prepareStateData(),

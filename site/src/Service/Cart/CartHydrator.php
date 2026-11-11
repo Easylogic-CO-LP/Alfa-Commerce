@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
@@ -41,7 +42,9 @@ defined('_JEXEC') or die;
  * name, with the named cart's ownership checked, or by owner) and its lines,
  * each hydrated from the catalogue, configured as stored and priced under the
  * subject's terms; a line whose product has left the catalogue survives as an
- * unavailable line with no price, and a line whose unit is not sellable is
+ * unavailable line with no price, a line that needs a field whose plugin is
+ * unavailable (a composition it carries, or a required field) is marked
+ * unavailable with no price, and a line whose unit is not sellable is
  * hydrated and priced but marked unavailable as out of stock. A write
  * elsewhere replaces the reading wholesale, or asks for the lines again.
  *
@@ -326,6 +329,34 @@ final class CartHydrator
 
             $item = clone $base;
             [$selection, $optionValueIds, $payloads, $summary] = $this->configuration->of($item, (int) $line->id);
+
+            // A FIELD WHOSE PLUGIN CANNOT ANSWER (2.2.0, A-C14B-9). The line carries
+            // a composition of that field, or the field is required, and its plugin
+            // is unavailable: the line is never priced without it. It stays in the
+            // cart, named, with its chosen fields and no price, marked with the
+            // reason; its money is in no total and placement refuses it by name.
+            // The shopper can remove it.
+            $unpriced = ItemConfigurationHelper::unpricedFields(item: $item, payloads: $payloads);
+
+            if ($unpriced !== []) {
+                $item->price = null;
+
+                $cartItem = new stdClass();
+                $cartItem->id = (int) $line->id;
+                $cartItem->id_cart = $cartId;
+                $cartItem->id_item = (int) $line->id_item;
+                $cartItem->combination_id = $line->id_combination !== null ? (int) $line->id_combination : null;
+                $cartItem->quantity = (int) $line->quantity;
+                $cartItem->data = $item;
+                $cartItem->fields = $summary;
+                $this->presenter->decorate($cartItem, $item, $payloads);
+                $cartItem->unavailable = true;
+                $cartItem->unavailable_reason = Text::_('COM_ALFA_CART_LINE_FIELD_UNAVAILABLE');
+
+                $cartItems[] = $cartItem;
+
+                continue;
+            }
 
             $this->price(
                 item: $item,

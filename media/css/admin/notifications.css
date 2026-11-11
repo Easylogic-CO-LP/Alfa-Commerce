@@ -108,7 +108,8 @@
 
 .alfa-notify .alfa-notify-body { min-width: 0; flex: 1 1 auto; }
 .alfa-notify .alfa-notify-title { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--body-color, #0f172a); word-break: break-word; }
-.alfa-notify .alfa-notify-msg { font-size: 12px; line-height: 1.45; color: var(--secondary-color, #475569); margin-top: 2px; word-break: break-word; }
+/* Each message at most three lines in the panel; the whole text on the notifications list (UX-31). */
+.alfa-notify .alfa-notify-msg { font-size: 12px; line-height: 1.45; color: var(--secondary-color, #475569); margin-top: 2px; word-break: break-word; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .alfa-notify .alfa-notify-meta { display: flex; gap: 10px; align-items: center; margin-top: 5px; }
 .alfa-notify .alfa-notify-link { font-size: 11.5px; font-weight: 600; color: var(--link-color, #2563eb); text-decoration: none; }
 .alfa-notify .alfa-notify-link:hover { text-decoration: underline; }

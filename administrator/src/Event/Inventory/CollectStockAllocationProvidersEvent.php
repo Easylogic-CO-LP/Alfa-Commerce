@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Event\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Provider\StockAllocationProviderInterface;
+use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
@@ -23,7 +25,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *     public function onCollectStockAllocationProviders(
  *         CollectStockAllocationProvidersEvent $event
  *     ): void {
- *         $event->addProvider(new NearestStoreAllocation(), 'plg_alfa_mypack', 100);
+ *         $event->addProvider(new NearestStoreAllocation(), 'alfa-inventory.mypack', 100);
  *     }
  *
  * Same shape as the document type provider collection: the typed
@@ -34,27 +36,33 @@ use Joomla\CMS\Event\AbstractEvent;
 class CollectStockAllocationProvidersEvent extends AbstractEvent
 {
     /**
-     * Contribute a provider under its owning extension's identity.
+     * The providers contributed so far; written only through addProvider().
+     *
+     * @var array<int, array{provider: StockAllocationProviderInterface, element: string, priority: int}>
+     *
+     * @since  2.2.0
+     */
+    private array $providers = [];
+
+    /**
+     * Contribute a provider, owned by the plugin that names itself.
      *
      * @param StockAllocationProviderInterface $provider The provider instance.
-     * @param string $element Owning extension element
-     *                        (e.g. 'plg_alfa_mypack').
+     * @param string $contributor The contributing plugin, group.element (2.2.0; in place of the extension name; attribution,
+     *                            never an authorisation).
      * @param int $priority Chain position; higher asks first.
      *
+     * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function addProvider(StockAllocationProviderInterface $provider, string $element, int $priority = 0): void
+    public function addProvider(StockAllocationProviderInterface $provider, string $contributor, int $priority = 0): void
     {
-        $entries = (array) ($this->arguments['providers'] ?? []);
-
-        $entries[] = [
+        $this->providers[] = [
             'provider' => $provider,
-            'element' => trim($element),
+            'element' => PluginId::of($contributor)->key(),
             'priority' => $priority,
         ];
-
-        $this->arguments['providers'] = $entries;
     }
 
     /**
@@ -66,6 +74,6 @@ class CollectStockAllocationProvidersEvent extends AbstractEvent
      */
     public function getProviders(): array
     {
-        return (array) ($this->arguments['providers'] ?? []);
+        return $this->providers;
     }
 }

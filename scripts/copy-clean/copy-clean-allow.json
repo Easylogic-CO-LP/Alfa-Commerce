@@ -213,9 +213,9 @@
    "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
   },
   {
-   "file": "components/com_alfa/tmpl/cart/default_cart_items.php",
+   "file": "components/com_alfa/layouts/cart/summary.php",
    "rule": "R3",
-   "text": "<td>−<?php echo $rule->discountTaxInclMoney($snapshot->currency)->format(); ?></td>",
+   "text": "'−'",
    "class": "screen-glyph",
    "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
   },

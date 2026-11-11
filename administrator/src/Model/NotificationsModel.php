@@ -24,6 +24,10 @@ use Joomla\Database\QueryInterface;
  * uses `filter.scope = history` (everything still retained) with the usual list
  * filters + pagination. Writes go through {@see NotificationHelper}.
  *
+ * Who may see a row is part of the query on both: the list's state takes the reader's
+ * visible view rules ({@see NotificationHelper::visiblePairs()}) as the panel does, so a
+ * page and its pagination count only the rows the reader is shown.
+ *
  * Programmatic use (the quick panel, NotificationHelper::renderPanel()):
  *   $model = $component->getMVCFactory()->createModel('Notifications', 'Administrator', ['ignore_request' => true]);
  *   $model->setState('filter.scope', 'active');
@@ -89,6 +93,13 @@ class NotificationsModel extends AlfaListModel
         $this->setState('filter.read', $app->getUserStateFromRequest($this->context . '.filter.read', 'filter_read', '', 'cmd'));
 
         parent::populateState($ordering, $direction);
+
+        // WHO MAY SEE A ROW, IN THE QUERY. The reader's visible view rules, as the bell's
+        // panel reads them, so a page holds as many rows as its limit and the pagination
+        // counts only rows the reader is shown. Set after the parent, which takes every
+        // filter[...] of the request: a request never widens what its reader sees.
+        $pairs = NotificationHelper::visiblePairs(user: $app->getIdentity());
+        $this->setState('filter.view_pairs', $pairs === null ? null : array_map('json_encode', $pairs));
     }
 
     /**

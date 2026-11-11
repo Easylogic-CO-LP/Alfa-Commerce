@@ -23,15 +23,25 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEvent;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStock;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentAutomation;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentRefundFlip;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\ShipmentAutomation;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
+use Joomla\Database\Exception\ConnectionFailureException;
+use Joomla\Database\Exception\DatabaseNotFoundException;
+use Joomla\Database\Exception\ExecutionFailureException;
+use Joomla\Database\Exception\PrepareStatementFailureException;
 use Joomla\Database\ParameterType;
 use Joomla\Database\QueryInterface;
+use mysqli_sql_exception;
+use PDOException;
 use RuntimeException;
 use Throwable;
 use WeakMap;
@@ -98,6 +108,13 @@ final class Tasks
     public const STATE_RESOLVED = 'resolved';
 
     /**
+     * A job stopped for good by staff; no action cancels one in 2.2.0, and the retention rules keep it KEEP_DAYS.
+     *
+     * @since  2.2.0
+     */
+    public const STATE_CANCELLED = 'cancelled';
+
+    /**
      * How long a claim lasts, renewed by every history write: longer than PHPMailer's 300 seconds per command.
      *
      * @since  2.1.4
@@ -119,6 +136,15 @@ final class Tasks
     public const BACKOFF_SECONDS = [60, 300, 1800, 7200, 21600, 86400];
 
     /**
+     * The language keys of the work's own failures, stored as the key and its arguments and said at display in the
+     * reader's language ({@see self::errorKey()}, {@see self::errorText()}; UX-09). A plugin's or an exception's message is
+     * stored as its text.
+     *
+     * @since  2.2.0
+     */
+    public const ERROR_KEY_PREFIX = 'COM_ALFA_TASKS_ERROR_';
+
+    /**
      * The bell's recovery budget, wall clock.
      *
      * @since  2.1.4
@@ -126,11 +152,11 @@ final class Tasks
     public const RECOVER_BUDGET_MS = 1500;
 
     /**
-     * How long finished tasks are kept.
+     * The most tasks one request notes for its answer ({@see self::noteForRequest()}).
      *
-     * @since  2.1.4
+     * @since  2.2.0
      */
-    public const KEEP_DAYS = 30;
+    public const REQUEST_NOTES_MAX = 100;
 
     /**
      * Minutes between two recoveries from the bell.
@@ -140,25 +166,32 @@ final class Tasks
     private const RECOVER_MINUTES = 2;
 
     /**
-     * Minutes between two prunes from the bell.
+     * Minutes between two looks from the bell at whether the runner prunes.
      *
      * @since  2.1.4
      */
     private const PRUNE_MINUTES = 60;
 
     /**
-     * Rows deleted per statement.
+     * The bell prunes only when no tasks.prune job finished for this many hours.
      *
-     * @since  2.1.4
+     * @since  2.2.0
      */
-    private const PRUNE_BATCH = 500;
+    private const PRUNE_FALLBACK_HOURS = 24;
 
     /**
-     * Most delete statements per prune.
+     * The bell's pruning budget, wall clock.
      *
-     * @since  2.1.4
+     * @since  2.2.0
      */
-    private const PRUNE_ROUNDS = 10;
+    private const PRUNE_FALLBACK_MS = 250;
+
+    /**
+     * The budget of a whole prune ({@see self::prune()}), wall clock.
+     *
+     * @since  2.2.0
+     */
+    private const PRUNE_MS = 25000;
 
     /**
      * Most resends or runs again followed back to the first task.
@@ -223,6 +256,43 @@ final class Tasks
     private static ?WeakMap $batches = null;
 
     /**
+     * What each connection's placements wrote in this request, by batch (2.2.0, design 2.3.1): each order's
+     * confirmation, and the singles of that order's payments written after it into the same batch (order.entitlements
+     * {payment}, order.documents {current}, payment.automation). In memory only, so a recovery run keeps id order.
+     *
+     * @var WeakMap<DatabaseDriver, array<string, array{emails: array<int, int>, payments: array<int, int>}>>|null
+     *
+     * @since  2.2.0
+     */
+    private static ?WeakMap $placements = null;
+
+    /**
+     * The run of each connection whose payment singles went first, and the batches whose runs left a single waiting
+     * for its sequence meanwhile: what that run runs once more at its end (2.2.0, design 2.3.1 item 4).
+     *
+     * @var WeakMap<DatabaseDriver, array{owner: string, batches: array<string, true>}>|null
+     *
+     * @since  2.2.0
+     */
+    private static ?WeakMap $sequenceWaits = null;
+
+    /**
+     * Deadlocks this process met outside a transaction and ran the statement again after (self::retriedDeadlock()).
+     *
+     * @since  2.2.0
+     */
+    private static int $retriedDeadlocks = 0;
+
+    /**
+     * The tasks this request wrote or merged into, by id: true when the request joined a task that was already active.
+     *
+     * @var array<int, bool>
+     *
+     * @since  2.2.0
+     */
+    private static array $requestNotes = [];
+
+    /**
      * Owe one thing after the commit of the change being made.
      *
      * Inside a transaction the row joins the batch of the outermost transaction, which runs once that transaction
@@ -274,16 +344,25 @@ final class Tasks
         $db = self::db();
         [$token, $waiting] = self::batch(db: $db);
         $id = self::insert(db: $db, implementation: $implementation, handler: $handler, subjectType: $subjectType, subjectId: $subjectId, payload: $payload, token: $token, userId: $userId, history: $history);
+        self::notePlacement(db: $db, token: $token, handler: $handler, subjectType: $subjectType, subjectId: $subjectId, payload: $payload, id: $id);
+        self::noteForRequest(id: $id);
 
         if ($waiting) {
             // The batch's run already waits: the outermost commit runs it, or, with nothing open, it runs now.
             PostCommit::flush($db);
         } else {
+            // The run's claim, made now: a commit while a lock scope or a hold keeps the run waiting reserves the
+            // batch under it (2.2.0, D7), and the run at the release claims what it reserved.
+            $lease = bin2hex(random_bytes(16));
+            $reserved = false;
             PostCommit::deferToOutermost(
                 db: $db,
                 label: self::batchLabel(token: $token),
-                work: static function () use ($db, $token, $trigger): void {
-                    self::runBatch(db: $db, batch: $token, trigger: $trigger);
+                work: static function () use ($db, $token, $trigger, $lease, &$reserved): void {
+                    self::runBatch(db: $db, batch: $token, trigger: $trigger, lease: $lease, reserved: $reserved);
+                },
+                reserve: static function () use ($db, $token, $lease, &$reserved): void {
+                    $reserved = self::reserve(db: $db, batch: $token, lease: $lease, due: $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)') > 0 || $reserved;
                 },
             );
         }
@@ -299,6 +378,13 @@ final class Tasks
      * ({@see NotificationHelper::exists()}). A failure to write the single reaches the caller, as a failure to write the
      * notification did.
      *
+     * One single per key per transaction (2.2.0, D4): a write of the key the transaction's latest notice is of is added
+     * to that notice's single in place, through its primary key (the transaction's own row), with when it was raised;
+     * the notification row it leaves is the one the writes made one by one leave
+     * ({@see NotificationHelper::applyJournal()}). A write after another key's keeps a single of its own, so the writes
+     * of one transaction, and their announcements, still go in the order raised across keys (2.1.4, REVIEW-C3 MINOR-2).
+     * The journal keeps every write, in order.
+     *
      * @param DatabaseDriver $db The connection, with a transaction open.
      * @param array<string, mixed> $op The write: op (push or clear), key, and its arguments.
      *
@@ -310,10 +396,74 @@ final class Tasks
     {
         $implementation = self::handler(name: NoticeTask::NAME);
         [$token] = self::batch(db: $db);
+        $key = (string) ($op['key'] ?? '');
+        $journal = $key === '' ? [] : PostCommit::journaled(db: $db);
+        $latest = $journal === [] ? null : $journal[\count($journal) - 1];
+
+        if ($latest !== null && $latest['batch'] === $token && (string) ($latest['op']['key'] ?? '') === $key) {
+            // The transaction's latest notice is of this key: its single's writes, then this one.
+            $id = (int) $latest['task'];
+            $writes = array_values(array_filter($journal, static fn (array $entry): bool => (int) $entry['task'] === $id));
+            $raised = self::mergeNotice(db: $db, implementation: $implementation, id: $id, token: $token, writes: $writes, op: $op);
+
+            if ($raised !== null) {
+                PostCommit::journal(db: $db, label: self::noticeLabel(token: $token), entry: ['task' => $id, 'batch' => $token, 'op' => $op, 'raised' => $raised]);
+
+                return $id;
+            }
+        }
+
         $id = self::insert(db: $db, implementation: $implementation, handler: NoticeTask::NAME, subjectType: '', subjectId: 0, payload: $op, token: $token, userId: self::userId());
         PostCommit::journal(db: $db, label: self::noticeLabel(token: $token), entry: ['task' => $id, 'batch' => $token, 'op' => $op]);
 
         return $id;
+    }
+
+    /**
+     * Add a write to the notice single of its key written earlier in the open transaction: the single's first write
+     * stays its payload, as a single holding one write stores it, and the later ones follow in `then`, each with when it
+     * was raised (the server's clock, as a single's creation is). Through the primary key, only while the row is still
+     * the transaction's pending one.
+     *
+     * @param DatabaseDriver $db The connection, with a transaction open.
+     * @param TaskHandler $implementation The notice handler.
+     * @param int $id The single.
+     * @param string $token Its batch.
+     * @param list<array{task: int, batch: string, op: array<string, mixed>, raised?: string}> $writes Its writes so far, in order.
+     * @param array<string, mixed> $op The write to add.
+     *
+     * @return string|null When the write was raised; null when the single was not there to take it (a new one is written).
+     *
+     * @since  2.2.0
+     */
+    private static function mergeNotice(DatabaseDriver $db, TaskHandler $implementation, int $id, string $token, array $writes, array $op): ?string
+    {
+        $raised = (string) $db->setQuery('SELECT UTC_TIMESTAMP(6)')->loadResult();
+        $then = [];
+
+        foreach (\array_slice($writes, 1) as $write) {
+            $then[] = $write['op'] + ['raised' => (string) ($write['raised'] ?? '')];
+        }
+
+        $then[] = $op + ['raised' => $raised];
+        $json = json_encode(['version' => $implementation->policy()->version] + $writes[0]['op'] + ['then' => $then], self::JSON);
+        $handler = NoticeTask::NAME;
+        $merged = self::changed(
+            db: $db,
+            query: $db->getQuery(true)
+                ->update($db->quoteName(self::TABLE) . ' FORCE INDEX (PRIMARY)')
+                ->set($db->quoteName('payload') . ' = :payload')
+                ->where($db->quoteName('id') . ' = :id')
+                ->where($db->quoteName('batch') . ' = :batch')
+                ->where($db->quoteName('handler') . ' = :handler')
+                ->where($db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING))
+                ->bind(':payload', $json)
+                ->bind(':id', $id, ParameterType::INTEGER)
+                ->bind(':batch', $token)
+                ->bind(':handler', $handler),
+        );
+
+        return $merged === 1 ? $raised : null;
     }
 
     /**
@@ -622,7 +772,7 @@ final class Tasks
                     continue;
                 }
 
-                $error = $e->getMessage() !== '' ? $e->getMessage() : $e::class;
+                $error = self::failureLine($e, ...array_map('intval', array_column($rows, 'id')));
 
                 foreach ($rows as $row) {
                     $failures = (int) $row['failures'];
@@ -693,7 +843,7 @@ final class Tasks
                 ->select($db->quoteName(['id', 'state', 'payload']))
                 ->select('(' . $db->quoteName('run_after') . ' > UTC_TIMESTAMP(3)) AS ' . $db->quoteName('waits'))
                 ->select($db->quoteName('run_after'))
-                ->from($db->quoteName(self::TABLE) . ' FORCE INDEX (' . $db->quoteName('idx_handler_state') . ')')
+                ->from($db->quoteName(self::TABLE) . ' FORCE INDEX (' . $db->quoteName('idx_handler_state_finished') . ')')
                 ->where($db->quoteName('handler') . ' = :handler')
                 ->where($db->quoteName('state') . ' IN (' . $db->quote(self::STATE_PENDING) . ', ' . $db->quote(self::STATE_RUNNING) . ')')
                 ->where('(' . $db->quoteName('lease_owner') . ' IS NULL OR ' . $db->quoteName('lease_owner') . ' <> :lease)')
@@ -830,15 +980,20 @@ final class Tasks
      * claim, and recovery gives them their first run in id order. Nothing runs while a transaction or a named lock is
      * open on the connection.
      *
+     * A run that a lock scope or a hold kept waiting was reserved at the commit, under the claim it was deferred with
+     * (2.2.0, D7): it runs what that claim holds, with any single no run holds reserved to it first.
+     *
      * @param DatabaseDriver $db The connection.
      * @param string $batch The batch.
      * @param string $trigger What runs it.
+     * @param string|null $lease The run's claim, made when it was deferred; null for a new one.
+     * @param bool $reserved Whether that claim already reserved singles of the batch.
      *
      * @return array<string, int> What happened, by outcome.
      *
      * @since  2.1.4
      */
-    public static function runBatch(DatabaseDriver $db, string $batch, string $trigger = 'request'): array
+    public static function runBatch(DatabaseDriver $db, string $batch, string $trigger = 'request', ?string $lease = null, bool $reserved = false): array
     {
         $counts = self::counts();
 
@@ -848,9 +1003,9 @@ final class Tasks
             return $counts;
         }
 
-        $lease = bin2hex(random_bytes(16));
+        $lease ??= bin2hex(random_bytes(16));
 
-        if (self::reserve(db: $db, batch: $batch, lease: $lease, due: $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)') > 0) {
+        if (self::reserve(db: $db, batch: $batch, lease: $lease, due: $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)') > 0 || $reserved) {
             self::runReserved(db: $db, batch: $batch, lease: $lease, trigger: $trigger, userId: self::userId(), counts: $counts);
         }
 
@@ -973,7 +1128,8 @@ final class Tasks
     }
 
     /**
-     * The bell's recovery, at most every few minutes: what the bell's background refresh calls.
+     * The bell's recovery, at most every few minutes: what the bell's background refresh calls. Since 2.2.0 it brings
+     * the attention notice up to date; the singles are run by the bell's tick (Runner::tick()).
      *
      * @since  2.1.4
      */
@@ -996,8 +1152,8 @@ final class Tasks
     }
 
     /**
-     * The uncached recovery behind {@see self::recoverThrottled()}: one due check, a short sweep when something is
-     * due, then the attention notice brought up to date. A failure is logged and never reaches the page.
+     * The uncached recovery behind {@see self::recoverThrottled()}: the attention notice brought up to date (the sweep
+     * of the singles is the bell's tick since 2.2.0). A failure is logged and never reaches the page.
      *
      * @return bool Always true, for the cache callback.
      *
@@ -1010,10 +1166,6 @@ final class Tasks
                 return true;
             }
 
-            if (self::due()) {
-                self::sweepSingles(budgetMs: self::RECOVER_BUDGET_MS, trigger: 'bell');
-            }
-
             TaskAttention::sync();
         } catch (Throwable $e) {
             self::log(entry: 'Tasks: the recovery from the bell failed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
@@ -1023,8 +1175,8 @@ final class Tasks
     }
 
     /**
-     * Delete the tasks finished more than {@see self::KEEP_DAYS} days ago (done or resolved), by id, a batch at a
-     * time. Failed and held tasks stay until staff act.
+     * Delete the tasks the retention rules let go ({@see TaskRetention}), a batch at a time, by id, until nothing is
+     * left or 25 seconds passed. Failed and held tasks stay until staff act.
      *
      * @return int How many were deleted.
      *
@@ -1032,42 +1184,12 @@ final class Tasks
      */
     public static function prune(): int
     {
-        $db = self::db();
-        $deleted = 0;
-
-        for ($round = 0; $round < self::PRUNE_ROUNDS; $round++) {
-            $ids = array_map('intval', $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName('id'))
-                    ->from($db->quoteName(self::TABLE))
-                    ->where($db->quoteName('finished_at') . ' < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL ' . self::KEEP_DAYS . ' DAY)')
-                    ->whereIn($db->quoteName('state'), [self::STATE_DONE, self::STATE_RESOLVED], ParameterType::STRING)
-                    ->order($db->quoteName('finished_at') . ' ASC'),
-                0,
-                self::PRUNE_BATCH,
-            )->loadColumn() ?: []);
-
-            if ($ids === []) {
-                break;
-            }
-
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->quoteName(self::TABLE))
-                    ->whereIn($db->quoteName('id'), $ids),
-            )->execute();
-            $deleted += \count($ids);
-
-            if (\count($ids) < self::PRUNE_BATCH) {
-                break;
-            }
-        }
-
-        return $deleted;
+        return TaskRetention::prune(budgetMs: self::PRUNE_MS);
     }
 
     /**
-     * {@see self::prune()} at most once an hour, from the bell's background refresh.
+     * The bell's fallback prune, looked at most once an hour from its background refresh: it prunes, with a small
+     * budget, only when the runner's tasks.prune has not finished for a day (2.2.0).
      *
      * @since  2.1.4
      */
@@ -1089,7 +1211,7 @@ final class Tasks
     }
 
     /**
-     * {@see self::prune()}, its failure logged: the cache callback of {@see self::pruneThrottled()}.
+     * The bell's fallback prune, its failure logged: the cache callback of {@see self::pruneThrottled()}.
      *
      * @return bool Always true, for the cache callback.
      *
@@ -1098,8 +1220,8 @@ final class Tasks
     public static function pruneOnce(): bool
     {
         try {
-            if (!MaintenanceState::active()) {
-                self::prune();
+            if (!MaintenanceState::active() && !TaskRetention::prunedWithin(hours: self::PRUNE_FALLBACK_HOURS)) {
+                TaskRetention::prune(budgetMs: self::PRUNE_FALLBACK_MS);
             }
         } catch (Throwable $e) {
             self::log(entry: 'Tasks: pruning finished tasks failed: ' . $e->getMessage(), priority: Log::WARNING);
@@ -1147,6 +1269,9 @@ final class Tasks
             OrderStatusEmail::NAME => OrderStatusEmail::class,
             OrderPlacementEmail::NAME => OrderPlacementEmail::class,
             OrderStatusEvent::NAME => OrderStatusEvent::class,
+            PaymentAutomation::NAME => PaymentAutomation::class,
+            ShipmentAutomation::NAME => ShipmentAutomation::class,
+            PaymentRefundFlip::NAME => PaymentRefundFlip::class,
         ];
     }
 
@@ -1271,9 +1396,66 @@ final class Tasks
                     throw $e;
                 }
 
+                if (MysqlError::number(error: $e) === 1213) {
+                    self::retriedDeadlock(statement: 'a write on the tasks or slots table', attempt: $attempt);
+                }
+
                 usleep(random_int(5000, 30000) * $attempt);
             }
         }
+    }
+
+    /**
+     * Count and log a deadlock a statement met outside a transaction and is run again after, so a retried deadlock is
+     * never silent: the runner adds those of its tick to TickResult::$deadlocks.
+     *
+     * @param string $statement What was run again.
+     * @param int $attempt The attempt the deadlock ended.
+     *
+     * @since  2.2.0
+     */
+    public static function retriedDeadlock(string $statement, int $attempt): void
+    {
+        self::$retriedDeadlocks++;
+        self::log(entry: 'Tasks: a deadlock (1213) ended ' . $statement . ' outside a transaction (attempt ' . $attempt . '); it is run again.', priority: Log::INFO);
+    }
+
+    /**
+     * Note a task this request wrote or merged into, so that its answer can list it (the API's meta.tasks). At most
+     * REQUEST_NOTES_MAX are kept: a request that writes more lists the first ones.
+     *
+     * @param int $id The task.
+     * @param bool $merged Whether the request joined a task that was already active.
+     *
+     * @since  2.2.0
+     */
+    public static function noteForRequest(int $id, bool $merged = false): void
+    {
+        if ($id > 0 && (isset(self::$requestNotes[$id]) || \count(self::$requestNotes) < self::REQUEST_NOTES_MAX)) {
+            self::$requestNotes[$id] = (self::$requestNotes[$id] ?? false) || $merged;
+        }
+    }
+
+    /**
+     * The tasks this request wrote or merged into, in the order it first noted them.
+     *
+     * @return array<int, bool> Task id => whether the request joined it while it was active.
+     *
+     * @since  2.2.0
+     */
+    public static function requestNotes(): array
+    {
+        return self::$requestNotes;
+    }
+
+    /**
+     * Deadlocks this process ran a statement again after, so far.
+     *
+     * @since  2.2.0
+     */
+    public static function retriedDeadlocks(): int
+    {
+        return self::$retriedDeadlocks;
     }
 
     /**
@@ -1288,6 +1470,94 @@ final class Tasks
         } catch (Throwable) {
             return 0;
         }
+    }
+
+    /**
+     * The line a task's failure is stored as: its message, or its class when it has none. A database's exception, the
+     * failure itself or one it was raised from, is stored as COM_ALFA_TASKS_ERROR_DATABASE and its class and full text
+     * are logged with the task, so no stored line carries a schema, a table, a user or a host; a TaskError, the work's
+     * own failure, as its key and arguments (UX-09). The one writer of singles' and jobs' last errors and history
+     * entries (2.2.0).
+     *
+     * @param Throwable $failure What failed.
+     * @param int ...$taskIds The tasks it is stored for.
+     *
+     * @since  2.2.0
+     */
+    public static function failureLine(Throwable $failure, int ...$taskIds): string
+    {
+        for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
+            if ($cause instanceof ExecutionFailureException || $cause instanceof PrepareStatementFailureException || $cause instanceof ConnectionFailureException
+                || $cause instanceof DatabaseNotFoundException || $cause instanceof mysqli_sql_exception || $cause instanceof PDOException) {
+                self::log(
+                    entry: 'Task #' . implode(', #', $taskIds) . ' failed on a database error: ' . $failure::class . ': ' . $failure->getMessage()
+                        . ($cause === $failure ? '' : ' (raised from ' . $cause::class . ': ' . $cause->getMessage() . ')'),
+                    priority: Log::WARNING,
+                );
+
+                return self::errorKey('COM_ALFA_TASKS_ERROR_DATABASE');
+            }
+        }
+
+        if ($failure instanceof TaskError) {
+            return self::errorKey($failure->key, ...$failure->arguments);
+        }
+
+        return $failure->getMessage() !== '' ? $failure->getMessage() : $failure::class;
+    }
+
+    /**
+     * A failure of the work's own, as stored: its language key and arguments (UX-09), said by {@see self::errorText()}.
+     *
+     * @param string $key A key of ERROR_KEY_PREFIX.
+     * @param int|string ...$arguments Its arguments.
+     *
+     * @since  2.2.0
+     */
+    public static function errorKey(string $key, int|string ...$arguments): string
+    {
+        return (string) json_encode(['key' => $key, 'args' => array_values($arguments)], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * A stored failure as a History sentence's argument: a failure of the work's own as a text of its own (key and
+     * arguments, said where the line is read), any other stored line as its text without a final full stop.
+     *
+     * @param string $stored The stored line.
+     *
+     * @return array{key: string, args: list<int|string>}|string
+     *
+     * @since  2.2.0
+     */
+    public static function errorArgument(string $stored): array|string
+    {
+        $error = str_starts_with($stored, '{"key":"' . self::ERROR_KEY_PREFIX) ? json_decode($stored, true) : null;
+
+        return \is_array($error) && \is_string($error['key'] ?? null) && \is_array($error['args'] ?? null)
+            ? ['key' => $error['key'], 'args' => array_values($error['args'])]
+            : rtrim(trim($stored), '.');
+    }
+
+    /**
+     * A stored failure as staff read it: a failure of the work's own in the reader's language, any other stored line
+     * (a plugin's or an exception's message) as it was stored.
+     *
+     * @param string $stored The stored line.
+     *
+     * @since  2.2.0
+     */
+    public static function errorText(string $stored): string
+    {
+        $error = str_starts_with($stored, '{"key":"' . self::ERROR_KEY_PREFIX) ? json_decode($stored, true) : null;
+
+        if (!\is_array($error) || !\is_string($error['key'] ?? null) || !\is_array($error['args'] ?? null)
+            || preg_match('/^' . self::ERROR_KEY_PREFIX . '[A-Z0-9_]+$/', $error['key']) !== 1) {
+            return $stored;
+        }
+
+        $arguments = array_values(array_filter($error['args'], static fn (mixed $argument): bool => \is_int($argument) || \is_string($argument)));
+
+        return Text::sprintf($error['key'], ...$arguments);
     }
 
     /**
@@ -1395,7 +1665,8 @@ final class Tasks
     /**
      * Run a batch's singles this run reserved, in id order: each claimed by id under the reservation just before it
      * runs, the reservation of the rest renewed at each claim; what is left at the end (a budget that ran out) is
-     * released for the next run.
+     * released for the next run. In the request that placed an order, the payment singles its hold wrote run before
+     * its confirmation ({@see self::paymentsFirst()}), and what then waited behind the confirmation runs once more.
      *
      * @param DatabaseDriver $db The connection.
      * @param string $batch The batch.
@@ -1412,6 +1683,7 @@ final class Tasks
     private static function runReserved(DatabaseDriver $db, string $batch, string $lease, string $trigger, int $userId, array &$counts, ?int $deadline = null): bool
     {
         $ran = false;
+        $moved = false;
 
         try {
             $reserved = $db->setQuery(
@@ -1447,6 +1719,13 @@ final class Tasks
                 $reserved = array_values(array_filter($reserved, static fn (array $single): bool => $single['handler'] !== NoticeTask::NAME));
             }
 
+            // A payment completed inside the placement's hold moves the order before its confirmation (2.3.1).
+            [$reserved, $moved] = self::paymentsFirst(db: $db, batch: $batch, reserved: $reserved);
+
+            if ($moved) {
+                self::beginSequenceWaits(db: $db, batch: $batch);
+            }
+
             foreach ($reserved as $single) {
                 if ($ran && $deadline !== null && hrtime(true) >= $deadline) {
                     break;
@@ -1455,6 +1734,8 @@ final class Tasks
                 // An order's e-mail waits while an earlier one of its order is pending or running: it stays pending,
                 // and recovery runs it after that one.
                 if (self::waitsInSequence(db: $db, single: $single)) {
+                    self::noteSequenceWait(db: $db, batch: $batch);
+
                     continue;
                 }
 
@@ -1469,12 +1750,203 @@ final class Tasks
                 self::renewReservation(db: $db, batch: $batch, lease: $lease);
                 self::runClaimed(db: $db, row: $row, lease: $lease, trigger: $trigger, userId: $userId, counts: $counts);
             }
+
+            // The confirmation sent, what waited behind it in this run (the paid status's e-mail) runs once more: one
+            // pass, no wait; what still waits is recovery's (2.3.1 item 4).
+            foreach ($moved ? self::endSequenceWaits(db: $db, batch: $batch) : [] as $waiting) {
+                self::runBatch(db: $db, batch: $waiting, trigger: $trigger);
+            }
         } finally {
             // Whatever ended the run, what it did not start is released for the next run at once.
             self::release(db: $db, batch: $batch, lease: $lease);
+
+            if ($moved) {
+                self::endSequenceWaits(db: $db, batch: $batch);
+            }
         }
 
         return $ran;
+    }
+
+    /**
+     * Record a single a placement writes, or a payment single of its order written after it into its batch, for
+     * {@see self::paymentsFirst()}.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $token The batch.
+     * @param string $handler The handler's name.
+     * @param string $subjectType What it is about.
+     * @param int $subjectId The id of what it is about.
+     * @param array<string, mixed> $payload What the handler needs.
+     * @param int $id The single.
+     *
+     * @since  2.2.0
+     */
+    private static function notePlacement(DatabaseDriver $db, string $token, string $handler, string $subjectType, int $subjectId, array $payload, int $id): void
+    {
+        if ($subjectType !== 'order' || $subjectId <= 0) {
+            return;
+        }
+
+        $placements = self::$placements ??= new WeakMap();
+        $batches = $placements[$db] ?? [];
+
+        if ($handler === OrderPlacementEmail::NAME) {
+            $batches[$token]['emails'][$subjectId] ??= $id;
+            $batches[$token]['payments'] ??= [];
+        } elseif (
+            isset($batches[$token]['emails'][$subjectId])
+            && ($handler === PaymentAutomation::NAME
+                || ($handler === OrderEntitlements::NAME && isset($payload['payment']))
+                || ($handler === OrderDocuments::NAME && !empty($payload['current'])))
+        ) {
+            $batches[$token]['payments'][$id] = $subjectId;
+        } else {
+            return;
+        }
+
+        $placements[$db] = $batches;
+    }
+
+    /**
+     * The order a batch's singles run in (2.2.0, design 2.3.1 items 1 and 2): when the batch holds an order's
+     * confirmation (order.placement_email) and, written after it in this request, a pending payment.automation of the
+     * same order, that payment's singles (order.entitlements {payment}, order.documents {current}, payment.automation,
+     * in their own order) run just before the confirmation, so the order moves first and the confirmation reads it
+     * moved. Every other single keeps its id order; a payment of another order never moves. A batch its request did
+     * not write (a recovery run) keeps id order.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $batch The batch.
+     * @param list<array<string, mixed>> $reserved Its singles this run holds, in id order: id, handler, subject.
+     *
+     * @return array{0: list<array<string, mixed>>, 1: bool} The singles in the order they run, and whether any moved.
+     *
+     * @since  2.2.0
+     */
+    private static function paymentsFirst(DatabaseDriver $db, string $batch, array $reserved): array
+    {
+        $placements = self::$placements ??= new WeakMap();
+        $batches = $placements[$db] ?? [];
+        $placement = $batches[$batch] ?? null;
+
+        if ($placement === null) {
+            return [$reserved, false];
+        }
+
+        unset($batches[$batch]);
+        $placements[$db] = $batches;
+        $held = array_map(static fn (array $single): int => (int) $single['id'], $reserved);
+        $moving = [];
+
+        foreach ($placement['emails'] as $orderId => $emailId) {
+            if (!\in_array($emailId, $held, true)) {
+                continue;
+            }
+
+            $own = array_filter(
+                $reserved,
+                static fn (array $single): bool => ($placement['payments'][(int) $single['id']] ?? 0) === $orderId && (int) $single['id'] > $emailId,
+            );
+
+            if (\in_array(PaymentAutomation::NAME, array_column($own, 'handler'), true)) {
+                foreach ($own as $single) {
+                    $moving[(int) $single['id']] = $orderId;
+                }
+            }
+        }
+
+        if ($moving === []) {
+            return [$reserved, false];
+        }
+
+        $confirmations = array_flip($placement['emails']);
+        $ordered = [];
+
+        foreach ($reserved as $single) {
+            $id = (int) $single['id'];
+
+            if (isset($moving[$id])) {
+                continue;
+            }
+
+            if (isset($confirmations[$id])) {
+                foreach ($reserved as $payment) {
+                    if (($moving[(int) $payment['id']] ?? 0) === $confirmations[$id]) {
+                        $ordered[] = $payment;
+                    }
+                }
+            }
+
+            $ordered[] = $single;
+        }
+
+        return [$ordered, true];
+    }
+
+    /**
+     * Begin, for a run whose payment singles went first, the tracking of the batches whose runs leave a single waiting
+     * for its sequence meanwhile; a tracking already begun by an outer run stays that run's.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $batch The run's batch.
+     *
+     * @since  2.2.0
+     */
+    private static function beginSequenceWaits(DatabaseDriver $db, string $batch): void
+    {
+        $waits = self::$sequenceWaits ??= new WeakMap();
+
+        if (!isset($waits[$db])) {
+            /** @var array<string, true> $none */
+            $none = [];
+            $waits[$db] = ['owner' => $batch, 'batches' => $none];
+        }
+    }
+
+    /**
+     * Note that a batch's run left a single waiting for its sequence, while a run whose payment singles went first is
+     * on: that run runs the batch once more at its end ({@see self::runReserved()}).
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $batch The batch whose run left it waiting.
+     *
+     * @since  2.2.0
+     */
+    private static function noteSequenceWait(DatabaseDriver $db, string $batch): void
+    {
+        $waits = self::$sequenceWaits ??= new WeakMap();
+        $tracked = $waits[$db] ?? null;
+
+        if ($tracked !== null && $tracked['owner'] !== $batch) {
+            $tracked['batches'][$batch] = true;
+            $waits[$db] = $tracked;
+        }
+    }
+
+    /**
+     * End the tracking a run began when its payment singles went first: the batches to run once more, none when the
+     * tracking is another run's.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $batch The run's batch.
+     *
+     * @return list<string>
+     *
+     * @since  2.2.0
+     */
+    private static function endSequenceWaits(DatabaseDriver $db, string $batch): array
+    {
+        $waits = self::$sequenceWaits ??= new WeakMap();
+        $tracked = $waits[$db] ?? null;
+
+        if ($tracked === null || $tracked['owner'] !== $batch) {
+            return [];
+        }
+
+        unset($waits[$db]);
+
+        return array_map('strval', array_keys($tracked['batches']));
     }
 
     /**
@@ -1614,23 +2086,8 @@ final class Tasks
             return;
         }
 
-        $payload = json_decode((string) ($row['payload'] ?? ''), true);
-
         try {
-            $handler->settled(new TaskSettlement(
-                taskId: (int) $row['id'],
-                handler: (string) $row['handler'],
-                subjectType: (string) ($row['subject_type'] ?? ''),
-                subjectId: (int) ($row['subject_id'] ?? 0),
-                payload: \is_array($payload) ? $payload : [],
-                event: $event,
-                state: $state,
-                error: $error,
-                userId: $userId,
-                newTaskId: $newTaskId,
-                reason: $reason,
-                units: self::unitOutcomes(history: $history),
-            ));
+            $handler->settled(self::settlement(row: $row, event: $event, state: $state, history: $history, error: $error, userId: $userId, newTaskId: $newTaskId, reason: $reason));
         } catch (Throwable $e) {
             if (TransactionState::endedBy(db: self::db(), failure: $e)) {
                 throw $e;
@@ -1638,6 +2095,41 @@ final class Tasks
 
             self::log(entry: 'Task #' . (int) $row['id'] . ' (' . $row['handler'] . '): its handler could not record how it ended (' . $event . ', ' . $state . '): ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
         }
+    }
+
+    /**
+     * How a task ended, or what staff did with it, as its handler hears it.
+     *
+     * @param array<string, mixed> $row The task (id, handler, subject_type, subject_id, payload).
+     * @param string $event What happened: a TaskSettlement constant.
+     * @param string $state The state the task is in now.
+     * @param list<array<string, mixed>> $history Its history.
+     * @param string $error The last error.
+     * @param int $userId Who acted, 0 for nobody.
+     * @param int $newTaskId The task a resend or a run again made.
+     * @param string $reason Why staff resolved it.
+     *
+     * @since  2.2.0
+     */
+    private static function settlement(array $row, string $event, string $state, array $history, string $error = '', int $userId = 0, int $newTaskId = 0, string $reason = ''): TaskSettlement
+    {
+        $payload = json_decode((string) ($row['payload'] ?? ''), true);
+
+        return new TaskSettlement(
+            taskId: (int) $row['id'],
+            handler: (string) $row['handler'],
+            subjectType: (string) ($row['subject_type'] ?? ''),
+            subjectId: (int) ($row['subject_id'] ?? 0),
+            payload: \is_array($payload) ? $payload : [],
+            event: $event,
+            state: $state,
+            error: $error,
+            userId: $userId,
+            newTaskId: $newTaskId,
+            reason: $reason,
+            units: self::unitOutcomes(history: $history),
+            history: $history,
+        );
     }
 
     /**
@@ -1829,7 +2321,7 @@ final class Tasks
             return;
         }
 
-        $error = $failure->getMessage() !== '' ? $failure->getMessage() : $failure::class;
+        $error = self::failureLine($failure, $id);
         // A failure the handler did not classify: safe to retry only when its work is idempotent; for any other the
         // work may have taken effect before it threw, so the outcome is unknown (s55).
         $kind = $failure instanceof TaskFailure ? $failure->kind : ($policy->idempotent ? TaskFailure::RETRY : TaskFailure::UNKNOWN);
@@ -1879,8 +2371,15 @@ final class Tasks
     private static function settled(DatabaseDriver $db, array $row, string $lease, string $state, array $history, string $error, int $failures, array &$counts, int $delay = 0): void
     {
         $id = (int) $row['id'];
+        $recorder = $state === self::STATE_DONE ? self::handler(name: (string) $row['handler']) : null;
 
-        if (!self::settle(db: $db, id: $id, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay)) {
+        if ($recorder instanceof TaskSettleRecorder) {
+            if (!self::settleRecorded(db: $db, row: $row, lease: $lease, history: $history, recorder: $recorder)) {
+                $counts['lost']++;
+
+                return;
+            }
+        } elseif (!self::settle(db: $db, id: $id, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay)) {
             $counts['lost']++;
             self::log(entry: 'Task #' . $id . ': its claim was taken over before its outcome (' . $state . ') could be recorded.', priority: Log::WARNING);
 
@@ -1894,6 +2393,50 @@ final class Tasks
             default => 'failed',
         }]++;
         self::notifySettled(row: $row, event: TaskSettlement::RUN, state: $state, history: $history, error: $error);
+    }
+
+    /**
+     * Settle a run done together with the record its handler writes ({@see TaskSettleRecorder}), in one transaction:
+     * when the record cannot be written nothing is settled, the task stays running until its claim passes and recovery
+     * holds it for staff, with every unit already in its history.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param array<string, mixed> $row The task.
+     * @param string $lease The claim.
+     * @param list<array<string, mixed>> $history Its history.
+     * @param TaskSettleRecorder $recorder Its handler.
+     *
+     * @return bool Whether the run settled done with its record.
+     *
+     * @since  2.2.0
+     */
+    private static function settleRecorded(DatabaseDriver $db, array $row, string $lease, array $history, TaskSettleRecorder $recorder): bool
+    {
+        $id = (int) $row['id'];
+        $db->transactionStart(true);
+
+        try {
+            if (!self::settle(db: $db, id: $id, lease: $lease, state: self::STATE_DONE, history: $history, error: '', failures: 0)) {
+                TransactionState::rollBackLevel($db);
+                self::log(entry: 'Task #' . $id . ': its claim was taken over before its outcome (' . self::STATE_DONE . ') could be recorded.', priority: Log::WARNING);
+
+                return false;
+            }
+
+            $recorder->recordDone(self::settlement(row: $row, event: TaskSettlement::RUN, state: self::STATE_DONE, history: $history));
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel($db, $e);
+            self::log(
+                entry: 'Task #' . $id . ' (' . $row['handler'] . ') is not settled done: the record it must leave could not be written (' . $e::class . ': ' . $e->getMessage() . '). It stays running until its claim passes; recovery then holds it for staff.',
+                priority: Log::ERROR,
+            );
+
+            return false;
+        }
+
+        TransactionState::commitLevel($db);
+
+        return true;
     }
 
     /**
@@ -2153,6 +2696,40 @@ final class Tasks
     }
 
     /**
+     * The two single probes of due() as SQL with no bound value, each selecting 1 (2.2.0: the triggers' due read joins
+     * them with the jobs' probes in one statement, Runner::due()).
+     *
+     * @param DatabaseDriver $db The connection.
+     *
+     * @return list<string>
+     *
+     * @since  2.2.0
+     */
+    public static function dueProbes(DatabaseDriver $db): array
+    {
+        $single = $db->quoteName('type') . ' = ' . $db->quote(self::TYPE_SINGLE);
+        $pending = 'SELECT 1 FROM ' . $db->quoteName(self::TABLE) . ' WHERE ' . $single . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING)
+            . ' AND ' . self::dueCondition(db: $db) . ' AND ' . self::unreserved(db: $db);
+
+        if (!self::hasApplication()) {
+            $needing = array_filter(
+                array_unique([...array_keys(self::coreHandlers()), ...array_keys(self::$handlers)]),
+                static fn (string $name): bool => (bool) self::handler(name: $name)?->policy()->needsApplication,
+            );
+
+            if ($needing !== []) {
+                $pending .= ' AND ' . $db->quoteName('handler') . ' NOT IN (' . implode(', ', array_map([$db, 'quote'], $needing)) . ')';
+            }
+        }
+
+        return [
+            $pending,
+            'SELECT 1 FROM ' . $db->quoteName(self::TABLE) . ' WHERE ' . $single . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(self::STATE_RUNNING)
+                . ' AND ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3)',
+        ];
+    }
+
+    /**
      * When a pending single is due for recovery: a retry once its time has come; one that never ran once it is older
      * than the grace, so its own request runs it first.
      *
@@ -2263,11 +2840,11 @@ final class Tasks
     }
 
     /**
-     * Where the request comes from.
+     * Where the request comes from: what a task row records as its origin (the jobs' too, 2.2.0).
      *
      * @since  2.1.4
      */
-    private static function origin(): string
+    public static function origin(): string
     {
         try {
             $app = Factory::getApplication();

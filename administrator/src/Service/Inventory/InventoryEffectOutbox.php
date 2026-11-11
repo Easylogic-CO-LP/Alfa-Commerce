@@ -19,10 +19,12 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Document\StockBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\ParameterType;
 use RuntimeException;
 use Throwable;
 
@@ -1011,6 +1013,32 @@ final class InventoryEffectOutbox
     }
 
     /**
+     * Whether an order still owes a stock movement for its claim: its obligation pending, failed or claimed, the rows
+     * a drain may yet apply (a refused one waits for the operator, an applied one is done). One read through
+     * idx_source, inside the caller's transaction: what a status change reads to decide whether its stock single has
+     * work (2.2.0).
+     *
+     * @param int $orderId The order.
+     *
+     * @since  2.2.0
+     */
+    public static function owesOrderClaim(int $orderId): bool
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $sourceType = 'order_claim';
+        $query = $db->getQuery(true)
+            ->select('1')
+            ->from($db->quoteName('#__alfa_inventory_effect_outbox'))
+            ->where($db->quoteName('source_type') . ' = :sourceType')
+            ->where($db->quoteName('source_id') . ' = :orderId')
+            ->whereIn($db->quoteName('status'), [self::STATUS_PENDING, self::STATUS_FAILED, self::STATUS_CLAIMED], ParameterType::STRING)
+            ->bind(':sourceType', $sourceType)
+            ->bind(':orderId', $orderId, ParameterType::INTEGER);
+
+        return (bool) $db->setQuery($query, 0, 1)->loadResult();
+    }
+
+    /**
      * How many obligations a drain would pick up right now.
      *
      * @param int|null $staleSeconds Age after which a claim counts as abandoned.
@@ -1114,18 +1142,26 @@ final class InventoryEffectOutbox
     /**
      * The uncached check behind {@see self::syncNotice()}.
      *
-     * Warnings whose movement is no longer owed are retired first. Then one notice
-     * states how many owed movements nothing is currently warning about; a movement
-     * whose order or document already shows its own notice is not counted twice.
+     * Warnings whose movement is no longer owed are retired first. A movement still
+     * owed gets the stock.effects.drain job (2.2.0), unless the caller is that job.
+     * Then one notice states how many owed movements nothing is currently warning
+     * about; a movement whose order or document already shows its own notice is not
+     * counted twice.
+     *
+     * @param bool $oweDrain Owe the drain job when a movement is owed; false from the job itself.
      *
      * @return bool Always true, for the cache callback.
      *
      * @since  2.0.0
      */
-    public static function doSyncNotice(): bool
+    public static function doSyncNotice(bool $oweDrain = true): bool
     {
         try {
             self::retireSettledNotices();
+
+            if ($oweDrain && self::outstandingCount() > 0) {
+                StockEffectsDrainJob::enqueue();
+            }
 
             $unannounced = 0;
 

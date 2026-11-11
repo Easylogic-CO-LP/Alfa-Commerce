@@ -21,7 +21,7 @@
 ?>
 
 <div class="item-list item-manufacturers">
-    <h2 class="item-list-title item-manufacturers-title"><?php echo Text::_('Manufacturers'); ?></h2>
+    <h2 class="item-list-title item-manufacturers-title"><?php echo Text::_('COM_ALFA_TITLE_MANUFACTURERS'); ?></h2>
 
     <div class="item-list-inner item-manufacturers-inner">
         <?php foreach ($manufacturers as $manufacturerId => $manufacturer) : ?>
@@ -29,7 +29,8 @@
             <?php
             $manufacturerUrl = Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $manufacturerId);
             $firstImage      = !empty($manufacturer['media']) ? reset($manufacturer['media']) : null;
-            $imageAlt        = !empty($firstImage->alt) ? $firstImage->alt : $manufacturer['name'] . ' logo';
+            // The merchant's own alt when set; otherwise empty: the link already says the manufacturer's name as its text.
+            $imageAlt        = !empty($firstImage->alt) ? $firstImage->alt : '';
             ?>
 
             <div class="item-list-entry item-manufacturer">
