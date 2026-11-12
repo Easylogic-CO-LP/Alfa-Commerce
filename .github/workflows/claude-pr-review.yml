@@ -69,7 +69,7 @@ jobs:
             short top-level summary. Prioritise correctness, security, Joomla-API misuse, data integrity,
             and release/migration completeness. Do NOT flag style/formatting (PHP CS Fixer handles it)
             or PHPStan-level issues. Acknowledge genuinely good work; if the PR is clean, say so in the
-            summary — don't invent issues.
+            summary. Don't invent issues.
 
           # MUST include the inline-comment MCP tool, or findings can't be posted.
           claude_args: |
