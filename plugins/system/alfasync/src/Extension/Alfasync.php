@@ -47,6 +47,7 @@ use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
+use Alfa\Component\Alfa\Administrator\Service\Cart\CartOwner;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
@@ -56,11 +57,14 @@ use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
 use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerTrigger;
+use Alfa\Component\Alfa\Site\Service\Cart\RecognizeKey;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
 use Joomla\CMS\Event\Module\AfterModuleListEvent;
+use Joomla\CMS\Event\PageCache\IsExcludedEvent;
+use Joomla\CMS\Event\PageCache\SetCachingEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Language\Text;
@@ -130,6 +134,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             // The API's recovery tick, after its response.
             'onAfterRespond' => 'onAfterRespond',
+
+            // Joomla's System - Page Cache: the cart page, and every page of a visitor with a cart, never served from it
+            // nor stored in it.
+            'onPageCacheSetCaching' => 'onPageCacheSetCaching',
+            'onPageCacheIsExcluded' => 'onPageCacheIsExcluded',
 
             // Storefront menu items removed -> the setup checklist must un-tick.
             'onContentAfterDelete' => 'onContentAfterDelete',
@@ -347,6 +356,87 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         $assets = $document->getWebAssetManager();
         $assets->getRegistry()->addExtensionRegistryFile('com_alfa');
         $assets->useScript('com_alfa.admin.runner-kick');
+    }
+
+    /**
+     * Joomla's System - Page Cache, the serving side (2.2.0): it asks on a guest's GET, before the component runs,
+     * whether to use its cache. Not for the cart page, nor for a visitor with a cart ({@see self::sharesNoPage()}): a
+     * page stored for another visitor is not served to them, and nothing of theirs is stored.
+     *
+     * @param SetCachingEvent $event Joomla's question; false answers "no caching".
+     *
+     * @since  2.2.0
+     */
+    public function onPageCacheSetCaching(SetCachingEvent $event): void
+    {
+        if ($this->sharesNoPage()) {
+            $event->addResult(false);
+        }
+    }
+
+    /**
+     * Joomla's System - Page Cache, the storing side (2.2.0): it asks after the page is drawn whether to keep it out of
+     * its cache. The same rule as the serving side, read again: what the visitor holds now.
+     *
+     * @param IsExcludedEvent $event Joomla's question; true answers "excluded".
+     *
+     * @since  2.2.0
+     */
+    public function onPageCacheIsExcluded(IsExcludedEvent $event): void
+    {
+        if ($this->sharesNoPage()) {
+            $event->addResult(true);
+        }
+    }
+
+    /**
+     * Whether this request's page is the visitor's own and must never be shared through Joomla's page cache: the cart
+     * view (any of its addresses and layouts, the cart and the checkout form), or a visitor whose session keeps
+     * checkout details typed into that form, or whose browser owns a guest cart with lines (the cart module on every
+     * page shows them). Any other page of a visitor with no cart stays cached. When the cart cannot be read, the page
+     * is not shared.
+     *
+     * @since  2.2.0
+     */
+    private function sharesNoPage(): bool
+    {
+        try {
+            $app = $this->getApplication();
+            $input = $app->getInput();
+
+            if ($input->getCmd('option') === 'com_alfa' && $input->getCmd('view') === 'cart') {
+                return true;
+            }
+
+            if (!empty($app->getUserState('com_alfa.cart.form_data'))) {
+                return true;
+            }
+
+            // The browser's own key, read as the cart reads it; without one the visitor has no guest cart.
+            $key = (string) $input->cookie->get(RecognizeKey::COOKIE, '');
+
+            if (!CartOwner::isWellFormedKey($key)) {
+                return false;
+            }
+
+            $db = $this->getDatabase();
+
+            return (bool) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('1')
+                    ->from($db->quoteName('#__alfa_cart', 'c'))
+                    ->join('INNER', $db->quoteName('#__alfa_cart_items', 'i'), $db->quoteName('i.id_cart') . ' = ' . $db->quoteName('c.id'))
+                    ->where($db->quoteName('c.recognize_key') . ' = :key')
+                    ->where($db->quoteName('c.id_customer') . ' = 0')
+                    ->bind(':key', $key),
+                0,
+                1,
+            )->loadResult();
+        } catch (Throwable $e) {
+            $this->logError(__FUNCTION__, 'the cart could not be read, the page is kept out of the page cache: ' . $e::class . ': ' . $e->getMessage());
+
+            return true;
+        }
     }
 
     /**
