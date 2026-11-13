@@ -263,8 +263,8 @@ final class CoreSetupProvider
             ->probe(static fn (): bool => self::exists(table: '#__alfa_document_series', where: ['state' => 1]));
 
         // Sales documents become PDFs (the PDF button, the REST PDF route, a status e-mail's attachments) through the
-        // dompdf library, which is installed separately. RECOMMENDED, not required: the documents are issued and the
-        // print view shows them without it (2.2.1).
+        // dompdf library, which ships with the package with the libraries it needs; the row fails when one of them was
+        // removed. RECOMMENDED, not required: the documents are issued and the print view shows them without it (2.2.1).
         $this->check('documents.pdf_library', 'COM_ALFA_SETUP_CHECK_PDF_LIBRARY_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_PDF_LIBRARY_REASON')

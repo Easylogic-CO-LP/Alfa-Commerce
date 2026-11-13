@@ -14,9 +14,9 @@ defined('_JEXEC') or die;
 use RuntimeException;
 
 /**
- * A PDF was asked for while the dompdf library (lib_dompdf) is not installed.
+ * A PDF was asked for while the dompdf library (lib_dompdf), or a library it needs, is not installed.
  *
- * The library is installed separately and is not part of Alfa Commerce, so this is a missing part of the server,
+ * The libraries ship with Alfa Commerce, so this happens only when someone removed one: a missing part of the server,
  * not a fault of the document: the REST PDF route and the administrator's PDF answer 503 with the translated sentence
  * (COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING), and a status e-mail sends without the attachment and logs this exception's
  * own message. That message is fixed English, as the log's lines are, so it reads the same wherever it is raised,
@@ -31,6 +31,6 @@ final class PdfLibraryMissingException extends RuntimeException
      */
     public function __construct()
     {
-        parent::__construct('The dompdf library (lib_dompdf), which PDF documents need, is not installed.');
+        parent::__construct('The dompdf library (lib_dompdf), or a library it needs, is not installed: PDF documents need them.');
     }
 }
