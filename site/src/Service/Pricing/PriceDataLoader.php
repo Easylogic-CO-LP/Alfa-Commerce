@@ -17,6 +17,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Joomla\CMS\Factory;
 
 /**
@@ -47,6 +48,11 @@ use Joomla\CMS\Factory;
  *   "no restriction row exists  OR  value = 0 (all)  OR  value matches visitor"
  *
  * All five dimensions must match simultaneously for a discount/tax to apply.
+ *
+ * Place: a rule scoped to a place reaches every place inside it (2.2.1): the
+ * visitor's place and every place above it (PlaceTree::placesFor()) are
+ * matched, and the matched rules are put in one order (RulePrecedence). A
+ * product's price rows stay exact to their place.
  *
  * Usergroup filter: important
  * Discounts and taxes are filtered by the VISITOR's Joomla usergroups from
@@ -492,7 +498,8 @@ class PriceDataLoader
      *                          product with no manufacturer gets only the rules
      *                          that target all manufacturers
      *   3. Place scope        - discount targets all places (place_id=0/NULL)
-     *                          or the visitor's detected location
+     *                          or the visitor's place or a place above it
+     *                          (2.2.1; RulePrecedence orders what matched)
      *   4. Usergroup scope    - discount targets all groups (usergroup_id=0/NULL)
      *                          or one of the VISITOR'S Joomla usergroups
      *   5. User scope         - discount targets all users (user_id=0/NULL)
@@ -517,8 +524,8 @@ class PriceDataLoader
         // getUserGroupsSql() always includes 0 (public), so public discounts always match.
         $userGroupsSql = $context->getUserGroupsSql();
 
-        // Visitor's location id; 0 means unknown / not set
-        $locationId = (int) ($context->getLocationId() ?? 0);
+        // The visitor's place and every place above it, nearest first; empty for an unknown place.
+        $chain = PlaceTree::placesFor(placeId: (int) ($context->getLocationId() ?? 0));
 
         // Visitor's user id; 0 means guest / anonymous
         $userId = (int) ($context->getUserId() ?? 0);
@@ -530,7 +537,9 @@ class PriceDataLoader
             // from 5.7 on; it survives here only because this deployment does not
             // set that mode. Adding the column costs nothing and removes a
             // portability trap that would surface as a fatal on a customer's host.
-            ->select('DISTINCT d.id, d.ordering, d.value, d.is_amount, d.behavior, d.apply_before_tax, d.tag_list_show, d.tag_list_slot, d.tag_item_show, d.tag_item_slot, d.tag_bg, d.tag_color, d.tag_class, ic.item_id')
+            // The place of the scope row that matched rides along, for the order (RulePrecedence): a rule that matches
+            // through two places of the chain comes twice and is kept once, at its nearest place.
+            ->select('DISTINCT d.id, d.ordering, d.value, d.is_amount, d.behavior, d.apply_before_tax, d.tag_list_show, d.tag_list_slot, d.tag_item_show, d.tag_item_slot, d.tag_bg, d.tag_color, d.tag_class, ic.item_id, dp.place_id AS matched_place')
             ->from('#__alfa_discounts AS d')
 
             // Scope 1: Category
@@ -557,9 +566,9 @@ class PriceDataLoader
 
             // Scope 3: Place
             // Matches when: no place restriction exists, applies-to-all-places (0),
-            // or the discount targets the visitor's specific location.
+            // or the discount targets the visitor's place or a place above it.
             ->join('LEFT', '#__alfa_discount_places AS dp ON dp.discount_id = d.id')
-            ->where('(dp.discount_id IS NULL OR dp.place_id = 0 OR dp.place_id = ' . $locationId . ')')
+            ->where(self::placeMatch(alias: 'dp', foreignKey: 'discount_id', chain: $chain))
 
             // Scope 4: Usergroup
             // Filter by the VISITOR'S Joomla usergroups from PriceContext.
@@ -603,9 +612,8 @@ class PriceDataLoader
         );
 
         $db->setQuery($query);
-        $results = $db->loadObjectList();
 
-        return $this->groupByProductId($results, 'item_id');
+        return $this->inPrecedence(grouped: $this->groupByProductId($db->loadObjectList() ?: [], 'item_id'), chain: $chain);
     }
 
     // Tax fetching
@@ -630,8 +638,8 @@ class PriceDataLoader
         // Visitor's usergroup ids as SQL IN() list: always includes 0
         $userGroupsSql = $context->getUserGroupsSql();
 
-        // Visitor's location id; 0 means unknown / not set
-        $locationId = (int) ($context->getLocationId() ?? 0);
+        // The visitor's place and every place above it, nearest first; empty for an unknown place.
+        $chain = PlaceTree::placesFor(placeId: (int) ($context->getLocationId() ?? 0));
 
         // Visitor's user id; 0 means guest / anonymous
         $userId = (int) ($context->getUserId() ?? 0);
@@ -639,7 +647,8 @@ class PriceDataLoader
         $query = $db->getQuery(true)
             // Same reasoning as the discount query above: the sort column is
             // selected, and the id breaks the tie.
-            ->select('DISTINCT t.id, t.ordering, t.value, t.behavior, ic.item_id')
+            // The matched place rides along for the order, as for discounts.
+            ->select('DISTINCT t.id, t.ordering, t.value, t.behavior, ic.item_id, tp.place_id AS matched_place')
             ->from('#__alfa_taxes AS t')
 
             // Scope 1: Category
@@ -657,9 +666,9 @@ class PriceDataLoader
             ->join('LEFT', $this->manufacturerLinks() . ' AS im ON im.item_id = ic.item_id')
             ->where('(tm.tax_id IS NULL OR tm.manufacturer_id = 0 OR tm.manufacturer_id = im.manufacturer_id)')
 
-            // Scope 3: Place
+            // Scope 3: Place: the visitor's place or a place above it (2.2.1)
             ->join('LEFT', '#__alfa_tax_places AS tp ON tp.tax_id = t.id')
-            ->where('(tp.tax_id IS NULL OR tp.place_id = 0 OR tp.place_id = ' . $locationId . ')')
+            ->where(self::placeMatch(alias: 'tp', foreignKey: 'tax_id', chain: $chain))
 
             // Scope 4: Usergroup
             // Filter by VISITOR'S usergroups from PriceContext, not item-access table.
@@ -689,12 +698,48 @@ class PriceDataLoader
         );
 
         $db->setQuery($query);
-        $results = $db->loadObjectList();
 
-        return $this->groupByProductId($results, 'item_id');
+        return $this->inPrecedence(grouped: $this->groupByProductId($db->loadObjectList() ?: [], 'item_id'), chain: $chain);
     }
 
     // Helpers
+
+    /**
+     * The place condition of a discount's or a tax's scope (2.2.1): no place row, the "every place" row (0), or a row
+     * naming the buyer's place or a place above it. The same words as the shipping taxes (ShippingTaxResolver).
+     *
+     * @param string $alias The scope table's alias.
+     * @param string $foreignKey Its rule column.
+     * @param int[] $chain The buyer's place and every place above it; empty for an unknown place.
+     *
+     * @since  2.2.1
+     */
+    public static function placeMatch(string $alias, string $foreignKey, array $chain): string
+    {
+        $chain = array_values(array_filter(array_map('intval', $chain), static fn (int $place): bool => $place > 0));
+
+        return '(' . $alias . '.' . $foreignKey . ' IS NULL OR ' . $alias . '.place_id = 0'
+            . ($chain === [] ? '' : ' OR ' . $alias . '.place_id IN (' . implode(',', $chain) . ')') . ')';
+    }
+
+    /**
+     * Each product's matched rules once, in the one order they apply in (RulePrecedence).
+     *
+     * @param array<int|string, object[]> $grouped The matched rows by product.
+     * @param int[] $chain The buyer's place and every place above it.
+     *
+     * @return array<int|string, object[]>
+     *
+     * @since  2.2.1
+     */
+    private function inPrecedence(array $grouped, array $chain): array
+    {
+        foreach ($grouped as $productId => $rows) {
+            $grouped[$productId] = RulePrecedence::order(rows: $rows, chain: $chain);
+        }
+
+        return $grouped;
+    }
 
     /**
      * The product-to-category links the tax and discount queries match against:
