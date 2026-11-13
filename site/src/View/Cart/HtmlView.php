@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
@@ -236,6 +237,10 @@ class HtmlView extends BaseHtmlView
         }
 
         if ($this->_layout == 'default_order_process') {
+            // The order of this visitor's session, drawn at an address every buyer shares: never stored in Joomla's
+            // page cache, whatever else is enabled.
+            PageCache::excludeResponse();
+
             $orderId = $app->getUserState('com_alfa.order_id');
 
             if ($orderId == null) {
@@ -391,9 +396,7 @@ class HtmlView extends BaseHtmlView
         $app->allowCache(false);
         $app->setHeader('X-Robots-Tag', 'noindex, nofollow', true);
         $app->setHeader('Referrer-Policy', 'same-origin', true);
-        AlfaPluginHelper::get()->listen('onPageCacheIsExcluded', static function ($event): void {
-            $event->addResult(true);
-        });
+        PageCache::excludeResponse();
 
         if (!$input->exists('id') && !$input->exists('key')) {
             $this->arriveAtCompletedOrder($tpl);

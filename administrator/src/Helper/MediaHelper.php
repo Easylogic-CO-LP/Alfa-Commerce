@@ -123,6 +123,15 @@ class MediaHelper
     ];
 
     /**
+     * The media manager's image extensions while com_media stores none: the default of its Legal Image Extensions, as
+     * Joomla's media manager reads it.
+     *
+     * @var string
+     * @since  2.2.1
+     */
+    private const MEDIA_IMAGE_EXTENSIONS = 'bmp,gif,jpg,jpeg,png,webp,avif';
+
+    /**
      * Resolve the effective allowed image MIME types.
      *
      * Returns the configured types, or, when none are configured, the full
@@ -917,32 +926,14 @@ class MediaHelper
                     // outside those roots is forged, and scoping this way stops an
                     // API caller referencing (and copying) images from
                     // administrator/ or any other non-media folder.
-                    // BOTH com_media roots count: file_path and image_path are
-                    // configured separately and are NOT interchangeable (this very
-                    // site runs file_path=files while its images live under
-                    // images/), plus com_alfa's own save folder.
+                    // The media folders are mediaRoots(), the one definition a
+                    // thumbnail's source is held to as well (2.2.1).
                     $realSrc = realpath(JPATH_ROOT . '/' . $cleanPath);
                     $withinRoot = false;
 
                     if ($realSrc !== false) {
-                        $mediaParams = ComponentHelper::getParams('com_media');
-
-                        foreach (
-                            [
-                                $mediaParams->get('file_path', 'images'),
-                                $mediaParams->get('image_path', 'images'),
-                                $saveFolder,
-                            ] as $candidate
-                        ) {
-                            $candidate = trim((string) $candidate, '/');
-
-                            if ($candidate === '') {
-                                continue;
-                            }
-
-                            $rootReal = realpath(JPATH_ROOT . '/' . $candidate);
-
-                            if ($rootReal !== false && str_starts_with($realSrc, $rootReal . \DIRECTORY_SEPARATOR)) {
+                        foreach (self::mediaRoots() as $rootReal) {
+                            if (str_starts_with($realSrc, $rootReal . \DIRECTORY_SEPARATOR)) {
                                 $withinRoot = true;
                                 break;
                             }
@@ -1191,7 +1182,9 @@ class MediaHelper
      * stored thumbnail when the tile still shows it (an existing row re-saved as it was: its stored thumbnail, or its
      * path where it stores none or stores its path), so a re-save writes no file; otherwise makes a new thumbnail of
      * the given image at the configured box. A file that merely lies inside the save folder is NOT kept as it is
-     * (2.2.0): it may be another row's image, and a new row then gets its own copy, never another row's file.
+     * (2.2.0): it may be another row's image, and a new row then gets its own copy, never another row's file. A source
+     * that is not an image file of the media folders (isThumbnailSource()) is refused with a message and gives none
+     * (2.2.1).
      *
      * @param string $rawThumbnail Raw (relative) thumbnail path, possibly URL-encoded and with a fragment.
      * @param string $defaultThumbPath Path of the default placeholder thumbnail to compare against.
@@ -1219,19 +1212,17 @@ class MediaHelper
             return (string) $stored->thumbnail;
         }
 
-        // Containment: the source is a client-supplied relative path, so it must
-        // resolve INSIDE the site root: a crafted "../.." must never let an
-        // arbitrary file be read and re-saved as a "thumbnail".
+        // The source is a client-supplied relative path: only an image file of the media folders may be one (2.2.1,
+        // isThumbnailSource()). The forms and the API refuse such a save before it writes (thumbnailRefusals()); a
+        // caller of saveMedia() that did not ask is told here, and nothing is read or copied.
         $sourcePath = JPATH_ROOT . '/' . $cleanThumb;
-        $sourceReal = realpath($sourcePath);
-        $rootReal = realpath(JPATH_ROOT);
 
-        if (
-            str_contains($cleanThumb, '..')
-            || $sourceReal === false
-            || $rootReal === false
-            || !str_starts_with($sourceReal, $rootReal . DIRECTORY_SEPARATOR)
-        ) {
+        if (!self::isThumbnailSource(file: $sourcePath)) {
+            Factory::getApplication()->enqueueMessage(
+                Text::sprintf('COM_ALFA_MEDIA_ERROR_THUMBNAIL_SOURCE', htmlspecialchars($cleanThumb, ENT_QUOTES, 'UTF-8')),
+                'error',
+            );
+
             return '';
         }
 
@@ -1297,7 +1288,9 @@ class MediaHelper
      * Write a thumbnail of an image at the configured box (2.2.0: the one writer, for a saved tile and for the Recreate
      * thumbnails job): the plugin layer first (onAlfaMediaThumbnail, which owns the format and the quality), else the
      * always-on baseline resize, else, only when GD cannot resize, a plain copy. An existing file at the destination is
-     * overwritten.
+     * overwritten. Only a source isThumbnailSource() accepts is used (2.2.1): any other file is not handed to a plugin,
+     * resized or copied, and none is written, so the plain copy is only ever of an image GD cannot read (an AVIF on a
+     * GD without AVIF).
      *
      * @param string $source Absolute path of the image.
      * @param string $dest Absolute path proposed for the thumbnail.
@@ -1309,6 +1302,10 @@ class MediaHelper
      */
     public static function makeThumbnail(string $source, string $dest, ?object $params = null): string
     {
+        if (!self::isThumbnailSource(file: $source)) {
+            return '';
+        }
+
         // Thumbnail SIZE is a component concern (a thumbnail must never be the
         // full image). FORMAT/QUALITY are plugin concerns, applied only when a
         // plugin handles the event; otherwise the always-on baseline resize runs.
@@ -1348,6 +1345,232 @@ class MediaHelper
         }
 
         return ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+    }
+
+    /**
+     * Whether a file may be the source of a thumbnail (2.2.1): the one rule the administrator saves, the API and the
+     * Recreate thumbnails job share. makeThumbnail() applies it before anything is handed to a plugin, resized or
+     * copied; thumbnailRefusals() asks it before a save writes anything, and processThumbnail() and ThumbnailRecreation
+     * ask it to say why no thumbnail was made.
+     *
+     * The file must (a) lie inside one of the media folders (mediaRoots(), the folders the media picker is held to as
+     * well) and (b) be an image of its own extension (isImageOfItsExtension()). Before, any file the site could read
+     * inside its root (a backup, a log, the configuration file) could be named as a thumbnail and was copied, its
+     * extension kept, into the save folder.
+     *
+     * @param string $file Absolute path of the file.
+     *
+     * @since  2.2.1
+     */
+    public static function isThumbnailSource(string $file): bool
+    {
+        $real = realpath($file);
+
+        if ($real === false || !is_file($real)) {
+            return false;
+        }
+
+        foreach (self::mediaRoots() as $root) {
+            if (str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+                return self::isImageOfItsExtension(file: $file);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether a file is an image of its own extension (2.2.1): it carries one of the media manager's image extensions
+     * (com_media's Legal Image Extensions), under its own name and the file it leads to alike, and the type
+     * getimagesize() reads from its header agrees with that extension.
+     *
+     * @param string $file Absolute path of the file.
+     *
+     * @since  2.2.1
+     */
+    private static function isImageOfItsExtension(string $file): bool
+    {
+        $real = realpath($file);
+
+        if ($real === false || !is_file($real)) {
+            return false;
+        }
+
+        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        $allowed = array_map(
+            static fn (string $one): string => strtolower(trim($one)),
+            explode(',', (string) ComponentHelper::getParams('com_media')->get('image_extensions', self::MEDIA_IMAGE_EXTENSIONS)),
+        );
+
+        if ($extension === '' || !\in_array($extension, $allowed, true) || strtolower(pathinfo($real, PATHINFO_EXTENSION)) !== $extension) {
+            return false;
+        }
+
+        $info = @getimagesize($real);
+        $type = $info === false ? null : (self::MIME_EXTENSION_MAP[strtolower($info['mime'])] ?? null);
+
+        return $type !== null && ($type === $extension || ($type === 'jpg' && $extension === 'jpeg'));
+    }
+
+    /**
+     * The media folders (2.2.1), as real absolute paths: the one definition the media picker's containment and a
+     * thumbnail's source share. Joomla's com_media names two (file_path and image_path, configured separately and not
+     * interchangeable), and the component adds its own save folder, where the images it stores are. A folder that
+     * does not exist is left out, and so is one that is the site root itself or holds it (an empty setting, a link to a
+     * parent, the filesystem root).
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    private static function mediaRoots(): array
+    {
+        $mediaParams = ComponentHelper::getParams('com_media');
+        $folders = [
+            $mediaParams->get('file_path', 'images'),
+            $mediaParams->get('image_path', 'images'),
+            ComponentHelper::getParams('com_alfa')->get('media_save_location', 'images/commerce'),
+        ];
+        $siteRoot = realpath(JPATH_ROOT);
+        $roots = [];
+
+        foreach ($folders as $folder) {
+            $folder = trim((string) $folder, '/');
+            $real = $folder === '' ? false : realpath(JPATH_ROOT . '/' . $folder);
+
+            // A folder that is the site root or holds it is never a root; the filesystem root itself ends with its
+            // separator, so the separator is trimmed before it is added.
+            $holdsSite = $siteRoot !== false && $real !== false
+                && ($real === $siteRoot || str_starts_with($siteRoot, rtrim($real, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR));
+
+            if ($real !== false && $siteRoot !== false && is_dir($real) && !$holdsSite) {
+                $roots[$real] = $real;
+            }
+        }
+
+        return array_values($roots);
+    }
+
+    /**
+     * The thumbnails of a gallery post the thumbnail rule refuses (2.2.1): one message for each tile whose thumbnail
+     * would be made from a file isThumbnailSource() does not accept, read as saveMedia() would read it (a drop's blob,
+     * no thumbnail, the placeholder and a tile left showing its own stored thumbnail make none; a tile marked for
+     * deletion makes none). The administrator saves and the API ask it before they write anything and refuse the whole
+     * save when it names one, so a refused thumbnail never clears or replaces what a row stores.
+     *
+     * @param array $mediaData The gallery as posted (jform[media]: tiles keyed by row id, or "new-..." for a new one).
+     *
+     * @return string[] The refusal messages; none when every thumbnail may be made.
+     *
+     * @since  2.2.1
+     */
+    public static function thumbnailRefusals(array $mediaData): array
+    {
+        $default = ltrim(trim((string) ComponentHelper::getParams('com_alfa')->get('media_url_thumbnail', '')), '/');
+        $tiles = [];
+
+        foreach ($mediaData as $id => $media) {
+            $media = (array) $media;
+            $raw = (string) ($media['thumbnail'] ?? '');
+            $clean = self::thumbnailSource(rawThumbnail: $raw);
+
+            if (str_contains($raw, 'blob:') || $clean === '' || $clean === $default || (int) ($media['delete'] ?? 0) === 1) {
+                continue;
+            }
+
+            $tiles[] = [str_contains((string) $id, 'new-') ? 0 : (int) $id, $clean];
+        }
+
+        $existing = array_values(array_filter(array_column($tiles, 0), static fn (int $id): bool => $id > 0));
+        $stored = [];
+
+        if ($existing !== []) {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $stored = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'path', 'thumbnail']))
+                    ->from($db->quoteName('#__alfa_media'))
+                    ->whereIn($db->quoteName('id'), $existing),
+            )->loadObjectList('id') ?: [];
+        }
+
+        $refusals = [];
+
+        foreach ($tiles as [$id, $clean]) {
+            if (isset($stored[$id]) && self::keepsStoredThumbnail(cleanThumb: $clean, stored: $stored[$id])) {
+                continue;
+            }
+
+            if (!self::isThumbnailSource(file: JPATH_ROOT . '/' . $clean)) {
+                $refusals[] = Text::sprintf('COM_ALFA_MEDIA_ERROR_THUMBNAIL_SOURCE', htmlspecialchars($clean, ENT_QUOTES, 'UTF-8'));
+            }
+        }
+
+        return array_values(array_unique($refusals));
+    }
+
+    /**
+     * The files a thumbnail copy may have left that are not images (2.2.1), for the update to list: every file of the
+     * save folder that is not an image of its own extension, and every file a media row names as its thumbnail that is
+     * not one, each with the rows that name it as their image or their thumbnail. Up to 2.2.0 a thumbnail could be a
+     * copy of any file the site could read, published in the save folder. Nothing is changed or deleted: staff remove
+     * them by hand. The save folder's index.html and its hidden files (a .htaccess) are never such a copy and are not
+     * listed.
+     *
+     * @return array<string, int[]> Site-relative file => the ids of the media rows that name it.
+     *
+     * @since  2.2.1
+     */
+    public static function nonImageFiles(): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $files = [];
+
+        foreach (glob(self::getUploadRoot() . '/*') ?: [] as $file) {
+            $name = basename($file);
+
+            if (is_file($file) && $name !== 'index.html' && !str_starts_with($name, '.') && !self::isImageOfItsExtension(file: $file)) {
+                $files[ltrim(str_replace(JPATH_ROOT . '/', '', $file), '/')] = true;
+            }
+        }
+
+        $named = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('thumbnail'))
+                ->from($db->quoteName('#__alfa_media'))
+                ->where($db->quoteName('type') . ' != ' . $db->quote('url'))
+                ->where($db->quoteName('thumbnail') . ' IS NOT NULL')
+                ->where($db->quoteName('thumbnail') . ' != ' . $db->quote('')),
+        )->loadColumn() ?: [];
+
+        foreach (array_unique($named) as $thumbnail) {
+            $relative = ltrim((string) $thumbnail, '/');
+
+            if (!str_contains($relative, '://') && is_file(JPATH_ROOT . '/' . $relative) && !self::isImageOfItsExtension(file: JPATH_ROOT . '/' . $relative)) {
+                $files[$relative] = true;
+            }
+        }
+
+        $listed = [];
+
+        foreach (array_keys($files) as $relative) {
+            $slashed = '/' . $relative;
+            $listed[$relative] = array_map('intval', $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('id'))
+                    ->from($db->quoteName('#__alfa_media'))
+                    ->where('(' . $db->quoteName('path') . ' IN (:a1, :b1) OR ' . $db->quoteName('thumbnail') . ' IN (:a2, :b2))')
+                    ->bind(':a1', $relative)
+                    ->bind(':b1', $slashed)
+                    ->bind(':a2', $relative)
+                    ->bind(':b2', $slashed)
+                    ->order($db->quoteName('id')),
+            )->loadColumn() ?: []);
+        }
+
+        ksort($listed);
+
+        return $listed;
     }
 
     /**
