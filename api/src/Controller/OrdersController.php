@@ -12,10 +12,10 @@ namespace Alfa\Component\Alfa\Api\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
@@ -64,36 +64,35 @@ class OrdersController extends ApiController
     public function displayList()
     {
         $apiFilterInfo = $this->input->get('filter', [], 'array');
-        $filter = InputFilter::getInstance();
 
         if (\array_key_exists('search', $apiFilterInfo)) {
-            $this->modelState->set('filter.search', $filter->clean($apiFilterInfo['search'], 'STRING'));
+            $this->modelState->set('filter.search', RequestScalar::member($apiFilterInfo, 'search', 'STRING', 'filter'));
         }
 
         if (\array_key_exists('id_order_status', $apiFilterInfo)) {
-            $this->modelState->set('filter.id_order_status', $filter->clean($apiFilterInfo['id_order_status'], 'INT'));
+            $this->modelState->set('filter.id_order_status', RequestScalar::member($apiFilterInfo, 'id_order_status', 'INT', 'filter'));
         }
 
         if (\array_key_exists('id_payment_method', $apiFilterInfo)) {
-            $this->modelState->set('filter.id_payment_method', $filter->clean($apiFilterInfo['id_payment_method'], 'INT'));
+            $this->modelState->set('filter.id_payment_method', RequestScalar::member($apiFilterInfo, 'id_payment_method', 'INT', 'filter'));
         }
 
         if (\array_key_exists('id_shipment_method', $apiFilterInfo)) {
-            $this->modelState->set('filter.id_shipment_method', $filter->clean($apiFilterInfo['id_shipment_method'], 'INT'));
+            $this->modelState->set('filter.id_shipment_method', RequestScalar::member($apiFilterInfo, 'id_shipment_method', 'INT', 'filter'));
         }
 
         if (\array_key_exists('show_trashed', $apiFilterInfo)) {
-            $this->modelState->set('filter.show_trashed', $filter->clean($apiFilterInfo['show_trashed'], 'INT'));
+            $this->modelState->set('filter.show_trashed', RequestScalar::member($apiFilterInfo, 'show_trashed', 'INT', 'filter'));
         }
 
         $apiListInfo = $this->input->get('list', [], 'array');
 
         if (\array_key_exists('ordering', $apiListInfo)) {
-            $this->modelState->set('list.ordering', $filter->clean($apiListInfo['ordering'], 'STRING'));
+            $this->modelState->set('list.ordering', RequestScalar::member($apiListInfo, 'ordering', 'STRING', 'list'));
         }
 
         if (\array_key_exists('direction', $apiListInfo)) {
-            $this->modelState->set('list.direction', $filter->clean($apiListInfo['direction'], 'STRING'));
+            $this->modelState->set('list.direction', RequestScalar::member($apiListInfo, 'direction', 'STRING', 'list'));
         }
 
         return parent::displayList();
@@ -144,7 +143,7 @@ class OrdersController extends ApiController
             throw new Save('state cannot be changed via PATCH: an order is not trashed; its status changes through POST v1/alfa/orders/:id/status.', 422);
         }
 
-        $orderId = (int) ($id ?? $this->input->getInt('id'));
+        $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
         $result = parent::edit($id);
@@ -178,7 +177,7 @@ class OrdersController extends ApiController
      */
     public function delete($id = null)
     {
-        $orderId = (int) ($id ?? $this->input->getInt('id'));
+        $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $model = $this->getModel('order', '', ['ignore_request' => true]);
 
         if ($model && $orderId > 0) {

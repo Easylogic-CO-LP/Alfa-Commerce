@@ -12,12 +12,14 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -48,6 +50,17 @@ final class CoreSetupProvider
      */
     public const OWNER_GROUP = 'core';
     public const OWNER_NAME = 'com_alfa';
+
+    /**
+     * The state of the page cache check while Joomla's System - Page Cache is enabled and System - Alfa Commerce Sync
+     * does not run for visitors who are not logged in (disabled, not installed, or an Access they do not hold): nothing
+     * then keeps a shopper's cart page, typed checkout details or cart module out of the page cache, and the next
+     * visitors can be shown them. SetupCheck::STATE_FAIL or SetupCheck::STATE_WARN; this one value decides which.
+     *
+     * @var string
+     * @since  2.2.1
+     */
+    public const PAGE_CACHE_WITHOUT_SYNC = SetupCheck::STATE_FAIL;
 
     /**
      * The checks built so far by {@see self::checks()}.
@@ -120,6 +133,19 @@ final class CoreSetupProvider
             ->tour('com_alfa.form-fields')
             ->priority(800)
             ->probe(static fn (): bool => self::hasMerchantCheckoutFields());
+
+        // A required field whose plugin a visitor cannot use refuses every form that asks for it (2.2.1): the
+        // form fails closed, and this row tells staff before a customer meets it.
+        $this->check('form.fields_available', 'COM_ALFA_SETUP_CHECK_FORM_FIELD_PLUGINS_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason('COM_ALFA_SETUP_CHECK_FORM_FIELD_PLUGINS_REASON')
+            ->cta('index.php?option=com_plugins&view=plugins&filter[folder]=alfa-form-fields')
+            ->priority(790)
+            ->probe(static fn (): bool => self::requiredFieldsWithoutPublicPlugin() === [])
+            ->reasonArguments(
+                arguments: static fn (): array => [self::namedFields(fields: self::requiredFieldsWithoutPublicPlugin())],
+                unnamed:   'COM_ALFA_SETUP_CHECK_FORM_FIELD_PLUGINS_REASON_UNNAMED',
+            );
 
         // Payment/shipping methods are RECOMMENDED, not
         // required: a store can legitimately run without them (catalogue mode,
@@ -266,6 +292,27 @@ final class CoreSetupProvider
                 return is_dir($path) ? is_writable($path) : is_writable(\dirname($path));
             });
 
+        // Joomla's System - Page Cache stores the page a visitor who is not logged in opens, by its address, and shows
+        // it to the next visitors. System - Alfa Commerce Sync keeps a shopper's own pages out of it, when it runs for
+        // such a visitor; otherwise the cart, the typed checkout details and the cart module can reach another
+        // visitor. Read once here: the state and the reason follow the same reading.
+        [$pageCache, $sync] = self::pageCacheReading();
+
+        $this->check('joomla.pagecache', 'COM_ALFA_SETUP_CHECK_PAGECACHE_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason(match (true) {
+                $pageCache && $sync === SyncPluginState::NOT_FOR_GUESTS => 'COM_ALFA_SETUP_CHECK_PAGECACHE_ACCESS_REASON',
+                $pageCache && $sync !== SyncPluginState::EFFECTIVE => 'COM_ALFA_SETUP_CHECK_PAGECACHE_UNGUARDED_REASON',
+                default => 'COM_ALFA_SETUP_CHECK_PAGECACHE_REASON',
+            })
+            ->cta('index.php?option=com_plugins&view=plugins&filter[folder]=system')
+            ->priority(250)
+            ->probe(static fn (): string => match (true) {
+                !$pageCache => SetupCheck::STATE_PASS,
+                $sync === SyncPluginState::EFFECTIVE => SetupCheck::STATE_WARN,
+                default => self::PAGE_CACHE_WITHOUT_SYNC,
+            });
+
         $this->check('sef.enabled', 'COM_ALFA_SETUP_CHECK_SEF_LABEL')
             ->tier(SetupCheck::TIER_OPTIONAL)
             ->reason('COM_ALFA_SETUP_CHECK_SEF_REASON')
@@ -377,6 +424,78 @@ final class CoreSetupProvider
     }
 
     /**
+     * The published fields required in a section of the customer details (billing, shipping) or at registration while
+     * no enabled form-field plugin of Public access renders their type: such a field cannot be filled in by every
+     * visitor (a guest is never loaded a plugin of another access), and every form that asks for it refuses the
+     * submission. Only a field its group serves counts, by the rule the forms read it with
+     * (FieldsHelper::servedByGroup()).
+     *
+     * @return list<object> Each with field_name and its billing, shipping and registration levels, by field name.
+     *
+     * @since  2.2.1
+     */
+    private static function requiredFieldsWithoutPublicPlugin(): array
+    {
+        $db = self::db();
+        $required = FieldsHelper::LEVEL_REQUIRED;
+        $folder = 'alfa-form-fields';
+        $public = 1;
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['f.field_name', 'f.billing', 'f.shipping', 'f.registration']))
+            ->from($db->quoteName('#__alfa_form_fields', 'f'))
+            ->join(
+                'LEFT',
+                $db->quoteName('#__extensions', 'e'),
+                $db->quoteName('e.element') . ' = ' . $db->quoteName('f.type')
+                . ' AND ' . $db->quoteName('e.type') . ' = ' . $db->quote('plugin')
+                . ' AND ' . $db->quoteName('e.folder') . ' = :folder'
+                . ' AND ' . $db->quoteName('e.enabled') . ' = 1'
+                . ' AND ' . $db->quoteName('e.access') . ' = :public',
+            )
+            ->join('LEFT', $db->quoteName('#__alfa_form_field_groups', 'g'), $db->quoteName('g.id') . ' = ' . $db->quoteName('f.group_id'))
+            ->where($db->quoteName('f.state') . ' = 1')
+            ->where(FieldsHelper::servedByGroup(db: $db, field: 'f', group: 'g'))
+            ->where('(' . $db->quoteName('f.billing') . ' = :billing OR ' . $db->quoteName('f.shipping') . ' = :shipping OR '
+                . $db->quoteName('f.registration') . ' = :registration)')
+            ->where($db->quoteName('e.extension_id') . ' IS NULL')
+            ->order($db->quoteName('f.field_name'))
+            ->bind(':folder', $folder, ParameterType::STRING)
+            ->bind(':public', $public, ParameterType::INTEGER)
+            ->bind(':billing', $required, ParameterType::INTEGER)
+            ->bind(':shipping', $required, ParameterType::INTEGER)
+            ->bind(':registration', $required, ParameterType::INTEGER);
+
+        return $db->setQuery($query)->loadObjectList() ?: [];
+    }
+
+    /**
+     * The fields as the setup row names them: each field's name with the details it is required in, for example
+     * "phone (billing details, shipping details)".
+     *
+     * @param list<object> $fields From requiredFieldsWithoutPublicPlugin().
+     *
+     * @since  2.2.1
+     */
+    private static function namedFields(array $fields): string
+    {
+        $named = [];
+
+        foreach ($fields as $field) {
+            $sections = [];
+
+            foreach (['billing' => 'COM_ALFA_SETUP_FORM_SECTION_BILLING', 'shipping' => 'COM_ALFA_SETUP_FORM_SECTION_SHIPPING', 'registration' => 'COM_ALFA_SETUP_FORM_SECTION_REGISTRATION'] as $column => $key) {
+                if ((int) $field->{$column} === FieldsHelper::LEVEL_REQUIRED) {
+                    $sections[] = Text::_($key);
+                }
+            }
+
+            $named[] = (string) $field->field_name . ' (' . implode(', ', $sections) . ')';
+        }
+
+        return implode('; ', $named);
+    }
+
+    /**
      * Whether a PUBLISHED method row exists whose `type` names an ENABLED plugin of
      * the given capability group: the correctness join. `state = 1` alone lies: a
      * method whose gateway plugin was disabled still looks configured but cannot
@@ -409,6 +528,39 @@ final class CoreSetupProvider
         $db->setQuery($query, 0, 1);
 
         return (string) $db->loadResult() !== '';
+    }
+
+    /**
+     * What the page cache check reads: whether Joomla's System - Page Cache is enabled (its extension row), and
+     * System - Alfa Commerce Sync's state for visitors who are not logged in ({@see SyncPluginState}). The checklist
+     * keeps it beside its cached verdict ({@see SetupHelper::status()}): Alfa Commerce Sync hears no change made while
+     * it is off, nor its own enabling, so a verdict computed under another reading is computed again. Each call reads
+     * the page cache plugin's row and Alfa Commerce Sync's ({@see SyncPluginState::read()}): two indexed reads of
+     * #__extensions, and the guest's view levels.
+     *
+     * @return array{0: bool, 1: string} [page cache enabled, a SyncPluginState constant]
+     *
+     * @since  2.2.1
+     */
+    public static function pageCacheReading(): array
+    {
+        $db = self::db();
+        $folder = 'system';
+        $element = 'cache';
+        $enabled = (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('enabled'))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                ->where($db->quoteName('folder') . ' = :folder')
+                ->where($db->quoteName('element') . ' = :element')
+                ->bind(':folder', $folder, ParameterType::STRING)
+                ->bind(':element', $element, ParameterType::STRING),
+            0,
+            1,
+        )->loadResult();
+
+        return [$enabled === 1, SyncPluginState::read()];
     }
 
     /**

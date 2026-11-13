@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\FormErrors;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Site\Helper\Layout;
@@ -122,8 +123,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         self::verifyTokenAndRespondJson('post', $failMessage);
 
-        $quantity = $input->getInt('quantity', 1);
-        $itemId = $input->getInt('item_id', 0);
+        $quantity = RequestScalar::int($input, 'quantity', 1);
+        $itemId = RequestScalar::int($input, 'item_id', 0);
         $userGroupId = 1;
         $currencyId = 1;
 
@@ -205,9 +206,9 @@ class CartController extends FormController implements UserFactoryAwareInterface
             $this->app->close();
         }
 
-        $quantity = $this->input->getInt('quantity', 1);
-        $itemId = $this->input->getInt('item_id', 0);
-        $editLineId = $this->input->getInt('edit_line', 0);
+        $quantity = RequestScalar::int($this->input, 'quantity', 1);
+        $itemId = RequestScalar::int($this->input, 'item_id', 0);
+        $editLineId = RequestScalar::int($this->input, 'edit_line', 0);
 
         $result = null;
 
@@ -356,7 +357,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
     {
         $this->checkToken();
 
-        $code = (string) $this->app->getInput()->post->get('coupon_code', '', 'string');
+        $code = RequestScalar::string($this->app->getInput()->post, 'coupon_code', '');
 
         // The engine distinguishes "no such code" from "you already have a
         // better discount" from "you need to be logged in"; say which.
@@ -381,7 +382,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
     {
         $this->checkToken();
 
-        $code = (string) $this->app->getInput()->post->get('coupon_code', '', 'string');
+        $code = RequestScalar::string($this->app->getInput()->post, 'coupon_code', '');
 
         if ($code !== '') {
             CartService::ambient()->removeCoupon($code);
@@ -409,8 +410,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         $input = $this->app->input;
 
-        $quantity = $input->getInt('quantity', 1);
-        $itemId = $input->getInt('item_id', 0);
+        $quantity = RequestScalar::int($input, 'quantity', 1);
+        $itemId = RequestScalar::int($input, 'item_id', 0);
         $userId = Factory::getApplication()->getIdentity()->id;
         $response_data = [];
 
@@ -452,8 +453,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         self::verifyTokenAndRespondJson('post', $failMessage);
 
-        $lineId = $input->getInt('id_line', 0);
-        $quantity = $input->getInt('quantity', 1);
+        $lineId = RequestScalar::int($input, 'id_line', 0);
+        $quantity = RequestScalar::int($input, 'quantity', 1);
 
         $response_data = [];
         $errorOccurred = false;
@@ -505,13 +506,13 @@ class CartController extends FormController implements UserFactoryAwareInterface
         // resolves independently into its own bucket and state slot.
         $data = $this->applyUserInfoPick(
             data: $data,
-            picked: $this->input->getString('userinfo_pick', ''),
+            picked: RequestScalar::string($this->input, 'userinfo_pick', ''),
             bucket: FieldsHelper::FIELDS_KEY,
             stateKey: 'com_alfa.cart.userinfo_pick',
         );
         $data = $this->applyUserInfoPick(
             data: $data,
-            picked: $this->input->getString('userinfo_pick_billing', ''),
+            picked: RequestScalar::string($this->input, 'userinfo_pick_billing', ''),
             bucket: FieldsHelper::BILLING_FIELDS_KEY,
             stateKey: 'com_alfa.cart.userinfo_pick_billing',
         );
@@ -536,7 +537,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         // Land back on the picker that was used; a plain reload returns to
         // the top (painful on mobile); the fragment scrolls natively.
-        $anchor = $this->input->getString('picker_apply') === 'billing' ? '#userinfo_pick_billing' : '#userinfo_pick';
+        $anchor = RequestScalar::read($this->input, 'picker_apply', null, 'string') === 'billing' ? '#userinfo_pick_billing' : '#userinfo_pick';
 
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=cart', false) . $anchor);
     }
@@ -673,7 +674,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
             $app->setUserState('com_alfa.cart.form_data', $data);
             // The credit opt-in is a top-level field (outside cartform[]);
             // keep it across the redirect like every other typed value.
-            $app->setUserState('com_alfa.cart.use_credit', $this->input->getInt('use_credit', 0));
+            $app->setUserState('com_alfa.cart.use_credit', RequestScalar::int($this->input, 'use_credit', 0));
             $this->setRedirect(Route::_('index.php?option=com_alfa&view=cart', false));
 
             return false;
@@ -786,7 +787,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         self::verifyTokenAndRespondJson('post', $failMessage);
 
-        $shipmentID = $input->getInt('id_shipment', 0);
+        $shipmentID = RequestScalar::int($input, 'id_shipment', 0);
         $response_data = [];
         $errorOccurred = false;
 
@@ -821,7 +822,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         self::verifyTokenAndRespondJson('post', $failMessage);
 
-        $paymentID = $input->getInt('id_payment', 0);
+        $paymentID = RequestScalar::int($input, 'id_payment', 0);
         $response_data = [];
         $errorOccurred = false;
 

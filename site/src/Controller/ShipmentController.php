@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ShipmentResponseEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ShipmentWebhookEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -63,7 +64,7 @@ class ShipmentController extends BaseController
         // carrier was handed carries &method=<element>, exactly as the webhook
         // route does, so routing costs no database read and does not depend on
         // an order this controller has no business loading.
-        $shipmentType = $this->input->getCmd('method', '');
+        $shipmentType = RequestScalar::cmd($this->input, 'method', '');
 
         // The plugin the address names, booted through the plugin helper (2.2.0): never another one. A plugin that
         // is disabled, missing or cannot be loaded is refused with a neutral message.
@@ -120,7 +121,7 @@ class ShipmentController extends BaseController
         // which cannot carry a Joomla session token. Authenticity is the
         // plugin's duty (carrier signature / shared secret / tracking API).
 
-        $shipmentType = $this->input->getCmd('method', '');
+        $shipmentType = RequestScalar::cmd($this->input, 'method', '');
 
         $onWebhookShipmentEventName = 'onShipmentWebhook';
 

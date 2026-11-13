@@ -257,6 +257,17 @@ class CategoryModel extends AlfaAdminModel
             }
         }
 
+        // A thumbnail the gallery names must be an image file of the media folders (2.2.1, MediaHelper::thumbnailRefusals()):
+        // a save naming any other is refused before anything is written, from the form and the API alike, so the
+        // gallery keeps the thumbnails it stores.
+        $thumbnailRefusals = MediaHelper::thumbnailRefusals(mediaData: (array) ($data['media'] ?? []));
+
+        if ($thumbnailRefusals !== []) {
+            $this->setError(implode(' ', $thumbnailRefusals));
+
+            return false;
+        }
+
         // Always. The cached category data, path and tree are now filtered by the
         // visitor's allowlist, so editing ONLY "allowed users / user groups" (which
         // changes neither the parent nor newness) must still invalidate them, or a

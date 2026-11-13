@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\Dispatcher;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
 use Joomla\CMS\Document\JsonapiDocument;
@@ -85,17 +86,17 @@ final class Dispatcher extends ComponentDispatcher
 
         $this->applyRequestLanguage();
 
-        $task = $this->input->getCmd('task', 'display');
+        $task = RequestScalar::cmd($this->input, 'task', 'display');
 
         // Build controller config data
         $config = ['option' => $this->option];
 
         // Set name of controller if it is passed in the request
         if ($this->input->exists('controller')) {
-            $config['name'] = strtolower($this->input->get('controller'));
+            $config['name'] = strtolower(RequestScalar::read($this->input, 'controller', null, 'cmd'));
         }
 
-        $controller = $this->input->get('controller');
+        $controller = RequestScalar::read($this->input, 'controller', null, 'cmd');
         $controller = $this->getController($controller, ucfirst($this->app->getName()), $config);
 
         $controller->execute($task);
@@ -114,7 +115,7 @@ final class Dispatcher extends ComponentDispatcher
      */
     private function applyRequestLanguage(): void
     {
-        $requested = $this->input->getString('lang', '');
+        $requested = RequestScalar::string($this->input, 'lang', '');
         $resolved = $this->resolveContentLanguage($requested);
 
         if ($requested !== '' && $resolved !== null) {

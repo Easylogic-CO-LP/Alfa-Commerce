@@ -516,11 +516,17 @@ class AlfapricesField extends FormField
      * currency its own rows hold that the lists do not offer, named with its
      * state so a held value is still shown and selected (a currency or a
      * country unpublished since the row was saved). A held place that is not
-     * offered is also listed under placeNotes, for the row's note.
+     * offered is also listed under placeNotes, with the language key of the
+     * row's note.
+     *
+     * A held place that was DELETED is listed too, as "#<id> (deleted)" with its
+     * own note (2.2.1): the select keeps the row's place, so saving the
+     * form unchanged writes it back, and the row never becomes a price for every
+     * place because its option was missing.
      *
      * @param array $rows The editor's rows (assoc arrays or objects).
      *
-     * @return array{currencies: array, places: array, usergroups: array, users: array, placeNotes: array<int, true>}
+     * @return array{currencies: array, places: array, usergroups: array, users: array, placeNotes: array<int, string>}
      *
      * @since  2.2.0
      */
@@ -535,15 +541,16 @@ class AlfapricesField extends FormField
         };
 
         foreach ($held('country_id') as $id) {
-            if (isset($options['places'][$id]) || !isset($catalogue['places'][$id])) {
+            if (isset($options['places'][$id])) {
                 continue;
             }
 
+            $deleted = !isset($catalogue['places'][$id]);
             $options['places'][$id] = CategoryPickerPolicy::placeLabel(
-                text: $catalogue['places'][$id],
+                text: $deleted ? '#' . $id : $catalogue['places'][$id],
                 reason: CategoryPickerPolicy::placeReason(id: $id, tree: $catalogue['placeTree']),
             );
-            $options['placeNotes'][$id] = true;
+            $options['placeNotes'][$id] = $deleted ? 'COM_ALFA_PRICE_PLACE_DELETED' : 'COM_ALFA_PRICE_PLACE_NOT_ELIGIBLE';
         }
 
         foreach ($held('currency_id') as $id) {

@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
@@ -1326,6 +1327,6 @@ class OrderopsController extends OrdersController
             ? $this->input->post
             : $this->input;
 
-        return (int) $bag->getInt($name, 0);
+        return RequestScalar::int($bag, $name, 0);
     }
 }
