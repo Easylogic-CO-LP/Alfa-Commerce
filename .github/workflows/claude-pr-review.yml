@@ -8,24 +8,52 @@ on:
 
 jobs:
   claude-review:
+    # Pull requests from this repository, and "@claude" comments on a pull request,
+    # by an owner, member, collaborator or earlier contributor. Nothing else starts a run.
+    # CONTRIBUTOR is let through because a member whose organisation membership is
+    # private appears as CONTRIBUTOR in the event; the first step checks real access.
     if: |
-      (github.event_name == 'pull_request') ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
+      (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR"]'), github.event.pull_request.author_association)) ||
+      (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR"]'), github.event.comment.author_association) &&
+        contains(github.event.comment.body, '@claude'))
     runs-on: ubuntu-latest
+    # On the job, not the workflow, so a skipped run (the review's own progress
+    # comment starts one) never cancels a review in progress.
+    concurrency:
+      group: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
+    # The action posts with the Claude GitHub App token it gets through OIDC,
+    # so the workflow token only needs to read the code.
     permissions:
       contents: read
-      pull-requests: write
-      issues: write
       id-token: write
-      actions: read
     steps:
+      # Second line of defence. The endpoint reports the maintain role as write,
+      # so admin and write cover the admin, maintain and write roles.
+      - name: Require write access
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          permission="$(gh api "repos/$REPO/collaborators/$ACTOR/permission" --jq .permission)"
+          case "$permission" in
+            admin|write) echo "$ACTOR has $permission access to $REPO." ;;
+            *) echo "::error::$ACTOR has ${permission:-no} access to $REPO. The review runs only for accounts with write access."; exit 1 ;;
+          esac
+
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Run Claude PR Review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@4d75e5f390ee76b2e09c1980ecc99ff3a2e088c8 # v1.0.275
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           trigger_phrase: "@claude"
@@ -41,7 +69,7 @@ jobs:
             short top-level summary. Prioritise correctness, security, Joomla-API misuse, data integrity,
             and release/migration completeness. Do NOT flag style/formatting (PHP CS Fixer handles it)
             or PHPStan-level issues. Acknowledge genuinely good work; if the PR is clean, say so in the
-            summary — don't invent issues.
+            summary. Don't invent issues.
 
           # MUST include the inline-comment MCP tool, or findings can't be posted.
           claude_args: |
