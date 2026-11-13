@@ -468,27 +468,44 @@ final class AutoIssuePolicy
     }
 
     /**
-     * Why an issue failed, for the notice (2.2.1): the failure's own first line, markup stripped, at most 200
-     * characters; a database failure (anywhere in the chain) is said as one, so no table, column or statement reaches
-     * the notice. The full message and trace stay in the documents log.
+     * Why an issue failed, for the notice (2.2.1). A refusal that carries staff's sentence
+     * ({@see DocumentRefusedException}, anywhere in the chain: the issuer wraps what it refuses in its own "issue
+     * failed" exception) is said in that sentence, translated where the notice is read; a database failure is said as
+     * one, so no table, column or statement reaches the notice; any other failure by the first line of the failure
+     * the chain began with (the issuer's wrapper names nothing more), markup stripped, at most 200 characters, ended
+     * as a sentence; one with no words by a neutral sentence. The full message and trace stay in the documents log.
      *
      * @param Throwable $failure What the issue threw.
      *
-     * @return string|array The line, or the language key of a database failure ({@see NotificationText::key()}).
+     * @return string|array The line, or a sentence's language key and values ({@see NotificationText::key()}).
      *
      * @since  2.2.1
      */
     private static function reason(Throwable $failure): string|array
     {
+        $refused = DocumentRefusedException::in($failure);
+
+        if ($refused !== null) {
+            return NotificationText::key($refused->key(), ...$refused->values());
+        }
+
+        $first = $failure;
+
         for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
             if (MysqlError::number($cause) > 0) {
                 return NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_DATABASE');
             }
+
+            $first = $cause;
         }
 
-        $line = trim((string) strtok(strip_tags($failure->getMessage()), "\r\n"));
+        $line = mb_substr(trim((string) strtok(strip_tags($first->getMessage()), "\r\n")), 0, 200);
 
-        return $line === '' ? NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_DATABASE') : mb_substr($line, 0, 200);
+        if ($line === '') {
+            return NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_UNKNOWN');
+        }
+
+        return preg_match('/[.!?]$/u', $line) === 1 ? $line : $line . '.';
     }
 
     /**
