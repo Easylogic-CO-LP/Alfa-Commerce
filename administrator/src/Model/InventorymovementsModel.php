@@ -148,6 +148,14 @@ class InventorymovementsModel extends AlfaListModel
             $query->where($db->quoteName('a.location_id') . ' = ' . $location);
         }
 
+        // The movements of one product, read straight off the state: set by the REST API's filter[item_id] (the
+        // search's id: form asks the same of the screen). On the ledger, through idx_item_id.
+        $itemId = (int) $this->getState('filter.item_id', 0);
+
+        if ($itemId > 0) {
+            $query->where($db->quoteName('a.item_id') . ' = ' . $itemId);
+        }
+
         $query->order(
             $db->escape($this->getState('list.ordering', 'a.id')) . ' '
             . $db->escape($this->getState('list.direction', 'DESC')),

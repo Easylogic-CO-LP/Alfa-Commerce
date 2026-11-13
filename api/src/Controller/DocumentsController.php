@@ -78,6 +78,16 @@ class DocumentsController extends ApiController
             $this->modelState->set('filter.id_order', RequestScalar::member($apiFilterInfo, 'id_order', 'INT', 'filter'));
         }
 
+        // The window over the document's legal date (its issue date in the shop's time zone), as the documents
+        // screen's calendars set it: Y-m-d bounds, both days included (2.2.1).
+        if (\array_key_exists('date_start', $apiFilterInfo)) {
+            $this->modelState->set('filter.date_start', RequestScalar::member($apiFilterInfo, 'date_start', 'STRING', 'filter'));
+        }
+
+        if (\array_key_exists('date_end', $apiFilterInfo)) {
+            $this->modelState->set('filter.date_end', RequestScalar::member($apiFilterInfo, 'date_end', 'STRING', 'filter'));
+        }
+
         $apiListInfo = $this->input->get('list', [], 'array');
 
         if (\array_key_exists('ordering', $apiListInfo)) {

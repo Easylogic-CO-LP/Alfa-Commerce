@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_meta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa Commerce facts it keeps beside its data: the schema version, the download store path and its protection';
 
 INSERT INTO `#__alfa_meta` (`name`, `value`)
-SELECT 'schema_version', '2.2.0' FROM DUAL
+SELECT 'schema_version', '2.2.1' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'schema_version');
 
 -- Begin of the Clear everything block, added in 2.1.0. Keep it whole and apart from other tables.
@@ -1461,6 +1461,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   KEY `modified_by` (`modified_by`),
   KEY `created_by` (`created_by`),
   KEY `idx_id_user` (`id_user`),
+  -- The orders of one customer by the e-mail on the order (the REST API's filter[email], 2.2.1), a guest's included.
+  KEY `idx_customer_email` (`customer_email`),
   KEY `idx_date_add` (`created`),
   KEY `idx_invoice_number` (`invoice_number`),
   -- "Waiting for you" counts every order still in the initial status, with no date
