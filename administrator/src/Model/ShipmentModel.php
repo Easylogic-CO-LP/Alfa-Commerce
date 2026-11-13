@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\Traits\LocksMethodTypeTrait;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
@@ -360,10 +361,9 @@ class ShipmentModel extends AlfaAdminModel
             )->loadResult();
 
             if ($orders > 0 || $shipments > 0) {
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf('COM_ALFA_SHIPMENT_DELETE_HAS_ORDERS', $pk, $orders, $shipments),
-                    'error',
-                );
+                // A model error, not a queued message: the back office prints it, and the REST delete answers
+                // 409 with the sentence instead of 204 for a method that is still there (2.2.1).
+                $this->setError(new DeleteRefusedException(Text::sprintf('COM_ALFA_SHIPMENT_DELETE_HAS_ORDERS', $pk, $orders, $shipments)));
 
                 return false;
             }
@@ -392,10 +392,10 @@ class ShipmentModel extends AlfaAdminModel
                     array_map('intval', $paymentIds),
                 );
 
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf('COM_ALFA_SHIPMENT_DELETE_HAS_PAYMENTS', $pk, implode(', ', $names)),
-                    'error',
-                );
+                // The method names are the shop's own text: escaped for the back office, which prints messages
+                // as HTML, and kept as written for the REST answer.
+                $refusal = Text::sprintf('COM_ALFA_SHIPMENT_DELETE_HAS_PAYMENTS', $pk, implode(', ', $names));
+                $this->setError(new DeleteRefusedException(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'), $refusal));
 
                 return false;
             }

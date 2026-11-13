@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\Traits\LocksMethodTypeTrait;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Table\Table;
@@ -349,10 +350,9 @@ class PaymentModel extends AlfaAdminModel
             )->loadResult();
 
             if ($references > 0) {
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf('COM_ALFA_PAYMENT_DELETE_HAS_REFERENCES', $pk, $references),
-                    'error',
-                );
+                // A model error, not a queued message: the back office prints it, and the REST delete answers
+                // 409 with the sentence instead of 204 for a method that is still there (2.2.1).
+                $this->setError(new DeleteRefusedException(Text::sprintf('COM_ALFA_PAYMENT_DELETE_HAS_REFERENCES', $pk, $references)));
 
                 return false;
             }
@@ -380,10 +380,9 @@ class PaymentModel extends AlfaAdminModel
             )->loadResult();
 
             if ($orders > 0 || $payments > 0) {
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf('COM_ALFA_PAYMENT_DELETE_HAS_ORDERS', $pk, $orders, $payments),
-                    'error',
-                );
+                // A model error, not a queued message: the back office prints it, and the REST delete answers
+                // 409 with the sentence instead of 204 for a method that is still there (2.2.1).
+                $this->setError(new DeleteRefusedException(Text::sprintf('COM_ALFA_PAYMENT_DELETE_HAS_ORDERS', $pk, $orders, $payments)));
 
                 return false;
             }
