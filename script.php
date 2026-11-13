@@ -1719,9 +1719,75 @@ class com_alfaInstallerScript extends InstallerScript
         if ($type === 'update')
         {
             $this->convergeCollation();
+
+            // 6. Thumbnails that are not images (2.2.1): up to 2.2.0 a thumbnail could be a copy of any file the site
+            //    could read; the update lists what is left, deleting nothing.
+            $this->listNonImageFiles();
         }
 
         return true;
+    }
+
+    /**
+     * Say which files a thumbnail copy may have left that are not images
+     * ({@see \Alfa\Component\Alfa\Administrator\Helper\MediaHelper::nonImageFiles()}): up to 2.2.0 a member of
+     * staff or an API client could name any file the site could read as a thumbnail, and a copy of it was published in
+     * the save folder. One warning names every file with the media rows that name it, and the media log
+     * (com_alfa_media.php) keeps one line per file. Nothing is changed or deleted: staff look at each file and remove
+     * it by hand. A failure is said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function listNonImageFiles(): void
+    {
+        try
+        {
+            $files = \Alfa\Component\Alfa\Administrator\Helper\MediaHelper::nonImageFiles();
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage('The image folder of Alfa Commerce was not checked for thumbnails that are not images: '
+                . $e->getMessage(), 'warning');
+
+            return;
+        }
+
+        if ($files === [])
+        {
+            return;
+        }
+
+        $named = [];
+
+        foreach ($files as $file => $rows)
+        {
+            $named[] = $file . ($rows === [] ? '' : ' (media rows ' . implode(', ', $rows) . ')');
+        }
+
+        Factory::getApplication()->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_THUMBNAILS_NOT_IMAGES',
+            fallback: 'Alfa Commerce %1$s found files among the product images that are not images: %2$s. Up to 2.2.0 a'
+                . ' thumbnail could be a copy of any file of the site, published for anyone to download. Nothing was'
+                . ' deleted: look at each file and, if it is not yours to publish, delete it by hand and choose a new'
+                . ' thumbnail for the rows named.',
+            values:   [$this->packageVersion, implode('; ', $named)],
+        ), 'warning');
+
+        try
+        {
+            \Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog::register();
+
+            foreach ($named as $line)
+            {
+                \Joomla\CMS\Log\Log::add('Update to ' . $this->packageVersion . ': not an image, left for staff to remove: ' . $line,
+                    \Joomla\CMS\Log\Log::WARNING, 'com_alfa.media');
+            }
+        }
+        catch (\Throwable)
+        {
+            // The installation page says it; the log is the second copy.
+        }
     }
 
     /**
