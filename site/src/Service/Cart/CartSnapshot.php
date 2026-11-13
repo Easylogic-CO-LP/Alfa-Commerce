@@ -54,8 +54,6 @@ final class CartSnapshot
      * @param CartOffersView $offers What may carry and pay for it.
      * @param User $customer Whose cart it is.
      * @param int|null $placeId The delivery place fixed for this request.
-     * @param string|null $pricedAt The name of the delivery place the goods are priced at, when it is not the place
-     *                              the shop's other pages price this visitor at (2.2.1); null otherwise.
      *
      * @since  2.0.0
      */
@@ -71,7 +69,6 @@ final class CartSnapshot
         public readonly CartOffersView $offers,
         public readonly User $customer,
         public readonly ?int $placeId,
-        public readonly ?string $pricedAt,
     ) {
     }
 

@@ -226,8 +226,9 @@ $columnLabels = array_map(
 
     <?php // WHERE THESE PRICES ARE FOR (2.2.1): the goods are priced at the delivery place the checkout holds, which
           // may not be the place the shop's other pages price this visitor at. ?>
-    <?php if ($snapshot->pricedAt !== null) : ?>
-    <p class="cart-priced-at"><?php echo Text::sprintf('COM_ALFA_CART_PRICED_AT', htmlspecialchars($snapshot->pricedAt, ENT_QUOTES, 'UTF-8')); ?></p>
+    <?php $pricedAt = \Alfa\Component\Alfa\Site\Helper\CartPricedAt::place($snapshot->placeId); ?>
+    <?php if ($pricedAt !== null) : ?>
+    <p class="cart-priced-at"><?php echo Text::sprintf('COM_ALFA_CART_PRICED_AT', htmlspecialchars($pricedAt, ENT_QUOTES, 'UTF-8')); ?></p>
     <?php endif; ?>
 
     <?php // THE TOTAL THIS PAGE SHOWS, sent with the checkout form (form="cart-form") and replaced with these rows on
