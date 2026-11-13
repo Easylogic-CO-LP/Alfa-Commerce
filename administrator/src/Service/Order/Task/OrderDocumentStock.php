@@ -75,6 +75,13 @@ final class OrderDocumentStock extends OrderTaskHandler
             throw self::refused(documentId: $documentId, refusal: $refusal);
         }
 
+        // A Run again that stopped part way (its lease passed) is run again by the recovery: when a drain met the
+        // refusal meanwhile and wrote a task of its own for the document, that task carries the refusal and its Run
+        // again, so this run ends without asking the plugin and one task of the document stands (2.2.1).
+        if (self::newerTaskStands(documentId: $documentId, orderId: $run->subjectId(), runId: $run->id())) {
+            return;
+        }
+
         $drained = InventoryEffectOutbox::retryRefusedDocument(documentId: $documentId);
 
         if (isset($drained['refusals'][$documentId])) {
@@ -105,6 +112,39 @@ final class OrderDocumentStock extends OrderTaskHandler
     protected function what(array $payload): array
     {
         return self::text('COM_ALFA_ORDER_TASK_DOCUMENT_STOCK', (int) ($payload['document'] ?? 0));
+    }
+
+    /**
+     * Whether a task of the document written after this run still stands (to run, running, failed or held).
+     *
+     * @param int $documentId The document.
+     * @param int $orderId Its order, the tasks' subject.
+     * @param int $runId This run's task.
+     *
+     * @since  2.2.1
+     */
+    private static function newerTaskStands(int $documentId, int $orderId, int $runId): bool
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $handler = self::NAME;
+        $subjectType = 'order';
+
+        return (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName(Tasks::TABLE))
+                ->where($db->quoteName('handler') . ' = :handler')
+                ->where($db->quoteName('subject_type') . ' = :subjectType')
+                ->where($db->quoteName('subject_id') . ' = :orderId')
+                ->where($db->quoteName('id') . ' > :runId')
+                ->whereIn($db->quoteName('state'), [Tasks::STATE_PENDING, Tasks::STATE_RUNNING, Tasks::STATE_FAILED, Tasks::STATE_HELD], ParameterType::STRING)
+                ->where('CAST(JSON_UNQUOTE(JSON_EXTRACT(' . $db->quoteName('payload') . ", '$.document')) AS UNSIGNED) = :documentId")
+                ->bind(':handler', $handler)
+                ->bind(':subjectType', $subjectType)
+                ->bind(':orderId', $orderId, ParameterType::INTEGER)
+                ->bind(':runId', $runId, ParameterType::INTEGER)
+                ->bind(':documentId', $documentId, ParameterType::INTEGER),
+        )->loadResult() > 0;
     }
 
     /**
