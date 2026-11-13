@@ -321,7 +321,8 @@ class OrderPlacement
             paymentMethodId:  RequestScalar::int($this->app->input, 'payment_method', 0),
             shipmentMethodId: RequestScalar::int($this->app->input, 'shipment_method', 0),
             useCredit:        RequestScalar::int($this->app->input, 'use_credit', 0) === 1,
-            shownTotal:       RequestScalar::string($this->app->input, 'shown_total', ''),
+            // The total the cart page showed, when the page sent one (the cart page always does).
+            shownTotal:       RequestScalar::read($this->app->input, 'shown_total', null, 'string'),
         ));
     }
 
@@ -1304,10 +1305,11 @@ class OrderPlacement
      * Whether the order's total is the one the checkout page last showed (2.2.1). The goods are priced at the
      * delivery place the submission names, so an address typed after the page last showed its total (a page that
      * did not re-render, a second tab) can change the total: the order is then refused, never placed at a total the
-     * shopper did not see, and the shopper is shown the cart priced again with a sentence giving both totals. A
-     * placement no page showed (staff, an import, a renewal, the API) names no shown total and is not compared.
+     * shopper did not see, and the shopper is shown the cart priced again with a sentence giving both totals. A shown
+     * total sent empty or unreadable is refused as well. A placement that names none (staff, an import, a renewal,
+     * the API, a storefront post that does not carry the field) is not compared.
      *
-     * @return bool True when the totals agree, or no page showed one.
+     * @return bool True when the totals agree, or none was named.
      *
      * @since  2.2.1
      */
@@ -1327,7 +1329,7 @@ class OrderPlacement
         }
 
         if (preg_match('/^([A-Z]{3}):(-?\d+)$/', $shown, $parts) !== 1) {
-            $this->fail('COM_ALFA_ORDER_PLACE_TOTAL_UNSHOWN', ['total' => $placed], 'Placement refused: the checkout sent no total it showed; the order total is ' . $placed . '.');
+            $this->fail('COM_ALFA_ORDER_PLACE_TOTAL_UNSHOWN', ['total' => $placed], 'Placement refused: the shown total the checkout sent cannot be read; the order total is ' . $placed . '.');
 
             return false;
         }
