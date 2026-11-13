@@ -425,10 +425,12 @@ class OrderstatusModel extends AlfaAdminModel
         $adminRecipientIds = self::extractAdminRecipientIds(data: $data);
         unset($data['admin_recipient_ids']);
 
-        // Auto-issuance rule rows (subform) -> one JSON column. Normalised on
-        // every full form save (the delivery-note radio always posts), so
-        // removing the last row clears the stored rules too.
-        if (\array_key_exists('issues_delivery_note', $data)) {
+        // Auto-issuance rule rows (subform) -> one JSON column. Normalised
+        // whenever the save carries the rules (a REST create or update with or
+        // without the delivery-note setting, 2.2.1) and on every full form save
+        // (the delivery-note radio always posts), so removing the last row
+        // clears the stored rules too.
+        if (\array_key_exists('issues_doc_rules', $data) || \array_key_exists('issues_delivery_note', $data)) {
             $rules = $data['issues_doc_rules'] ?? [];
 
             if (!\is_array($rules)) {
