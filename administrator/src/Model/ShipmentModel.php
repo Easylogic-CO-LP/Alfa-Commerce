@@ -259,7 +259,9 @@ class ShipmentModel extends AlfaAdminModel
             return false;
         }
 
-        // Alfa's before-save is asked before the transaction (2.1.4, design 0.2): no plugin code runs under it.
+        // Alfa's before-save is asked before the transaction (2.1.4, design 0.2). Joomla's onContentBeforeSave runs
+        // inside it (parent::save()), so a write its listener makes is rolled back with a failed save;
+        // onContentAfterSave and onAlfaAdminAfterSave wait for its commit.
         $asked = $this->alfaAskSave(data: $data);
 
         if ($asked === null) {
