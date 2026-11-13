@@ -3,6 +3,28 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.2.1</version>
+
+        <fix>
+            <item>REST API: a tax, discount or cart rule that does not exist answers 404, as every other resource does, instead of 500 (GET v1/alfa/taxes/{id}, discounts/{id} and cartrules/{id}).</item>
+            <item>REST API: a delete that is refused answers 409 with the reason, and nothing is deleted: an order status orders are in, or the last status holding a role, and a payment or shipping method that orders, payments, parcels, stored payment references or a payment method's shipping list still use. It answered 204 while the record stayed. The back office shows the same reason once.</item>
+            <item>Without the dompdf library (lib_dompdf), which is installed separately, a document's PDF answers 503 with a sentence that names the library, in the back office and over the REST API (GET v1/alfa/documents/{id}/pdf), instead of 500. The setup checklist has a new recommended row, PDF library for sales documents, that says where to get it; status e-mails still go out without the PDF and log it.</item>
+            <item>REST API: POST v1/alfa/users refuses a Joomla user that does not exist, user 0 and a user who already has a customer record, with the reason (400). The administrator's customer form checks the same.</item>
+            <item>REST API: a payment or shipping method created without color or bg_color takes the colours its edit screen offers, and a customer group created without prices_display takes the price display Alfa Sync gives every new group; a group updated without it keeps its own. Each failed with a database message.</item>
+            <item>REST API: a new order status keeps its invoice rules (issues_doc_rules) when the request does not send issues_delivery_note; they were dropped and the status issued no documents.</item>
+            <item>REST API: PATCH v1/alfa/orders/{id} writes customer_note; it answered 200 and wrote nothing.</item>
+            <item>Creating an item, a form field, a place or a currency no longer writes PHP warnings to the log.</item>
+        </fix>
+
+        <change>
+            <item>REST API: a create (POST v1/alfa/{resource}) answers 201 Created with a Location header naming the new record, instead of 200. The body is the same record as before.</item>
+            <item>REST API: each payment of an order (GET v1/alfa/orders/{id}) carries added, the time it was recorded, and refund_reason, the reason given for a refund. The field created, which was always empty, is gone from the payments.</item>
+            <item>REST API: a single order (GET v1/alfa/orders/{id}, and the order answered after a change to it) carries fulfillment_status and fulfillment_percentage, as the orders list does and by the same rule.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.2.0</version>
 
         <note>
