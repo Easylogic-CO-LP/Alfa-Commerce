@@ -211,14 +211,15 @@ class UsergroupModel extends AlfaAdminModel
      *
      * - Preserves all original attributes except those that would break
      *   rendering in a different form context.
-     * - Strips `showon` because field names are now namespaced under a group
-     *   (e.g. price_settings[base_price_show]) and bare-name references inside
-     *   showon conditions would silently fail to resolve.
+     * - Keeps `showon`: a label setting shows only while its price is shown,
+     *   and the references resolve inside the group's own fields.
      * - Preserves <option> children for list/radio fields.
-     * - A setting the group may inherit (2.2.1) offers Joomla's "Use Global (value)" choice, the shop's own setting
-     *   named, and has no default of its own: a setting the group does not hold shows that choice, and a Save keeps
-     *   it inherited (an empty value, which save() does not store) instead of storing config.xml's default as the
-     *   group's own.
+     * - A setting the group may inherit (2.2.1) is a list offering Joomla's "Use Global (value)" choice, the shop's
+     *   own setting named, and has no default of its own: a setting the group does not hold shows that choice, and a
+     *   Save keeps it inherited (an empty value, which save() does not store) instead of storing config.xml's default
+     *   as the group's own. A list, not config.xml's radio buttons: Joomla's showon reads the shop's value behind a
+     *   "Use Global" choice only from a list (its data-global-value), so a label setting shows while the inherited
+     *   price is shown.
      *
      * @param SimpleXMLElement $field The config.xml field.
      * @param bool $inherits Whether the group may leave the setting to the shop.
@@ -229,7 +230,7 @@ class UsergroupModel extends AlfaAdminModel
     protected function buildFieldXml(SimpleXMLElement $field, bool $inherits = false): string
     {
         /** Attributes that must be removed when re-using a config field in a sub-form context. */
-        $stripAttributes = $inherits ? ['default', 'useglobal'] : [];
+        $stripAttributes = $inherits ? ['default', 'useglobal', 'type', 'class', 'layout'] : [];
 
         $xml = '<field';
 
@@ -242,7 +243,7 @@ class UsergroupModel extends AlfaAdminModel
         }
 
         if ($inherits) {
-            $xml .= ' default="" useglobal="true"';
+            $xml .= ' type="list" default="" useglobal="true"';
         }
 
         // Rebuild child <option> elements if present (list / radio fields).
