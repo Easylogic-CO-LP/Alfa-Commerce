@@ -24,7 +24,11 @@ use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
  * drain first in the change's batch, so the change's other work sees the stock moved. Draining is absolute, so a
  * second run finds nothing left. A drain that leaves the movement owed or refused says so (the stock notice and the
  * timeline) and the obligation keeps its own recovery: this single owes the stock.effects.drain job (2.2.0), and Tools >
- * Database Sync applies what is owed, so the task itself always ends done.
+ * Database Sync applies what is owed.
+ *
+ * A failure around the drain (the order's status not read, a lost connection) is retried with the task engine's
+ * backoff, as every other order task's is, and still owes the drain job whatever threw; a task that fails for good
+ * shows in Tools > Tasks and the bell (2.2.1).
  *
  * @since  2.1.4
  */
@@ -44,7 +48,7 @@ final class OrderStock extends OrderTaskHandler
      */
     public function policy(): TaskPolicy
     {
-        return new TaskPolicy(label: 'COM_ALFA_TASKS_HANDLER_ORDER_STOCK', idempotent: true, attention: '');
+        return new TaskPolicy(label: 'COM_ALFA_TASKS_HANDLER_ORDER_STOCK', idempotent: true, retries: true, attention: 'warning');
     }
 
     /**
@@ -56,18 +60,20 @@ final class OrderStock extends OrderTaskHandler
     {
         $payload = $run->payload();
 
-        if (self::currentStatus(orderId: $run->subjectId()) === null) {
-            return;
-        }
+        try {
+            if (self::currentStatus(orderId: $run->subjectId()) === null) {
+                return;
+            }
 
-        Transition::deliverStockOutcome(
-            taskId: $run->id(),
-            outcome: Transition::drainFor(orderId: $run->subjectId(), oldStatusId: (int) ($payload['from'] ?? 0), toStatusId: (int) ($payload['to'] ?? 0)),
-        );
-
-        // An obligation the drain left owed is the stock.effects.drain job's (2.2.0).
-        if (InventoryEffectOutbox::owesOrderClaim(orderId: $run->subjectId())) {
-            StockEffectsDrainJob::enqueue();
+            Transition::deliverStockOutcome(
+                taskId: $run->id(),
+                outcome: Transition::drainFor(orderId: $run->subjectId(), oldStatusId: (int) ($payload['from'] ?? 0), toStatusId: (int) ($payload['to'] ?? 0)),
+            );
+        } finally {
+            // An obligation left owed, by the drain or by a failure around it, is the stock.effects.drain job's (2.2.0).
+            if (InventoryEffectOutbox::owesOrderClaim(orderId: $run->subjectId())) {
+                StockEffectsDrainJob::enqueue();
+            }
         }
     }
 
