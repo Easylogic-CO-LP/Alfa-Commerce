@@ -140,6 +140,13 @@ class Transition
     protected bool $silent = false;
 
     /**
+     * Skip the customer's status e-mail only; the staff the status tells are still sent theirs (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    private bool $silentCustomer = false;
+
+    /**
      * Allow leaving the is_cancelled family (conscious admin act only).
      */
     protected bool $force = false;
@@ -319,6 +326,19 @@ class Transition
     public function silent(): self
     {
         $this->silent = true;
+
+        return $this;
+    }
+
+    /**
+     * Skip the customer's status e-mail only: the staff recipients of the status are still sent theirs (2.2.1, decision
+     * 37 (a); the REST status change's silent). silent() still skips both.
+     *
+     * @since  2.2.1
+     */
+    public function silentCustomer(): self
+    {
+        $this->silentCustomer = true;
 
         return $this;
     }
@@ -1184,8 +1204,12 @@ class Transition
             Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
         }
 
-        if (!$this->silent && $this->owes(handler: OrderStatusEmail::NAME, guard: static fn (): bool => EmailService::notifiesForStatus(statusId: $toStatusId))) {
-            Tasks::single(handler: OrderStatusEmail::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+        // The customer is left out of a change made silent for the customer alone; its single then has work only when the
+        // status tells staff (2.2.1).
+        $toCustomer = !$this->silentCustomer;
+
+        if (!$this->silent && $this->owes(handler: OrderStatusEmail::NAME, guard: static fn (): bool => EmailService::notifiesForStatus(statusId: $toStatusId, customer: $toCustomer))) {
+            Tasks::single(handler: OrderStatusEmail::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId, 'customer' => $toCustomer]);
         }
 
         if ($this->owes(handler: OrderStatusEvent::NAME, guard: static fn (): bool => OrderStatusEvent::hasListeners())) {
