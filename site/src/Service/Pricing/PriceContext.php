@@ -16,6 +16,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Joomla\CMS\Factory;
 use Joomla\CMS\User\User;
@@ -146,10 +147,12 @@ class PriceContext
      *           an unpublished place) is the unknown place.
      *
      * Page cache: a visitor whose session holds either key is priced for
-     *           that visitor alone, so System - Alfa Commerce Sync keeps
-     *           every page of that visitor out of Joomla's System - Page
-     *           Cache (a page stored for one visitor's currency or place is
-     *           never served to another). Other page caches must do the same.
+     *           that visitor alone, so the response this context prices is
+     *           never stored in Joomla's System - Page Cache
+     *           (PageCache::excludeResponse(), whatever plugin is enabled),
+     *           and System - Alfa Commerce Sync also keeps a page stored for
+     *           another visitor from being served to this one. Other page
+     *           caches must do the same.
      *
      * Identity: the signed-in account, or the anonymous visitor for a guest
      *           (withCustomer()).
@@ -159,9 +162,16 @@ class PriceContext
     {
         $app = Factory::getApplication();
         $session = $app->getSession();
+        $currencyId = (int) $session->get('alfa.currency_id', 0);
+        $placeId = (int) $session->get('alfa.location_id', 0);
+
+        // A currency or place of the visitor's own prices this response for that visitor alone, at addresses every
+        // visitor shares (2.2.1).
+        if ($currencyId > 0 || $placeId > 0) {
+            PageCache::excludeResponse();
+        }
 
         // Currency
-        $currencyId = (int) $session->get('alfa.currency_id', 0);
         if ($currencyId <= 0) {
             try {
                 $currencyId = Currency::getDefault()->getId();
@@ -171,7 +181,7 @@ class PriceContext
         }
 
         // Location: only a place that may price a visitor (an unpublished country is the unknown place)
-        $locationId = self::pricingPlace(placeId: (int) $session->get('alfa.location_id', 0));
+        $locationId = self::pricingPlace(placeId: $placeId);
 
         // Identity
         // The signed-in visitor's account, or the anonymous visitor for a guest,
