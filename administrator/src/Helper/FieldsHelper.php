@@ -26,6 +26,7 @@ use Joomla\CMS\Form\FormHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use Throwable;
 
@@ -414,6 +415,27 @@ class FieldsHelper
     }
 
     /**
+     * The condition under which a field's group serves it: a disabled group hides its fields, except a system field,
+     * which prepareForm() then renders ungrouped (the identity is always asked). The one rule for every reader of the
+     * fields a form serves.
+     *
+     * @param DatabaseInterface $db The driver the query is built on.
+     * @param string $field The alias of #__alfa_form_fields in the query.
+     * @param string $group The alias of #__alfa_form_field_groups, left-joined on the field's group_id.
+     *
+     * @return string The SQL condition.
+     *
+     * @since  2.2.1
+     */
+    public static function servedByGroup(DatabaseInterface $db, string $field, string $group): string
+    {
+        return '(' . $db->quoteName($field . '.group_id') . ' = 0'
+            . ' OR ' . $db->quoteName($group . '.state') . ' IS NULL'
+            . ' OR ' . $db->quoteName($group . '.state') . ' = 1'
+            . ' OR ' . $db->quoteName($field . '.is_system') . ' = 1)';
+    }
+
+    /**
      * Load fields visible to $userId in $context. Ordered by group.ordering, field.ordering.
      * @since  1.0.0
      */
@@ -439,9 +461,7 @@ class FieldsHelper
             ->from($db->quoteName('#__alfa_form_fields', 'a'))
             ->leftJoin($db->quoteName('#__alfa_form_field_groups', 'g') . ' ON g.id = a.group_id')
             ->where('a.state = 1')
-            // A disabled group hides its fields, except a system field, which
-            // prepareForm() then renders ungrouped (the identity is always asked).
-            ->where('(a.group_id = 0 OR g.state IS NULL OR g.state = 1 OR a.is_system = 1)');
+            ->where(self::servedByGroup(db: $db, field: 'a', group: 'g'));
 
         // MULTILINGUAL: resolve the field's translatable text in the active
         // language: field_label / field_description are shown to the customer.

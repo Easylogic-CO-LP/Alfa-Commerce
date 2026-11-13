@@ -378,8 +378,8 @@ final class CoreSetupProvider
     /**
      * Whether a published field is required in a checkout section or at registration while no enabled form-field
      * plugin of Public access renders its type: such a field cannot be filled in by every visitor (a guest is never
-     * loaded a plugin of another access), and the form that asks for it refuses the submission.
-     *
+     * loaded a plugin of another access), and the form that asks for it refuses the submission. Only a field its group
+     * serves counts, by the rule the forms read it with (FieldsHelper::servedByGroup()).
      *
      * @since  2.2.1
      */
@@ -401,7 +401,9 @@ final class CoreSetupProvider
                 . ' AND ' . $db->quoteName('e.enabled') . ' = 1'
                 . ' AND ' . $db->quoteName('e.access') . ' = :public',
             )
+            ->join('LEFT', $db->quoteName('#__alfa_form_field_groups', 'g'), $db->quoteName('g.id') . ' = ' . $db->quoteName('f.group_id'))
             ->where($db->quoteName('f.state') . ' = 1')
+            ->where(FieldsHelper::servedByGroup(db: $db, field: 'f', group: 'g'))
             ->where('(' . $db->quoteName('f.billing') . ' = :billing OR ' . $db->quoteName('f.shipping') . ' = :shipping OR '
                 . $db->quoteName('f.registration') . ' = :registration)')
             ->where($db->quoteName('e.extension_id') . ' IS NULL')
