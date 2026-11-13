@@ -372,8 +372,10 @@ echo LayoutHelper::render(
 ?>
 
 <!--  PAYMENTS TABLE                                                -->
+<?php // Below 480 px a row folds (alfa-fold, 2.2.1 A4): its cells wrap, each named by its column, the actions on a line
+      // of their own. ?>
 <?php if (!empty($payments)): ?>
-    <table class="table table-striped table-bordered">
+    <table class="table table-striped table-bordered alfa-fold">
 
         <!-- Table header -->
         <!-- Auto-generated from XML fields.                        -->
@@ -439,7 +441,7 @@ echo LayoutHelper::render(
 					// Get the field value from the payment object
 					$value = $payment->{$fieldName} ?? '';
 					?>
-                    <td>
+                    <td data-alfa-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
 						<?php
 						// STEP 1: Render the primary field
 						// Check renderMap for custom rendering, otherwise
@@ -479,7 +481,7 @@ echo LayoutHelper::render(
 				<?php endforeach; ?>
 
                 <!-- Actions cell -->
-                <td>
+                <td class="alfa-fold-line">
                     <!-- Edit button (icon-only to save space) -->
                     <?php if ($canEditOrder && !$isFact) : ?>
                     <div class="btn-group me-1" role="group">

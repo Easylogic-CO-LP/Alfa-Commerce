@@ -1390,10 +1390,9 @@ class com_alfaInstallerScript extends InstallerScript
             'failed' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_FAILED', 'Alfa Commerce %1$s could not uninstall these language packs:'
                 . ' %2$s. Uninstall them in System > Manage > Extensions.', 'warning', 'could not uninstall the language pack %s',
                 \Joomla\CMS\Log\Log::WARNING],
-            'no_manifest' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_NO_MANIFEST', 'Alfa Commerce %1$s could not uninstall these language packs,'
-                . ' because their package manifest is missing and Joomla cannot uninstall them without it either: %2$s.'
-                . ' The maintenance log (com_alfa_maintenance.php) has the details.', 'warning',
-                'could not uninstall the language pack %s', \Joomla\CMS\Log\Log::WARNING],
+            // The owner's sentence, word for word; the maintenance log names each pack and why.
+            'no_manifest' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_NO_MANIFEST', 'This language pack does not include a package manifest.',
+                'warning', 'could not uninstall the language pack %s', \Joomla\CMS\Log\Log::WARNING],
         ];
 
         foreach ($outcomes as $outcome => [$key, $fallback, $type, $line, $priority]) {
