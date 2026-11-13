@@ -9,8 +9,10 @@
 
 namespace Easy\Module\EasyArticles\Site\Helper;
 
+use Closure;
 use Joomla\CMS\Categories\Categories;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Event\PageCache\IsExcludedEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -69,6 +71,13 @@ final class EasyArticlesHelper
      * @since  1.0.0
      */
     public const READ_SESSION_KEY = 'easy.recently_read';
+
+    /**
+     * The one answer the page cache is given while a visitor's own list is shown ({@see self::keepPageOutOfPageCache()}).
+     *
+     * @since  2.2.1
+     */
+    private static ?Closure $keepOut = null;
 
     /**
      * Orderings the module may hand the model, keyed by the parameter value.
@@ -363,7 +372,9 @@ final class EasyArticlesHelper
      * core articles module reads its list: the Advanced tab's Caching and Cache
      * Time decide, Global Configuration must have caching on, and a logged-in
      * visitor always reads fresh. What belongs to one visitor's session (recently
-     * read) and a random order are never cached.
+     * read) and a random order are never cached. A page that shows a visitor's
+     * own recently read articles is never stored by Joomla's page cache either:
+     * the next visitor would be shown them (2.2.1).
      *
      * @param int $moduleId Module instance id.
      * @param Registry $params Module parameters (owncache, cache_time).
@@ -378,8 +389,16 @@ final class EasyArticlesHelper
      */
     public static function cachedItems(int $moduleId, Registry $params, array $categoryIds, string $source, int $limit, string $ordering): array
     {
-        if (self::source($source) === self::SOURCE_RECENTLY_READ || $ordering === 'random') {
-            return self::getItems(categoryIds: $categoryIds, source: $source, limit: $limit, ordering: $ordering);
+        $recentlyRead = self::source($source) === self::SOURCE_RECENTLY_READ;
+
+        if ($recentlyRead || $ordering === 'random') {
+            $items = self::getItems(categoryIds: $categoryIds, source: $source, limit: $limit, ordering: $ordering);
+
+            if ($items !== [] && $recentlyRead) {
+                self::keepPageOutOfPageCache();
+            }
+
+            return $items;
         }
 
         $cache = new stdClass();
@@ -393,6 +412,25 @@ final class EasyArticlesHelper
         $items = ModuleHelper::moduleCache((object) ['id' => $moduleId, 'module' => 'mod_easy_articles'], $params, $cache);
 
         return \is_array($items) ? $items : [];
+    }
+
+    /**
+     * This request's page is never stored in Joomla's System - Page Cache: the module answers the page cache's own
+     * question, onPageCacheIsExcluded (asked after the page is drawn, before anything is stored), on the application's
+     * dispatcher, with Joomla's classes alone, so it works wherever the module is installed. One answer per request,
+     * however many lists ask. It keeps the page from being stored, never a page stored earlier from being served.
+     *
+     * @since  2.2.1
+     */
+    private static function keepPageOutOfPageCache(): void
+    {
+        $dispatcher = Factory::getApplication()->getDispatcher();
+        $answer = self::$keepOut ??= static function (IsExcludedEvent $event): void {
+            $event->addResult(true);
+        };
+
+        $dispatcher->removeListener('onPageCacheIsExcluded', $answer);
+        $dispatcher->addListener('onPageCacheIsExcluded', $answer);
     }
 
     /**
