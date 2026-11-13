@@ -871,7 +871,10 @@ class ItemModel extends AlfaAdminModel
             return false;
         }
 
+        // The language tables are made before the transaction opens, the item's and its variants' (the grid's edits run
+        // inside it): DDL commits implicitly.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_items', primaryColumnName: 'id_item', data: $data);
+        ItemFieldsAdminHelper::ensureCombinationLangSchema();
 
         // The rebuild this save owes is recorded before its first write (2.2.0): an existing item's mark in a
         // statement of its own right before the transaction, a new item's in its insert. The item's lock is taken right

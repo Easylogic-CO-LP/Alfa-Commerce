@@ -5173,10 +5173,13 @@ class ItemFieldsAdminHelper
      * Once per request: the probe costs an information_schema query per content
      * language, and the grid save reaches the writer once per variant row.
      *
+     * DDL commits implicitly, so it runs before any transaction: the variant
+     * saves call it before they open theirs, and the item save before it opens
+     * the one its grid edits run in (2.2.1).
      *
      * @since  2.0.0
      */
-    private static function ensureCombinationLangSchema(): void
+    public static function ensureCombinationLangSchema(): void
     {
         static $ensured = false;
 
