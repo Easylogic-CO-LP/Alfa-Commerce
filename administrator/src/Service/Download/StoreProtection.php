@@ -15,6 +15,7 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Uri\Uri;
 use RuntimeException;
@@ -366,7 +367,10 @@ class StoreProtection
     }
 
     /**
-     * The security warning for a result, or null when it needs none.
+     * The security warning for a result, or null when it needs none: the plain words of the
+     * result, the nginx rule behind a "Server rule" line and the links to the Options' Downloads
+     * tab, as the layout downloads.warning renders them (the administrator pages enqueue it as it
+     * is; the dashboard, the product's Downloads panel and the Options show it with Check again).
      *
      * @param object $result A result of {@see self::check()}.
      *
@@ -375,17 +379,20 @@ class StoreProtection
     public function warning(object $result): ?string
     {
         $e = static fn (string $text): string => htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-        $location = $this->locationRule(root: (string) $result->root);
 
         if ($result->state === self::STATE_EXPOSED) {
-            return Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_EXPOSED', $e((string) $result->root), $e((string) $result->url), $e($result->checked_at . ' UTC'), $e($location));
+            $text = Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_EXPOSED', $e((string) $result->root), $e((string) $result->url), $e($result->checked_at . ' UTC'));
+        } elseif ($result->state === self::STATE_UNVERIFIED) {
+            $text = Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_UNVERIFIED', $e((string) $result->root), $e((string) $result->detail), $e($result->checked_at . ' UTC'));
+        } else {
+            return null;
         }
 
-        if ($result->state === self::STATE_UNVERIFIED) {
-            return Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_UNVERIFIED', $e((string) $result->root), $e((string) $result->detail), $e($result->checked_at . ' UTC'), $e($location));
-        }
-
-        return null;
+        return LayoutHelper::render(
+            layoutFile: 'downloads.warning',
+            displayData: ['text' => $text, 'rule' => $this->locationRule(root: (string) $result->root), 'offerOff' => self::isOn()],
+            basePath: JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+        );
     }
 
     /**

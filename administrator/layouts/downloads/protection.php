@@ -64,12 +64,14 @@ $checkAgain = Route::_(
     false,
 );
 
+// The warning brings its own paragraphs (the layout downloads.warning); every other state is one line.
+$text = null;
+
 if ($failed) {
     $class = 'alert-warning';
     $text = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_FAILED');
 } elseif ($warning !== null) {
     $class = $result->state === StoreProtection::STATE_EXPOSED ? 'alert-danger' : 'alert-warning';
-    $text = $warning;
 } elseif ($result === null) {
     $class = 'alert-info';
     $text = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_NONE');
@@ -85,6 +87,10 @@ if ($failed) {
     <?php if ($notice !== null) : ?>
         <p class="mb-2"><?php echo $notice; ?></p>
     <?php endif; ?>
-    <p class="mb-2"><?php echo $text; ?></p>
+    <?php if ($text === null) : ?>
+        <?php echo $warning; ?>
+    <?php else : ?>
+        <p class="mb-2"><?php echo $text; ?></p>
+    <?php endif; ?>
     <a class="btn btn-sm btn-secondary" href="<?php echo htmlspecialchars($checkAgain, ENT_QUOTES, 'UTF-8'); ?>"><?php echo Text::_('COM_ALFA_DOWNLOADS_PROTECTION_CHECK_AGAIN'); ?></a>
 </div>
