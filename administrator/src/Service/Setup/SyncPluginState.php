@@ -23,10 +23,11 @@ use Joomla\Database\ParameterType;
  *
  * Joomla loads a plugin only for a visitor whose view levels include the plugin's Access. Alfa Commerce Sync keeps a
  * shopper with products in the cart, or priced for a currency or place of their own, from being served a page Joomla's
- * page cache stored for another visitor (the pages that show a visitor's own data keep themselves out of it whatever
- * the plugin's state), and the page cache only ever stores and serves pages of visitors who are not logged in; so the
- * plugin does that only when it is enabled and its Access is a level such a visitor holds (Public, or any level the
- * guest user group is in). Read from the plugin's extension row, whatever the request's own user may hold.
+ * page cache stored for another visitor (Alfa Commerce's own pages and modules that show a visitor's own data keep
+ * themselves out of it whatever the plugin's state), and the page cache only ever stores and serves pages of visitors
+ * who are not logged in; so the plugin does that only when it is enabled and its Access is a level such a visitor holds
+ * (Public, or any level the guest user group is in). Read from the plugin's extension row, whatever the request's own
+ * user may hold.
  *
  * @since  2.2.1
  */
