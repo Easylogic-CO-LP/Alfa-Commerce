@@ -1179,18 +1179,21 @@ class ItemModel extends AlfaAdminModel
             }
 
             // The move into the archive held out of the row write, made as the list
-            // makes it; publish() reports a refusal and redoes the projections.
+            // makes it, inside this save's transaction; publish() reports a refusal and
+            // removes an archived product from the projections.
+            $archived = false;
+
             if ($archiveMove !== null) {
                 $moved = [$currentId];
 
-                $this->publish(pks: $moved, value: $archiveMove);
+                $archived = $this->publish(pks: $moved, value: $archiveMove);
             }
 
             // What follows the save, once it has committed (2.2.1).
             PostCommit::defer(
                 db: $db,
                 label: 'the item save of #' . $currentId,
-                work: function () use ($currentId, $affectedCategories, $locked, $nested, $data, $pk): void {
+                work: function () use ($currentId, $affectedCategories, $locked, $nested, $archived, $data, $pk): void {
                     foreach ($affectedCategories as $catId) {
                         if ($catId > 0) {
                             CategoryHelper::clearCache($catId);
@@ -1204,11 +1207,15 @@ class ItemModel extends AlfaAdminModel
                     // for this item. MUST be the last step: projections read the prices and
                     // associations committed above. The manager isolates and logs each
                     // projection's failures, so a sync problem never blocks the save. Without
-                    // the item's lock the rebuild is owed to the catalogue job instead.
-                    if ($locked !== [] && !$nested) {
-                        (new ProjectionManager())->syncItem($currentId);
-                    } else {
-                        ProjectionManager::owe(itemIds: [$currentId]);
+                    // the item's lock the rebuild is owed to the catalogue job instead. A
+                    // product the archive move took out of the catalogue is not rebuilt: its
+                    // rows went with that move, in the same transaction.
+                    if (!$archived) {
+                        if ($locked !== [] && !$nested) {
+                            (new ProjectionManager())->syncItem($currentId);
+                        } else {
+                            ProjectionManager::owe(itemIds: [$currentId]);
+                        }
                     }
 
                     // Feature plugins persist their injected-field data into their OWN
