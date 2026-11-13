@@ -214,6 +214,21 @@ class ItemsController extends ApiController
     }
 
     /**
+     * The note of a product the delete archived instead of deleting it: ItemModel::delete() archives a product that order
+     * lines were sold as, whose orders are still fulfilled, cancelled and returned against its stock identity, and the
+     * delete answers 200 with the product, archived, and this note (2.2.1, decision 39 (a)).
+     *
+     * @param int $id The product.
+     *
+     * @since  2.2.1
+     */
+    protected function keptNote(int $id): string
+    {
+        return 'Product ' . $id . ' was archived instead of deleted: order lines were sold as it or its combinations. It is no'
+            . ' longer offered or sold, and it stays the stock identity those orders are fulfilled, cancelled and returned against.';
+    }
+
+    /**
      * A product is deleted from the trash only, as the administrator's list of products deletes it (2.2.1, decision 43 (c)).
      *
      * @since  2.2.1

@@ -333,6 +333,8 @@ trait HasApiGuards
      * (2.2.1, {@see self::deletesFromTrash()}), and a delete the model refused by its own rule
      * (a category that still has children or is a product's default, an entity whose delete
      * would widen a discount, tax or cart rule) answers 409 with the refusal's sentence as text.
+     * A delete the model reports done while it kept the record is answered with the record
+     * ({@see self::answerKept()}), never 204 (2.2.1).
      *
      * @param int $id The primary key to delete item.
      *
@@ -361,7 +363,10 @@ trait HasApiGuards
 
         $this->refuseUntrashed(model: $model, id: (int) $id);
 
-        if (!$model->delete($id)) {
+        // The ids the model reports deleted come back in $pks.
+        $pks = [(int) $id];
+
+        if (!$model->delete($pks)) {
             // Core's fallback handler would answer a bare 500 and hide the sentence.
             $refusal = $model->getError(null, false);
 
@@ -400,7 +405,47 @@ trait HasApiGuards
             $this->app->close();
         }
 
+        // Done, and the record is not among the ids the model deleted: it kept it. The items model archives a product
+        // that order lines were sold as instead of deleting it (2.2.1, decision 39).
+        if ((int) $id > 0 && !\in_array((int) $id, array_map('intval', (array) $pks), true)) {
+            $this->answerKept(id: (int) $id);
+
+            return;
+        }
+
         $this->app->setHeader('status', '204');
+    }
+
+    /**
+     * What meta.note says of a record a delete kept ({@see self::answerKept()}); '' for no note.
+     *
+     * @param int $id The record.
+     *
+     * @since  2.2.1
+     */
+    protected function keptNote(int $id): string
+    {
+        return '';
+    }
+
+    /**
+     * Answer a delete that kept its record: 200 with the record as it now stands and meta.note saying why
+     * ({@see self::keptNote()}), where a 204 would say it is gone (2.2.1, decision 39).
+     *
+     * @param int $id The record.
+     *
+     * @since  2.2.1
+     */
+    private function answerKept(int $id): void
+    {
+        $note = $this->keptNote(id: $id);
+
+        if ($note !== '') {
+            $this->app->getDocument()->addMeta('note', $note);
+        }
+
+        $this->displayItem($id);
+        $this->app->setHeader('status', '200', true);
     }
 
     /**
