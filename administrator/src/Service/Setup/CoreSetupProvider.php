@@ -130,7 +130,10 @@ final class CoreSetupProvider
             ->cta('index.php?option=com_plugins&view=plugins&filter[folder]=alfa-form-fields')
             ->priority(790)
             ->probe(static fn (): bool => self::requiredFieldsWithoutPublicPlugin() === [])
-            ->reasonArguments(static fn (): array => [self::namedFields(fields: self::requiredFieldsWithoutPublicPlugin())]);
+            ->reasonArguments(
+                arguments: static fn (): array => [self::namedFields(fields: self::requiredFieldsWithoutPublicPlugin())],
+                unnamed:   'COM_ALFA_SETUP_CHECK_FORM_FIELD_PLUGINS_REASON_UNNAMED',
+            );
 
         // Payment/shipping methods are RECOMMENDED, not
         // required: a store can legitimately run without them (catalogue mode,

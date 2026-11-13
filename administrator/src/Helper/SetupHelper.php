@@ -177,12 +177,14 @@ final class SetupHelper
                 $counts[$check->tier . '_missing']++;
             }
 
+            $reasonArgs = $state === SetupCheck::STATE_PASS ? [] : $check->reasonArgumentsNow();
+
             $rows[] = [
                 'id' => $check->id,
                 'tier' => $check->tier,
                 'label' => $check->label,
-                'reason' => $check->reason,
-                'reason_args' => $state === SetupCheck::STATE_PASS ? [] : $check->reasonArgumentsNow(),
+                'reason' => $state === SetupCheck::STATE_PASS ? $check->reason : $check->reasonFor(arguments: $reasonArgs),
+                'reason_args' => $reasonArgs,
                 'cta' => $check->cta,
                 'tour' => $check->tour,
                 'priority' => $check->priority,
