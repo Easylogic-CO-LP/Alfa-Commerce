@@ -72,7 +72,7 @@ class PriceCalculator
         // combination/options. No selection -> plain base pricing below.
         if ($selection !== null && !$selection->isEmpty()) {
             $itemId = (int) (is_array($productIds) ? reset($productIds) : $productIds);
-            $quantity = is_array($quantities) ? (int) ($quantities[$itemId] ?? 1) : (int) $quantities;
+            $quantity = is_array($quantities) ? $this->mappedQuantity(quantities: $quantities, productId: $itemId) : (int) $quantities;
 
             return $this->calculateVariant($itemId, $quantity, $selection, $context, $price);
         }
@@ -239,7 +239,8 @@ class PriceCalculator
         $results = [];
 
         foreach ($itemIds as $itemId) {
-            $quantity = max(1, (int) ($quantities[$itemId] ?? 1));
+            // normalizeQuantities() names every id, or refused the map (2.2.1).
+            $quantity = max(1, (int) $quantities[$itemId]);
             $selection = $selections[$itemId] ?? null;
 
             if ($selection instanceof VariantSelection && !$selection->isEmpty()) {
@@ -572,17 +573,45 @@ class PriceCalculator
      * Expand a quantity argument into a per-product-id quantity map.
      *
      * @param int[] $productIds The product ids.
-     * @param int|int[] $quantities A single quantity for all ids, or an existing per-id map (returned as-is).
+     * @param int|int[] $quantities A single quantity for all ids, or a per-id map that names every id (2.2.1: a map
+     *                              that lacks one is refused, {@see self::mappedQuantity()}).
      *
      * @return array The quantity map keyed by product id.
      * @since  1.0.0
      */
     protected function normalizeQuantities(array $productIds, $quantities): array
     {
-        if (is_array($quantities)) {
-            return $quantities;
+        if (!is_array($quantities)) {
+            return array_fill_keys($productIds, $quantities);
         }
 
-        return array_fill_keys($productIds, $quantities);
+        $map = [];
+
+        foreach ($productIds as $productId) {
+            $map[$productId] = $this->mappedQuantity(quantities: $quantities, productId: (int) $productId);
+        }
+
+        return $map;
+    }
+
+    /**
+     * The quantity a per-product map gives one product (2.2.1). A map that names no quantity for it is the caller's
+     * mistake: refused with the product named, never priced at a quantity the caller did not ask for (2.2.0 met a
+     * TypeError in calculate() and priced 1 in calculateBatch()).
+     *
+     * @param array $quantities The per-product-id quantity map.
+     * @param int $productId The product.
+     *
+     * @throws InvalidArgumentException When the map has no quantity for the product.
+     *
+     * @since  2.2.1
+     */
+    private function mappedQuantity(array $quantities, int $productId): int
+    {
+        if (!isset($quantities[$productId]) || !is_numeric($quantities[$productId])) {
+            throw new InvalidArgumentException('PriceCalculator: no quantity for product ' . $productId . '.');
+        }
+
+        return (int) $quantities[$productId];
     }
 }
