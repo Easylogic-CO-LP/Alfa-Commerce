@@ -213,7 +213,7 @@ class DocumentsController extends BaseController
             $bytes = PdfRenderer::pdfBytes(documentId: $id);
         } catch (PdfLibraryMissingException $e) {
             // The server lacks the library, which is installed separately: 503 with the sentence that names it (2.2.1).
-            throw new RuntimeException($e->getMessage(), 503, $e);
+            throw new RuntimeException(Text::_('COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING'), 503, $e);
         } catch (Throwable $e) {
             throw new RuntimeException($e->getMessage(), 500);
         }

@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Service\Document\PdfLibraryMissingExceptio
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
@@ -190,7 +191,7 @@ class DocumentsController extends ApiController
         try {
             $bytes = PdfRenderer::pdfBytes((int) $document->id);
         } catch (PdfLibraryMissingException $e) {
-            throw new Save($e->getMessage(), 503, $e);
+            throw new Save(Text::_('COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING'), 503, $e);
         } catch (Throwable $e) {
             throw new Save('The document could not be rendered: ' . $e->getMessage(), 500);
         }

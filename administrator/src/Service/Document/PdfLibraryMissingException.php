@@ -11,15 +11,16 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
 
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Language\Text;
 use RuntimeException;
 
 /**
  * A PDF was asked for while the dompdf library (lib_dompdf) is not installed.
  *
  * The library is installed separately and is not part of Alfa Commerce, so this is a missing part of the server,
- * not a fault of the document: the REST PDF route and the administrator's PDF answer 503 with the sentence, and a
- * status e-mail sends without the attachment and logs the sentence.
+ * not a fault of the document: the REST PDF route and the administrator's PDF answer 503 with the translated sentence
+ * (COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING), and a status e-mail sends without the attachment and logs this exception's
+ * own message. That message is fixed English, as the log's lines are, so it reads the same wherever it is raised,
+ * whatever language file the request has loaded.
  *
  * @since  2.2.1
  */
@@ -30,6 +31,6 @@ final class PdfLibraryMissingException extends RuntimeException
      */
     public function __construct()
     {
-        parent::__construct(Text::_('COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING'));
+        parent::__construct('The dompdf library (lib_dompdf), which PDF documents need, is not installed.');
     }
 }

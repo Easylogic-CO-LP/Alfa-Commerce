@@ -74,6 +74,7 @@ use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Database\ParameterType;
 use Joomla\Event\Event;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Registry\Registry;
@@ -1115,9 +1116,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 $db->getQuery(true)
                     ->select('COUNT(*)')
                     ->from($db->quoteName('#__extensions'))
-                    ->where($db->quoteName('extension_id') . ' = ' . $extensionId)
+                    ->where($db->quoteName('extension_id') . ' = :eid')
                     ->where($db->quoteName('type') . ' = ' . $db->quote('library'))
-                    ->where($db->quoteName('element') . ' = ' . $db->quote('dompdf')),
+                    ->where($db->quoteName('element') . ' = ' . $db->quote('dompdf'))
+                    ->bind(':eid', $extensionId, ParameterType::INTEGER),
             )->loadResult() > 0;
         } catch (Throwable $e) {
             $this->logError(caller: 'isPdfLibrary', message: $e->getMessage());
