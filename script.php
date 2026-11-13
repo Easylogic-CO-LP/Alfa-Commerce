@@ -243,8 +243,10 @@ class com_alfaInstallerScript extends InstallerScript
      * The cache groups an update cleans once (2.2.0, A-C16-6): Joomla's page cache, where 2.1.4 could store a guest's
      * completed order under the arrival address and serve it to the next guest, and every group the component writes
      * (the dashboard's cards, the setup checks, the storefront's category tree, the integrity verdict and the
-     * throttles of the notices, the tasks and the stock effects), whose entries the version before computed. A
-     * group added to the component is added here; the release tests compare this list with the source.
+     * throttles of the notices, the tasks and the stock effects), whose entries the version before computed, and the
+     * group of the bundled items module (mod_alfa_items: its best sellers ranking and its listings, 2.2.1). A group
+     * added to the component or to a bundled mod_alfa_ module is added here; the release tests compare this list with
+     * the source.
      *
      * @var string[]
      * @since 2.2.0
@@ -259,6 +261,7 @@ class com_alfaInstallerScript extends InstallerScript
         'com_alfa.notifications',
         'com_alfa.stockeffects',
         'com_alfa.tasks',
+        'mod_alfa_items',
     ];
 
     // Installer lifecycle hooks

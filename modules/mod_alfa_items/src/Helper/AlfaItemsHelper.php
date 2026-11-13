@@ -589,7 +589,8 @@ final class AlfaItemsHelper
         /** @var CallbackController $cache */
         $cache = Factory::getCache('mod_alfa_items', 'callback');
         $cache->setCaching(true);
-        $cache->setLifeTime($minutes * 60);
+        // Joomla counts a cache lifetime in minutes, as the option is (2.2.1).
+        $cache->setLifeTime($minutes);
 
         $ids = $cache->get(
             [self::class, 'queryBestSellerIds'],

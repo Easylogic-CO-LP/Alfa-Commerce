@@ -11,6 +11,7 @@
             <item>The order page shown before payment, reached again by a reload or by Try again, keeps itself out of Joomla's System - Page Cache. With System - Alfa Commerce Sync disabled it could be stored and shown to the next visitor with the order's number.</item>
             <item>The items module, showing a visitor's recently viewed products, keeps the page out of Joomla's System - Page Cache. Before, the page stored from one visitor's visit showed that visitor's recently viewed products to the next visitors.</item>
             <item>The search, items, easy articles and cart modules answer a request that sends a list where one value is expected (for example module_id[]=1) with "400 Bad Request" and a plain sentence. Before, such a request was answered with an error page that named a file on the server; the search module's address needs no form token.</item>
+            <item>The items module refreshes its best sellers ranking as often as its option says, in minutes: the default 60 refreshes it every hour. Before, it kept the ranking 60 times longer (60 hours by default). An update also clears the module's stored ranking and listings, so nothing the version before computed stays.</item>
         </fix>
 
         <change>
