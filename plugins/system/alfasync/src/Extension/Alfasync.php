@@ -146,7 +146,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Gateway plugins, Joomla's page cache or this plugin saved / com_alfa Options saved -> setup verdict stale.
             'onExtensionAfterSave' => 'onExtensionAfterSave',
 
-            // A content language published from the Content Languages list -> its language tables.
+            // A content language published from the Content Languages list -> its language tables. The same plugins
+            // enabled or disabled from the Plugins list -> setup verdict stale.
             'onContentChangeState' => 'onContentChangeState',
 
             // A guided tour finished/skipped -> the checklist's tour-first buttons flip.
@@ -883,13 +884,27 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         // com_plugins.plugin
-        $folder = (string) ($item->folder ?? '');
-        $element = (string) ($item->element ?? '');
+        $this->invalidateSetupForPlugin(folder: (string) ($item->folder ?? ''), element: (string) ($item->element ?? ''), how: 'saved');
+    }
 
+    /**
+     * The plugins whose state a setup detector reads: a gateway or carrier plugin (the correctness join in the payments
+     * and shipping checks), Joomla's System - Page Cache or this plugin (the page cache check). One of them saved from
+     * its form ({@see self::onExtensionAfterSave()}) or enabled or disabled from the Plugins list
+     * ({@see self::onContentChangeState()}) makes the setup verdict stale.
+     *
+     * @param string $folder The plugin's group.
+     * @param string $element The plugin's element.
+     * @param string $how How it changed, for the debug log.
+     *
+     * @since  2.2.1
+     */
+    private function invalidateSetupForPlugin(string $folder, string $element, string $how): void
+    {
         if (in_array($folder, ['alfa-payments', 'alfa-shipments'], true)) {
-            $this->invalidateSetup('gateway plugin saved');
+            $this->invalidateSetup('gateway plugin ' . $how);
         } elseif ($folder === 'system' && in_array($element, ['cache', 'alfasync'], true)) {
-            $this->invalidateSetup('page cache or Alfa Commerce Sync plugin saved');
+            $this->invalidateSetup('page cache or Alfa Commerce Sync plugin ' . $how);
         }
     }
 
@@ -898,7 +913,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * from the Content Languages list (its status toggle, or Publish over the selected rows)
      * announces itself here, never as a save (AdminModel::publish): it gets its
      * #__alfa_*_<langtag> tables, as a language saved in its edit form does
-     * ({@see self::onExtensionAfterSave()}). Any other state, or any other record, changes nothing.
+     * ({@see self::onExtensionAfterSave()}). A plugin enabled or disabled from the Plugins
+     * list (its status toggle, or Enable / Disable over the selected rows) announces itself
+     * here too, context com_plugins.plugin, the extension ids as the subject: a plugin a setup
+     * detector reads makes the verdict stale, as its save does. Any other state, or any other
+     * record, changes nothing.
      *
      * @param Event|array $event
      * @since  2.1.0
@@ -912,13 +931,36 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $value = method_exists($event, 'getValue')
                 ? (int) $event->getValue()
                 : (int) ($event->getArgument('value') ?? $event->getArgument('2') ?? 0);
+            $pks = method_exists($event, 'getPks')
+                ? (array) $event->getPks()
+                : (array) ($event->getArgument('subject') ?? $event->getArgument('1') ?? []);
         } else {
             $context = (string) ($event[0] ?? '');
             $value = (int) ($event[2] ?? 0);
+            $pks = (array) ($event[1] ?? []);
         }
 
         if ($context === 'com_languages.language' && $value === 1) {
             $this->handleContentSave($context);
+        }
+
+        if ($context === 'com_plugins.plugin' && $pks !== [] && !$this->paused()) {
+            try {
+                $db = $this->getDatabase();
+                $ids = array_values(array_filter(array_map('intval', $pks), static fn (int $id): bool => $id > 0));
+                $rows = $ids === [] ? [] : $db->setQuery(
+                    $db->getQuery(true)
+                        ->select([$db->quoteName('folder'), $db->quoteName('element')])
+                        ->from($db->quoteName('#__extensions'))
+                        ->whereIn($db->quoteName('extension_id'), $ids),
+                )->loadObjectList();
+
+                foreach ($rows as $row) {
+                    $this->invalidateSetupForPlugin(folder: (string) $row->folder, element: (string) $row->element, how: $value === 1 ? 'enabled' : 'disabled');
+                }
+            } catch (Throwable $e) {
+                $this->logError('onContentChangeState', $e->getMessage());
+            }
         }
     }
 
