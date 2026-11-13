@@ -138,9 +138,12 @@ class RegistrationController extends FormController
         if ($validData === false) {
             $this->flashErrors($model->getErrors());
 
-            // Save submitted data to session so the form can be re-filled.
-            // com_users.registration.data -> re-fills core fields (name, username, email, password)
+            // Save submitted data to session so the form can be re-filled, never the passwords: Joomla's own
+            // registration drops them before it re-fills its form, and one kept here would be written back into the
+            // page as the field's value and into the session table.
+            // com_users.registration.data -> re-fills core fields (name, username, email)
             // com_alfa.registration.data -> re-fills alfa fields
+            unset($data['password1'], $data['password2']);
             $app->setUserState('com_users.registration.data', $data);
             $app->setUserState('com_alfa.registration.data', $data);
 
