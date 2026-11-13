@@ -27,9 +27,11 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
+use Joomla\Registry\Registry;
 use Joomla\String\StringHelper;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -121,6 +123,24 @@ class MediaHelper
         'image/webp' => 'webp',
         'image/avif' => 'avif',
     ];
+
+    /**
+     * The media manager's image extensions while com_media stores none: the default of its Legal Image Extensions, as
+     * Joomla's media manager reads it.
+     *
+     * @var string
+     * @since  2.2.1
+     */
+    private const MEDIA_IMAGE_EXTENSIONS = 'bmp,gif,jpg,jpeg,png,webp,avif';
+
+    /**
+     * The folders Joomla's Local filesystem plugin offers while its Directories were never saved: that plugin's own
+     * default.
+     *
+     * @var string
+     * @since  2.2.1
+     */
+    private const MEDIA_LOCAL_DIRECTORIES = '[{"directory":"images"},{"directory":"files"}]';
 
     /**
      * Resolve the effective allowed image MIME types.
@@ -1191,7 +1211,9 @@ class MediaHelper
      * stored thumbnail when the tile still shows it (an existing row re-saved as it was: its stored thumbnail, or its
      * path where it stores none or stores its path), so a re-save writes no file; otherwise makes a new thumbnail of
      * the given image at the configured box. A file that merely lies inside the save folder is NOT kept as it is
-     * (2.2.0): it may be another row's image, and a new row then gets its own copy, never another row's file.
+     * (2.2.0): it may be another row's image, and a new row then gets its own copy, never another row's file. A source
+     * that is not an image file of the media folders (isThumbnailSource()) is refused with a message and gives none
+     * (2.2.1).
      *
      * @param string $rawThumbnail Raw (relative) thumbnail path, possibly URL-encoded and with a fragment.
      * @param string $defaultThumbPath Path of the default placeholder thumbnail to compare against.
@@ -1219,19 +1241,16 @@ class MediaHelper
             return (string) $stored->thumbnail;
         }
 
-        // Containment: the source is a client-supplied relative path, so it must
-        // resolve INSIDE the site root: a crafted "../.." must never let an
-        // arbitrary file be read and re-saved as a "thumbnail".
+        // The source is a client-supplied relative path: only an image file of the media folders may be one (2.2.1,
+        // isThumbnailSource()). Anything else is refused, said so, and nothing is read or copied.
         $sourcePath = JPATH_ROOT . '/' . $cleanThumb;
-        $sourceReal = realpath($sourcePath);
-        $rootReal = realpath(JPATH_ROOT);
 
-        if (
-            str_contains($cleanThumb, '..')
-            || $sourceReal === false
-            || $rootReal === false
-            || !str_starts_with($sourceReal, $rootReal . DIRECTORY_SEPARATOR)
-        ) {
+        if (!self::isThumbnailSource(file: $sourcePath)) {
+            Factory::getApplication()->enqueueMessage(
+                Text::sprintf('COM_ALFA_MEDIA_ERROR_THUMBNAIL_SOURCE', htmlspecialchars($cleanThumb, ENT_QUOTES, 'UTF-8')),
+                'error',
+            );
+
             return '';
         }
 
@@ -1297,7 +1316,9 @@ class MediaHelper
      * Write a thumbnail of an image at the configured box (2.2.0: the one writer, for a saved tile and for the Recreate
      * thumbnails job): the plugin layer first (onAlfaMediaThumbnail, which owns the format and the quality), else the
      * always-on baseline resize, else, only when GD cannot resize, a plain copy. An existing file at the destination is
-     * overwritten.
+     * overwritten. Only a source isThumbnailSource() accepts is used (2.2.1): any other file is not handed to a plugin,
+     * resized or copied, and none is written, so the plain copy is only ever of an image GD cannot read (an AVIF on a
+     * GD without AVIF).
      *
      * @param string $source Absolute path of the image.
      * @param string $dest Absolute path proposed for the thumbnail.
@@ -1309,6 +1330,10 @@ class MediaHelper
      */
     public static function makeThumbnail(string $source, string $dest, ?object $params = null): string
     {
+        if (!self::isThumbnailSource(file: $source)) {
+            return '';
+        }
+
         // Thumbnail SIZE is a component concern (a thumbnail must never be the
         // full image). FORMAT/QUALITY are plugin concerns, applied only when a
         // plugin handles the event; otherwise the always-on baseline resize runs.
@@ -1348,6 +1373,98 @@ class MediaHelper
         }
 
         return ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+    }
+
+    /**
+     * Whether a file may be the source of a thumbnail (2.2.1): the one rule the administrator save, the API and the
+     * Recreate thumbnails job share. makeThumbnail() applies it before anything is handed to a plugin, resized or
+     * copied; processThumbnail() and ThumbnailRecreation ask it first, to say why no thumbnail was made.
+     *
+     * The file must (a) lie inside a folder Joomla's media manager offers, or the component's own save folder
+     * (thumbnailRoots()); (b) carry one of the media manager's image extensions (com_media's Legal Image Extensions),
+     * under its own name and the file it leads to alike; and (c) be an image of that kind: the type getimagesize() reads
+     * from its header agrees with its extension. Before, any file the site could read inside its root (a backup, a log,
+     * the configuration file) could be named as a thumbnail and was copied, its extension kept, into the save folder.
+     *
+     * @param string $file Absolute path of the file.
+     *
+     * @since  2.2.1
+     */
+    public static function isThumbnailSource(string $file): bool
+    {
+        $real = realpath($file);
+
+        if ($real === false || !is_file($real)) {
+            return false;
+        }
+
+        $inside = false;
+
+        foreach (self::thumbnailRoots() as $root) {
+            if (str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+                $inside = true;
+
+                break;
+            }
+        }
+
+        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        $allowed = array_map(
+            static fn (string $one): string => strtolower(trim($one)),
+            explode(',', (string) ComponentHelper::getParams('com_media')->get('image_extensions', self::MEDIA_IMAGE_EXTENSIONS)),
+        );
+
+        if (!$inside || $extension === '' || !\in_array($extension, $allowed, true) || strtolower(pathinfo($real, PATHINFO_EXTENSION)) !== $extension) {
+            return false;
+        }
+
+        $info = @getimagesize($real);
+        $type = $info === false ? null : (self::MIME_EXTENSION_MAP[strtolower($info['mime'])] ?? null);
+
+        return $type !== null && ($type === $extension || ($type === 'jpg' && $extension === 'jpeg'));
+    }
+
+    /**
+     * The folders a thumbnail may be read from (2.2.1), as real absolute paths: each directory Joomla's media manager
+     * offers through its Local filesystem plugin (the plugin's Directories, read as Joomla reads them; the plugin's own
+     * default, images and files, while they were never saved; none while the plugin is disabled), and the component's
+     * own save folder, where the images it stores are. A folder that does not exist is left out, and so is one that is
+     * the site root itself or holds it (an empty setting, a link to a parent).
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    private static function thumbnailRoots(): array
+    {
+        $folders = [trim((string) ComponentHelper::getParams('com_alfa')->get('media_save_location', 'images/commerce'), '/')];
+
+        $plugin = PluginHelper::getPlugin('filesystem', 'local');
+
+        if (\is_object($plugin)) {
+            $directories = (new Registry($plugin->params))->get('directories', self::MEDIA_LOCAL_DIRECTORIES);
+
+            if (\is_string($directories)) {
+                $directories = json_decode($directories);
+            }
+
+            foreach ((array) $directories as $entry) {
+                $folders[] = trim((string) (((array) $entry)['directory'] ?? ''), '/');
+            }
+        }
+
+        $siteRoot = realpath(JPATH_ROOT);
+        $roots = [];
+
+        foreach ($folders as $folder) {
+            $real = $folder === '' ? false : realpath(JPATH_ROOT . '/' . $folder);
+
+            if ($real !== false && $siteRoot !== false && is_dir($real) && !str_starts_with($siteRoot . DIRECTORY_SEPARATOR, $real . DIRECTORY_SEPARATOR)) {
+                $roots[$real] = $real;
+            }
+        }
+
+        return array_values($roots);
     }
 
     /**
