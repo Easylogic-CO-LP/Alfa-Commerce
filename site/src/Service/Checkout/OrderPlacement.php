@@ -59,6 +59,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CustomerDetailsValidator;
 use Alfa\Component\Alfa\Administrator\Service\Cart\OperatorPaymentPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\PlacementEventContext;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
@@ -518,6 +519,19 @@ class OrderPlacement
                 // interpolates it, so the shopper was shown table and constraint
                 // names at the worst possible moment.
                 Log::add('Error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+
+                // A stock plugin that refused the reservation on purpose (InventoryRefusedException, thrown by a
+                // listener of onInventoryBeforeReserve) wrote its sentence for people to read: the shopper reads it,
+                // as a plugin's refusal at onOrderPlaceValidate is read, its words only (2.2.1). Any other failure
+                // keeps the fixed sentence.
+                $refused = InventoryRefusedException::in($e);
+
+                if ($refused !== null && $refused->sentence() !== '') {
+                    $this->fail('COM_ALFA_ORDER_PLACE_PLUGIN_REFUSED', ['message' => $refused->sentence()], '', $refused->sentence());
+
+                    return false;
+                }
+
                 $this->fail('COM_ALFA_ORDER_PLACEMENT_FAILED', [], '', null, 'error');
 
                 return false;
