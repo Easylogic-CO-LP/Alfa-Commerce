@@ -14,12 +14,17 @@
             <item>REST API: a new order status keeps its invoice rules (issues_doc_rules) when the request does not send issues_delivery_note; they were dropped and the status issued no documents.</item>
             <item>REST API: PATCH v1/alfa/orders/{id} writes customer_note; it answered 200 and wrote nothing.</item>
             <item>Creating an item, a form field, a place or a currency no longer writes PHP warnings to the log.</item>
+            <item>REST API: deleting a currency that orders, prices or places use, or an item field a product still uses, answers 409 with the reason, and nothing is deleted. It answered 204 while the record stayed. The back office shows the same reason once.</item>
+            <item>REST API: PATCH v1/alfa/orders/{id} with state answers 422 with the reason: an order is not trashed, and its status changes through POST v1/alfa/orders/{id}/status. It answered 200 and wrote nothing.</item>
+            <item>REST API: a PATCH that leaves out a required name (one that changes only a category's or a manufacturer's state, for example) no longer answers 400 "Field required: Name"; the stored names are kept. A create without a name, and a PATCH that sends the name empty, are still refused.</item>
+            <item>REST API: the answer to a PATCH of a product's images shows them as saved; it showed them as they were before the save.</item>
         </fix>
 
         <change>
             <item>REST API: a create (POST v1/alfa/{resource}) answers 201 Created with a Location header naming the new record, instead of 200. The body is the same record as before.</item>
             <item>REST API: each payment of an order (GET v1/alfa/orders/{id}) carries added, the time it was recorded, and refund_reason, the reason given for a refund. The field created, which was always empty, is gone from the payments.</item>
             <item>REST API: a single order (GET v1/alfa/orders/{id}, and the order answered after a change to it) carries fulfillment_status and fulfillment_percentage, as the orders list does and by the same rule.</item>
+            <item>REST API: a PATCH of a customer group's prices_display changes only the settings it names and keeps the group's others. Before, the map sent replaced the stored one whole.</item>
         </change>
     </changelog>
     <changelog>
