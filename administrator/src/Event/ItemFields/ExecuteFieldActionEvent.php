@@ -283,10 +283,14 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
+     * Set a modal title for the layout's popup; nothing reads it.
+     *
      * @param string $title Modal popup title.
      *
      * @return static For chaining.
      *
+     * @deprecated 2.2.1 Not shown: the action's window takes its title from the action's label. Kept in 2.2 because
+     *             extensions call it (the bundled Standard plugins, the 3D configurator); removed in 2.3.0.
      * @since  2.0.0
      */
     public function setModalTitle(string $title): static
@@ -297,6 +301,10 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
+     * The title setModalTitle() kept; nothing reads it.
+     *
+     * @deprecated 2.2.1 Not shown: the action's window takes its title from the action's label. Kept in 2.2 because
+     *             extensions call it (the bundled Standard plugins, the 3D configurator); removed in 2.3.0.
      * @since  2.0.0
      */
     public function getModalTitle(): ?string

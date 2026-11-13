@@ -59,6 +59,9 @@ class PaymentResponseEvent extends PaymentsRedirectEvent
      *
      * @return Order|null The order, or null when unresolved
      *
+     * @deprecated 2.2.1 Always null when the plugin is called: the controller resolves no order before the plugin
+     *             answers, so the plugin resolves it from its own reference (a payment plugin's return link through
+     *             orderFromReturnLink()). Removed in 2.3.0.
      * @since  1.0.0
      */
     public function getOrder(): ?Order
