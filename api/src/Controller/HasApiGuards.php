@@ -543,10 +543,11 @@ trait HasApiGuards
      *
      * PATCH only, for the maps mergeOnPatch() names: a body that names one
      * key of the map changes that key and keeps the others, and a key it sends
-     * empty ('' or null) leaves the map, so the setting returns to its default.
-     * It leaves here, before the form's filter, which would give an empty value
-     * the field's default and store that. The edit form posts the whole map and
-     * does not come this way; on a create there is nothing stored to merge into.
+     * empty ('' or null) leaves the map, so the record takes the shop's setting
+     * for it. It leaves here, before the form's filter, which gives an empty
+     * value the field's default when the field has one. The edit form posts the
+     * whole map and does not come this way; on a create there is nothing stored
+     * to merge into.
      *
      * @param array $data The incoming save data.
      *

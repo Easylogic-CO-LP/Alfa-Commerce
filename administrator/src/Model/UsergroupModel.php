@@ -196,7 +196,7 @@ class UsergroupModel extends AlfaAdminModel
                     continue;
                 }
 
-                $xmlStr .= $spacer . $this->buildFieldXml($field);
+                $xmlStr .= $spacer . $this->buildFieldXml($field, inherits: true);
                 $spacer = '';
             }
 
@@ -215,15 +215,21 @@ class UsergroupModel extends AlfaAdminModel
      *   (e.g. price_settings[base_price_show]) and bare-name references inside
      *   showon conditions would silently fail to resolve.
      * - Preserves <option> children for list/radio fields.
+     * - A setting the group may inherit (2.2.1) offers Joomla's "Use Global (value)" choice, the shop's own setting
+     *   named, and has no default of its own: a setting the group does not hold shows that choice, and a Save keeps
+     *   it inherited (an empty value, which save() does not store) instead of storing config.xml's default as the
+     *   group's own.
      *
+     * @param SimpleXMLElement $field The config.xml field.
+     * @param bool $inherits Whether the group may leave the setting to the shop.
      *
      * @return string Valid XML fragment for a single <field>.
      * @since  1.0.0
      */
-    protected function buildFieldXml(SimpleXMLElement $field): string
+    protected function buildFieldXml(SimpleXMLElement $field, bool $inherits = false): string
     {
         /** Attributes that must be removed when re-using a config field in a sub-form context. */
-        $stripAttributes = [];
+        $stripAttributes = $inherits ? ['default', 'useglobal'] : [];
 
         $xml = '<field';
 
@@ -233,6 +239,10 @@ class UsergroupModel extends AlfaAdminModel
             }
 
             $xml .= ' ' . $attrName . '="' . $this->esc((string) $attrValue) . '"';
+        }
+
+        if ($inherits) {
+            $xml .= ' default="" useglobal="true"';
         }
 
         // Rebuild child <option> elements if present (list / radio fields).
