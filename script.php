@@ -1557,8 +1557,8 @@ class com_alfaInstallerScript extends InstallerScript
         // File integrity is verified online against the signed canonical checksums on the
         // CDN (single source of truth: IntegrityHelper::verifyAgainstOfficial), so there
         // is no local baseline to capture. The verdict is cached for 24h, though, and an
-        // update changes the files, so drop the cache here, exactly as the Tools view does
-        // on each visit, and the next Security check re-verifies this version cleanly.
+        // update changes the files, so drop the cache here, as the Tools page's Recheck
+        // button does, and the next read re-verifies this version cleanly.
         $integrityHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/IntegrityHelper.php';
 
         if (file_exists($integrityHelperPath))

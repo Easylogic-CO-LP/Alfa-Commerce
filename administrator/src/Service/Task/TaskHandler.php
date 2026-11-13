@@ -15,7 +15,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
  * Runs the tasks of one kind ({@see Tasks}): the domain service a single belongs to.
  *
  * A handler is called with no transaction and no named lock open. It ends normally when its work is done, or throws
- * a {@see TaskFailure} that says what is known about the failure; any other Throwable is a known failure. A handler
+ * a {@see TaskFailure} that says what is known about the failure. Any other Throwable is a failure the handler did
+ * not classify: retried when the handler's policy says its work is idempotent, else held, since the work may have
+ * taken effect before it threw (Tasks::runClaimed(), s55). A handler
  * whose work has parts (the recipients of an e-mail, the listeners of an event) records each part's outcome through
  * {@see TaskRun::unit()} as it comes, and attempts only the parts {@see TaskRun::shouldAttempt()} allows, so a part
  * recorded as done is never done again.
