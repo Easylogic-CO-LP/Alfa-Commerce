@@ -1105,51 +1105,33 @@ class MediaHelper
                 $isFullDelete = (bool) $params->get('media_full_deletion', 1);
 
                 if ($toDelete) {
-                    // If full delete is enabled, remove files from the server first
-                    if ($isFullDelete) {
-                        // Fetch the main image path associated with this thumbnail before deleting
-                        $query = $db->getQuery(true)
-                            ->select($db->quoteName(['path', 'thumbnail']))
-                            ->from($db->quoteName('#__alfa_media'))
-                            ->where($db->quoteName('id') . ' = ' . (int) $id);
+                    // The row goes in the caller's transaction, its files once that has committed (2.2.1): a save
+                    // rolled back keeps the row and the files it names. A failure of the delete reaches the caller,
+                    // whose transaction it may have ended.
+                    $files = $isFullDelete
+                        ? $db->setQuery(
+                            $db->getQuery(true)
+                                ->select($db->quoteName(['path', 'thumbnail']))
+                                ->from($db->quoteName('#__alfa_media'))
+                                ->where($db->quoteName('id') . ' = ' . (int) $id),
+                        )->loadObject()
+                        : null;
 
-                        $db->setQuery($query);
-                        $result = $db->loadObject();
+                    $db->setQuery(
+                        $db->getQuery(true)
+                            ->delete($db->quoteName('#__alfa_media'))
+                            ->where($db->quoteName('id') . ' = ' . (int) $id),
+                    )->execute();
 
-                        // Remove both thumbnail and main image, but only files that
-                        // actually resolve inside the media folder: a tampered path
-                        // column can never lead a delete outside it; and never a file
-                        // another row names (2.2.0).
-                        if ($result) {
-                            $mediaRoot = realpath($absolutePath);
-                            $namedElsewhere = self::filesNamedByOtherRows(files: [(string) $result->path, (string) $result->thumbnail], exceptIds: [(int) $id]);
-
-                            foreach ([$result->path, $result->thumbnail] as $path) {
-                                if (!$path || \in_array(ltrim((string) $path, '/'), $namedElsewhere, true)) {
-                                    continue;
-                                }
-
-                                $real = realpath(JPATH_ROOT . '/' . ltrim($path, '/'));
-
-                                if ($real !== false
-                                    && $mediaRoot !== false
-                                    && str_starts_with($real, $mediaRoot . \DIRECTORY_SEPARATOR)) {
-                                    File::delete($real);
-                                }
-                            }
-                        }
-                    }
-
-                    // Remove media record from database
-                    $query = $db->getQuery(true)
-                        ->delete($db->quoteName('#__alfa_media'))
-                        ->where($db->quoteName('id') . ' = ' . (int) $id);
-
-                    try {
-                        $db->setQuery($query)->execute();
-                    } catch (Exception $e) {
-                        Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
-                        return true;
+                    if ($files) {
+                        $mediaId = (int) $id;
+                        PostCommit::defer(
+                            db: $db,
+                            label: 'the files of media #' . $mediaId,
+                            work: static function () use ($files, $mediaId, $absolutePath): void {
+                                self::deleteRemovedFiles(files: [(string) $files->path, (string) $files->thumbnail], mediaId: $mediaId, absolutePath: $absolutePath);
+                            },
+                        );
                     }
                 } else {
                     // Update ordering, alt text and thumbnail for existing records.
@@ -1182,6 +1164,37 @@ class MediaHelper
             $ordering++;
         }
         return true;
+    }
+
+    /**
+     * Delete the files of a media row removed by a save, once the save has committed: the main image and the
+     * thumbnail, but only files that actually resolve inside the media folder (a tampered path column can never lead a
+     * delete outside it) and never a file another row names (2.2.0).
+     *
+     * @param string[] $files The removed row's path and thumbnail.
+     * @param int $mediaId The removed row.
+     * @param string $absolutePath Absolute filesystem path to the media save directory.
+     *
+     * @since  2.2.1
+     */
+    private static function deleteRemovedFiles(array $files, int $mediaId, string $absolutePath): void
+    {
+        $mediaRoot = realpath($absolutePath);
+        $namedElsewhere = self::filesNamedByOtherRows(files: $files, exceptIds: [$mediaId]);
+
+        foreach ($files as $path) {
+            if ($path === '' || \in_array(ltrim($path, '/'), $namedElsewhere, true)) {
+                continue;
+            }
+
+            $real = realpath(JPATH_ROOT . '/' . ltrim($path, '/'));
+
+            if ($real !== false
+                && $mediaRoot !== false
+                && str_starts_with($real, $mediaRoot . \DIRECTORY_SEPARATOR)) {
+                File::delete($real);
+            }
+        }
     }
 
     /**
