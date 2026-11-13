@@ -159,6 +159,12 @@ class HtmlView extends BaseHtmlView
         $this->state = $model->getState();
         $this->params = $app->getParams('com_alfa');
 
+        // EVERY PAGE OF THIS VIEW IS ONE VISITOR'S OWN (2.2.1): the cart, the checkout details typed, the coupon and the
+        // methods chosen, the order of the session, at addresses every visitor shares. None is ever stored in Joomla's
+        // page cache, whatever plugin is enabled. The empty cart too: a stored copy would be served to the next shopper
+        // whose cart holds products, before this view runs, wherever System - Alfa Commerce Sync does not run.
+        PageCache::excludeResponse();
+
         // THE ORDER-COMPLETED PAGE (2.2.0, design 2.17): an order read by the site read service, never the cart, its
         // form or the checkout's state.
         if ($this->_layout == 'default_order_completed') {
@@ -238,10 +244,6 @@ class HtmlView extends BaseHtmlView
         }
 
         if ($this->_layout == 'default_order_process') {
-            // The order of this visitor's session, drawn at an address every buyer shares: never stored in Joomla's
-            // page cache, whatever else is enabled.
-            PageCache::excludeResponse();
-
             $orderId = $app->getUserState('com_alfa.order_id');
 
             if ($orderId == null) {
@@ -392,12 +394,10 @@ class HtmlView extends BaseHtmlView
         // answer is never stored by a browser or a proxy, never indexed, and the address never leaves the site in a
         // Referer. An uncachable response is answered by Joomla with its own Cache-Control (no-store, no-cache,
         // must-revalidate), sent last whatever a view sets. Joomla's page cache stores a guest's GET by its address and
-        // reads no header, so this request answers its exclusion event itself (asked after the render, before anything
-        // is stored).
+        // reads no header: display() keeps every response of this view out of it.
         $app->allowCache(false);
         $app->setHeader('X-Robots-Tag', 'noindex, nofollow', true);
         $app->setHeader('Referrer-Policy', 'same-origin', true);
-        PageCache::excludeResponse();
 
         if (!$input->exists('id') && !$input->exists('key')) {
             $this->arriveAtCompletedOrder($tpl);
