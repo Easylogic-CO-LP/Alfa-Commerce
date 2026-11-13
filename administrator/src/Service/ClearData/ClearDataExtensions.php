@@ -145,22 +145,32 @@ final class ClearDataExtensions
     }
 
     /**
-     * Every installed Alfa extension, Alfa Commerce and what it bundles included, in the order of Options > About.
+     * Every installed Alfa extension, Alfa Commerce and what it bundles included, in the order of Options > About; or,
+     * when ids are given, those of them that are installed Alfa extensions: the one answer to whether an extension is
+     * Alfa's.
      *
      * @param DatabaseInterface|null $db The connection; the container's by default.
+     * @param list<int> $ids Only these extensions (2.2.1); none: every one.
      *
      * @return list<array{key: string, extension_id: int, package_id: int, type: string, element: string, folder: string, client_id: int, enabled: bool, locked: bool, name: string, version: string}>
      *
      * @since  2.1.0
      */
-    public static function installed(?DatabaseInterface $db = null): array
+    public static function installed(?DatabaseInterface $db = null, array $ids = []): array
     {
         $db ??= Factory::getContainer()->get(DatabaseInterface::class);
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+        $query = $db->createQuery()
+            ->select($db->quoteName(['extension_id', 'package_id', 'type', 'element', 'folder', 'client_id', 'enabled', 'locked', 'name', 'manifest_cache']))
+            ->from($db->quoteName('#__extensions'))
+            ->where($db->quoteName('state') . ' = 0');
+
+        if ($ids !== []) {
+            $query->whereIn($db->quoteName('extension_id'), $ids);
+        }
+
         $rows = $db->setQuery(
-            $db->createQuery()
-                ->select($db->quoteName(['extension_id', 'package_id', 'type', 'element', 'folder', 'client_id', 'enabled', 'locked', 'name', 'manifest_cache']))
-                ->from($db->quoteName('#__extensions'))
-                ->where($db->quoteName('state') . ' = 0')
+            $query
                 ->extendWhere('AND', [
                     '(' . $db->quoteName('type') . ' = ' . $db->quote('component') . ' AND ' . $db->quoteName('element') . ' = ' . $db->quote('com_alfa') . ')',
                     '(' . $db->quoteName('type') . ' = ' . $db->quote('plugin') . ' AND ' . $db->quoteName('folder') . ' LIKE ' . $db->quote('alfa%') . ')',

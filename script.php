@@ -1763,7 +1763,90 @@ class com_alfaInstallerScript extends InstallerScript
             $this->listNonImageFiles();
         }
 
+        // 7. The installed Alfa extensions not known to work with this version (2.2.1): named on this page,
+        //    in the maintenance log and to the administrators.
+        $this->reportExtensionCompatibility(type: $type);
+
         return true;
+    }
+
+    /**
+     * Name the installed Alfa extensions not known to work with this version
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility}): those whose manifest declares a
+     * range of Alfa Commerce lines that excludes this one ("needs a compatible build") and those that declare none
+     * ("compatibility not stated"; nothing is inferred from their own version). One warning on this page, one line per
+     * extension in the maintenance log (com_alfa_maintenance.php), and one notification to the administrators, raised
+     * again by every installation; the setup checklist's row reads the same until each one is updated. A failure is
+     * said, never a failed installation.
+     *
+     * @param   string  $type  install or update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function reportExtensionCompatibility(string $type): void
+    {
+        $compatibility = \Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility::class;
+
+        try
+        {
+            $named = $compatibility::notify(alert: true);
+            $line  = $compatibility::coreLine();
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage('Alfa Commerce could not check which of its extensions are built for this version: '
+                . $e->getMessage(), 'warning');
+
+            return;
+        }
+
+        if ($named === [])
+        {
+            return;
+        }
+
+        $names = [$compatibility::NEEDS_BUILD => [], $compatibility::NOT_STATED => []];
+
+        foreach ($named as $entry)
+        {
+            $names[$entry['verdict']][] = $entry['name'];
+            self::maintenanceLog(
+                ($type === 'update' ? 'Update to ' : 'Installation of ') . $this->packageVersion . ': ' . $entry['key'] . ' (' . $entry['name'] . ') '
+                    . ($entry['verdict'] === $compatibility::NEEDS_BUILD ? 'needs a compatible build' : 'compatibility not stated') . ': ' . $entry['why'] . '.',
+                \Joomla\CMS\Log\Log::WARNING,
+            );
+        }
+
+        $sentences = [];
+
+        if ($names[$compatibility::NEEDS_BUILD] !== [])
+        {
+            $sentences[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_EXTENSIONS_NEED_BUILD',
+                fallback: 'These need a compatible build: %s.',
+                values:   [implode(', ', $names[$compatibility::NEEDS_BUILD])],
+            );
+        }
+
+        if ($names[$compatibility::NOT_STATED] !== [])
+        {
+            $sentences[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_EXTENSIONS_NOT_STATED',
+                fallback: 'These do not say which versions of Alfa Commerce they work with (compatibility not stated): %s.',
+                values:   [implode(', ', $names[$compatibility::NOT_STATED])],
+            );
+        }
+
+        Factory::getApplication()->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_EXTENSIONS_COMPATIBILITY',
+            fallback: 'Alfa Commerce %1$s: some of the Alfa Commerce extensions installed here are not known to work with it. %2$s'
+                . ' Update each one to its build for Alfa Commerce %3$s, together with core, or ask its developer which build'
+                . ' works with it: with a build for an older version an extension can lose its dashboard cards, setup checks,'
+                . ' tools, document types and panels, and Tools > Extensions can answer its Clear Data "not supported". The'
+                . ' setup checklist keeps a row until each one named says it is built for this version.',
+            values:   [$this->packageVersion, implode(' ', $sentences), $line],
+        ), 'warning');
     }
 
     /**

@@ -11,10 +11,12 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
+use SimpleXMLElement;
 use Throwable;
 
 /**
@@ -25,9 +27,9 @@ use Throwable;
  * administrator may install, update or uninstall any extension through Joomla at any time. Clear everything records an
  * extension that disappears under it as unavailable and goes on.
  *
- * INSTALLER-SAFE. It depends on Joomla's database connection, log and texts and on {@see AlfaVersion} only (loaded
- * from beside this file when it is not loaded yet), never on another class of the component: it runs from a package
- * being installed and while the component's data may be half made.
+ * INSTALLER-SAFE. It depends on Joomla's database connection, log and texts and on {@see AlfaVersion} and
+ * {@see AlfaCoreRange} only (loaded from beside this file when they are not loaded yet), never on another class of the
+ * component: it runs from a package being installed and while the component's data may be half made.
  *
  * AN EXTENSION'S PREFLIGHT, exactly (the warning on uninstall is given by Alfa Commerce for every Alfa extension):
  *
@@ -67,6 +69,15 @@ use Throwable;
  *     }
  *
  * The refusal is plain English: no language file exists yet at an install's preflight.
+ *
+ * THE RANGE OF ALFA COMMERCE VERSIONS (2.2.1). An extension that declares the lines of Alfa Commerce it is built for in
+ * its manifest (`<alfacore min="2.2" max="2.3"/>`, {@see AlfaCoreRange}) is refused outside them by the same gate,
+ * reading the range from its own manifest, the one place core's notice after an update reads it too:
+ *
+ *         $refusal = $gate::rangeRefusal(name: '<Name>', route: (string) $type, manifest: $parent->getManifest());
+ *
+ * in place of refusal() (a site whose Alfa Commerce is older than 2.2.1 has no rangeRefusal(): ask method_exists() first
+ * and fall back to the extension's own minimum there).
  *
  * @since  2.1.0
  */
@@ -119,6 +130,28 @@ final class AlfaInstallerGate
      * @since  2.1.0
      */
     public const VERSION_MISSING = 'this site has no Alfa Commerce %s or later installed';
+
+    /**
+     * The refusal of an extension whose declared range of Alfa Commerce lines excludes the installed one. %1$s: the
+     * extension's name; %2$s: its range in words ({@see AlfaCoreRange::describe()}); %3$s: the installed version;
+     * %4$s: the installed line.
+     *
+     * @var string
+     *
+     * @since  2.2.1
+     */
+    public const RANGE = '%1$s is built for Alfa Commerce %2$s, and this site has Alfa Commerce %3$s. Install the build of'
+        . ' %1$s made for Alfa Commerce %4$s, or ask its developer for one. Nothing was changed.';
+
+    /**
+     * The refusal of an extension whose declared range cannot be read. %1$s: the extension's name; %2$s: what is wrong
+     * with it.
+     *
+     * @var string
+     *
+     * @since  2.2.1
+     */
+    public const RANGE_UNREAD = '%1$s cannot be installed: %2$s. Its developer must correct its manifest. Nothing was changed.';
 
     /**
      * The warning of an uninstall: the extension's data stays. %1$s: the extension's name. The language
@@ -208,6 +241,53 @@ final class AlfaInstallerGate
             $minimum,
             $installed === null ? sprintf(self::VERSION_MISSING, $minimum) : sprintf(self::VERSION_FOUND, $installed->toString()),
         );
+    }
+
+    /**
+     * Why an installer must refuse now, or null when it may go on, read from the range of Alfa Commerce lines the
+     * extension's own manifest declares ({@see AlfaCoreRange}): on the routes that install code, an Alfa Commerce that
+     * is missing, or whose line is outside the range, or a range that cannot be read. A manifest that declares no range
+     * is never refused here (nothing is inferred for it).
+     *
+     * @param string $name The extension's name, as the messages show it.
+     * @param string $route Joomla's route: install, update, discover_install or uninstall.
+     * @param SimpleXMLElement $manifest The extension's own manifest (the installer's getManifest()).
+     *
+     * @since  2.2.1
+     */
+    public static function rangeRefusal(string $name, string $route, SimpleXMLElement $manifest): ?string
+    {
+        if (!\in_array($route, self::INSTALL_ROUTES, true)) {
+            return null;
+        }
+
+        self::loadVersionReader();
+
+        if (!class_exists(AlfaCoreRange::class, false) && is_file(__DIR__ . '/AlfaCoreRange.php')) {
+            require_once __DIR__ . '/AlfaCoreRange.php';
+        }
+
+        try {
+            $range = AlfaCoreRange::declaredBy(manifest: $manifest);
+        } catch (InvalidArgumentException $e) {
+            return sprintf(self::RANGE_UNREAD, $name, $e->getMessage());
+        }
+
+        if ($range === null) {
+            return null;
+        }
+
+        $installed = AlfaVersion::installed();
+
+        if ($installed === null) {
+            return sprintf(self::VERSION, $name, $range->min(), sprintf(self::VERSION_MISSING, $range->min()));
+        }
+
+        if ($range->includes(version: $installed->toString())) {
+            return null;
+        }
+
+        return sprintf(self::RANGE, $name, $range->describe(), $installed->toString(), AlfaCoreRange::line(version: $installed->toString()));
     }
 
     /**

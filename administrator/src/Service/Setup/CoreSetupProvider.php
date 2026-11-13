@@ -272,6 +272,28 @@ final class CoreSetupProvider
             ->priority(390)
             ->probe(static fn (): bool => PdfRenderer::libraryInstalled());
 
+        // The installed Alfa extensions not known to work with this version: a range in their manifest that excludes
+        // this line, or no range at all (2.2.1). Read from their manifests whenever the checklist computes,
+        // which System - Alfa Commerce Sync asks for whenever an Alfa extension is installed, updated, uninstalled,
+        // enabled or disabled; the row clears once each one named declares this line. RECOMMENDED: the shop runs, with
+        // the named extensions' parts missing or failing.
+        // Read once per computation of the checklist: the state and the reason follow the same reading.
+        $named = null;
+        $compatibility = static function () use (&$named): array {
+            return $named ??= ExtensionCompatibility::named();
+        };
+
+        $this->check('extensions.compatible', 'COM_ALFA_SETUP_CHECK_EXTENSIONS_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason('COM_ALFA_SETUP_CHECK_EXTENSIONS_REASON')
+            ->cta('index.php?option=com_alfa&view=extensions')
+            ->priority(385)
+            ->probe(static fn (): string => $compatibility() === [] ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN)
+            ->reasonArguments(
+                arguments: static fn (): array => [ExtensionCompatibility::describe(named: $compatibility()), ExtensionCompatibility::coreLine()],
+                unnamed:   'COM_ALFA_SETUP_CHECK_EXTENSIONS_REASON_UNNAMED',
+            );
+
         $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_MAIL_REASON')
