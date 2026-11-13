@@ -39,8 +39,8 @@ class ItemsController extends ApiController
     private const STOCK_INTENT_KEYS = ['stock', 'inventory_stock'];
 
     /**
-     * Body keys of an item's options, combinations and item field values, which the API does not write (P3-309): the
-     * four the item read publishes, then the administrator form's keys of the same writes.
+     * Body keys of an item's options, combinations and item field values, which the API does not write: the four the
+     * item read publishes, then the administrator form's keys of the same writes.
      *
      * @var string[]
      * @since  2.2.1
@@ -171,7 +171,7 @@ class ItemsController extends ApiController
     }
 
     /**
-     * Create an item, refused first when the body carries what the API does not write (P3-309).
+     * Create an item, refused first when the body carries what the API does not write.
      *
      * @return void
      *
@@ -185,8 +185,8 @@ class ItemsController extends ApiController
     }
 
     /**
-     * Update an item, refused first when the body carries what the API does not write (P3-309): before core's edit
-     * checks the item out, so a refused PATCH leaves it as it was.
+     * Update an item, refused first when the body carries what the API does not write: before core's edit checks the
+     * item out, so a refused PATCH leaves it as it was.
      *
      * @return static
      *
