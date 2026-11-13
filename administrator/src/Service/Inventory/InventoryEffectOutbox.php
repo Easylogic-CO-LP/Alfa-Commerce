@@ -104,8 +104,8 @@ final class InventoryEffectOutbox
      * How many times a failed movement is tried before it waits for staff, spaced as the task engine spaces the retries
      * of a single (2.2.1): tried at once, then once after each wait of {@see Tasks::BACKOFF_SECONDS} (1 minute to
      * 24 hours, about 33 hours in all), counted from its last failure. A movement at the cap is no longer claimed; its
-     * order's or document's notice says so, and Apply outstanding stock movements in Tools, or a new status of its
-     * order, tries it again.
+     * order's or document's notice says so. Apply outstanding stock movements in Tools, or a new status of its order,
+     * tries a failed movement at once, whether it waits for its next step or reached the cap.
      *
      * @since  2.2.1
      */
@@ -211,18 +211,21 @@ final class InventoryEffectOutbox
         );
         $db->execute();
 
-        // Then, and only for a settled, refused or exhausted row, the obligation
-        // is opened again. A row still pending/claimed, or failed below the cap,
-        // is left exactly as it is: it is already outstanding, and resetting its
-        // claim would hand the same work to a second worker.
+        // Then, for a settled, refused or failed row, the obligation is opened
+        // again, due at once with a full set of tries: the new fact is a new
+        // question, so the status change that states it tries it in its own
+        // drain and says what happened, whatever wait a failure had left the
+        // row on (2.2.1). A row still pending or claimed is left exactly as it
+        // is: it is already outstanding, and resetting its claim would hand the
+        // same work to a second worker.
         $db->setQuery(
             'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' SET ' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_PENDING)
             . ', ' . $db->quoteName('claim_token') . ' = NULL'
             . ', ' . $db->quoteName('claimed_at') . ' = NULL'
             . ', ' . $db->quoteName('attempts') . ' = 0'
-            . $where . ' AND (' . $db->quoteName('status') . ' IN (' . $db->quote(self::STATUS_APPLIED)
-            . ', ' . $db->quote(self::STATUS_REFUSED) . ') OR (' . self::exhaustedWhere($db) . '))',
+            . $where . ' AND ' . $db->quoteName('status') . ' IN (' . $db->quote(self::STATUS_APPLIED)
+            . ', ' . $db->quote(self::STATUS_REFUSED) . ', ' . $db->quote(self::STATUS_FAILED) . ')',
         );
         $db->execute();
     }
@@ -288,7 +291,8 @@ final class InventoryEffectOutbox
     /**
      * Claim and apply outstanding obligations.
      *
-     * An effect that throws is settled 'failed' (claimable again) or, when a
+     * An effect that throws is settled 'failed' (claimable again once the wait
+     * of its step of the task engine's ladder has passed) or, when a
      * retry cannot apply it, 'refused' (see {@see self::classify()}). 'failed'
      * in the summary counts every claimed obligation not applied in this pass,
      * refused ones included; 'refused' counts those settled terminal,
@@ -523,8 +527,9 @@ final class InventoryEffectOutbox
         $db->setQuery(
             'SELECT * FROM ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' WHERE ' . $where
-            // Movements not yet tried go first: a failed one is claimable again at
-            // once, and a batch of those at the lowest ids must not starve the rest.
+            // Movements not yet tried go first: a failed one is claimable again once
+            // its wait has passed, and a batch of those at the lowest ids must not
+            // starve the rest.
             // Among the failed ones the least recently tried goes first (a claim
             // and its verdict both move `modified`), so the ones that keep failing
             // take their turn behind one whose cause has since been cleared.
@@ -1500,22 +1505,6 @@ final class InventoryEffectOutbox
         }
 
         return '(CASE ' . $db->quoteName('attempts') . $steps . ' ELSE ' . (int) Tasks::BACKOFF_SECONDS[\count(Tasks::BACKOFF_SECONDS) - 1] . ' END)';
-    }
-
-    /**
-     * A failed obligation tried as many times as the cap allows: no drain claims it until staff ask for it again
-     * ({@see self::reopenFailed()}) or its producer re-states it.
-     *
-     * @param object $db Database driver.
-     *
-     * @return string SQL condition.
-     *
-     * @since  2.2.1
-     */
-    private static function exhaustedWhere(object $db): string
-    {
-        return $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED)
-            . ' AND ' . $db->quoteName('attempts') . ' >= ' . self::MAX_ATTEMPTS;
     }
 
     /**
