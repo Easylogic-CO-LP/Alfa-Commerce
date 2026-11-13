@@ -1149,12 +1149,12 @@ class ItemModel extends AlfaAdminModel
 
             // Persist the policy overrides (NULL = global default).
             if ($policyValues !== null) {
-                    $db->setQuery(
+                $db->setQuery(
                     $db->getQuery(true)
-                        ->update($db->quoteName('#__alfa_items'))
-                        ->set($db->quoteName('backorder') . ' = ' . ($policyValues['backorder'] === null ? 'NULL' : $db->quote($policyValues['backorder'])))
-                        ->set($db->quoteName('min_qty') . ' = ' . ($policyValues['min_qty'] === null ? 'NULL' : (float) $policyValues['min_qty']))
-                        ->where($db->quoteName('id') . ' = ' . $currentId),
+                    ->update($db->quoteName('#__alfa_items'))
+                    ->set($db->quoteName('backorder') . ' = ' . ($policyValues['backorder'] === null ? 'NULL' : $db->quote($policyValues['backorder'])))
+                    ->set($db->quoteName('min_qty') . ' = ' . ($policyValues['min_qty'] === null ? 'NULL' : (float) $policyValues['min_qty']))
+                    ->where($db->quoteName('id') . ' = ' . $currentId),
                 )->execute();
             }
 
