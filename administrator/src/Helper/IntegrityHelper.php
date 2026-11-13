@@ -76,7 +76,8 @@ class IntegrityHelper
      * shipped plugin, module and media folder the catalog claims) to surface files
      * that exist on disk but are NOT in the official set (a dropped web shell). Shared
      * trees (language/, libraries/) never match, so other extensions' files are never
-     * reported.
+     * reported; a bundled library's own folder is walked through its manifest
+     * ({@see self::LIBRARY_MANIFEST_PATTERN}).
      *
      * @var string[]
      * @since  2.0.0
@@ -89,6 +90,17 @@ class IntegrityHelper
         '#^(modules/[^/]+)/#',
         '#^(plugins/[^/]+/[^/]+)/#',
     ];
+
+    /**
+     * A bundled library's manifest in the catalog (administrator/manifests/libraries/<library name>.xml) names the
+     * folder Joomla laid the library in, libraries/<library name>, which the reverse walk visits too. The library name
+     * may hold a vendor folder (giggsey/locale), so the folder comes from the manifest's path, never from a pattern
+     * over the library's files: the shared libraries/ tree and a vendor folder another extension shares are not walked.
+     *
+     * @var string
+     * @since  2.2.1
+     */
+    private const LIBRARY_MANIFEST_PATTERN = '#^administrator/manifests/libraries/(.+)\.xml$#';
 
     /**
      * Desktop clutter the reverse walk ignores, by exact name: .DS_Store (macOS Finder), Thumbs.db
@@ -325,8 +337,9 @@ class IntegrityHelper
 
     /**
      * The extension folders a catalog claims: every distinct match of
-     * {@see self::EXTENSION_ROOT_PATTERNS} over its paths, sorted. These, and only
-     * these, are reverse-walked for injected files.
+     * {@see self::EXTENSION_ROOT_PATTERNS} over its paths, and the folder of each
+     * bundled library whose manifest it lists ({@see self::LIBRARY_MANIFEST_PATTERN}),
+     * sorted. These, and only these, are reverse-walked for injected files.
      *
      * @param array<string, mixed> $files Catalog file map, root-relative paths as keys.
      *
@@ -339,6 +352,10 @@ class IntegrityHelper
         $roots = [];
 
         foreach (array_keys($files) as $rel) {
+            if (preg_match(self::LIBRARY_MANIFEST_PATTERN, (string) $rel, $match)) {
+                $roots['libraries/' . $match[1]] = true;
+            }
+
             foreach (self::EXTENSION_ROOT_PATTERNS as $pattern) {
                 if (preg_match($pattern, (string) $rel, $match)) {
                     $roots[$match[1]] = true;

@@ -44,6 +44,8 @@ use ZipArchive;
  * so a live install cannot reproduce a complete, installable library folder. The
  * archive is therefore a PR artifact by default; to install/test it, the library
  * folders must be added by hand from the repo (see {@see self::describeLibraries()}).
+ * The signed integrity catalog does cover them: {@see self::enumerateLibraryFiles()}
+ * adds each bundled library's files to the two hashing walks, and to nothing else.
  *
  * The reverse path -> repo mapping mirrors the standalone `alfa-diffs` tool, run
  * one-way (install -> repo) instead of as a diff.
@@ -224,9 +226,10 @@ class PackageHelper
 
     /**
      * Fingerprint every shipped file with {@see self::HASH_METHOD}, keyed by the file's
-     * live root-relative path. Built on {@see self::enumerateShippedFiles()} so it
-     * covers exactly the package's file set. The standalone signing CLI hashes the
-     * package itself with {@see self::hashInstallable()}, which needs native PHP only.
+     * live root-relative path. Built on {@see self::enumerateShippedFiles()} and the
+     * bundled libraries' files ({@see self::enumerateLibraryFiles()}) so it covers
+     * exactly the package's file set. The standalone signing CLI hashes the package
+     * itself with {@see self::hashInstallable()}, which needs native PHP only.
      * Unreadable files are skipped.
      *
      * @param string $installRoot Absolute path to the Joomla installation root.
@@ -237,7 +240,10 @@ class PackageHelper
      */
     public static function hashShippedFiles(string $installRoot): array
     {
-        return self::hashEntries(entries: self::enumerateShippedFiles(installRoot: $installRoot));
+        return self::hashEntries(
+            entries: self::enumerateShippedFiles(installRoot: $installRoot)
+                + self::enumerateLibraryFiles(root: $installRoot, fromPackage: false),
+        );
     }
 
     /**
@@ -363,7 +369,10 @@ class PackageHelper
             $zip->extractTo($tmp);
             $zip->close();
 
-            return self::hashEntries(entries: self::enumerateFromPackage(packageRoot: $tmp));
+            return self::hashEntries(
+                entries: self::enumerateFromPackage(packageRoot: $tmp)
+                    + self::enumerateLibraryFiles(root: $tmp, fromPackage: true),
+            );
         } finally {
             self::rrmdir(dir: $tmp);
         }
@@ -789,6 +798,61 @@ class PackageHelper
                 'installCode' => 'libraries/' . $libraryName . '/',
                 'installManifest' => 'administrator/manifests/libraries/' . $libraryName . '.xml',
             ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * The files of the libraries the component manifest bundles (its <libraries>), keyed by the path Joomla's installer
+     * gives them: each library's own manifest names its folders and files (<files>), laid under
+     * libraries/<library name>/, and the manifest itself, which the installer keeps as
+     * administrator/manifests/libraries/<library name>.xml. The signed integrity catalog takes them with Alfa's own
+     * files ({@see self::hashShippedFiles()}, {@see self::hashInstallable()}); the export, the drift report, the census
+     * and the copy-clean gate do not, since a bundled library is third-party code its own manifest lays. Native PHP
+     * only, as the signer loads this class alone. A library whose manifest is missing or not a library's is skipped,
+     * so its files count as missing against a catalog that lists them.
+     *
+     * @param string $root The installation root or, with $fromPackage, an extracted package (repo layout).
+     * @param bool $fromPackage Whether $root is an extracted package: each library is read from libraries/<folder>/.
+     *
+     * @return array<string, array{abs: string, repo: string}> liveRel => {abs, repo}.
+     *
+     * @throws RuntimeException If the component manifest is missing or invalid.
+     *
+     * @since  2.2.1
+     */
+    public static function enumerateLibraryFiles(string $root, bool $fromPackage): array
+    {
+        $manifest = self::parseManifest(
+            manifestPath: $fromPackage ? $root . '/alfa.xml' : $root . '/administrator/components/com_alfa/alfa.xml',
+        );
+        $out = [];
+
+        foreach ($manifest['libraries'] as [$folder, $libraryName]) {
+            $codeRoot = $root . '/libraries/' . ($fromPackage ? $folder : $libraryName);
+            $libraryManifest = $fromPackage
+                ? self::findSubManifest(dir: $codeRoot, preferredName: $folder)
+                : $root . '/administrator/manifests/libraries/' . $libraryName . '.xml';
+            $xml = $libraryManifest !== null && is_file($libraryManifest) ? @simplexml_load_file($libraryManifest) : false;
+
+            if ($xml === false || $xml->getName() !== 'extension' || (string) $xml['type'] !== 'library') {
+                continue;
+            }
+
+            self::collectDeclaredItems(
+                items:    self::parseFilesItems(node: $xml->files),
+                absRoot:  $codeRoot,
+                relRoot:  'libraries/' . $libraryName,
+                repoRoot: 'libraries/' . $folder,
+                out:      $out,
+            );
+            self::collectFile(
+                abs:  $libraryManifest,
+                rel:  'administrator/manifests/libraries/' . $libraryName . '.xml',
+                repo: 'libraries/' . $folder . '/' . ($fromPackage ? basename($libraryManifest) : $folder . '.xml'),
+                out:  $out,
+            );
         }
 
         return $out;
