@@ -121,9 +121,10 @@ class Dispatcher extends ComponentDispatcher
         }
 
         // The download store's direct-download protection: said on every administrator page that
-        // renders while it is not verified. Reading it probes only when the store's path changed
-        // since the last check (StoreProtection::current()); never on the storefront. A task
-        // request is left alone, so the page it redirects to says it once.
+        // renders while it is not verified, unless the check is switched off in Options > Downloads.
+        // Reading it probes only when the store's path changed since the last check
+        // (StoreProtection::current()); never on the storefront. A task request is left alone, so
+        // the page it redirects to says it once.
         try {
             $task = strtolower($this->input->getCmd('task', ''));
 
@@ -131,6 +132,7 @@ class Dispatcher extends ComponentDispatcher
                 $this->app->isClient('administrator')
                 && $this->input->getCmd('format', 'html') === 'html'
                 && ($task === '' || $task === 'display' || str_ends_with($task, '.display'))
+                && StoreProtection::isOn()
             ) {
                 $protection = new StoreProtection();
                 $result = $protection->current();

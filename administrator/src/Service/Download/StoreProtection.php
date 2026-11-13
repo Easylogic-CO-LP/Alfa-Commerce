@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Download;
 
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
@@ -43,7 +44,11 @@ use Throwable;
  * ({@see self::current()}); nothing probes on a schedule or on other page loads, and never on a
  * storefront request. A result that is not verified stays a security warning on every Alfa
  * administrator page, the dashboard, the product's Downloads panel and the Options until a
- * later check verifies the store or its path moves outside the public web root. A result that
+ * later check verifies the store or its path moves outside the public web root.
+ *
+ * The check can be switched off in Options > Downloads ({@see self::isOn()}): then only "Check
+ * again" probes, and nothing is said anywhere but in the Options, which show the last recorded
+ * result. A result that
  * cannot be saved is never verified: it is kept for the request and said, and the next page,
  * finding nothing recorded, says the store is unchecked instead of probing again. The raw
  * reason of any failure goes to the downloads log, never into the message.
@@ -61,6 +66,13 @@ class StoreProtection
      * The `#__alfa_meta` row that holds the last result, as JSON.
      */
     public const META_RESULT = 'downloads_protection';
+
+    /**
+     * The Option that switches the check (Options > Downloads): 1, the default, probes on the
+     * occasions above and says a result that is not verified; 0 leaves the probe to Check again
+     * and says nothing outside the Options.
+     */
+    public const OPTION_CHECK = 'downloads_protection_check';
 
     /**
      * Seconds a probe request may take.
@@ -95,6 +107,18 @@ class StoreProtection
      */
     public function __construct(private readonly ?string $knownRoot = null)
     {
+    }
+
+    /**
+     * Whether the check is on: the one reader of the switch in Options > Downloads, for the
+     * administrator pages, the layout of the protection and the installation steps. On unless the
+     * shop turned it off.
+     *
+     * @since  2.2.1
+     */
+    public static function isOn(): bool
+    {
+        return (int) ComponentHelper::getParams('com_alfa')->get(self::OPTION_CHECK, 1) === 1;
     }
 
     /**
