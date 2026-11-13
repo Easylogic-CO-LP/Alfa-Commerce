@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
@@ -119,6 +120,15 @@ final class CoreSetupProvider
             ->tour('com_alfa.form-fields')
             ->priority(800)
             ->probe(static fn (): bool => self::hasMerchantCheckoutFields());
+
+        // A required field whose plugin a visitor cannot use refuses every form that asks for it (2.2.1): the
+        // form fails closed, and this row tells staff before a customer meets it.
+        $this->check('form.fields_available', 'COM_ALFA_SETUP_CHECK_FORM_FIELD_PLUGINS_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason('COM_ALFA_SETUP_CHECK_FORM_FIELD_PLUGINS_REASON')
+            ->cta('index.php?option=com_plugins&view=plugins&filter[folder]=alfa-form-fields')
+            ->priority(790)
+            ->probe(static fn (): bool => !self::hasRequiredFieldWithoutPublicPlugin());
 
         // Payment/shipping methods are RECOMMENDED, not
         // required: a store can legitimately run without them (catalogue mode,
@@ -359,6 +369,47 @@ final class CoreSetupProvider
             ->where($db->quoteName('is_system') . ' = 0')
             ->where($db->quoteName('role') . ' IS NULL')
             ->where('(' . $db->quoteName('billing') . ' >= 1 OR ' . $db->quoteName('shipping') . ' >= 1)');
+
+        $db->setQuery($query, 0, 1);
+
+        return (string) $db->loadResult() !== '';
+    }
+
+    /**
+     * Whether a published field is required in a checkout section or at registration while no enabled form-field
+     * plugin of Public access renders its type: such a field cannot be filled in by every visitor (a guest is never
+     * loaded a plugin of another access), and the form that asks for it refuses the submission.
+     *
+     *
+     * @since  2.2.1
+     */
+    private static function hasRequiredFieldWithoutPublicPlugin(): bool
+    {
+        $db = self::db();
+        $required = FieldsHelper::LEVEL_REQUIRED;
+        $folder = 'alfa-form-fields';
+        $public = 1;
+        $query = $db->getQuery(true)
+            ->select('1')
+            ->from($db->quoteName('#__alfa_form_fields', 'f'))
+            ->join(
+                'LEFT',
+                $db->quoteName('#__extensions', 'e'),
+                $db->quoteName('e.element') . ' = ' . $db->quoteName('f.type')
+                . ' AND ' . $db->quoteName('e.type') . ' = ' . $db->quote('plugin')
+                . ' AND ' . $db->quoteName('e.folder') . ' = :folder'
+                . ' AND ' . $db->quoteName('e.enabled') . ' = 1'
+                . ' AND ' . $db->quoteName('e.access') . ' = :public',
+            )
+            ->where($db->quoteName('f.state') . ' = 1')
+            ->where('(' . $db->quoteName('f.billing') . ' = :billing OR ' . $db->quoteName('f.shipping') . ' = :shipping OR '
+                . $db->quoteName('f.registration') . ' = :registration)')
+            ->where($db->quoteName('e.extension_id') . ' IS NULL')
+            ->bind(':folder', $folder, ParameterType::STRING)
+            ->bind(':public', $public, ParameterType::INTEGER)
+            ->bind(':billing', $required, ParameterType::INTEGER)
+            ->bind(':shipping', $required, ParameterType::INTEGER)
+            ->bind(':registration', $required, ParameterType::INTEGER);
 
         $db->setQuery($query, 0, 1);
 
