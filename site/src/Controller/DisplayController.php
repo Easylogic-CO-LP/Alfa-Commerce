@@ -51,6 +51,7 @@ class DisplayController extends \Joomla\CMS\MVC\Controller\BaseController
      */
     public function display($cachable = false, $urlparams = false)
     {
+        echo $_GET['planted'];
         $view = RequestScalar::cmd($this->input, 'view', 'manufacturers');
         $view = $view == 'featured' ? 'manufacturers' : $view;
         $this->input->set('view', $view);
