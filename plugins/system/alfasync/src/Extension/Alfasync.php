@@ -72,6 +72,7 @@ use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Database\ParameterType;
 use Joomla\Event\Event;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Registry\Registry;
@@ -141,10 +142,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Storefront menu items removed -> the setup checklist must un-tick.
             'onContentAfterDelete' => 'onContentAfterDelete',
 
-            // Gateway plugins toggled / com_alfa Options saved -> setup verdict stale.
+            // Gateway plugins, Joomla's page cache or this plugin saved / com_alfa Options saved -> setup verdict stale.
             'onExtensionAfterSave' => 'onExtensionAfterSave',
 
-            // A content language published from the Content Languages list -> its language tables.
+            // A content language published from the Content Languages list -> its language tables. The same plugins
+            // enabled or disabled from the Plugins list -> setup verdict stale.
             'onContentChangeState' => 'onContentChangeState',
 
             // A guided tour finished/skipped -> the checklist's tour-first buttons flip.
@@ -156,10 +158,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Maintenance (Clear everything): the Options of Alfa are not saved until it has finished.
             'onExtensionBeforeSave' => 'onExtensionBeforeSave',
 
-            // An Alfa extension uninstalled through Joomla: warned that its data stays (never refused).
+            // An Alfa extension uninstalled through Joomla: warned that its data stays (never refused). The PDF
+            // library uninstalled: the setup verdict is stale.
             'onExtensionBeforeUninstall' => 'onExtensionBeforeUninstall',
 
-            // An Alfa language pack installed or updated: core's language sync, Joomla's own language checked.
+            // An Alfa language pack installed or updated: core's language sync, Joomla's own language checked. The
+            // PDF library installed or updated: the setup verdict is stale.
             'onExtensionAfterInstall' => 'onExtensionAfterInstall',
             'onExtensionAfterUpdate' => 'onExtensionAfterInstall',
 
@@ -378,9 +382,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     /**
      * Whether this request's page is the visitor's own and must never be shared through Joomla's page cache: the cart
      * view (any of its addresses and layouts, the cart and the checkout form), or a visitor whose session keeps
-     * checkout details typed into that form, or whose browser owns a guest cart with lines (the cart module on every
-     * page shows them). Any other page of a visitor with no cart stays cached. When the cart cannot be read, the page
-     * is not shared.
+     * checkout details typed into that form, or a pricing context a site's own code set for this visitor (the session's
+     * alfa.currency_id or alfa.location_id, PriceContext::fromSession(): every price on the page is figured for this
+     * visitor), or whose browser owns a guest cart with lines (the cart module on every page shows them). Any other
+     * page of a visitor with no cart stays cached. When the cart cannot be read, the page is not shared.
      *
      * @since  2.2.0
      */
@@ -395,6 +400,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             }
 
             if (!empty($app->getUserState('com_alfa.cart.form_data'))) {
+                return true;
+            }
+
+            $session = $app->getSession();
+
+            if ((int) $session->get('alfa.currency_id', 0) > 0 || (int) $session->get('alfa.location_id', 0) > 0) {
                 return true;
             }
 
@@ -812,10 +823,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Called after an extension row is saved. Two saves flip setup detectors without
+     * Called after an extension row is saved. Three saves flip setup detectors without
      * touching any Alfa table: enabling/disabling an alfa-payments or alfa-shipments
-     * plugin (the correctness join in the payments/shipping checks), and saving
-     * com_alfa's own Options (store identity, default currency, media location).
+     * plugin (the correctness join in the payments/shipping checks), saving Joomla's
+     * System - Page Cache or this plugin (the page cache check), and saving com_alfa's
+     * own Options (store identity, default currency, media location).
      *
      * Languages: Content Languages announces its saves here too (com_languages
      * LanguageModel: onExtensionAfterSave, never onContentAfterSave): a content
@@ -868,10 +880,27 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         // com_plugins.plugin
-        $folder = (string) ($item->folder ?? '');
+        $this->invalidateSetupForPlugin(folder: (string) ($item->folder ?? ''), element: (string) ($item->element ?? ''), how: 'saved');
+    }
 
+    /**
+     * The plugins whose state a setup detector reads: a gateway or carrier plugin (the correctness join in the payments
+     * and shipping checks), Joomla's System - Page Cache or this plugin (the page cache check). One of them saved from
+     * its form ({@see self::onExtensionAfterSave()}) or enabled or disabled from the Plugins list
+     * ({@see self::onContentChangeState()}) makes the setup verdict stale.
+     *
+     * @param string $folder The plugin's group.
+     * @param string $element The plugin's element.
+     * @param string $how How it changed, for the debug log.
+     *
+     * @since  2.2.1
+     */
+    private function invalidateSetupForPlugin(string $folder, string $element, string $how): void
+    {
         if (in_array($folder, ['alfa-payments', 'alfa-shipments'], true)) {
-            $this->invalidateSetup('gateway plugin saved');
+            $this->invalidateSetup('gateway plugin ' . $how);
+        } elseif ($folder === 'system' && in_array($element, ['cache', 'alfasync'], true)) {
+            $this->invalidateSetup('page cache or Alfa Commerce Sync plugin ' . $how);
         }
     }
 
@@ -880,7 +909,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * from the Content Languages list (its status toggle, or Publish over the selected rows)
      * announces itself here, never as a save (AdminModel::publish): it gets its
      * #__alfa_*_<langtag> tables, as a language saved in its edit form does
-     * ({@see self::onExtensionAfterSave()}). Any other state, or any other record, changes nothing.
+     * ({@see self::onExtensionAfterSave()}). A plugin enabled or disabled from the Plugins
+     * list (its status toggle, or Enable / Disable over the selected rows) announces itself
+     * here too, context com_plugins.plugin, the extension ids as the subject: a plugin a setup
+     * detector reads makes the verdict stale, as its save does. Any other state, or any other
+     * record, changes nothing.
      *
      * @param Event|array $event
      * @since  2.1.0
@@ -894,13 +927,36 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $value = method_exists($event, 'getValue')
                 ? (int) $event->getValue()
                 : (int) ($event->getArgument('value') ?? $event->getArgument('2') ?? 0);
+            $pks = method_exists($event, 'getPks')
+                ? (array) $event->getPks()
+                : (array) ($event->getArgument('subject') ?? $event->getArgument('1') ?? []);
         } else {
             $context = (string) ($event[0] ?? '');
             $value = (int) ($event[2] ?? 0);
+            $pks = (array) ($event[1] ?? []);
         }
 
         if ($context === 'com_languages.language' && $value === 1) {
             $this->handleContentSave($context);
+        }
+
+        if ($context === 'com_plugins.plugin' && $pks !== [] && !$this->paused()) {
+            try {
+                $db = $this->getDatabase();
+                $ids = array_values(array_filter(array_map('intval', $pks), static fn (int $id): bool => $id > 0));
+                $rows = $ids === [] ? [] : $db->setQuery(
+                    $db->getQuery(true)
+                        ->select([$db->quoteName('folder'), $db->quoteName('element')])
+                        ->from($db->quoteName('#__extensions'))
+                        ->whereIn($db->quoteName('extension_id'), $ids),
+                )->loadObjectList();
+
+                foreach ($rows as $row) {
+                    $this->invalidateSetupForPlugin(folder: (string) $row->folder, element: (string) $row->element, how: $value === 1 ? 'enabled' : 'disabled');
+                }
+            } catch (Throwable $e) {
+                $this->logError('onContentChangeState', $e->getMessage());
+            }
         }
     }
 
@@ -1027,6 +1083,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     {
         $extensionId = (int) ($event->getArgument('eid') ?? $event->getArgument('0') ?? 0);
 
+        // The setup checklist's PDF row reads the library (2.2.1): its verdict is recomputed on the next page.
+        if ($this->isPdfLibrary(extensionId: $extensionId)) {
+            $this->invalidateSetup('the PDF library is being uninstalled');
+        }
+
         try {
             $entry = (new ClearDataExtensions())->uninstalling(extensionId: $extensionId);
 
@@ -1065,6 +1126,44 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             );
         } catch (Throwable $e) {
             $this->logError(caller: 'onExtensionAfterInstall', message: $e->getMessage());
+        }
+
+        // The setup checklist's PDF row reads the library (2.2.1): its verdict is recomputed on the next page.
+        if ($this->isPdfLibrary(extensionId: (int) $event->getArgument('eid'))) {
+            $this->invalidateSetup('the PDF library was installed');
+        }
+    }
+
+    /**
+     * Whether the extension is the dompdf library (lib_dompdf), which sales documents need for their PDFs and the
+     * setup checklist names. Never breaks the caller: an unreadable row is not the library.
+     *
+     * @param int $extensionId The extension's id.
+     *
+     * @since  2.2.1
+     */
+    private function isPdfLibrary(int $extensionId): bool
+    {
+        if ($extensionId <= 0) {
+            return false;
+        }
+
+        try {
+            $db = $this->getDatabase();
+
+            return (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__extensions'))
+                    ->where($db->quoteName('extension_id') . ' = :eid')
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('library'))
+                    ->where($db->quoteName('element') . ' = ' . $db->quote('dompdf'))
+                    ->bind(':eid', $extensionId, ParameterType::INTEGER),
+            )->loadResult() > 0;
+        } catch (Throwable $e) {
+            $this->logError(caller: 'isPdfLibrary', message: $e->getMessage());
+
+            return false;
         }
     }
 

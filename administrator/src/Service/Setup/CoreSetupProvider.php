@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
 use Joomla\CMS\Component\ComponentHelper;
@@ -49,6 +50,17 @@ final class CoreSetupProvider
      */
     public const OWNER_GROUP = 'core';
     public const OWNER_NAME = 'com_alfa';
+
+    /**
+     * The state of the page cache check while Joomla's System - Page Cache is enabled and System - Alfa Commerce Sync
+     * does not run for visitors who are not logged in (disabled, not installed, or an Access they do not hold): nothing
+     * then keeps a shopper's cart page, typed checkout details or cart module out of the page cache, and the next
+     * visitors can be shown them. SetupCheck::STATE_FAIL or SetupCheck::STATE_WARN; this one value decides which.
+     *
+     * @var string
+     * @since  2.2.1
+     */
+    public const PAGE_CACHE_WITHOUT_SYNC = SetupCheck::STATE_FAIL;
 
     /**
      * The checks built so far by {@see self::checks()}.
@@ -243,6 +255,16 @@ final class CoreSetupProvider
             ->priority(400)
             ->probe(static fn (): bool => self::exists(table: '#__alfa_document_series', where: ['state' => 1]));
 
+        // Sales documents become PDFs (the PDF button, the REST PDF route, a status e-mail's attachments) through the
+        // dompdf library, which is installed separately. RECOMMENDED, not required: the documents are issued and the
+        // print view shows them without it (2.2.1).
+        $this->check('documents.pdf_library', 'COM_ALFA_SETUP_CHECK_PDF_LIBRARY_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason('COM_ALFA_SETUP_CHECK_PDF_LIBRARY_REASON')
+            ->cta('index.php?option=com_installer&view=install')
+            ->priority(390)
+            ->probe(static fn (): bool => PdfRenderer::libraryInstalled());
+
         $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_MAIL_REASON')
@@ -268,6 +290,27 @@ final class CoreSetupProvider
 
                 // A missing folder is fine when its parent can create it on first upload.
                 return is_dir($path) ? is_writable($path) : is_writable(\dirname($path));
+            });
+
+        // Joomla's System - Page Cache stores the page a visitor who is not logged in opens, by its address, and shows
+        // it to the next visitors. System - Alfa Commerce Sync keeps a shopper's own pages out of it, when it runs for
+        // such a visitor; otherwise the cart, the typed checkout details and the cart module can reach another
+        // visitor. Read once here: the state and the reason follow the same reading.
+        [$pageCache, $sync] = self::pageCacheReading();
+
+        $this->check('joomla.pagecache', 'COM_ALFA_SETUP_CHECK_PAGECACHE_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason(match (true) {
+                $pageCache && $sync === SyncPluginState::NOT_FOR_GUESTS => 'COM_ALFA_SETUP_CHECK_PAGECACHE_ACCESS_REASON',
+                $pageCache && $sync !== SyncPluginState::EFFECTIVE => 'COM_ALFA_SETUP_CHECK_PAGECACHE_UNGUARDED_REASON',
+                default => 'COM_ALFA_SETUP_CHECK_PAGECACHE_REASON',
+            })
+            ->cta('index.php?option=com_plugins&view=plugins&filter[folder]=system')
+            ->priority(250)
+            ->probe(static fn (): string => match (true) {
+                !$pageCache => SetupCheck::STATE_PASS,
+                $sync === SyncPluginState::EFFECTIVE => SetupCheck::STATE_WARN,
+                default => self::PAGE_CACHE_WITHOUT_SYNC,
             });
 
         $this->check('sef.enabled', 'COM_ALFA_SETUP_CHECK_SEF_LABEL')
@@ -485,6 +528,39 @@ final class CoreSetupProvider
         $db->setQuery($query, 0, 1);
 
         return (string) $db->loadResult() !== '';
+    }
+
+    /**
+     * What the page cache check reads: whether Joomla's System - Page Cache is enabled (its extension row), and
+     * System - Alfa Commerce Sync's state for visitors who are not logged in ({@see SyncPluginState}). The checklist
+     * keeps it beside its cached verdict ({@see SetupHelper::status()}): Alfa Commerce Sync hears no change made while
+     * it is off, nor its own enabling, so a verdict computed under another reading is computed again. Each call reads
+     * the page cache plugin's row and Alfa Commerce Sync's ({@see SyncPluginState::read()}): two indexed reads of
+     * #__extensions, and the guest's view levels.
+     *
+     * @return array{0: bool, 1: string} [page cache enabled, a SyncPluginState constant]
+     *
+     * @since  2.2.1
+     */
+    public static function pageCacheReading(): array
+    {
+        $db = self::db();
+        $folder = 'system';
+        $element = 'cache';
+        $enabled = (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('enabled'))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                ->where($db->quoteName('folder') . ' = :folder')
+                ->where($db->quoteName('element') . ' = :element')
+                ->bind(':folder', $folder, ParameterType::STRING)
+                ->bind(':element', $element, ParameterType::STRING),
+            0,
+            1,
+        )->loadResult();
+
+        return [$enabled === 1, SyncPluginState::read()];
     }
 
     /**

@@ -732,6 +732,19 @@
                 description="COM_ALFA_DOWNLOADS_CONFIG_STORAGE_PATH_DESC"
                 size="150"
         />
+        <!-- Whether the protection below is checked on its own occasions and said on the
+             administrator pages (StoreProtection::isOn()); Check again checks it either way. -->
+        <field
+                name="downloads_protection_check"
+                type="radio"
+                default="1"
+                layout="joomla.form.field.radio.switcher"
+                label="COM_ALFA_DOWNLOADS_PROTECTION_CHECK_LABEL"
+                description="COM_ALFA_DOWNLOADS_PROTECTION_CHECK_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
         <!-- A status, not a setting (it posts nothing): whether the web server refuses direct
              access to the store, probed by StoreProtection. -->
         <field

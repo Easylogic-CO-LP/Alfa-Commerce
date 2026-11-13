@@ -22,8 +22,10 @@ use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\Console\Application;
 use Joomla\Database\DatabaseAwareInterface;
 use Joomla\Database\DatabaseAwareTrait;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Event\SubscriberInterface;
 use Throwable;
+use UnexpectedValueException;
 
 /**
  * Alfa Commerce's one registration point with the Joomla console: alfa:tasks:run, alfa:tasks:prune and
@@ -82,7 +84,19 @@ final class Alfa extends CMSPlugin implements SubscriberInterface, DatabaseAware
         foreach ([
             static fn (): object => new TasksRunCommand(),
             static fn (): object => new TasksPruneCommand(),
-            fn (): object => new InventoryAuditCommand(db: $this->getDatabase()),
+            function (): object {
+                // The audit closes its snapshot through TransactionState, which reads the transaction depth only a
+                // driver keeps. Joomla's container hands every extension a driver; anything else is refused here.
+                $db = $this->getDatabase();
+
+                if (!$db instanceof DatabaseDriver) {
+                    throw new UnexpectedValueException(
+                        sprintf('alfa:inventory:audit needs a Joomla database driver, the connection is %s.', get_debug_type($db)),
+                    );
+                }
+
+                return new InventoryAuditCommand(db: $db);
+            },
         ] as $make) {
             try {
                 $application->addCommand(command: $make());

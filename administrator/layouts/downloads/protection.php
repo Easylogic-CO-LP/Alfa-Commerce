@@ -12,6 +12,10 @@
  * panel and the Options field, administrator pages only; reading the state probes only after the
  * store's path changed ({@see \Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection::current()}).
  *
+ * With the check switched off in Options > Downloads, or with nothing in the store to protect yet,
+ * nothing is said here: the Options alone say so, with the last recorded result, read without
+ * asking anew, and Check again.
+ *
  * @var array $displayData  ['always' => bool: show the states that need no warning as well]
  */
 
@@ -26,18 +30,31 @@ use Joomla\CMS\Uri\Uri;
 
 $always = !empty($displayData['always']);
 $protection = new StoreProtection();
+$notice = null;
+$failed = false;
 
 try {
-    $result = $protection->current();
-    $warning = $protection->warning($result);
+    if (!StoreProtection::isOn()) {
+        $notice = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_OFF');
+    } elseif (!StoreProtection::hasFiles()) {
+        $notice = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_EMPTY');
+    }
+
+    if ($notice !== null && !$always) {
+        return;
+    }
+
+    $result = $notice === null ? $protection->current() : $protection->status();
+    $warning = $result === null ? null : $protection->warning($result);
 } catch (Throwable $e) {
     // The reason's own words go to the log, never to the page.
     Log::add('Download store protection: the status could not be read: ' . $e->getMessage(), Log::ERROR, 'com_alfa.downloads');
     $result = null;
-    $warning = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_FAILED');
+    $warning = null;
+    $failed = true;
 }
 
-if ($warning === null && !$always) {
+if (!$failed && $warning === null && !$always) {
     return;
 }
 
@@ -47,9 +64,17 @@ $checkAgain = Route::_(
     false,
 );
 
-if ($warning !== null) {
-    $class = $result !== null && $result->state === StoreProtection::STATE_EXPOSED ? 'alert-danger' : 'alert-warning';
-    $text = $warning;
+// The warning brings its own paragraphs (the layout downloads.warning); every other state is one line.
+$text = null;
+
+if ($failed) {
+    $class = 'alert-warning';
+    $text = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_FAILED');
+} elseif ($warning !== null) {
+    $class = $result->state === StoreProtection::STATE_EXPOSED ? 'alert-danger' : 'alert-warning';
+} elseif ($result === null) {
+    $class = 'alert-info';
+    $text = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_NONE');
 } elseif ($result->state === StoreProtection::STATE_OUTSIDE) {
     $class = 'alert-info';
     $text = Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_OUTSIDE', htmlspecialchars((string) $result->root, ENT_QUOTES, 'UTF-8'));
@@ -58,7 +83,14 @@ if ($warning !== null) {
     $text = Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_VERIFIED', htmlspecialchars((string) $result->root, ENT_QUOTES, 'UTF-8'), htmlspecialchars($result->checked_at . ' UTC', ENT_QUOTES, 'UTF-8'));
 }
 ?>
-<div class="alert <?php echo $class; ?> alfa-download-protection" data-state="<?php echo htmlspecialchars((string) ($result->state ?? 'failed'), ENT_QUOTES, 'UTF-8'); ?>">
-    <p class="mb-2"><?php echo $text; ?></p>
+<div class="alert <?php echo $class; ?> alfa-download-protection" data-state="<?php echo htmlspecialchars($failed ? 'failed' : (string) ($result->state ?? 'none'), ENT_QUOTES, 'UTF-8'); ?>">
+    <?php if ($notice !== null) : ?>
+        <p class="mb-2"><?php echo $notice; ?></p>
+    <?php endif; ?>
+    <?php if ($text === null) : ?>
+        <?php echo $warning; ?>
+    <?php else : ?>
+        <p class="mb-2"><?php echo $text; ?></p>
+    <?php endif; ?>
     <a class="btn btn-sm btn-secondary" href="<?php echo htmlspecialchars($checkAgain, ENT_QUOTES, 'UTF-8'); ?>"><?php echo Text::_('COM_ALFA_DOWNLOADS_PROTECTION_CHECK_AGAIN'); ?></a>
 </div>

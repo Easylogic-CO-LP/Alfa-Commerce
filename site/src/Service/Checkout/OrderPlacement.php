@@ -161,8 +161,11 @@ class OrderPlacement
     protected int $committedOrderId = 0;
 
     /**
-     * @var array<string, \Alfa\Component\Alfa\Site\Service\Pricing\Money>|null
-     *                                                                          What the purchase came to, read while the cart still held it.
+     * What the purchase came to, read while the cart still held it (captureCompletedTotals()): the carrier's charge
+     * with and without tax, the rate, basis and ordered tax chain it was formed with, and the grand total with and
+     * without tax.
+     *
+     * @var array{shipping_incl: Money, shipping_excl: Money, shipping_rate: float, shipping_basis: string|null, shipping_chain: array<int, array{rate: string, name: string}>, paid_incl: Money, paid_excl: Money}|null
      * @since  2.0.0
      */
     private ?array $completedTotals = null;

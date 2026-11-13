@@ -24,6 +24,7 @@ use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Response\JsonResponse;
+use Joomla\CMS\Uri\Uri;
 use Joomla\String\StringHelper;
 use RuntimeException;
 
@@ -183,6 +184,32 @@ trait HasApiGuards
     protected function allowEdit($data = [], $key = 'id')
     {
         return AlfaHelper::can(section: $this->aclSection(), action: 'edit', user: $this->app->getIdentity());
+    }
+
+    /**
+     * Create an item: core's create, answered 201 Created with the new record's address in Location (2.2.1).
+     *
+     * Core answers a create with 200 and the record. The record in the body is the same; the status says that it
+     * was created and the Location header where it now is (the collection's address and the new id).
+     *
+     * @return void
+     *
+     * @throws NotAllowed When the identity may not create the resource.
+     *
+     * @since  2.2.1
+     */
+    public function add()
+    {
+        if (!$this->allowAdd()) {
+            throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
+        }
+
+        $recordId = (int) $this->save();
+
+        $this->displayItem($recordId);
+
+        $this->app->setHeader('status', '201', true);
+        $this->app->setHeader('Location', rtrim(Uri::current(), '/') . '/' . $recordId, true);
     }
 
     /**
