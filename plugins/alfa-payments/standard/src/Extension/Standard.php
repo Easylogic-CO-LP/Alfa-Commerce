@@ -936,10 +936,11 @@ final class Standard extends PaymentsPlugin
     //    index.php?option=com_alfa&task=payment.webhook&method=<element>
     //
     //  and nothing more: the address names no order and carries no secret.
-    //  Give the provider the exact form your setup checkup prints (the
-    //  {webhook} token in the checkup help, PaymentCheckupEvent::webhookUrl()):
-    //  on a multilingual SEF site the plain index.php form is redirected and
-    //  the notification is lost.
+    //  Give the provider the exact address your plugin builds with
+    //  $this->webhookUrl() (the {webhook} token of the checkup help prints the
+    //  same, PaymentCheckupEvent::webhookUrl()): the site root and index.php,
+    //  TLS forced, with no language and no SEF path, so it is the same on
+    //  every site. A GET to it is answered by the controller, not redirected.
     //
     //  THE EVENT. PaymentWebhookEvent arrives with subject = NULL, always:
     //  $event->getOrder() is null until YOU have found the order. It carries
