@@ -10,6 +10,7 @@
 namespace Alfa\Module\AlfaCart\Site\Dispatcher;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartResolution;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Module\AlfaCart\Site\Helper\AlfaCartHelper;
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
@@ -48,6 +49,13 @@ class Dispatcher extends AbstractModuleDispatcher
 
         // The module reads; it hands the layout a reading, not the cart.
         $data['snapshot'] = CartService::ambient()->read(CartResolution::Current);
+
+        // A cart that holds products is this visitor's own, on a page every visitor shares: that page is never stored
+        // in Joomla's page cache, whatever plugin is enabled (2.2.1). An empty cart shows nothing of the visitor, and
+        // the page stays cacheable.
+        if (!$data['snapshot']->isEmpty()) {
+            PageCache::excludeResponse();
+        }
 
         $wa = $this->app->getDocument()->getWebAssetManager();
         $wa->getRegistry()->addExtensionRegistryFile('com_alfa');
