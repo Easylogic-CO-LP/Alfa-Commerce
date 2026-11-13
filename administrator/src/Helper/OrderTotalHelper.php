@@ -441,7 +441,12 @@ class OrderTotalHelper
     }
 
     /**
-     * Shipping total (tax inclusive).
+     * The shipping the order charges (tax inclusive): its active parcels' charges after the shipping-class cart rules
+     * reduced them, the figure its total and its documents use ({@see self::getExactBreakdown()}, shipping_tax_incl).
+     *
+     * One figure (2.2.1): before, this summed the parcels' charges alone, so an order with free or reduced
+     * shipping through a cart rule read more shipping here than its total holds. The carriers' gross charge is the
+     * breakdown's shipping_gross_tax_incl ({@see self::getBreakdown()}).
      *
      * @param int $orderId Order PK
      *
@@ -450,16 +455,7 @@ class OrderTotalHelper
      */
     public static function getShippingTotal(int $orderId): float
     {
-        $db = self::db();
-        $query = $db->getQuery(true)
-            ->select('COALESCE(SUM(shipping_cost_tax_incl), 0)')
-            ->from('#__alfa_order_shipments')
-            ->where('id_order = ' . (int) $orderId)
-            ->where(self::activeShipmentsWhere($db));
-
-        $db->setQuery($query);
-
-        return (float) $db->loadResult();
+        return (float) self::getExactBreakdown(orderId: $orderId)->shipping_tax_incl;
     }
 
     /**
