@@ -42,6 +42,10 @@ class InventorymovementsController extends ApiController
     /**
      * Inventorymovements list view amended to add filtering of data
      *
+     * Each filter goes onto the model state under the name the movements screen's filter form gives it, and the list
+     * model applies it as it does for the screen (2.2.1: the date window, shop-local bounds as the screen's calendars
+     * hold them; and item_id, the movements of one product).
+     *
      * @return static A BaseController object to support chaining.
      *
      * @since  2.0.0
@@ -60,6 +64,18 @@ class InventorymovementsController extends ApiController
 
         if (\array_key_exists('location_id', $apiFilterInfo)) {
             $this->modelState->set('filter.location_id', RequestScalar::member($apiFilterInfo, 'location_id', 'INT', 'filter'));
+        }
+
+        if (\array_key_exists('date_start', $apiFilterInfo)) {
+            $this->modelState->set('filter.date_start', RequestScalar::member($apiFilterInfo, 'date_start', 'STRING', 'filter'));
+        }
+
+        if (\array_key_exists('date_end', $apiFilterInfo)) {
+            $this->modelState->set('filter.date_end', RequestScalar::member($apiFilterInfo, 'date_end', 'STRING', 'filter'));
+        }
+
+        if (\array_key_exists('item_id', $apiFilterInfo)) {
+            $this->modelState->set('filter.item_id', RequestScalar::member($apiFilterInfo, 'item_id', 'INT', 'filter'));
         }
 
         $apiListInfo = $this->input->get('list', [], 'array');

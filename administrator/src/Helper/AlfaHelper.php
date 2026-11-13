@@ -575,7 +575,12 @@ class AlfaHelper
      *
      * One-sided windows are honoured: "everything since the 1st" is a real question.
      * A bound that cannot be parsed is dropped rather than guessed at, so a broken
-     * value widens the result set instead of silently hiding rows.
+     * value widens the result set instead of silently hiding rows; for a DATE column
+     * that means anything that is not a calendar day (Y-m-d).
+     *
+     * An end that names a day and no time (Y-m-d, as a REST client sends it) is that
+     * whole day, to its last second, as a preset's end is; a start that names a day is
+     * its first second (2.2.1).
      *
      * @param QueryInterface $query Query to constrain.
      * @param string $column Quoted-name-safe column, e.g. 'a.created'.
@@ -596,15 +601,23 @@ class AlfaHelper
         $db = Factory::getContainer()->get(DatabaseInterface::class);
         $shopTz = self::shopTimezone();
 
-        $bound = static function (string $local) use ($shopTz, $convertToUtc): string {
+        $bound = static function (string $local, bool $isEnd) use ($shopTz, $convertToUtc): string {
             if ($local === '') {
                 return '';
             }
 
             if (!$convertToUtc) {
                 // Already in the column's own frame; a DATE column compares on the
-                // date part, so a time riding along on a hand-typed value is trimmed.
-                return substr($local, 0, 10);
+                // date part, so a time riding along on a hand-typed value is trimmed,
+                // and what is not a calendar day is no bound.
+                $day = substr($local, 0, 10);
+
+                return preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $day, $parts) === 1
+                    && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]) ? $day : '';
+            }
+
+            if ($isEnd && preg_match('/^\d{4}-\d{2}-\d{2}$/', $local) === 1) {
+                $local .= ' 23:59:59';
             }
 
             try {
@@ -614,8 +627,8 @@ class AlfaHelper
             }
         };
 
-        $start = $bound($localStart);
-        $end = $bound($localEnd);
+        $start = $bound($localStart, false);
+        $end = $bound($localEnd, true);
 
         if ($start !== '' && $end !== '') {
             $query->where(

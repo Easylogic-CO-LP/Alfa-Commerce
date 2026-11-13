@@ -328,7 +328,8 @@ class OrdersModel extends AlfaListModel
     /**
      * The product this grid is filtered to, named.
      *
-     * filter.item_id is set only by the "Orders" link on a product and has no
+     * On the screen, filter.item_id is set only by the "Orders" link on a product
+     * (the REST API's filter[item_id] sets it for its own list) and has no
      * field in the filter bar: a select listing every product would cost a query
      * per page load. That makes it INVISIBLE, and an invisible filter that
      * survives navigation reads as "my orders disappeared", so the grid says so
@@ -530,9 +531,10 @@ class OrdersModel extends AlfaListModel
 
         // Product filter. Deliberately NOT declared in forms/filter_orders.xml:
         // a visible select would have to list every product in the catalogue, which
-        // is a query per orders page load on a 100k-SKU shop. It is set only by the
-        // "Orders" link on a product, and read straight off the state. The subquery
-        // is a semi-join through idx_id_item on #__alfa_order_items.
+        // is a query per orders page load on a 100k-SKU shop. It is set by the
+        // "Orders" link on a product and by the REST API's filter[item_id], and read
+        // straight off the state. The subquery is a semi-join through idx_id_item on
+        // #__alfa_order_items.
         $itemFilter = (int) $this->getState('filter.item_id');
 
         if ($itemFilter > 0) {
@@ -541,6 +543,25 @@ class OrdersModel extends AlfaListModel
                 . ' FROM ' . $db->quoteName('#__alfa_order_items')
                 . ' WHERE ' . $db->quoteName('id_item') . ' = ' . $itemFilter . ')',
             );
+        }
+
+        // Customer filters, read straight off the state as the product filter is, and set by the REST API
+        // (filter[id_user], filter[email]). The account: a number names it, and 0 names the guests' orders (no
+        // account: NULL, or 0 as some writers store it); an empty value is no filter. The e-mail the order carries,
+        // matched whole on idx_customer_email (the column's utf8mb4_unicode_ci sets aside letter case and accents),
+        // so a guest's orders are found by it too; an empty value is no filter.
+        $customerFilter = $this->getState('filter.id_user');
+
+        if (is_numeric($customerFilter)) {
+            $query->where((int) $customerFilter === 0
+                ? '(' . $db->quoteName('a.id_user') . ' IS NULL OR ' . $db->quoteName('a.id_user') . ' = 0)'
+                : $db->quoteName('a.id_user') . ' = ' . (int) $customerFilter);
+        }
+
+        $emailFilter = trim((string) $this->getState('filter.email', ''));
+
+        if ($emailFilter !== '') {
+            $query->where($db->quoteName('a.customer_email') . ' = ' . $db->quote($emailFilter));
         }
 
         // Payment - Fulfilment - Waiting
@@ -562,13 +583,14 @@ class OrdersModel extends AlfaListModel
         // of it. A second definition in the WHERE clause would drift from
         // ReconciliationFacts the first time either changed, and the list would
         // then disagree with the order screen about the same order.
-        $reconciliation = (string) $this->getState('filter.reconciliation', '');
-        $overpaidFilter = (string) $this->getState('filter.overpaid', '');
+        // Each is on for a true value only (the screen's 1, or true); 0, false or empty asks nothing.
+        $reconciliation = \in_array(strtolower(trim((string) $this->getState('filter.reconciliation', ''))), ['1', 'true'], true);
+        $overpaidFilter = \in_array(strtolower(trim((string) $this->getState('filter.overpaid', ''))), ['1', 'true'], true);
 
-        if ($reconciliation !== '' || $overpaidFilter !== '') {
+        if ($reconciliation || $overpaidFilter) {
             $matching = $this->factFilteredIds(
-                needsReconciliation: $reconciliation !== '',
-                overpaid:            $overpaidFilter !== '',
+                needsReconciliation: $reconciliation,
+                overpaid:            $overpaidFilter,
             );
 
             $query->where(

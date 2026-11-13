@@ -135,7 +135,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @var string
      */
-    public const SCHEMA_VERSION = '2.2.0';
+    public const SCHEMA_VERSION = '2.2.1';
 
     /**
      * Whether this run completes an install that never finished: preflight ran

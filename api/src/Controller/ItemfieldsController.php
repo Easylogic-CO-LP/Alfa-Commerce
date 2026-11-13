@@ -55,6 +55,31 @@ class ItemfieldsController extends ApiController
     }
 
     /**
+     * An item field's values, which the API does not write (2.2.1): `values` and the edit form's `deleted_value_ids`.
+     * The field save reads both from the request as its Values tab posts them, and keeps a value row by its id
+     * whatever field it belongs to, so a write naming another field's value moved it under this field, with what
+     * products built on it, and a deletion reached the unused values of any field.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenKeys(): array
+    {
+        return ['values', 'deleted_value_ids'];
+    }
+
+    /**
+     * Where they are written instead.
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenReason(): string
+    {
+        return 'an item field\'s values are edited on its page in the administrator. Send the field without them; nothing was saved.';
+    }
+
+    /**
      * Itemfields list view amended to add filtering of data
      *
      * @return static A BaseController object to support chaining.
