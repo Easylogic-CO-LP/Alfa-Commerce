@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
@@ -830,12 +831,13 @@ class ItemfieldModel extends AlfaAdminModel
                     }
                 }
 
-                Factory::getApplication()->enqueueMessage(
+                // A model error, not a queued message: the back office prints it, and the REST delete answers 409
+                // with the sentence instead of 204 for a field that is still there (2.2.1).
+                $this->setError(new DeleteRefusedException(
                     Text::plural('COM_ALFA_ITEMFIELD_DELETE_IN_USE', $binding['items'])
                     . ' ' . Text::sprintf('COM_ALFA_ITEMFIELD_DELETE_IN_USE_VIA', implode(', ', $via))
                     . ' ' . Text::_('COM_ALFA_ITEMFIELD_DELETE_IN_USE_UNPUBLISH'),
-                    'error',
-                );
+                ));
 
                 return false;
             }
