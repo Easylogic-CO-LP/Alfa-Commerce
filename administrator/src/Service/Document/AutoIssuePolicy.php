@@ -462,8 +462,33 @@ final class AutoIssuePolicy
                 orderId: $orderId,
                 key:     self::KEY_PREFIX . $orderId . '.failed.' . $docType,
                 title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_TYPE_TITLE', $orderId, DocumentHelper::typeText($docType)),
+                message: NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_MSG', self::reason(failure: $e)),
             );
         }
+    }
+
+    /**
+     * Why an issue failed, for the notice (2.2.1): the failure's own first line, markup stripped, at most 200
+     * characters; a database failure (anywhere in the chain) is said as one, so no table, column or statement reaches
+     * the notice. The full message and trace stay in the documents log.
+     *
+     * @param Throwable $failure What the issue threw.
+     *
+     * @return string|array The line, or the language key of a database failure ({@see NotificationText::key()}).
+     *
+     * @since  2.2.1
+     */
+    private static function reason(Throwable $failure): string|array
+    {
+        for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
+            if (MysqlError::number($cause) > 0) {
+                return NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_DATABASE');
+            }
+        }
+
+        $line = trim((string) strtok(strip_tags($failure->getMessage()), "\r\n"));
+
+        return $line === '' ? NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_DATABASE') : mb_substr($line, 0, 200);
     }
 
     /**
@@ -661,15 +686,17 @@ final class AutoIssuePolicy
      * @param int $orderId The order id.
      * @param string $key Dedup key.
      * @param NotificationText $title Notification title.
+     * @param NotificationText|null $message Its body: why it was raised when the caller knows (2.2.1: a failed
+     *                                       issue's reason), else the general one.
      *
      * @since  2.0.0
      */
-    private static function notify(int $orderId, string $key, NotificationText $title): void
+    private static function notify(int $orderId, string $key, NotificationText $title, ?NotificationText $message = null): void
     {
         NotificationHelper::push($key, $title, [
             'severity' => 'warning',
             'group' => NotificationHelper::GROUP_DOCUMENTS,
-            'message' => NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_MSG'),
+            'message' => $message ?? NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_MSG'),
             'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
             'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
             'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],

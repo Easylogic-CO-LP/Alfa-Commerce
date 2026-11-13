@@ -1183,21 +1183,39 @@ class OrderPlacement
             // A plugin the customer's view levels admit but Joomla does not load for the user placing the order (staff
             // lacking one of the customer's levels) cannot check this placement, nor add its charges to the totals: the
             // placement is refused naming it, before anything is written (2.2.0, s95).
-            try {
-                $plugins->dispatchToEach($plugins->admitted($this->user, 'alfa'), $validateEvent);
-            } catch (PluginUnavailable $unavailable) {
-                if ($unavailable->reason !== PluginUnavailable::NOT_LOADED) {
-                    throw $unavailable;
+            // One plugin at a time, in their order, so a plugin that throws is named (2.2.1): a throw refuses the
+            // placement as the event's contract says, and the shopper is told which check could not run instead of the
+            // bare "Order placement failed"; its own words stay in the log.
+            foreach ($plugins->admitted($this->user, 'alfa') as $validator) {
+                try {
+                    $plugins->dispatchToEach([$validator], $validateEvent);
+                } catch (PluginUnavailable $unavailable) {
+                    if ($unavailable->reason !== PluginUnavailable::NOT_LOADED) {
+                        throw $unavailable;
+                    }
+
+                    // The plugin by the name Extensions: Plugins shows (UX-25, UX-40).
+                    $this->fail(
+                        'COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR',
+                        ['plugin' => $unavailable->plugin === null ? '' : $plugins->name($unavailable->plugin)],
+                        'Placement refused: ' . $unavailable->getMessage(),
+                    );
+
+                    return false;
+                } catch (Throwable $thrown) {
+                    $this->fail(
+                        'COM_ALFA_ORDER_PLACE_PLUGIN_FAILED',
+                        ['plugin' => $plugins->name($validator)],
+                        'Placement refused: ' . $validator . ' threw on onOrderPlaceValidate: ' . $thrown::class . ': ' . $thrown->getMessage(),
+                        Text::sprintf('COM_ALFA_ORDER_PLACE_PLUGIN_FAILED', $plugins->name($validator)),
+                    );
+
+                    return false;
                 }
 
-                // The plugin by the name Extensions: Plugins shows (UX-25, UX-40).
-                $this->fail(
-                    'COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR',
-                    ['plugin' => $unavailable->plugin === null ? '' : $plugins->name($unavailable->plugin)],
-                    'Placement refused: ' . $unavailable->getMessage(),
-                );
-
-                return false;
+                if ($validateEvent->isStopped()) {
+                    break;
+                }
             }
 
             if ($validateEvent->isRejected()) {
