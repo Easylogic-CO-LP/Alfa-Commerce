@@ -105,4 +105,14 @@ class ShipmentmethodsController extends ApiController
 
         return parent::displayList();
     }
+
+    /**
+     * A shipping method is deleted from the trash only, as the administrator's list of shipping methods deletes it (2.2.1, decision 43 (c)).
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
 }

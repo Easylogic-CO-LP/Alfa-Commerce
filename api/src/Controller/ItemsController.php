@@ -212,4 +212,14 @@ class ItemsController extends ApiController
 
         return $this->guardedPreprocessSaveData(data: $data);
     }
+
+    /**
+     * A product is deleted from the trash only, as the administrator's list of products deletes it (2.2.1, decision 43 (c)).
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
 }

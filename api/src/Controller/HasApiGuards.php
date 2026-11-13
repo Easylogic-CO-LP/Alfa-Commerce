@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
@@ -110,6 +111,19 @@ trait HasApiGuards
     protected function unwrittenReason(): string
     {
         return '';
+    }
+
+    /**
+     * Whether a record of this resource is deleted from the trash only (2.2.1, decision 43 (c)): true where the
+     * administrator's list moves a record to the trash before it deletes it, its Delete being the trashed view's Empty
+     * trash. A DELETE of a record in any other state then answers 409 and deletes nothing; a PATCH of state -2 trashes
+     * it first. Resources the administrator deletes without a trash step, and orders, keep their one-call delete.
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return false;
     }
 
     /**
@@ -314,16 +328,18 @@ trait HasApiGuards
      *
      * The resource's own delete permission was already required by {@see self::execute()} and is
      * required again by the model's canDelete(); core's check would add a Global Configuration
-     * right on top of both. Everything after that check is core's, except one answer: a
-     * delete the model refused by its own rule (a category that still has children or is a
-     * product's default, an entity whose delete would widen a discount, tax or cart rule)
-     * answers 409 with the refusal's sentence as text.
+     * right on top of both. Everything after that check is core's, except two answers: a
+     * record of a resource deleted from the trash only that is not in the trash answers 409
+     * (2.2.1, {@see self::deletesFromTrash()}), and a delete the model refused by its own rule
+     * (a category that still has children or is a product's default, an entity whose delete
+     * would widen a discount, tax or cart rule) answers 409 with the refusal's sentence as text.
      *
      * @param int $id The primary key to delete item.
      *
      * @return void
      *
-     * @throws Save When the model refused the delete by its own rule; nothing was deleted.
+     * @throws Save When the record is not in the trash, or the model refused the delete by its own rule; nothing was
+     *              deleted.
      *
      * @since  2.0.0
      */
@@ -342,6 +358,8 @@ trait HasApiGuards
         if (!$model) {
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_MODEL_CREATE'));
         }
+
+        $this->refuseUntrashed(model: $model, id: (int) $id);
 
         if (!$model->delete($id)) {
             // Core's fallback handler would answer a bare 500 and hide the sentence.
@@ -383,6 +401,43 @@ trait HasApiGuards
         }
 
         $this->app->setHeader('status', '204');
+    }
+
+    /**
+     * Answer 409 when this resource is deleted from the trash only ({@see self::deletesFromTrash()}) and the record is
+     * not in the trash, before the model is asked: nothing is deleted, archived or checked. A record that does not
+     * exist is left to the delete, which answers 404.
+     *
+     * @param AdminModel $model The resource's model.
+     * @param int $id The record.
+     *
+     * @throws Save When the record exists and is not in the trash (409).
+     *
+     * @since  2.2.1
+     */
+    private function refuseUntrashed(AdminModel $model, int $id): void
+    {
+        if (!$this->deletesFromTrash() || $id <= 0) {
+            return;
+        }
+
+        $table = $model->getTable();
+
+        if (!$table->load($id)) {
+            return;
+        }
+
+        $state = $table->getColumnAlias('published');
+
+        if ((int) $table->{$state} === AlfaComponent::CONDITION_TRASHED) {
+            return;
+        }
+
+        throw new Save(
+            'Only a record in the trash is deleted, as in the administrator: move it to the trash first (PATCH v1/alfa/'
+            . $this->contentType . '/' . $id . ' with state -2), then delete it. Nothing was deleted.',
+            409,
+        );
     }
 
     /**

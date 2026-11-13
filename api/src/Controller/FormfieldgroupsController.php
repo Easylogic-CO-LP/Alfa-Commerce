@@ -82,4 +82,14 @@ class FormfieldgroupsController extends ApiController
 
         return parent::displayList();
     }
+
+    /**
+     * A form field group is deleted from the trash only, as the administrator's list of form field groups deletes it (2.2.1, decision 43 (c)).
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
 }
