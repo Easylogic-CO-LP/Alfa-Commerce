@@ -9,9 +9,10 @@
 
 namespace Easy\Module\EasyArticles\Site\Helper;
 
-use Alfa\Component\Alfa\Site\Helper\PageCache;
+use Closure;
 use Joomla\CMS\Categories\Categories;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Event\PageCache\IsExcludedEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -70,6 +71,13 @@ final class EasyArticlesHelper
      * @since  1.0.0
      */
     public const READ_SESSION_KEY = 'easy.recently_read';
+
+    /**
+     * The one answer the page cache is given while a visitor's own list is shown ({@see self::keepPageOutOfPageCache()}).
+     *
+     * @since  2.2.1
+     */
+    private static ?Closure $keepOut = null;
 
     /**
      * Orderings the module may hand the model, keyed by the parameter value.
@@ -387,7 +395,7 @@ final class EasyArticlesHelper
             $items = self::getItems(categoryIds: $categoryIds, source: $source, limit: $limit, ordering: $ordering);
 
             if ($items !== [] && $recentlyRead) {
-                PageCache::excludeResponse();
+                self::keepPageOutOfPageCache();
             }
 
             return $items;
@@ -404,6 +412,25 @@ final class EasyArticlesHelper
         $items = ModuleHelper::moduleCache((object) ['id' => $moduleId, 'module' => 'mod_easy_articles'], $params, $cache);
 
         return \is_array($items) ? $items : [];
+    }
+
+    /**
+     * This request's page is never stored in Joomla's System - Page Cache: the module answers the page cache's own
+     * question, onPageCacheIsExcluded (asked after the page is drawn, before anything is stored), on the application's
+     * dispatcher, with Joomla's classes alone, so it works wherever the module is installed. One answer per request,
+     * however many lists ask. It keeps the page from being stored, never a page stored earlier from being served.
+     *
+     * @since  2.2.1
+     */
+    private static function keepPageOutOfPageCache(): void
+    {
+        $dispatcher = Factory::getApplication()->getDispatcher();
+        $answer = self::$keepOut ??= static function (IsExcludedEvent $event): void {
+            $event->addResult(true);
+        };
+
+        $dispatcher->removeListener('onPageCacheIsExcluded', $answer);
+        $dispatcher->addListener('onPageCacheIsExcluded', $answer);
     }
 
     /**
