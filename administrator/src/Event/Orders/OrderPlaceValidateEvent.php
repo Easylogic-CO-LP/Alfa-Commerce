@@ -35,6 +35,12 @@ defined('_JEXEC') or die;
  * One shared event travels through all plugins (rejections accumulate). A
  * rejection naming another plugin than the one answering is dropped and logged.
  *
+ * A listener that would rather throw refuses with words by throwing
+ * {@see OrderPlaceRefusedException} with the shopper's sentence, read as a
+ * rejection is (2.2.1). Any other exception refuses the placement as a check
+ * that could not run: the shopper is told which plugin's check, and its own
+ * words stay in the log.
+ *
  * @since  2.0.0
  */
 class OrderPlaceValidateEvent extends AbstractImmutableEvent implements SelectionContributorsInterface

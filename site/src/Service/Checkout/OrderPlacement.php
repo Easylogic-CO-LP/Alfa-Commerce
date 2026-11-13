@@ -39,6 +39,7 @@ namespace Alfa\Component\Alfa\Site\Service\Checkout;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Orders\OrderPlacedEvent;
+use Alfa\Component\Alfa\Administrator\Event\Orders\OrderPlaceRefusedException;
 use Alfa\Component\Alfa\Administrator\Event\Orders\OrderPlaceValidateEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderAfterPlaceEvent as PaymentOrderAfterPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderBeforePlaceEvent as PaymentOrderBeforePlaceEvent;
@@ -1184,8 +1185,9 @@ class OrderPlacement
             // lacking one of the customer's levels) cannot check this placement, nor add its charges to the totals: the
             // placement is refused naming it, before anything is written (2.2.0, s95).
             // One plugin at a time, in their order, so a plugin that throws is named (2.2.1): a throw refuses the
-            // placement as the event's contract says, and the shopper is told which check could not run instead of the
-            // bare "Order placement failed"; its own words stay in the log.
+            // placement as the event's contract says. A refusal thrown on purpose (OrderPlaceRefusedException) is read
+            // in its own words, as a rejection is; for any other throw the shopper is told which check could not run
+            // instead of the bare "Order placement failed", and its own words stay in the log.
             foreach ($plugins->admitted($this->user, 'alfa') as $validator) {
                 try {
                     $plugins->dispatchToEach([$validator], $validateEvent);
@@ -1203,6 +1205,19 @@ class OrderPlacement
 
                     return false;
                 } catch (Throwable $thrown) {
+                    $refused = OrderPlaceRefusedException::in($thrown);
+
+                    if ($refused !== null && $refused->sentence() !== '') {
+                        $this->fail(
+                            'COM_ALFA_ORDER_PLACE_PLUGIN_REFUSED',
+                            ['message' => $refused->sentence()],
+                            'Placement refused by ' . $validator . ' on onOrderPlaceValidate: ' . $refused->sentence(),
+                            $refused->sentence(),
+                        );
+
+                        return false;
+                    }
+
                     $this->fail(
                         'COM_ALFA_ORDER_PLACE_PLUGIN_FAILED',
                         ['plugin' => $plugins->name($validator)],
