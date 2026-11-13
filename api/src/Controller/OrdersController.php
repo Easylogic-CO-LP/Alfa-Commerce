@@ -123,7 +123,8 @@ class OrdersController extends ApiController
         }
 
         if (\array_key_exists('id_user', $apiFilterInfo)) {
-            $this->modelState->set('filter.id_user', RequestScalar::member($apiFilterInfo, 'id_user', 'INT', 'filter'));
+            // CMD, not INT: an empty value stays empty (no filter), where INT would make it 0 (the guests' orders).
+            $this->modelState->set('filter.id_user', RequestScalar::member($apiFilterInfo, 'id_user', 'CMD', 'filter'));
         }
 
         if (\array_key_exists('email', $apiFilterInfo)) {
