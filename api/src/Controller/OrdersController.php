@@ -137,6 +137,13 @@ class OrdersController extends ApiController
             throw new Save('id_order_status cannot be changed via PATCH; use POST v1/alfa/orders/:id/status.', 422);
         }
 
+        // The resource publishes state, the order row's trash flag, but no screen or request changes it: an order is
+        // never trashed, and the order form has no such field, so a PATCH of it was answered 200 and not written
+        // (2.2.1). Refused, as the status is.
+        if (array_key_exists('state', $rawBody) || array_key_exists('state', $bodyData)) {
+            throw new Save('state cannot be changed via PATCH: an order is not trashed; its status changes through POST v1/alfa/orders/:id/status.', 422);
+        }
+
         $orderId = (int) ($id ?? $this->input->getInt('id'));
         $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
