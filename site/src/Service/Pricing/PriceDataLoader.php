@@ -716,10 +716,13 @@ class PriceDataLoader
      */
     public static function placeMatch(string $alias, string $foreignKey, array $chain): string
     {
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $chain = array_values(array_filter(array_map('intval', $chain), static fn (int $place): bool => $place > 0));
+        $rule = $db->quoteName($alias . '.' . $foreignKey);
+        $place = $db->quoteName($alias . '.place_id');
 
-        return '(' . $alias . '.' . $foreignKey . ' IS NULL OR ' . $alias . '.place_id = 0'
-            . ($chain === [] ? '' : ' OR ' . $alias . '.place_id IN (' . implode(',', $chain) . ')') . ')';
+        return '(' . $rule . ' IS NULL OR ' . $place . ' = 0'
+            . ($chain === [] ? '' : ' OR ' . $place . ' IN (' . implode(',', $chain) . ')') . ')';
     }
 
     /**

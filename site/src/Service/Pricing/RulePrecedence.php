@@ -126,10 +126,10 @@ final class RulePrecedence
         // (ordering, id) among them.
         $running = null;
 
-        foreach ($scoped as $position => $rule) {
+        foreach ($scoped as $rank => $rule) {
             $own = [$rule['ordering'], $rule['id']];
             $running = $running === null || $own > $running ? $own : $running;
-            $keys[$rule['id']] = [$running[0], $running[1], $position + 1];
+            $keys[$rule['id']] = [$running[0], $running[1], $rank + 1];
         }
 
         return $keys;
