@@ -125,7 +125,7 @@ class Storage
 
         @chmod($targetPath, 0o640);
 
-        StoreProtection::fileAdded();
+        StoreProtection::fileAdded(object: $targetPath);
 
         return (object) [
             'storage_disk' => self::DISK_LOCAL,

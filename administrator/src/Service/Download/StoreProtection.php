@@ -51,9 +51,9 @@ use Throwable;
  *
  * The check can be switched off in Options > Downloads ({@see self::isOn()}): then only "Check
  * again" probes, and nothing is said anywhere but in the Options, which show the last recorded
- * result. While the store has nothing to protect (no file of a product, none an order hands out:
- * {@see self::hasFiles()}) nothing probes either and nothing is said; the first file written into
- * the store is checked at once ({@see self::fileAdded()}). A result that
+ * result. While the store has nothing to protect (no file of a product, none an order hands out,
+ * no other file in its folder: {@see self::hasFiles()}) nothing probes either and nothing is said;
+ * the first file written into the store is checked at once ({@see self::fileAdded()}). A result that
  * cannot be saved is never verified: it is kept for the request and said, and the next page,
  * finding nothing recorded, says the store is unchecked instead of probing again. The raw
  * reason of any failure goes to the downloads log, never into the message.
@@ -88,6 +88,12 @@ class StoreProtection
      * The control: a file the package ships to the public media folder, compared byte for byte.
      */
     public const CONTROL_FILE = 'media/com_alfa/images/placeholders/no-image.webp';
+
+    /**
+     * The canary's name: this prefix and 32 random hex characters. One a stopped probe left behind
+     * is no file of the store.
+     */
+    private const PROBE_PREFIX = 'probe-';
 
     public const STATE_VERIFIED = 'verified';
 
@@ -132,26 +138,17 @@ class StoreProtection
     }
 
     /**
-     * Whether the store has anything to protect: a file of a product, or a file an order still
-     * hands out. Every object a buyer can be handed is named by a row of one of the two download
-     * tables, so one query answers it without reading the store's folders; the answer is kept for
-     * the rest of the request.
+     * Whether the store has anything to protect: a file of a product, a file an order still hands
+     * out, or any other file in the store's folder (one a removed product file left there, one put
+     * there by hand), since a web server that ignores the deny files hands out any of them. The two
+     * download tables answer first, in one query; only when they name nothing is the folder read,
+     * up to its first file. The answer is kept for the rest of the request.
      *
      * @since  2.2.1
      */
     public static function hasFiles(): bool
     {
-        if (self::$hasFiles === null) {
-            $db = Factory::getContainer()->get('DatabaseDriver');
-            $any = static fn (string $table): string => (string) $db->createQuery()->select('1')->from($db->quoteName($table));
-
-            self::$hasFiles = (bool) $db->setQuery(
-                $db->createQuery()
-                    ->select('EXISTS (' . $any('#__alfa_item_downloads') . ') OR EXISTS (' . $any('#__alfa_order_downloads') . ')'),
-            )->loadResult();
-        }
-
-        return self::$hasFiles;
+        return self::$hasFiles ??= self::findFiles(except: null);
     }
 
     /**
@@ -161,12 +158,14 @@ class StoreProtection
      * something to protect. Never fails the write: the reason of a failure goes to the downloads
      * log, and the store stays unchecked until Check again.
      *
+     * @param string $object The absolute path of the object just written, which is not counted.
+     *
      * @since  2.2.1
      */
-    public static function fileAdded(): void
+    public static function fileAdded(string $object): void
     {
         try {
-            $first = !self::hasFiles();
+            $first = !(self::$hasFiles ?? self::findFiles(except: $object));
             self::$hasFiles = true;
 
             if ($first && self::isOn()) {
@@ -175,6 +174,81 @@ class StoreProtection
         } catch (Throwable $e) {
             Log::add(entry: 'Download store protection: the check of the first file failed: ' . $e->getMessage(), priority: Log::WARNING, category: 'com_alfa.downloads');
         }
+    }
+
+    /**
+     * The answer of {@see self::hasFiles()}, worked out.
+     *
+     * @param string|null $except An absolute path in the store not to count, or null.
+     *
+     * @since  2.2.1
+     */
+    private static function findFiles(?string $except): bool
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $any = static fn (string $table): string => (string) $db->createQuery()->select('1')->from($db->quoteName($table));
+
+        $named = (bool) $db->setQuery(
+            $db->createQuery()
+                ->select('EXISTS (' . $any('#__alfa_item_downloads') . ') OR EXISTS (' . $any('#__alfa_order_downloads') . ')'),
+        )->loadResult();
+
+        return $named || self::holdsFile(folder: Storage::currentRoot(), except: $except);
+    }
+
+    /**
+     * Whether a store's folder holds a file, read folder by folder until the first one: the deny
+     * files of its root and a canary a stopped probe left there do not count, nor do empty
+     * folders; a symbolic link counts (a web server may follow it) and is not followed here. A
+     * folder that cannot be read may hold files, so it counts.
+     *
+     * @param string|null $folder The store's root, or null when no store was ever set up.
+     * @param string|null $except An absolute path not to count, or null.
+     *
+     * @since  2.2.1
+     */
+    private static function holdsFile(?string $folder, ?string $except): bool
+    {
+        if ($folder === null || !is_dir($folder)) {
+            return false;
+        }
+
+        $pending = [$folder];
+
+        while ($pending !== []) {
+            $dir = array_pop($pending);
+            $handle = @opendir($dir);
+
+            if ($handle === false) {
+                return true;
+            }
+
+            try {
+                while (($entry = readdir($handle)) !== false) {
+                    $path = $dir . '/' . $entry;
+
+                    if ($entry === '.' || $entry === '..' || $path === $except) {
+                        continue;
+                    }
+
+                    if (!is_link($path) && is_dir($path)) {
+                        $pending[] = $path;
+
+                        continue;
+                    }
+
+                    if ($dir === $folder && (\in_array($entry, Storage::GUARD_FILES, true) || preg_match('/^' . self::PROBE_PREFIX . '[0-9a-f]{32}$/', $entry))) {
+                        continue;
+                    }
+
+                    return true;
+                }
+            } finally {
+                closedir($handle);
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -301,7 +375,7 @@ class StoreProtection
             return;
         }
 
-        $name = 'probe-' . bin2hex(random_bytes(16));
+        $name = self::PROBE_PREFIX . bin2hex(random_bytes(16));
         $canary = 'alfa-download-store-probe ' . bin2hex(random_bytes(32));
         $path = $result->root . '/' . $name;
         $result->url = $site . $this->urlPath(relative: $relative . '/' . $name);
