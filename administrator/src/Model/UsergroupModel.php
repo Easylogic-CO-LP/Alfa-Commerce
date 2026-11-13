@@ -373,8 +373,9 @@ class UsergroupModel extends AlfaAdminModel
      * Method to save the form data.
      *
      * Encodes each overridable group array as a JSON string before persistence.
-     * Empty values are stripped so that null is stored instead of an empty object,
-     * allowing downstream code to cleanly fall back to global component settings.
+     * Empty values are stripped, and a group left with none stores an empty map
+     * ({}), never null, which the NOT NULL column refuses (2.2.1): every setting
+     * the map lacks is read from the component's settings.
      *
      * A save that leaves a group out (a REST write; the edit form always posts
      * it) keeps what an existing customer group has, and gives a new one what
@@ -400,18 +401,12 @@ class UsergroupModel extends AlfaAdminModel
                 continue;
             }
 
-            if (!empty($data[$groupName])) {
-                $filtered = array_filter(
-                    $data[$groupName],
-                    static fn ($value) => $value !== '' && $value !== null,
-                );
+            $filtered = array_filter(
+                $data[$groupName],
+                static fn ($value) => $value !== '' && $value !== null,
+            );
 
-                $data[$groupName] = !empty($filtered)
-                    ? json_encode($filtered, JSON_UNESCAPED_UNICODE)
-                    : null;
-            } else {
-                $data[$groupName] = null;
-            }
+            $data[$groupName] = json_encode((object) $filtered, JSON_UNESCAPED_UNICODE);
         }
 
         return parent::save($data);
