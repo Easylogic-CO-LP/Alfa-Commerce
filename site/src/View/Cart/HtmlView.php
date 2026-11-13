@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent as PaymentsOrderCompleteViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent as PaymentsOrderProcessViewEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -462,7 +463,7 @@ class HtmlView extends BaseHtmlView
         // PRINT, JOOMLA'S WAY (2.2.0, UX-81): the same keyed address with tmpl=component and print=1 is the print view,
         // which shows the order alone; the page's script opens it from the address it was asked by, so the key is
         // never written into the page.
-        $this->print = $input->getBool('print', false);
+        $this->print = RequestScalar::bool($input, 'print', false);
 
         $this->getDocument()->setMetaData('robots', 'noindex, nofollow');
         $this->_prepareDocument();

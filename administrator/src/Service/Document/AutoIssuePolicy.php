@@ -581,7 +581,8 @@ final class AutoIssuePolicy
             $draft['movement_purpose'] = '1';
         }
 
-        DocumentIssuer::issue($draft);
+        // The shop's own policy issues it, whoever triggered the status change: no staff permission is asked.
+        DocumentIssuer::issue(draft: $draft, actor: new SystemActor(policy: 'automatic issue on a status change'));
     }
 
     /**

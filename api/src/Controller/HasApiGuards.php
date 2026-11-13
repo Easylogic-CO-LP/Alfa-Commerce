@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Doctrine\Inflector\InflectorFactory;
@@ -232,11 +233,11 @@ trait HasApiGuards
     public function delete($id = null)
     {
         if ($id === null) {
-            $id = $this->input->get('id', 0, 'int');
+            $id = RequestScalar::read($this->input, 'id', 0, 'int');
         }
 
         $inflector = InflectorFactory::create()->build();
-        $modelName = $this->input->get('model', $inflector->singularize($this->contentType));
+        $modelName = RequestScalar::cmd($this->input, 'model', $inflector->singularize($this->contentType));
 
         /** @var \Joomla\CMS\MVC\Model\AdminModel $model */
         $model = $this->getModel($modelName, '', ['ignore_request' => true]);

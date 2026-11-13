@@ -551,18 +551,26 @@ class Transition
      *                      message as written.
      * @param string $noticeKey Language key of the notification's text; it takes
      *                          one value, the notice.
+     * @param bool $byListener Whether the refusal is a stock plugin's own
+     *                         (InventoryRefusedException): staff decide, by
+     *                         changing the order's status again once the
+     *                         plugin allows the movement.
      *
      *
      * @since  2.0.0
      */
-    private static function reportStockDeferred(int $orderId, int $oldStatusId, int $toStatusId, string $reason, bool $refused, mixed $notice, string $noticeKey): void
+    private static function reportStockDeferred(int $orderId, int $oldStatusId, int $toStatusId, string $reason, bool $refused, mixed $notice, string $noticeKey, bool $byListener = false): void
     {
+        $resolve = $byListener
+            ? 'a stock plugin refused it: staff decide, and a new status of the order once the plugin allows the movement queues it again.'
+            : 'resolve the order line on the Inventory audit page, and the movement is queued again.';
+
         Log::add(
             entry:    'CRITICAL: order ' . $orderId . ' transitioned ' . $oldStatusId . ' -> '
                       . $toStatusId
                       . ($refused
                           ? ' but its stock effect was refused: ' . $reason
-                            . '. A retry cannot apply it; the order line must be resolved on the Inventory audit page first.'
+                            . '. A retry cannot apply it; ' . $resolve
                           : ' but its stock effect failed: ' . $reason
                             . '. The order and the shelf disagree until the obligation is applied.'),
             priority: Log::CRITICAL,
@@ -574,8 +582,9 @@ class Transition
                 dedupKey: InventoryEffectOutbox::orderNoticeKey(orderId: $orderId),
                 title:    NotificationText::of('COM_ALFA_NOTIFY_STOCK_ORDER_TITLE', $orderId),
                 options:  InventoryEffectOutbox::noticeOptions(
-                    message: NotificationText::of($noticeKey, $notice),
-                    refused: $refused,
+                    message:       NotificationText::of($noticeKey, $notice),
+                    refused:       $refused,
+                    decideOnOrder: $byListener ? $orderId : 0,
                 ),
             );
         } catch (Throwable $notifyError) {
@@ -591,7 +600,7 @@ class Transition
             event:   'order.stock_failed',
             summary: $refused
                 ? 'Stock was not moved for ' . $oldStatusId . ' -> ' . $toStatusId
-                  . ' (' . $reason . '); a retry cannot apply it: resolve the order line on the Inventory audit page, and the movement is queued again.'
+                  . ' (' . $reason . '); a retry cannot apply it: ' . $resolve
                 : 'Stock was not adjusted for ' . $oldStatusId . ' -> ' . $toStatusId
                   . ' (' . $reason . '); the order still owes it: Tools -> Database Sync -> Apply outstanding stock movements applies it.',
             context: [
@@ -1230,7 +1239,8 @@ class Transition
      * Applied by draining the obligation the change committed rather than by calling the reconciler directly: if
      * this fails (or the process never gets here), the obligation is still recorded and outstanding, and Tools >
      * Database Sync finishes it. The drain also picks up an obligation an earlier change left owed, which is why a
-     * claim-equal move heals an order the short-circuit would once have skipped for ever.
+     * claim-equal move heals an order the short-circuit would once have skipped for ever: a failed one is opened
+     * again first, so the new status tries it at once and its save says what happened (2.2.1).
      *
      * @param int $orderId The order.
      * @param int $oldStatusId The status it left.
@@ -1245,6 +1255,8 @@ class Transition
         $outcome = ['result' => ['action' => 'none', 'count' => 0], 'refusal' => null, 'reservedFloor' => null, 'failure' => null];
 
         try {
+            InventoryEffectOutbox::reopenFailedOrderClaim(orderId: $orderId);
+
             $drained = InventoryEffectOutbox::drain(
                 limit:          1,
                 onlySourceId:   $orderId,
@@ -1266,6 +1278,10 @@ class Transition
                 $outcome['result'] = null;
                 $outcome['refusal'] = (string) $drained['refusalReasons'][$orderId];
 
+                // A stock plugin's own refusal is staff's to decide; a line with no stock identity is resolved on the
+                // Inventory audit page (2.2.1).
+                $byListener = isset($drained['refusedByListener'][$orderId]);
+
                 self::reportStockDeferred(
                     orderId:     $orderId,
                     oldStatusId: $oldStatusId,
@@ -1273,7 +1289,8 @@ class Transition
                     reason:      (string) $drained['refusals'][$orderId],
                     refused:     true,
                     notice:      $drained['refusalNotices'][$orderId] ?? $outcome['refusal'],
-                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_REFUSED_MSG',
+                    noticeKey:   $byListener ? 'COM_ALFA_NOTIFY_STOCK_ORDER_LISTENER_REFUSED_MSG' : 'COM_ALFA_NOTIFY_STOCK_ORDER_REFUSED_MSG',
+                    byListener:  $byListener,
                 );
             } elseif (isset($drained['reservedFloor'][$orderId])) {
                 // Owed, not refused for good: other claims reserve the stock the
@@ -1290,7 +1307,8 @@ class Transition
                     reason:      (string) ($drained['errors'][$orderId] ?? 'unknown'),
                     refused:     false,
                     notice:      $drained['reservedFloorNotices'][$orderId] ?? $outcome['reservedFloor'],
-                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_RESERVED_MSG',
+                    // Its last automatic try (2.2.1): from now on it waits for staff.
+                    noticeKey:   isset($drained['exhausted'][$orderId]) ? 'COM_ALFA_NOTIFY_STOCK_ORDER_EXHAUSTED_MSG' : 'COM_ALFA_NOTIFY_STOCK_ORDER_RESERVED_MSG',
                 );
             } elseif (($drained['failed'] ?? 0) > 0) {
                 $outcome['result'] = null;
@@ -1303,7 +1321,7 @@ class Transition
                     reason:      $outcome['failure'],
                     refused:     false,
                     notice:      $drained['failureNotices'][$orderId] ?? $outcome['failure'],
-                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_MSG',
+                    noticeKey:   isset($drained['exhausted'][$orderId]) ? 'COM_ALFA_NOTIFY_STOCK_ORDER_EXHAUSTED_MSG' : 'COM_ALFA_NOTIFY_STOCK_ORDER_MSG',
                 );
             }
         } catch (Throwable $e) {

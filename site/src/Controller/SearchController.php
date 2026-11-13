@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchPayload;
 use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchRequest;
@@ -140,11 +141,11 @@ class SearchController extends BaseController
                 productLimit: $this->limit(name: 'limit', default: 20),
                 withImage: \in_array('image', $fields, true),
                 withPrice: \in_array('price', $fields, true),
-                withCategories: (bool) $input->getInt('categories', 1),
+                withCategories: (bool) RequestScalar::int($input, 'categories', 1),
                 categoryLimit: $this->limit(name: 'categories_limit', default: 6),
-                withManufacturers: (bool) $input->getInt('manufacturers', 1),
+                withManufacturers: (bool) RequestScalar::int($input, 'manufacturers', 1),
                 manufacturerLimit: $this->limit(name: 'manufacturers_limit', default: 6),
-                withSuggestions: (bool) $input->getInt('suggestions', 1),
+                withSuggestions: (bool) RequestScalar::int($input, 'suggestions', 1),
                 suggestionLimit: $this->limit(name: 'suggestions_limit', default: 8),
                 withLayouts: false,
                 // DEFAULTS TO TYPEAHEAD, because that is what actually calls this endpoint:
@@ -161,7 +162,7 @@ class SearchController extends BaseController
                 // and the only search a caller can affect is its own. What a declaration
                 // buys is the right semantics for the surface making it; what a false one
                 // costs is worse completions for that caller alone.
-                intent: SearchIntent::fromDeclared($input->getCmd('intent', '')),
+                intent: SearchIntent::fromDeclared(RequestScalar::cmd($input, 'intent', '')),
             ));
 
             // A HANDLE THAT BELONGS TO THIS RESPONSE ALONE IS NEVER SHARED (2.2.0): the
@@ -200,7 +201,7 @@ class SearchController extends BaseController
     private function fields(): array
     {
         $fields = array_values(array_intersect(
-            array_map('trim', explode(',', $this->input->getString('fields', ''))),
+            array_map('trim', explode(',', RequestScalar::string($this->input, 'fields', ''))),
             ['image', 'price'],
         ));
 
@@ -228,7 +229,7 @@ class SearchController extends BaseController
      */
     private function keyword(): string
     {
-        $raw = $this->input->getString('q', '') ?: $this->input->getString('query', '');
+        $raw = RequestScalar::string($this->input, 'q', '') ?: RequestScalar::string($this->input, 'query', '');
 
         return CatalogSearchService::sanitize($raw);
     }
@@ -245,7 +246,7 @@ class SearchController extends BaseController
      */
     private function limit(string $name, int $default): int
     {
-        $requested = $this->input->getInt($name, $default);
+        $requested = RequestScalar::int($this->input, $name, $default);
 
         return max(1, min(self::MAX_LIMIT, $requested > 0 ? $requested : $default));
     }

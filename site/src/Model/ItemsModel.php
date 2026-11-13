@@ -25,6 +25,7 @@ use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ListLimitsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
@@ -385,7 +386,7 @@ class ItemsModel extends UrlListModel
         parent::__construct($config);
 
         $this->appSettings = ComponentHelper::getParams('com_alfa');
-        $this->categoryId = $this->app->getInput()->getInt('category_id', 0);
+        $this->categoryId = RequestScalar::int($this->app->getInput(), 'category_id', 0);
     }
 
     // State
@@ -413,7 +414,7 @@ class ItemsModel extends UrlListModel
         // intent is the only one the model carries.
         $this->setState(
             'search.intent',
-            $this->app->getInput()->getInt('limitstart', 0) > 0
+            RequestScalar::int($this->app->getInput(), 'limitstart', 0) > 0
                 ? SearchIntent::CONTINUATION->value
                 : SearchIntent::SEARCH->value,
         );

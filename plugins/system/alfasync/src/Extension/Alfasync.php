@@ -42,11 +42,9 @@ namespace Alfa\Plugin\System\Alfasync\Extension;
 
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
-use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartOwner;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
@@ -235,22 +233,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $this->logError('onUserAfterSave', $e->getMessage(), ['user_id' => $userId]);
         }
 
+        // The customer details a registration carries are not stored here: the request's raw values never reach a
+        // record. Alfa's registration stores them itself, as its form validated, filtered and pruned them
+        // (RegistrationModel::register()), and no other user save writes customer details (2.2.1).
         $this->followAccount(caller: 'onUserAfterSave', userId: $userId);
-
-        // Save alfa registration field values if this came from our registration form.
-        $jform = Factory::getApplication()->input->post->get('jform', [], 'array');
-        $alfaFields = $jform[FieldsHelper::FIELDS_KEY] ?? null;
-
-        if (empty($alfaFields)) {
-            return;
-        }
-
-        try {
-            UserInfoHelper::insertData($userId, $alfaFields);
-            $this->logDebug('onUserAfterSave', 'Saved alfa user info for user #' . $userId);
-        } catch (Exception $e) {
-            $this->logError('onUserAfterSave', $e->getMessage(), ['user_id' => $userId]);
-        }
     }
 
     /**
