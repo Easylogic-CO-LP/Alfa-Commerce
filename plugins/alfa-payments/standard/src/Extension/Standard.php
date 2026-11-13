@@ -939,8 +939,10 @@ final class Standard extends PaymentsPlugin
     //  Give the provider the exact address your plugin builds with
     //  $this->webhookUrl() (the {webhook} token of the checkup help prints the
     //  same, PaymentCheckupEvent::webhookUrl()): the site root and index.php,
-    //  TLS forced, with no language and no SEF path, so it is the same on
-    //  every site. A GET to it is answered by the controller, not redirected.
+    //  TLS forced, with no language and no SEF path, so it is the same in
+    //  every language of the site. A POST to it always reaches the controller;
+    //  a GET does, not a redirect, while System - Alfa Commerce Sync is
+    //  enabled with Access Public.
     //
     //  THE EVENT. PaymentWebhookEvent arrives with subject = NULL, always:
     //  $event->getOrder() is null until YOU have found the order. It carries

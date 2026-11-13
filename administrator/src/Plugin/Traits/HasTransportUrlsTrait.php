@@ -104,10 +104,11 @@ trait HasTransportUrlsTrait
      *
      * Never routed (2.2.1): the address a provider holds names no language and
      * no SEF path, so it is the same whoever reads it and whatever languages
-     * the site has. Its GET is answered by the controller, not redirected:
-     * System - Alfa Commerce Sync marks the request before Joomla routes it.
-     * An address registered in the routed form before 2.2.1 still reaches the
-     * same controller.
+     * the site has. While System - Alfa Commerce Sync is enabled with Access
+     * Public, a GET to it is answered by the controller, not redirected: the
+     * plugin marks the request before Joomla routes it. A POST always reaches
+     * the controller. An address registered in the routed form before 2.2.1
+     * still reaches the same controller.
      *
      * Carries NO per-order parameters by design: a gateway or carrier is
      * configured with ONE URL in its portal and posts every notification to
@@ -117,7 +118,7 @@ trait HasTransportUrlsTrait
      * (PaymentEnvironment::ADDRESS_PARAM): one address per set, so the handler
      * checks it with that set's secret and no other.
      *
-     * @param string $element The plugin element the address names.
+     * @param string $element The plugin element the address names: a plugin element, written as given.
      * @param string|null $environment PaymentEnvironment::SANDBOX or ::LIVE; null for an address without a set.
      *
      * @return string Absolute, TLS-forced.
