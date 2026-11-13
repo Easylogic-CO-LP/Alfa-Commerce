@@ -9,6 +9,7 @@
 
 namespace Easy\Module\EasyArticles\Site\Helper;
 
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Joomla\CMS\Categories\Categories;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -363,7 +364,9 @@ final class EasyArticlesHelper
      * core articles module reads its list: the Advanced tab's Caching and Cache
      * Time decide, Global Configuration must have caching on, and a logged-in
      * visitor always reads fresh. What belongs to one visitor's session (recently
-     * read) and a random order are never cached.
+     * read) and a random order are never cached. A page that shows a visitor's
+     * own recently read articles is never stored by Joomla's page cache either:
+     * the next visitor would be shown them (2.2.1).
      *
      * @param int $moduleId Module instance id.
      * @param Registry $params Module parameters (owncache, cache_time).
@@ -378,8 +381,16 @@ final class EasyArticlesHelper
      */
     public static function cachedItems(int $moduleId, Registry $params, array $categoryIds, string $source, int $limit, string $ordering): array
     {
-        if (self::source($source) === self::SOURCE_RECENTLY_READ || $ordering === 'random') {
-            return self::getItems(categoryIds: $categoryIds, source: $source, limit: $limit, ordering: $ordering);
+        $recentlyRead = self::source($source) === self::SOURCE_RECENTLY_READ;
+
+        if ($recentlyRead || $ordering === 'random') {
+            $items = self::getItems(categoryIds: $categoryIds, source: $source, limit: $limit, ordering: $ordering);
+
+            if ($items !== [] && $recentlyRead) {
+                PageCache::excludeResponse();
+            }
+
+            return $items;
         }
 
         $cache = new stdClass();
