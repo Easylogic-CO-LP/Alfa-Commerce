@@ -434,10 +434,12 @@ final class AlfaItemsHelper
      */
     public static function cachedItems(int $moduleId, Registry $params, int $contextCategoryId, array $scopeCategoryIds, string $source, int $limit, string $ordering): array
     {
-        if (self::source($source) === self::SOURCE_RECENTLY_VIEWED || $ordering === 'random') {
+        $recentlyViewed = self::source($source) === self::SOURCE_RECENTLY_VIEWED;
+
+        if ($recentlyViewed || $ordering === 'random') {
             $items = self::getItems(params: $params, contextCategoryId: $contextCategoryId, scopeCategoryIds: $scopeCategoryIds, source: $source, limit: $limit, ordering: $ordering);
 
-            if ($items !== [] && self::source($source) === self::SOURCE_RECENTLY_VIEWED) {
+            if ($items !== [] && $recentlyViewed) {
                 PageCache::excludeResponse();
             }
 
@@ -986,6 +988,8 @@ final class AlfaItemsHelper
 
         if ($moduleId === null || $key === null) {
             self::refuseRequestValue();
+
+            return;
         }
 
         $module = self::loadModule((int) $moduleId);
@@ -1029,6 +1033,8 @@ final class AlfaItemsHelper
 
         if ($moduleId === null || $key === null || $itemId === null) {
             self::refuseRequestValue();
+
+            return;
         }
 
         $module = self::loadModule((int) $moduleId);

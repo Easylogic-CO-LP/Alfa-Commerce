@@ -889,6 +889,8 @@ final class EasyArticlesHelper
 
         if ($moduleId === null || $key === null) {
             self::refuseRequestValue();
+
+            return;
         }
 
         $module = self::loadModule((int) $moduleId);

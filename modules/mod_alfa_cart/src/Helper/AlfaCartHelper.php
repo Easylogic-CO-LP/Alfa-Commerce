@@ -108,6 +108,8 @@ class AlfaCartHelper
 
         if ($lineId === null || $quantity === null) {
             self::refuseRequestValue();
+
+            return;
         }
 
         $priceSettings = self::buildPriceSettings($params);
