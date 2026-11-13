@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RuleScopeGuard;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ScopeDeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
@@ -162,6 +163,53 @@ class PlaceModel extends AlfaAdminModel
         $table->modified = Factory::getDate()->toSql();
         $table->modified_by = $user->id;
     }
+
+    /**
+     * Save a place. A place that takes another parent changes the chain of every place below it, so the price index
+     * slots kept at or below it, priced with the old chain, owe the catalogue a rebuild (2.2.1): it runs in Tools >
+     * Tasks and staff are told.
+     *
+     * @param array $data The form data.
+     *
+     * @return bool True on success.
+     *
+     * @since  2.2.1
+     */
+    public function save($data)
+    {
+        $id = (int) ($data['id'] ?? 0);
+        $before = $id > 0 ? $this->parentOf(placeId: $id) : null;
+
+        if (!parent::save($data)) {
+            return false;
+        }
+
+        if ($before !== null && $before !== $this->parentOf(placeId: $id) && (new PriceIndexSyncService())->oweChainRebuild(placeIds: [$id])) {
+            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_PLACE_PARENT_CHANGED_REBUILD'), 'warning');
+        }
+
+        return true;
+    }
+
+    /**
+     * A place's parent as stored, or null for a place that does not exist.
+     *
+     * @param int $placeId The place.
+     *
+     * @since  2.2.1
+     */
+    private function parentOf(int $placeId): ?int
+    {
+        $db = $this->getDatabase();
+        $parent = $db->setQuery(
+            $db->getQuery(true)
+                ->select('COALESCE(' . $db->quoteName('parent_id') . ', 0)')
+                ->from($db->quoteName('#__alfa_places'))
+                ->where($db->quoteName('id') . ' = ' . $placeId),
+        )->loadResult();
+
+        return $parent === null ? null : (int) $parent;
+    }
     /**
      * Delete places and every row scoped by them: the four module pivots
      * and the price-index rows of the place axis (the ranked read falls
@@ -176,6 +224,10 @@ class PlaceModel extends AlfaAdminModel
      * no buyer, the prices editor marks the place as deleted, and an edit that
      * would widen one to every place is refused (2.2.1). The delete stands and
      * names them, a warning per place with its rows and their products.
+     *
+     * A place left below a deleted one has lost part of its chain, so the price
+     * index slots at or below it owe the catalogue a rebuild (2.2.1), as a new
+     * parent does ({@see self::save()}).
      *
      * @param array &$pks Record primary keys.
      *
@@ -212,6 +264,7 @@ class PlaceModel extends AlfaAdminModel
 
         $nested = TransactionState::isOpen(db: $db);
         $pricedOn = [];
+        $orphans = [];
         $db->transactionStart(true);
 
         try {
@@ -236,6 +289,15 @@ class PlaceModel extends AlfaAdminModel
                         ->whereIn($db->quoteName('country_id'), $pks)
                         ->group($db->quoteName('country_id')),
                 )->loadObjectList() ?: [];
+
+                // The places the delete leaves without their parent.
+                $orphans = array_map('intval', $db->setQuery(
+                    $db->getQuery(true)
+                        ->select($db->quoteName('id'))
+                        ->from($db->quoteName('#__alfa_places'))
+                        ->whereIn($db->quoteName('parent_id'), $pks)
+                        ->whereNotIn($db->quoteName('id'), $pks),
+                )->loadColumn() ?: []);
 
                 $this->alfaDeleteAsked = true;
 
@@ -287,6 +349,10 @@ class PlaceModel extends AlfaAdminModel
                 ->delete($db->quoteName('#__alfa_items_price_index'))
                 ->whereIn($db->quoteName('place_id'), $pks),
         )->execute();
+
+        if ((new PriceIndexSyncService())->oweChainRebuild(placeIds: $orphans)) {
+            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_PLACE_PARENT_CHANGED_REBUILD'), 'warning');
+        }
 
         foreach ($pricedOn as $priced) {
             $products = (int) $priced->products;
