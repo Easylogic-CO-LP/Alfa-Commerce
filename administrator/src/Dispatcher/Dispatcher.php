@@ -265,7 +265,7 @@ class Dispatcher extends ComponentDispatcher
         // BaseController::display(): the request's view, else the controller's default view.
         $view = RequestScalar::cmd($this->input, 'view', $defaultView);
 
-        if (!\is_string($view) || !$this->mayOpen(view: strtolower($view))) {
+        if (!$this->mayOpen(view: strtolower($view))) {
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
@@ -275,7 +275,7 @@ class Dispatcher extends ComponentDispatcher
 
         if (
             !$controller instanceof DisplayController
-            && AlfaHelper::isRecordForm(view: strtolower($view), layout: \is_string($layout) ? $layout : '')
+            && AlfaHelper::isRecordForm(view: strtolower($view), layout: $layout)
             && AlfaHelper::recordId(view: strtolower($view), input: $this->input) > 0
         ) {
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
@@ -371,7 +371,7 @@ class Dispatcher extends ComponentDispatcher
 
         return AlfaHelper::mayOpenScreen(
             view: $view,
-            layout: \is_string($layout) ? $layout : '',
+            layout: $layout,
             id: AlfaHelper::recordId(view: $view, input: $this->input),
             user: $this->app->getIdentity(),
         );

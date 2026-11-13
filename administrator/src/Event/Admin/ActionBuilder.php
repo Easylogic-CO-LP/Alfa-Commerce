@@ -436,7 +436,7 @@ final class ActionBuilder
 
         $layout = RequestScalar::string($input, 'layout');
 
-        return ['screen' => $view, 'layout' => \is_string($layout) ? $layout : '', 'id' => AlfaHelper::recordId(view: $view, input: $input)];
+        return ['screen' => $view, 'layout' => $layout, 'id' => AlfaHelper::recordId(view: $view, input: $input)];
     }
 
     /**

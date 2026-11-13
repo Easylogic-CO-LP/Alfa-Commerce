@@ -67,7 +67,7 @@ class DisplayController extends BaseController
         $view = strtolower((string) RequestScalar::cmd($this->input, 'view', $this->default_view));
         $layout = RequestScalar::string($this->input, 'layout');
 
-        if (!AlfaHelper::isRecordForm(view: $view, layout: \is_string($layout) ? $layout : '')) {
+        if (!AlfaHelper::isRecordForm(view: $view, layout: $layout)) {
             return false;
         }
 
