@@ -47,6 +47,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Model\Traits\HasDateRangeFilterTrait;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderFulfillment;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\ReconciliationFacts;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardStatsService;
@@ -825,67 +826,23 @@ class OrdersModel extends AlfaListModel
             $item->payment_status = $facts?->payment_status;
 
             // Fulfillment status
-            // Counted in UNITS, not lines. A line may be split across parcels
-            // ("3 now, 2 Monday"), so counting lines would report a half-sent
-            // line as either wholly sent or not sent at all, and on a
-            // single-line order 'partial' would be unreachable entirely.
-            $orderLines = $shipmentLines[$id] ?? [];
-            $totalUnits = 0;
-            $shippedUnits = 0;
+            // The one derivation, shared with the REST order (OrderFulfillment): units, not lines. The rows are
+            // already loaded here, so it costs no extra query.
+            $fulfillment = OrderFulfillment::fromRows(orderLines: $orderItems, parcelLines: $shipmentLines[$id] ?? []);
 
+            // Per-item view for the detail panel: how much of THIS line has gone, and under which status.
             foreach ($orderItems as $oi) {
-                $totalUnits += (int) ($oi->quantity ?? 0);
-
-                // Per-item view for the detail panel: how much of THIS line
-                // has gone, and under which status.
-                $oi->shipped_quantity = 0;
-                $oi->shipment_status = '';
-                $oi->shipment_tracking = '';
-
-                foreach ($orderLines as $line) {
-                    if ((int) $line->id_order_item !== (int) $oi->id) {
-                        continue;
-                    }
-
-                    if (in_array($line->shipment_status ?? '', ['shipped', 'delivered'], true)) {
-                        $oi->shipped_quantity += (int) $line->quantity;
-                    }
-
-                    // First parcel carrying the line names its status; a
-                    // cancelled parcel still shows, so the admin can see why
-                    // nothing moved.
-                    if ($oi->shipment_status === '') {
-                        $oi->shipment_status = (string) ($line->shipment_status ?? '');
-                        $oi->shipment_tracking = (string) ($line->shipment_tracking ?? '');
-                    }
-                }
-
-                $shippedUnits += $oi->shipped_quantity;
-
-                // A line split across parcels that are not all out yet.
-                if ($oi->shipped_quantity > 0
-                    && $oi->shipped_quantity < (int) ($oi->quantity ?? 0)) {
-                    $oi->shipment_status = 'partial';
-                }
+                $line = $fulfillment->lines[(int) $oi->id];
+                $oi->shipped_quantity = $line['shipped_quantity'];
+                $oi->shipment_status = $line['shipment_status'];
+                $oi->shipment_tracking = $line['shipment_tracking'];
             }
 
             // Kept as *_items for template compatibility; the numbers are units.
-            $item->total_items = $totalUnits;
-            $item->fulfilled_items = $shippedUnits;
-
-            if ($totalUnits > 0) {
-                $item->fulfillment_percentage = round(($shippedUnits / $totalUnits) * 100, 2);
-            } else {
-                $item->fulfillment_percentage = 0;
-            }
-
-            if ($totalUnits <= 0 || $shippedUnits <= 0) {
-                $item->fulfillment_status = 'unfulfilled';
-            } elseif ($shippedUnits >= $totalUnits) {
-                $item->fulfillment_status = 'fulfilled';
-            } else {
-                $item->fulfillment_status = 'partial';
-            }
+            $item->total_items = $fulfillment->totalUnits;
+            $item->fulfilled_items = $fulfillment->shippedUnits;
+            $item->fulfillment_percentage = $fulfillment->percentage;
+            $item->fulfillment_status = $fulfillment->status;
 
             // Order age
             if (!empty($item->created)) {
@@ -1234,7 +1191,8 @@ class OrdersModel extends AlfaListModel
      *
      * A separate query rather than a join on batchLoadItems(): one line may
      * now appear in several parcels, so joining would multiply the item rows
-     * and quietly double every total computed from them.
+     * and quietly double every total computed from them. The query is
+     * OrderFulfillment's, which the REST order reads too.
      *
      * @param int[] $orderIds Order PKs from the current page
      *
@@ -1243,31 +1201,7 @@ class OrdersModel extends AlfaListModel
      */
     private function batchLoadShipmentLines(array $orderIds): array
     {
-        if (empty($orderIds)) {
-            return [];
-        }
-
-        $db = $this->getDatabase();
-        $query = $db->getQuery(true)
-            ->select([
-                $db->quoteName('si.id_order'),
-                $db->quoteName('si.id_order_item'),
-                $db->quoteName('si.id_order_shipment'),
-                $db->quoteName('si.quantity'),
-                $db->quoteName('os.status', 'shipment_status'),
-                $db->quoteName('os.tracking_number', 'shipment_tracking'),
-            ])
-            ->from($db->quoteName('#__alfa_order_shipment_items', 'si'))
-            ->join(
-                'INNER',
-                $db->quoteName('#__alfa_order_shipments', 'os'),
-                $db->quoteName('si.id_order_shipment') . ' = ' . $db->quoteName('os.id'),
-            )
-            ->whereIn($db->quoteName('si.id_order'), $orderIds);
-
-        $db->setQuery($query);
-
-        return $this->groupByOrder($db->loadObjectList(), 'id_order');
+        return OrderFulfillment::parcelLines(orderIds: $orderIds);
     }
 
     /**

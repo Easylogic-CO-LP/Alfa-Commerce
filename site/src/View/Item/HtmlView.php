@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -81,7 +82,7 @@ class HtmlView extends BaseHtmlView
 
         $this->params = $app->getParams('com_alfa');
 
-        $this->category_id = $input->getInt('category_id', 0);
+        $this->category_id = RequestScalar::int($input, 'category_id', 0);
 
         $this->state = $model->getState();
 
@@ -89,7 +90,7 @@ class HtmlView extends BaseHtmlView
 
         // A document request is a product view; the buy-form reload (tmpl=component)
         // re-renders the same page and must not count again.
-        if ($input->getCmd('tmpl', '') === '' && !empty($this->item->id)) {
+        if (RequestScalar::cmd($input, 'tmpl', '') === '' && !empty($this->item->id)) {
             RecentlyViewed::record(itemId: (int) $this->item->id);
         }
 

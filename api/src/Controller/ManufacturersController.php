@@ -11,7 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
-use Joomla\CMS\Filter\InputFilter;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\MVC\Controller\ApiController;
 
 /**
@@ -63,24 +63,23 @@ class ManufacturersController extends ApiController
     public function displayList()
     {
         $apiFilterInfo = $this->input->get('filter', [], 'array');
-        $filter = InputFilter::getInstance();
 
         if (\array_key_exists('search', $apiFilterInfo)) {
-            $this->modelState->set('filter.search', $filter->clean($apiFilterInfo['search'], 'STRING'));
+            $this->modelState->set('filter.search', RequestScalar::member($apiFilterInfo, 'search', 'STRING', 'filter'));
         }
 
         if (\array_key_exists('state', $apiFilterInfo)) {
-            $this->modelState->set('filter.state', $filter->clean($apiFilterInfo['state'], 'INT'));
+            $this->modelState->set('filter.state', RequestScalar::member($apiFilterInfo, 'state', 'INT', 'filter'));
         }
 
         $apiListInfo = $this->input->get('list', [], 'array');
 
         if (\array_key_exists('ordering', $apiListInfo)) {
-            $this->modelState->set('list.ordering', $filter->clean($apiListInfo['ordering'], 'STRING'));
+            $this->modelState->set('list.ordering', RequestScalar::member($apiListInfo, 'ordering', 'STRING', 'list'));
         }
 
         if (\array_key_exists('direction', $apiListInfo)) {
-            $this->modelState->set('list.direction', $filter->clean($apiListInfo['direction'], 'STRING'));
+            $this->modelState->set('list.direction', RequestScalar::member($apiListInfo, 'direction', 'STRING', 'list'));
         }
 
         return parent::displayList();

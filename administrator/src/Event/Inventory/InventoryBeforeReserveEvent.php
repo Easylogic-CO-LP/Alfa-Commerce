@@ -22,6 +22,11 @@ use Joomla\CMS\Event\AbstractEvent;
  * Quantities are never changed from AFTER events; this is the only
  * place a package may reshape a reservation ask.
  *
+ * To refuse a movement on purpose, throw InventoryRefusedException with the
+ * sentence staff are to read: a movement owed after a status change or a
+ * document is then refused, not tried again, and staff decide (2.2.1). Any
+ * other exception is a failure, tried again with the task engine's waits.
+ *
  * @since  2.0.0
  */
 class InventoryBeforeReserveEvent extends AbstractEvent

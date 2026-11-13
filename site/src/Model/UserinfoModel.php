@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Site\Service\ShowOn\SubmitAuthority;
 use Joomla\CMS\Factory;
@@ -57,7 +58,7 @@ class UserinfoModel extends FormModel
 
         FieldsHelper::prepareForm(context: 'user.edit', form: $form, data: [], targetFieldset: 'userinfo');
 
-        $id = (int) Factory::getApplication()->input->getInt('id', 0);
+        $id = RequestScalar::int(Factory::getApplication()->input, 'id', 0);
 
         if ($id > 0) {
             $row = UserInfoHelper::getRow(userId: (int) Factory::getApplication()->getIdentity()->id, id: $id);

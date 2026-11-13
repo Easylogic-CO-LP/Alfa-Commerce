@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -56,11 +57,11 @@ trait SanitisesCatalogPayload
         $input = $app->getInput();
         $session = $app->getSession();
 
-        if ($currencyId = $input->getInt('currency', 0)) {
+        if ($currencyId = RequestScalar::int($input, 'currency', 0)) {
             $session->set('alfa.currency_id', $currencyId);
         }
 
-        if ($placeId = $input->getInt('place', 0)) {
+        if ($placeId = RequestScalar::int($input, 'place', 0)) {
             $session->set('alfa.location_id', $placeId);
         }
     }

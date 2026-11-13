@@ -93,6 +93,15 @@
 
     </fieldset>
 
+    <!-- The customer's note: written over REST (PATCH v1/alfa/orders/:id) and inline from the orders list; the
+         order edit screen does not show it, so it lies outside every fieldset and a form save leaves it as stored. -->
+    <field
+            name="customer_note"
+            type="textarea"
+            label="COM_ALFA_CUSTOMER_NOTE"
+            filter="string"
+    />
+
     <field
             name="items"
             type="subform"

@@ -13,7 +13,9 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
+use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use LogicException;
 use SimpleXMLElement;
 
 /**
@@ -339,6 +341,10 @@ class UsergroupModel extends AlfaAdminModel
      * Empty values are stripped so that null is stored instead of an empty object,
      * allowing downstream code to cleanly fall back to global component settings.
      *
+     * A save that leaves a group out (a REST write; the edit form always posts
+     * it) keeps what an existing customer group has, and gives a new one what
+     * Alfa Sync gives every new customer group (2.2.1).
+     *
      * @param array $data The form data.
      *
      * @return bool True on success, false on failure.
@@ -346,8 +352,20 @@ class UsergroupModel extends AlfaAdminModel
      */
     public function save($data)
     {
+        $isNew = (int) (!empty($data['id']) ? $data['id'] : $this->getState($this->getName() . '.id')) <= 0;
+
         foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName) {
-            if (!empty($data[$groupName]) && is_array($data[$groupName])) {
+            if (!\array_key_exists($groupName, $data) || !is_array($data[$groupName])) {
+                if ($isNew) {
+                    $data[$groupName] = self::newGroupValue(groupName: $groupName);
+                } else {
+                    unset($data[$groupName]);
+                }
+
+                continue;
+            }
+
+            if (!empty($data[$groupName])) {
                 $filtered = array_filter(
                     $data[$groupName],
                     static fn ($value) => $value !== '' && $value !== null,
@@ -362,5 +380,26 @@ class UsergroupModel extends AlfaAdminModel
         }
 
         return parent::save($data);
+    }
+
+    /**
+     * What a new customer group stores for an overridable group its save left out: the value Alfa Sync writes for
+     * every new Joomla user group, so a group made through the API and one made in Users answer alike.
+     *
+     * @param string $groupName The group's column.
+     *
+     * @return string The column's JSON.
+     *
+     * @throws LogicException For a group whose new-group value is not stated.
+     *
+     * @since  2.2.1
+     */
+    private static function newGroupValue(string $groupName): string
+    {
+        return match ($groupName) {
+            'prices_display' => SyncHelper::buildDefaultPricesDisplay(),
+            // A group added to OVERRIDE_FIELDSETS states its new-group value here.
+            default => throw new LogicException('A new customer group has no stated value for ' . $groupName . '.'),
+        };
     }
 }
