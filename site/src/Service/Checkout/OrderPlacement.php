@@ -72,6 +72,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodRequirement;
 use Alfa\Component\Alfa\Site\Service\Pricing\ChargeableQuantity;
+use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
@@ -320,6 +321,7 @@ class OrderPlacement
             paymentMethodId:  RequestScalar::int($this->app->input, 'payment_method', 0),
             shipmentMethodId: RequestScalar::int($this->app->input, 'shipment_method', 0),
             useCredit:        RequestScalar::int($this->app->input, 'use_credit', 0) === 1,
+            shownTotal:       RequestScalar::string($this->app->input, 'shown_total', ''),
         ));
     }
 
@@ -351,6 +353,12 @@ class OrderPlacement
 
             if (!$this->validateOrderPrerequisites()) {
                 Log::add('Order prerequisite validation failed', Log::WARNING, 'com_alfa.orders');
+                return false;
+            }
+
+            // The goods and the carriage are now priced at this submission's delivery place, with its methods: an
+            // order whose total is not the one the page showed is not placed (2.2.1).
+            if (!$this->totalAsShown()) {
                 return false;
             }
 
@@ -1290,6 +1298,55 @@ class OrderPlacement
             Log::add('Validation error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
             return false;
         }
+    }
+
+    /**
+     * Whether the order's total is the one the checkout page last showed (2.2.1). The goods are priced at the
+     * delivery place the submission names, so an address typed after the page last showed its total (a page that
+     * did not re-render, a second tab) can change the total: the order is then refused, never placed at a total the
+     * shopper did not see, and the shopper is shown the cart priced again with a sentence giving both totals. A
+     * placement no page showed (staff, an import, a renewal, the API) names no shown total and is not compared.
+     *
+     * @return bool True when the totals agree, or no page showed one.
+     *
+     * @since  2.2.1
+     */
+    protected function totalAsShown(): bool
+    {
+        $shown = $this->command?->shownTotal;
+
+        if ($shown === null) {
+            return true;
+        }
+
+        $total = $this->cart->grandTotal();
+        $placed = $total->getCurrency()->getCode() . ':' . $total->getMinorUnits();
+
+        if ($shown === $placed) {
+            return true;
+        }
+
+        if (preg_match('/^([A-Z]{3}):(-?\d+)$/', $shown, $parts) !== 1) {
+            $this->fail('COM_ALFA_ORDER_PLACE_TOTAL_UNSHOWN', ['total' => $placed], 'Placement refused: the checkout sent no total it showed; the order total is ' . $placed . '.');
+
+            return false;
+        }
+
+        // The shown total in its own currency's words; a currency the shop no longer has is said as it was sent.
+        try {
+            $was = Money::ofMinor((int) $parts[2], $parts[1] === $total->getCurrency()->getCode() ? $total->getCurrency() : Currency::loadByCode($parts[1]))->format();
+        } catch (Throwable) {
+            $was = $parts[1] . ' ' . $parts[2];
+        }
+
+        $this->fail(
+            'COM_ALFA_ORDER_PLACE_TOTAL_CHANGED',
+            ['shown' => $shown, 'total' => $placed],
+            'Placement refused: the order total ' . $placed . ' is not the total the page showed (' . $shown . ').',
+            Text::sprintf('COM_ALFA_ORDER_PLACE_TOTAL_CHANGED', $total->format(), $was),
+        );
+
+        return false;
     }
 
     /**

@@ -224,6 +224,17 @@ $columnLabels = array_map(
         'label' => Text::_('COM_ALFA_CART_SUMMARY_LABEL'),
     ]); ?>
 
+    <?php // WHERE THESE PRICES ARE FOR (2.2.1): the goods are priced at the delivery place the checkout holds, which
+          // may not be the place the shop's other pages price this visitor at. ?>
+    <?php if ($snapshot->pricedAt !== null) : ?>
+    <p class="cart-priced-at"><?php echo Text::sprintf('COM_ALFA_CART_PRICED_AT', htmlspecialchars($snapshot->pricedAt, ENT_QUOTES, 'UTF-8')); ?></p>
+    <?php endif; ?>
+
+    <?php // THE TOTAL THIS PAGE SHOWS, sent with the checkout form (form="cart-form") and replaced with these rows on
+          // every change: the placement refuses an order whose total is not this one (2.2.1). ?>
+    <input type="hidden" form="cart-form" name="shown_total"
+           value="<?php echo htmlspecialchars($snapshot->currency->getCode() . ':' . $snapshot->totals->grand->getMinorUnits(), ENT_QUOTES, 'UTF-8'); ?>"/>
+
 	<?php
 	// EVERY HELD CODE THE ROWS ABOVE DID NOT ALREADY GIVE A REMOVE CONTROL.
 	//

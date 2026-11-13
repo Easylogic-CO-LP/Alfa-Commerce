@@ -9,6 +9,9 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
+use Joomla\CMS\Factory;
+
 defined('_JEXEC') or die;
 
 /**
@@ -97,6 +100,36 @@ final class CartSnapshotFactory
             ),
             customer: $state->subject()->customer(),
             placeId: $computation->deliveryPlaceId(),
+            pricedAt: self::pricedAt(state: $state, placeId: $computation->deliveryPlaceId()),
         );
+    }
+
+    /**
+     * The delivery place's name when the goods are priced elsewhere than the shop's other pages price this visitor
+     * (2.2.1): the cart page says where its prices are for. Null when the cart has no delivery place, its goods are
+     * priced at the visitor's own place, or staff place it for a customer.
+     *
+     * @param HydratedCart $state The cart as loaded.
+     * @param int|null $placeId The delivery place.
+     *
+     * @since  2.2.1
+     */
+    private static function pricedAt(HydratedCart $state, ?int $placeId): ?string
+    {
+        // Staff placing for a customer price at the place they name: no visitor's place to compare it with.
+        if ($placeId === null || $state->isEmpty() || $state->subject()->isOperatorPlacement()
+            || $state->subject()->priceContext()->getLocationId() === PriceContext::fromSession()->getLocationId()) {
+            return null;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $name = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('name'))
+                ->from($db->quoteName('#__alfa_places'))
+                ->where($db->quoteName('id') . ' = ' . $placeId),
+        )->loadResult();
+
+        return $name === null ? null : (string) $name;
     }
 }
