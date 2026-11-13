@@ -47,6 +47,7 @@ use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartOwner;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
@@ -1135,8 +1136,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Whether the extension is the dompdf library (lib_dompdf), which sales documents need for their PDFs and the
-     * setup checklist names. Never breaks the caller: an unreadable row is not the library.
+     * Whether the extension is the dompdf library (lib_dompdf) or one of the libraries it needs
+     * ({@see PdfRenderer::LIBRARIES}), which sales documents need for their PDFs and the setup checklist names. Never
+     * breaks the caller: an unreadable row is not the library.
      *
      * @param int $extensionId The extension's id.
      *
@@ -1157,7 +1159,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                     ->from($db->quoteName('#__extensions'))
                     ->where($db->quoteName('extension_id') . ' = :eid')
                     ->where($db->quoteName('type') . ' = ' . $db->quote('library'))
-                    ->where($db->quoteName('element') . ' = ' . $db->quote('dompdf'))
+                    ->whereIn($db->quoteName('element'), array_keys(PdfRenderer::LIBRARIES), ParameterType::STRING)
                     ->bind(':eid', $extensionId, ParameterType::INTEGER),
             )->loadResult() > 0;
         } catch (Throwable $e) {
