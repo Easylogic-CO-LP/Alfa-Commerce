@@ -14,7 +14,15 @@
  *   R2  no em-dash or en-dash in a comment or a human-read text;
  *   R3  no typographic artifact there either: arrows, ellipsis, curly quotes, x and comparison
  *       signs, plus-minus, bullets, middle dots, section signs, non-breaking spaces;
- *   R5  no carrier, payment-gateway, other shop system or other product name there.
+ *   R5  no carrier, payment-gateway, other shop system or other product name there;
+ *   R6  no process reference in a comment: ruling keys, decision and finding ids, "owner ruling",
+ *       decision-register citations, review references and session dates (a comment states the
+ *       domain reason, never the process that produced it; lines with @since, @deprecated or
+ *       @version are not judged).
+ *
+ * The rules keep the numbers they were first given; the gate has never had an R4. CC_RULE_IDS
+ * lists the five, the pass message names them from it, and [CC0n] fails when a planted line
+ * reaches a rule the list does not name, or the list names one no planted line reaches.
  *
  * Scope: exactly the files the package ships, enumerated the way the export does
  * (PackageHelper::enumerateShippedFiles; never tests/, never libraries/). Each file is read with the
@@ -45,6 +53,9 @@
 PHP_SAPI === 'cli' or exit;
 
 \defined('_JEXEC') or \define('_JEXEC', 1);
+
+/** The rules this gate enforces, as its docblock lists them. */
+const CC_RULE_IDS = ['R1', 'R2', 'R3', 'R5', 'R6'];
 
 /** Box drawing and block elements (R1), as a character class. */
 const CC_BOX = '\x{2500}-\x{259F}';
@@ -747,7 +758,8 @@ $check = static function (string $what, bool $ok, string $detail = '') use (&$pa
 };
 
 // [CC0] the judge itself: each rule goes red on a planted line, and code is never judged.
-$plant = static function (string $file, string $src) use ($namesRegex): array {
+$reached = [];
+$plant = static function (string $file, string $src) use ($namesRegex, &$reached): array {
     $rules = [];
 
     foreach (cc_spans_for($file, $src) as $span) {
@@ -755,6 +767,8 @@ $plant = static function (string $file, string $src) use ($namesRegex): array {
             $rules[] = $f[0];
         }
     }
+
+    $reached = array_merge($reached, $rules);
 
     return array_values(array_unique($rules));
 };
@@ -771,6 +785,9 @@ $check('[CC0j] a name inside a path in a comment is R5', $plant('a.php', "<?php\
 $check('[CC0k] a name hidden inside an ordinary word is not', $plant('a.php', "<?php\n// survival of the access rules\n") === []);
 $check('[CC0l] a ruling key and an owner ruling in a comment are R6', $plant('a.php', "<?php\n// stays (owner ruling OD21, w10a-q7)\n") === ['R6']);
 $check('[CC0m] a @since date is not a process date', $plant('a.php', "<?php\n/**\n * @since 2026-09-24\n */\n") === []);
+$reached = array_values(array_unique($reached));
+sort($reached);
+$check('[CC0n] the planted lines reach exactly the rules CC_RULE_IDS names', $reached === CC_RULE_IDS, 'reached: ' . implode(', ', $reached));
 
 // The shipped files, as the export enumerates them.
 $helper = ($package ?? $root . '/administrator/components/com_alfa') . ($package !== null ? '/administrator/src/Helper/PackageHelper.php' : '/src/Helper/PackageHelper.php');
@@ -870,7 +887,7 @@ if (\count($findings) > CC_PRINT_LIMIT) {
 }
 
 if ($findings === []) {
-    $check('[CC3] no comment or human-read text breaks R1, R2, R3 or R5', true);
+    $check('[CC3] no comment or human-read text breaks ' . implode(', ', \array_slice(CC_RULE_IDS, 0, -1)) . ' or ' . CC_RULE_IDS[array_key_last(CC_RULE_IDS)], true);
 }
 
 foreach ($allow as $key => $n) {
