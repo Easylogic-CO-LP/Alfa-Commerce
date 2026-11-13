@@ -140,7 +140,8 @@ foreach ($status['checks'] ?? [] as $row) {
                         <div class="setup-item-body">
                             <span class="setup-item-label"><?php echo Text::_((string) $row['label']); ?></span>
                             <?php if (!$isPass && (string) ($row['reason'] ?? '') !== '') : ?>
-                                <span class="setup-item-reason"><?php echo Text::_((string) $row['reason']); ?></span>
+                                <?php $reasonArgs = array_map(static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'), (array) ($row['reason_args'] ?? [])); ?>
+                                <span class="setup-item-reason"><?php echo $reasonArgs === [] ? Text::_((string) $row['reason']) : Text::sprintf((string) $row['reason'], ...$reasonArgs); ?></span>
                             <?php endif; ?>
                         </div>
                         <?php if ($ctaHref !== '' || $tour !== null || (!$isPass && $canProvision && !empty($row['provisionable']))) : ?>

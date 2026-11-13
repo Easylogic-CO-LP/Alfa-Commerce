@@ -182,6 +182,7 @@ final class SetupHelper
                 'tier' => $check->tier,
                 'label' => $check->label,
                 'reason' => $check->reason,
+                'reason_args' => $state === SetupCheck::STATE_PASS ? [] : $check->reasonArgumentsNow(),
                 'cta' => $check->cta,
                 'tour' => $check->tour,
                 'priority' => $check->priority,

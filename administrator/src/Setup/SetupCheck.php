@@ -111,6 +111,13 @@ final class SetupCheck
     private $probe = null;
 
     /**
+     * @var callable|null What the reason names, as plain text: fn(): list<string>, the values of its placeholders
+     *                    (2.2.1). Asked only for a row that is not complete.
+     * @since  2.2.1
+     */
+    private $reasonArguments = null;
+
+    /**
      * @var callable|null One-click auto-fix (cascade provisioning). Wired by the wizard
      *                    surface; the engine only carries it.
      * @since  2.0.0
@@ -162,6 +169,40 @@ final class SetupCheck
         $this->reason = $key;
 
         return $this;
+    }
+
+    /**
+     * Name what the reason is about: its language string takes these values in its placeholders (2.2.1).
+     *
+     * @param callable $arguments fn(): list<string>, plain text; the checklist escapes them.
+     *
+     * @since  2.2.1
+     */
+    public function reasonArguments(callable $arguments): static
+    {
+        $this->reasonArguments = $arguments;
+
+        return $this;
+    }
+
+    /**
+     * The values the reason names now; none when it names none or they cannot be read.
+     *
+     * @return list<string>
+     *
+     * @since  2.2.1
+     */
+    public function reasonArgumentsNow(): array
+    {
+        if ($this->reasonArguments === null) {
+            return [];
+        }
+
+        try {
+            return array_values(array_map('strval', (array) ($this->reasonArguments)()));
+        } catch (Throwable) {
+            return [];
+        }
     }
 
     /**
