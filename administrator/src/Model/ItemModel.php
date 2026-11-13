@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
@@ -599,10 +600,17 @@ class ItemModel extends AlfaAdminModel
      * it reads all associated data committed in the steps before it:
      *
      *   0. the item's lock and mark - the rebuild owed, recorded before any write (2.2.0)
-     *   1. parent::save()           - commits the #__alfa_items row
-     *   2. setPrices()              - commits #__alfa_items_prices rows
-     *   3. setAssocsToDb() x 4     - commits categories, manufacturers, users, usergroups
+     *   1. parent::save()           - writes the #__alfa_items row
+     *   2. setPrices()              - writes #__alfa_items_prices rows
+     *   3. setAssocsToDb() x 4     - writes categories, manufacturers, users, usergroups
      *   4. ProjectionManager        - reads everything above, writes every projection, clears the mark
+     *
+     * ONE TRANSACTION (2.2.1): steps 1 to 3, with the translations, media,
+     * options, downloads, combinations, stock and the archive move, are committed
+     * together, or rolled back together and the save answers false with the
+     * sentence. Step 4, the category caches, the visibility event, onItemAfterSave
+     * and the after-save events run at that commit, never after a rollback.
+     * Alfa's before-save is asked before the lock and the transaction.
      *
      * STOCK. The row never carries stock, nor an existing product's tracking
      * setting: every stock, tracking and combination refusal that can be known is
@@ -728,7 +736,7 @@ class ItemModel extends AlfaAdminModel
 
         // A NEW category of the product, or a new default category, must be available (not archived or trashed,
         // not inside an archived or trashed category); a category the product already holds is kept.
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $storedDefault = $pk > 0
             ? (int) $db->setQuery(
                 'SELECT ' . $db->quoteName('id_category_default') . ' FROM ' . $db->quoteName('#__alfa_items')
@@ -840,23 +848,54 @@ class ItemModel extends AlfaAdminModel
             return $this->refuseSave(messages: $aliasClashes['refuse']);
         }
 
+        // A new item's rebuild mark travels in its insert (an existing item's is written right before the save).
+        if ($pk <= 0) {
+            $data['projection_dirty_at'] = ProjectionManager::markNow();
+        }
+
+        // Alfa's before-save is asked before the item's lock and transaction (2.1.4, design 0.2): no plugin code runs
+        // under them. The language tables the save writes are made before the transaction too: DDL commits implicitly.
+        $asked = $this->alfaAskSave(data: $data);
+
+        if ($asked === null) {
+            return false;
+        }
+
+        MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_items', primaryColumnName: 'id_item', data: $data);
+
         // The rebuild this save owes is recorded before its first write (2.2.0): an existing item's mark in a
-        // statement of its own right before the row write, a new item's in its insert. The item's lock is taken right
-        // before the mark and held through the save's commits and the rebuild of step 4, so no other rebuild clears the
-        // mark while this save's later writes are still to commit. A save that dies after a commit leaves the mark,
-        // which a tick turns into the catalogue job. A lock not granted within its wait never fails the save: the mark
-        // and the row are written, and step 4 leaves the rebuild to the catalogue job (the lock logged why).
+        // statement of its own right before the transaction, a new item's in its insert. The item's lock is taken right
+        // before the mark and held through the save's commit and the rebuild of step 4, so no other rebuild clears the
+        // mark while this save is still to commit. A save that dies leaves the mark, which a tick turns into the
+        // catalogue job. A lock not granted within its wait never fails the save: the mark and the row are written, and
+        // step 4 leaves the rebuild to the catalogue job (the lock logged why).
         $itemLock = new IndexRebuildLock();
         $locked = $pk > 0 ? array_keys($itemLock->acquire(itemIds: [$pk]), IndexRebuildLock::GRANTED, true) : [];
+
+        // ONE TRANSACTION for the whole save (2.2.1): the row, its translations, media, prices, categories,
+        // manufacturers, audiences, options, downloads, combinations, stock and archive move are committed together,
+        // or none of them is. What follows a save (the catalogue rebuild, the category caches, the visibility event,
+        // onItemAfterSave, and Joomla's and Alfa's after-save events) runs at its commit and never after a rollback.
+        // Inside a caller's transaction the commit is the caller's: the rebuild is then owed to the catalogue job,
+        // since it would run after this save's lock is released.
+        $nested = TransactionState::isOpen(db: $db);
+        $level = TransactionState::level(db: $db) + 1;
+        // A step that reports its own refusal and carries on must not carry on once its failure ended this save's
+        // transaction (a deadlock ends every level): the save is then rolled back as a whole.
+        $levelLost = static fn (): bool => TransactionState::level(db: $db) < $level;
 
         try {
             if ($pk > 0) {
                 ProjectionManager::mark(itemIds: [$pk]);
-            } else {
-                $data['projection_dirty_at'] = ProjectionManager::markNow();
             }
 
+            $db->transactionStart(true);
+
+            $this->alfaSaveAsked = $asked;
+
             if (!parent::save($data)) {
+                TransactionState::rollBackLevel(db: $db);
+
                 return false;
             }
 
@@ -882,6 +921,10 @@ class ItemModel extends AlfaAdminModel
                         context:        InventoryContext::ambient(),
                     );
                 } catch (Throwable $refusal) {
+                    if ($levelLost()) {
+                        throw $refusal;
+                    }
+
                     $trackingError = $refusal;
                 }
 
@@ -947,22 +990,14 @@ class ItemModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $newCategories, '#__alfa_items_categories', 'item_id', 'category_id');
             AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
 
-            // Clear category cache for all affected categories (old + new)
+            // The categories whose cache the commit clears (old + new).
             $affectedCategories = array_unique(array_merge(
                 array_map('intval', $oldCategories),
                 array_map('intval', $newCategories),
             ));
-            foreach ($affectedCategories as $catId) {
-                if ($catId > 0) {
-                    CategoryHelper::clearCache($catId);
-                }
-            }
 
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
-
-            // Anyone holding a materialised copy of catalogue visibility needs to know.
-            VisibilityNotifier::changed(itemIds: [$currentId]);
 
             // ITEM FIELDS: no wizard step; option values are ADDED via the
             // picker popup (item.addOptions), informational values save via
@@ -1022,6 +1057,10 @@ class ItemModel extends AlfaAdminModel
                     deletedCombinationIds:  (string) ($data['deleted_combination_ids'] ?? ''),
                 );
             } catch (RuntimeException $combinationError) {
+                if ($levelLost()) {
+                    throw $combinationError;
+                }
+
                 Log::add(
                     entry:    'Item ' . $currentId . ' saved, but its combination changes were refused: '
                               . $combinationError->getMessage(),
@@ -1042,7 +1081,6 @@ class ItemModel extends AlfaAdminModel
             // never for a product with combinations, which has no item-level unit.
             // Archived combinations are kept only for order history, so a product
             // whose combinations are all archived is a plain product again.
-            $db = $this->getDatabase();
             $hasCombinations = (int) $db->setQuery(
                 $db->getQuery(true)
                     ->select('COUNT(*)')
@@ -1071,6 +1109,10 @@ class ItemModel extends AlfaAdminModel
                         stockBaseline:  $stockPlan['baseline'],
                     );
                 } catch (Throwable $stockError) {
+                    if ($levelLost()) {
+                        throw $stockError;
+                    }
+
                     Log::add(
                         entry:    'Item ' . $currentId . ' saved, but its stock could not be adjusted: '
                                   . $stockError->getMessage(),
@@ -1097,8 +1139,7 @@ class ItemModel extends AlfaAdminModel
 
             // Persist the policy overrides (NULL = global default).
             if ($policyValues !== null) {
-                $db = $this->getDatabase();
-                $db->setQuery(
+                    $db->setQuery(
                     $db->getQuery(true)
                         ->update($db->quoteName('#__alfa_items'))
                         ->set($db->quoteName('backorder') . ' = ' . ($policyValues['backorder'] === null ? 'NULL' : $db->quote($policyValues['backorder'])))
@@ -1114,6 +1155,10 @@ class ItemModel extends AlfaAdminModel
                 try {
                     (new InventoryService())->recordSaleRules(itemId: $currentId, context: InventoryContext::ambient());
                 } catch (Throwable $recordError) {
+                    if ($levelLost()) {
+                        throw $recordError;
+                    }
+
                     Log::add(
                         entry:    'Item ' . $currentId . ' saved, but its sale rule change was not recorded: '
                                   . $recordError->getMessage(),
@@ -1121,17 +1166,6 @@ class ItemModel extends AlfaAdminModel
                         category: 'com_alfa.inventory',
                     );
                 }
-            }
-
-            // Step 4: rebuild every catalog projection (price, item-field values, ...)
-            // for this item. MUST be the last step: projections read the prices and
-            // associations committed above. The manager isolates and logs each
-            // projection's failures, so a sync problem never blocks the save. Without
-            // the item's lock the rebuild is owed to the catalogue job instead.
-            if ($locked !== []) {
-                (new ProjectionManager())->syncItem($currentId);
-            } else {
-                ProjectionManager::owe(itemIds: [$currentId]);
             }
 
             // The move into the archive held out of the row write, made as the list
@@ -1142,30 +1176,71 @@ class ItemModel extends AlfaAdminModel
                 $this->publish(pks: $moved, value: $archiveMove);
             }
 
-            // Feature plugins persist their injected-field data into their OWN
-            // tables here (subscription settings, bundle contents, ...). Read-only
-            // payload; a listener failure never blocks the item save.
-            try {
-                $event = new ItemAfterSaveEvent('onItemAfterSave', [
-                    'itemId' => $currentId,
-                    'data' => $data,
-                    'isNew' => $pk <= 0,
-                ]);
+            // What follows the save, once it has committed (2.2.1).
+            PostCommit::defer(
+                db: $db,
+                label: 'the item save of #' . $currentId,
+                work: function () use ($currentId, $affectedCategories, $locked, $nested, $data, $pk): void {
+                    foreach ($affectedCategories as $catId) {
+                        if ($catId > 0) {
+                            CategoryHelper::clearCache($catId);
+                        }
+                    }
 
-                // An after phase (2.2.0, mode A, isolated).
-                $plugins = AlfaPluginHelper::get();
-                $plugins->importGroup('alfa');
-                $plugins->dispatchIsolated($event);
-            } catch (Throwable $e) {
-                Log::add(
-                    entry:    'onItemAfterSave listener failed for item ' . $currentId . ': '
-                              . $e->getMessage() . "\n" . $e->getTraceAsString(),
-                    priority: Log::ERROR,
-                    category: 'com_alfa',
-                );
-            }
+                    // Anyone holding a materialised copy of catalogue visibility needs to know.
+                    VisibilityNotifier::changed(itemIds: [$currentId]);
+
+                    // Step 4: rebuild every catalog projection (price, item-field values, ...)
+                    // for this item. MUST be the last step: projections read the prices and
+                    // associations committed above. The manager isolates and logs each
+                    // projection's failures, so a sync problem never blocks the save. Without
+                    // the item's lock the rebuild is owed to the catalogue job instead.
+                    if ($locked !== [] && !$nested) {
+                        (new ProjectionManager())->syncItem($currentId);
+                    } else {
+                        ProjectionManager::owe(itemIds: [$currentId]);
+                    }
+
+                    // Feature plugins persist their injected-field data into their OWN
+                    // tables here (subscription settings, bundle contents, ...). Read-only
+                    // payload; a listener failure never blocks the item save.
+                    try {
+                        $event = new ItemAfterSaveEvent('onItemAfterSave', [
+                            'itemId' => $currentId,
+                            'data' => $data,
+                            'isNew' => $pk <= 0,
+                        ]);
+
+                        // An after phase (2.2.0, mode A, isolated).
+                        $plugins = AlfaPluginHelper::get();
+                        $plugins->importGroup('alfa');
+                        $plugins->dispatchIsolated($event);
+                    } catch (Throwable $e) {
+                        Log::add(
+                            entry:    'onItemAfterSave listener failed for item ' . $currentId . ': '
+                                      . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                            priority: Log::ERROR,
+                            category: 'com_alfa',
+                        );
+                    }
+                },
+            );
+
+            TransactionState::commitLevel(db: $db);
 
             return true;
+        } catch (Throwable $e) {
+            // Nothing of the save is kept: its writes and what it deferred go with its transaction. The mark of an
+            // existing item, written before it, stays and is cleared by the next rebuild.
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            Log::add(
+                entry:    'Item ' . ($pk > 0 ? '#' . $pk : '(new)') . ' was not saved; its save was rolled back: ' . $e->getMessage(),
+                priority: Log::ERROR,
+                category: 'com_alfa',
+            );
+
+            return $this->refuseSave(messages: [Text::_('COM_ALFA_ITEM_SAVE_ROLLED_BACK')]);
         } finally {
             $itemLock->release(itemIds: $locked);
         }
