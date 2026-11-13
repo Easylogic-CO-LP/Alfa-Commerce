@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\EmailLayouts;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
@@ -23,7 +24,6 @@ use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Mail\Mail;
 use Joomla\CMS\Mail\MailerFactoryInterface;
@@ -110,8 +110,9 @@ class EmailService
      * Default layout id for the order-email wrapper. Order-email layouts
      * live under layouts/emails/order/<name>.php (id emails.order.<name>);
      * 'default' is the shipped one. Override via
-     *   templates/<template>/html/layouts/com_alfa/emails/order/default.php
-     * when a site needs custom branding.
+     *   administrator/templates/<the default administrator template>/html/layouts/com_alfa/emails/order/default.php
+     * when a site needs custom branding: the one template every mail reads, whatever application sends it
+     * ({@see EmailLayouts}, 2.2.1).
      */
     private const LAYOUT_ID = 'emails.order.default';
 
@@ -146,8 +147,8 @@ class EmailService
     /**
      * Discover the body positions an email layout asks for.
      *
-     * Renders the layout via LayoutHelper (so template overrides are
-     * picked up) with COLLECTOR closures in place of the real helper API:
+     * Renders the layout through EmailLayouts (so the administrator
+     * template's overrides are picked up) with COLLECTOR closures in place of the real helper API:
      * every `$position($name)` / `$hasPosition($name)` call records the
      * name. `$hasPosition` returns true during discovery so positions
      * guarded by `if ($hasPosition(...))` are still reached; `$render` is
@@ -238,7 +239,7 @@ class EmailService
         };
 
         try {
-            LayoutHelper::render(
+            EmailLayouts::render(
                 $layoutId,
                 array_merge(self::displayDataSkeleton(), [
                     // One stub row per list so the layout's `if (!empty(...))`
@@ -262,8 +263,6 @@ class EmailService
                         return '';
                     },
                 ]),
-                null,
-                ['component' => 'com_alfa', 'client' => 1],
             );
         } catch (Throwable $e) {
             Log::add(
@@ -1309,12 +1308,7 @@ class EmailService
             self::layoutHelperApi(positions: $positions, dataContext: $dataContext),
         );
 
-        $rendered = LayoutHelper::render(
-            $layoutId !== '' ? $layoutId : self::LAYOUT_ID,
-            $displayData,
-            null,
-            ['component' => 'com_alfa', 'client' => 1],
-        );
+        $rendered = EmailLayouts::render($layoutId !== '' ? $layoutId : self::LAYOUT_ID, $displayData);
 
         // Single, central variable pass over the WHOLE composed email:
         // covers admin content, rendered partials, and the layout's own
@@ -1415,12 +1409,7 @@ class EmailService
                     return '';
                 }
 
-                return (string) LayoutHelper::render(
-                    $layoutId,
-                    $data ?? $dataContext,
-                    null,
-                    ['component' => 'com_alfa', 'client' => 1],
-                );
+                return EmailLayouts::render($layoutId, $data ?? $dataContext);
             },
         ];
     }
