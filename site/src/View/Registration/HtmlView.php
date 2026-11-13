@@ -59,9 +59,11 @@ class HtmlView extends BaseHtmlView
 
         $savedData = $app->getUserState('com_alfa.registration.data', []);
 
-        // A form re-filled with what this visitor typed (a refused registration) is this visitor's own page at the
-        // address every visitor opens to register: never stored in Joomla's page cache.
+        // What a refused registration typed re-fills this one page (the one that shows the refusal), then is cleared.
+        // The page is this visitor's own at the address every visitor opens to register: never stored in Joomla's page
+        // cache.
         if (!empty($savedData)) {
+            $app->setUserState('com_alfa.registration.data', null);
             PageCache::excludeResponse();
         }
 

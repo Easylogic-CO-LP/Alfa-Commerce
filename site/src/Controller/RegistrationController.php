@@ -102,7 +102,7 @@ class RegistrationController extends FormController
      *   1. CSRF token check
      *   2. Guard: registration disabled -> redirect to login
      *   3. Validate merged form (core fields + captcha + alfa fields)
-     *   4. On failure: save form state to session, enqueue errors, redirect back
+     *   4. On failure: keep the typed fields (no password) for the next page, enqueue errors, redirect back
      *   5. Create the Joomla user via the core model
      *   6. Redirect based on activation type
      *
@@ -138,13 +138,12 @@ class RegistrationController extends FormController
         if ($validData === false) {
             $this->flashErrors($model->getErrors());
 
-            // Save submitted data to session so the form can be re-filled, never the passwords: Joomla's own
-            // registration drops them before it re-fills its form, and one kept here would be written back into the
-            // page as the field's value and into the session table.
-            // com_users.registration.data -> re-fills core fields (name, username, email)
-            // com_alfa.registration.data -> re-fills alfa fields
+            // What the visitor typed, kept for the one page that shows the refusal: the registration view re-fills the
+            // form from it once, core fields and Alfa's alike, then clears it. Under Alfa's own key only: Joomla's own
+            // registration page re-fills com_users.registration.data, and nothing keeps that page out of Joomla's page
+            // cache. Never the passwords: Joomla keeps them in its state and drops them only when it re-fills its form;
+            // kept here they would sit in the session table.
             unset($data['password1'], $data['password2']);
-            $app->setUserState('com_users.registration.data', $data);
             $app->setUserState('com_alfa.registration.data', $data);
 
             $this->setRedirect(Route::_('index.php?option=com_alfa&view=registration', false));
