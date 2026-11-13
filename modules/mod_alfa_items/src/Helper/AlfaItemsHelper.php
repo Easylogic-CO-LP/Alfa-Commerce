@@ -26,6 +26,7 @@ use Joomla\CMS\Response\JsonResponse;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use Joomla\Input\Input;
 use Joomla\Registry\Registry;
 use stdClass;
 use Throwable;
@@ -970,9 +971,14 @@ final class AlfaItemsHelper
         $app->getLanguage()->load('com_alfa', JPATH_SITE);
         $app->getLanguage()->load('mod_alfa_items', JPATH_SITE);
 
-        $moduleId = $input->getInt('module_id', 0);
-        $key = $input->getCmd('tab', '');
-        $module = self::loadModule($moduleId);
+        $moduleId = self::requestValue(input: $input, name: 'module_id', filter: 'int', default: 0);
+        $key = self::requestValue(input: $input, name: 'tab', filter: 'cmd', default: '');
+
+        if ($moduleId === null || $key === null) {
+            self::refuseRequestValue();
+        }
+
+        $module = self::loadModule((int) $moduleId);
 
         if (!$module || $key === '') {
             echo new JsonResponse(null, Text::_('MOD_ALFA_ITEMS_ERROR_NOT_FOUND'), true);
@@ -1007,9 +1013,15 @@ final class AlfaItemsHelper
         $app->getLanguage()->load('com_alfa', JPATH_SITE);
         $app->getLanguage()->load('mod_alfa_items', JPATH_SITE);
 
-        $moduleId = $input->getInt('module_id', 0);
-        $key = $input->getCmd('tab', '');
-        $module = self::loadModule($moduleId);
+        $moduleId = self::requestValue(input: $input, name: 'module_id', filter: 'int', default: 0);
+        $key = self::requestValue(input: $input, name: 'tab', filter: 'cmd', default: '');
+        $itemId = self::requestValue(input: $input, name: 'id', filter: 'int', default: 0);
+
+        if ($moduleId === null || $key === null || $itemId === null) {
+            self::refuseRequestValue();
+        }
+
+        $module = self::loadModule((int) $moduleId);
         $params = new Registry($module->params ?? '');
         $tab = null;
 
@@ -1023,7 +1035,7 @@ final class AlfaItemsHelper
 
         // Alfa reads the selection (sel[], opt[], conf[]) from the request itself.
         $item = $tab !== null
-            ? self::createModel()->setCategoryContext(categoryId: $tab['context'])->getItem($input->getInt('id', 0))
+            ? self::createModel()->setCategoryContext(categoryId: $tab['context'])->getItem((int) $itemId)
             : null;
 
         if ($item === null) {
@@ -1167,5 +1179,40 @@ final class AlfaItemsHelper
     private static function bounded(mixed $value, int $min, int $max): int
     {
         return max($min, min($max, (int) $value));
+    }
+
+    /**
+     * One value of the request, through Joomla's filter, or null when the request sends a list in its place (2.2.1): a
+     * list handed on to a typed parameter fails with an error page that names a file of the site, so it is refused
+     * before any use.
+     *
+     * @param Input $input The request.
+     * @param string $name The value's name.
+     * @param string $filter Joomla's filter: int, cmd or string.
+     * @param int|string $default The value when the request carries none.
+     *
+     * @since  2.2.1
+     */
+    private static function requestValue(Input $input, string $name, string $filter, int|string $default): mixed
+    {
+        if (\is_array($input->get($name, null, 'raw'))) {
+            return null;
+        }
+
+        return $input->get($name, $default, $filter);
+    }
+
+    /**
+     * Answer a request that sent a list where one value is expected: 400, with this module's sentence and no file of the
+     * site named (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    private static function refuseRequestValue(): void
+    {
+        http_response_code(400);
+        header('Content-Type: application/json; charset=utf-8');
+        echo new JsonResponse(null, Text::_('MOD_ALFA_ITEMS_ERROR_REQUEST_VALUE'), true);
+        Factory::getApplication()->close();
     }
 }
