@@ -55,6 +55,9 @@ class JsonApiView extends BaseApiView
         'id_order_status',
         'status_name',
         'payment_status',
+        // How far the order has gone out, as the list route says it (2.2.1).
+        'fulfillment_status',
+        'fulfillment_percentage',
         // The payment facts the item MODEL already computes. They were derived
         // on every single-order read and then dropped by this list, so a REST
         // client could see that one order of a hundred was overpaid but never

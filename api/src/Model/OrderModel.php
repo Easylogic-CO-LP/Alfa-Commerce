@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderFulfillment;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
@@ -190,6 +191,12 @@ class OrderModel extends AdminOrderModel
         // signed figure to learn what it is owed back.
         $item->excess = $facts === null ? null : $amount($facts->money->excess);
         $item->conversion_rate = self::decimal(value: $item->conversion_rate ?? null);
+
+        // How far the order has gone out, by the derivation the orders list reads, so one order and the list answer
+        // it alike (2.2.1).
+        $fulfillment = OrderFulfillment::forOrder(orderId: (int) $item->id);
+        $item->fulfillment_status = $fulfillment->status;
+        $item->fulfillment_percentage = PublishedDecimal::percent((float) $fulfillment->percentage);
 
         // Customer identity: the order's own snapshot, falling back to the
         // account for orders placed before the snapshot existed, the same
