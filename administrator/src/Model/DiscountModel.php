@@ -252,7 +252,7 @@ class DiscountModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_discounts', primaryColumnName: 'id_discount', data: $data);
 
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $db->transactionStart(true);
 
         try {
@@ -278,7 +278,7 @@ class DiscountModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['users'] ?? [], '#__alfa_discount_users', 'discount_id', 'user_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_discount_usergroups', 'discount_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             throw $e;

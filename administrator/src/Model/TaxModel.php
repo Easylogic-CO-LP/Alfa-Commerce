@@ -264,7 +264,7 @@ class TaxModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_taxes', primaryColumnName: 'id_tax', data: $data);
 
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $db->transactionStart(true);
 
         try {
@@ -290,7 +290,7 @@ class TaxModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['users'] ?? [], '#__alfa_tax_users', 'tax_id', 'user_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_tax_usergroups', 'tax_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             throw $e;
