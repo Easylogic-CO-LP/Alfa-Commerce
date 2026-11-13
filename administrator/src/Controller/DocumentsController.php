@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentIssuer;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfLibraryMissingException;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
@@ -210,6 +211,9 @@ class DocumentsController extends BaseController
             }
 
             $bytes = PdfRenderer::pdfBytes(documentId: $id);
+        } catch (PdfLibraryMissingException $e) {
+            // The server lacks the library, which is installed separately: 503 with the sentence that names it (2.2.1).
+            throw new RuntimeException($e->getMessage(), 503, $e);
         } catch (Throwable $e) {
             throw new RuntimeException($e->getMessage(), 500);
         }

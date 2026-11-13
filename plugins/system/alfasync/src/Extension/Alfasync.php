@@ -158,10 +158,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Maintenance (Clear everything): the Options of Alfa are not saved until it has finished.
             'onExtensionBeforeSave' => 'onExtensionBeforeSave',
 
-            // An Alfa extension uninstalled through Joomla: warned that its data stays (never refused).
+            // An Alfa extension uninstalled through Joomla: warned that its data stays (never refused). The PDF
+            // library uninstalled: the setup verdict is stale.
             'onExtensionBeforeUninstall' => 'onExtensionBeforeUninstall',
 
-            // An Alfa language pack installed or updated: core's language sync, Joomla's own language checked.
+            // An Alfa language pack installed or updated: core's language sync, Joomla's own language checked. The
+            // PDF library installed or updated: the setup verdict is stale.
             'onExtensionAfterInstall' => 'onExtensionAfterInstall',
             'onExtensionAfterUpdate' => 'onExtensionAfterInstall',
 
@@ -1041,6 +1043,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     {
         $extensionId = (int) ($event->getArgument('eid') ?? $event->getArgument('0') ?? 0);
 
+        // The setup checklist's PDF row reads the library (2.2.1): its verdict is recomputed on the next page.
+        if ($this->isPdfLibrary(extensionId: $extensionId)) {
+            $this->invalidateSetup('the PDF library is being uninstalled');
+        }
+
         try {
             $entry = (new ClearDataExtensions())->uninstalling(extensionId: $extensionId);
 
@@ -1079,6 +1086,43 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             );
         } catch (Throwable $e) {
             $this->logError(caller: 'onExtensionAfterInstall', message: $e->getMessage());
+        }
+
+        // The setup checklist's PDF row reads the library (2.2.1): its verdict is recomputed on the next page.
+        if ($this->isPdfLibrary(extensionId: (int) $event->getArgument('eid'))) {
+            $this->invalidateSetup('the PDF library was installed');
+        }
+    }
+
+    /**
+     * Whether the extension is the dompdf library (lib_dompdf), which sales documents need for their PDFs and the
+     * setup checklist names. Never breaks the caller: an unreadable row is not the library.
+     *
+     * @param int $extensionId The extension's id.
+     *
+     * @since  2.2.1
+     */
+    private function isPdfLibrary(int $extensionId): bool
+    {
+        if ($extensionId <= 0) {
+            return false;
+        }
+
+        try {
+            $db = $this->getDatabase();
+
+            return (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__extensions'))
+                    ->where($db->quoteName('extension_id') . ' = ' . $extensionId)
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('library'))
+                    ->where($db->quoteName('element') . ' = ' . $db->quote('dompdf')),
+            )->loadResult() > 0;
+        } catch (Throwable $e) {
+            $this->logError(caller: 'isPdfLibrary', message: $e->getMessage());
+
+            return false;
         }
     }
 
