@@ -3,6 +3,21 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.2.1</version>
+
+        <fix>
+            <item>On a phone, Tools > Tasks, the orders list and an order's page fit the screen. Below 480 px a row of the background jobs list, of the orders list and of an order's payments, shipments, items, documents and reconciliation folds: its values wrap under one another, each named by its column, and its buttons take a line of their own under it. A background job's next-try date stays on one line. Before, at 360 px the orders list was 941 px wide and an order's page 1,182 px (in Greek 1,098 px and 1,584 px), and the jobs list's buttons were out of sight.</item>
+            <item>The result of a plugin action, a refused one included, shows its message above its Close or OK button. Before, on a phone, with the site's own messages above it, the button bar pinned to the bottom of the window covered the first lines of the message.</item>
+        </fix>
+
+        <change>
+            <item>The description of the layout fields (the sub-template choices of a product, a category, a menu item and the Options) says in plain words how to add a version of your own: copy the part's file from the component's folder into your template's override folder and give it a name of your own; it appears in the list the next time the page is opened.</item>
+            <item>For template and extension developers: a table in the administrator can fold on a phone with the class alfa-fold (alfa-fold-line for its actions cell, alfa-fold-keep for a heading kept, data-alfa-label for a cell's name), in media/com_alfa/css/admin/admin.css. The class alfa-nowrap-md is replaced by alfa-nowrap (one line at every width). The action page's styles moved from the layouts' inline style blocks into media/com_alfa/css/admin/action-page.css (style asset com_alfa.action-page), which layouts/action/buttons.php and the result screen load.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.2.0</version>
 
         <note>
