@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\View\Registration;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -57,6 +58,13 @@ class HtmlView extends BaseHtmlView
         $model = $this->getModel();
 
         $savedData = $app->getUserState('com_alfa.registration.data', []);
+
+        // A form re-filled with what this visitor typed (a refused registration) is this visitor's own page at the
+        // address every visitor opens to register: never stored in Joomla's page cache.
+        if (!empty($savedData)) {
+            PageCache::excludeResponse();
+        }
+
         $this->form = $model->getForm($savedData, !empty($savedData));
 
         if (!$this->form) {
