@@ -19,14 +19,17 @@ use RuntimeException;
 use Throwable;
 
 /**
- * One capture or release at a time per order.
+ * One capture or release at a time per order, as rule 6 has a gateway use it.
  *
- * A gateway's call can take seconds, and nothing is booked until the
- * provider answers. A second operation asked in that window, from a second
- * tab, a second admin or a resent form, would pass every check the first one
- * passed. For a capture or a release the gateway runs its checks, the
- * provider call and the booking inside run(); a second operation on the same
- * order is refused while the first holds the lock.
+ * A gateway takes the lock with run(), settles under it by compare and set
+ * (it checks the payment's state, records the operation it is about to send,
+ * and books it), and releases it before any call to the provider. A second
+ * operation asked meanwhile, from a second tab, a second admin or a resent
+ * form, is refused while the first holds the lock, and once it is released
+ * it finds the first operation recorded, so it cannot pass the checks the
+ * first passed. The record set under the lock closes that window, not the
+ * lock: the lock is never held across a call to the provider (2.2.1: this
+ * paragraph described a lock held around the provider's call).
  *
  * NOT for a refund (since 2.1.0). A refund start is decided and reserved in
  * the books before the provider is asked (PaymentLedger::reserveRefund(),

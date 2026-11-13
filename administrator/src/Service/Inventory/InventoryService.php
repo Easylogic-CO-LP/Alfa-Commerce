@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryBeforeReserveEven
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryCommittedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReleasedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReservedEvent;
+use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryRestoredEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryTransferredEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
@@ -34,6 +35,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use RuntimeException;
 use Throwable;
+use WeakMap;
 
 /**
  * The inventory kernel: the only writer of stock.
@@ -91,7 +93,7 @@ use Throwable;
  * savepoint inside its caller's, committed through TransactionState::commitLevel()
  * and closed after a failure through TransactionState::rollBackLevel(), on either
  * MySQL driver. Its AFTER events (onInventoryReserved, onInventoryReleased,
- * onInventoryCommitted, onInventoryAdjusted, onInventoryTransferred) and its
+ * onInventoryCommitted, onInventoryRestored, onInventoryAdjusted, onInventoryTransferred) and its
  * success log lines wait for the outermost commit and are delivered once after it,
  * never after a rollback ({@see PostCommit}); with no transaction open they are
  * delivered at once. BEFORE events run before the level opens and veto by throwing.
@@ -285,8 +287,14 @@ final class InventoryService
     /** @var int|null Cached default location id. */
     private ?int $defaultLocation = null;
 
-    /** @var array|null Memoised allocation provider chain. */
-    private ?array $allocationChain = null;
+    /**
+     * The collected allocation provider chain of each connection, for the request (2.2.1): every InventoryService of
+     * the request shares it, so onCollectStockAllocationProviders is raised once however many service objects the
+     * callers build.
+     *
+     * @var WeakMap<\Joomla\Database\DatabaseInterface, array<int, array{provider: object, element: string, priority: int}>>|null
+     */
+    private static ?WeakMap $allocationChains = null;
 
     /**
      * Resolved unit policies, keyed "itemId|combinationId".
@@ -297,6 +305,16 @@ final class InventoryService
      * @var array<string, array{backorder: string, min_qty: float}>
      */
     private array $policyMemo = [];
+
+    /**
+     * What a restore() or a reverseRestores() moved, by operation, as appendMovement() writes it (2.2.1): the movements
+     * onInventoryRestored carries, net by item, combination and location, with no read of the ledger, which has no
+     * index on its operation. Only those two commands collect; announceRestored() takes the operation's and forgets it,
+     * and a command that fails forgets it at its rollback.
+     *
+     * @var array<string, array<string, array{itemId: int, combinationId: int, locationId: int, quantity: float}>>
+     */
+    private array $restoredMovements = [];
 
     /**
      * Request memo of dedup keys KNOWN to carry no notification row, so a healthy shop
@@ -486,6 +504,7 @@ final class InventoryService
                         sourceType: $sourceType,
                         sourceId: $sourceId,
                         additive: $additive,
+                        context: $context,
                     );
 
                     if ($first !== null) {
@@ -537,7 +556,7 @@ final class InventoryService
 
                     // A line whose unit got its first records where the units were
                     // taken is placed by the allocation they were made for.
-                    foreach ($allocations[$key] ?? $this->allocate(unit: $unit, quantity: $quantity) as $locationId => $locationQty) {
+                    foreach ($allocations[$key] ?? $this->allocate(unit: $unit, quantity: $quantity, context: $context) as $locationId => $locationQty) {
                         $stock = $this->lockStockRow(
                             itemId: $unit['item'],
                             combinationId: $unit['combination'],
@@ -628,6 +647,7 @@ final class InventoryService
      * @param string $sourceType The reserving domain.
      * @param int $sourceId Its source row.
      * @param bool $additive Whether the reserve adds to existing reservations.
+     * @param InventoryContext $context The reserve's context, handed to the allocation providers.
      *
      * @return array{key: int|string, line_id: ?int, allocation: array<int, float>}|null
      *
@@ -641,6 +661,7 @@ final class InventoryService
         string $sourceType,
         int $sourceId,
         bool $additive,
+        InventoryContext $context,
     ): ?array {
         if ($this->unitRecordNames(unit: $unit) !== [] || $this->ledgerDefect(unit: $unit) !== null) {
             return null;
@@ -660,7 +681,7 @@ final class InventoryService
             }
 
             try {
-                return ['key' => $key, 'line_id' => $lineId, 'allocation' => $this->allocate(unit: $unit, quantity: $quantity)];
+                return ['key' => $key, 'line_id' => $lineId, 'allocation' => $this->allocate(unit: $unit, quantity: $quantity, context: $context)];
             } catch (AllocationRefusedException) {
                 return null;
             }
@@ -2521,6 +2542,7 @@ final class InventoryService
     ): array {
         $context ??= new InventoryContext();
         $operationId = $this->newOperationId();
+        $this->restoredMovements[$operationId] = [];
         $totalRestored = 0.0;
         $count = 0;
 
@@ -2923,6 +2945,7 @@ final class InventoryService
             $this->recordOperation(operationId: $operationId, command: 'restore', sourceType: $sourceType, sourceId: $sourceId, context: $context);
             TransactionState::commitLevel(db: $this->db);
         } catch (Throwable $e) {
+            unset($this->restoredMovements[$operationId]);
             $this->rollBackCommand(failure: $e);
             throw $e;
         }
@@ -2941,7 +2964,10 @@ final class InventoryService
             );
         }
 
-        return ['restored_quantity' => $totalRestored, 'lines' => $count, 'operation_id' => $operationId, 'held_units' => $heldUnits];
+        $result = ['restored_quantity' => $totalRestored, 'lines' => $count, 'operation_id' => $operationId, 'held_units' => $heldUnits];
+        $this->announceRestored(sourceType: $sourceType, sourceId: $sourceId, reversal: false, result: $result);
+
+        return $result;
     }
 
     /**
@@ -3000,6 +3026,7 @@ final class InventoryService
     ): array {
         $context ??= new InventoryContext();
         $operationId = $this->newOperationId();
+        $this->restoredMovements[$operationId] = [];
         $totalReversed = 0.0;
         $count = 0;
 
@@ -3156,12 +3183,49 @@ final class InventoryService
             );
             TransactionState::commitLevel(db: $this->db);
         } catch (Throwable $e) {
+            unset($this->restoredMovements[$operationId]);
             $this->rollBackCommand(failure: $e);
 
             throw $e;
         }
 
-        return ['reversed_quantity' => $totalReversed, 'lines' => $count, 'operation_id' => $operationId];
+        $result = ['reversed_quantity' => $totalReversed, 'lines' => $count, 'operation_id' => $operationId];
+        $this->announceRestored(sourceType: $sourceType, sourceId: $sourceId, reversal: true, result: $result);
+
+        return $result;
+    }
+
+    /**
+     * Announce stock put back, or taken off again by a reversal (2.2.1): onInventoryRestored after the commit, with
+     * what moved by item, combination and location, as the command wrote it ({@see self::$restoredMovements}: no
+     * read of the ledger, which has no index on its operation). Nothing is announced when nothing moved.
+     *
+     * @param string $sourceType The command's source domain.
+     * @param int $sourceId The command's source row.
+     * @param bool $reversal Whether this took back an earlier restore.
+     * @param array $result The command's summary, operation_id included.
+     *
+     * @since  2.2.1
+     */
+    private function announceRestored(string $sourceType, int $sourceId, bool $reversal, array $result): void
+    {
+        $operationId = (string) ($result['operation_id'] ?? '');
+        $moved = $this->restoredMovements[$operationId] ?? [];
+        unset($this->restoredMovements[$operationId]);
+
+        $movements = array_values(array_filter($moved, static fn (array $movement): bool => abs($movement['quantity']) > self::EPS));
+
+        if ($movements === []) {
+            return;
+        }
+
+        $this->announce(label: 'onInventoryRestored', event: new InventoryRestoredEvent('onInventoryRestored', [
+            'sourceType' => $sourceType,
+            'sourceId' => $sourceId,
+            'reversal' => $reversal,
+            'movements' => $movements,
+            'result' => $result,
+        ]));
     }
 
     /**
@@ -5351,15 +5415,20 @@ final class InventoryService
      * asked quantity; anything else is discarded with a warning, never
      * trusted.
      *
+     * @param array $unit The unit.
+     * @param float $quantity The quantity to place.
+     * @param InventoryContext $context The command's context (who, why, which correlation), as the provider's
+     *                                  contract says (2.2.1: 2.2.0 handed every provider an empty one).
+     *
      * @return array<int, float> locationId => quantity
      *
      * @since  2.0.0
      */
-    private function allocate(array $unit, float $quantity): array
+    private function allocate(array $unit, float $quantity, InventoryContext $context): array
     {
         foreach ($this->allocationProviders() as $entry) {
             try {
-                $answer = $entry['provider']->allocate($unit, $quantity, new InventoryContext());
+                $answer = $entry['provider']->allocate($unit, $quantity, $context);
             } catch (AllocationRefusedException $e) {
                 // A deliberate refusal is a business rule, not a failure:
                 // it propagates; the default location never silently
@@ -5577,7 +5646,8 @@ final class InventoryService
 
     /**
      * The collected allocation provider chain, priority-ordered
-     * (highest first), memoised per request.
+     * (highest first), memoised per request: collected once for the
+     * connection, whichever service object asks first (2.2.1).
      *
      * @return array<int, array{provider: object, element: string, priority: int}>
      *
@@ -5585,8 +5655,10 @@ final class InventoryService
      */
     private function allocationProviders(): array
     {
-        if ($this->allocationChain !== null) {
-            return $this->allocationChain;
+        self::$allocationChains ??= new WeakMap();
+
+        if (isset(self::$allocationChains[$this->db])) {
+            return self::$allocationChains[$this->db];
         }
 
         $event = new \Alfa\Component\Alfa\Administrator\Event\Inventory\CollectStockAllocationProvidersEvent(
@@ -5613,7 +5685,20 @@ final class InventoryService
         $chain = $event->getProviders();
         usort($chain, static fn (array $a, array $b): int => $b['priority'] <=> $a['priority']);
 
-        return $this->allocationChain = $chain;
+        self::$allocationChains[$this->db] = $chain;
+
+        return $chain;
+    }
+
+    /**
+     * Forget the collected allocation provider chains, so the next allocation collects them again: for a process that
+     * enables or disables an allocation provider and goes on allocating in the same request (the test harness's seam).
+     *
+     * @since  2.2.1
+     */
+    public static function forgetAllocationProviders(): void
+    {
+        self::$allocationChains = null;
     }
 
     /**
@@ -6364,6 +6449,13 @@ final class InventoryService
         ];
 
         $this->db->insertObject('#__alfa_inventory_movements', $row, 'id');
+
+        // A restore's or a reversal's movement, net by unit and location, for its announcement (2.2.1).
+        if (isset($this->restoredMovements[$operationId])) {
+            $key = (int) $unit['item'] . ':' . (int) $unit['combination'] . ':' . $locationId;
+            $this->restoredMovements[$operationId][$key] ??= ['itemId' => (int) $unit['item'], 'combinationId' => (int) $unit['combination'], 'locationId' => $locationId, 'quantity' => 0.0];
+            $this->restoredMovements[$operationId][$key]['quantity'] += $qtyChange;
+        }
     }
 
     /**

@@ -2215,6 +2215,9 @@ class ShipmentLedger
     /**
      * Load a single shipment with method params.
      *
+     * ->params is the shipment method's record, or null when the shipment names no method, the method's row is gone,
+     * or it cannot be read (logged) (2.2.1): never Joomla's blank new record for id 0, and never the model's false.
+     *
      * @param int $id Shipment row PK
      *
      * @return object|null Shipment with ->params, or null
@@ -2240,11 +2243,20 @@ class ShipmentLedger
             return null;
         }
 
-        try {
-            $model = self::getRelatedModel('Shipment');
-            $shipment->params = $model->getItem($shipment->id_shipment_method);
-        } catch (Exception $e) {
-            $shipment->params = null;
+        $shipment->params = null;
+        $methodId = (int) $shipment->id_shipment_method;
+
+        if ($methodId > 0) {
+            try {
+                $method = self::getRelatedModel('Shipment')->getItem($methodId);
+                $shipment->params = \is_object($method) && (int) ($method->id ?? 0) === $methodId ? $method : null;
+            } catch (Throwable $e) {
+                Log::add(
+                    entry:    'Shipment #' . $id . ': its shipment method #' . $methodId . ' could not be read: ' . $e->getMessage(),
+                    priority: Log::WARNING,
+                    category: 'com_alfa.orders',
+                );
+            }
         }
 
         return $shipment;

@@ -1104,7 +1104,7 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         $plugin = $state === 'removed'
-            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed', values: [])
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed by Alfa Commerce', values: [])
             : ($state === 'kept'
                 ? $this->installerText(
                     key:      'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_KEPT',
@@ -1123,9 +1123,11 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * The update's step from the scheduled task to the job runner for the list prices of customer groups (2.2.0):
-     * every waiting set gets its price.set.prepare job, plg_task_alfapricesets is uninstalled through Joomla's
-     * installer, and any scheduled task of its routine left behind is deleted; each of the three on its own, so a
-     * failure of one never skips the next. A failure is said, never a failed update: the jobs are given again by the
+     * every waiting set gets its price.set.prepare job, the scheduled tasks of plg_task_alfapricesets' routine are
+     * deleted, and the plugin is uninstalled through Joomla's installer; each of the three on its own, so a failure of
+     * one never skips the next. The tasks go first (2.2.1): the plugin's own uninstall script (2.1.x) removes them
+     * through a constant this version no longer has and says it failed, so it is not run (removed with the plugin
+     * before the uninstall, logged), and this step's one message says what was done. A failure is said, never a failed update: the jobs are given again by the
      * next request of a set, and Tools > Database Sync shows what waits. The message names the plugin's state:
      * removed, not installed, or still installed (refused by Joomla's installer), the last as a warning that names
      * where to uninstall it.
@@ -1140,12 +1142,28 @@ class com_alfaInstallerScript extends InstallerScript
         $failures = [];
         $converted = 0;
         $rows      = 0;
+        $deleted   = false;
         $state     = 'absent';
 
         // Three steps, each on its own: a failure of one never skips the next.
         try
         {
             $converted = (new \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService())->queueWaitingSets();
+        }
+        catch (\Throwable $e)
+        {
+            $failures[] = $e->getMessage();
+        }
+
+        try
+        {
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->delete($db->quoteName('#__scheduler_tasks'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('alfapricesets.prepare'))
+            )->execute();
+            $rows    = (int) $db->getAffectedRows();
+            $deleted = true;
         }
         catch (\Throwable $e)
         {
@@ -1174,26 +1192,44 @@ class com_alfaInstallerScript extends InstallerScript
 
                 $installer = new Installer();
                 $installer->setDatabase($db);
+
+                // The plugin's own install script (2.1.x) does one thing at its uninstall: it removes the tasks above,
+                // through a constant this version no longer has, and then warns they were not removed. They are gone
+                // already, so it is not run: removed with the plugin, before Joomla's installer would include it.
+                $oldScript = JPATH_PLUGINS . '/task/alfapricesets/script.php';
+
+                $hadScript = is_file($oldScript);
+                $unlinked  = $hadScript && @unlink($oldScript);
+
+                if ($hadScript && !$unlinked)
+                {
+                    // Not writable: the uninstall below still runs, and Joomla runs the old script with it, which warns
+                    // as it did in 2.2.0. The log says why that warning shows.
+                    self::maintenanceLog(
+                        line:     sprintf('Update to %s: the uninstall script of plg_task_alfapricesets could not be removed (its folder is not writable), so it ran with the uninstall and may warn that the scheduled tasks were not removed.', $this->packageVersion),
+                        priority: \Joomla\CMS\Log\Log::WARNING,
+                    );
+                }
+                elseif ($unlinked)
+                {
+                    // "Removed" only when the delete above ran; else the update's warning says why they stay.
+                    self::maintenanceLog(
+                        line:     sprintf(
+                            $deleted
+                                ? 'Update to %s: the scheduled tasks of plg_task_alfapricesets were removed by Alfa Commerce, so the plugin\'s own uninstall script was not run.'
+                                : 'Update to %s: the scheduled tasks of plg_task_alfapricesets could not be removed (the update says why); the plugin\'s own uninstall script was not run, as it cannot remove them either.',
+                            $this->packageVersion,
+                        ),
+                        priority: $deleted ? \Joomla\CMS\Log\Log::INFO : \Joomla\CMS\Log\Log::WARNING,
+                    );
+                }
+
                 $state = $installer->uninstall('plugin', $extensionId) ? 'removed' : 'kept';
             }
         }
         catch (\Throwable $e)
         {
             $state      = 'kept';
-            $failures[] = $e->getMessage();
-        }
-
-        try
-        {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->quoteName('#__scheduler_tasks'))
-                    ->where($db->quoteName('type') . ' = ' . $db->quote('alfapricesets.prepare'))
-            )->execute();
-            $rows = (int) $db->getAffectedRows();
-        }
-        catch (\Throwable $e)
-        {
             $failures[] = $e->getMessage();
         }
 
@@ -1209,7 +1245,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         // A plugin that stayed reads in its scheduler routine what 2.2.0 removed: it must go by hand, said as a warning.
         $plugin = $state === 'removed'
-            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed', values: [])
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed by Alfa Commerce', values: [])
             : ($state === 'kept'
                 ? $this->installerText(
                     key:      'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_KEPT',
@@ -1532,8 +1568,8 @@ class com_alfaInstallerScript extends InstallerScript
         // File integrity is verified online against the signed canonical checksums on the
         // CDN (single source of truth: IntegrityHelper::verifyAgainstOfficial), so there
         // is no local baseline to capture. The verdict is cached for 24h, though, and an
-        // update changes the files, so drop the cache here, exactly as the Tools view does
-        // on each visit, and the next Security check re-verifies this version cleanly.
+        // update changes the files, so drop the cache here, as the Tools page's Recheck
+        // button does, and the next read re-verifies this version cleanly.
         $integrityHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/IntegrityHelper.php';
 
         if (file_exists($integrityHelperPath))

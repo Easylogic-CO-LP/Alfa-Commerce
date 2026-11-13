@@ -49,7 +49,8 @@ use WeakMap;
 
 /**
  * The tasks of Alfa Commerce (#__alfa_tasks): what a change owes after its commit (a single) and, from 2.2.0, long
- * work with steps (a job). This class writes and runs singles; nothing in 2.1.4 writes or claims a job.
+ * work with steps (a job). This class writes and runs singles; jobs are written and claimed by the job runner
+ * ({@see Runner}, 2.2.0).
  *
  * A SINGLE is written inside the business change's own transaction ({@see self::single()}), so a rollback removes it
  * with the change and a commit keeps it: the row is the proof that the change committed and the record of what it

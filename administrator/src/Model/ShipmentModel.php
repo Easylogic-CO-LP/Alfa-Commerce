@@ -42,9 +42,9 @@ class ShipmentModel extends AlfaAdminModel
 
     /**
      * CONTRACT COVERAGE NOTES (decided at migration):
-     * - save() persists the per-language translations and the five scope pivots
-     *   AFTER parent::save(), so onAlfaAdminAfterSave fires with the base row
-     *   written but those side tables not yet updated.
+     * - save() writes the row, the per-language translations, the five scope pivots
+     *   and the taxes in one transaction, and onAlfaAdminAfterSave is announced at its
+     *   commit, so it reads the method as saved (2.2.1; before, the base row only).
      * - delete() removes the scope pivots and translations AFTER parent::delete(),
      *   so onAlfaAdminAfterDelete fires before that cleanup runs.
      */
@@ -259,15 +259,13 @@ class ShipmentModel extends AlfaAdminModel
             return false;
         }
 
-        if (!parent::save($data)) {
-            return false;
-        }
+        // Alfa's before-save is asked before the transaction (2.1.4, design 0.2). Joomla's onContentBeforeSave runs
+        // inside it (parent::save()), so a write its listener makes is rolled back with a failed save;
+        // onContentAfterSave and onAlfaAdminAfterSave wait for its commit.
+        $asked = $this->alfaAskSave(data: $data);
 
-        $currentId = 0;
-        if ($data['id'] > 0) { // existing record
-            $currentId = intval($data['id']);
-        } else { // new record: read the id from the Joomla model state
-            $currentId = intval($this->getState($this->getName() . '.id'));
+        if ($asked === null) {
+            return false;
         }
 
         // Translations, the five scope pivots and the tax reference must be atomic: each setAssocsToDb
@@ -279,10 +277,23 @@ class ShipmentModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_shipments', primaryColumnName: 'id_shipment', data: $data);
 
-        $db = $this->getDatabase();
+        // ONE TRANSACTION for the method's row as well (2.2.1): onAlfaAdminAfterSave and onContentAfterSave
+        // wait for its commit, so a listener reads the shipping method as saved, translations and scope included, and a
+        // failure anywhere leaves nothing of the save.
+        $db = $this->alfaDriver();
         $db->transactionStart(true);
 
         try {
+            $this->alfaSaveAsked = $asked;
+
+            if (!parent::save($data)) {
+                TransactionState::rollBackLevel(db: $db);
+
+                return false;
+            }
+
+            $currentId = (int) ($data['id'] ?? 0) > 0 ? (int) $data['id'] : (int) $this->getState($this->getName() . '.id');
+
             // MULTILINGUAL: persist per-language translations (name, description).
             // Shipments are not URL-routed, so there is no alias slug.
             MultilingualHelper::saveMultilingualData(
@@ -312,7 +323,7 @@ class ShipmentModel extends AlfaAdminModel
                 false,
             );
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             throw $e;

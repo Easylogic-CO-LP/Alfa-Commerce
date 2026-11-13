@@ -359,8 +359,9 @@ class IntegrityHelper
      * (group `com_alfa.integrity`, 24h) exactly like CategoryHelper, so repeated
      * reads cost nothing and the real check (CDN fetch + hashing) runs at most once
      * per day, and only when something asks (it's fetched async after page load, so
-     * even the refresh never blocks a page). The Security tab calls
-     * verifyAgainstOfficial() directly for a FRESH result and then clears this cache.
+     * even the refresh never blocks a page). The Tools page shows this cached
+     * verdict with the time it was checked; its Recheck button drops the cache
+     * (ToolsController), and the next read runs the check again.
      *
      * @return array Same shape as {@see self::verifyAgainstOfficial()}.
      *
