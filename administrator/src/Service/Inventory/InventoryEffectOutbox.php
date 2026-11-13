@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Service\Document\StockBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -98,13 +99,15 @@ final class InventoryEffectOutbox
     public const STALE_CLAIM_SECONDS = 300;
 
     /**
-     * How many times a failed movement is tried before it waits for staff: the task engine's cap, a try for each step
-     * of its retry ladder (2.2.1). A movement at the cap is no longer claimed; its order's or document's notice
-     * says so, and Apply outstanding stock movements in Tools, or a new status of its order, tries it again.
+     * How many times a failed movement is tried before it waits for staff, spaced as the task engine spaces the retries
+     * of a single (2.2.1): tried at once, then once after each wait of {@see Tasks::BACKOFF_SECONDS} (1 minute to
+     * 24 hours, about 33 hours in all), counted from its last failure. A movement at the cap is no longer claimed; its
+     * order's or document's notice says so, and Apply outstanding stock movements in Tools, or a new status of its
+     * order, tries it again.
      *
      * @since  2.2.1
      */
-    public const MAX_ATTEMPTS = 6;
+    public const MAX_ATTEMPTS = 7;
 
     /**
      * The notice raised for owed movements nothing has announced: a request that was
@@ -1351,9 +1354,10 @@ final class InventoryEffectOutbox
 
     /**
      * The one definition of "claimable": pending, failed below the cap
-     * ({@see self::MAX_ATTEMPTS}), or claimed longer ago than the stale window.
-     * {@see self::claim()} puts it inside its conditional UPDATE: that one statement is
-     * the concurrency guard.
+     * ({@see self::MAX_ATTEMPTS}) once the wait of its step of the task engine's
+     * ladder has passed since its last failure ({@see self::retryWait()}), or
+     * claimed longer ago than the stale window. {@see self::claim()} puts it
+     * inside its conditional UPDATE: that one statement is the concurrency guard.
      *
      * @param object $db Database driver.
      * @param int $staleSeconds Age after which a claim counts as abandoned.
@@ -1366,15 +1370,38 @@ final class InventoryEffectOutbox
     {
         return '(' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_PENDING)
             . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED)
-            . ' AND ' . $db->quoteName('attempts') . ' < ' . self::MAX_ATTEMPTS . ')'
+            . ' AND ' . $db->quoteName('attempts') . ' < ' . self::MAX_ATTEMPTS
+            . ' AND ' . $db->quoteName('modified') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . self::retryWait($db) . ' SECOND))'
             . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_CLAIMED)
             . ' AND ' . $db->quoteName('claimed_at') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL '
             . max(0, $staleSeconds) . ' SECOND)))';
     }
 
     /**
+     * The wait before a failed obligation is tried again, by how many tries it has had: none for one staff opened
+     * again (no tries), else the step of {@see Tasks::BACKOFF_SECONDS} its tries have reached, as the task engine
+     * waits before its retries of a single.
+     *
+     * @param object $db Database driver.
+     *
+     * @return string SQL expression, in seconds.
+     *
+     * @since  2.2.1
+     */
+    private static function retryWait(object $db): string
+    {
+        $steps = ' WHEN 0 THEN 0';
+
+        foreach (Tasks::BACKOFF_SECONDS as $index => $seconds) {
+            $steps .= ' WHEN ' . ($index + 1) . ' THEN ' . (int) $seconds;
+        }
+
+        return '(CASE ' . $db->quoteName('attempts') . $steps . ' ELSE ' . (int) Tasks::BACKOFF_SECONDS[\count(Tasks::BACKOFF_SECONDS) - 1] . ' END)';
+    }
+
+    /**
      * A failed obligation tried as many times as the cap allows: no drain claims it until staff ask for it again
-     * ({@see self::reopenExhausted()}) or its producer re-states it.
+     * ({@see self::reopenFailed()}) or its producer re-states it.
      *
      * @param object $db Database driver.
      *
@@ -1389,14 +1416,14 @@ final class InventoryEffectOutbox
     }
 
     /**
-     * Staff asked for the owed stock movements to be applied (Tools > Database Sync): the failed ones that reached
-     * the cap are tried again, each with a full set of tries.
+     * Staff asked for the owed stock movements to be applied (Tools > Database Sync): every failed one is tried now,
+     * whether it waits for its next step of the ladder or reached the cap, each with a full set of tries again.
      *
      * @return int How many were opened again.
      *
      * @since  2.2.1
      */
-    public static function reopenExhausted(): int
+    public static function reopenFailed(): int
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
 
@@ -1404,7 +1431,7 @@ final class InventoryEffectOutbox
             'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' SET ' . $db->quoteName('attempts') . ' = 0'
             . ', ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP()'
-            . ' WHERE ' . self::exhaustedWhere($db),
+            . ' WHERE ' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED),
         );
         $db->execute();
 

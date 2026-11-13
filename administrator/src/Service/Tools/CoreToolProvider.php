@@ -424,8 +424,8 @@ final class CoreToolProvider
         try {
             if ($event->isPlanning()) {
                 $joined = self::activeJob(scope: StockEffectsDrainJob::NAME) !== null;
-                // Staff asked: the movements that had their last automatic try are tried again (2.2.1).
-                InventoryEffectOutbox::reopenExhausted();
+                // Staff asked: every failed movement is tried now, those waiting for their next automatic try included (2.2.1).
+                InventoryEffectOutbox::reopenFailed();
                 StockEffectsDrainJob::enqueue();
                 $event->setTotal(max(1, InventoryEffectOutbox::outstandingCount()));
                 self::followJob(event: $event, scope: StockEffectsDrainJob::NAME, joined: $joined);
