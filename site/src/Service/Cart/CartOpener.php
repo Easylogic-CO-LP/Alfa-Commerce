@@ -75,6 +75,9 @@ final class CartOpener
 
         $messaging = new CartMessaging($app);
         $configuration = new CartLineConfiguration($repository);
+
+        // Where the cart is delivered: one binding for its goods and its carriage (2.2.1).
+        $delivery = new DeliveryBinding();
         $hydrator = new CartHydrator(
             $repository,
             new CartItemLoader($db),
@@ -82,6 +85,7 @@ final class CartOpener
             new CartLinePresenter($subject->customer()),
             $messaging,
             $app->bootComponent('com_alfa')->getMVCFactory(),
+            $delivery,
         );
         $plugins = new CartPluginDispatch($app);
         $rows = null;
@@ -91,6 +95,10 @@ final class CartOpener
             static fn (): HydratedCart => $hydrator->current(),
             static function () use (&$rows): void {
                 $rows->touch();
+            },
+            $delivery,
+            static function () use ($hydrator): void {
+                $hydrator->reprice();
             },
         );
         $rows = new CartRowWriter($repository, $hydrator, $computation, $messaging, $keys);
@@ -107,6 +115,15 @@ final class CartOpener
         // The lines adoption moved are held to this cart's rules BEFORE the
         // cart is read, so what is read is what the rules left.
         $hydrator->begin($identity, $subject);
+
+        // ON THE STOREFRONT THE CART IS DELIVERED WHERE THE CHECKOUT SAYS (2.2.1): the place typed in this checkout,
+        // else a signed-in customer's saved address the checkout fills in, bound before the cart is read so its goods
+        // and its carriage are priced there on every page that shows the cart (the cart page, its re-renders, the
+        // cart module and the placement). A request that binds a place of its own (the checkout form, the submission)
+        // binds over it. Staff placing for a customer bind the place the order builder names.
+        if (!$subject->isOperatorPlacement() && $app->isClient('site')) {
+            $computation->bindDeliveryPlace(CheckoutAddress::place(userId: $subject->customerId()));
+        }
 
         if ($identity->adoption->needsReclamp()) {
             $lines->reclamp($identity->adoption->movedLines);
