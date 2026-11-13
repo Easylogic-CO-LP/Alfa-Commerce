@@ -35,6 +35,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use RuntimeException;
 use Throwable;
+use WeakMap;
 
 /**
  * The inventory kernel: the only writer of stock.
@@ -286,8 +287,14 @@ final class InventoryService
     /** @var int|null Cached default location id. */
     private ?int $defaultLocation = null;
 
-    /** @var array|null Memoised allocation provider chain. */
-    private ?array $allocationChain = null;
+    /**
+     * The collected allocation provider chain of each connection, for the request (2.2.1): every InventoryService of
+     * the request shares it, so onCollectStockAllocationProviders is raised once however many service objects the
+     * callers build.
+     *
+     * @var WeakMap<\Joomla\Database\DatabaseInterface, array<int, array{provider: object, element: string, priority: int}>>|null
+     */
+    private static ?WeakMap $allocationChains = null;
 
     /**
      * Resolved unit policies, keyed "itemId|combinationId".
@@ -487,6 +494,7 @@ final class InventoryService
                         sourceType: $sourceType,
                         sourceId: $sourceId,
                         additive: $additive,
+                        context: $context,
                     );
 
                     if ($first !== null) {
@@ -538,7 +546,7 @@ final class InventoryService
 
                     // A line whose unit got its first records where the units were
                     // taken is placed by the allocation they were made for.
-                    foreach ($allocations[$key] ?? $this->allocate(unit: $unit, quantity: $quantity) as $locationId => $locationQty) {
+                    foreach ($allocations[$key] ?? $this->allocate(unit: $unit, quantity: $quantity, context: $context) as $locationId => $locationQty) {
                         $stock = $this->lockStockRow(
                             itemId: $unit['item'],
                             combinationId: $unit['combination'],
@@ -629,6 +637,7 @@ final class InventoryService
      * @param string $sourceType The reserving domain.
      * @param int $sourceId Its source row.
      * @param bool $additive Whether the reserve adds to existing reservations.
+     * @param InventoryContext $context The reserve's context, handed to the allocation providers.
      *
      * @return array{key: int|string, line_id: ?int, allocation: array<int, float>}|null
      *
@@ -642,6 +651,7 @@ final class InventoryService
         string $sourceType,
         int $sourceId,
         bool $additive,
+        InventoryContext $context,
     ): ?array {
         if ($this->unitRecordNames(unit: $unit) !== [] || $this->ledgerDefect(unit: $unit) !== null) {
             return null;
@@ -661,7 +671,7 @@ final class InventoryService
             }
 
             try {
-                return ['key' => $key, 'line_id' => $lineId, 'allocation' => $this->allocate(unit: $unit, quantity: $quantity)];
+                return ['key' => $key, 'line_id' => $lineId, 'allocation' => $this->allocate(unit: $unit, quantity: $quantity, context: $context)];
             } catch (AllocationRefusedException) {
                 return null;
             }
@@ -5409,15 +5419,20 @@ final class InventoryService
      * asked quantity; anything else is discarded with a warning, never
      * trusted.
      *
+     * @param array $unit The unit.
+     * @param float $quantity The quantity to place.
+     * @param InventoryContext $context The command's context (who, why, which correlation), as the provider's
+     *                                  contract says (2.2.1: 2.2.0 handed every provider an empty one).
+     *
      * @return array<int, float> locationId => quantity
      *
      * @since  2.0.0
      */
-    private function allocate(array $unit, float $quantity): array
+    private function allocate(array $unit, float $quantity, InventoryContext $context): array
     {
         foreach ($this->allocationProviders() as $entry) {
             try {
-                $answer = $entry['provider']->allocate($unit, $quantity, new InventoryContext());
+                $answer = $entry['provider']->allocate($unit, $quantity, $context);
             } catch (AllocationRefusedException $e) {
                 // A deliberate refusal is a business rule, not a failure:
                 // it propagates; the default location never silently
@@ -5635,7 +5650,8 @@ final class InventoryService
 
     /**
      * The collected allocation provider chain, priority-ordered
-     * (highest first), memoised per request.
+     * (highest first), memoised per request: collected once for the
+     * connection, whichever service object asks first (2.2.1).
      *
      * @return array<int, array{provider: object, element: string, priority: int}>
      *
@@ -5643,8 +5659,10 @@ final class InventoryService
      */
     private function allocationProviders(): array
     {
-        if ($this->allocationChain !== null) {
-            return $this->allocationChain;
+        self::$allocationChains ??= new WeakMap();
+
+        if (isset(self::$allocationChains[$this->db])) {
+            return self::$allocationChains[$this->db];
         }
 
         $event = new \Alfa\Component\Alfa\Administrator\Event\Inventory\CollectStockAllocationProvidersEvent(
@@ -5671,7 +5689,20 @@ final class InventoryService
         $chain = $event->getProviders();
         usort($chain, static fn (array $a, array $b): int => $b['priority'] <=> $a['priority']);
 
-        return $this->allocationChain = $chain;
+        self::$allocationChains[$this->db] = $chain;
+
+        return $chain;
+    }
+
+    /**
+     * Forget the collected allocation provider chains, so the next allocation collects them again: for a process that
+     * enables or disables an allocation provider and goes on allocating in the same request (the test harness's seam).
+     *
+     * @since  2.2.1
+     */
+    public static function forgetAllocationProviders(): void
+    {
+        self::$allocationChains = null;
     }
 
     /**
