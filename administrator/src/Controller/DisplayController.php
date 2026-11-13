@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
@@ -63,10 +64,10 @@ class DisplayController extends BaseController
      */
     private function refuseUnheldRecord(): bool
     {
-        $view = strtolower((string) $this->input->getCmd('view', $this->default_view));
-        $layout = $this->input->get('layout', '', 'string');
+        $view = strtolower((string) RequestScalar::cmd($this->input, 'view', $this->default_view));
+        $layout = RequestScalar::string($this->input, 'layout');
 
-        if (!AlfaHelper::isRecordForm(view: $view, layout: \is_string($layout) ? $layout : '')) {
+        if (!AlfaHelper::isRecordForm(view: $view, layout: $layout)) {
             return false;
         }
 

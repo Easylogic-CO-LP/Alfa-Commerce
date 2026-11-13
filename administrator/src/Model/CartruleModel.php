@@ -127,7 +127,7 @@ class CartruleModel extends AlfaAdminModel
         // The form filter drops the per-language keys (name_en_gb, ...) because
         // they are not declared fields; this puts them back, cleaned like their
         // base field.
-        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
+        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
         // Alfa's before-save is asked before the transaction (2.1.4, design 0.2). Joomla's onContentBeforeSave runs

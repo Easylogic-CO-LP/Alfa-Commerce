@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Controller\DisplayController;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
@@ -59,7 +60,7 @@ class Dispatcher extends ComponentDispatcher
         if (MaintenanceState::active()) {
             if (!$this->isMaintenanceRequest()) {
                 if (
-                    $this->input->getCmd('format', 'html') === 'html'
+                    RequestScalar::cmd($this->input, 'format', 'html') === 'html'
                     && FactoryReset::permitted(user: $this->app->getIdentity())
                 ) {
                     $this->app->redirect(Route::_('index.php?option=com_alfa&view=cleardata', false));
@@ -90,7 +91,7 @@ class Dispatcher extends ComponentDispatcher
         // card or overriding the notification layout still can't hide tampering.
         try {
             if (
-                $this->input->getCmd('format', 'html') === 'html'
+                RequestScalar::cmd($this->input, 'format', 'html') === 'html'
                 && SyncHelper::hasIntegrityAlarm()
             ) {
                 // No language string (can't be silenced by a language override): the text is
@@ -113,7 +114,7 @@ class Dispatcher extends ComponentDispatcher
         try {
             if (
                 $this->app->isClient('administrator')
-                && $this->input->getCmd('format', 'html') === 'html'
+                && RequestScalar::cmd($this->input, 'format', 'html') === 'html'
             ) {
                 SetupHelper::sync();
             }
@@ -128,11 +129,11 @@ class Dispatcher extends ComponentDispatcher
         // (StoreProtection::current()); never on the storefront. A task request is left alone, so
         // the page it redirects to says it once.
         try {
-            $task = strtolower($this->input->getCmd('task', ''));
+            $task = strtolower(RequestScalar::cmd($this->input, 'task'));
 
             if (
                 $this->app->isClient('administrator')
-                && $this->input->getCmd('format', 'html') === 'html'
+                && RequestScalar::cmd($this->input, 'format', 'html') === 'html'
                 && ($task === '' || $task === 'display' || str_ends_with($task, '.display'))
                 && StoreProtection::isOn()
                 && StoreProtection::hasFiles()
@@ -155,7 +156,7 @@ class Dispatcher extends ComponentDispatcher
         try {
             if (
                 $this->app->isClient('administrator')
-                && $this->input->getCmd('format', 'html') === 'html'
+                && RequestScalar::cmd($this->input, 'format', 'html') === 'html'
                 && AlfaPluginHelper::get()->isAvailable(PluginId::from('system', 'guidedtours'))
             ) {
                 TourHelper::attachGrammar($this->app->getDocument());
@@ -181,11 +182,11 @@ class Dispatcher extends ComponentDispatcher
     private function warnSyncPluginOff(): void
     {
         try {
-            $task = strtolower($this->input->getCmd('task', ''));
+            $task = strtolower(RequestScalar::cmd($this->input, 'task'));
 
             if (
                 !$this->app->isClient('administrator')
-                || $this->input->getCmd('format', 'html') !== 'html'
+                || RequestScalar::cmd($this->input, 'format', 'html') !== 'html'
                 || ($task !== '' && $task !== 'display' && !str_ends_with($task, '.display'))
             ) {
                 return;
@@ -252,7 +253,7 @@ class Dispatcher extends ComponentDispatcher
             return $controller;
         }
 
-        $task = strtolower($this->input->getCmd('task', 'display'));
+        $task = strtolower(RequestScalar::cmd($this->input, 'task', 'display'));
 
         [$taskMap, $defaultView] = (fn (): array => [$this->taskMap, (string) $this->default_view])->call($controller);
 
@@ -262,19 +263,19 @@ class Dispatcher extends ComponentDispatcher
         }
 
         // BaseController::display(): the request's view, else the controller's default view.
-        $view = $this->input->get('view', $defaultView);
+        $view = RequestScalar::cmd($this->input, 'view', $defaultView);
 
-        if (!\is_string($view) || !$this->mayOpen(view: strtolower($view))) {
+        if (!$this->mayOpen(view: strtolower($view))) {
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
         // A record's form is rendered only by the display controller, which refuses an id the edit task
         // did not hold; another controller's display would render it past that check.
-        $layout = $this->input->get('layout', '', 'string');
+        $layout = RequestScalar::string($this->input, 'layout');
 
         if (
             !$controller instanceof DisplayController
-            && AlfaHelper::isRecordForm(view: strtolower($view), layout: \is_string($layout) ? $layout : '')
+            && AlfaHelper::isRecordForm(view: strtolower($view), layout: $layout)
             && AlfaHelper::recordId(view: strtolower($view), input: $this->input) > 0
         ) {
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
@@ -292,15 +293,15 @@ class Dispatcher extends ComponentDispatcher
      */
     private function isMaintenanceRequest(): bool
     {
-        $command = strtolower($this->input->getCmd('task', ''));
+        $command = strtolower(RequestScalar::cmd($this->input, 'task'));
 
         if (str_contains($command, '.')) {
             return \in_array($command, ['cleardata.run', 'cleardata.retry', 'cleardata.proceed', 'cleardata.resume'], true);
         }
 
         return ($command === '' || $command === 'display')
-            && strtolower($this->input->getCmd('view', '')) === 'cleardata'
-            && strtolower($this->input->getCmd('controller', '')) === '';
+            && strtolower(RequestScalar::cmd($this->input, 'view')) === 'cleardata'
+            && strtolower(RequestScalar::cmd($this->input, 'controller')) === '';
     }
 
     /**
@@ -327,12 +328,12 @@ class Dispatcher extends ComponentDispatcher
             return;
         }
 
-        $command = $this->input->getCmd('task', 'display');
+        $command = RequestScalar::cmd($this->input, 'task', 'display');
 
         if (str_contains($command, '.')) {
             [$controller, $task] = explode('.', $command);
         } else {
-            $controller = $this->input->getCmd('controller', 'display');
+            $controller = RequestScalar::cmd($this->input, 'controller', 'display');
             $task = $command;
         }
 
@@ -342,7 +343,7 @@ class Dispatcher extends ComponentDispatcher
 
         // A controller's default view is its own name; the display controller's is the dashboard.
         $controller = strtolower($controller);
-        $view = strtolower($this->input->getCmd('view', '') ?: ($controller === 'display' ? 'dashboard' : $controller));
+        $view = strtolower(RequestScalar::cmd($this->input, 'view') ?: ($controller === 'display' ? 'dashboard' : $controller));
 
         if (!$this->mayOpen(view: $view)) {
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
@@ -366,11 +367,11 @@ class Dispatcher extends ComponentDispatcher
         }
 
         // Read as BaseController::display() reads it: a string, so a template:layout pair survives.
-        $layout = $this->input->get('layout', '', 'string');
+        $layout = RequestScalar::string($this->input, 'layout');
 
         return AlfaHelper::mayOpenScreen(
             view: $view,
-            layout: \is_string($layout) ? $layout : '',
+            layout: $layout,
             id: AlfaHelper::recordId(view: $view, input: $this->input),
             user: $this->app->getIdentity(),
         );

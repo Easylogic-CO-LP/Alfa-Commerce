@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -92,7 +93,7 @@ class HtmlView extends BaseHtmlView
         $permissions = ActionRegistry::actionPagePermissions($app->getInput());
 
         if ($permissions === null) {
-            throw new RuntimeException('Unsupported action group: ' . $app->getInput()->getCmd('group', ''), 400);
+            throw new RuntimeException('Unsupported action group: ' . RequestScalar::cmd($app->getInput(), 'group'), 400);
         }
 
         foreach ($permissions as $permission) {
@@ -125,13 +126,13 @@ class HtmlView extends BaseHtmlView
         // item field's follow-up runs on the row its popup was opened for.
         $input = $app->getInput();
         $app->getDocument()->addScriptOptions('alfa.action.context', [
-            'group' => $input->getCmd('group', ''),
-            'payment_id' => $input->getInt('payment_id', 0),
-            'shipment_id' => $input->getInt('shipment_id', 0),
-            'field_id' => $input->getInt('field_id', 0),
-            'scope' => $input->getCmd('scope', ''),
-            'scope_id' => $input->getInt('scope_id', 0),
-            'item_id' => $input->getInt('item_id', 0),
+            'group' => RequestScalar::cmd($input, 'group'),
+            'payment_id' => RequestScalar::int($input, 'payment_id'),
+            'shipment_id' => RequestScalar::int($input, 'shipment_id'),
+            'field_id' => RequestScalar::int($input, 'field_id'),
+            'scope' => RequestScalar::cmd($input, 'scope'),
+            'scope_id' => RequestScalar::int($input, 'scope_id'),
+            'item_id' => RequestScalar::int($input, 'item_id'),
             'token' => \Joomla\CMS\Session\Session::getFormToken(),
         ]);
 

@@ -113,7 +113,7 @@ class DocumentPositionsField extends EditorField
         $posted = KeptPost::forRecord(stateKey: self::EDIT_STATE_KEY, recordId: (int) $this->form->getValue('id', null));
 
         if (empty($posted)) {
-            $posted = (array) $app->getInput()->post->get('jform', [], 'raw');
+            $posted = (array) $app->getInput()->post->get('jform', [], 'array');
         }
 
         $perLang = [];

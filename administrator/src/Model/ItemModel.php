@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
@@ -662,7 +663,7 @@ class ItemModel extends AlfaAdminModel
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = $input->post->get('jform', [], 'raw');
+        $rawData = $input->post->get('jform', [], 'array');
         $form = $this->getForm(data: $data, loadData: false) ?: null;
         $data = MultilingualHelper::mergeValidatedFormData(validated: $data, raw: $rawData, form: $form);
 
@@ -839,12 +840,12 @@ class ItemModel extends AlfaAdminModel
         // URL ALIASES, judged before anything is written: a save that would put this product
         // on another one's address in any language is refused; an address it already shared
         // is kept and said after the save. A copy takes its own aliases, generated.
-        if ($input->get('task') === 'save2copy') {
+        if (RequestScalar::cmd($input, 'task') === 'save2copy') {
             $data = MultilingualHelper::releaseCopiedAliases(
                 data:              $data,
                 tableName:         '#__alfa_items',
                 primaryColumnName: 'id_item',
-                originalId:        $input->getInt('id'),
+                originalId:        RequestScalar::int($input, 'id'),
                 aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
             );
         }
@@ -866,8 +867,13 @@ class ItemModel extends AlfaAdminModel
             $data['projection_dirty_at'] = ProjectionManager::markNow();
         }
 
-        // Alfa's before-save is asked before the item's lock and transaction (2.1.4, design 0.2): no plugin code runs
-        // under them. The language tables the save writes are made before the transaction too: DDL commits implicitly.
+        // Alfa's before-save is asked before the item's lock and transaction (2.1.4, design 0.2), so its listeners run
+        // under neither. Plugin code still runs inside the transaction: Joomla's onContentBeforeSave (in
+        // AdminModel::save()), Joomla's Table events and the media plugins' events of the image writes
+        // (onAlfaMediaValidate, onAlfaMediaBeforeProcess, onAlfaMediaAfterProcess). What such a listener writes on this
+        // connection is rolled back with a save that fails, and the listener is not told; what it writes elsewhere (a
+        // file, another service) stays. The language tables the save writes are made before the transaction too: DDL
+        // commits implicitly.
         $asked = $this->alfaAskSave(data: $data);
 
         if ($asked === null) {

@@ -53,7 +53,7 @@ class ItemsController extends AdminController
     {
         $this->checkToken();
 
-        $cid = array_filter((array) $this->input->get(name: 'cid', default: [], filter: 'int'));
+        $cid = array_filter(array_map('intval', $this->input->get('cid', [], 'array')));
         $value = self::STATE_TASKS[$this->getTask()] ?? 0;
 
         $this->setRedirect(url: $this->getRedirectUrlToList());

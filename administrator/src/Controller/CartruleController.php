@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -81,8 +82,8 @@ class CartruleController extends FormController
         }
 
         $input = $app->getInput();
-        $type = (string) $input->getCmd('type', 'categories');
-        $term = (string) $input->getString('term', '');
+        $type = (string) RequestScalar::cmd($input, 'type', 'categories');
+        $term = (string) RequestScalar::string($input, 'term');
 
         // The condition types are a closed set; anything else is a probe.
         $models = ['items' => 'items', 'categories' => 'categories', 'manufacturers' => 'manufacturers'];

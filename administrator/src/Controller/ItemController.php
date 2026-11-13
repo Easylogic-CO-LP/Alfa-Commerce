@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -123,7 +124,7 @@ class ItemController extends FormController
      */
     protected function preSaveHook(BaseDatabaseModel $model, array $validData = []): array
     {
-        $raw = $this->input->post->get('jform', [], 'raw');
+        $raw = $this->input->post->get('jform', [], 'array');
 
         foreach (self::STOCK_EDITOR_KEYS as $key) {
             if (\is_array($raw) && \array_key_exists($key, $raw)) {
@@ -187,8 +188,8 @@ class ItemController extends FormController
         try {
             $this->assertInlineAuthorised();
 
-            $id = $this->input->getInt('id', 0);
-            $field = $this->input->getCmd('element', '');
+            $id = RequestScalar::int($this->input, 'id');
+            $field = RequestScalar::cmd($this->input, 'element');
 
             if ($id <= 0 || !\in_array($field, self::INLINE_FIELDS, true)) {
                 throw new RuntimeException(Text::_('COM_ALFA_INLINE_UNSUPPORTED_FIELD'));
@@ -941,7 +942,7 @@ class ItemController extends FormController
             $valuesByField[(int) $fieldId] = array_map('intval', (array) $valueIds);
         }
 
-        $itemId = $this->input->getInt('id', 0);
+        $itemId = RequestScalar::int($this->input, 'id');
 
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();
@@ -1004,8 +1005,8 @@ class ItemController extends FormController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $itemId = $this->input->getInt('id', 0);
-        $type = $this->input->getCmd('type', 'generator');
+        $itemId = RequestScalar::int($this->input, 'id');
+        $type = RequestScalar::cmd($this->input, 'type', 'generator');
 
         $fields = ItemFieldsAdminHelper::getFieldsPopupData(
             itemId: $itemId,
@@ -1046,7 +1047,7 @@ class ItemController extends FormController
             ],
             'visibility' => ItemFieldsAdminHelper::getShowonPopupData(
                 itemId: $itemId,
-                fieldId: $this->input->getInt('field_id', 0),
+                fieldId: RequestScalar::int($this->input, 'field_id'),
             ) ?? ['field' => null, 'itemId' => $itemId, 'rule' => ''],
             default => [
                 'choiceFields' => $liveChoiceFields,
@@ -1087,7 +1088,7 @@ class ItemController extends FormController
         }
 
         // Whitelist: studio/*.js by a safe relative name; no traversal, no other tree.
-        $file = (string) $app->getInput()->getCmd('file', '');
+        $file = (string) RequestScalar::cmd($app->getInput(), 'file');
         $base = JPATH_ROOT . '/media/plg_alfa-item-fields_configurator3d/js/studio/';
         $path = ($file !== '' && preg_match('#^[a-z0-9][a-z0-9/_-]*$#i', $file) && strpos($file, '..') === false)
             ? realpath($base . $file . '.js')
@@ -1132,8 +1133,8 @@ class ItemController extends FormController
         // action carries FILES (e.g. the configurator's asset upload): then the
         // fields arrive as regular POST vars and the files via the input.
         $json = json_decode(file_get_contents('php://input'), true) ?: [];
-        $fieldId = (int) ($json['id'] ?? $app->getInput()->getInt('id', 0));
-        $action = (string) ($json['action'] ?? $app->getInput()->getString('action', ''));
+        $fieldId = (int) ($json['id'] ?? RequestScalar::int($app->getInput(), 'id'));
+        $action = (string) ($json['action'] ?? RequestScalar::string($app->getInput(), 'action'));
         $data = (array) ($json['data'] ?? $app->getInput()->post->get('data', [], 'array'));
 
         try {
@@ -1239,7 +1240,7 @@ class ItemController extends FormController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $itemId = $this->input->getInt('id', 0);
+        $itemId = RequestScalar::int($this->input, 'id');
 
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();
@@ -1290,7 +1291,7 @@ class ItemController extends FormController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $itemId = $this->input->getInt('id', 0);
+        $itemId = RequestScalar::int($this->input, 'id');
 
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();
@@ -1342,8 +1343,8 @@ class ItemController extends FormController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $itemId = $this->input->getInt('id', 0);
-        $fieldId = $this->input->getInt('field_id', 0);
+        $itemId = RequestScalar::int($this->input, 'id');
+        $fieldId = RequestScalar::int($this->input, 'field_id');
 
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();
@@ -1352,7 +1353,7 @@ class ItemController extends FormController
             $saved = ItemFieldsAdminHelper::saveItemShowon(
                 itemId: $itemId,
                 fieldId: $fieldId,
-                rule: (string) $this->input->get('showon', '', 'raw'),
+                rule: (string) RequestScalar::read($this->input, 'showon', '', 'raw'),
             );
 
             // Return the new inline display (state + human summary) so the editor swaps
@@ -1438,7 +1439,7 @@ class ItemController extends FormController
         $this->checkToken();
 
         $app = Factory::getApplication();
-        $itemId = $this->input->getInt('id', 0);
+        $itemId = RequestScalar::int($this->input, 'id');
 
         // The screen's own permission: a product not saved yet is being created, a saved one edited.
         if (!AlfaHelper::can(section: 'items', action: $itemId > 0 ? 'edit' : 'create', user: $app->getIdentity())) {
@@ -1452,7 +1453,7 @@ class ItemController extends FormController
             || $this->input->exists('categories')
             || $this->input->exists('manufacturers');
         $unsaved = !$formContext ? null : UnsavedItem::fromForm(
-            defaultCategory: $this->input->getString('id_category_default', ''),
+            defaultCategory: RequestScalar::string($this->input, 'id_category_default'),
             categories: $this->input->get('categories', [], 'array'),
             manufacturers: $this->input->get('manufacturers', [], 'array'),
             itemId: max(0, $itemId),
@@ -1467,12 +1468,12 @@ class ItemController extends FormController
                 $preview = \Alfa\Component\Alfa\Administrator\Field\AlfapricesField::rowPreview(
                     itemId: $itemId,
                     row: [
-                        'currency_id' => $this->input->getInt('currency_id', 0),
-                        'country_id' => $this->input->getInt('country_id', 0),
-                        'usergroup_id' => $this->input->getInt('usergroup_id', 0),
-                        'user_id' => $this->input->getInt('user_id', 0),
-                        'quantity_start' => $this->input->getString('quantity_start', ''),
-                        'quantity_end' => $this->input->getString('quantity_end', ''),
+                        'currency_id' => RequestScalar::int($this->input, 'currency_id'),
+                        'country_id' => RequestScalar::int($this->input, 'country_id'),
+                        'usergroup_id' => RequestScalar::int($this->input, 'usergroup_id'),
+                        'user_id' => RequestScalar::int($this->input, 'user_id'),
+                        'quantity_start' => RequestScalar::string($this->input, 'quantity_start'),
+                        'quantity_end' => RequestScalar::string($this->input, 'quantity_end'),
                     ],
                     unsaved: $unsaved,
                 );
@@ -1535,15 +1536,15 @@ class ItemController extends FormController
         $this->checkToken();
 
         $app = Factory::getApplication();
-        $itemId = $this->input->getInt('id', 0);
-        $combinationId = $this->input->getInt('combination_id', 0);
+        $itemId = RequestScalar::int($this->input, 'id');
+        $combinationId = RequestScalar::int($this->input, 'combination_id');
 
         if (!AlfaHelper::can(section: 'items', action: 'edit', user: $app->getIdentity())) {
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
         // 'raw' keeps editor HTML and the per-language flat keys intact.
-        $jform = $this->input->post->get('jform', [], 'raw');
+        $jform = $this->input->post->get('jform', [], 'array');
         $row = (array) (($jform['combinations'] ?? [])[$combinationId] ?? []);
         $priceRows = (array) (($jform['combination_prices'] ?? [])[$combinationId] ?? []);
 

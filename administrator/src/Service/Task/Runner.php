@@ -437,9 +437,9 @@ final class Runner
     }
 
     /**
-     * A stock movement owed, pending or under a claim gone stale, with no drain job to apply it. A movement that failed
-     * waits for the bell's throttled check (InventoryEffectOutbox::syncNotice()), so a movement that always fails never
-     * keeps the pages kicking.
+     * A stock movement owed, pending or under a claim gone stale (which the drain settles as a failed try, 2.2.1), with
+     * no drain job to apply it. A movement that failed waits for the bell's throttled check
+     * (InventoryEffectOutbox::syncNotice()), so a movement that always fails never keeps the pages kicking.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -448,8 +448,7 @@ final class Runner
     private static function owedMovementWithoutDrain(DatabaseDriver $db): string
     {
         return '(' . $db->quoteName('status') . ' = ' . $db->quote(InventoryEffectOutbox::STATUS_PENDING)
-            . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(InventoryEffectOutbox::STATUS_CLAIMED)
-            . ' AND ' . $db->quoteName('claimed_at') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . InventoryEffectOutbox::STALE_CLAIM_SECONDS . ' SECOND)))'
+            . ' OR ' . InventoryEffectOutbox::abandonedClaimWhere($db) . ')'
             . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(Tasks::TABLE, 't')
             . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(Job\StockEffectsDrainJob::NAME)
             . ' AND ' . $db->quoteName('t.state') . ' IN (' . $db->quote(Tasks::STATE_PENDING) . ', ' . $db->quote(Tasks::STATE_RUNNING) . '))';

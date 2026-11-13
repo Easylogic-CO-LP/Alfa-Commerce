@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\EntityChangeNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RuleScopeGuard;
@@ -115,7 +116,7 @@ class ManufacturerModel extends AlfaAdminModel
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = $input->post->get('jform', [], 'raw');
+        $rawData = $input->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
         $pk = $data['id'] ?? (int) $this->getState($this->getName() . '.id');
@@ -129,12 +130,12 @@ class ManufacturerModel extends AlfaAdminModel
         // URL ALIASES, judged before anything is written: a save that would put this
         // manufacturer on another one's address in any language is refused; an address it
         // already shared is kept and said after the save. A copy takes its own aliases.
-        if ($input->get('task') === 'save2copy') {
+        if (RequestScalar::cmd($input, 'task') === 'save2copy') {
             $data = MultilingualHelper::releaseCopiedAliases(
                 data:              $data,
                 tableName:         '#__alfa_manufacturers',
                 primaryColumnName: 'id_manufacturer',
-                originalId:        $input->getInt('id'),
+                originalId:        RequestScalar::int($input, 'id'),
                 aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_manufacturers'],
             );
         }

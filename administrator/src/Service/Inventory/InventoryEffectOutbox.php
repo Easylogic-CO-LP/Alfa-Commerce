@@ -97,7 +97,11 @@ final class InventoryEffectOutbox
      */
     public const STATUS_REFUSED = 'refused';
 
-    /** A claim older than this is assumed to belong to a process that died. */
+    /**
+     * A claim older than this is assumed to belong to a process that died. A drain that meets one settles it as a failed
+     * try (2.2.1): its claim counted the try, and it is tried again under {@see self::MAX_ATTEMPTS} and the wait of its
+     * step, as any failure ({@see self::settleAbandoned()}).
+     */
     public const STALE_CLAIM_SECONDS = 300;
 
     /**
@@ -313,7 +317,11 @@ final class InventoryEffectOutbox
      * A failed obligation is claimed again until it has been tried
      * {@see self::MAX_ATTEMPTS} times. The pass that makes the last try names it
      * in 'exhausted' and raises its order's or document's notice saying that it
-     * waits for staff.
+     * waits for staff. A claim whose worker stopped before its verdict (older
+     * than the stale window) is settled as a failed try first, and goes on as
+     * one: tried again in this pass when the wait of its step has passed since
+     * that try began, and named in 'exhausted', with its notice, when that try
+     * was the last the cap allows (2.2.1).
      *
      * A fulfilment refused because other claims reserve the stock it needs is
      * settled 'failed' like every retryable failure. 'reservedFloor' carries
@@ -372,9 +380,15 @@ final class InventoryEffectOutbox
         $nested = TransactionState::isOpen(db: $db);
 
         foreach (self::candidates($db, $limit, $staleSeconds, $onlySourceId, $onlySourceType) as $row) {
+            // A claim whose worker stopped: its try failed without a verdict. Settled as a failed try, it is claimed
+            // below only when the cap and the wait allow, as any failed movement (2.2.1).
+            if ((string) $row->status === self::STATUS_CLAIMED && !self::settleAbandoned($db, $row, $staleSeconds, $summary)) {
+                continue;
+            }
+
             $token = bin2hex(random_bytes(16));
 
-            if (!self::claim($db, (int) $row->id, $token, $staleSeconds)) {
+            if (!self::claim($db, (int) $row->id, $token)) {
                 // Another worker took it between the read and the claim. That is
                 // the mechanism working, not a failure.
                 continue;
@@ -498,8 +512,8 @@ final class InventoryEffectOutbox
     }
 
     /**
-     * Obligations that are outstanding: never settled, or claimed by a worker
-     * that has not been heard from within the stale window.
+     * Obligations that are outstanding: claimable ({@see self::claimableWhere()}), or claimed by a worker that has
+     * not been heard from within the stale window, which the drain settles as a failed try first.
      *
      * @param object $db Database driver.
      * @param int $limit Batch size.
@@ -517,7 +531,7 @@ final class InventoryEffectOutbox
         int $onlySourceId,
         string $onlySourceType = '',
     ): array {
-        $where = self::claimableWhere($db, $staleSeconds);
+        $where = '(' . self::claimableWhere($db) . ' OR ' . self::abandonedClaimWhere($db, $staleSeconds) . ')';
 
         if ($onlySourceId > 0) {
             $where .= ' AND ' . $db->quoteName('source_id') . ' = ' . $onlySourceId;
@@ -551,13 +565,12 @@ final class InventoryEffectOutbox
      * @param object $db Database driver.
      * @param int $id The obligation.
      * @param string $token This worker's claim token.
-     * @param int $staleSeconds Reclaim window.
      *
      * @return bool True when this worker owns the row.
      *
      * @since  2.0.0
      */
-    private static function claim(object $db, int $id, string $token, int $staleSeconds): bool
+    private static function claim(object $db, int $id, string $token): bool
     {
         $db->setQuery(
             'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
@@ -567,11 +580,74 @@ final class InventoryEffectOutbox
             . ', ' . $db->quoteName('attempts') . ' = ' . $db->quoteName('attempts') . ' + 1'
             . ', ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP()'
             . ' WHERE ' . $db->quoteName('id') . ' = ' . $id
-            . ' AND ' . self::claimableWhere($db, $staleSeconds),
+            . ' AND ' . self::claimableWhere($db),
         );
         $db->execute();
 
         return $db->getAffectedRows() === 1;
+    }
+
+    /**
+     * Settle a claim whose worker stopped before its verdict (a fatal error, a killed process) as a failed try
+     * (2.2.1). Its claim counted the try, so it becomes a failed movement like any other: tried again once the wait
+     * of its step of the ladder has passed since that try began, and below {@see self::MAX_ATTEMPTS} only. Before,
+     * it was claimed again every {@see self::STALE_CLAIM_SECONDS} with no limit. One that reaches the cap this way
+     * waits for staff, and its order's or document's notice says so, as for a movement whose last try failed. The
+     * claim's token is part of the condition: of two drains that meet the same claim, one settles it, and a worker
+     * that was only slow cannot settle it afterwards.
+     *
+     * @param object $db Database driver.
+     * @param object $row The obligation, as the drain read it.
+     * @param int $staleSeconds Age after which a claim counts as abandoned.
+     * @param array $summary The drain's summary; 'exhausted' names a movement whose stopped try was its last.
+     *
+     * @return bool True when this drain settled it.
+     *
+     * @since  2.2.1
+     */
+    private static function settleAbandoned(object $db, object $row, int $staleSeconds, array &$summary): bool
+    {
+        $error = 'Its worker stopped before a verdict (claimed at ' . $row->claimed_at . ' UTC).';
+
+        $db->setQuery(
+            'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
+            . ' SET ' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED)
+            . ', ' . $db->quoteName('claim_token') . ' = NULL'
+            . ', ' . $db->quoteName('last_error') . ' = ' . $db->quote($error)
+            . ', ' . $db->quoteName('modified') . ' = ' . $db->quoteName('claimed_at')
+            . ' WHERE ' . $db->quoteName('id') . ' = ' . (int) $row->id
+            . ' AND ' . $db->quoteName('claim_token') . ' = ' . $db->quote((string) $row->claim_token)
+            . ' AND ' . self::abandonedClaimWhere($db, $staleSeconds),
+        );
+        $db->execute();
+
+        if ($db->getAffectedRows() !== 1) {
+            return false;
+        }
+
+        $exhausted = (int) $row->attempts >= self::MAX_ATTEMPTS;
+
+        if ($exhausted) {
+            $summary['exhausted'][(int) $row->source_id] = true;
+
+            self::announceRefusal(
+                row:             $row,
+                reason:          NotificationText::key('COM_ALFA_NOTIFY_STOCK_WORKER_STOPPED'),
+                orderMessage:    'COM_ALFA_NOTIFY_STOCK_ORDER_EXHAUSTED_MSG',
+                documentMessage: 'COM_ALFA_NOTIFY_STOCK_DOCUMENT_EXHAUSTED_MSG',
+                terminal:        false,
+            );
+        }
+
+        Log::add(
+            entry:    'Inventory effect for ' . $row->source_type . ' #' . $row->source_id . ': ' . $error . ' Counted as a failed try ('
+                      . (int) $row->attempts . ' tried, ' . self::MAX_ATTEMPTS . ' automatically)'
+                      . ($exhausted ? ', so it waits for staff.' : ', so it is tried again after its wait.'),
+            priority: $exhausted ? Log::ERROR : Log::WARNING,
+            category: 'com_alfa.inventory',
+        );
+
+        return true;
     }
 
     /**
@@ -1249,7 +1325,8 @@ final class InventoryEffectOutbox
 
         $db->setQuery(
             'SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_inventory_effect_outbox')
-            . ' WHERE ' . self::claimableWhere($db, $staleSeconds ?? self::STALE_CLAIM_SECONDS),
+            . ' WHERE ' . self::claimableWhere($db)
+            . ' OR ' . self::abandonedClaimWhere($db, $staleSeconds ?? self::STALE_CLAIM_SECONDS),
         );
 
         return (int) $db->loadResult();
@@ -1496,28 +1573,45 @@ final class InventoryEffectOutbox
     }
 
     /**
-     * The one definition of "claimable": pending, failed below the cap
+     * The one definition of "claimable": pending, or failed below the cap
      * ({@see self::MAX_ATTEMPTS}) once the wait of its step of the task engine's
-     * ladder has passed since its last failure ({@see self::retryWait()}), or
-     * claimed longer ago than the stale window. {@see self::claim()} puts it
-     * inside its conditional UPDATE: that one statement is the concurrency guard.
+     * ladder has passed since its last failure ({@see self::retryWait()}).
+     * {@see self::claim()} puts it inside its conditional UPDATE: that one
+     * statement is the concurrency guard. A claim whose worker stopped is not
+     * claimable as it stands: the drain settles it as a failed try first
+     * ({@see self::settleAbandoned()}), so the cap and the wait hold for it too
+     * (2.2.1).
+     *
+     * @param object $db Database driver.
+     *
+     * @return string SQL condition.
+     *
+     * @since  2.0.0
+     */
+    private static function claimableWhere(object $db): string
+    {
+        return '(' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_PENDING)
+            . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED)
+            . ' AND ' . $db->quoteName('attempts') . ' < ' . self::MAX_ATTEMPTS
+            . ' AND ' . $db->quoteName('modified') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . self::retryWait($db) . ' SECOND)))';
+    }
+
+    /**
+     * The one definition of an abandoned claim: claimed longer ago than the stale window, so its worker is taken to
+     * have stopped. The drain settles it as a failed try ({@see self::settleAbandoned()}); the task runner owes a
+     * drain while one stands.
      *
      * @param object $db Database driver.
      * @param int $staleSeconds Age after which a claim counts as abandoned.
      *
      * @return string SQL condition.
      *
-     * @since  2.0.0
+     * @since  2.2.1
      */
-    private static function claimableWhere(object $db, int $staleSeconds): string
+    public static function abandonedClaimWhere(object $db, int $staleSeconds = self::STALE_CLAIM_SECONDS): string
     {
-        return '(' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_PENDING)
-            . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED)
-            . ' AND ' . $db->quoteName('attempts') . ' < ' . self::MAX_ATTEMPTS
-            . ' AND ' . $db->quoteName('modified') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . self::retryWait($db) . ' SECOND))'
-            . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_CLAIMED)
-            . ' AND ' . $db->quoteName('claimed_at') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL '
-            . max(0, $staleSeconds) . ' SECOND)))';
+        return '(' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_CLAIMED)
+            . ' AND ' . $db->quoteName('claimed_at') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . max(0, $staleSeconds) . ' SECOND))';
     }
 
     /**

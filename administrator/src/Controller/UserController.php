@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CreditNoteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger;
@@ -67,7 +68,7 @@ class UserController extends FormController
 
         $this->checkToken();
         $urlVar = $urlVar ?: 'id';
-        $recordId = $this->input->getInt($urlVar);
+        $recordId = RequestScalar::int($this->input, $urlVar);
         $posted = $this->input->post->get('jform', [], 'array');
         $posted['id'] = $recordId;
         $this->app->setUserState($this->option . '.edit.' . $this->context . '.data', $posted);
@@ -140,7 +141,7 @@ class UserController extends FormController
         $this->checkToken();
 
         $app = Factory::getApplication();
-        $profileId = $this->input->getInt('id', 0);
+        $profileId = RequestScalar::int($this->input, 'id');
         $redirect = 'index.php?option=com_alfa&view=user&layout=edit&id=' . $profileId;
 
         if (!AlfaHelper::can(section: 'users', action: 'edit', user: $this->app->getIdentity())) {
@@ -150,8 +151,8 @@ class UserController extends FormController
             return;
         }
 
-        $typed = $this->input->getString('credit_amount', '');
-        $reason = trim($this->input->getString('credit_reason', ''));
+        $typed = RequestScalar::string($this->input, 'credit_amount');
+        $reason = trim(RequestScalar::string($this->input, 'credit_reason'));
 
         // What staff read when nothing was recorded. Every such answer leaves
         // through the one place below, escaped once.
@@ -192,7 +193,7 @@ class UserController extends FormController
             // recorded, not the ledger's technical message.
             $refused = match (true) {
                 $userId <= 0 => Text::_('COM_ALFA_USER_CREDIT_NO_LINKED_ACCOUNT'),
-                $this->input->getInt('credit_user', $userId) !== $userId => Text::_('COM_ALFA_USER_CREDIT_TARGET_MISMATCH'),
+                RequestScalar::int($this->input, 'credit_user', $userId) !== $userId => Text::_('COM_ALFA_USER_CREDIT_TARGET_MISMATCH'),
                 $unread !== null => $unread,
                 $amount->greaterThan(Money::of(10000, $wallet)) => Text::_('COM_ALFA_USER_CREDIT_AMOUNT_TOO_LARGE'),
                 $amount->isZero() => Text::_('COM_ALFA_USER_CREDIT_AMOUNT_REQUIRED'),
@@ -252,8 +253,8 @@ class UserController extends FormController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $userId = $this->input->post->getInt('user_id', 0);
-        $sourceId = $this->input->post->getInt('source_id', 0);
+        $userId = RequestScalar::int($this->input->post, 'user_id');
+        $sourceId = RequestScalar::int($this->input->post, 'source_id');
         $errors = [];
         $data = $this->validateUserinfo($errors);
 
@@ -300,7 +301,7 @@ class UserController extends FormController
 
         // Validated against the form built for the row's OWNER (the identity
         // rules and per-user visibility are the customer's, not the admin's).
-        $ownerId = $this->input->getInt('user_id', 0);
+        $ownerId = RequestScalar::int($this->input, 'user_id');
         $form = UserInfoHelper::adminForm(userId: $ownerId);
 
         $posted[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
@@ -340,8 +341,8 @@ class UserController extends FormController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $userId = $this->input->post->getInt('user_id', 0);
-        $sourceId = $this->input->post->getInt('source_id', 0);
+        $userId = RequestScalar::int($this->input->post, 'user_id');
+        $sourceId = RequestScalar::int($this->input->post, 'source_id');
         $errors = [];
         $data = $this->validateUserinfo($errors);
 
@@ -389,8 +390,8 @@ class UserController extends FormController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $userId = $this->input->post->getInt('user_id', 0);
-        $id = $this->input->post->getInt('id', 0);
+        $userId = RequestScalar::int($this->input->post, 'user_id');
+        $id = RequestScalar::int($this->input->post, 'id');
 
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();

@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -46,9 +47,9 @@ final class PanelResolver
      */
     public static function fromInput(Input $input): ?PanelIdentity
     {
-        $group = $input->getCmd('group', '');
-        $element = $input->getCmd('element', '');
-        $panel = $input->getCmd('panel', '');
+        $group = RequestScalar::cmd($input, 'group');
+        $element = RequestScalar::cmd($input, 'element');
+        $panel = RequestScalar::cmd($input, 'panel');
 
         if ($group === '' || $element === '' || $panel === '') {
             return null;

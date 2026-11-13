@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceAudit;
@@ -42,7 +43,7 @@ class ExtensionsController extends BaseController
      */
     public function clear(): void
     {
-        $this->carry(call: fn (): array => (new ClearDataExtensions())->clearData(user: $this->app->getIdentity(), ids: $this->selected(), phrase: $this->input->post->getString('phrase', '')));
+        $this->carry(call: fn (): array => (new ClearDataExtensions())->clearData(user: $this->app->getIdentity(), ids: $this->selected(), phrase: RequestScalar::string($this->input->post, 'phrase')));
     }
 
     /**
@@ -62,7 +63,7 @@ class ExtensionsController extends BaseController
      */
     public function removeData(): void
     {
-        $this->carry(call: fn (): array => (new ClearDataExtensions())->removeWithData(user: $this->app->getIdentity(), ids: $this->selected(), phrase: $this->input->post->getString('phrase', '')));
+        $this->carry(call: fn (): array => (new ClearDataExtensions())->removeWithData(user: $this->app->getIdentity(), ids: $this->selected(), phrase: RequestScalar::string($this->input->post, 'phrase')));
     }
 
     /**
@@ -80,7 +81,7 @@ class ExtensionsController extends BaseController
         }
 
         try {
-            $name = (new ClearDataExtensions())->retryLoad(user: $this->app->getIdentity(), extensionId: $this->input->getInt('id', 0));
+            $name = (new ClearDataExtensions())->retryLoad(user: $this->app->getIdentity(), extensionId: RequestScalar::int($this->input, 'id'));
         } catch (RuntimeException $e) {
             if (!self::refusal(error: $e)) {
                 $this->unexpected(task: 'retryLoad', error: $e);
@@ -194,7 +195,7 @@ class ExtensionsController extends BaseController
      */
     private function selected(): array
     {
-        return array_values(array_map('intval', (array) $this->input->post->get('cid', [], 'int')));
+        return array_values(array_map('intval', $this->input->post->get('cid', [], 'array')));
     }
 
     /**

@@ -21,6 +21,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 
@@ -28,10 +29,10 @@ $input = Factory::getApplication()->getInput();
 
 $this->document->addScriptOptions('alfa.cartline.modal.return', [
     'messageType'  => 'alfa:cart-line-action',
-    'cartId'       => (int) $input->getInt('cart_id', 0),
-    'lineId'       => (int) $input->getInt('line_id', 0),
-    'shouldClose'  => $input->getInt('close', 1) === 1,
-    'shouldReload' => $input->getInt('reload', 1) === 1,
+    'cartId'       => (int) RequestScalar::int($input, 'cart_id'),
+    'lineId'       => (int) RequestScalar::int($input, 'line_id'),
+    'shouldClose'  => RequestScalar::int($input, 'close', 1) === 1,
+    'shouldReload' => RequestScalar::int($input, 'reload', 1) === 1,
 ]);
 ?>
 

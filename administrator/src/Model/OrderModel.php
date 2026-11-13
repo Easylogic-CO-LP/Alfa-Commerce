@@ -52,6 +52,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
@@ -183,8 +184,8 @@ class OrderModel extends AlfaAdminModel
         }
 
         $app = Factory::getApplication();
-        $idFromInput = $app->getInput()->getInt('id', 0);
-        $orderIdFromInput = $app->getInput()->getInt('id_order', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
+        $orderIdFromInput = RequestScalar::int($app->getInput(), 'id_order');
 
         $id = (int) $this->getState('order_shipments.id', $idFromInput);
         $orderId = (int) $this->getState('order.id', $orderIdFromInput);
@@ -257,8 +258,8 @@ class OrderModel extends AlfaAdminModel
         }
 
         $app = Factory::getApplication();
-        $idFromInput = $app->getInput()->getInt('id', 0);
-        $orderIdFromInput = $app->getInput()->getInt('id_order', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
+        $orderIdFromInput = RequestScalar::int($app->getInput(), 'id_order');
 
         $id = (int) $this->getState('order_payments.id', $idFromInput);
         $orderId = (int) $this->getState('order.id', $orderIdFromInput);
@@ -404,7 +405,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         $orderId = (int) ($this->getState('order.id', 0)
-            ?: Factory::getApplication()->getInput()->getInt('id_order', 0));
+            ?: RequestScalar::int(Factory::getApplication()->getInput(), 'id_order'));
 
         // Type picker, and the alias lists every showon below is built from
         $types = DocumentHelper::types();
@@ -649,7 +650,7 @@ class OrderModel extends AlfaAdminModel
             return false;
         }
 
-        $idFromInput = $app->getInput()->getInt('id', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
         $id = (int) $this->getState($this->formName . '.id', $idFromInput);
         $this->item = $this->getItem($id);
 
@@ -2361,8 +2362,8 @@ class OrderModel extends AlfaAdminModel
         }
 
         $app = Factory::getApplication();
-        $idFromInput = $app->getInput()->getInt('id', 0);
-        $orderIdFromInput = $app->getInput()->getInt('id_order', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
+        $orderIdFromInput = RequestScalar::int($app->getInput(), 'id_order');
 
         $id = (int) $this->getState('order_items.id', $idFromInput);
         $orderId = (int) $this->getState('order.id', $orderIdFromInput);
@@ -6456,7 +6457,7 @@ class OrderModel extends AlfaAdminModel
         parent::populateState();
 
         $input = Factory::getApplication()->getInput();
-        $id_order = $input->get('id_order', null, 'STRING');
+        $id_order = RequestScalar::read($input, 'id_order', null, 'string');
 
         if ($id_order !== null) {
             $this->setState($this->getName() . '.id', $id_order);

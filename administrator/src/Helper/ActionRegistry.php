@@ -301,7 +301,7 @@ class ActionRegistry
             return 'a state-changing action must be submitted as a POST, not opened as a URL';
         }
 
-        $once = trim((string) $input->getString('once', ''));
+        $once = trim((string) RequestScalar::string($input, 'once'));
 
         if ($once === '') {
             return 'a state-changing action must carry a one-time key';
@@ -455,14 +455,14 @@ class ActionRegistry
      */
     public static function resolveActionPage(Input $input): array
     {
-        $group = $input->getCmd('group', 'alfa-item-fields');
+        $group = RequestScalar::cmd($input, 'group', 'alfa-item-fields');
 
         switch ($group) {
             case 'alfa-item-fields':
                 $db = Factory::getContainer()->get('DatabaseDriver');
                 $db->setQuery(
                     $db->getQuery(true)->select('*')->from($db->qn('#__alfa_item_fields'))
-                        ->where($db->qn('id') . ' = ' . $input->getInt('field_id', 0)),
+                        ->where($db->qn('id') . ' = ' . RequestScalar::int($input, 'field_id')),
                 );
                 $field = $db->loadObject();
 
@@ -470,11 +470,11 @@ class ActionRegistry
                     throw new RuntimeException('Item field not found.', 404);
                 }
 
-                $scope = in_array($input->getCmd('scope', 'item'), ['item', 'combination', 'option', 'order'], true)
-                    ? $input->getCmd('scope', 'item') : 'item';
-                $actionId = $input->getCmd('action', 'configure');
-                $scopeId = $input->getInt('scope_id', 0);
-                $itemId = $input->getInt('item_id', 0);
+                $scope = in_array(RequestScalar::cmd($input, 'scope', 'item'), ['item', 'combination', 'option', 'order'], true)
+                    ? RequestScalar::cmd($input, 'scope', 'item') : 'item';
+                $actionId = RequestScalar::cmd($input, 'action', 'configure');
+                $scopeId = RequestScalar::int($input, 'scope_id');
+                $itemId = RequestScalar::int($input, 'item_id');
 
                 $event = new ExecuteFieldActionEvent('onExecuteFieldAction', [
                     'action' => $actionId,
@@ -519,7 +519,7 @@ class ActionRegistry
                 return ['group' => $group, 'type' => (string) $field->type, 'event' => $event];
 
             case 'alfa-payments':
-                $payment = self::orderModel()->getPaymentData($input->getInt('payment_id', 0));
+                $payment = self::orderModel()->getPaymentData(RequestScalar::int($input, 'payment_id'));
 
                 if (!$payment) {
                     throw new RuntimeException('Payment not found.', 404);
@@ -534,7 +534,7 @@ class ActionRegistry
                 // way out of the refund block such a payment's kept provider
                 // refund holds (since 2.1.1).
                 $type = self::methodType($payment, 'payment_method_type');
-                $actionId = $input->getCmd('action', '');
+                $actionId = RequestScalar::cmd($input, 'action');
 
                 if ($type === '' && !self::isReportAction(actionId: $actionId)) {
                     throw new RuntimeException(
@@ -645,7 +645,7 @@ class ActionRegistry
                 return ['group' => $group, 'type' => (string) $type, 'event' => $event];
 
             case 'alfa-shipments':
-                $shipment = self::orderModel()->getShipmentData($input->getInt('shipment_id', 0));
+                $shipment = self::orderModel()->getShipmentData(RequestScalar::int($input, 'shipment_id'));
 
                 if (!$shipment) {
                     throw new RuntimeException('Shipment not found.', 404);
@@ -670,7 +670,7 @@ class ActionRegistry
                 // the event, and admissibility is checked before the key is
                 // consumed so a stale click is refused for one reason only.
                 $orderForAction = self::orderModel()->getItem((int) $shipment->id_order);
-                $actionId = $input->getCmd('action', '');
+                $actionId = RequestScalar::cmd($input, 'action');
                 $offered = self::getShipmentActions($shipment, $orderForAction);
                 $event = new ExecuteShipmentActionEvent('onExecuteAction', [
                     'action' => $actionId,
@@ -766,17 +766,17 @@ class ActionRegistry
      */
     public static function actionPagePermissions(Input $input): ?array
     {
-        $action = $input->getCmd('action', '');
+        $action = RequestScalar::cmd($input, 'action');
         $formOf = str_ends_with($action, '_do') ? substr($action, 0, -3) : $action;
 
-        return match ($input->getCmd('group', 'alfa-item-fields')) {
+        return match (RequestScalar::cmd($input, 'group', 'alfa-item-fields')) {
             // An amount typed for a provider's refund, and a report resolved
             // without a booking, need their own right as well (granted to no group).
             'alfa-payments' => \in_array($formOf, self::REPORT_FORMS, true)
                 ? [['section' => 'orders', 'action' => 'edit'], ['section' => 'orders', 'action' => 'refund.resolve']]
                 : [['section' => 'orders', 'action' => 'edit']],
             'alfa-shipments' => [['section' => 'orders', 'action' => 'edit']],
-            'alfa-item-fields' => $input->getCmd('scope', 'item') === 'order'
+            'alfa-item-fields' => RequestScalar::cmd($input, 'scope', 'item') === 'order'
                 ? [['section' => 'items', 'action' => 'edit'], ['section' => 'orders', 'action' => 'edit']]
                 : [['section' => 'items', 'action' => 'edit']],
             default => null,
@@ -974,7 +974,7 @@ class ActionRegistry
     {
         // NOT trimmed. Padding is not a decimal, and silently repairing the
         // input is the same class of helpfulness that made '' mean "all of it".
-        $raw = (string) $input->getString('amount', '');
+        $raw = (string) RequestScalar::string($input, 'amount');
 
         // 1. PRESENT. No default of '0': a default is exactly the overloaded
         //    zero this contract removes.
@@ -1398,7 +1398,7 @@ class ActionRegistry
 
         $options = [
             'transaction_id' => $reference,
-            'reason' => trim($input->getString('reason', '')),
+            'reason' => trim(RequestScalar::string($input, 'reason')),
         ];
 
         if ($action === 'ledger_chargeback_do') {
@@ -1666,7 +1666,7 @@ class ActionRegistry
     private static function ledgerAmount(Input $input, Currency $currency): Money|string
     {
         // Not trimmed, as partialRefundAmount(): padding is not a decimal.
-        $raw = (string) $input->getString('amount', '');
+        $raw = (string) RequestScalar::string($input, 'amount');
 
         if ($raw === '') {
             return Text::_('COM_ALFA_LEDGER_AMOUNT_MISSING');

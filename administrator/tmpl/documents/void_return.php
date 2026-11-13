@@ -25,14 +25,15 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 
 $app   = Factory::getApplication();
 $input = $app->input;
 
-$shouldClose  = $input->getInt('close', 1) == 1;
-$shouldReload = $input->getInt('reload', 1) == 1;
+$shouldClose  = RequestScalar::int($input, 'close', 1) == 1;
+$shouldReload = RequestScalar::int($input, 'reload', 1) == 1;
 
 // The outcome belongs to the page the opener reloads: this one closes as it
 // loads, so a message shown only here is never read (C-6). The queue is read

@@ -137,7 +137,7 @@ class LocationModel extends AlfaAdminModel
      */
     public function save($data)
     {
-        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
+        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, (array) $rawData, $this->getForm($data, false) ?: null);
 
         foreach (self::PROTECTED_COLUMNS as $column) {

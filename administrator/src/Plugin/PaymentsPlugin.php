@@ -74,6 +74,7 @@
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
 use Alfa\Component\Alfa\Administrator\Helper\PaymentToken;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasOrderContextTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasTransportUrlsTrait;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
@@ -1663,8 +1664,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected function orderFromReturnLink(): ?Order
     {
         $input = Factory::getApplication()->getInput();
-        $orderId = (int) $input->getInt('id_order', 0);
-        $token = (string) $input->getString('token', '');
+        $orderId = (int) RequestScalar::int($input, 'id_order');
+        $token = (string) RequestScalar::string($input, 'token');
 
         if ($orderId <= 0 || $token === '') {
             return null;

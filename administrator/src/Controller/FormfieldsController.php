@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\AdminController;
 use Joomla\CMS\Router\Route;
@@ -47,9 +48,9 @@ class FormfieldsController extends AdminController
             return;
         }
 
-        $id = $this->input->getInt('id', 0);
-        $section = $this->input->getCmd('section', '');
-        $level = $this->input->getInt('level', 0);
+        $id = RequestScalar::int($this->input, 'id');
+        $section = RequestScalar::cmd($this->input, 'section');
+        $level = RequestScalar::int($this->input, 'level');
 
         try {
             $model = $this->getModel();

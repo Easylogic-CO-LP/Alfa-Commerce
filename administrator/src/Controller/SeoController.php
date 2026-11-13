@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper as FrontendAlfaHelper;
 use Exception;
 use Joomla\CMS\Application\CMSApplicationInterface;
@@ -66,7 +67,7 @@ class SeoController extends BaseController
         // Check for request forgeries
         $this->checkToken();
 
-        if (!$this->mayPreview(itemType: Factory::getApplication()->getInput()->getCmd('itemType', ''))) {
+        if (!$this->mayPreview(itemType: RequestScalar::cmd(Factory::getApplication()->getInput(), 'itemType'))) {
             echo new JsonResponse(null, Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), true);
             Factory::getApplication()->close();
         }
@@ -76,12 +77,12 @@ class SeoController extends BaseController
             $input = $app->getInput();
 
             // Get form data with proper UTF-8 handling
-            $title = $input->getString('title', '');
-            $metaTitle = $input->getString('metaTitle', '');
-            $metaDesc = $input->getString('metaDesc', '');
-            $defaultAlias = $input->getString('defaultAlias', '');
-            $alias = $input->getString('alias', '');
-            $content = $input->getString('content', '');
+            $title = RequestScalar::string($input, 'title');
+            $metaTitle = RequestScalar::string($input, 'metaTitle');
+            $metaDesc = RequestScalar::string($input, 'metaDesc');
+            $defaultAlias = RequestScalar::string($input, 'defaultAlias');
+            $alias = RequestScalar::string($input, 'alias');
+            $content = RequestScalar::string($input, 'content');
 
             $additionalContent = $input->get('additionalContent', [], 'array');
             // Sanitize each field
@@ -89,10 +90,10 @@ class SeoController extends BaseController
                 $value = strip_tags($value ?? '');
             });
 
-            $focusKeyword = $input->getString('focusKeyword', '');
-            $robots = $input->getString('robots', '');
-            $itemId = $input->getInt('itemId', 0);
-            $itemType = $input->getString('itemType', 'category');
+            $focusKeyword = RequestScalar::string($input, 'focusKeyword');
+            $robots = RequestScalar::string($input, 'robots');
+            $itemId = RequestScalar::int($input, 'itemId');
+            $itemType = RequestScalar::string($input, 'itemType', 'category');
 
             $displayData = $this->getResultObject(
                 itemId: $itemId,

@@ -18,6 +18,7 @@ use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Session\Session;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 
 /** @var \Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $this->getDocument()->getWebAssetManager();
@@ -102,7 +103,7 @@ $toolsUser = Factory::getApplication()->getIdentity();
     <?php /* Tasks: the job the progress page follows; what a save left failed or with an unknown outcome, for staff to act on,
              and the run that retries it; the jobs and the prune; how the background work runs (UX-10) */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'tasks', Text::_('COM_ALFA_TOOLS_TAB_TASKS')); ?>
-        <?php echo LayoutHelper::render('tasks.progress', ['job' => $this->job, 'missing' => $this->jobMissing, 'id' => Factory::getApplication()->getInput()->getInt('job', 0)], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo LayoutHelper::render('tasks.progress', ['job' => $this->job, 'missing' => $this->jobMissing, 'id' => RequestScalar::int(Factory::getApplication()->getInput(), 'job')], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo LayoutHelper::render('tasks.attention', $this->tasks + ['failedJobs' => $this->jobs['failedJobs']], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo $renderActions($tasksAction('tasks.run')); ?>
         <?php echo LayoutHelper::render('tasks.jobs', $this->jobs, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>

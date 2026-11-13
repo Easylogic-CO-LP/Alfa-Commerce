@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Event\Admin\AdminListQueryEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AdminListRowDataEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminAware;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\Traits\HasFormDerivedFiltersTrait;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -70,7 +71,7 @@ abstract class AlfaListModel extends ListModel
      */
     public static function isModalRequest(): bool
     {
-        return (bool) Factory::getApplication()->getInput()->getInt('modal', 0);
+        return (bool) RequestScalar::int(Factory::getApplication()->getInput(), 'modal');
     }
 
     /**
