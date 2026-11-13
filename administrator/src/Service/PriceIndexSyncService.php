@@ -23,8 +23,10 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
+use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
@@ -52,6 +54,19 @@ use Throwable;
  *
  * NOTE: has_discount was removed. discount_amount > 0 is identical and avoids
  * the risk of two columns drifting out of sync.
+ *
+ * Places (2.2.1)
+ * A slot is kept for every place a discount, a tax or a price row names, and
+ * for no place (0). A slot's place is priced as a buyer there is: its rules
+ * are those of the place and of every place above it, its price rows its own.
+ * A buyer reads the slot of their own place when it has one; else that of the
+ * nearest place above them that a discount or a tax names, whose rules are the
+ * buyer's too; else the slot of no place (slotPlaces()). A place named only by
+ * price rows is passed over above a buyer: a price row applies to its own place only.
+ * Since a slot is priced with the chain it had when it was written, a place
+ * that takes another parent owes the slots below it a rebuild
+ * (oweChainRebuild()); a new place, or a place moved with no slot at or below
+ * it, needs none: the reader follows the tree as it is.
  *
  * Slots
  * A row is prepared for one currency, one place and one SET of pricing groups
@@ -96,7 +111,9 @@ use Throwable;
  *   pricingGroups()             - the groups a price row, a discount or a tax names (the read side)
  *   slotKey($context)           - the set of one visitor's slots (the read side)
  *   slotSetJoin($context, ...)    - the join that reads only a prepared set (the read side)
- *   slotRanking($alias)         - how one visitor's matching slots are ranked (the read side)
+ *   slotPlaces($context)        - the places whose slots one visitor reads, nearest first (the read side)
+ *   slotRanking($alias, $places) - how one visitor's matching slots are ranked (the read side)
+ *   oweChainRebuild($placeIds)  - the catalogue's rebuild owed when places take another parent
  *
  * Every sync entry point first brings the sets in line with the sets customers
  * hold (syncGroupSets()), so a pricing row that names a group for the first
@@ -122,6 +139,8 @@ use Throwable;
  *   CategoryModel::delete()      -> syncItems()      (the products that lost a category)
  *   ManufacturerModel::delete()  -> syncItems()      (the products that lost a manufacturer, via ProjectionManager)
  *   PlaceModel::delete()         -> the places' own rows are deleted; no rule widens (RuleScopeGuard)
+ *   PlaceModel::save() (a new parent), or a delete that leaves places
+ *   without their parent          -> oweChainRebuild() (2.2.1)
  *
  *   A user group saved under another parent, or removed; an account saved
  *   into another set of groups, or removed; the users component's options
@@ -948,26 +967,109 @@ class PriceIndexSyncService
     }
 
     /**
+     * The places whose slots one visitor reads, nearest first (2.2.1): the
+     * visitor's own place, then each place above it that a discount or a tax
+     * names. A buyer below such a place has its rules (PriceDataLoader matches
+     * the chain), so its slot holds the buyer's price when the buyer's own
+     * place has none. A place above the buyer that only price rows name is
+     * passed over: its rows apply to it only, so its slot is not
+     * the buyer's price. The slot of no place (0) is read after these.
+     *
+     * Read from the tree as it is now, so a new place under a ruled one reads
+     * that one's slot with no rebuild.
+     *
+     * @param PriceContext $context The visitor's pricing context.
+     *
+     * @return int[] Empty for an unknown place.
+     *
+     * @since  2.2.1
+     */
+    public static function slotPlaces(PriceContext $context): array
+    {
+        $chain = PlaceTree::placesFor(placeId: (int) ($context->getLocationId() ?? 0));
+
+        if (\count($chain) < 2) {
+            return $chain;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $above = \array_slice($chain, 1);
+        $named = static fn (string $table): string => 'SELECT ' . $db->quoteName('place_id') . ' FROM ' . $db->quoteName($table)
+            . ' WHERE ' . $db->quoteName('place_id') . ' IN (' . implode(',', $above) . ')';
+        $ruled = array_map('intval', $db->setQuery($named('#__alfa_discount_places') . ' UNION ' . $named('#__alfa_tax_places'))->loadColumn() ?: []);
+
+        return array_merge([$chain[0]], array_values(array_intersect($above, $ruled)));
+    }
+
+    /**
      * The order in which one visitor's matching slots are preferred, as an
      * ORDER BY list over the index.
      *
      * A visitor matches the slots of their own set of pricing groups in their
-     * own currency and in any, at their own place and at any. The most specific
-     * currency and place decide; the lower price decides between a slot of
-     * their currency at any place and one of any currency at their place.
+     * own currency and in any, at the places slotPlaces() names and at no
+     * place. The nearest place decides (2.2.1: the order slotPlaces() gives,
+     * no place last), then the visitor's own currency before any; the lower
+     * price decides what is left.
      *
      * Every reader of the index ranks by this expression and by no other, so
      * the list, its price filter and its facets cannot disagree about a price.
      *
      * @param string $alias Alias of the index table in the reader's statement.
+     * @param int[] $places The visitor's places, nearest first (slotPlaces()).
      *
      * @return string An ORDER BY list, without the keyword.
      *
      * @since  2.0.0
      */
-    public static function slotRanking(string $alias): string
+    public static function slotRanking(string $alias, array $places): string
     {
-        return "(({$alias}.currency_id > 0) + ({$alias}.place_id > 0)) DESC, {$alias}.final_price ASC";
+        $near = '';
+
+        foreach (array_values(array_map('intval', $places)) as $position => $place) {
+            $near .= " WHEN {$place} THEN {$position}";
+        }
+
+        $nearness = $near === '' ? '0' : "CASE {$alias}.place_id{$near} ELSE " . \count($places) . ' END';
+
+        return "{$nearness} ASC, ({$alias}.currency_id > 0) DESC, {$alias}.final_price ASC";
+    }
+
+    /**
+     * The catalogue's rebuild owed when places take another parent, or lose it
+     * to a delete (2.2.1): every slot of a place at or below them was priced
+     * with the chain it had. Owed only when such a slot exists: a place no
+     * discount, tax or price row names, with none below it, keeps no slot, and
+     * the reader follows the tree as it is.
+     *
+     * @param int[] $placeIds The places that took another parent, or the children of the places deleted.
+     *
+     * @return bool Whether the rebuild was owed (every product marked and the catalogue job enqueued).
+     *
+     * @since  2.2.1
+     */
+    public function oweChainRebuild(array $placeIds): bool
+    {
+        $placeIds = array_values(array_filter(array_map('intval', $placeIds), static fn (int $place): bool => $place > 0));
+
+        if ($placeIds === []) {
+            return false;
+        }
+
+        // The tree as it is now.
+        PlaceTree::forget();
+        $below = array_filter(
+            $this->getDistinctPlaceIds(),
+            static fn (int $slot): bool => $slot > 0 && array_intersect(PlaceTree::placesFor(placeId: $slot), $placeIds) !== [],
+        );
+
+        if ($below === []) {
+            return false;
+        }
+
+        ProjectionManager::markAllForRebuild();
+        CatalogueRebuildJob::enqueue();
+
+        return true;
     }
 
     /**
@@ -1018,6 +1120,9 @@ class PriceIndexSyncService
      *
      * Items where base_price = 0 (no price row matched) are skipped. A set still
      * waiting for its preparation is written only for the items it has passed.
+     * An item that is not published, as read under its lock, has its rows of the
+     * sets written deleted and none written (2.2.1): a catalogue rebuild
+     * marks every item, published or not.
      *
      * Each chunk is written under its items' locks (2.2.0, IndexRebuildLock); an item not granted, and a chunk that
      * failed, are owed to the catalogue job (ProjectionManager::owe()).
@@ -1216,8 +1321,15 @@ class PriceIndexSyncService
         $itemEdges = $this->getItemBoundaries($chunk);
 
         // Priced from what the database holds now: rows an earlier pricing in
-        // this process loaded may since have changed.
+        // this process loaded may since have changed, and so may the place tree
+        // (2.2.1: a long run, such as the command-line task runner's, reads it
+        // again for every chunk).
         PriceDataLoader::forgetLoaded();
+        PlaceTree::forget();
+
+        // Only a published product has rows (2.2.1): the rows of one that is not are deleted below with the
+        // chunk's, as the unpublish path deletes them, and nothing is priced for it.
+        $published = $this->publishedOf(itemIds: $chunk);
 
         // The products each set is written for in this chunk.
         $itemsOf = [];
@@ -1263,7 +1375,7 @@ class PriceIndexSyncService
         // next edge.
         $startGroups = [];
 
-        foreach ($chunk as $itemId) {
+        foreach ($published as $itemId) {
             $edges = array_values(array_unique(array_merge($globalEdges, $itemEdges[$itemId] ?? [])));
             sort($edges);
             $edges = array_slice($edges, 0, self::MAX_SEGMENTS - 1);
@@ -2415,6 +2527,31 @@ class PriceIndexSyncService
     }
 
     // Item discovery
+
+    /**
+     * The published items among some, read now (2.2.1): the index writer prices these only.
+     *
+     * @param int[] $itemIds The items.
+     *
+     * @return int[] In the order given.
+     *
+     * @since  2.2.1
+     */
+    private function publishedOf(array $itemIds): array
+    {
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName('id'))
+            ->from($this->db->quoteName('#__alfa_items'))
+            ->whereIn($this->db->quoteName('id'), array_map('intval', $itemIds))
+            ->where($this->db->quoteName('state') . ' = 1');
+        $published = array_map('intval', $this->db->setQuery($query)->loadColumn() ?: []);
+
+        return array_values(array_intersect(array_map('intval', $itemIds), $published));
+    }
 
     /**
      * All published item ids.

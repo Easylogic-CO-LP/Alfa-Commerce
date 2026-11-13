@@ -1439,11 +1439,9 @@ class ItemsModel extends UrlListModel
             ? "pi.currency_id IN ({$currencyId}, 0)"
             : 'pi.currency_id = 0';
 
-        // Place: match this place OR the universal sentinel (0)
-        $placeId = (int) ($context->getLocationId() ?? 0);
-        $placeCond = $placeId > 0
-            ? "pi.place_id IN ({$placeId}, 0)"
-            : 'pi.place_id = 0';
+        // Place: the visitor's place, the places above it whose rules it has (2.2.1), OR the universal sentinel (0)
+        $places = PriceIndexSyncService::slotPlaces(context: $context);
+        $placeCond = 'pi.place_id IN (' . implode(', ', array_merge($places, [0])) . ')';
 
         // Groups: the slots of the visitor's own set of pricing groups, priced
         // with exactly the groups of theirs that change a price; a set whose
@@ -1453,14 +1451,14 @@ class ItemsModel extends UrlListModel
         // Subquery: all column aliases match index column names.
         //
         // Per (item x combination) the visitor may match SEVERAL context
-        // slots (his place AND any place, his currency AND any). The displayed
+        // slots (his place, a place above it AND any place, his currency AND any). The displayed
         // card price comes from the live engine with his FULL context, which
         // corresponds to the slot of his own set of pricing groups and of his
         // own currency and place. The index says how its slots are ranked:
         // taking the ranking from there keeps the filter and the card telling
         // the same number. Across combinations the outer MIN() stands: an item
         // matches the slider when ANY variant does.
-        $ranking = PriceIndexSyncService::slotRanking(alias: 'pi');
+        $ranking = PriceIndexSyncService::slotRanking(alias: 'pi', places: $places);
 
         $subquery = "
             (
