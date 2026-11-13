@@ -12,9 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
-use Alfa\Component\Alfa\Administrator\Service\Task\TaskFailure;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Factory;
 use Joomla\Database\ParameterType;
 
@@ -24,7 +25,9 @@ use Joomla\Database\ParameterType;
  * The refusal is final for the automatic tries: the drain that met it writes this task for the document's order, and
  * its first run fails with the plugin's words, so it stands in Tools > Tasks with Run again. Staff run it again once
  * the plugin allows the movement: the refused movement is opened and applied then; refused again, the new task waits
- * the same way. A movement that is no longer refused (applied, or opened again by its producer) needs nothing.
+ * the same way. A movement that is no longer refused (applied, or opened again by its producer) needs nothing. One
+ * task stands per document: a refusal met while one waits tells that one ({@see Tasks::failedAgain()}). What staff
+ * read is a key of the language files with the document and the plugin's words ({@see self::refusalError()}).
  *
  * @since  2.2.1
  */
@@ -66,16 +69,32 @@ final class OrderDocumentStock extends OrderTaskHandler
             return;
         }
 
-        // Written by the drain that met the refusal: it waits for staff, and the plugin is not asked again.
+        // Written by the drain that met the refusal: it waits for staff, and the plugin is not asked again. Its
+        // policy retries nothing, so the failure stands for staff.
         if (!isset($run->payload()['rerun_of'])) {
-            throw TaskFailure::failed(message: self::sentence(documentId: $documentId, refusal: $refusal));
+            throw self::refused(documentId: $documentId, refusal: $refusal);
         }
 
         $drained = InventoryEffectOutbox::retryRefusedDocument(documentId: $documentId);
 
         if (isset($drained['refusals'][$documentId])) {
-            throw TaskFailure::failed(message: self::sentence(documentId: $documentId, refusal: (string) $drained['refusals'][$documentId]));
+            throw self::refused(documentId: $documentId, refusal: (string) $drained['refusals'][$documentId]);
         }
+    }
+
+    /**
+     * The failure line staff read on the task of a document's refused movement, as the task engine stores a failure of
+     * the work's own: COM_ALFA_TASKS_ERROR_DOCUMENT_STOCK_REFUSED with the document and the plugin's words (one line,
+     * no markup).
+     *
+     * @param int $documentId The document.
+     * @param string $refusal The plugin's words.
+     *
+     * @since  2.2.1
+     */
+    public static function refusalError(int $documentId, string $refusal): string
+    {
+        return Tasks::errorKey('COM_ALFA_TASKS_ERROR_DOCUMENT_STOCK_REFUSED', $documentId, self::plain(refusal: $refusal));
     }
 
     /**
@@ -120,17 +139,27 @@ final class OrderDocumentStock extends OrderTaskHandler
     }
 
     /**
-     * What staff read on the task: the plugin's words and what changes the outcome.
+     * The failure of a run that met the refusal: the task engine stores its key and arguments.
      *
      * @param int $documentId The document.
      * @param string $refusal The plugin's words.
      *
      * @since  2.2.1
      */
-    private static function sentence(int $documentId, string $refusal): string
+    private static function refused(int $documentId, string $refusal): TaskError
     {
-        return 'A stock plugin refused the stock movement of document #' . $documentId . ': '
-            . trim(preg_replace('/\s+/u', ' ', strip_tags($refusal)) ?? '')
-            . ' Run this task again once the plugin allows the movement.';
+        return new TaskError('COM_ALFA_TASKS_ERROR_DOCUMENT_STOCK_REFUSED', [$documentId, self::plain(refusal: $refusal)]);
+    }
+
+    /**
+     * The plugin's words as one line with no markup.
+     *
+     * @param string $refusal The plugin's words.
+     *
+     * @since  2.2.1
+     */
+    private static function plain(string $refusal): string
+    {
+        return trim(preg_replace('/\s+/u', ' ', strip_tags($refusal)) ?? '');
     }
 }

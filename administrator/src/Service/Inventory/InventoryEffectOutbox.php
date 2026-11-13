@@ -440,7 +440,7 @@ final class InventoryEffectOutbox
                     );
 
                     if ($byListener && (string) $row->source_type === 'document' && !$staffAsked) {
-                        self::awaitStaff(row: $row);
+                        self::awaitStaff(row: $row, reason: $reason);
                     }
                 } elseif ($e instanceof InventoryReservedFloorException) {
                     // Still owed: the movement applies once the other claims let
@@ -772,29 +772,55 @@ final class InventoryEffectOutbox
     /**
      * A document's movement a stock plugin refused waits for staff as a task of its order: written once, it fails at
      * its first run with the plugin's words, and stands in Tools > Tasks, where Run again tries the movement
-     * ({@see OrderDocumentStock}). Advisory, as the notice: a task that cannot be written never changes the verdict,
+     * ({@see OrderDocumentStock}). One task stands per document: while one waits (failed or held) the refusal is told
+     * to it, its failure line becoming the new words ({@see Tasks::failedAgain()}); while one is still to run, it reads
+     * the refusal then. Advisory, as the notice: a task that cannot be written or told never changes the verdict,
      * unless its failure ended (or may have ended) the caller's transaction.
      *
      * @param object $row The obligation, as the drain read it.
+     * @param string $reason The plugin's words.
      *
      * @since  2.2.1
      */
-    private static function awaitStaff(object $row): void
+    private static function awaitStaff(object $row, string $reason): void
     {
+        $documentId = (int) $row->source_id;
+        $orderId = (int) $row->order_id;
+
         try {
-            Tasks::single(
-                handler:     OrderDocumentStock::NAME,
-                subjectType: 'order',
-                subjectId:   (int) $row->order_id,
-                payload:     ['document' => (int) $row->source_id],
-            );
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $handler = OrderDocumentStock::NAME;
+            $subjectType = 'order';
+            $standing = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'state']))
+                    ->from($db->quoteName(Tasks::TABLE))
+                    ->where($db->quoteName('handler') . ' = :handler')
+                    ->where($db->quoteName('subject_type') . ' = :subjectType')
+                    ->where($db->quoteName('subject_id') . ' = :orderId')
+                    ->whereIn($db->quoteName('state'), [Tasks::STATE_PENDING, Tasks::STATE_RUNNING, Tasks::STATE_FAILED, Tasks::STATE_HELD], ParameterType::STRING)
+                    ->where('CAST(JSON_UNQUOTE(JSON_EXTRACT(' . $db->quoteName('payload') . ", '$.document')) AS UNSIGNED) = :documentId")
+                    ->bind(':handler', $handler)
+                    ->bind(':subjectType', $subjectType)
+                    ->bind(':orderId', $orderId, ParameterType::INTEGER)
+                    ->bind(':documentId', $documentId, ParameterType::INTEGER)
+                    ->order($db->quoteName('id') . ' DESC'),
+                0,
+                1,
+            )->loadObject();
+
+            if ($standing === null) {
+                Tasks::single(handler: $handler, subjectType: $subjectType, subjectId: $orderId, payload: ['document' => $documentId]);
+            } elseif (\in_array((string) $standing->state, [Tasks::STATE_FAILED, Tasks::STATE_HELD], true)) {
+                Tasks::failedAgain(id: (int) $standing->id, error: OrderDocumentStock::refusalError(documentId: $documentId, refusal: $reason), trigger: 'request');
+            }
         } catch (Throwable $e) {
             if (self::endsTransaction(failure: $e)) {
                 throw $e;
             }
 
             Log::add(
-                entry:    'The task for document #' . $row->source_id . "'s refused stock movement could not be written: "
+                entry:    'The task for document #' . $documentId . "'s refused stock movement could not be written: "
                           . $e->getMessage(),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',

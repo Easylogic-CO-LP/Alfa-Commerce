@@ -1232,6 +1232,56 @@ final class Tasks
     }
 
     /**
+     * The single of a work that waits for staff (failed or held), told that the work failed again, in place of a second
+     * single of the same work (2.2.1): its failure line becomes the new one and its history records the failure, so
+     * staff read the latest cause where they act. Nothing when it no longer waits.
+     *
+     * @param int $id The single.
+     * @param string $error The failure line, as stored ({@see self::errorKey()} for a failure of the work's own).
+     * @param string $trigger What met the failure again.
+     *
+     * @return bool Whether it still waited and was told.
+     *
+     * @since  2.2.1
+     */
+    public static function failedAgain(int $id, string $error, string $trigger): bool
+    {
+        $db = self::db();
+        $type = self::TYPE_SINGLE;
+        $waiting = [self::STATE_FAILED, self::STATE_HELD];
+        $stored = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('history'))
+                ->from($db->quoteName(self::TABLE))
+                ->where($db->quoteName('id') . ' = :id')
+                ->where($db->quoteName('type') . ' = :type')
+                ->whereIn($db->quoteName('state'), $waiting, ParameterType::STRING)
+                ->bind(':id', $id, ParameterType::INTEGER)
+                ->bind(':type', $type),
+        )->loadRow();
+
+        if ($stored === null) {
+            return false;
+        }
+
+        $history = self::encodeHistory([...self::decodeHistory($stored[0]), self::entry(trigger: $trigger, userId: 0, outcome: self::STATE_FAILED, error: $error)]);
+        $db->setQuery(
+            $db->getQuery(true)
+                ->update($db->quoteName(self::TABLE))
+                ->set($db->quoteName('last_error') . ' = :error')
+                ->set($db->quoteName('history') . ' = :history')
+                ->set($db->quoteName('updated_at') . ' = UTC_TIMESTAMP(3)')
+                ->where($db->quoteName('id') . ' = :id')
+                ->whereIn($db->quoteName('state'), $waiting, ParameterType::STRING)
+                ->bind(':error', $error)
+                ->bind(':history', $history)
+                ->bind(':id', $id, ParameterType::INTEGER),
+        )->execute();
+
+        return $db->getAffectedRows() === 1;
+    }
+
+    /**
      * The handler of a name, or null when there is none.
      *
      * @param string $name The handler's name.
