@@ -55,5 +55,10 @@ parameters:
         - '#unknown class libphonenumber\\#'
         - '#unknown class .*\\libphonenumber\\#'
 
+        # dompdf and the four libraries it needs are bundled the same way (libraries/lib_dompdf and the four beside
+        # it, installed as Joomla libraries), so their symbols can't be resolved here either.
+        - '#unknown class Dompdf\\#'
+        - '#class (Dompdf|FontLib|Svg|Masterminds|Sabberworm\\CSS)\\[A-Za-z0-9\\]+ not found#i'
+
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
