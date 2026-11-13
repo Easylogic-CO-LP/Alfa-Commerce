@@ -106,7 +106,9 @@ final class OrderCreator
      *     catalog via ItemFieldsSnapshot::freezeItemName),
      *     sku/gtin/mpn, weight,
      *     unit_price_tax_excl / unit_price_tax_incl (required),
-     *     total_price_tax_excl / total_price_tax_incl (absent = unit x qty),
+     *     total_price_tax_excl / total_price_tax_incl (required: the line's
+     *     whole amounts as charged; a line is never priced as its unit times
+     *     its quantity, 2.2.1),
      *     original_product_price (absent = unit_price_tax_excl),
      *     tax_rate, tax_name, discount_percent,
      *     discount_amount_tax_excl / _incl, id_shipment_method.
@@ -158,6 +160,17 @@ final class OrderCreator
 
             if (!isset($line['unit_price_tax_excl'], $line['unit_price_tax_incl'])) {
                 throw new RuntimeException("OrderCreator: line {$i} needs explicit unit prices (the service never re-prices).");
+            }
+
+            // A line states what was charged for it, whole (2.2.1): a rounded unit times the quantity can differ by cents
+            // from it, so a line without its totals is refused, never priced from its unit.
+            $missing = array_values(array_filter(
+                ['total_price_tax_excl', 'total_price_tax_incl'],
+                static fn (string $total): bool => !isset($line[$total]),
+            ));
+
+            if ($missing !== []) {
+                throw new RuntimeException("OrderCreator: line {$i} needs its totals, " . implode(' and ', $missing) . ' (a line is never priced as its unit times its quantity).');
             }
         }
 
@@ -572,22 +585,9 @@ final class OrderCreator
         $row->unit_price_tax_excl = $unit($unitExcl);
         $row->unit_price_tax_incl = $unit($unitIncl);
 
-        // THE FALLBACK SURVIVES HERE, AND ONLY HERE, AND IT IS NOT THE
-        // AUTHORITY (Item 3).
-        //
-        // A caller that carries a PriceResult now states the whole line
-        // explicitly, and the authority columns below record that it did. A
-        // caller that carries NO PriceResult (a subscription renewal drafted
-        // from stored columns, a fixture stating a unit price and a quantity)
-        // is stating "this many, at this price", and unit x quantity is what
-        // that means. Writing 0 instead would not be more truthful, it would be
-        // a different falsehood, and it would empty every such order.
-        //
-        // What makes this safe is that such a row gets NULL authority below.
-        // A rounded unit must never REBUILD an amount that already
-        // exists; here no whole-line amount exists, and the row says so.
-        $row->total_price_tax_excl = $money($line['total_price_tax_excl'] ?? ExactAmount::ofNumber($unitExcl)->times($quantity)->text());
-        $row->total_price_tax_incl = $money($line['total_price_tax_incl'] ?? ExactAmount::ofNumber($unitIncl)->times($quantity)->text());
+        // The line's whole amounts as the caller stated them (create() refuses a line without them, 2.2.1).
+        $row->total_price_tax_excl = $money($line['total_price_tax_excl']);
+        $row->total_price_tax_incl = $money($line['total_price_tax_incl']);
         $row->original_product_price = $unit($line['original_product_price'] ?? $unitExcl);
 
         // THE AUTHORITATIVE WHOLE-LINE FACTS. NULL when the caller carries no
