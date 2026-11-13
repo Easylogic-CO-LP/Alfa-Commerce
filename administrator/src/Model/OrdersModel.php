@@ -530,9 +530,10 @@ class OrdersModel extends AlfaListModel
 
         // Product filter. Deliberately NOT declared in forms/filter_orders.xml:
         // a visible select would have to list every product in the catalogue, which
-        // is a query per orders page load on a 100k-SKU shop. It is set only by the
-        // "Orders" link on a product, and read straight off the state. The subquery
-        // is a semi-join through idx_id_item on #__alfa_order_items.
+        // is a query per orders page load on a 100k-SKU shop. It is set by the
+        // "Orders" link on a product and by the REST API's filter[item_id], and read
+        // straight off the state. The subquery is a semi-join through idx_id_item on
+        // #__alfa_order_items.
         $itemFilter = (int) $this->getState('filter.item_id');
 
         if ($itemFilter > 0) {
@@ -541,6 +542,21 @@ class OrdersModel extends AlfaListModel
                 . ' FROM ' . $db->quoteName('#__alfa_order_items')
                 . ' WHERE ' . $db->quoteName('id_item') . ' = ' . $itemFilter . ')',
             );
+        }
+
+        // Customer filters, read straight off the state as the product filter is, and set by the REST API
+        // (filter[id_user], filter[email]): the customer's account, and the e-mail the order carries, matched whole
+        // (the column's collation decides the letter case), so a guest's orders are found by it too.
+        $customerFilter = (int) $this->getState('filter.id_user');
+
+        if ($customerFilter > 0) {
+            $query->where($db->quoteName('a.id_user') . ' = ' . $customerFilter);
+        }
+
+        $emailFilter = trim((string) $this->getState('filter.email', ''));
+
+        if ($emailFilter !== '') {
+            $query->where($db->quoteName('a.customer_email') . ' = ' . $db->quote($emailFilter));
         }
 
         // Payment - Fulfilment - Waiting
