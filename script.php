@@ -1104,7 +1104,7 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         $plugin = $state === 'removed'
-            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed', values: [])
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed by Alfa Commerce', values: [])
             : ($state === 'kept'
                 ? $this->installerText(
                     key:      'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_KEPT',
@@ -1123,9 +1123,11 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * The update's step from the scheduled task to the job runner for the list prices of customer groups (2.2.0):
-     * every waiting set gets its price.set.prepare job, plg_task_alfapricesets is uninstalled through Joomla's
-     * installer, and any scheduled task of its routine left behind is deleted; each of the three on its own, so a
-     * failure of one never skips the next. A failure is said, never a failed update: the jobs are given again by the
+     * every waiting set gets its price.set.prepare job, the scheduled tasks of plg_task_alfapricesets' routine are
+     * deleted, and the plugin is uninstalled through Joomla's installer; each of the three on its own, so a failure of
+     * one never skips the next. The tasks go first (2.2.1): the plugin's own uninstall script (2.1.x) removes them
+     * through a constant this version no longer has and says it failed, while they are already gone; what that script
+     * says is written to the maintenance log, not shown, and this step's one message says what was done. A failure is said, never a failed update: the jobs are given again by the
      * next request of a set, and Tools > Database Sync shows what waits. The message names the plugin's state:
      * removed, not installed, or still installed (refused by Joomla's installer), the last as a warning that names
      * where to uninstall it.
@@ -1154,6 +1156,20 @@ class com_alfaInstallerScript extends InstallerScript
 
         try
         {
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->delete($db->quoteName('#__scheduler_tasks'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('alfapricesets.prepare'))
+            )->execute();
+            $rows = (int) $db->getAffectedRows();
+        }
+        catch (\Throwable $e)
+        {
+            $failures[] = $e->getMessage();
+        }
+
+        try
+        {
             $extensionId = (int) $db->setQuery(
                 $db->getQuery(true)
                     ->select($db->quoteName('extension_id'))
@@ -1174,26 +1190,34 @@ class com_alfaInstallerScript extends InstallerScript
 
                 $installer = new Installer();
                 $installer->setDatabase($db);
-                $state = $installer->uninstall('plugin', $extensionId) ? 'removed' : 'kept';
+
+                // What the plugin's own uninstall script says (its tasks "not removed", above) goes to the log.
+                $waiting = $app->getMessageQueue(true);
+
+                try
+                {
+                    $state = $installer->uninstall('plugin', $extensionId) ? 'removed' : 'kept';
+                }
+                finally
+                {
+                    foreach ($app->getMessageQueue(true) as $said)
+                    {
+                        self::maintenanceLog(
+                            line:     sprintf('Update to %s: the uninstall of plg_task_alfapricesets said: %s', $this->packageVersion, (string) ($said['message'] ?? '')),
+                            priority: \Joomla\CMS\Log\Log::INFO,
+                        );
+                    }
+
+                    foreach ($waiting as $message)
+                    {
+                        $app->enqueueMessage((string) ($message['message'] ?? ''), (string) ($message['type'] ?? 'message'));
+                    }
+                }
             }
         }
         catch (\Throwable $e)
         {
             $state      = 'kept';
-            $failures[] = $e->getMessage();
-        }
-
-        try
-        {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->quoteName('#__scheduler_tasks'))
-                    ->where($db->quoteName('type') . ' = ' . $db->quote('alfapricesets.prepare'))
-            )->execute();
-            $rows = (int) $db->getAffectedRows();
-        }
-        catch (\Throwable $e)
-        {
             $failures[] = $e->getMessage();
         }
 
@@ -1209,7 +1233,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         // A plugin that stayed reads in its scheduler routine what 2.2.0 removed: it must go by hand, said as a warning.
         $plugin = $state === 'removed'
-            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed', values: [])
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed by Alfa Commerce', values: [])
             : ($state === 'kept'
                 ? $this->installerText(
                     key:      'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_KEPT',
