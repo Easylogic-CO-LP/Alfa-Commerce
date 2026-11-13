@@ -25,8 +25,9 @@ defined('_JEXEC') or die;
  *
  * Core collects the contributions of each display phase in a list of its own and hands the result to the item or the
  * line as this map, so a plugin that holds the item or the line (the subject of onItemView, the item of onItemDisplay,
- * the line of onCartItemDisplay) reads what the others contributed and cannot change or remove it: writing a slot
- * through array access is refused with a LogicException. A plugin contributes through its own event
+ * the line of onCartItemDisplay) reads what the others contributed and cannot change or remove it: setting or
+ * removing a slot is refused with a LogicException, and appending to a slot's list changes nothing (PHP reports that
+ * an indirect change of the map has no effect). A plugin contributes through its own event
  * (addSurface(), or the item field events' surface builders); a template chooses among the surfaces with
  * {@see \Alfa\Component\Alfa\Site\Helper\Surface::render()} and its only and except lists.
  *
