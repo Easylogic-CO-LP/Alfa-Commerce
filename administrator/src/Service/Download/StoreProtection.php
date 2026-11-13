@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Download;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Http\HttpFactory;
@@ -121,13 +122,13 @@ class StoreProtection
     /**
      * Whether the check is on: the one reader of the switch in Options > Downloads, for the
      * administrator pages, the layout of the protection and the installation steps. On unless the
-     * shop turned it off.
+     * shop turned it off; an Option not stored yet reads as installed ({@see ComponentOptions::DEFAULTS}).
      *
      * @since  2.2.1
      */
     public static function isOn(): bool
     {
-        return (int) ComponentHelper::getParams('com_alfa')->get(self::OPTION_CHECK, 1) === 1;
+        return (int) ComponentHelper::getParams('com_alfa')->get(self::OPTION_CHECK, ComponentOptions::DEFAULTS[self::OPTION_CHECK]) === 1;
     }
 
     /**
