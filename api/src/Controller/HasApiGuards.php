@@ -114,6 +114,20 @@ trait HasApiGuards
     }
 
     /**
+     * Body keys this resource's update (PATCH) does not take, beyond {@see self::unwrittenKeys()} (2.2.1): where the
+     * create and the update write different keys, the ones only the update leaves unwritten. A PATCH that carries one
+     * is refused with 422 naming them, before anything is saved and before core's edit() checks the record out.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenOnUpdate(): array
+    {
+        return [];
+    }
+
+    /**
      * Whether a record of this resource is deleted from the trash only (2.2.1, decision 43 (c)): true where the
      * administrator's list moves a record to the trash before it deletes it, its Delete being the trashed view's Empty
      * trash. A DELETE of a record in any other state then answers 409 and deletes nothing; a PATCH of state -2 trashes
@@ -263,7 +277,7 @@ trait HasApiGuards
             throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
         }
 
-        $this->refuseUnwrittenKeys();
+        $this->refuseUnwrittenKeys(update: false);
 
         $recordId = (int) $this->save();
 
@@ -274,9 +288,9 @@ trait HasApiGuards
     }
 
     /**
-     * Update a record: core's edit, refused first when the body carries a key the resource's write does not take
-     * ({@see self::unwrittenKeys()}), before core looks the record up and checks it out, so a refused PATCH leaves it
-     * as it was (2.2.1).
+     * Update a record: core's edit, refused first when the body carries a key the resource's update does not take
+     * ({@see self::unwrittenKeys()}, {@see self::unwrittenOnUpdate()}), before core looks the record up and checks it
+     * out, so a refused PATCH leaves it as it was (2.2.1).
      *
      * @return static
      *
@@ -286,21 +300,25 @@ trait HasApiGuards
      */
     public function edit()
     {
-        $this->refuseUnwrittenKeys();
+        $this->refuseUnwrittenKeys(update: true);
 
         return parent::edit();
     }
 
     /**
-     * Answer 422, naming them, when the body carries keys of {@see self::unwrittenKeys()}.
+     * Answer 422, naming them, when the body carries keys of {@see self::unwrittenKeys()}, or on an update of
+     * {@see self::unwrittenOnUpdate()}.
+     *
+     * @param bool $update Whether the write is an update (PATCH) rather than a create (POST).
      *
      * @throws Save When it does.
      *
      * @since  2.2.1
      */
-    protected function refuseUnwrittenKeys(): void
+    protected function refuseUnwrittenKeys(bool $update): void
     {
-        $carried = array_values(array_intersect($this->unwrittenKeys(), array_keys($this->requestBody())));
+        $unwritten = $update ? array_merge($this->unwrittenKeys(), $this->unwrittenOnUpdate()) : $this->unwrittenKeys();
+        $carried = array_values(array_intersect($unwritten, array_keys($this->requestBody())));
 
         if ($carried !== []) {
             throw new Save(implode(', ', $carried) . ' cannot be written through the API: ' . $this->unwrittenReason(), 422);
