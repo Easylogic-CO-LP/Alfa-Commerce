@@ -303,6 +303,11 @@
       }
     },
     {
+      "name": "com_alfa.action-page",
+      "type": "style",
+      "uri": "com_alfa/admin/action-page.css"
+    },
+    {
       "name": "com_alfa.credit-refund-partial",
       "type": "script",
       "uri": "com_alfa/admin/credit-refund-partial.js",

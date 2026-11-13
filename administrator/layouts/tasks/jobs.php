@@ -44,9 +44,8 @@ $groups = (array) ($displayData['groups'] ?? []);
 $engines = (array) ($displayData['engines'] ?? []);
 $followed = (int) ($displayData['followedJob'] ?? 0);
 $e      = static fn ($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
-// A date on one line from md up (UX-14); on a phone it may wrap, so a job's "Next try after" note never widens the
-// State column past the card (entry 26).
-$date   = static fn (?string $at): string => (string) $at === '' ? '' : '<span class="alfa-nowrap-md">' . HTMLHelper::_('date', (string) $at, Text::_('DATE_FORMAT_LC6')) . '</span>';
+// A date on one line at every width (UX-14); on a phone the row folds (A4), so the note around it wraps instead.
+$date   = static fn (?string $at): string => (string) $at === '' ? '' : '<span class="alfa-nowrap">' . HTMLHelper::_('date', (string) $at, Text::_('DATE_FORMAT_LC6')) . '</span>';
 $state  = static function (string $code) use ($e): string {
     $key = 'COM_ALFA_TASKS_JOB_STATE_' . strtoupper($code);
 
@@ -76,9 +75,10 @@ $search   = SearchRebuildJob::NAME . ':';
             <p class="mb-0"><?php echo Text::_('COM_ALFA_TASKS_JOBS_NONE'); ?></p>
         <?php else : ?>
             <?php // On a phone the job (with a failed job's reason under its name), its state and what to do; its progress from sm
-                  // up, what it covers and when it ran from md up (UX-01, NEW-2). ?>
+                  // up, what it covers and when it ran from md up (UX-01, NEW-2). Below 480 px the row folds: what to do
+                  // takes a line of its own under the job and its state (2.2.1, A4). ?>
             <div class="table-responsive">
-            <table class="table table-sm align-top">
+            <table class="table table-sm align-top alfa-fold">
                 <thead>
                     <tr>
                         <th scope="col"><?php echo Text::_('COM_ALFA_TASKS_COL_JOB'); ?></th>
@@ -171,7 +171,7 @@ $search   = SearchRebuildJob::NAME . ':';
                                 <div class="text-danger mt-1"><?php echo $e(Tasks::errorText((string) $row['last_error'])); ?></div>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td class="alfa-fold-line">
                             <?php if (in_array($row['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) && $id === $followed) : ?>
                                 <?php // This page is the job's progress page: a link to the card above, which works it while the page
                                       // is open; a link to the page already open would do nothing (entry 20, UX-90). ?>

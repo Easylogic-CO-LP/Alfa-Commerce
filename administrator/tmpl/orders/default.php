@@ -127,13 +127,15 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
 
 
                 <?php // data-alfa-list is the refresh hook: orders-list.js replaces this node
-                      // in place after an action. Keep it if you override the id. ?>
-                <table class="table table-striped table-hover" id="orderList" data-alfa-list="orders">
+                      // in place after an action. Keep it if you override the id. Below 480 px an
+                      // order's row folds (alfa-fold, 2.2.1 A4): its cells wrap under the order
+                      // number, each named by its data-alfa-label, the select-all box kept. ?>
+                <table class="table table-striped table-hover alfa-fold" id="orderList" data-alfa-list="orders">
 
                     <!--  HEADER                                      -->
                     <thead>
                     <tr>
-                        <th style="width:1%"  class="text-center"><?php echo HTMLHelper::_('grid.checkall'); ?></th>
+                        <th style="width:1%"  class="text-center alfa-fold-keep"><?php echo HTMLHelper::_('grid.checkall'); ?></th>
                         <th style="width:1%"  class="text-center" title="<?php echo Text::_('COM_ALFA_LIST_ATTENTION'); ?>">
 							<span class="icon-info-circle" aria-hidden="true"></span>
                         </th>
@@ -202,7 +204,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                      currency) reads red; work (overpaid, an
                                      unsettled credit note) reads amber, and
                                      the two never merge. -->
-                                <td class="text-center">
+                                <td class="text-center"<?php echo !empty($item->needs_attention) ? ' data-alfa-label="' . $this->escape(Text::_('COM_ALFA_LIST_ATTENTION')) . '"' : ''; ?>>
 									<?php if (!empty($item->needs_attention)) : ?>
 										<?php
 											$reasons = array_map(
@@ -253,7 +255,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                 <?php echo Columns::cells($columnsByAnchor, 'id', $item); ?>
 
                                 <!-- Customer: the order's snapshot (guests and deleted accounts included) -->
-                                <td>
+                                <td data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CUSTOMER')); ?>">
 									<?php $customer = \Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity::forOrder($item); ?>
 									<?php if ($customer['name'] !== '') : ?>
                                         <div class="customer-name"><?php echo $this->escape($customer['name']); ?></div>
@@ -274,7 +276,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                 <?php echo Columns::cells($columnsByAnchor, 'customer', $item); ?>
 
                                 <!-- Amount: held / total + payment status badge -->
-                                <td class="text-center">
+                                <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_AMOUNT')); ?>">
 									<?php if (($item->currency_notice ?? '') !== '') : ?>
 										<?php // The order names no currency: it has no amount and no payment state to show. ?>
                                     <span class="badge bg-danger"><?php echo $this->escape($item->currency_notice); ?></span>
@@ -360,7 +362,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                 <?php echo Columns::cells($columnsByAnchor, 'amount', $item); ?>
 
                                 <!-- Created date + age -->
-                                <td class="text-center">
+                                <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_DATE')); ?>">
 									<?php if (!empty($item->created)) : ?>
 										<?php echo HTMLHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC2')); ?>
                                         <span class="order-age d-block">
@@ -372,7 +374,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                 <?php echo Columns::cells($columnsByAnchor, 'date', $item); ?>
 
                                 <!-- Payment method badge -->
-                                <td class="text-center">
+                                <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_PAYMENT')); ?>">
 									<?php if (!empty($item->payment_method_name)) : ?>
                                         <span class="method-badge"
                                               style="color:<?php echo $this->escape($item->payment_color ?? '#000'); ?>;
@@ -387,7 +389,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                 <?php echo Columns::cells($columnsByAnchor, 'payment', $item); ?>
 
                                 <!-- Shipments: each shipment row + fulfillment summary -->
-                                <td class="text-center">
+                                <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_SHIPMENT')); ?>">
 									<?php if (!empty($item->_shipments)) : ?>
 										<?php foreach ($item->_shipments as $si => $sh) :
 											$shStatus   = $sh->status ?? 'pending';
@@ -430,7 +432,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                 <?php echo Columns::cells($columnsByAnchor, 'shipment', $item); ?>
 
                                 <!-- Order status: editable dropdown or read-only badge -->
-                                <td class="text-center">
+                                <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_STATUS')); ?>">
 									<?php if ($canChange) : ?>
                                         <!-- Editable: styled <select> with AJAX on change -->
                                         <select class="alfa-status-select"
@@ -479,7 +481,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                             <!-- Collapsible row: expands below the main row.      -->
                             <!-- Each section delegates to its own sub-template.   -->
                             <tr class="detail-row">
-                                <td colspan="<?php echo $colspan; ?>" class="p-0">
+                                <td colspan="<?php echo $colspan; ?>" class="p-0 alfa-fold-line">
                                     <div class="collapse" id="<?php echo $detailId; ?>" data-order-id="<?php echo (int) $item->id; ?>">
                                         <div class="dp">
 

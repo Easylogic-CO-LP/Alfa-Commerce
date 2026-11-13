@@ -22,7 +22,7 @@ use Joomla\CMS\Session\Session;
 /** @var \Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useScript('com_alfa.sync-tools');
-// The component's administrator stylesheet: the jobs list's dates on one line from md up (alfa-nowrap-md).
+// The component's administrator stylesheet: the jobs list's dates on one line, its rows folded on a phone.
 $wa->useStyle('com_alfa.admin');
 
 // Generic completion label for actions whose server reply carries no message.
