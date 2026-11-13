@@ -163,9 +163,10 @@ class Dispatcher extends ComponentDispatcher
     }
 
     /**
-     * Warn on an Alfa administrator page that renders while plg_system_alfasync is disabled or not installed: the
-     * guided tours' texts and Alfa's following of Joomla's users and user groups run through it. The link to the
-     * plugin is offered only to a user who may manage plugins. Costs nothing while the plugin is enabled.
+     * Warn on an Alfa administrator page that renders while plg_system_alfasync is disabled or not installed: what keeps
+     * a shopper's own pages out of Joomla's page cache, the guided tours' texts and Alfa's following of Joomla's users
+     * and user groups run through it. The link to the plugin is offered only to a user who may manage plugins. Costs
+     * nothing while the plugin is enabled.
      *
      * @since  2.1.2
      */
