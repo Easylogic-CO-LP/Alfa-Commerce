@@ -7,7 +7,6 @@ namespace libphonenumber;
 /**
  * Types of phone number matches
  * See detailed description beside the isNumberMatch() method
- * @since  1.0.0
  */
 enum MatchType: int
 {

@@ -6,7 +6,6 @@ namespace libphonenumber;
 
 /**
  * Country code source from number
- * @since  1.0.0
  */
 enum CountryCodeSource: int
 {

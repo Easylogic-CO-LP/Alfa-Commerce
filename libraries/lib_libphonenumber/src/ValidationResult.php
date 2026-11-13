@@ -6,7 +6,6 @@ namespace libphonenumber;
 
 /**
  * Possible outcomes when testing if a PhoneNumber is possible.
- * @since  1.0.0
  */
 enum ValidationResult: int
 {

@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\ja;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Ja_81
 {

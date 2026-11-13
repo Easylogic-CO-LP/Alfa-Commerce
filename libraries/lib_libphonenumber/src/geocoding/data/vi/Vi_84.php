@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\vi;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Vi_84
 {

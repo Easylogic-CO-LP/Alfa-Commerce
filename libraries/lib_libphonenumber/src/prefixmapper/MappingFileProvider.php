@@ -12,7 +12,6 @@ namespace libphonenumber\prefixmapper;
  * Class MappingFileProvider
  * @package libphonenumber\prefixmapper
  * @internal
- * @since  1.0.0
  */
 class MappingFileProvider
 {
@@ -23,7 +22,6 @@ class MappingFileProvider
 
     /**
      * @param array<string,int[]> $map
-     * @since  1.0.0
      */
     public function __construct(array $map)
     {

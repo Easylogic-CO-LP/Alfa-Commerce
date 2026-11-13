@@ -20,7 +20,6 @@ use function count;
 /**
  * @phpstan-consistent-constructor
  * @no-named-arguments
- * @since  1.0.0
  */
 class PhoneNumberToTimeZonesMapper
 {
@@ -52,7 +51,6 @@ class PhoneNumberToTimeZonesMapper
      * this method multiple times will only result in one instance being created.
      *
      * @return PhoneNumberToTimeZonesMapper instance
-     * @since  1.0.0
      */
     public static function getInstance(string $className = Map::class): PhoneNumberToTimeZonesMapper
     {
@@ -65,7 +63,6 @@ class PhoneNumberToTimeZonesMapper
 
     /**
      * Returns a String with the ICU unknown time zone.
-     * @since  1.0.0
      */
     public static function getUnknownTimeZone(): string
     {
@@ -79,7 +76,6 @@ class PhoneNumberToTimeZonesMapper
      * @param $number PhoneNumber the phone number for which we want to get the time zones to which it belongs
      * @return string[] a list of the corresponding time zones or a single element list with the default
      *                  unknown time zone if no other time zone was found or if the number was invalid
-     * @since  1.0.0
      */
     public function getTimeZonesForNumber(PhoneNumber $number): array
     {
@@ -102,7 +98,6 @@ class PhoneNumberToTimeZonesMapper
      * @param $number PhoneNumber the phone number to look up
      * @return string[] the list of corresponding time zones or a single element list with the default
      *                  unknown time zone if no other time zone was found
-     * @since  1.0.0
      */
     protected function getCountryLevelTimeZonesforNumber(PhoneNumber $number): array
     {
@@ -120,7 +115,6 @@ class PhoneNumberToTimeZonesMapper
      * @param $number PhoneNumber a valid phone number for which we want to get the time zones to which it belongs
      * @return string[] a list of the corresponding time zones or a single element list with the default
      *                  unknown time zone if no other time zone was found or if the number was invalid
-     * @since  1.0.0
      */
     public function getTimeZonesForGeographicalNumber(PhoneNumber $number): array
     {
@@ -133,7 +127,6 @@ class PhoneNumberToTimeZonesMapper
      * @param PhoneNumber $number The phone number for which we want to get the time zones to which it belongs
      * @return string[] the list of corresponding time zones or a single element list with the default
      *                  unknown timezone if no other time zone was found or if the number was invalid
-     * @since  1.0.0
      */
     protected function getTimeZonesForGeocodableNumber(PhoneNumber $number): array
     {

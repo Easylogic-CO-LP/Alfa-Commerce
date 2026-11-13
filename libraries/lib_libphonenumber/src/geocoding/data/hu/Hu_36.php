@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\hu;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Hu_36
 {
