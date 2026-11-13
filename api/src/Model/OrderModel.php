@@ -278,9 +278,13 @@ class OrderModel extends AdminOrderModel
                 'amount' => $amount($p->amount ?? null),
                 'conversion_rate' => self::decimal(value: $p->conversion_rate ?? null),
                 'refund_type' => $p->refund_type ?? null,
+                // The reason staff gave for a refund, as the order screen shows it (2.2.1).
+                'refund_reason' => $p->refund_reason ?? null,
                 'note' => $p->note ?? null,
                 'id_document' => isset($p->id_document) ? (int) $p->id_document : null,
-                'created' => $p->created ?? null,
+                // When the payment was recorded: the row's own time column (2.2.1; the table has no `created`, which
+                // this entry published as null until then).
+                'added' => $p->added ?? null,
             ],
             $rows($item->payments ?? null),
         );
