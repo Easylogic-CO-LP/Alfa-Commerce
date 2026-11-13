@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\FormFieldsPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -991,7 +992,8 @@ class FieldsHelper
      * @param string $type The field type (the plugin element).
      *
      * @throws PluginUnavailable When the plugin is missing, disabled, not loaded for the request's user, cannot be
-     *                           loaded or is not a form-field plugin; its message names the plugin and the reason.
+     *                           loaded or is not a {@see FormFieldsPlugin}; its message names the plugin and the
+     *                           reason.
      * @throws InvalidArgumentException When the type names no plugin.
      *
      * @since  1.0.0
