@@ -222,6 +222,10 @@ class ShipmentModel extends AlfaAdminModel
         $rawData = $input->post->get('jform', [], 'raw');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
+        // A new method that leaves a colour out takes the one its form offers (2.2.1): the edit form always posts
+        // both, a REST create need not, and neither column has a default of its own.
+        $data = $this->withFormDefaults(data: $data, fields: ['color', 'bg_color']);
+
         // The plugin of an order's method cannot change (2.2.0, design 2.15.5).
         if (!$this->methodTypeChangeAllowed(data: $data)) {
             return false;
