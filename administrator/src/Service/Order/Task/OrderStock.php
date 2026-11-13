@@ -16,6 +16,8 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
+use Joomla\CMS\Log\Log;
+use Throwable;
 
 /**
  * order.stock: drain the order's stock obligation after a status change.
@@ -59,21 +61,40 @@ final class OrderStock extends OrderTaskHandler
     public function run(TaskRun $run): void
     {
         $payload = $run->payload();
+        $failure = null;
 
         try {
-            if (self::currentStatus(orderId: $run->subjectId()) === null) {
-                return;
+            if (self::currentStatus(orderId: $run->subjectId()) !== null) {
+                Transition::deliverStockOutcome(
+                    taskId: $run->id(),
+                    outcome: Transition::drainFor(orderId: $run->subjectId(), oldStatusId: (int) ($payload['from'] ?? 0), toStatusId: (int) ($payload['to'] ?? 0)),
+                );
             }
+        } catch (Throwable $e) {
+            $failure = $e;
+        }
 
-            Transition::deliverStockOutcome(
-                taskId: $run->id(),
-                outcome: Transition::drainFor(orderId: $run->subjectId(), oldStatusId: (int) ($payload['from'] ?? 0), toStatusId: (int) ($payload['to'] ?? 0)),
-            );
-        } finally {
-            // An obligation left owed, by the drain or by a failure around it, is the stock.effects.drain job's (2.2.0).
+        // An obligation left owed, by the drain or by a failure around it, is the stock.effects.drain job's (2.2.0).
+        // Its failure after the run's own never takes that one's place: the task records the run's (2.2.1).
+        try {
             if (InventoryEffectOutbox::owesOrderClaim(orderId: $run->subjectId())) {
                 StockEffectsDrainJob::enqueue();
             }
+        } catch (Throwable $owing) {
+            if ($failure === null) {
+                throw $owing;
+            }
+
+            Log::add(
+                entry:    'Task #' . $run->id() . ' (' . self::NAME . '): the stock.effects.drain job was not owed after the run failed: '
+                          . $owing->getMessage(),
+                priority: Log::WARNING,
+                category: 'com_alfa.inventory',
+            );
+        }
+
+        if ($failure !== null) {
+            throw $failure;
         }
     }
 
