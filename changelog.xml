@@ -3,6 +3,22 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.2.1</version>
+
+        <fix>
+            <item>Saving a product is one step: its details, translations, images, prices, categories, manufacturers, who may see it, options, downloads, variants, stock and a move into the archive are all saved, or, if the save stops part way (for example the database was briefly unreachable), none of them is and staff are told that nothing was kept. Before, a save that stopped part way could leave the product with new details and old prices, or with no categories. The catalogue rebuild and the extensions told of the save hear of it only once it is complete.</item>
+            <item>Saving a discount or a tax rule saves the rule and its scope (categories, manufacturers, places, customers, customer groups) in one step, and extensions told of the save read the scope as it was saved. Before, they were told before the scope was written.</item>
+            <item>A product or variant price for a country that was later deleted keeps its country: the price editor shows it as "#number (deleted)" with a note, and saving the product unchanged keeps it. Before, the editor showed "All" for such a row and saving the product turned that country's price into a price for every country. Setting such a row to every country is refused, naming the row.</item>
+        </fix>
+
+        <change>
+            <item>For extension developers: OrderTotalHelper::getShippingTotal() now answers the shipping the order charges after shipping-class cart rules, the figure its total and documents use; before, it answered the carriers' charges before those rules. The carriers' charge is still in OrderTotalHelper::getBreakdown() as shipping_gross_tax_incl.</item>
+            <item>For extension developers: onAlfaAdminAfterSave for a product, a discount or a tax, and onItemAfterSave, are announced once the whole save has committed, never for a save that was rolled back.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.2.0</version>
 
         <note>
