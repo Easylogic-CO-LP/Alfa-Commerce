@@ -29,30 +29,49 @@ jobs:
           category: "/language:javascript-typescript"
 
   php-security:
+    # Semgrep reads the PHP that Alfa Commerce ships (the component, its plugins and modules, the
+    # install script) with its PHP security rules: code run from a string, shell commands, request
+    # values reaching output, SQL, files, URLs or class names, unsafe transport and weak secrets.
+    # Any finding fails the job. The bundled libraries under libraries/ are not read: they are laid
+    # exactly as their upstream releases, and a finding in them is answered by an upstream release.
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          php-version: "8.2"
-          tools: composer
+          persist-credentials: false
 
-      - name: Install PHP security checker dependencies
-        run: composer global require --dev enlightn/security-checker
+      # The rules at an exact commit of their repository, so a rule added or changed there never
+      # changes what this job reports. Raise the commit in a pull request, with Semgrep's version.
+      - name: Fetch the Semgrep PHP rules
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: semgrep/semgrep-rules
+          ref: a5ad1714f00c9f7fde980cab0ea1d6dc6d414fd2
+          path: .semgrep-rules
+          sparse-checkout: php/lang/security
+          persist-credentials: false
 
-      - name: Run Enlightn Security Checker
+      # Semgrep 1.185.0, its image pinned by digest, run with no network, so a run never sends
+      # anything and every run reads the same rules with the same engine.
+      # Three rules of the set flag every call of a function, whatever it is given, and are left
+      # out: weak-crypto (every md5() and sha1(); Alfa uses them for cache keys and fingerprints,
+      # md5-used-as-password stays on for passwords), unlink-use (every unlink() of a path held in a
+      # variable; tainted-filename stays on for a path taken from the request) and unserialize-use
+      # (every unserialize(); the one in Alfa reads its own cache entry with only stdClass allowed).
+      - name: Run Semgrep
         run: |
-          if [ -f composer.lock ]; then
-            security-checker security:check composer.lock
-          else
-            echo "No composer.lock found — skipping dependency vulnerability scan."
-          fi
+          docker run --rm --network none -v "$GITHUB_WORKSPACE:/src" -w /src \
+            semgrep/semgrep:1.185.0@sha256:67518c174185a2043fdbed16c70631b79209499b3671178e7194379b48295a0d \
+            semgrep scan --metrics=off --disable-version-check --error \
+              --config .semgrep-rules/php/lang/security \
+              --exclude-rule semgrep-rules.php.lang.security.weak-crypto \
+              --exclude-rule semgrep-rules.php.lang.security.unlink-use \
+              --exclude-rule semgrep-rules.php.lang.security.unserialize-use \
+              administrator site api plugins modules script.php
 
   secret-scanning:
     runs-on: ubuntu-latest
