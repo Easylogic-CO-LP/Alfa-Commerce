@@ -504,13 +504,22 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * address with a GET and does not follow redirects reaches the plugin. An address registered in
      * the routed form names its language and is left as it is.
      *
+     * The task's suffix is read first, so an ordinary request of the component (the cart's own
+     * requests among them) loads neither family's plugin base to compare one string.
+     *
      * @param \Joomla\Input\Input $input The request.
      *
      * @since  2.2.1
      */
     private function markProviderWebhook(\Joomla\Input\Input $input): void
     {
-        if ($input->getCmd('option') !== 'com_alfa' || !\in_array($input->getCmd('task'), [PaymentsPlugin::webhookTask(), ShipmentsPlugin::webhookTask()], true)) {
+        $task = $input->getCmd('task');
+
+        if (
+            $input->getCmd('option') !== 'com_alfa'
+            || !str_ends_with($task, '.webhook')
+            || !\in_array($task, [PaymentsPlugin::webhookTask(), ShipmentsPlugin::webhookTask()], true)
+        ) {
             return;
         }
 
