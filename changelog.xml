@@ -3,6 +3,27 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.2.1</version>
+
+        <security>
+            <item>A registration stores the customer's details exactly as the registration form checked them: each field's own rules and clean-up applied, and nothing kept for a field the form hid. Before, the values were taken from the submitted page as they came, on every account save, Joomla's own registration page included, so a required field could be left empty, a phone number kept unformatted, or a value stored that the form never offered. Details saved before are kept as they are.</item>
+            <item>A required checkout or registration field whose form field plugin is disabled, missing, or not available to the visitor (its Access is not Public) now stops the form with a message naming the field, instead of being left out and the order or account saved without it. An optional field in that state is left out, as before, and noted in the log. A new row of the setup checklist names required fields that not every visitor can fill in.</item>
+            <item>A storefront or API request that sends a list where one value is expected (for example id_line[]=1) is answered "400 Bad Request" with a plain sentence. Before, some storefront pages answered with an error page that named a file on the server.</item>
+            <item>Issuing a sales document now needs the Sales Documents: Create permission and voiding one the Sales Documents: Change State permission, checked by the document service itself whoever calls it. The screens and the API already asked for them; an extension that issues or voids documents is now held to the same rule. Automatic issue on a status change is the shop's own policy and asks no staff permission.</item>
+        </security>
+
+        <fix>
+            <item>The stock step of a status change that fails (for example the database was briefly unreachable) is tried again with the shop's usual backoff, and if it keeps failing it shows in Tools > Tasks and in the notification bell. Before, it failed at once and nobody was told, while the order's stock stayed unmoved.</item>
+            <item>A stock movement that a stock extension refuses on purpose is no longer retried for ever: it is recorded as refused, the order's notice names the refusal and asks staff to decide, and a new status of the order tries it again. A stock movement that keeps failing for another reason stops after six tries and its notice says so; Apply outstanding stock movements in Tools > Database Sync tries it again.</item>
+        </fix>
+
+        <change>
+            <item>For extension developers: DocumentIssuer::issue() takes the actor that issues (a user, or SystemActor for the shop's own policy; the request's identity when none is named) and refuses one without the permission with a DocumentRefusedException, as void() does; an empty void reason is a DocumentRefusedException too. A listener of onInventoryBeforeReserve, onInventoryBeforeCommit or onInventoryBeforeRelease refuses a movement on purpose by throwing InventoryRefusedException with the sentence staff are to read.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.2.0</version>
 
         <note>
