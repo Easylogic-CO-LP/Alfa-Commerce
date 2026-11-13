@@ -53,7 +53,7 @@
             <item>For extension developers: DocumentIssuer::issue() takes the actor that issues (a user, or SystemActor for the shop's own policy; the request's identity when none is named) and refuses one without the permission with a DocumentRefusedException, as void() does; an empty void reason is a DocumentRefusedException too. A listener of onInventoryBeforeReserve, onInventoryBeforeCommit or onInventoryBeforeRelease refuses a movement on purpose by throwing InventoryRefusedException with the sentence staff are to read.</item>
             <item>For extension developers: OrderTotalHelper::getShippingTotal() now answers the shipping the order charges after shipping-class cart rules, the figure its total and documents use; before, it answered the carriers' charges before those rules. The carriers' charge is still in OrderTotalHelper::getBreakdown() as shipping_gross_tax_incl.</item>
             <item>For extension developers: onAlfaAdminAfterSave for a product, a discount or a tax, and onItemAfterSave, are announced once the whole save has committed, never for a save that was rolled back.</item>
-            <item>REST API: a PATCH of a customer group's prices_display changes only the settings it names and keeps the group's others. Before, the map sent replaced the stored one whole.</item>
+            <item>REST API: a PATCH of a customer group's prices_display changes only the settings it names and keeps the group's others, and a setting it sends empty ("" or null) is removed from the group, which then takes the shop's own setting. Before, the map sent replaced the stored one whole, and a setting sent empty was stored as the field's default.</item>
         </change>
     </changelog>
     <changelog>

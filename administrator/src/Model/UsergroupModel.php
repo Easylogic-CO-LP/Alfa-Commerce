@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Joomla\CMS\Form\Form;
 use LogicException;
 use SimpleXMLElement;
 
@@ -332,6 +333,40 @@ class UsergroupModel extends AlfaAdminModel
         }
 
         return $item;
+    }
+
+    /**
+     * Validate the form data, keeping each overridable group the data sends.
+     *
+     * The form's filter keeps only the fields the data names, so a group sent
+     * with none left in it (a REST PATCH that removes the last setting the
+     * group stored, 2.2.1) would leave the validated data, and save() would
+     * keep what is stored. Sent empty, it stays empty: save() stores no setting
+     * of the group's own, and the shop's settings apply.
+     *
+     * @param Form $form The form to validate against.
+     * @param array $data The data to validate.
+     * @param string $group The name of the field group to validate.
+     *
+     * @return array|bool The filtered data on success, false when the data was refused.
+     *
+     * @since  2.2.1
+     */
+    public function validate($form, $data, $group = null)
+    {
+        $validated = parent::validate($form, $data, $group);
+
+        if (!\is_array($validated)) {
+            return $validated;
+        }
+
+        foreach (self::OVERRIDE_FIELDSETS as $groupName) {
+            if (($data[$groupName] ?? null) === [] && !\array_key_exists($groupName, $validated)) {
+                $validated[$groupName] = [];
+            }
+        }
+
+        return $validated;
     }
 
     /**

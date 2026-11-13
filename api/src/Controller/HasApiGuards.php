@@ -73,9 +73,9 @@ trait HasApiGuards
 
     /**
      * Keyed maps a PATCH merges into the stored map (2.2.1): a key the body
-     * sends replaces that key, and a key the body leaves out keeps its stored
-     * value. Each must be readable back off getItem() under the same name, as
-     * an array.
+     * sends replaces that key, a key the body sends empty ('' or null) is
+     * removed, and a key the body leaves out keeps its stored value. Each must
+     * be readable back off getItem() under the same name, as an array.
      *
      * @return string[]
      *
@@ -542,9 +542,11 @@ trait HasApiGuards
      * Lay the keys of each map the body sends over the stored map (2.2.1).
      *
      * PATCH only, for the maps mergeOnPatch() names: a body that names one
-     * key of the map changes that key and keeps the others. The edit form
-     * posts the whole map and does not come this way; on a create there is
-     * nothing stored to merge into.
+     * key of the map changes that key and keeps the others, and a key it sends
+     * empty ('' or null) leaves the map, so the setting returns to its default.
+     * It leaves here, before the form's filter, which would give an empty value
+     * the field's default and store that. The edit form posts the whole map and
+     * does not come this way; on a create there is nothing stored to merge into.
      *
      * @param array $data The incoming save data.
      *
@@ -567,7 +569,10 @@ trait HasApiGuards
 
         foreach ($sent as $key) {
             $stored = $current->$key ?? [];
-            $data[$key] = array_replace(\is_array($stored) ? $stored : [], $data[$key]);
+            $data[$key] = array_filter(
+                array_replace(\is_array($stored) ? $stored : [], $data[$key]),
+                static fn (mixed $value): bool => $value !== '' && $value !== null,
+            );
         }
 
         return $data;
