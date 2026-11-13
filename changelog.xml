@@ -3,6 +3,21 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.2.1</version>
+
+        <fix>
+            <item>A registration refused by its checks (two passwords that differ, for example) no longer keeps the password typed: the registration page no longer writes it back into its form, where, with Joomla's System - Page Cache plugin on, the next visitor who opened the registration page could receive it.</item>
+            <item>The order page shown before payment, reached again by a reload or by Try again, keeps itself out of Joomla's System - Page Cache. With System - Alfa Commerce Sync disabled it could be stored and shown to the next visitor with the order's number.</item>
+        </fix>
+
+        <change>
+            <item>The setup checklist has a recommended row, Joomla page cache: it passes while System - Page Cache is off, warns while it runs beside System - Alfa Commerce Sync, saying what Alfa Commerce keeps out of it, what it still stores and that other page caches are not detected, and names the exposure while it runs without System - Alfa Commerce Sync. Saving either plugin checks the row again.</item>
+            <item>The warning shown while System - Alfa Commerce Sync is disabled or not installed now says first that the cart page, the checkout details typed, the order page shown before payment and the cart on every page are then no longer kept out of Joomla's page cache.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.2.0</version>
 
         <note>
