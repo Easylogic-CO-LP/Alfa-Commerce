@@ -22,6 +22,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Response\JsonResponse;
+use Joomla\Input\Input;
 use Joomla\Registry\Registry;
 use Throwable;
 
@@ -73,7 +74,15 @@ class AlfaSearchHelper
             $app->getLanguage()->load('mod_alfa_search', JPATH_SITE);
 
             $params = new Registry($module->params);
-            $keyword = self::getAndValidateKeyword($app, $params);
+            $query = self::requestValue(input: $app->getInput(), name: 'query', filter: 'string', default: '');
+
+            if ($query === null) {
+                self::sendError(Text::_('MOD_ALFA_SEARCH_ERROR_REQUEST_VALUE'), 400);
+
+                return;
+            }
+
+            $keyword = self::getAndValidateKeyword((string) $query, $params);
 
             $results = CatalogSearchService::create()->search(
                 self::request(keyword: $keyword, lang: $app->getLanguage()->getTag(), params: $params),
@@ -129,16 +138,16 @@ class AlfaSearchHelper
      * to protect the server rather than to shape the UX, but it is still reported with
      * this module's own message.
      *
-     * @param object $app Application instance
+     * @param string $query The request's query, one value.
      * @param Registry $params Module parameters
      *
      * @return string Validated keyword
      * @throws Exception
      * @since  1.0.0
      */
-    private static function getAndValidateKeyword($app, Registry $params): string
+    private static function getAndValidateKeyword(string $query, Registry $params): string
     {
-        $keyword = CatalogSearchService::sanitize($app->input->getString('query', ''));
+        $keyword = CatalogSearchService::sanitize($query);
 
         // FLOOR OF TWO, whatever the merchant configured: the search service refuses a
         // keyword below its own minimum outright (one character is a search intent it
@@ -263,5 +272,26 @@ class AlfaSearchHelper
         } catch (Throwable $e) {
             error_log('mod_alfa_search: ' . $message);
         }
+    }
+
+    /**
+     * One value of the request, through Joomla's filter, or null when the request sends a list in its place (2.2.1): a
+     * list handed on to a typed parameter fails with an error page that names a file of the site, so it is refused
+     * before any use.
+     *
+     * @param Input $input The request.
+     * @param string $name The value's name.
+     * @param string $filter Joomla's filter: int, cmd or string.
+     * @param int|string $default The value when the request carries none.
+     *
+     * @since  2.2.1
+     */
+    private static function requestValue(Input $input, string $name, string $filter, int|string $default): mixed
+    {
+        if (\is_array($input->get($name, null, 'raw'))) {
+            return null;
+        }
+
+        return $input->get($name, $default, $filter);
     }
 }
