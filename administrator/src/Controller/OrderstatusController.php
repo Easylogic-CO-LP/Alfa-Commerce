@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageHelper;
@@ -84,9 +85,9 @@ class OrderstatusController extends FormController
         }
 
         $input = $app->getInput();
-        $statusId = (int) $input->getInt('id', 0);
-        $langTag = trim((string) $input->getString('lang', ''));
-        $recipient = (string) $input->getCmd('recipient', 'customer');
+        $statusId = (int) RequestScalar::int($input, 'id');
+        $langTag = trim((string) RequestScalar::string($input, 'lang'));
+        $recipient = (string) RequestScalar::cmd($input, 'recipient', 'customer');
 
         if (!in_array($recipient, ['customer', 'admin'], true)) {
             $recipient = 'customer';
@@ -154,7 +155,7 @@ class OrderstatusController extends FormController
             $app->close();
         }
 
-        $statusId = (int) $app->getInput()->getInt('id', 0);
+        $statusId = (int) RequestScalar::int($app->getInput(), 'id');
 
         if ($statusId <= 0) {
             $this->emitPreviewError(message: 'Missing or invalid status id.');
@@ -165,7 +166,7 @@ class OrderstatusController extends FormController
         // Optional recipient scoping: the per-tab Preview button passes
         // &recipient=customer|admin so the modal shows only that side.
         // Omitted -> both (the combined view).
-        $only = (string) $app->getInput()->getCmd('recipient', '');
+        $only = (string) RequestScalar::cmd($app->getInput(), 'recipient');
         $recipients = in_array($only, ['customer', 'admin'], true) ? [$only] : ['customer', 'admin'];
 
         // Group by recipient: outer tabs (Customer / Admin) hold all
@@ -394,7 +395,7 @@ class OrderstatusController extends FormController
             $app->close();
         }
 
-        $statusId = (int) $app->getInput()->getInt('id', 0);
+        $statusId = (int) RequestScalar::int($app->getInput(), 'id');
 
         if ($statusId <= 0) {
             $this->emitPreviewError(message: 'Missing or invalid status id.');
@@ -403,9 +404,9 @@ class OrderstatusController extends FormController
         $app->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
         $app->sendHeaders();
 
-        $recipient = (string) $app->getInput()->getCmd('recipient', '');
+        $recipient = (string) RequestScalar::cmd($app->getInput(), 'recipient');
         $recipient = in_array($recipient, ['customer', 'admin'], true) ? $recipient : 'customer';
-        $lang = trim((string) $app->getInput()->getString('lang', ''));
+        $lang = trim((string) RequestScalar::string($app->getInput(), 'lang'));
 
         echo $this->renderSendTestFormHtml(statusId: $statusId, user: $user, recipient: $recipient, lang: $lang);
 
@@ -452,11 +453,11 @@ class OrderstatusController extends FormController
 
         $input = $app->getInput();
 
-        $statusId = (int) $input->getInt('status_id', 0);
-        $orderId = (int) $input->getInt('order_id', 0);
-        $langTag = trim((string) $input->getString('lang', ''));
-        $recipient = (string) $input->getCmd('recipient', 'customer');
-        $destination = trim((string) $input->getString('destination', ''));
+        $statusId = (int) RequestScalar::int($input, 'status_id');
+        $orderId = (int) RequestScalar::int($input, 'order_id');
+        $langTag = trim((string) RequestScalar::string($input, 'lang'));
+        $recipient = (string) RequestScalar::cmd($input, 'recipient', 'customer');
+        $destination = trim((string) RequestScalar::string($input, 'destination'));
 
         if ($langTag === '') {
             $langTag = $app->getLanguage()->getTag();

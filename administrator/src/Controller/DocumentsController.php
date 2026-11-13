@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentIssuer;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
@@ -68,7 +69,7 @@ class DocumentsController extends BaseController
         $this->checkToken();
 
         $app = $this->app;
-        $id = $this->input->getInt('id', 0);
+        $id = RequestScalar::int($this->input, 'id');
         $stateKey = 'com_alfa.edit.documents.void.' . $id;
 
         // The form is an iframe modal, so both ends of this task are modal
@@ -93,7 +94,7 @@ class DocumentsController extends BaseController
             return;
         }
 
-        $reason = trim($this->input->getString('reason', ''));
+        $reason = trim(RequestScalar::string($this->input, 'reason'));
 
         // Checked again on the server. The form marks the field required and
         // Joomla's validator refuses an empty submit, but a client-side rule
@@ -137,7 +138,7 @@ class DocumentsController extends BaseController
      */
     public function cancelVoid(): void
     {
-        $id = $this->input->getInt('id', 0);
+        $id = RequestScalar::int($this->input, 'id');
 
         $this->app->setUserState('com_alfa.edit.documents.void.' . $id, null);
 
@@ -166,7 +167,7 @@ class DocumentsController extends BaseController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $id = $this->input->getInt('id', 0);
+        $id = RequestScalar::int($this->input, 'id');
 
         try {
             $html = DocumentRenderer::render(documentId: $id);
@@ -194,7 +195,7 @@ class DocumentsController extends BaseController
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $id = $this->input->getInt('id', 0);
+        $id = RequestScalar::int($this->input, 'id');
 
         try {
             $db = \Joomla\CMS\Factory::getContainer()->get('DatabaseDriver');

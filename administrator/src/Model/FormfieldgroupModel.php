@@ -98,7 +98,7 @@ class FormfieldgroupModel extends AlfaAdminModel
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
+        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
         $key = $this->getTable()->getKeyName();

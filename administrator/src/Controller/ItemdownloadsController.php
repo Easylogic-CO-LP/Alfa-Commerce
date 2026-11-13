@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
 use Exception;
 use Joomla\CMS\Factory;
@@ -53,7 +54,7 @@ class ItemdownloadsController extends BaseController
         }
 
         $input = $this->app->getInput();
-        $itemId = $input->post->getInt('item_id', 0);
+        $itemId = RequestScalar::int($input->post, 'item_id');
         $file = $input->files->get('file', null, 'raw');
 
         if ($itemId <= 0 || !\is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -65,10 +66,10 @@ class ItemdownloadsController extends BaseController
             $stored = Storage::put(sourcePath: $file['tmp_name']);
 
             $originalName = basename((string) $file['name']);
-            $title = trim($input->post->getString('title', ''));
+            $title = trim(RequestScalar::string($input->post, 'title'));
 
             $db = Factory::getContainer()->get('DatabaseDriver');
-            $combinationId = $input->post->getInt('combination_id', 0);
+            $combinationId = RequestScalar::int($input->post, 'combination_id');
 
             $row = (object) [
                 'item_id' => $itemId,
@@ -81,8 +82,8 @@ class ItemdownloadsController extends BaseController
                 'sha256' => $stored->sha256,
                 'original_filename' => $originalName,
                 'display_filename' => $originalName,
-                'max_downloads' => max(0, $input->post->getInt('max_downloads', 0)),
-                'days_valid' => max(0, $input->post->getInt('days_valid', 0)),
+                'max_downloads' => max(0, RequestScalar::int($input->post, 'max_downloads')),
+                'days_valid' => max(0, RequestScalar::int($input->post, 'days_valid')),
                 'state' => 1,
                 'ordering' => $this->nextOrdering(itemId: $itemId),
                 'created_by' => (int) $this->app->getIdentity()->id,
@@ -117,7 +118,7 @@ class ItemdownloadsController extends BaseController
         }
 
         $input = $this->app->getInput();
-        $id = $input->post->getInt('id', 0);
+        $id = RequestScalar::int($input->post, 'id');
         $file = $input->files->get('file', null, 'raw');
 
         $row = $this->loadRow(id: $id);
@@ -177,7 +178,7 @@ class ItemdownloadsController extends BaseController
         }
 
         $input = $this->app->getInput();
-        $row = $this->loadRow(id: $input->post->getInt('id', 0));
+        $row = $this->loadRow(id: RequestScalar::int($input->post, 'id'));
 
         if ($row === null) {
             echo new JsonResponse(null, Text::_('COM_ALFA_DOWNLOADS_ERROR_NOT_FOUND'), true);

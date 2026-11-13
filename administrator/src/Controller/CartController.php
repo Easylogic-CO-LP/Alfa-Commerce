@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSource;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
@@ -150,7 +151,7 @@ class CartController extends BaseController
             throw new RuntimeException(Text::_('COM_ALFA_ACCESS_CARTS_CHECKOUT_DENIED'), 403);
         }
 
-        $cartId = (int) $input->post->getInt('cart_id', 0);
+        $cartId = (int) RequestScalar::int($input->post, 'cart_id');
 
         if ($cartId <= 0) {
             $this->refuse(0, [['code' => 'COM_ALFA_ORDER_PLACE_OPERATOR_CART_REQUIRED', 'params' => []]]);
@@ -205,8 +206,8 @@ class CartController extends BaseController
             // given, by the one method that does it; naming it here would be a
             // second answer to the same question.
             placeId: null,
-            useCredit: (int) $input->post->getInt('use_credit', 0) === 1,
-            initialStatus: (int) $input->post->getInt('order_status', 0),
+            useCredit: (int) RequestScalar::int($input->post, 'use_credit') === 1,
+            initialStatus: (int) RequestScalar::int($input->post, 'order_status'),
         );
 
         // COMMITTED IS THE QUESTION, NOT PLACED.
@@ -268,7 +269,7 @@ class CartController extends BaseController
     public function createBuilderCart(): void
     {
         $actor = $this->guardMutation();
-        $customerId = (int) $this->input->post->getInt('customer_id', 0);
+        $customerId = (int) RequestScalar::int($this->input->post, 'customer_id');
 
         if ($customerId > 0 && !$this->customerExists($customerId)) {
             $this->emitError('COM_ALFA_CART_BUILDER_CUSTOMER_NOT_FOUND', 404);
@@ -307,7 +308,7 @@ class CartController extends BaseController
     public function takeOver(): void
     {
         $actor = $this->guardMutation();
-        $cartId = (int) $this->input->getInt('cart_id', 0);
+        $cartId = (int) RequestScalar::int($this->input, 'cart_id');
 
         if ($this->cartSource === null) {
             $this->emitError('COM_ALFA_CART_NOT_FOUND', 404);
@@ -351,7 +352,7 @@ class CartController extends BaseController
     public function searchProducts(): void
     {
         $this->guardRead();
-        $cartId = (int) $this->input->getInt('cart_id', 0);
+        $cartId = (int) RequestScalar::int($this->input, 'cart_id');
 
         if ($this->customerOf($cartId) === null) {
             $this->emitError('COM_ALFA_CART_NOT_FOUND', 404);
@@ -360,7 +361,7 @@ class CartController extends BaseController
         }
 
         $results = OrderHelper::searchProducts(
-            (string) $this->input->getString('q', ''),
+            (string) RequestScalar::string($this->input, 'q'),
             $this->cartPriceContext($cartId),
             20,
         );
@@ -391,8 +392,8 @@ class CartController extends BaseController
         }
 
         try {
-            $itemId = (int) $this->input->getInt('item_id', 0);
-            $quantity = (int) $this->input->getInt('quantity', 1);
+            $itemId = (int) RequestScalar::int($this->input, 'item_id');
+            $quantity = (int) RequestScalar::int($this->input, 'quantity', 1);
             $command = AddToCartRequest::command($this->input, $itemId, $quantity);
             $result = $editor->add($command);
 
@@ -431,8 +432,8 @@ class CartController extends BaseController
         }
 
         try {
-            $lineId = (int) $this->input->getInt('line_id', 0);
-            $quantity = (int) $this->input->getInt('quantity', 0);
+            $lineId = (int) RequestScalar::int($this->input, 'line_id');
+            $quantity = (int) RequestScalar::int($this->input, 'quantity');
             $result = $editor->setQuantity(lineId: $lineId, quantity: $quantity);
 
             if ($result->succeeded) {
@@ -467,7 +468,7 @@ class CartController extends BaseController
         }
 
         try {
-            $lineId = (int) $this->input->getInt('line_id', 0);
+            $lineId = (int) RequestScalar::int($this->input, 'line_id');
 
             // THE ONE DECODER, over the raw post. getInt()/getFloat() cannot
             // express this: they answer 0 for an absent field, for a null and
@@ -490,7 +491,7 @@ class CartController extends BaseController
             // is no consequential staff action to record.
             if ($result->succeeded && $command->mutates()) {
                 $written = CartTakeover::recordAlways(
-                    cartId: (int) $this->input->getInt('cart_id', 0),
+                    cartId: (int) RequestScalar::int($this->input, 'cart_id'),
                     actor: $actor,
                     operation: 'setLinePrice',
                     facts: [
@@ -535,7 +536,7 @@ class CartController extends BaseController
         }
 
         try {
-            $lineId = (int) $this->input->getInt('line_id', 0);
+            $lineId = (int) RequestScalar::int($this->input, 'line_id');
 
             // THE ENGINE SAYS WHETHER A LINE WENT. A line id belonging to another
             // cart, or to none, removes nothing, and "removed line #N" must not
@@ -568,11 +569,11 @@ class CartController extends BaseController
 
         try {
             $priced = $this->getModel('Cart')->priceLineConfig(
-                itemId: (int) $this->input->getInt('item_id', 0),
-                cartId: (int) $this->input->getInt('cart_id', 0),
-                lineId: (int) $this->input->getInt('line_id', 0),
+                itemId: (int) RequestScalar::int($this->input, 'item_id'),
+                cartId: (int) RequestScalar::int($this->input, 'cart_id'),
+                lineId: (int) RequestScalar::int($this->input, 'line_id'),
                 // As typed: a box below 1 is refused by the quote, never quoted as 1.
-                quantity: (int) $this->input->getInt('quantity', 0),
+                quantity: (int) RequestScalar::int($this->input, 'quantity'),
             );
 
             if ($priced === null) {
@@ -650,8 +651,8 @@ class CartController extends BaseController
     {
         $this->setRedirect(Route::_(
             'index.php?option=com_alfa&view=cart&layout=builder_return&tmpl=component'
-            . '&cart_id=' . (int) $this->input->getInt('cart_id', 0)
-            . '&line_id=' . (int) $this->input->getInt('line_id', 0)
+            . '&cart_id=' . (int) RequestScalar::int($this->input, 'cart_id')
+            . '&line_id=' . (int) RequestScalar::int($this->input, 'line_id')
             . '&reload=0',
             false,
         ));
@@ -673,7 +674,7 @@ class CartController extends BaseController
         }
 
         try {
-            $code = (string) $this->input->getString('code', '');
+            $code = (string) RequestScalar::string($this->input, 'code');
             $outcome = $editor->applyCoupon($code);
 
             // Recorded only where the cart KEPT the code: a refused one left
@@ -704,8 +705,8 @@ class CartController extends BaseController
         }
 
         try {
-            $code = (string) $this->input->getString('code', '');
-            $cartId = (int) $this->input->getInt('cart_id', 0);
+            $code = (string) RequestScalar::string($this->input, 'code');
+            $cartId = (int) RequestScalar::int($this->input, 'cart_id');
 
             // THE ROW IS THE ORACLE. The editor and the rules engine both answer
             // void, so what proves a code went is that the cart no longer holds it.
@@ -737,7 +738,7 @@ class CartController extends BaseController
      */
     public function pointAddress(): void
     {
-        $cartId = (int) $this->input->getInt('cart_id', 0);
+        $cartId = (int) RequestScalar::int($this->input, 'cart_id');
         $actor = $this->guardMutation();
         $editor = $this->editorForOrFail($actor);
 
@@ -745,8 +746,8 @@ class CartController extends BaseController
             return;
         }
 
-        $deliveryId = (int) $this->input->getInt('delivery_id', 0);
-        $invoiceId = (int) $this->input->getInt('invoice_id', 0);
+        $deliveryId = (int) RequestScalar::int($this->input, 'delivery_id');
+        $invoiceId = (int) RequestScalar::int($this->input, 'invoice_id');
 
         if ($deliveryId <= 0) {
             $this->emitError('COM_ALFA_CART_BUILDER_DELIVERY_REQUIRED', 400);
@@ -804,8 +805,8 @@ class CartController extends BaseController
         }
 
         try {
-            $shipmentId = (int) $this->input->getInt('shipment_id', 0);
-            $cartId = (int) $this->input->getInt('cart_id', 0);
+            $shipmentId = (int) RequestScalar::int($this->input, 'shipment_id');
+            $cartId = (int) RequestScalar::int($this->input, 'cart_id');
 
             // THE RECORD DESCRIBES A CHANGE, NOT A WRITE. The editor answers
             // whether the UPDATE ran, and it ran just as truly when the operator
@@ -844,8 +845,8 @@ class CartController extends BaseController
         }
 
         try {
-            $paymentId = (int) $this->input->getInt('payment_id', 0);
-            $cartId = (int) $this->input->getInt('cart_id', 0);
+            $paymentId = (int) RequestScalar::int($this->input, 'payment_id');
+            $cartId = (int) RequestScalar::int($this->input, 'cart_id');
             $repository = new CartRepository();
             // The gateway answers the same change test as the carrier above.
             $before = (int) ($repository->loadCart($cartId)?->id_payment ?? 0);
@@ -882,7 +883,7 @@ class CartController extends BaseController
         // owner's list names both as mutations. The rule is stated once, in
         // CartTakeover; a builder cart settles as before, and so does a
         // shopper's cart this session has taken over.
-        $cartId = (int) $this->input->getInt('cart_id', 0);
+        $cartId = (int) RequestScalar::int($this->input, 'cart_id');
         $source = CartTakeover::sourceOf($cartId);
         $settles = $source === null
             || CartTakeover::mayOperate(actor: $actor, cartId: $cartId, source: $source);
@@ -938,7 +939,7 @@ class CartController extends BaseController
         }
 
         $actor = $this->authorisedActor();
-        $this->guardTakeover(cartId: (int) $this->input->getInt('cart_id', 0), actor: $actor);
+        $this->guardTakeover(cartId: (int) RequestScalar::int($this->input, 'cart_id'), actor: $actor);
 
         return $actor;
     }
@@ -1038,7 +1039,7 @@ class CartController extends BaseController
 
         $written = CartTakeover::record(
             source: $this->cartSource,
-            cartId: (int) $this->input->getInt('cart_id', 0),
+            cartId: (int) RequestScalar::int($this->input, 'cart_id'),
             actor: $actor,
             operation: $operation,
             facts: $facts,
@@ -1068,7 +1069,7 @@ class CartController extends BaseController
      */
     private function editorForOrFail(User $actor): ?NamedCartEditor
     {
-        $cartId = (int) $this->input->getInt('cart_id', 0);
+        $cartId = (int) RequestScalar::int($this->input, 'cart_id');
         $customerId = $cartId > 0 ? $this->customerOf($cartId) : null;
 
         if ($customerId === null) {
@@ -1089,7 +1090,7 @@ class CartController extends BaseController
      */
     private function postedPlace(): ?int
     {
-        $place = (int) $this->input->getInt('place_id', 0);
+        $place = (int) RequestScalar::int($this->input, 'place_id');
 
         return $place > 0 ? $place : null;
     }
@@ -1128,7 +1129,7 @@ class CartController extends BaseController
         // rendered after a redirect settles again and finds nothing left to
         // report. So a form post carries them across as messages; a scripted
         // caller reads them off the projection it was handed.
-        if ($this->input->getWord('form', '') !== '') {
+        if (RequestScalar::read($this->input, 'form', '', 'word') !== '') {
             foreach (['shipment', 'payment'] as $kind) {
                 foreach ($snapshot->offers->notices($kind) as $notice) {
                     $this->app->enqueueMessage($notice, 'warning');
@@ -1183,7 +1184,7 @@ class CartController extends BaseController
         // Every other caller (the builder's reads, the tests) takes the JSON
         // envelope. The guards, the command and the editor above this line are
         // identical either way; only the reply differs.
-        $form = $this->input->getWord('form', '');
+        $form = RequestScalar::read($this->input, 'form', '', 'word');
 
         if ($form !== '') {
             $this->emitToBrowser($form, $data, $message, $error);
@@ -1219,8 +1220,8 @@ class CartController extends BaseController
         // THE CART THE MUTATION CONCERNS, which is not always the one posted:
         // minting a builder cart has no cart_id to send and answers with the id
         // it just created, so the operator lands in the cart they asked for.
-        $cartId = (int) ($data['cartId'] ?? 0) ?: (int) $this->input->getInt('cart_id', 0);
-        $lineId = (int) $this->input->getInt('line_id', 0);
+        $cartId = (int) ($data['cartId'] ?? 0) ?: (int) RequestScalar::int($this->input, 'cart_id');
+        $lineId = (int) RequestScalar::int($this->input, 'line_id');
 
         if ($form !== 'popup') {
             // A form on the builder: back to the builder, with the outcome said
@@ -1243,7 +1244,7 @@ class CartController extends BaseController
             $this->setRedirect(Route::_(
                 'index.php?option=com_alfa&view=cart&layout=builder_line&tmpl=component'
                 . '&cart_id=' . $cartId
-                . '&id_item=' . (int) $this->input->getInt('item_id', 0)
+                . '&id_item=' . (int) RequestScalar::int($this->input, 'item_id')
                 . '&line_id=' . $lineId,
                 false,
             ));

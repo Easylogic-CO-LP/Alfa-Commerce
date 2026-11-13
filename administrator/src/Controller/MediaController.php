@@ -5,6 +5,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -69,11 +70,11 @@ class MediaController extends BaseController
             $app->close();
         }
 
-        $mediaData = $this->input->post->get('mediaData', '', 'string');
-        $type = $this->input->post->get('type', '', 'string');
-        $index = $this->input->post->get('identifier', 0, 'string');
-        $url = $this->input->post->get('url', '', 'string');
-        $thumbnail = $this->input->post->get('thumbnail', '', 'string');
+        $mediaData = RequestScalar::string($this->input->post, 'mediaData');
+        $type = RequestScalar::string($this->input->post, 'type');
+        $index = RequestScalar::read($this->input->post, 'identifier', 0, 'string');
+        $url = RequestScalar::string($this->input->post, 'url');
+        $thumbnail = RequestScalar::string($this->input->post, 'thumbnail');
 
         if (empty($type)) {
             echo json_encode([

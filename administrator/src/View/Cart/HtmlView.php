@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Cart;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartActivity;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSource;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartTakeover;
@@ -323,7 +324,7 @@ class HtmlView extends BaseHtmlView
             throw new RuntimeException(Text::_('COM_ALFA_ACCESS_CARTS_CHECKOUT_DENIED'), 403);
         }
 
-        $this->builderCartId = (int) $input->getInt('cart_id', 0);
+        $this->builderCartId = (int) RequestScalar::int($input, 'cart_id');
 
         // The same rule the mutations ask: a cart a storefront shopper created
         // needs Carts: Edit too, so the popup is never rendered for an operator
@@ -334,7 +335,7 @@ class HtmlView extends BaseHtmlView
             throw new RuntimeException(Text::_('COM_ALFA_ACCESS_CARTS_EDIT_DENIED'), 403);
         }
 
-        $lineId = (int) $input->getInt('line_id', 0);
+        $lineId = (int) RequestScalar::int($input, 'line_id');
 
         // The return page reports an outcome; it configures nothing.
         if ($this->getLayout() === 'builder_return') {
@@ -363,7 +364,7 @@ class HtmlView extends BaseHtmlView
             // nothing to configure and nothing that may be re-added. The popup
             // still opens, because the one action left is removing it, and the
             // toolbar below offers exactly that: Delete and Cancel, no Save.
-        } elseif (($itemId = (int) $input->getInt('id_item', 0)) > 0) {
+        } elseif (($itemId = (int) RequestScalar::int($input, 'id_item')) > 0) {
             // CONFIGURE-FIRST: an item was picked in the popup's own search and
             // the popup reloaded on it. Nothing is in the cart yet.
             $this->configItem = $this->getModel()->getBuilderItemConfig($itemId, $this->builderCartId);

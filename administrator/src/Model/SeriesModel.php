@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
@@ -81,7 +82,7 @@ class SeriesModel extends AlfaAdminModel
             return false;
         }
 
-        $id = (int) $this->getState('series.id', Factory::getApplication()->getInput()->getInt('id', 0));
+        $id = (int) $this->getState('series.id', RequestScalar::int(Factory::getApplication()->getInput(), 'id'));
 
         if ($id > 0 && $this->hasIssuedDocuments(seriesId: $id)) {
             // The counter belongs to the issue transaction now.
@@ -138,7 +139,7 @@ class SeriesModel extends AlfaAdminModel
         // undeclared in the form XML, so the form filter drops them. Recover
         // them from the raw POST (the orderstatus email-composer pattern),
         // then bundle into the `positions` JSON column.
-        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
+        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, (array) $rawData, $this->getForm($data, false) ?: null);
 
         self::bundlePositionsIntoJson(data: $data);

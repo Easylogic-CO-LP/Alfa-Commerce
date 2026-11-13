@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartActivity;
@@ -85,7 +86,7 @@ class CartModel extends ItemModel
         // $this->state->set, never $this->getState(): reading the state from
         // inside the method that fills it recurses until the stack dies, and
         // the page answers 500 with nothing in any log.
-        $this->state->set('cart.id', (int) Factory::getApplication()->getInput()->getInt('id', 0));
+        $this->state->set('cart.id', (int) RequestScalar::int(Factory::getApplication()->getInput(), 'id'));
     }
 
     /**

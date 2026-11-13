@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\Traits\LocksMethodTypeTrait;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
@@ -92,7 +93,7 @@ class PaymentModel extends AlfaAdminModel
         );
 
         // Get ID of the article from input
-        $idFromInput = $app->getInput()->getInt('id', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
 
         // On edit order, we get ID of order from order.id state, but on save, we use data from input
         $id = (int) $this->getState($this->formName . '.id', $idFromInput);
@@ -226,7 +227,7 @@ class PaymentModel extends AlfaAdminModel
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = $input->post->get('jform', [], 'raw');
+        $rawData = $input->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
         // A new method that leaves a colour out takes the one its form offers (2.2.1): the edit form always posts

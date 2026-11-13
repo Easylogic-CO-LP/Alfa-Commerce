@@ -151,7 +151,7 @@ class EmailPositionsField extends EditorField
         $posted = KeptPost::forRecord(stateKey: self::EDIT_STATE_KEY, recordId: $itemId);
 
         if (empty($posted)) {
-            $posted = (array) $app->getInput()->post->get('jform', [], 'raw');
+            $posted = (array) $app->getInput()->post->get('jform', [], 'array');
         }
 
         foreach ($languages as $langCode => $language) {

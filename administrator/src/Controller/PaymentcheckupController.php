@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentCheckupEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PaymentCheckupHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
@@ -52,10 +53,10 @@ class PaymentcheckupController extends BaseController
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        $methodId = $this->input->post->getInt('method', 0);
-        $variant = $this->input->post->getCmd('variant', '');
+        $methodId = RequestScalar::int($this->input->post, 'method');
+        $variant = RequestScalar::cmd($this->input->post, 'variant');
         $variant = \in_array($variant, PaymentCheckupEvent::VARIANTS, true) ? $variant : 'general';
-        $domId = $this->input->post->getCmd('card', '');
+        $domId = RequestScalar::cmd($this->input->post, 'card');
         $title = Text::_('COM_ALFA_CHECKUP_TITLE_' . strtoupper($variant));
 
         $html = PaymentCheckupHelper::render(methodId: $methodId, variant: $variant, check: true, domId: $domId, title: $title);

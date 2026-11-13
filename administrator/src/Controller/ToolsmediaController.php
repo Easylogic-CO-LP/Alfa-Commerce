@@ -42,7 +42,7 @@ class ToolsmediaController extends BaseController
 
         // 'files' mode selects by relative path; 'rows' mode by media row id.
         $source = (string) ($this->input->get('filter', [], 'array')['source'] ?? 'rows');
-        $selection = (array) $this->input->get('cid', [], 'raw');
+        $selection = $this->input->get('cid', [], 'array');
 
         try {
             if (empty($selection)) {

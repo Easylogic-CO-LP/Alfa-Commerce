@@ -411,7 +411,7 @@ class OrderstatusModel extends AlfaAdminModel
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = $input->post->get('jform', [], 'raw');
+        $rawData = $input->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
         $pk = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));

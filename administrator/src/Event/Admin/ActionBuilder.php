@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Closure;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Input\Input;
@@ -410,13 +411,13 @@ final class ActionBuilder
         // Joomla's own filters, as the administrator applies them to the request.
         $input = new Input($query);
 
-        if (strtolower($input->getCmd('option', '')) !== 'com_alfa') {
+        if (strtolower(RequestScalar::cmd($input, 'option')) !== 'com_alfa') {
             return [];
         }
 
         // As ComponentDispatcher::dispatch(): controller.task, else a named controller and a bare task.
-        $command = strtolower($input->getCmd('task', 'display'));
-        $controller = strtolower($input->getCmd('controller', 'display'));
+        $command = strtolower(RequestScalar::cmd($input, 'task', 'display'));
+        $controller = strtolower(RequestScalar::cmd($input, 'controller', 'display'));
         $task = $command;
 
         if (str_contains($command, '.')) {
@@ -427,13 +428,13 @@ final class ActionBuilder
             return AlfaHelper::taskPermission($controller . '.' . $task);
         }
 
-        $view = strtolower($input->getCmd('view', '')) ?: ($controller === 'display' ? 'dashboard' : $controller);
+        $view = strtolower(RequestScalar::cmd($input, 'view')) ?: ($controller === 'display' ? 'dashboard' : $controller);
 
         if (\in_array($view, AlfaHelper::SELF_GUARDED_SCREENS, true)) {
             return null;
         }
 
-        $layout = $input->get('layout', '', 'string');
+        $layout = RequestScalar::string($input, 'layout');
 
         return ['screen' => $view, 'layout' => \is_string($layout) ? $layout : '', 'id' => AlfaHelper::recordId(view: $view, input: $input)];
     }

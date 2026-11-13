@@ -30,6 +30,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CreditNoteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger;
@@ -235,7 +236,7 @@ class OrderController extends FormController
         $saved = parent::save($key, $urlVar);
 
         $urlVar = $urlVar ?: ($key ?: $this->getModel()->getTable()->getKeyName());
-        $recordId = $this->input->getInt($urlVar);
+        $recordId = RequestScalar::int($this->input, $urlVar);
 
         // Refused and sent back to the order: core kept the post for exactly
         // that redisplay. A refusal sent to the list keeps nothing to show.
@@ -319,7 +320,7 @@ class OrderController extends FormController
 
             // Parse JSON body
             $json = json_decode(file_get_contents('php://input'), true) ?: [];
-            $orderId = (int) ($json['order_id'] ?? $app->input->getInt('order_id', 0));
+            $orderId = (int) ($json['order_id'] ?? RequestScalar::int($app->input, 'order_id'));
             $data = $json['data'] ?? [];
 
             if ($orderId <= 0) {
@@ -465,7 +466,7 @@ class OrderController extends FormController
             // rather than buttons that always 403.
             $this->assertCanEdit(action: 'edit');
 
-            $orderId = $app->input->getInt('order_id', 0);
+            $orderId = RequestScalar::int($app->input, 'order_id');
 
             if ($orderId <= 0) {
                 throw new Exception(Text::_('COM_ALFA_ORDER_INVALID_ID'));
@@ -565,8 +566,8 @@ class OrderController extends FormController
         $this->checkToken();
         $this->assertCanEdit();
 
-        $paymentID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $paymentID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
 
         $success = false;
 
@@ -620,8 +621,8 @@ class OrderController extends FormController
         $app = Factory::getApplication();
         $input = $app->input;
 
-        $paymentID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $paymentID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
         $shouldReload = 0;
 
         $redirectSuccessURL =
@@ -654,8 +655,8 @@ class OrderController extends FormController
         $this->checkToken();
         $this->assertCanEdit();
 
-        $paymentID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $paymentID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
 
         $redirectURL = "index.php?option={$this->option}&view=order&tmpl=component&layout=edit_payment&id={$paymentID}&id_order={$orderID}";
         $redirectSuccessURL = "index.php?option={$this->option}&view=order&tmpl=component&layout=edit_payment_return&id_order={$orderID}";
@@ -700,8 +701,8 @@ class OrderController extends FormController
         $this->checkToken();
         $this->assertCanEdit();
 
-        $shipmentID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $shipmentID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
 
         $success = false;
 
@@ -766,8 +767,8 @@ class OrderController extends FormController
         $app = Factory::getApplication();
         $input = $app->input;
 
-        $shipmentID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $shipmentID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
         $shouldReload = 0;
 
         $redirectSuccessURL =
@@ -800,8 +801,8 @@ class OrderController extends FormController
         $this->checkToken();
         $this->assertCanEdit();
 
-        $shipmentID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $shipmentID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
 
         $redirectURL = "index.php?option={$this->option}&view=order&tmpl=component&layout=edit_shipment&id={$shipmentID}&id_order={$orderID}";
         $redirectSuccessURL = "index.php?option={$this->option}&view=order&tmpl=component&layout=edit_shipment_return&id_order={$orderID}";
@@ -955,8 +956,8 @@ class OrderController extends FormController
         $this->checkToken();
         $this->assertCanEdit();
 
-        $itemID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $itemID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
         $isNew = $itemID === 0;
         $stateKey = 'com_alfa.edit.order.item.' . $orderID . '.' . $itemID;
 
@@ -1012,7 +1013,7 @@ class OrderController extends FormController
         try {
             $this->assertCanEdit();
 
-            $write = $this->postedOrderItemWrite(orderId: $this->input->getInt('id_order', 0));
+            $write = $this->postedOrderItemWrite(orderId: RequestScalar::int($this->input, 'id_order'));
             $model = $this->getOrderModel();
             $plan = $model->planOrderItemLine(
                 data: $write['data'],
@@ -1366,8 +1367,8 @@ class OrderController extends FormController
         $app = Factory::getApplication();
         $input = $app->input;
 
-        $itemID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $itemID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
         $shouldReload = 0;
 
         $redirectSuccessURL =
@@ -1400,8 +1401,8 @@ class OrderController extends FormController
         $this->checkToken();
         $this->assertCanEdit();
 
-        $itemID = $input->getInt('id');
-        $orderID = $input->getInt('id_order');
+        $itemID = RequestScalar::int($input, 'id');
+        $orderID = RequestScalar::int($input, 'id_order');
 
         $redirectURL = "index.php?option={$this->option}&view=order&tmpl=component&layout=edit_order_item&id={$itemID}&id_order={$orderID}";
         $redirectSuccessURL = "index.php?option={$this->option}&view=order&tmpl=component&layout=edit_order_item_return&id_order={$orderID}";
@@ -1443,9 +1444,9 @@ class OrderController extends FormController
         $app = Factory::getApplication();
         $input = $app->input;
 
-        $query = $input->getString('q', '');
-        $orderId = $input->getInt('id_order', 0);
-        $limit = $input->getInt('limit', 20);
+        $query = RequestScalar::string($input, 'q');
+        $orderId = RequestScalar::int($input, 'id_order');
+        $limit = RequestScalar::int($input, 'limit', 20);
 
         $context = ($orderId > 0)
             ? \Alfa\Component\Alfa\Administrator\Helper\OrderHelper::buildOrderPriceContext($orderId)
@@ -1536,7 +1537,7 @@ class OrderController extends FormController
         $this->assertCanEdit();
 
         $app = Factory::getApplication();
-        $orderId = $this->input->getInt('id_order', 0);
+        $orderId = RequestScalar::int($this->input, 'id_order');
         $redirect = 'index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId;
 
         try {
@@ -1550,7 +1551,7 @@ class OrderController extends FormController
             }
 
             // An empty field is no amount, which the ledger refuses in its words.
-            $typed = $this->input->getString('credit_spend_amount', '');
+            $typed = RequestScalar::string($this->input, 'credit_spend_amount');
 
             try {
                 $amount = ExactMoney::of(value: $typed === '' ? '0' : $typed, currency: Currency::getDefault(), commaDecimal: true);
@@ -1640,7 +1641,7 @@ class OrderController extends FormController
         $this->checkToken();
         $this->assertCanIssueDocument();
 
-        $orderId = $input->getInt('id_order', 0);
+        $orderId = RequestScalar::int($input, 'id_order');
 
         // The form is an iframe modal, so both ends of this task are modal
         // layouts: back to the form when it refuses, and to the return page
@@ -1660,7 +1661,7 @@ class OrderController extends FormController
             return;
         }
 
-        $docType = $input->getString('doc_type', '');
+        $docType = RequestScalar::string($input, 'doc_type');
         $isCredit = \in_array($docType, DocumentHelper::creditTypes(), true);
         $stateKey = 'com_alfa.edit.order.document.' . $orderId;
 
@@ -1669,7 +1670,7 @@ class OrderController extends FormController
         $picks = $input->post->get('lines', [], 'array');
         // Only a credit corrects a document: the Corrects row is hidden, not
         // disabled, on every other type, so a pick left behind still posts.
-        $correctsId = $isCredit ? $input->getInt('id_corrects', 0) : 0;
+        $correctsId = $isCredit ? RequestScalar::int($input, 'id_corrects') : 0;
 
         // What the order holds before this attempt: a throw after a commit is
         // told from a refusal by the document that landed.
@@ -1682,14 +1683,14 @@ class OrderController extends FormController
             // The movement block is read only where the form shows it (F-09):
             // a hidden control still posts, and the hidden purpose list's
             // default (Sale) printed a Movement block on invoices and credits.
-            $isCombined = $input->getInt('is_combined', 0) === 1;
+            $isCombined = RequestScalar::int($input, 'is_combined') === 1;
             $movement = OrderModel::issueFormShowsMovement(docType: $docType, isCombined: $isCombined);
 
             $header = [
                 'is_combined' => $isCombined,
-                'movement_purpose' => $movement ? ($input->getString('movement_purpose', '') ?: null) : null,
-                'carrier_name' => $movement ? ($input->getString('carrier_name', '') ?: null) : null,
-                'vehicle_number' => $movement ? ($input->getString('vehicle_number', '') ?: null) : null,
+                'movement_purpose' => $movement ? (RequestScalar::string($input, 'movement_purpose') ?: null) : null,
+                'carrier_name' => $movement ? (RequestScalar::string($input, 'carrier_name') ?: null) : null,
+                'vehicle_number' => $movement ? (RequestScalar::string($input, 'vehicle_number') ?: null) : null,
             ];
 
             if ($isCredit) {
@@ -1698,14 +1699,14 @@ class OrderController extends FormController
                 $creditInput = new CreditInput(
                     orderId:       $orderId,
                     docType:       $docType,
-                    seriesId:      $input->getInt('id_series', 0),
+                    seriesId:      RequestScalar::int($input, 'id_series'),
                     correctsId:    $correctsId,
                     itemPicks:     $picks,
                     postedCharges: $input->post->get('charges', [], 'array'),
                     actorId:       (int) $app->getIdentity()->id,
-                    printNote:     $input->getString('print_note', '') ?: null,
+                    printNote:     RequestScalar::string($input, 'print_note') ?: null,
                 );
-                $toWallet = $input->getString('credit_destination', '') === 'credit_account';
+                $toWallet = RequestScalar::string($input, 'credit_destination') === 'credit_account';
 
                 // The draft is answered by onDocumentBeforeIssue before any
                 // transaction opens, so no subscriber acts inside the envelope.
@@ -1841,16 +1842,16 @@ class OrderController extends FormController
                 $document = DocumentIssuer::issue([
                     'doc_type' => $docType,
                     'id_order' => $orderId,
-                    'id_series' => $input->getInt('id_series', 0),
+                    'id_series' => RequestScalar::int($input, 'id_series'),
                     'id_corrects' => 0,
                     'language' => $language,
-                    'print_note' => $input->getString('print_note', '') ?: null,
+                    'print_note' => RequestScalar::string($input, 'print_note') ?: null,
                     'lines' => $lines,
-                    'buyer_name' => $input->getString('buyer_name', ''),
-                    'buyer_vat_number' => $input->getString('buyer_vat_number', ''),
-                    'buyer_tax_office' => $input->getString('buyer_tax_office', ''),
-                    'buyer_activity' => $input->getString('buyer_activity', ''),
-                    'buyer_email' => $input->getString('buyer_email', ''),
+                    'buyer_name' => RequestScalar::string($input, 'buyer_name'),
+                    'buyer_vat_number' => RequestScalar::string($input, 'buyer_vat_number'),
+                    'buyer_tax_office' => RequestScalar::string($input, 'buyer_tax_office'),
+                    'buyer_activity' => RequestScalar::string($input, 'buyer_activity'),
+                    'buyer_email' => RequestScalar::string($input, 'buyer_email'),
                 ] + $header);
 
                 $success = true;
@@ -2077,12 +2078,12 @@ class OrderController extends FormController
         $this->assertCanIssueDocument();
 
         $app = Factory::getApplication();
-        $orderId = $this->input->getInt('id_order', 0);
+        $orderId = RequestScalar::int($this->input, 'id_order');
 
         // Back to the order's own form, as a save goes back to it: its id is held.
         $this->setRedirect($this->getRedirectUrlToItem($orderId));
 
-        $document = DocumentHelper::getById($this->input->getInt('id_document', 0));
+        $document = DocumentHelper::getById(RequestScalar::int($this->input, 'id_document'));
 
         if ($document === null
             || (int) $document->id_order !== $orderId
@@ -2264,7 +2265,7 @@ class OrderController extends FormController
     {
         try {
             $input = $this->input;
-            $docType = $input->getString('doc_type', '');
+            $docType = RequestScalar::string($input, 'doc_type');
 
             if (!\in_array($docType, DocumentHelper::types(), true)) {
                 return [];
@@ -2273,7 +2274,7 @@ class OrderController extends FormController
             $isCredit = \in_array($docType, DocumentHelper::creditTypes(), true);
             $draft = ['doc_type' => $docType];
 
-            $seriesId = $input->getInt('id_series', 0);
+            $seriesId = RequestScalar::int($input, 'id_series');
 
             if (\in_array($seriesId, array_map(static fn (object $series): int => (int) $series->id, DocumentHelper::seriesForType($docType)), true)) {
                 $draft['id_series'] = $seriesId;
@@ -2282,7 +2283,7 @@ class OrderController extends FormController
             $correctsId = 0;
 
             if ($isCredit) {
-                $posted = $input->getInt('id_corrects', 0);
+                $posted = RequestScalar::int($input, 'id_corrects');
                 $correctable = array_map(
                     static fn (object $document): int => (int) $document->id,
                     DocumentHelper::correctableDocuments(DocumentHelper::getForOrder($orderId)),
@@ -2294,14 +2295,14 @@ class OrderController extends FormController
                 }
 
                 // The wallet option exists only for an order with a customer.
-                $destination = $input->getString('credit_destination', '');
+                $destination = RequestScalar::string($input, 'credit_destination');
 
                 if ($destination === '' || ($destination === 'credit_account' && $this->orderHasCustomer($orderId))) {
                     $draft['credit_destination'] = $destination;
                 }
             }
 
-            $draft['is_combined'] = (int) ($input->getInt('is_combined', 0) === 1
+            $draft['is_combined'] = (int) (RequestScalar::int($input, 'is_combined') === 1
                 && DocumentHelper::familyOf($docType) === 'sales' && DocumentHelper::supportsMovement($docType));
 
             // The lines the form offers only: the corrected document's own on
@@ -2334,7 +2335,7 @@ class OrderController extends FormController
                 $this->keepPostedText($draft, $field, self::ISSUE_DRAFT_TEXT_MAX);
             }
 
-            $purpose = $input->getString('movement_purpose', '');
+            $purpose = RequestScalar::string($input, 'movement_purpose');
 
             if ($input->exists('movement_purpose') && \in_array($purpose, self::ISSUE_MOVEMENT_PURPOSES, true)) {
                 $draft['movement_purpose'] = $purpose;
@@ -2454,7 +2455,7 @@ class OrderController extends FormController
             return;
         }
 
-        $value = $this->input->getString($field, '');
+        $value = RequestScalar::string($this->input, $field);
 
         if (($inBytes ? \strlen($value) : mb_strlen($value)) <= $max) {
             $draft[$field] = $value;
@@ -2535,8 +2536,8 @@ class OrderController extends FormController
 
         $this->checkToken();
 
-        $orderId = $input->getInt('id_order', 0);
-        $sourceId = $input->getInt('id_source', 0);
+        $orderId = RequestScalar::int($input, 'id_order');
+        $sourceId = RequestScalar::int($input, 'id_source');
 
         $formUrl = "index.php?option={$this->option}&view=order&tmpl=component"
             . "&layout=edit_correction&id_order={$orderId}&id_source={$sourceId}";
@@ -2558,7 +2559,7 @@ class OrderController extends FormController
         $this->assertCanIssueDocument();
 
         try {
-            $result = IncrementalCorrection::issue($orderId, $sourceId, $input->getString('fingerprint', ''));
+            $result = IncrementalCorrection::issue($orderId, $sourceId, RequestScalar::string($input, 'fingerprint'));
 
             if ($result->issued === null) {
                 // The proposer's own words: section 5 says the operator is told why.
@@ -2641,8 +2642,8 @@ class OrderController extends FormController
 
         $this->checkToken();
 
-        $orderId = $input->getInt('id_order', 0);
-        $sourceId = $input->getInt('id_source', 0);
+        $orderId = RequestScalar::int($input, 'id_order');
+        $sourceId = RequestScalar::int($input, 'id_source');
 
         $formUrl = "index.php?option={$this->option}&view=order&tmpl=component"
             . "&layout=edit_replacement&id_order={$orderId}&id_source={$sourceId}";
@@ -2670,7 +2671,7 @@ class OrderController extends FormController
             return;
         }
 
-        $reason = trim($input->getString('reason', ''));
+        $reason = trim(RequestScalar::string($input, 'reason'));
         $buyer = $this->postedReplacementBuyer($sourceId);
         $stateKey = 'com_alfa.edit.order.replacement.' . $sourceId;
 
@@ -2690,7 +2691,7 @@ class OrderController extends FormController
             $replacement = VoidAndReplace::execute(
                 sourceId:        $sourceId,
                 reason:          $reason,
-                fingerprint:     $input->getString('fingerprint', ''),
+                fingerprint:     RequestScalar::string($input, 'fingerprint'),
                 user:            $app->getIdentity(),
                 buyer:           $buyer,
                 beforeNumbering: self::assertAccountTakesReplacement(...),
@@ -2741,8 +2742,8 @@ class OrderController extends FormController
 
         $this->checkToken();
 
-        $orderId = $input->getInt('id_order', 0);
-        $sourceId = $input->getInt('id_source', 0);
+        $orderId = RequestScalar::int($input, 'id_order');
+        $sourceId = RequestScalar::int($input, 'id_source');
 
         $formUrl = "index.php?option={$this->option}&view=order&tmpl=component"
             . "&layout=edit_replacement&id_order={$orderId}&id_source={$sourceId}";
@@ -2771,7 +2772,7 @@ class OrderController extends FormController
 
         $app->setUserState('com_alfa.edit.order.replacement.' . $sourceId, [
             'buyer' => $this->postedReplacementBuyer($sourceId),
-            'reason' => trim($input->getString('reason', '')),
+            'reason' => trim(RequestScalar::string($input, 'reason')),
         ]);
 
         $this->setRedirect(Route::_($formUrl . '&kept=1', false));
@@ -2833,7 +2834,7 @@ class OrderController extends FormController
             $raw = $this->input->get($key, '', 'raw');
             $untouched = !$this->input->exists($key) || (\is_string($raw) && $raw === $onScreen);
 
-            $buyer[$key] = $untouched ? $shown : $this->input->getString($key, '');
+            $buyer[$key] = $untouched ? $shown : RequestScalar::string($this->input, $key);
         }
 
         return $buyer;
@@ -2871,9 +2872,9 @@ class OrderController extends FormController
      */
     public function cancelReplacement(): void
     {
-        $orderID = $this->input->getInt('id_order');
+        $orderID = RequestScalar::int($this->input, 'id_order');
 
-        Factory::getApplication()->setUserState('com_alfa.edit.order.replacement.' . $this->input->getInt('id_source', 0), null);
+        Factory::getApplication()->setUserState('com_alfa.edit.order.replacement.' . RequestScalar::int($this->input, 'id_source'), null);
 
         $this->setRedirect(Route::_(
             "index.php?option={$this->option}"
@@ -2894,7 +2895,7 @@ class OrderController extends FormController
      */
     public function cancelCorrection(): void
     {
-        $orderID = $this->input->getInt('id_order');
+        $orderID = RequestScalar::int($this->input, 'id_order');
 
         $this->setRedirect(Route::_(
             "index.php?option={$this->option}"
@@ -2918,7 +2919,7 @@ class OrderController extends FormController
      */
     public function cancelDocument(): void
     {
-        $orderID = $this->input->getInt('id_order');
+        $orderID = RequestScalar::int($this->input, 'id_order');
 
         Factory::getApplication()->setUserState('com_alfa.edit.order.document.' . $orderID, null);
 

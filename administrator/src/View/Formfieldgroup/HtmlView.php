@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Formfieldgroup;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -50,7 +51,7 @@ class HtmlView extends FormView
 
         $this->form
             ->addControlField('task', '')
-            ->addControlField('return', Factory::getApplication()->getInput()->getBase64('return', ''));
+            ->addControlField('return', RequestScalar::read(Factory::getApplication()->getInput(), 'return', '', 'base64'));
     }
 
     /**
