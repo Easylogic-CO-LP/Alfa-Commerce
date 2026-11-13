@@ -104,8 +104,11 @@ final class InventoryEffectOutbox
      * How many times a failed movement is tried before it waits for staff, spaced as the task engine spaces the retries
      * of a single (2.2.1): tried at once, then once after each wait of {@see Tasks::BACKOFF_SECONDS} (1 minute to
      * 24 hours, about 33 hours in all), counted from its last failure. A movement at the cap is no longer claimed; its
-     * order's or document's notice says so. Apply outstanding stock movements in Tools, or a new status of its order,
-     * tries a failed movement at once, whether it waits for its next step or reached the cap.
+     * order's or document's notice says so. Apply outstanding stock movements in Tools tries every failed movement at
+     * once, and a new status of an order tries that order's own failed movement at once, whether it waits for its next
+     * step or reached the cap; a document's failed movement waits for its step or for Apply. A refused movement is
+     * not a failed one: an order's is tried again by a status that changes its stock claim, a document's only by its
+     * own task's Run again.
      *
      * @since  2.2.1
      */
