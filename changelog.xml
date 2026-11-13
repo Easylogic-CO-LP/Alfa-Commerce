@@ -9,6 +9,18 @@
             <item>A thumbnail is made only from an image file inside the media folders (the Media folders of Joomla and Alfa Commerce's own image folder) whose type matches its extension. Before, a member of staff allowed to edit products, categories or manufacturers, or an API client with that right, could name any file the site can read (a backup, a log, the site's configuration file) as a thumbnail, and a copy of it, its extension kept, was published in the image folder (images/commerce by default) for anyone to download. A save that names such a thumbnail is now refused with a message and writes nothing, so the gallery keeps the thumbnails it had; the API answers 400 with the same reason; the Recreate thumbnails job names an image that breaks the rule in its report instead of copying it.</item>
             <item>The update lists the files among the product images that are not images, with the media rows that name them, on the update page and in the media log (com_alfa_media.php in Joomla's log folder). Up to 2.2.0 such a file may be a copy of a site file published by the defect above. Nothing is deleted: look at each file and delete by hand those that are not yours to publish, then choose a new thumbnail for the rows named.</item>
         </security>
+
+        <fix>
+            <item>A registration refused by its checks (two passwords that differ, for example) is no longer shown to other visitors: with Joomla's System - Page Cache plugin on, the registration page re-filled with the name, username and e-mail typed was stored and shown to the next visitor who opened the registration page, with the password typed in its form. The page now keeps itself out of the page cache, the password typed is no longer kept at all, and the other fields typed re-fill only the page that shows the refusal, under Alfa Commerce's own session key, so Joomla's own registration page no longer receives them.</item>
+            <item>A visitor whose session holds a currency or a place of their own, set by a site's own code for Alfa Commerce's prices, is kept out of Joomla's System - Page Cache by System - Alfa Commerce Sync. A listing stored with one visitor's currency was shown to the next visitor with that currency's prices.</item>
+            <item>The order page shown before payment, reached again by a reload or by Try again, keeps itself out of Joomla's System - Page Cache. With System - Alfa Commerce Sync disabled it could be stored and shown to the next visitor with the order's number.</item>
+        </fix>
+
+        <change>
+            <item>The setup checklist has a recommended row, Joomla page cache: it passes while System - Page Cache is off, warns while it runs beside System - Alfa Commerce Sync, saying what Alfa Commerce keeps out of it, what it still stores and that other page caches are not detected, and names the exposure while it runs without System - Alfa Commerce Sync. The row is checked again when either plugin is saved or switched from the Plugins list, and when System - Alfa Commerce Sync is enabled again.</item>
+            <item>System - Alfa Commerce Sync counts only when it runs for visitors who are not logged in: enabled with an Access they do not hold, it is treated as disabled by the page cache row, and the warning on Alfa Commerce's pages says to set its Access to Public.</item>
+            <item>The warning shown while System - Alfa Commerce Sync is disabled or not installed now says first that the cart page, the checkout details typed and the cart on every page are then no longer kept out of Joomla's page cache.</item>
+        </change>
     </changelog>
     <changelog>
         <element>com_alfa</element>

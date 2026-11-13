@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\ResultAttributes;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
@@ -363,8 +364,8 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * A handle that belongs to this response alone is never shared through Joomla's page cache (2.2.0): for this
-     * request, onPageCacheIsExcluded answers true. allowCache(false) would not do it: the page cache never reads it.
+     * A handle that belongs to this response alone is never shared through Joomla's page cache (2.2.0), through the
+     * storefront's one way of saying so ({@see PageCache::excludeResponse()}).
      *
      * @since  2.2.0
      */
@@ -374,9 +375,7 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        AlfaPluginHelper::get()->listen('onPageCacheIsExcluded', static function ($event): void {
-            $event->addResult(true);
-        });
+        PageCache::excludeResponse();
     }
 
     /**
