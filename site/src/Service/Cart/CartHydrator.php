@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartIdentity;
@@ -318,7 +319,7 @@ final class CartHydrator
                 $cartItem->quantity = (int) $line->quantity;
                 $cartItem->data = $stranded;
                 $cartItem->fields = [];
-                $cartItem->surfaces = [];
+                $cartItem->surfaces = new SurfaceMap();
                 $cartItem->unavailable = true;
                 $cartItem->unavailable_reason = Text::_('COM_ALFA_CART_LINE_UNAVAILABLE');
 

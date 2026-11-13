@@ -307,12 +307,14 @@ class PluginAction
     }
 
     /**
-     * Set a response layout that renders in a modal after execution.
+     * Record a response layout, a modal title and a size; nothing reads them. The action's window shows the layout
+     * the plugin's onExecuteAction() handler sets, under the action's label.
      *
      * @param string $layout Layout name
      * @param string $title Modal title
      * @param string $size Modal size: 'sm', 'md', 'lg', 'xl'
      * @return static For chaining
+     * @deprecated 2.2.1 Kept in 2.2 because extensions call it (the bundled Standard plugins); removed in 2.3.0.
      * @since  1.0.0
      */
     public function modal(string $layout, string $title = '', string $size = 'md'): static
@@ -327,8 +329,9 @@ class PluginAction
     //  Utility
 
     /**
-     * Check if the action has a response layout (will show a modal).
+     * Whether modal() recorded a response layout; nothing reads it.
      *
+     * @deprecated 2.2.1 Removed in 2.3.0 with modal().
      * @since  1.0.0
      */
     public function hasResponseLayout(): bool

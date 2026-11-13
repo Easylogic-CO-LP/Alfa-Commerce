@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 
 /**
  * Contributes the "sale tag" badge (a flagged discount's translatable NAME) to
@@ -53,7 +54,8 @@ final class SaleTag
             return;
         }
 
-        $item->surfaces ??= [];
+        // The item's surfaces are read-only once handed out (2.2.1): the badges join a new map of them.
+        $slots = $item->surfaces instanceof SurfaceMap ? $item->surfaces->toArray() : [];
 
         foreach ($applied as $discount) {
             $show = $isListing ? ($discount->tagListShow ?? false) : ($discount->tagItemShow ?? false);
@@ -69,7 +71,7 @@ final class SaleTag
                 ? (ItemListSurface::tryFrom((string) ($discount->tagListSlot ?? 'image')) ?? ItemListSurface::Image)
                 : (ItemSurface::tryFrom((string) ($discount->tagItemSlot ?? 'image')) ?? ItemSurface::Image);
 
-            $item->surfaces[$slot->value][] = [
+            $slots[$slot->value][] = [
                 'layout' => 'item.sale_tag',
                 'layoutData' => [
                     'name' => $name,
@@ -84,5 +86,7 @@ final class SaleTag
                 'showon' => '',
             ];
         }
+
+        $item->surfaces = new SurfaceMap($slots);
     }
 }

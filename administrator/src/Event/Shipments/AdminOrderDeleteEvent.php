@@ -18,7 +18,9 @@ use Alfa\Component\Alfa\Site\Service\Order\Order;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Class for CustomFields events
+ * onAdminOrderDelete for a carrier: asked before an order is deleted, once for each shipment its plugin recorded, so
+ * the plugin may refuse the delete (setResult(false)). getOrder() is the order and getMethod() the shipment, as the
+ * payment twin's getMethod() is the payment (2.2.1).
  *
  * @since  1.0.0
  */
@@ -34,6 +36,18 @@ class AdminOrderDeleteEvent extends ShipmentsEvent
     public function getOrder(): Order
     {
         return Order::of($this->getSubject());
+    }
+
+    /**
+     * The shipment the plugin is asked about: the order's shipment row this plugin recorded.
+     *
+     * @return object The shipment row.
+     *
+     * @since  2.2.1
+     */
+    public function getMethod(): object
+    {
+        return $this->arguments['method'];
     }
 
     /**

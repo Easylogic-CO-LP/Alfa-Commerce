@@ -21,7 +21,6 @@
  * Output (set by plugin, read by controller):
  *   $event->setLayout('action_view_details');
  *   $event->setLayoutData(['payment' => $payment, 'order' => $order]);
- *   $event->setModalTitle('Payment Details #5');
  *   $event->setMessage('Payment marked as paid');
  *   $event->setRefresh(true);
  *
@@ -281,10 +280,12 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * Set the modal title for when the layout is shown in a popup.
+     * Set a modal title for the layout's popup; nothing reads it.
      *
+     * @param string $title The title.
      *
-     *
+     * @deprecated 2.2.1 Not shown: the action's window takes its title from the action's label. Kept in 2.2 because
+     *             extensions call it (the bundled Standard plugins, the 3D configurator); removed in 2.3.0.
      * @since  1.0.0
      */
     public function setModalTitle(string $title): void
@@ -293,6 +294,10 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
+     * The title setModalTitle() kept; nothing reads it.
+     *
+     * @deprecated 2.2.1 Not shown: the action's window takes its title from the action's label. Kept in 2.2 because
+     *             extensions call it (the bundled Standard plugins, the 3D configurator); removed in 2.3.0.
      * @since  1.0.0
      */
     public function getModalTitle(): ?string

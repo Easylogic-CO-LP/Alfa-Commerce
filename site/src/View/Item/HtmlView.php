@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\View\Item;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
@@ -148,7 +149,9 @@ class HtmlView extends BaseHtmlView
         // (their hooks can issue a redirect, so they stay in the view layer). What
         // they produce is aggregated into the SAME $item->surfaces container as the
         // item fields: one source-agnostic render model, insertion order preserved.
-        $this->item->surfaces ??= [];
+        // Collected here and handed to the item as a read-only map after each method
+        // (2.2.1), as the model hands the fields' surfaces.
+        $slots = $this->item->surfaces instanceof SurfaceMap ? $this->item->surfaces->toArray() : [];
 
         foreach ($this->item->payment_methods as &$payment_method) {
             if (!$payment_method->show_on_product) {
@@ -174,12 +177,13 @@ class HtmlView extends BaseHtmlView
             }
 
             Surfaces::appendTo(
-                target: $this->item->surfaces,
+                target: $slots,
                 event: $paymentEvent,
                 ownerGroup: 'alfa-payments',
                 ownerName: $payment_method->type,
                 defaultSlot: ItemSurface::PaymentMethods->value,
             );
+            $this->item->surfaces = new SurfaceMap($slots);
         }
 
         foreach ($this->item->shipment_methods as &$shipment_method) {
@@ -205,12 +209,13 @@ class HtmlView extends BaseHtmlView
             }
 
             Surfaces::appendTo(
-                target: $this->item->surfaces,
+                target: $slots,
                 event: $shipment_event,
                 ownerGroup: 'alfa-shipments',
                 ownerName: $shipment_method->type,
                 defaultSlot: ItemSurface::ShipmentMethods->value,
             );
+            $this->item->surfaces = new SurfaceMap($slots);
         }
 
         // ITEM FIELDS selectors + cart slot are harvested by the model

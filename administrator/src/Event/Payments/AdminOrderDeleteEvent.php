@@ -18,7 +18,8 @@ use Alfa\Component\Alfa\Site\Service\Order\Order;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Class for CustomFields events
+ * onAdminOrderDelete for a payment plugin: asked before an order is deleted, once for each payment its plugin took, so
+ * the plugin may refuse the delete (setResult(false)). getOrder() is the order and getMethod() the payment.
  *
  * @since  1.0.0
  */

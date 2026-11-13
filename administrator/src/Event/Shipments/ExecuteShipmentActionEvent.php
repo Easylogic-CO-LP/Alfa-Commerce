@@ -21,7 +21,6 @@
  * Output (set by plugin, read by controller):
  *   $event->setLayout('action_tracking');
  *   $event->setLayoutData(['shipment' => $shipment, 'order' => $order]);
- *   $event->setModalTitle('Tracking #12345');
  *   $event->setMessage('Shipment marked as shipped');
  *   $event->setRefresh(true);
  *
@@ -304,10 +303,12 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * Set the modal title for when the layout is shown in a popup.
+     * Set a modal title for the layout's popup; nothing reads it.
      *
+     * @param string $title The title.
      *
-     *
+     * @deprecated 2.2.1 Not shown: the action's window takes its title from the action's label. Kept in 2.2 because
+     *             extensions call it (the bundled Standard plugins, the 3D configurator); removed in 2.3.0.
      * @since  1.0.0
      */
     public function setModalTitle(string $title): void
@@ -316,6 +317,10 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
+     * The title setModalTitle() kept; nothing reads it.
+     *
+     * @deprecated 2.2.1 Not shown: the action's window takes its title from the action's label. Kept in 2.2 because
+     *             extensions call it (the bundled Standard plugins, the 3D configurator); removed in 2.3.0.
      * @since  1.0.0
      */
     public function getModalTitle(): ?string
