@@ -1126,8 +1126,8 @@ class com_alfaInstallerScript extends InstallerScript
      * every waiting set gets its price.set.prepare job, the scheduled tasks of plg_task_alfapricesets' routine are
      * deleted, and the plugin is uninstalled through Joomla's installer; each of the three on its own, so a failure of
      * one never skips the next. The tasks go first (2.2.1): the plugin's own uninstall script (2.1.x) removes them
-     * through a constant this version no longer has and says it failed, while they are already gone; what that script
-     * says is written to the maintenance log, not shown, and this step's one message says what was done. A failure is said, never a failed update: the jobs are given again by the
+     * through a constant this version no longer has and says it failed, so it is not run (removed with the plugin
+     * before the uninstall, logged), and this step's one message says what was done. A failure is said, never a failed update: the jobs are given again by the
      * next request of a set, and Tools > Database Sync shows what waits. The message names the plugin's state:
      * removed, not installed, or still installed (refused by Joomla's installer), the last as a warning that names
      * where to uninstall it.
@@ -1191,28 +1191,20 @@ class com_alfaInstallerScript extends InstallerScript
                 $installer = new Installer();
                 $installer->setDatabase($db);
 
-                // What the plugin's own uninstall script says (its tasks "not removed", above) goes to the log.
-                $waiting = $app->getMessageQueue(true);
+                // The plugin's own install script (2.1.x) does one thing at its uninstall: it removes the tasks above,
+                // through a constant this version no longer has, and then warns they were not removed. They are gone
+                // already, so it is not run: removed with the plugin, before Joomla's installer would include it.
+                $oldScript = JPATH_PLUGINS . '/task/alfapricesets/script.php';
 
-                try
+                if (is_file($oldScript) && @unlink($oldScript))
                 {
-                    $state = $installer->uninstall('plugin', $extensionId) ? 'removed' : 'kept';
+                    self::maintenanceLog(
+                        line:     sprintf('Update to %s: the scheduled tasks of plg_task_alfapricesets were removed by Alfa Commerce, so the plugin\'s own uninstall script was not run.', $this->packageVersion),
+                        priority: \Joomla\CMS\Log\Log::INFO,
+                    );
                 }
-                finally
-                {
-                    foreach ($app->getMessageQueue(true) as $said)
-                    {
-                        self::maintenanceLog(
-                            line:     sprintf('Update to %s: the uninstall of plg_task_alfapricesets said: %s', $this->packageVersion, (string) ($said['message'] ?? '')),
-                            priority: \Joomla\CMS\Log\Log::INFO,
-                        );
-                    }
 
-                    foreach ($waiting as $message)
-                    {
-                        $app->enqueueMessage((string) ($message['message'] ?? ''), (string) ($message['type'] ?? 'message'));
-                    }
-                }
+                $state = $installer->uninstall('plugin', $extensionId) ? 'removed' : 'kept';
             }
         }
         catch (\Throwable $e)
