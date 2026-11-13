@@ -267,9 +267,12 @@ final class CartPluginDispatch
      * the pricing engine's.
      *
      * A PLUGIN THE CUSTOMER'S LEVELS ADMIT BUT JOOMLA DOES NOT LOAD FOR THE
-     * REQUEST'S USER (staff lacking one of the customer's levels) cannot add its
-     * charges: it is named in notLoaded, so the cart carries the refusal beside
-     * its totals and the placement refuses, rather than total the cart without it.
+     * REQUEST'S USER (staff lacking one of the customer's levels) adds its charges
+     * when the cart is operated for the customer by staff allowed to place orders
+     * for customers: it is booted for the customer with its own configuration
+     * (2.2.1). Anywhere else it cannot: it is named in notLoaded, so the cart
+     * carries the refusal beside its totals and the placement refuses, rather
+     * than total the cart without it.
      *
      * @return array{charges: list<array{0: string, 1: \Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\CartContribution}>, notLoaded: list<string>}
      *
@@ -281,7 +284,7 @@ final class CartPluginDispatch
         $event = new CartTotalsEvent('onCartTotals', ['subject' => $this->contributionRequest($cart, $subtotal)]);
         $notLoaded = [];
 
-        foreach ($plugins->dispatchToEachIsolated($plugins->admitted($customer, 'alfa'), $event) as $failure) {
+        foreach ($plugins->dispatchToEachIsolatedFor($cart->subject(), $plugins->admitted($customer, 'alfa'), $event) as $failure) {
             if ($failure->error instanceof PluginUnavailable && $failure->error->reason === PluginUnavailable::NOT_LOADED) {
                 $notLoaded[] = $failure->listener;
 
