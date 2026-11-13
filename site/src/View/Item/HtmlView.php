@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\RecentlyViewed;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
@@ -79,6 +80,14 @@ class HtmlView extends BaseHtmlView
         $input = $app->getInput();
         $user = $app->getIdentity();
         $model = $this->getModel();
+
+        // A PRODUCT PAGE OPENED TO CHANGE A CART LINE (edit_line, linked from every line of the cart) draws that line's
+        // choices and the visitor's Update form at an address every visitor can ask: never stored in Joomla's page cache,
+        // whatever plugin is enabled (2.2.1). Any edit_line, the visitor's own or not: a plain copy stored at that
+        // address would be served to the line's owner, before this view runs, in place of the edit form.
+        if (RequestScalar::int($input, 'edit_line', 0) > 0) {
+            PageCache::excludeResponse();
+        }
 
         $this->params = $app->getParams('com_alfa');
 
