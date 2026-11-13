@@ -187,7 +187,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * @since  2.0.0
      */
-    protected function transportTask(): string
+    protected static function transportTask(): string
     {
         return 'shipment';
     }

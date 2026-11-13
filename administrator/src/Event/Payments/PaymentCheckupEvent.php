@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
 use BadMethodCallException;
@@ -236,6 +237,12 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * A sandbox or live card prints the address of its own set, which names
      * that set; a card without a set prints the plain address.
      *
+     * The plain form of the payment plugins' own address (2.2.1,
+     * PaymentsPlugin::webhookUrlFor()): the site root and index.php with the
+     * task, never a language or a SEF path, so the card prints what the
+     * gateway's own plugin sends.
+     *
+     * @throws InvalidArgumentException When the method's type is no plugin element.
      *
      * @since  2.0.0
      */
@@ -243,8 +250,9 @@ final class PaymentCheckupEvent extends PaymentsEvent
     {
         $variant = $this->getVariant();
         $named = \in_array($variant, [PaymentEnvironment::SANDBOX, PaymentEnvironment::LIVE], true);
+        $element = PluginId::from('alfa-payments', (string) ($this->getSubject()->type ?? ''))->element;
 
-        return self::siteUrl(element: (string) ($this->getSubject()->type ?? ''), task: 'webhook', environment: $named ? $variant : null);
+        return PaymentsPlugin::webhookUrlFor(element: $element, environment: $named ? $variant : null);
     }
 
     /**
@@ -255,42 +263,30 @@ final class PaymentCheckupEvent extends PaymentsEvent
      */
     public function returnUrl(): string
     {
-        return self::siteUrl(element: (string) ($this->getSubject()->type ?? ''), task: 'response');
+        return self::returnAddress(element: (string) ($this->getSubject()->type ?? ''));
     }
 
     /**
-     * A public payment address of this site, in the form a gateway can reach.
+     * The return address of this site, in the form the buyer's browser reaches
+     * without a redirect.
      *
-     * On a multilingual SEF site the plain index.php form is 301-redirected into
-     * a route the SEF router then 404s, so every notification would be lost. The
-     * component route with the default language's prefix, without a trailing
-     * slash, is the form that reaches the controller. TLS is forced: gateways
-     * post money notifications to https only.
-     *
-     * A notification address names the credential set it belongs to
-     * (PaymentEnvironment::ADDRESS_PARAM), so its handler knows which set's
-     * secret to check it with.
+     * On a multilingual SEF site Joomla's language filter redirects a page
+     * address that names no language, so the return address is the component
+     * route with the default language's prefix, without a trailing slash. TLS
+     * is forced: gateways send buyers back to https only.
      *
      * @param string $element The payment plugin element.
-     * @param string $task 'webhook' or 'response'.
-     * @param string|null $environment PaymentEnvironment::SANDBOX or ::LIVE; null for an address without a set.
      *
      * @return string Absolute URL.
      *
-     * @throws InvalidArgumentException On an environment other than sandbox or live.
-     *
-     * @since  2.0.0
+     * @since  2.2.1
      */
-    public static function siteUrl(string $element, string $task, ?string $environment = null): string
+    private static function returnAddress(string $element): string
     {
         $app = Factory::getApplication();
         $element = (string) preg_replace('/[^a-z0-9_]/', '', strtolower($element));
-        $query = 'task=payment.' . $task . '&method=' . $element;
+        $query = 'task=payment.response&method=' . $element;
         $root = rtrim(Uri::root(), '/') . '/';
-
-        if ($environment !== null) {
-            $query .= '&' . PaymentEnvironment::ADDRESS_PARAM . '=' . PaymentEnvironment::assert(environment: $environment);
-        }
 
         if (!(bool) $app->get('sef', true)) {
             $url = $root . 'index.php?option=com_alfa&' . $query;

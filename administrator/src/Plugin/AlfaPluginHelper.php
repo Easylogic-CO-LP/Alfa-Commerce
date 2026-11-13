@@ -692,13 +692,7 @@ final class AlfaPluginHelper
      */
     public function dispatchToEach(iterable $plugins, EventInterface $event): EventInterface
     {
-        [$selected, $notLoaded] = $this->selection($plugins, $event);
-
-        if ($notLoaded !== []) {
-            throw $notLoaded[0];
-        }
-
-        foreach ($selected as [$id, $instance, $method]) {
+        foreach ($this->loadedSelection($plugins, $event) as [$id, $instance, $method]) {
             if ($event->isStopped()) {
                 break;
             }
@@ -707,6 +701,27 @@ final class AlfaPluginHelper
         }
 
         return $event;
+    }
+
+    /**
+     * The plugins of a selection that take part in the event, in the order given, each once, with no handler run: those
+     * booted that declare a handler for it. A selected plugin Joomla does not load for the request's user (NOT_LOADED)
+     * refuses the selection, as dispatchToEach() refuses it before its first handler. A caller that then delivers the
+     * event to them one at a time (to name the plugin whose handler threw) keeps that order: the refusal comes before
+     * any plugin is asked (2.2.1).
+     *
+     * @param iterable<PluginId> $plugins The selection.
+     * @param EventInterface $event The event.
+     *
+     * @return list<PluginId>
+     *
+     * @throws PluginUnavailable NOT_LOADED, naming the first such plugin.
+     *
+     * @since  2.2.1
+     */
+    public function participants(iterable $plugins, EventInterface $event): array
+    {
+        return array_map(static fn (array $participant): PluginId => $participant[0], $this->loadedSelection($plugins, $event));
     }
 
     /**
@@ -821,6 +836,30 @@ final class AlfaPluginHelper
         }
 
         return [$out, $notLoaded];
+    }
+
+    /**
+     * The selection's plugins that take part, refused as a whole when a selected plugin that has a part to take is one
+     * Joomla does not load for the request's user: the one rule of dispatchToEach() and participants().
+     *
+     * @param iterable<PluginId> $plugins The selection.
+     * @param EventInterface $event The event.
+     *
+     * @return list<array{0: PluginId, 1: PluginInterface, 2: string}>
+     *
+     * @throws PluginUnavailable NOT_LOADED, naming the first such plugin.
+     *
+     * @since  2.2.1
+     */
+    private function loadedSelection(iterable $plugins, EventInterface $event): array
+    {
+        [$selected, $notLoaded] = $this->selection($plugins, $event);
+
+        if ($notLoaded !== []) {
+            throw $notLoaded[0];
+        }
+
+        return $selected;
     }
 
     /**
