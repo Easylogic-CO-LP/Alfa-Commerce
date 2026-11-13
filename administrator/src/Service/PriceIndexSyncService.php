@@ -1029,9 +1029,10 @@ class PriceIndexSyncService
             $near .= " WHEN {$place} THEN {$position}";
         }
 
-        $nearness = $near === '' ? '0' : "CASE {$alias}.place_id{$near} ELSE " . \count($places) . ' END';
+        // With no place of the visitor's, only the slots of no place are read: nearness has nothing to rank.
+        $nearness = $near === '' ? '' : "CASE {$alias}.place_id{$near} ELSE " . \count($places) . ' END ASC, ';
 
-        return "{$nearness} ASC, ({$alias}.currency_id > 0) DESC, {$alias}.final_price ASC";
+        return "{$nearness}({$alias}.currency_id > 0) DESC, {$alias}.final_price ASC";
     }
 
     /**
