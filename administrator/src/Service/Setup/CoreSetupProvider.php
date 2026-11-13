@@ -50,9 +50,9 @@ final class CoreSetupProvider
 
     /**
      * The state of the page cache check while Joomla's System - Page Cache is enabled and System - Alfa Commerce Sync
-     * is disabled or not installed: nothing then keeps a shopper's cart page, typed checkout details or cart module out
-     * of the page cache, and the next visitors can be shown them. SetupCheck::STATE_FAIL or SetupCheck::STATE_WARN;
-     * this one value decides which.
+     * does not run for visitors who are not logged in (disabled, not installed, or an Access they do not hold): nothing
+     * then keeps a shopper's cart page, typed checkout details or cart module out of the page cache, and the next
+     * visitors can be shown them. SetupCheck::STATE_FAIL or SetupCheck::STATE_WARN; this one value decides which.
      *
      * @var string
      * @since  2.2.1
@@ -267,20 +267,24 @@ final class CoreSetupProvider
             });
 
         // Joomla's System - Page Cache stores the page a visitor who is not logged in opens, by its address, and shows
-        // it to the next visitors. System - Alfa Commerce Sync keeps a shopper's own pages out of it; without that
-        // plugin the cart, the typed checkout details and the cart module can reach another visitor. Read once here:
-        // the state and the reason follow the same reading.
-        $guarded = self::pageCacheGuarded();
+        // it to the next visitors. System - Alfa Commerce Sync keeps a shopper's own pages out of it, when it runs for
+        // such a visitor; otherwise the cart, the typed checkout details and the cart module can reach another
+        // visitor. Read once here: the state and the reason follow the same reading.
+        [$pageCache, $sync] = self::pageCacheReading();
 
         $this->check('joomla.pagecache', 'COM_ALFA_SETUP_CHECK_PAGECACHE_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
-            ->reason($guarded === false ? 'COM_ALFA_SETUP_CHECK_PAGECACHE_UNGUARDED_REASON' : 'COM_ALFA_SETUP_CHECK_PAGECACHE_REASON')
+            ->reason(match (true) {
+                $pageCache && $sync === SyncPluginState::NOT_FOR_GUESTS => 'COM_ALFA_SETUP_CHECK_PAGECACHE_ACCESS_REASON',
+                $pageCache && $sync !== SyncPluginState::EFFECTIVE => 'COM_ALFA_SETUP_CHECK_PAGECACHE_UNGUARDED_REASON',
+                default => 'COM_ALFA_SETUP_CHECK_PAGECACHE_REASON',
+            })
             ->cta('index.php?option=com_plugins&view=plugins&filter[folder]=system')
             ->priority(250)
-            ->probe(static fn (): string => match ($guarded) {
-                null => SetupCheck::STATE_PASS,
-                true => SetupCheck::STATE_WARN,
-                false => self::PAGE_CACHE_WITHOUT_SYNC,
+            ->probe(static fn (): string => match (true) {
+                !$pageCache => SetupCheck::STATE_PASS,
+                $sync === SyncPluginState::EFFECTIVE => SetupCheck::STATE_WARN,
+                default => self::PAGE_CACHE_WITHOUT_SYNC,
             });
 
         $this->check('sef.enabled', 'COM_ALFA_SETUP_CHECK_SEF_LABEL')
@@ -429,33 +433,34 @@ final class CoreSetupProvider
     }
 
     /**
-     * Joomla's System - Page Cache and System - Alfa Commerce Sync, read from their extension rows in one query: null
-     * when the page cache is disabled or not installed; true when it is enabled together with Alfa Commerce Sync, which
-     * keeps a shopper's own pages out of it; false when it is enabled while Alfa Commerce Sync is disabled or not
-     * installed.
+     * What the page cache check reads: whether Joomla's System - Page Cache is enabled (its extension row), and
+     * System - Alfa Commerce Sync's state for visitors who are not logged in ({@see SyncPluginState}). The checklist
+     * keeps it beside its cached verdict ({@see SetupHelper::status()}): Alfa Commerce Sync hears no change made while
+     * it is off, nor its own enabling, so a verdict computed under another reading is computed again.
      *
+     * @return array{0: bool, 1: string} [page cache enabled, a SyncPluginState constant]
      *
      * @since  2.2.1
      */
-    private static function pageCacheGuarded(): ?bool
+    public static function pageCacheReading(): array
     {
         $db = self::db();
         $folder = 'system';
-        $query = $db->getQuery(true)
-            ->select([$db->quoteName('element'), $db->quoteName('enabled')])
-            ->from($db->quoteName('#__extensions'))
-            ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
-            ->where($db->quoteName('folder') . ' = :folder')
-            ->whereIn($db->quoteName('element'), ['cache', 'alfasync'], ParameterType::STRING)
-            ->bind(':folder', $folder, ParameterType::STRING);
+        $element = 'cache';
+        $enabled = (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('enabled'))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                ->where($db->quoteName('folder') . ' = :folder')
+                ->where($db->quoteName('element') . ' = :element')
+                ->bind(':folder', $folder, ParameterType::STRING)
+                ->bind(':element', $element, ParameterType::STRING),
+            0,
+            1,
+        )->loadResult();
 
-        $enabled = array_map('intval', (array) $db->setQuery($query)->loadAssocList('element', 'enabled'));
-
-        if (($enabled['cache'] ?? 0) !== 1) {
-            return null;
-        }
-
-        return ($enabled['alfasync'] ?? 0) === 1;
+        return [$enabled === 1, SyncPluginState::read()];
     }
 
     /**

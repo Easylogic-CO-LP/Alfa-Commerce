@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
+use Alfa\Component\Alfa\Administrator\Service\Setup\SyncPluginState;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
 use Joomla\CMS\Factory;
@@ -163,10 +164,11 @@ class Dispatcher extends ComponentDispatcher
     }
 
     /**
-     * Warn on an Alfa administrator page that renders while plg_system_alfasync is disabled or not installed: what keeps
-     * a shopper's own pages out of Joomla's page cache, the guided tours' texts and Alfa's following of Joomla's users
-     * and user groups run through it. The link to the plugin is offered only to a user who may manage plugins. Costs
-     * nothing while the plugin is enabled.
+     * Warn on an Alfa administrator page that renders while plg_system_alfasync is disabled, not installed, or enabled
+     * with an Access visitors who are not logged in do not hold ({@see SyncPluginState}): what keeps a shopper's own
+     * pages out of Joomla's page cache, the guided tours' texts and Alfa's following of Joomla's users and user groups
+     * run through it. The link to the plugin is offered only to a user who may manage plugins. One read of the plugin's
+     * row while it is enabled.
      *
      * @since  2.1.2
      */
@@ -179,8 +181,13 @@ class Dispatcher extends ComponentDispatcher
                 !$this->app->isClient('administrator')
                 || $this->input->getCmd('format', 'html') !== 'html'
                 || ($task !== '' && $task !== 'display' && !str_ends_with($task, '.display'))
-                || AlfaPluginHelper::get()->isAvailable(PluginId::from('system', 'alfasync'))
             ) {
+                return;
+            }
+
+            $state = SyncPluginState::read();
+
+            if ($state === SyncPluginState::EFFECTIVE && AlfaPluginHelper::get()->isAvailable(PluginId::from('system', 'alfasync'))) {
                 return;
             }
 
@@ -194,11 +201,15 @@ class Dispatcher extends ComponentDispatcher
                     ->where($db->quoteName('element') . ' = ' . $db->quote('alfasync')),
             )->loadResult();
 
-            $message = Text::_($id > 0 ? 'COM_ALFA_SYNC_PLUGIN_DISABLED' : 'COM_ALFA_SYNC_PLUGIN_MISSING');
+            $message = Text::_(match (true) {
+                $id <= 0 => 'COM_ALFA_SYNC_PLUGIN_MISSING',
+                $state === SyncPluginState::NOT_FOR_GUESTS => 'COM_ALFA_SYNC_PLUGIN_NOT_FOR_GUESTS',
+                default => 'COM_ALFA_SYNC_PLUGIN_DISABLED',
+            });
 
             if ($id > 0 && $this->app->getIdentity()?->authorise('core.manage', 'com_plugins')) {
                 $message .= ' <a href="' . Route::_('index.php?option=com_plugins&task=plugin.edit&extension_id=' . $id) . '">'
-                    . Text::_('COM_ALFA_SYNC_PLUGIN_OPEN') . '</a>';
+                    . Text::_($state === SyncPluginState::NOT_FOR_GUESTS ? 'COM_ALFA_SYNC_PLUGIN_OPEN_ACCESS' : 'COM_ALFA_SYNC_PLUGIN_OPEN') . '</a>';
             }
 
             $this->app->enqueueMessage($message, 'warning');
