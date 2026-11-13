@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryBeforeReserveEven
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryCommittedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReleasedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReservedEvent;
+use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryRestoredEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryTransferredEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
@@ -91,7 +92,7 @@ use Throwable;
  * savepoint inside its caller's, committed through TransactionState::commitLevel()
  * and closed after a failure through TransactionState::rollBackLevel(), on either
  * MySQL driver. Its AFTER events (onInventoryReserved, onInventoryReleased,
- * onInventoryCommitted, onInventoryAdjusted, onInventoryTransferred) and its
+ * onInventoryCommitted, onInventoryRestored, onInventoryAdjusted, onInventoryTransferred) and its
  * success log lines wait for the outermost commit and are delivered once after it,
  * never after a rollback ({@see PostCommit}); with no transaction open they are
  * delivered at once. BEFORE events run before the level opens and veto by throwing.
@@ -2941,7 +2942,10 @@ final class InventoryService
             );
         }
 
-        return ['restored_quantity' => $totalRestored, 'lines' => $count, 'operation_id' => $operationId, 'held_units' => $heldUnits];
+        $result = ['restored_quantity' => $totalRestored, 'lines' => $count, 'operation_id' => $operationId, 'held_units' => $heldUnits];
+        $this->announceRestored(sourceType: $sourceType, sourceId: $sourceId, reversal: false, result: $result);
+
+        return $result;
     }
 
     /**
@@ -3161,7 +3165,61 @@ final class InventoryService
             throw $e;
         }
 
-        return ['reversed_quantity' => $totalReversed, 'lines' => $count, 'operation_id' => $operationId];
+        $result = ['reversed_quantity' => $totalReversed, 'lines' => $count, 'operation_id' => $operationId];
+        $this->announceRestored(sourceType: $sourceType, sourceId: $sourceId, reversal: true, result: $result);
+
+        return $result;
+    }
+
+    /**
+     * Announce stock put back, or taken off again by a reversal (2.2.1): onInventoryRestored after the commit, with
+     * what moved by item, combination and location, read from this operation's ledger rows on this connection (the
+     * command's own writes, visible before an outer transaction commits). Nothing is announced when nothing moved.
+     *
+     * @param string $sourceType The command's source domain.
+     * @param int $sourceId The command's source row.
+     * @param bool $reversal Whether this took back an earlier restore.
+     * @param array $result The command's summary, operation_id included.
+     *
+     * @since  2.2.1
+     */
+    private function announceRestored(string $sourceType, int $sourceId, bool $reversal, array $result): void
+    {
+        $operationId = (string) ($result['operation_id'] ?? '');
+        $rows = $this->db->setQuery(
+            $this->db->getQuery(true)
+                ->select($this->db->quoteName(['item_id', 'combination_id', 'location_id']))
+                ->select('SUM(' . $this->db->quoteName('qty_change') . ') AS ' . $this->db->quoteName('quantity'))
+                ->from($this->db->quoteName('#__alfa_inventory_movements'))
+                ->where($this->db->quoteName('operation_id') . ' = :operation')
+                ->bind(':operation', $operationId)
+                ->group($this->db->quoteName(['item_id', 'combination_id', 'location_id'])),
+        )->loadObjectList() ?: [];
+
+        $movements = [];
+
+        foreach ($rows as $row) {
+            if ((float) $row->quantity != 0.0) {
+                $movements[] = [
+                    'itemId' => (int) $row->item_id,
+                    'combinationId' => (int) $row->combination_id,
+                    'locationId' => (int) $row->location_id,
+                    'quantity' => (float) $row->quantity,
+                ];
+            }
+        }
+
+        if ($movements === []) {
+            return;
+        }
+
+        $this->announce(label: 'onInventoryRestored', event: new InventoryRestoredEvent('onInventoryRestored', [
+            'sourceType' => $sourceType,
+            'sourceId' => $sourceId,
+            'reversal' => $reversal,
+            'movements' => $movements,
+            'result' => $result,
+        ]));
     }
 
     /**
