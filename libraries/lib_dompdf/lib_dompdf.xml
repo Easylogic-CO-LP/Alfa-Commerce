@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="library" method="upgrade">
+	<name>lib_dompdf</name>
+	<libraryname>dompdf</libraryname>
+	<author>The Dompdf Community (packaged for Joomla)</author>
+	<authorUrl>https://github.com/dompdf/dompdf</authorUrl>
+	<creationDate>2026-11-13</creationDate>
+	<license>LGPL-2.1</license>
+	<version>3.1.5</version>
+	<description>dompdf, the HTML to PDF converter that makes the PDFs of Alfa Commerce's sales documents. Registers the Dompdf\ namespace through Joomla's autoloader. Requires php-font-lib, php-svg-lib, masterminds/html5 and sabberworm/php-css-parser, which Alfa Commerce installs with it.</description>
+	<namespace path="src">Dompdf</namespace>
+	<files>
+		<folder>src</folder>
+		<folder>lib</folder>
+		<filename>VERSION</filename>
+		<filename>LICENSE.LGPL</filename>
+	</files>
+</extension>

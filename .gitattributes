@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# The bundled libraries are third-party files kept byte for byte: no line-end conversion (dompdf's font metrics
+# and php-font-lib's encoding maps ship with CRLF).
+/libraries/** -text

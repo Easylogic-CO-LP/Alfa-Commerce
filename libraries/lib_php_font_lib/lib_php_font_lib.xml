@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="library" method="upgrade">
+	<name>lib_php_font_lib</name>
+	<libraryname>php-font-lib</libraryname>
+	<author>The FontLib Community (packaged for Joomla)</author>
+	<authorUrl>https://github.com/dompdf/php-font-lib</authorUrl>
+	<creationDate>2026-11-13</creationDate>
+	<license>LGPL-2.1-or-later</license>
+	<version>1.0.2</version>
+	<description>php-font-lib: reads the fonts dompdf embeds in a PDF. Registers the FontLib\ namespace through Joomla's autoloader.</description>
+	<namespace path="src/FontLib">FontLib</namespace>
+	<files>
+		<folder>src</folder>
+		<folder>maps</folder>
+		<filename>LICENSE</filename>
+	</files>
+</extension>

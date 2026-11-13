@@ -153,6 +153,14 @@
     <libraries>
         <library folder="lib_libphonenumber" libraryname="libphonenumber"/>
         <library folder="lib_giggsey_locale" libraryname="giggsey/locale"/>
+
+        <!-- dompdf makes the PDFs of the sales documents; the four after it are the libraries it needs, each a
+             Joomla library of its own, since a library registers one namespace with Joomla's autoloader. -->
+        <library folder="lib_dompdf" libraryname="dompdf"/>
+        <library folder="lib_php_font_lib" libraryname="php-font-lib"/>
+        <library folder="lib_php_svg_lib" libraryname="php-svg-lib"/>
+        <library folder="lib_masterminds_html5" libraryname="masterminds/html5"/>
+        <library folder="lib_sabberworm_php_css_parser" libraryname="sabberworm/php-css-parser"/>
     </libraries>
 
     <updateservers>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="library" method="upgrade">
+	<name>lib_masterminds_html5</name>
+	<libraryname>masterminds/html5</libraryname>
+	<author>The Authors of HTML5-PHP (packaged for Joomla)</author>
+	<authorUrl>https://github.com/Masterminds/html5-php</authorUrl>
+	<creationDate>2026-11-13</creationDate>
+	<license>MIT</license>
+	<version>2.10.0</version>
+	<description>masterminds/html5: the HTML5 parser dompdf reads a page with. Registers the Masterminds\ namespace through Joomla's autoloader.</description>
+	<namespace path="src">Masterminds</namespace>
+	<files>
+		<folder>src</folder>
+		<filename>LICENSE.txt</filename>
+	</files>
+</extension>
