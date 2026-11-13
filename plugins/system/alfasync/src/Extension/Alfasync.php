@@ -393,9 +393,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     /**
      * Whether this request's page is the visitor's own and must never be shared through Joomla's page cache: the cart
      * view (any of its addresses and layouts, the cart and the checkout form), or a visitor whose session keeps
-     * checkout details typed into that form, or whose browser owns a guest cart with lines (the cart module on every
-     * page shows them). Any other page of a visitor with no cart stays cached. When the cart cannot be read, the page
-     * is not shared.
+     * checkout details typed into that form, or a pricing context a site's own code set for this visitor (the session's
+     * alfa.currency_id or alfa.location_id, PriceContext::fromSession(): every price on the page is figured for this
+     * visitor), or whose browser owns a guest cart with lines (the cart module on every page shows them). Any other
+     * page of a visitor with no cart stays cached. When the cart cannot be read, the page is not shared.
      *
      * @since  2.2.0
      */
@@ -410,6 +411,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             }
 
             if (!empty($app->getUserState('com_alfa.cart.form_data'))) {
+                return true;
+            }
+
+            $session = $app->getSession();
+
+            if ((int) $session->get('alfa.currency_id', 0) > 0 || (int) $session->get('alfa.location_id', 0) > 0) {
                 return true;
             }
 
