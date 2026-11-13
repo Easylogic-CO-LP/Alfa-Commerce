@@ -1142,6 +1142,7 @@ class com_alfaInstallerScript extends InstallerScript
         $failures = [];
         $converted = 0;
         $rows      = 0;
+        $deleted   = false;
         $state     = 'absent';
 
         // Three steps, each on its own: a failure of one never skips the next.
@@ -1161,7 +1162,8 @@ class com_alfaInstallerScript extends InstallerScript
                     ->delete($db->quoteName('#__scheduler_tasks'))
                     ->where($db->quoteName('type') . ' = ' . $db->quote('alfapricesets.prepare'))
             )->execute();
-            $rows = (int) $db->getAffectedRows();
+            $rows    = (int) $db->getAffectedRows();
+            $deleted = true;
         }
         catch (\Throwable $e)
         {
@@ -1198,9 +1200,15 @@ class com_alfaInstallerScript extends InstallerScript
 
                 if (is_file($oldScript) && @unlink($oldScript))
                 {
+                    // "Removed" only when the delete above ran; else the update's warning says why they stay.
                     self::maintenanceLog(
-                        line:     sprintf('Update to %s: the scheduled tasks of plg_task_alfapricesets were removed by Alfa Commerce, so the plugin\'s own uninstall script was not run.', $this->packageVersion),
-                        priority: \Joomla\CMS\Log\Log::INFO,
+                        line:     sprintf(
+                            $deleted
+                                ? 'Update to %s: the scheduled tasks of plg_task_alfapricesets were removed by Alfa Commerce, so the plugin\'s own uninstall script was not run.'
+                                : 'Update to %s: the scheduled tasks of plg_task_alfapricesets could not be removed (the update says why); the plugin\'s own uninstall script was not run, as it cannot remove them either.',
+                            $this->packageVersion,
+                        ),
+                        priority: $deleted ? \Joomla\CMS\Log\Log::INFO : \Joomla\CMS\Log\Log::WARNING,
                     );
                 }
 
