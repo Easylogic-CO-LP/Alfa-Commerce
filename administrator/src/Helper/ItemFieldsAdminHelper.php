@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
@@ -5252,6 +5253,13 @@ class ItemFieldsAdminHelper
      */
     protected static function syncCombinationPrices(int $itemId, int $combinationId, array $rows): void
     {
+        // A price row of a deleted place is never widened to every place (2.2.1): the grid edits are refused.
+        $widened = PriceRowPlaces::widenedFromDeleted(itemId: $itemId, combinationId: $combinationId, rows: $rows);
+
+        if ($widened !== []) {
+            throw new RuntimeException(PriceRowPlaces::refusal(widened: $widened));
+        }
+
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         $db->setQuery(

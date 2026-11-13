@@ -28,6 +28,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -770,6 +771,15 @@ class ItemModel extends AlfaAdminModel
 
         if ($stockPlan['refusals'] !== []) {
             return $this->refuseSave(messages: $stockPlan['refusals']);
+        }
+
+        // A price row of a deleted place is never widened to every place (2.2.1).
+        if ($pk > 0 && \is_array($data['prices'] ?? null)) {
+            $widened = PriceRowPlaces::widenedFromDeleted(itemId: $pk, combinationId: null, rows: $data['prices']);
+
+            if ($widened !== []) {
+                return $this->refuseSave(messages: [PriceRowPlaces::refusal(widened: $widened)]);
+            }
         }
 
         // The posted quantity rules, parsed exactly and normalised in $data.
