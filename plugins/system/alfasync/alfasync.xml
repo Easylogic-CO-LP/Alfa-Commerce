@@ -8,6 +8,8 @@
     <copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE</license>
     <version>2.2.1</version>
+    <!-- The Alfa Commerce lines this build is made for (2.2.1): it ships with Alfa Commerce 2.2. -->
+    <alfacore min="2.2" max="2.2"/>
     <description>PLG_SYSTEM_ALFASYNC_XML_DESCRIPTION</description>
     <!--
         Bundled inside com_alfa. Installed + auto-enabled by script.php.

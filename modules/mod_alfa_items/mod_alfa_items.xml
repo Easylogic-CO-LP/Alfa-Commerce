@@ -7,6 +7,8 @@
     <license>GNU General Public License version 3 or later; see LICENSE</license>
     <authorEmail>info@easylogic.gr</authorEmail>
     <version>2.2.1</version>
+    <!-- The Alfa Commerce lines this build is made for (2.2.1): it ships with Alfa Commerce 2.2. -->
+    <alfacore min="2.2" max="2.2"/>
     <description>MOD_ALFA_ITEMS_DESC</description>
     <namespace path="src">Alfa\Module\AlfaItems</namespace>
     <files>
