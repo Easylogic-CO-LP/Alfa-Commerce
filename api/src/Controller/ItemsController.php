@@ -14,7 +14,6 @@ namespace Alfa\Component\Alfa\Api\Controller;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
-use Joomla\CMS\MVC\Controller\Exception\Save;
 
 /**
  * The Items controller
@@ -25,7 +24,6 @@ class ItemsController extends ApiController
 {
     use HasApiGuards {
         preprocessSaveData as private guardedPreprocessSaveData;
-        add as private guardedAdd;
     }
 
     /**
@@ -37,17 +35,6 @@ class ItemsController extends ApiController
      * @since  2.0.0
      */
     private const STOCK_INTENT_KEYS = ['stock', 'inventory_stock'];
-
-    /**
-     * Body keys of an item's options, combinations and item field values, which the API does not write: the four the
-     * item read publishes, then the administrator form's keys of the same writes.
-     *
-     * @var string[]
-     * @since  2.2.1
-     */
-    private const UNWRITTEN_KEYS = ['fields', 'options', 'combinations', 'informational', 'combinations_default',
-        'deleted_combination_ids', 'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order',
-        'field_required'];
 
     /**
      * The content type of the item.
@@ -171,57 +158,30 @@ class ItemsController extends ApiController
     }
 
     /**
-     * Create an item, refused first when the body carries what the API does not write.
+     * An item's options, combinations and item field values, which the API does not write: the four keys the item read
+     * publishes, then the keys the item edit form's grids post for the same writes, which the item save reads from the
+     * request as the form posts them. A list sent in the read's shape was
+     * taken by its positions, as value or combination ids (2.2.1).
      *
-     * @return void
+     * @return string[]
      *
      * @since  2.2.1
      */
-    public function add()
+    protected function unwrittenKeys(): array
     {
-        $this->refuseUnwrittenKeys();
-
-        $this->guardedAdd();
+        return ['fields', 'options', 'combinations', 'informational', 'combinations_default', 'deleted_combination_ids',
+            'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order', 'field_required'];
     }
 
     /**
-     * Update an item, refused first when the body carries what the API does not write: before core's edit checks the
-     * item out, so a refused PATCH leaves it as it was.
-     *
-     * @return static
+     * Where they are written instead.
      *
      * @since  2.2.1
      */
-    public function edit()
+    protected function unwrittenReason(): string
     {
-        $this->refuseUnwrittenKeys();
-
-        return parent::edit();
-    }
-
-    /**
-     * Answer 422, naming them, when the body carries an item's options, combinations or item field values: the keys
-     * the item read publishes for them, and the administrator form's keys of the same writes. The item save reads
-     * those from the request too, as the form posts them (MultilingualHelper::mergeValidatedFormData() keeps every
-     * undeclared key), so a body that carried them reached the option and combination writers in a shape they do not
-     * read (a list in the read's shape is keyed by its positions, not by value or combination ids). Until the API
-     * writes them, they are refused before anything is saved.
-     *
-     * @throws Save When the body carries one of them (422).
-     *
-     * @since  2.2.1
-     */
-    private function refuseUnwrittenKeys(): void
-    {
-        $carried = array_values(array_intersect(self::UNWRITTEN_KEYS, array_keys($this->requestBody())));
-
-        if ($carried !== []) {
-            throw new Save(
-                implode(', ', $carried) . ' cannot be written through the API: an item\'s options, combinations and item field '
-                . 'values are edited on its page in the administrator. Send the item without them; nothing was saved.',
-                422,
-            );
-        }
+        return 'an item\'s options, combinations and item field values are edited on its page in the administrator.'
+            . ' Send the item without them; nothing was saved.';
     }
 
     /**
@@ -251,22 +211,5 @@ class ItemsController extends ApiController
         unset($data['available_quantity'], $data['inventory_stock_baseline']);
 
         return $this->guardedPreprocessSaveData(data: $data);
-    }
-
-    /**
-     * The request body exactly as core's save() reads it.
-     *
-     *
-     * @since   2.0.0
-     */
-    private function requestBody(): array
-    {
-        $body = $this->input->get(
-            name: 'data',
-            default: json_decode((string) $this->input->json->getRaw(), true),
-            filter: 'array',
-        );
-
-        return \is_array($body) ? $body : [];
     }
 }
