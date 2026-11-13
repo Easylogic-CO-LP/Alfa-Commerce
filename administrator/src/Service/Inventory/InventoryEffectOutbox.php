@@ -1216,6 +1216,26 @@ final class InventoryEffectOutbox
     }
 
     /**
+     * How many obligations the shop still owes: every one not applied and not refused, a failed one waiting for its
+     * next try of the ladder or for staff included (2.2.1). What staff are told is owed; outstandingCount() is what a
+     * drain would take now.
+     *
+     * @since  2.2.1
+     */
+    public static function owedCount(): int
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        $db->setQuery(
+            'SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_inventory_effect_outbox')
+            . ' WHERE ' . $db->quoteName('status') . ' IN (' . $db->quote(self::STATUS_PENDING) . ', '
+            . $db->quote(self::STATUS_CLAIMED) . ', ' . $db->quote(self::STATUS_FAILED) . ')',
+        );
+
+        return (int) $db->loadResult();
+    }
+
+    /**
      * How many obligations wait for the operator: refused because an order line
      * has no stock identity to move against, so no drain applies them until the
      * line is resolved.

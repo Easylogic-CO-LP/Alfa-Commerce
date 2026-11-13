@@ -278,7 +278,8 @@ final class CoreToolProvider
         $stockOwed = false;
 
         try {
-            $stockOwed = InventoryEffectOutbox::outstandingCount() > 0;
+            // Every movement still owed, one that waits for its next automatic try included (2.2.1).
+            $stockOwed = InventoryEffectOutbox::owedCount() > 0;
         } catch (Throwable) {
             // A count that fails must not remove the tool that fixes it.
         }
@@ -434,7 +435,7 @@ final class CoreToolProvider
             }
 
             $this->stepJob(event: $event, scope: StockEffectsDrainJob::NAME, done: static function (): string {
-                $remaining = InventoryEffectOutbox::outstandingCount();
+                $remaining = InventoryEffectOutbox::owedCount();
                 $message = $remaining === 0
                     ? Text::_('COM_ALFA_TOOLS_STOCK_EFFECTS_DONE')
                     : Text::sprintf('COM_ALFA_TOOLS_STOCK_EFFECTS_REMAINING', $remaining);
