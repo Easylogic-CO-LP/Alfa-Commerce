@@ -1239,7 +1239,8 @@ class Transition
      * Applied by draining the obligation the change committed rather than by calling the reconciler directly: if
      * this fails (or the process never gets here), the obligation is still recorded and outstanding, and Tools >
      * Database Sync finishes it. The drain also picks up an obligation an earlier change left owed, which is why a
-     * claim-equal move heals an order the short-circuit would once have skipped for ever.
+     * claim-equal move heals an order the short-circuit would once have skipped for ever: a failed one is opened
+     * again first, so the new status tries it at once and its save says what happened (2.2.1).
      *
      * @param int $orderId The order.
      * @param int $oldStatusId The status it left.
@@ -1254,6 +1255,8 @@ class Transition
         $outcome = ['result' => ['action' => 'none', 'count' => 0], 'refusal' => null, 'reservedFloor' => null, 'failure' => null];
 
         try {
+            InventoryEffectOutbox::reopenFailedOrderClaim(orderId: $orderId);
+
             $drained = InventoryEffectOutbox::drain(
                 limit:          1,
                 onlySourceId:   $orderId,

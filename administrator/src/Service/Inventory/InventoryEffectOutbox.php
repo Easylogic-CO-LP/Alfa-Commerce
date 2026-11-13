@@ -1543,13 +1543,48 @@ final class InventoryEffectOutbox
      */
     public static function reopenFailed(): int
     {
+        return self::reopen(where: '');
+    }
+
+    /**
+     * A new status of the order: its own failed stock claim is tried now, whether it waits for its next step of the
+     * ladder or reached the cap, with a full set of tries again, as {@see self::reopenFailed()} does for every one
+     * (2.2.1). A change that keeps the order's claim re-states nothing ({@see self::enqueue()}), so without this its
+     * drain would claim nothing until the row's wait had passed. A row pending or claimed is left as it is: it is
+     * already outstanding, or its worker holds it.
+     *
+     * @param int $orderId The order whose status changed.
+     *
+     * @return int 1 when its claim was opened again, else 0.
+     *
+     * @since  2.2.1
+     */
+    public static function reopenFailedOrderClaim(int $orderId): int
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        return self::reopen(where: ' AND ' . $db->quoteName('source_type') . ' = ' . $db->quote('order_claim')
+            . ' AND ' . $db->quoteName('source_id') . ' = ' . $orderId);
+    }
+
+    /**
+     * Open failed rows again: due at once, with a full set of tries.
+     *
+     * @param string $where A further condition on the failed rows ('' for every one), starting with AND.
+     *
+     * @return int How many were opened again.
+     *
+     * @since  2.2.1
+     */
+    private static function reopen(string $where): int
+    {
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         $db->setQuery(
             'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' SET ' . $db->quoteName('attempts') . ' = 0'
             . ', ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP()'
-            . ' WHERE ' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED),
+            . ' WHERE ' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED) . $where,
         );
         $db->execute();
 
