@@ -84,10 +84,10 @@ class CartruleModel extends AlfaAdminModel
     /**
      * Save the rule row, its targeting and its relational condition tree.
      *
-     * CONTRACT COVERAGE NOTE (decided at migration): the
-     * onAlfaAdminValidate/BeforeSave/AfterSave bracket fires inside
-     * parent::save(), i.e. AfterSave observers see the rule ROW saved, but
-     * the targeting pivots and the condition tree are synced right after.
+     * CONTRACT COVERAGE NOTE: the row, the translations, the targeting pivots
+     * and the condition tree are one transaction, and the AfterSave bracket is
+     * announced at its commit, so observers see the rule as saved (2.2.1,
+     * P3-303; before, the rule ROW only, the rest synced right after).
      *
      * @param array $data The form data.
      *
@@ -130,25 +130,53 @@ class CartruleModel extends AlfaAdminModel
         $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
-        if (!parent::save($data)) {
+        // Alfa's before-save is asked before the transaction (2.1.4, design 0.2): no plugin code runs under it.
+        $asked = $this->alfaAskSave(data: $data);
+
+        if ($asked === null) {
             return false;
         }
 
-        $ruleId = (int) ($data['id'] ?? 0) ?: (int) $this->getState($this->getName() . '.id');
+        // The language tables are extended BEFORE the transaction opens: DDL commits implicitly.
+        MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_cart_rules', primaryColumnName: 'id_cart_rule', data: $data);
 
-        // Translatable name: no main-table copy, so this IS the save.
-        MultilingualHelper::saveMultilingualData(
-            currentId:         $ruleId,
-            primaryColumnName: 'id_cart_rule',
-            tableName:         '#__alfa_cart_rules',
-            data:              $data,
-            aliasFields:       [],
-        );
+        // ONE TRANSACTION for the whole save (2.2.1, P3-303): onAlfaAdminAfterSave and onContentAfterSave wait for its
+        // commit, so a listener reads the rule as saved, targeting and conditions included, and a failure anywhere
+        // leaves nothing of the save (the condition tree's own transaction is a savepoint inside it).
+        $db = $this->alfaDriver();
+        $db->transactionStart(true);
 
-        AlfaHelper::setAssocsToDb($ruleId, $data['allowedUsers'] ?? [], '#__alfa_cart_rules_users', 'id_cart_rule', 'user_id');
-        AlfaHelper::setAssocsToDb($ruleId, $data['allowedUserGroups'] ?? [], '#__alfa_cart_rules_usergroups', 'id_cart_rule', 'usergroup_id');
+        try {
+            $this->alfaSaveAsked = $asked;
 
-        $this->syncConditionTree($ruleId, (array) ($data['groups'] ?? []));
+            if (!parent::save($data)) {
+                TransactionState::rollBackLevel(db: $db);
+
+                return false;
+            }
+
+            $ruleId = (int) ($data['id'] ?? 0) ?: (int) $this->getState($this->getName() . '.id');
+
+            // Translatable name: no main-table copy, so this IS the save.
+            MultilingualHelper::saveMultilingualData(
+                currentId:         $ruleId,
+                primaryColumnName: 'id_cart_rule',
+                tableName:         '#__alfa_cart_rules',
+                data:              $data,
+                aliasFields:       [],
+            );
+
+            AlfaHelper::setAssocsToDb($ruleId, $data['allowedUsers'] ?? [], '#__alfa_cart_rules_users', 'id_cart_rule', 'user_id');
+            AlfaHelper::setAssocsToDb($ruleId, $data['allowedUserGroups'] ?? [], '#__alfa_cart_rules_usergroups', 'id_cart_rule', 'usergroup_id');
+
+            $this->syncConditionTree($ruleId, (array) ($data['groups'] ?? []));
+
+            TransactionState::commitLevel(db: $db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
+        }
 
         return true;
     }
