@@ -25,7 +25,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *
  *     public function onAlfaAdminBeforeDelete(AdminBeforeDeleteEvent $event): void
  *     {
- *         if (!$event->targets('product')) {
+ *         if (!$event->targets('item')) {
  *             return;
  *         }
  *

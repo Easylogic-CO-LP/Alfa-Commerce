@@ -40,6 +40,19 @@ class UsergroupsController extends ApiController
     protected $default_view = 'usergroups';
 
     /**
+     * A PATCH that names some price display settings changes those and keeps
+     * the group's others (2.2.1).
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function mergeOnPatch(): array
+    {
+        return ['prices_display'];
+    }
+
+    /**
      * Usergroups list view amended to add filtering of data
      *
      * @return static A BaseController object to support chaining.

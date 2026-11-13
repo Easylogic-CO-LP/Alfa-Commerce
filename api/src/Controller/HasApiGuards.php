@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Doctrine\Inflector\InflectorFactory;
 use Joomla\CMS\Access\Exception\NotAllowed;
+use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
@@ -46,6 +47,9 @@ use RuntimeException;
  *      $data['categories'] ?? [] and setAssocsToDb() DELETEs every row before
  *      re-inserting. An omitted key therefore reads as "remove them all".
  *      Same idea as com_content re-loading tags in preprocessSaveData().
+ *      A PATCH also keeps the stored keys of a map it names only in part, and
+ *      the stored translations of a required multilingual field it leaves out
+ *      (2.2.1).
  *
  * @since  2.0.0
  */
@@ -63,6 +67,21 @@ trait HasApiGuards
      * @since  2.0.0
      */
     protected function preserveOnPatch(): array
+    {
+        return [];
+    }
+
+    /**
+     * Keyed maps a PATCH merges into the stored map (2.2.1): a key the body
+     * sends replaces that key, a key the body sends empty ('' or null) is
+     * removed, and a key the body leaves out keeps its stored value. Each must
+     * be readable back off getItem() under the same name, as an array.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function mergeOnPatch(): array
     {
         return [];
     }
@@ -289,7 +308,9 @@ trait HasApiGuards
     }
 
     /**
-     * Preserve omitted relations, then bridge the body to the jform POST var.
+     * Preserve omitted relations, merge partly named maps and keep the stored
+     * translations of an omitted required field, then bridge the body to the
+     * jform POST var.
      *
      * The bridge is what makes multilingual writes work at all: the admin
      * models recover per-language keys (name_el_gr, ...) from
@@ -303,7 +324,9 @@ trait HasApiGuards
     protected function preprocessSaveData(array $data): array
     {
         $data = $this->preserveAbsentRelations($data);
+        $data = $this->mergePatchedMaps($data);
         $data = $this->flattenTranslations($data);
+        $data = $this->keepStoredRequiredTranslations($data);
         $data = $this->normaliseMediaPayload($data);
 
         $this->input->post->set('jform', $data);
@@ -496,38 +519,13 @@ trait HasApiGuards
      */
     protected function preserveAbsentRelations(array $data): array
     {
-        $preserve = $this->preserveOnPatch();
-
-        if ($preserve === [] || strtoupper((string) $this->input->getMethod()) !== 'PATCH') {
-            return $data;
-        }
-
-        $recordId = (int) ($data['id'] ?? 0);
-
-        if ($recordId <= 0) {
-            return $data;
-        }
-
         $missing = array_filter(
-            $preserve,
+            $this->preserveOnPatch(),
             static fn (string $key): bool => !\array_key_exists($key, $data),
         );
+        $current = $missing === [] ? null : $this->patchedRecord($data);
 
-        if ($missing === []) {
-            return $data;
-        }
-
-        $inflector = InflectorFactory::create()->build();
-        $model = $this->getModel($inflector->singularize($this->contentType));
-
-        // Only an edit model reads the stored record (every model this path reaches is one).
-        if (!$model instanceof AdminModel) {
-            return $data;
-        }
-
-        $current = $model->getItem($recordId);
-
-        if (!$current) {
+        if ($current === null) {
             return $data;
         }
 
@@ -538,5 +536,146 @@ trait HasApiGuards
         }
 
         return $data;
+    }
+
+    /**
+     * Lay the keys of each map the body sends over the stored map (2.2.1).
+     *
+     * PATCH only, for the maps mergeOnPatch() names: a body that names one
+     * key of the map changes that key and keeps the others, and a key it sends
+     * empty ('' or null) leaves the map, so the record takes the shop's setting
+     * for it. It leaves here, before the form's filter, which gives an empty
+     * value the field's default when the field has one. The edit form posts the
+     * whole map and does not come this way; on a create there is nothing stored
+     * to merge into.
+     *
+     * @param array $data The incoming save data.
+     *
+     *
+     * @since  2.2.1
+     */
+    protected function mergePatchedMaps(array $data): array
+    {
+        // Core backfills a column the body leaves out with its stored text, never an array: an array is what the
+        // body sent.
+        $sent = array_filter(
+            $this->mergeOnPatch(),
+            static fn (string $key): bool => \is_array($data[$key] ?? null),
+        );
+        $current = $sent === [] ? null : $this->patchedRecord($data);
+
+        if ($current === null) {
+            return $data;
+        }
+
+        foreach ($sent as $key) {
+            $stored = $current->$key ?? [];
+            $data[$key] = array_filter(
+                array_replace(\is_array($stored) ? $stored : [], $data[$key]),
+                static fn (mixed $value): bool => $value !== '' && $value !== null,
+            );
+        }
+
+        return $data;
+    }
+
+    /**
+     * Keep the stored translations of every required multilingual field a
+     * PATCH leaves out (2.2.1).
+     *
+     * The form's required rule reads the default language's value, which a
+     * PATCH that changes only, say, the state does not send, so such a PATCH
+     * was refused with "Field required". A field the body names, in any
+     * language or empty, is left to the rule, and a create is never helped:
+     * the required rule still applies to both. The translations are read from
+     * the field's own language tables and written back as they are.
+     *
+     * @param array $data The incoming save data, its translations flattened.
+     *
+     *
+     * @since  2.2.1
+     */
+    protected function keepStoredRequiredTranslations(array $data): array
+    {
+        $recordId = (int) ($data['id'] ?? 0);
+
+        if ($recordId <= 0 || strtoupper((string) $this->input->getMethod()) !== 'PATCH') {
+            return $data;
+        }
+
+        $model = $this->getModel(InflectorFactory::create()->build()->singularize($this->contentType));
+
+        if (!$model instanceof AdminModel) {
+            return $data;
+        }
+
+        // Core adds the component's form path after this step (ApiController::save()); the form is read here first.
+        Form::addFormPath(JPATH_ADMINISTRATOR . '/components/' . $this->option . '/forms');
+        $form = $model->getForm([], false);
+
+        if (!$form) {
+            return $data;
+        }
+
+        $languages = MultilingualHelper::getLanguageTags();
+
+        // The fields stored in language tables of their own, read off the form's definition: no field is set up here.
+        foreach ($form->getXml()->xpath('//field[@multilingual_table and @multilingual_pk]') ?: [] as $element) {
+            if (!\in_array((string) $element['required'], ['true', 'required', '1'], true)) {
+                continue;
+            }
+
+            $name = (string) $element['name'];
+            $keys = array_map(
+                static fn (string $language): string => MultilingualHelper::buildLangFieldKey(field: $name, tag: $language),
+                $languages,
+            );
+
+            // A field the body names, in any language or empty: the rule decides.
+            if (\array_key_exists($name, $data) || array_intersect_key($data, array_flip($keys)) !== []) {
+                continue;
+            }
+
+            $stored = MultilingualHelper::getMultilingualDataFlat(
+                currentId:         $recordId,
+                primaryColumnName: (string) $element['multilingual_pk'],
+                tableName:         (string) $element['multilingual_table'],
+            );
+
+            foreach ($keys as $key) {
+                if (\array_key_exists($key, $stored)) {
+                    $data[$key] = $stored[$key];
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * The stored record a PATCH changes, read through the resource's edit
+     * model (2.2.1: shared by the steps that keep what the body leaves out).
+     *
+     * @param array $data The incoming save data.
+     *
+     * @return object|null Null on a create, for a resource without an edit
+     *                     model, or when the record does not exist.
+     *
+     * @since  2.2.1
+     */
+    private function patchedRecord(array $data): ?object
+    {
+        $recordId = (int) ($data['id'] ?? 0);
+
+        if ($recordId <= 0 || strtoupper((string) $this->input->getMethod()) !== 'PATCH') {
+            return null;
+        }
+
+        $model = $this->getModel(InflectorFactory::create()->build()->singularize($this->contentType));
+
+        // Only an edit model reads the stored record (every model this path reaches is one).
+        $current = $model instanceof AdminModel ? $model->getItem($recordId) : false;
+
+        return \is_object($current) ? $current : null;
     }
 }

@@ -23,7 +23,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *
  *     public function onAlfaAdminForm(AdminFormEvent $event): void
  *     {
- *         if (!$event->isEditScreen() || !$event->targets('product')) {
+ *         if (!$event->isEditScreen() || !$event->targets('item')) {
  *             return;
  *         }
  *

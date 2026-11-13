@@ -26,10 +26,12 @@ use LogicException;
  * WHERE a plugin is, WHAT it may read, and the ONE thing it may write: the single argument
  * every onAlfaAdmin* event carries.
  *
- * Handed to plugins of the `alfa` PLATFORM group, the layer that owns SHARED backend surfaces.
- * Capability plugins (alfa-payments, alfa-shipments, ...) own their own domain screens and layouts,
- * but stay lazy and never receive these; one that wants to reach into a screen it does not own
- * ships a second plugin in the `alfa` group.
+ * Raised on the shared dispatcher once the `alfa` PLATFORM group (the layer that owns SHARED
+ * backend surfaces) is imported, so every listener already loaded hears it, a plugin of another
+ * group included (2.2.0). Capability plugins (alfa-payments, alfa-shipments, ...) own their own
+ * domain screens and layouts and are not imported for these: one that wants to reach into a
+ * screen it does not own ships a second plugin in the `alfa` group. Entity names are the
+ * component's own (`item` for a product).
  *
  * The admin contract puts the PHASE in the event NAME (finite, IDE-discoverable, cheap to
  * dispatch) and everything else in this object, so one plugin body can serve any entity:

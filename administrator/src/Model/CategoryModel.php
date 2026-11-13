@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
@@ -365,11 +366,6 @@ class CategoryModel extends AlfaAdminModel
         AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_categories_users', 'category_id', 'user_id');
         AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_categories_usergroups', 'category_id', 'usergroup_id');
 
-        // The dangerous one: under inherit-from-default-category this changes the
-        // EFFECTIVE audience of every product whose default category this is. The
-        // event resolves that fan-out; core does not schedule it.
-        VisibilityNotifier::changed(categoryIds: [$currentId]);
-
         // Clear cache if needed
         if ($needsCacheClearing) {
             $this->clearRelatedCache($currentId, $oldParentId, $parentId);
@@ -377,10 +373,18 @@ class CategoryModel extends AlfaAdminModel
 
         $this->resyncAssignedItems($currentId);
 
-        // AFTER the per-language rows are written (saveMultilingualData above): a
-        // listener materialising this category re-reads names/descriptions, so the
-        // signal must not race the data it points at.
-        EntityChangeNotifier::changed(entity: 'category', ids: [$currentId]);
+        // AFTER the per-language rows are written (saveMultilingualData above) and the
+        // items' documents are rebuilt (resyncAssignedItems()), and after the commit of
+        // any transaction the save runs in (2.2.1): a listener materialising this
+        // category re-reads names and descriptions, and one reading its items'
+        // projection reads the audience the event describes. The visibility event is
+        // the dangerous one: under inherit-from-default-category this changes the
+        // EFFECTIVE audience of every product whose default category this is; the
+        // event resolves that fan-out, core does not schedule it.
+        PostCommit::defer(db: $this->alfaDriver(), label: 'the category save\'s catalogue events', work: static function () use ($currentId): void {
+            VisibilityNotifier::changed(categoryIds: [$currentId]);
+            EntityChangeNotifier::changed(entity: 'category', ids: [$currentId]);
+        });
 
         return true;
     }

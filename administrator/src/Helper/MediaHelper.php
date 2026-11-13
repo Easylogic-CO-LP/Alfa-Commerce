@@ -46,6 +46,16 @@ class MediaHelper
     private const MEDIA_GROUP = 'alfa-media';
 
     /**
+     * What getMediaData() has read in this request, by origin, items and options. Emptied by every write of media
+     * rows (2.2.1): a request that reads an item's media, saves them and reads them again (a REST PATCH, which answers
+     * with the saved record) is answered with what is stored, not with what was read before the save.
+     *
+     * @var array<string, array>
+     * @since  2.2.1
+     */
+    private static array $mediaRead = [];
+
+    /**
      * The longest image description (alt) a media row holds: its column is varchar(75). The tile's input, saveMedia
      * and the API's media rows all hold to it, so a longer one never fails a gallery save (2.2.0).
      *
@@ -382,6 +392,8 @@ class MediaHelper
                 ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
                 ->whereIn($db->quoteName('item_id'), $itemIds),
         )->execute();
+
+        self::$mediaRead = [];
     }
 
     /**
@@ -443,6 +455,8 @@ class MediaHelper
 
             $deleted += count($batch);
         }
+
+        self::$mediaRead = [];
 
         return $deleted;
     }
@@ -806,6 +820,26 @@ class MediaHelper
      * @since  1.0.0
      */
     public static function saveMedia(array $mediaData, array $droppedMedia, int $itemId, string $mediaOrigin, string $customFileName = ''): true
+    {
+        try {
+            return self::writeMedia($mediaData, $droppedMedia, $itemId, $mediaOrigin);
+        } finally {
+            self::$mediaRead = [];
+        }
+    }
+
+    /**
+     * The work of {@see self::saveMedia()}: the rows and files of one entity's media, as the request sends them.
+     *
+     * @param array $mediaData The array of media items from the request.
+     * @param array $droppedMedia The array for drag-and-dropped files.
+     * @param int $itemId The ID of the parent item these media belong to.
+     * @param string $mediaOrigin Identifier for the media origin based on model name (e.g., 'item', 'category').
+     *
+     * @throws Exception
+     * @since  2.2.1
+     */
+    private static function writeMedia(array $mediaData, array $droppedMedia, int $itemId, string $mediaOrigin): true
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
 
@@ -1722,8 +1756,6 @@ class MediaHelper
      */
     public static function getMediaData(string $origin, int|array|null $itemIDs, $usePlaceHolder = false): array
     {
-        static $cache = [];
-
         // 1. Normalize input
         $single = !is_array($itemIDs);
         $itemIDs = array_map('intval', (array) $itemIDs);
@@ -1733,12 +1765,12 @@ class MediaHelper
         }
 
         // 2. Request-level memo: the same (origin, items) is fetched several times
-        // per page (product render + cart + listing); media is read-only here.
+        // per page (product render + cart + listing); every write of media rows empties it.
         sort($itemIDs);
         $cacheKey = $origin . '|' . implode(',', $itemIDs) . '|' . (int) $usePlaceHolder . '|' . (int) $single;
 
-        if (isset($cache[$cacheKey])) {
-            return $cache[$cacheKey];
+        if (isset(self::$mediaRead[$cacheKey])) {
+            return self::$mediaRead[$cacheKey];
         }
 
         // 3. Config
@@ -1788,14 +1820,14 @@ class MediaHelper
         if ($single) {
             $firstGroup = reset($grouped) ?: [];
 
-            return $cache[$cacheKey] = !empty($firstGroup) ? $firstGroup : ($placeholder ? [$placeholder] : []);
+            return self::$mediaRead[$cacheKey] = !empty($firstGroup) ? $firstGroup : ($placeholder ? [$placeholder] : []);
         }
 
         if ($placeholder) {
             $grouped += array_fill_keys($itemIDs, [$placeholder]);
         }
 
-        return $cache[$cacheKey] = $grouped;
+        return self::$mediaRead[$cacheKey] = $grouped;
     }
 
     /**

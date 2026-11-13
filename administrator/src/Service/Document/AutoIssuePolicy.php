@@ -462,8 +462,50 @@ final class AutoIssuePolicy
                 orderId: $orderId,
                 key:     self::KEY_PREFIX . $orderId . '.failed.' . $docType,
                 title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_TYPE_TITLE', $orderId, DocumentHelper::typeText($docType)),
+                message: NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_MSG', self::reason(failure: $e)),
             );
         }
+    }
+
+    /**
+     * Why an issue failed, for the notice (2.2.1). A refusal that carries staff's sentence
+     * ({@see DocumentRefusedException}, anywhere in the chain: the issuer wraps what it refuses in its own "issue
+     * failed" exception) is said in that sentence, translated where the notice is read; a database failure is said as
+     * one, so no table, column or statement reaches the notice; any other failure by the first line of the failure
+     * the chain began with (the issuer's wrapper names nothing more), markup stripped, at most 200 characters, ended
+     * as a sentence; one with no words by a neutral sentence. The full message and trace stay in the documents log.
+     *
+     * @param Throwable $failure What the issue threw.
+     *
+     * @return string|array The line, or a sentence's language key and values ({@see NotificationText::key()}).
+     *
+     * @since  2.2.1
+     */
+    private static function reason(Throwable $failure): string|array
+    {
+        $refused = DocumentRefusedException::in($failure);
+
+        if ($refused !== null) {
+            return NotificationText::key($refused->key(), ...$refused->values());
+        }
+
+        $first = $failure;
+
+        for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
+            if (MysqlError::number($cause) > 0) {
+                return NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_DATABASE');
+            }
+
+            $first = $cause;
+        }
+
+        $line = mb_substr(trim((string) strtok(strip_tags($first->getMessage()), "\r\n")), 0, 200);
+
+        if ($line === '') {
+            return NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_UNKNOWN');
+        }
+
+        return preg_match('/[.!?]$/u', $line) === 1 ? $line : $line . '.';
     }
 
     /**
@@ -661,15 +703,17 @@ final class AutoIssuePolicy
      * @param int $orderId The order id.
      * @param string $key Dedup key.
      * @param NotificationText $title Notification title.
+     * @param NotificationText|null $message Its body: why it was raised when the caller knows (2.2.1: a failed
+     *                                       issue's reason), else the general one.
      *
      * @since  2.0.0
      */
-    private static function notify(int $orderId, string $key, NotificationText $title): void
+    private static function notify(int $orderId, string $key, NotificationText $title, ?NotificationText $message = null): void
     {
         NotificationHelper::push($key, $title, [
             'severity' => 'warning',
             'group' => NotificationHelper::GROUP_DOCUMENTS,
-            'message' => NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_MSG'),
+            'message' => $message ?? NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_MSG'),
             'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
             'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
             'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],

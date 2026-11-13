@@ -49,4 +49,29 @@ class JsonApiView extends BaseApiView
         'prices_enable',
         'core_title',
     ];
+
+    /**
+     * A customer group's price display settings as a map, an object also when the group has none of its own (2.2.1):
+     * the model hands the edit form an array, which JSON writes as a list when it is empty.
+     *
+     * @param object|false $item The customer group, or false when there is none.
+     *
+     * @return object|false
+     *
+     * @since  2.2.1
+     */
+    protected function prepareItem($item)
+    {
+        // A record that does not exist reaches here as the model's false: it is handed back untouched, so Joomla's
+        // own check answers 404 "Item does not exist".
+        if (!\is_object($item)) {
+            return $item;
+        }
+
+        if (property_exists($item, 'prices_display') && \is_array($item->prices_display)) {
+            $item->prices_display = (object) $item->prices_display;
+        }
+
+        return $item;
+    }
 }
