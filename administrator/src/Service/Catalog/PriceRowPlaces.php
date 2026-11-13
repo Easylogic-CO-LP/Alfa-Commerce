@@ -86,6 +86,8 @@ final class PriceRowPlaces
      *
      * @param list<array{row: int, place: int}> $widened From widenedFromDeleted().
      *
+     * @return string The sentences, joined by a space.
+     *
      * @since  2.2.1
      */
     public static function refusal(array $widened): string
