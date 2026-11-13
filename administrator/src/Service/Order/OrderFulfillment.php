@@ -63,14 +63,15 @@ final class OrderFulfillment
     private const SENT = ['shipped', 'delivered'];
 
     /**
+     * Each entry of $lines is one order line, by its id: the units of it that have gone out, the status of the first
+     * parcel that carries it ("partial" for a line split across parcels that are not all out) and that parcel's
+     * tracking number.
+     *
      * @param int $totalUnits The units the order's lines hold.
      * @param int $shippedUnits The units of those lines that have gone out.
      * @param float|int $percentage The share that has gone out, 0 to 100, at two places.
      * @param string $status One of the constants above.
-     * @param array<int, array{shipped_quantity: int, shipment_status: string, shipment_tracking: string}> $lines
-     *        Per order line (keyed by its id): the units of it that have gone out, the status of the first parcel
-     *        that carries it ("partial" for a line split across parcels that are not all out) and that parcel's
-     *        tracking number.
+     * @param array<int, array{shipped_quantity: int, shipment_status: string, shipment_tracking: string}> $lines Per order line.
      *
      * @since  2.2.1
      */

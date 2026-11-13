@@ -135,7 +135,6 @@ class PlaceModel extends AlfaAdminModel
         return $item;
     }
 
-
     /**
      * Prepare and sanitise the table prior to saving.
      *
