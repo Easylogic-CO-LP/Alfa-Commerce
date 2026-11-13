@@ -170,8 +170,10 @@ class DiscountModel extends AlfaAdminModel
      * CALL ORDER: the price index sync MUST be the very last step because
      * it reads the scope associations committed in the step before it:
      *
-     *   1. parent::save()           - commits the #__alfa_discounts row
-     *   2. setAssocsToDb() x 5     - commits categories, manufacturers, places, users, usergroups
+     *   1. parent::save()           - writes the #__alfa_discounts row
+     *   2. setAssocsToDb() x 5     - writes categories, manufacturers, places, users, usergroups
+     *      (1 and 2, with the translations, in ONE transaction: committed together, and
+     *      onAlfaAdminAfterSave announced at that commit; 2.2.1)
      *   3. PriceIndexSyncService   - reads the scope above, re-indexes affected items
      *
      * @param array $data The form data.
@@ -207,15 +209,11 @@ class DiscountModel extends AlfaAdminModel
             return false;
         }
 
-        if (!parent::save($data)) {
-            return false;
-        }
+        // Alfa's before-save is asked before the transaction (2.1.4, design 0.2): no plugin code runs under it.
+        $asked = $this->alfaAskSave(data: $data);
 
-        $currentId = 0;
-        if ($data['id'] > 0) { // existing record
-            $currentId = intval($data['id']);
-        } else { // new record: read the id from the Joomla model state
-            $currentId = intval($this->getState($this->getName() . '.id'));
+        if ($asked === null) {
+            return false;
         }
 
         // Capture the items this discount affects under its CURRENT (pre-save)
@@ -231,12 +229,12 @@ class DiscountModel extends AlfaAdminModel
         // new record has no scope pivots yet, which reads as "global" (zero rows)
         // and would needlessly re-index the whole catalogue below; its new scope
         // is read back after the save, in Step 3.
-        if ($data['id'] > 0) {
+        if ((int) ($data['id'] ?? 0) > 0) {
             try {
-                $previousAffectedItemIds = $priceIndexSyncService->getItemIdsForDiscount($currentId);
+                $previousAffectedItemIds = $priceIndexSyncService->getItemIdsForDiscount((int) $data['id']);
             } catch (Throwable $scopeException) {
                 Log::add(
-                    '[DiscountModel::save] Could not capture pre-save scope for discount ' . $currentId . ': ' . $scopeException->getMessage(),
+                    '[DiscountModel::save] Could not capture pre-save scope for discount ' . (int) $data['id'] . ': ' . $scopeException->getMessage(),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -252,10 +250,23 @@ class DiscountModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_discounts', primaryColumnName: 'id_discount', data: $data);
 
-        $db = $this->getDatabase();
+        // ONE TRANSACTION for the discount's row as well (2.2.1): onAlfaAdminAfterSave and onContentAfterSave
+        // wait for its commit, so a listener reads the discount as saved, scope included, and a failure anywhere leaves
+        // nothing of the save.
+        $db = $this->alfaDriver();
         $db->transactionStart(true);
 
         try {
+            $this->alfaSaveAsked = $asked;
+
+            if (!parent::save($data)) {
+                TransactionState::rollBackLevel(db: $db);
+
+                return false;
+            }
+
+            $currentId = (int) ($data['id'] ?? 0) > 0 ? (int) $data['id'] : (int) $this->getState($this->getName() . '.id');
+
             // MULTILINGUAL: persist per-language translations (name).
             // Discounts are not URL-routed, so there is no alias slug.
             MultilingualHelper::saveMultilingualData(
@@ -278,9 +289,10 @@ class DiscountModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['users'] ?? [], '#__alfa_discount_users', 'discount_id', 'user_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_discount_usergroups', 'discount_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
+
             throw $e;
         }
 

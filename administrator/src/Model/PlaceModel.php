@@ -32,6 +32,13 @@ use Throwable;
 class PlaceModel extends AlfaAdminModel
 {
     /**
+     * How many products the warning of a deleted place names before it counts the rest (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    private const PRODUCTS_NAMED = 20;
+
+    /**
      * @var string The entity a plugin targets with $context->targets('place').
      * @since  2.0.0
      */
@@ -165,6 +172,11 @@ class PlaceModel extends AlfaAdminModel
      * place ({@see RuleScopeGuard}). Only the requested places that exist are
      * deleted and stripped.
      *
+     * A product's price rows that name a deleted place are kept: they apply to
+     * no buyer, the prices editor marks the place as deleted, and an edit that
+     * would widen one to every place is refused (2.2.1). The delete stands and
+     * names them, a warning per place with its rows and their products.
+     *
      * @param array &$pks Record primary keys.
      *
      * @return bool True on success.
@@ -199,6 +211,7 @@ class PlaceModel extends AlfaAdminModel
         }
 
         $nested = TransactionState::isOpen(db: $db);
+        $pricedOn = [];
         $db->transactionStart(true);
 
         try {
@@ -211,6 +224,18 @@ class PlaceModel extends AlfaAdminModel
                 // "everywhere". A discount or tax whose last place is in the set would
                 // apply in every place, so the delete is refused, naming the rules.
                 RuleScopeGuard::assertScopesSurvive(db: $db, axis: RuleScopeGuard::AXIS_PLACE, ids: $pks);
+
+                // The price rows the delete leaves on the places, read with the rows it deletes.
+                $pricedOn = $db->setQuery(
+                    $db->getQuery(true)
+                        ->select($db->quoteName('country_id', 'place'))
+                        ->select('COUNT(*) AS ' . $db->quoteName('rows'))
+                        ->select('COUNT(DISTINCT ' . $db->quoteName('item_id') . ') AS ' . $db->quoteName('products'))
+                        ->select('GROUP_CONCAT(DISTINCT ' . $db->quoteName('item_id') . ' ORDER BY ' . $db->quoteName('item_id') . ') AS ' . $db->quoteName('items'))
+                        ->from($db->quoteName('#__alfa_items_prices'))
+                        ->whereIn($db->quoteName('country_id'), $pks)
+                        ->group($db->quoteName('country_id')),
+                )->loadObjectList() ?: [];
 
                 $this->alfaDeleteAsked = true;
 
@@ -262,6 +287,22 @@ class PlaceModel extends AlfaAdminModel
                 ->delete($db->quoteName('#__alfa_items_price_index'))
                 ->whereIn($db->quoteName('place_id'), $pks),
         )->execute();
+
+        foreach ($pricedOn as $priced) {
+            $products = (int) $priced->products;
+            $named = \array_slice(explode(',', (string) $priced->items), 0, self::PRODUCTS_NAMED);
+
+            Factory::getApplication()->enqueueMessage(
+                Text::sprintf(
+                    'COM_ALFA_PLACE_DELETED_PRICE_ROWS',
+                    (int) $priced->place,
+                    (int) $priced->rows,
+                    $products,
+                    '#' . implode(', #', $named) . ($products > \count($named) ? Text::sprintf('COM_ALFA_PLACE_DELETED_PRICE_ROWS_MORE', $products - \count($named)) : ''),
+                ),
+                'warning',
+            );
+        }
 
         return true;
     }
