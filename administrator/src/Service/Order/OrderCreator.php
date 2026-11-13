@@ -20,7 +20,6 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
-use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -177,7 +176,7 @@ final class OrderCreator
             )->loadResult() : 0;
 
             if ($delivery === 0) {
-                throw new InvalidArgumentException('OrderCreator: id_address_delivery must name an existing delivery record (#__alfa_user_info) when the draft names a shipping method.');
+                throw new RuntimeException('OrderCreator: id_address_delivery must name an existing delivery record (#__alfa_user_info) when the draft names a shipping method.');
             }
         }
 
