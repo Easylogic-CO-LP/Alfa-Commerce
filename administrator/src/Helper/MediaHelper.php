@@ -1459,7 +1459,12 @@ class MediaHelper
         foreach ($folders as $folder) {
             $real = $folder === '' ? false : realpath(JPATH_ROOT . '/' . $folder);
 
-            if ($real !== false && $siteRoot !== false && is_dir($real) && !str_starts_with($siteRoot . DIRECTORY_SEPARATOR, $real . DIRECTORY_SEPARATOR)) {
+            // A folder that is the site root or holds it is never a root; the filesystem root itself ends with its
+            // separator, so the separator is trimmed before it is added.
+            $holdsSite = $siteRoot !== false && $real !== false
+                && ($real === $siteRoot || str_starts_with($siteRoot, rtrim($real, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR));
+
+            if ($real !== false && $siteRoot !== false && is_dir($real) && !$holdsSite) {
                 $roots[$real] = $real;
             }
         }
