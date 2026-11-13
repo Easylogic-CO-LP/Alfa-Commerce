@@ -3,6 +3,17 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.2.1</version>
+
+        <change>
+            <item>Options &gt; Downloads has a new switch, Direct-download protection check (Yes by default). With No, the download store's protection is checked only when Check again is pressed, and no page warns about it: the Options say that the check is off and show the last result. Turn it off for a shop that sells no files, or on a server where the site cannot request its own address.</item>
+            <item>While the download store has nothing to protect (no product carries a file and no order hands one out), no page warns about its protection and nothing checks it; the Options say so. The first file uploaded to the store checks it once.</item>
+            <item>The warning about the download store's protection is written in plain words: what happened, whether it matters and what to do. The nginx rule is behind a Server rule line under it, and its links open the Downloads tab of the Options, where the store can be moved outside the web root and the check turned off.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.2.0</version>
 
         <note>
