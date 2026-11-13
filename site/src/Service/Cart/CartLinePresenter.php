@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\CartItemDisplayEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -65,7 +66,10 @@ final class CartLinePresenter
             $fieldsById[(int) $f->id] = $f;
         }
 
-        $cartItem->surfaces = [];
+        // The line's surfaces are collected here and handed to the line as a read-only map after each field (2.2.1): a
+        // plugin holding the line reads what the others contributed and cannot change it.
+        $slots = [];
+        $cartItem->surfaces = new SurfaceMap();
 
         foreach ($cartItem->fields as $summary) {
             $fieldId = (int) $summary->field_id;
@@ -128,8 +132,10 @@ final class CartLinePresenter
                 $descriptor['showon'] = '';
                 $descriptor['fieldId'] = $fieldId;
                 $descriptor['fieldName'] = $field !== null ? (string) ($field->field_name ?? '') : null;
-                $cartItem->surfaces[$slot][] = $descriptor;
+                $slots[$slot][] = $descriptor;
             }
+
+            $cartItem->surfaces = new SurfaceMap($slots);
         }
 
         // Feature plugins (onCartItemDisplay, 2.2.0): one event for the line, each
@@ -141,6 +147,7 @@ final class CartLinePresenter
             'item' => $item,
         ]);
         $plugins->dispatchToEachIsolated($plugins->admitted($this->customer, 'alfa'), $displayEvent);
-        $displayEvent->harvestInto($cartItem->surfaces);
+        $displayEvent->harvestInto($slots);
+        $cartItem->surfaces = new SurfaceMap($slots);
     }
 }

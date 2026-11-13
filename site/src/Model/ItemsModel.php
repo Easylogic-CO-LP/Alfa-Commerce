@@ -19,6 +19,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListPrepareEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemsListPrepareEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ValueFacetGroupsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
@@ -1877,7 +1878,7 @@ class ItemsModel extends UrlListModel
         ];
 
         $item->cartChildren = [];
-        $item->surfaces = [];
+        $item->surfaces = new SurfaceMap();
     }
 
     /**
@@ -2224,6 +2225,11 @@ class ItemsModel extends UrlListModel
         $drawnFieldIds = [];
         $listed = array_flip($item->listingFieldIds);
 
+        // The card's surfaces (emptied by setDefaultCart() for this draw) are collected here and handed to the item as a
+        // read-only map after each contribution (2.2.1): a plugin holding the item reads what the others contributed and
+        // cannot change it.
+        $slots = [];
+
         // Card initial visibility painted server-side (no FOUC), same rule + state as JS.
         $showonBag = StateBagBuilder::fromItem($item);
 
@@ -2258,7 +2264,7 @@ class ItemsModel extends UrlListModel
                 // Aggregate this field's card surfaces onto the page slot map
                 // (insertion order). Legacy setLayout() bridges to BuyForm.
                 Surfaces::appendTo(
-                    $item->surfaces,
+                    $slots,
                     $event,
                     'alfa-item-fields',
                     (string) $field->type,
@@ -2266,6 +2272,7 @@ class ItemsModel extends UrlListModel
                     Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                     field: $field,
                 );
+                $item->surfaces = new SurfaceMap($slots);
 
                 // Drawn = a buy-form input the card posts; a read-only rendering
                 // (text, spec) leaves the field to the product page.

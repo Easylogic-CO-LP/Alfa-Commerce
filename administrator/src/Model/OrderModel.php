@@ -37,6 +37,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderDeleteEvent as PaymentBeforeDeleteEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderDeleteEvent as ShipmentBeforeDeleteEvent;
@@ -2064,7 +2065,7 @@ class OrderModel extends AlfaAdminModel
      */
     private static function drawnAsSold(object $item): object
     {
-        $item->surfaces = [];
+        $item->surfaces = new SurfaceMap();
 
         return $item;
     }
@@ -2187,7 +2188,9 @@ class OrderModel extends AlfaAdminModel
      */
     protected function dispatchItemConfigSurfaces(object $item, array $seed): void
     {
-        $item->surfaces = [];
+        // Collected here and handed to the item as a read-only map after each field (2.2.1), as the storefront does.
+        $slots = [];
+        $item->surfaces = new SurfaceMap();
 
         // Conditional visibility: the SAME showon rules + initial-state painting
         // as the storefront, so a field hidden for the customer's selection is
@@ -2221,7 +2224,7 @@ class OrderModel extends AlfaAdminModel
             $plugins->dispatchTo($plugin, $event);
 
             Surfaces::appendTo(
-                $item->surfaces,
+                $slots,
                 $event,
                 'alfa-item-fields',
                 (string) $field->type,
@@ -2229,6 +2232,7 @@ class OrderModel extends AlfaAdminModel
                 Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                 field: $field,
             );
+            $item->surfaces = new SurfaceMap($slots);
         }
     }
 

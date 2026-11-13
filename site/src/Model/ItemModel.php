@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemDisplayEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
@@ -311,7 +312,11 @@ class ItemModel extends BaseItemModel
             'layoutPluginName' => '',
         ];
         $item->cartChildren = [];
-        $item->surfaces = [];
+
+        // The page's surfaces are collected here and handed to the item as a read-only map after each contribution
+        // (2.2.1): a plugin holding the item reads what the others contributed and cannot change it.
+        $slots = [];
+        $item->surfaces = new SurfaceMap();
 
         // One input-state bag for the whole product; the PHP RuleEvaluator paints the
         // initial visibility so a hidden field is emitted hidden (no FOUC); the JS
@@ -374,7 +379,7 @@ class ItemModel extends BaseItemModel
             // Aggregate this field's surfaces onto the page slot map (insertion
             // order). Legacy setLayout() bridges to BuyForm; showon rides along.
             Surfaces::appendTo(
-                $item->surfaces,
+                $slots,
                 $event,
                 'alfa-item-fields',
                 (string) $field->type,
@@ -382,6 +387,7 @@ class ItemModel extends BaseItemModel
                 Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                 field: $field,
             );
+            $item->surfaces = new SurfaceMap($slots);
         }
 
         // Feature plugins (onItemDisplay, 2.2.0): one event on the shared dispatcher after the
@@ -391,7 +397,8 @@ class ItemModel extends BaseItemModel
         $plugins->importGroup('alfa');
         $displayEvent = new ItemDisplayEvent('onItemDisplay', ['item' => $item]);
         $plugins->dispatchIsolated($displayEvent);
-        $displayEvent->harvestInto($item->surfaces);
+        $displayEvent->harvestInto($slots);
+        $item->surfaces = new SurfaceMap($slots);
 
         // Sale-tag badges: a flagged discount's name onto the product-page slots.
         // Appended AFTER the surface reset above and once the price/discounts are
