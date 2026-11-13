@@ -57,6 +57,11 @@ class OrdersController extends ApiController
     /**
      * Orders list view amended to add filtering of data
      *
+     * Each filter goes onto the model state under the name the orders screen's filter form gives it, and the list
+     * model applies it as it does for the screen (2.2.1: payment, fulfilment, waiting, reconciliation, overpaid, the
+     * order date window and item_id; and the customer, by account or by the order's e-mail). The date window's bounds
+     * are shop-local times, as the screen's calendars hold them; the screen's date presets are not read here.
+     *
      * @return static A BaseController object to support chaining.
      *
      * @since  2.0.0
@@ -83,6 +88,47 @@ class OrdersController extends ApiController
 
         if (\array_key_exists('show_trashed', $apiFilterInfo)) {
             $this->modelState->set('filter.show_trashed', RequestScalar::member($apiFilterInfo, 'show_trashed', 'INT', 'filter'));
+        }
+
+        if (\array_key_exists('payment', $apiFilterInfo)) {
+            $this->modelState->set('filter.payment', RequestScalar::member($apiFilterInfo, 'payment', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('fulfilment', $apiFilterInfo)) {
+            $this->modelState->set('filter.fulfilment', RequestScalar::member($apiFilterInfo, 'fulfilment', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('waiting', $apiFilterInfo)) {
+            $this->modelState->set('filter.waiting', RequestScalar::member($apiFilterInfo, 'waiting', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('reconciliation', $apiFilterInfo)) {
+            $this->modelState->set('filter.reconciliation', RequestScalar::member($apiFilterInfo, 'reconciliation', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('overpaid', $apiFilterInfo)) {
+            $this->modelState->set('filter.overpaid', RequestScalar::member($apiFilterInfo, 'overpaid', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('date_start', $apiFilterInfo)) {
+            $this->modelState->set('filter.date_start', RequestScalar::member($apiFilterInfo, 'date_start', 'STRING', 'filter'));
+        }
+
+        if (\array_key_exists('date_end', $apiFilterInfo)) {
+            $this->modelState->set('filter.date_end', RequestScalar::member($apiFilterInfo, 'date_end', 'STRING', 'filter'));
+        }
+
+        if (\array_key_exists('item_id', $apiFilterInfo)) {
+            $this->modelState->set('filter.item_id', RequestScalar::member($apiFilterInfo, 'item_id', 'INT', 'filter'));
+        }
+
+        if (\array_key_exists('id_user', $apiFilterInfo)) {
+            // CMD, not INT: an empty value stays empty (no filter), where INT would make it 0 (the guests' orders).
+            $this->modelState->set('filter.id_user', RequestScalar::member($apiFilterInfo, 'id_user', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('email', $apiFilterInfo)) {
+            $this->modelState->set('filter.email', RequestScalar::member($apiFilterInfo, 'email', 'STRING', 'filter'));
         }
 
         $apiListInfo = $this->input->get('list', [], 'array');

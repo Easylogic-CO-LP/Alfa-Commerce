@@ -7,7 +7,7 @@
 	<creationDate>2026-11-03</creationDate>
 	<authorEmail>info@easylogic.gr</authorEmail>
 	<authorUrl>http://easylogic.gr</authorUrl>
-	<version>2.2.0</version>
+	<version>2.2.1</version>
 	<description>PLG_CONSOLE_ALFA_XML_DESCRIPTION</description>
 	<namespace path="src">Alfa\Plugin\Console\Alfa</namespace>
 

@@ -87,6 +87,32 @@ trait HasApiGuards
     }
 
     /**
+     * Body keys this resource's write does not take (2.2.1). The admin models read more than their forms declare:
+     * the jform bridge of {@see self::preprocessSaveData()} hands them the whole body, and
+     * MultilingualHelper::mergeValidatedFormData() keeps every undeclared key, so a key the edit form's grids post
+     * reaches the writer behind it from the API too. A POST or PATCH that carries one of these keys is refused with
+     * 422, naming them, before anything is saved and before core's edit() checks the record out.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenKeys(): array
+    {
+        return [];
+    }
+
+    /**
+     * What the refusal of {@see self::unwrittenKeys()} says after their names: where they are written instead.
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenReason(): string
+    {
+        return '';
+    }
+
+    /**
      * Execute a task behind the model lock and the ACL gate.
      *
      * A task refused because its order names no currency answers 409 with the
@@ -223,12 +249,64 @@ trait HasApiGuards
             throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
         }
 
+        $this->refuseUnwrittenKeys();
+
         $recordId = (int) $this->save();
 
         $this->displayItem($recordId);
 
         $this->app->setHeader('status', '201', true);
         $this->app->setHeader('Location', rtrim(Uri::current(), '/') . '/' . $recordId, true);
+    }
+
+    /**
+     * Update a record: core's edit, refused first when the body carries a key the resource's write does not take
+     * ({@see self::unwrittenKeys()}), before core looks the record up and checks it out, so a refused PATCH leaves it
+     * as it was (2.2.1).
+     *
+     * @return static
+     *
+     * @throws Save When the body carries an unwritten key (422).
+     *
+     * @since  2.2.1
+     */
+    public function edit()
+    {
+        $this->refuseUnwrittenKeys();
+
+        return parent::edit();
+    }
+
+    /**
+     * Answer 422, naming them, when the body carries keys of {@see self::unwrittenKeys()}.
+     *
+     * @throws Save When it does.
+     *
+     * @since  2.2.1
+     */
+    protected function refuseUnwrittenKeys(): void
+    {
+        $carried = array_values(array_intersect($this->unwrittenKeys(), array_keys($this->requestBody())));
+
+        if ($carried !== []) {
+            throw new Save(implode(', ', $carried) . ' cannot be written through the API: ' . $this->unwrittenReason(), 422);
+        }
+    }
+
+    /**
+     * The request body exactly as core's save() reads it.
+     *
+     * @since  2.0.0
+     */
+    protected function requestBody(): array
+    {
+        $body = $this->input->get(
+            name: 'data',
+            default: json_decode((string) $this->input->json->getRaw(), true),
+            filter: 'array',
+        );
+
+        return \is_array($body) ? $body : [];
     }
 
     /**
