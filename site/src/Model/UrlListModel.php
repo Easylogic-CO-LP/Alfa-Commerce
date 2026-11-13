@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Site\Pagination\AlfaPagination;
 use Alfa\Component\Alfa\Site\Service\Facet\FilterKeyWhitelist;
 use Joomla\CMS\Application\SiteApplication;
@@ -342,7 +343,7 @@ abstract class UrlListModel extends ListModel
 
         // Pagination
         $limit = $this->state->get('list.limit');
-        $limitstart = $this->ignoreRequest ? 0 : $input->getInt('limitstart', 0);
+        $limitstart = $this->ignoreRequest ? 0 : RequestScalar::int($input, 'limitstart', 0);
         $limitstart = $limit ? (int) (floor($limitstart / $limit) * $limit) : 0;
         $this->setState('list.start', $limitstart);
 
@@ -371,7 +372,7 @@ abstract class UrlListModel extends ListModel
         }
 
         // Layout
-        $this->setState('layout', $this->ignoreRequest ? null : $input->getString('layout'));
+        $this->setState('layout', $this->ignoreRequest ? null : RequestScalar::read($input, 'layout', null, 'string'));
     }
 
     /**
@@ -592,7 +593,7 @@ abstract class UrlListModel extends ListModel
             $base['Itemid'] = (int) $active->id;
         }
 
-        $format = $this->app->getInput()->getCmd('format', '');
+        $format = RequestScalar::cmd($this->app->getInput(), 'format', '');
 
         if ($format !== '' && $format !== 'html') {
             $base['format'] = $format;

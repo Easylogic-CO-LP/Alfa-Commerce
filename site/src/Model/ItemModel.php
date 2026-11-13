@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemDisplayEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
@@ -65,7 +66,7 @@ class ItemModel extends BaseItemModel
         $app = Factory::getApplication();
 
         // Get the item ID from the request
-        $id = $app->input->getInt('id', 0);
+        $id = RequestScalar::int($app->input, 'id', 0);
         $this->setState('item.id', $id);
     }
 
@@ -208,7 +209,7 @@ class ItemModel extends BaseItemModel
             // the request) takes precedence, so the buyer's on-page changes
             // always win over the stored line. edit_line is a pure server-side
             // pointer; the configuration never rides the URL.
-            $editLine = (int) Factory::getApplication()->getInput()->getInt('edit_line', 0);
+            $editLine = RequestScalar::int(Factory::getApplication()->getInput(), 'edit_line', 0);
             $hasRequest = $request['selection'] || $request['optionValueIds'] || $request['payloads'];
 
             if ($editLine > 0 && !$hasRequest) {
@@ -424,17 +425,17 @@ class ItemModel extends BaseItemModel
         $input = Factory::getApplication()->getInput();
         $reloadQuery = 'index.php?option=com_alfa&view=item&tmpl=component&id=' . (int) $data->id;
 
-        if ($categoryId = $input->getInt('catid', 0)) {
+        if ($categoryId = RequestScalar::int($input, 'catid', 0)) {
             $reloadQuery .= '&category_id=' . $categoryId;
         }
 
-        if ($activeItemid = $input->getInt('Itemid')) {
+        if ($activeItemid = RequestScalar::read($input, 'Itemid', null, 'int')) {
             $reloadQuery .= '&Itemid=' . $activeItemid;
         }
 
         // Keep the re-edit pointer across live reloads so the "Update" context
         // survives an on-page selection change (the submit still verifies it).
-        if ($editLine = $input->getInt('edit_line', 0)) {
+        if ($editLine = RequestScalar::int($input, 'edit_line', 0)) {
             $reloadQuery .= '&edit_line=' . $editLine;
         }
 
