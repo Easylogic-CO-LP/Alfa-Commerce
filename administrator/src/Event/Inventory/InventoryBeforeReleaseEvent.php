@@ -18,6 +18,11 @@ use Joomla\CMS\Event\AbstractEvent;
  * opens. Read-only payload; a subscriber vetoes by throwing (nothing
  * was released yet).
  *
+ * To refuse a movement on purpose, throw InventoryRefusedException with the
+ * sentence staff are to read: a movement owed after a status change or a
+ * document is then refused, not tried again, and staff decide (2.2.1). Any
+ * other exception is a failure, tried again up to the task engine's cap.
+ *
  * @since  2.0.0
  */
 class InventoryBeforeReleaseEvent extends AbstractEvent

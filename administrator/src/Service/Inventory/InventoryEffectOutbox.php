@@ -98,6 +98,15 @@ final class InventoryEffectOutbox
     public const STALE_CLAIM_SECONDS = 300;
 
     /**
+     * How many times a failed movement is tried before it waits for staff: the task engine's cap, a try for each step
+     * of its retry ladder (2.2.1). A movement at the cap is no longer claimed; its order's or document's notice
+     * says so, and Apply outstanding stock movements in Tools, or a new status of its order, tries it again.
+     *
+     * @since  2.2.1
+     */
+    public const MAX_ATTEMPTS = 6;
+
+    /**
      * The notice raised for owed movements nothing has announced: a request that was
      * cut off cannot warn about itself.
      *
@@ -197,18 +206,18 @@ final class InventoryEffectOutbox
         );
         $db->execute();
 
-        // Then, and only for a settled or refused row, the obligation is opened
-        // again. A row still pending/claimed/failed is left exactly as it is: it
-        // is already outstanding, and resetting its claim would hand the same
-        // work to a second worker.
+        // Then, and only for a settled, refused or exhausted row, the obligation
+        // is opened again. A row still pending/claimed, or failed below the cap,
+        // is left exactly as it is: it is already outstanding, and resetting its
+        // claim would hand the same work to a second worker.
         $db->setQuery(
             'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' SET ' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_PENDING)
             . ', ' . $db->quoteName('claim_token') . ' = NULL'
             . ', ' . $db->quoteName('claimed_at') . ' = NULL'
             . ', ' . $db->quoteName('attempts') . ' = 0'
-            . $where . ' AND ' . $db->quoteName('status') . ' IN (' . $db->quote(self::STATUS_APPLIED)
-            . ', ' . $db->quote(self::STATUS_REFUSED) . ')',
+            . $where . ' AND (' . $db->quoteName('status') . ' IN (' . $db->quote(self::STATUS_APPLIED)
+            . ', ' . $db->quote(self::STATUS_REFUSED) . ') OR (' . self::exhaustedWhere($db) . '))',
         );
         $db->execute();
     }
@@ -281,7 +290,15 @@ final class InventoryEffectOutbox
      * 'refusals' carries their messages by source id, and 'refusalReasons' the
      * same refusals as the operator reads them (one translated sentence per
      * unresolved order line). Every refusal also raises its order's or its
-     * document's notice, so it is announced whichever drain met it.
+     * document's notice, so it is announced whichever drain met it. A refusal
+     * a stock before-event listener threw on purpose (InventoryRefusedException)
+     * is one too; 'refusedByListener' names its source ids, and its notice asks
+     * staff to decide rather than to resolve an order line (2.2.1).
+     *
+     * A failed obligation is claimed again until it has been tried
+     * {@see self::MAX_ATTEMPTS} times. The pass that makes the last try names it
+     * in 'exhausted' and raises its order's or document's notice saying that it
+     * waits for staff.
      *
      * A fulfilment refused because other claims reserve the stock it needs is
      * settled 'failed' like every retryable failure. 'reservedFloor' carries
@@ -303,7 +320,7 @@ final class InventoryEffectOutbox
      *                          is meaningless without $onlySourceType.
      * @param string $onlySourceType Restrict to one producing domain.
      *
-     * @return array{claimed: int, applied: int, failed: int, refused: int, results: array, errors: array, refusals: array, refusalReasons: array, reservedFloor: array, refusalNotices: array, reservedFloorNotices: array, failureNotices: array}
+     * @return array{claimed: int, applied: int, failed: int, refused: int, results: array, errors: array, refusals: array, refusalReasons: array, reservedFloor: array, refusalNotices: array, reservedFloorNotices: array, failureNotices: array, refusedByListener: array<int, true>, exhausted: array<int, true>}
      *
      * @since  2.0.0
      */
@@ -328,6 +345,8 @@ final class InventoryEffectOutbox
             'refusalNotices' => [],
             'reservedFloorNotices' => [],
             'failureNotices' => [],
+            'refusedByListener' => [],
+            'exhausted' => [],
         ];
 
         // Run inside a caller's transaction, a failure that ends it is the caller's
@@ -382,18 +401,26 @@ final class InventoryEffectOutbox
                 if ($status === self::STATUS_REFUSED) {
                     $reason = self::refusalReason(failure: $e);
                     $notice = self::refusalNotice(failure: $e);
+                    $byListener = InventoryRefusedException::in($e) !== null;
 
                     $summary['refused']++;
                     $summary['refusals'][(int) $row->source_id] = $e->getMessage();
                     $summary['refusalReasons'][(int) $row->source_id] = $reason;
                     $summary['refusalNotices'][(int) $row->source_id] = $notice;
 
+                    if ($byListener) {
+                        $summary['refusedByListener'][(int) $row->source_id] = true;
+                    }
+
+                    // A listener's refusal is staff's to decide; a line with no stock identity is resolved on the
+                    // Inventory audit page.
                     self::announceRefusal(
                         row:             $row,
                         reason:          $notice,
-                        orderMessage:    'COM_ALFA_NOTIFY_STOCK_ORDER_REFUSED_MSG',
-                        documentMessage: 'COM_ALFA_NOTIFY_STOCK_DOCUMENT_REFUSED_MSG',
+                        orderMessage:    $byListener ? 'COM_ALFA_NOTIFY_STOCK_ORDER_LISTENER_REFUSED_MSG' : 'COM_ALFA_NOTIFY_STOCK_ORDER_REFUSED_MSG',
+                        documentMessage: $byListener ? 'COM_ALFA_NOTIFY_STOCK_DOCUMENT_LISTENER_REFUSED_MSG' : 'COM_ALFA_NOTIFY_STOCK_DOCUMENT_REFUSED_MSG',
                         terminal:        true,
+                        decideOnOrder:   $byListener ? (int) $row->order_id : 0,
                     );
                 } elseif ($e instanceof InventoryReservedFloorException) {
                     // Still owed: the movement applies once the other claims let
@@ -415,12 +442,29 @@ final class InventoryEffectOutbox
                     $summary['failureNotices'][(int) $row->source_id] = $e->noticeText();
                 }
 
+                // The last try the cap allows: the movement waits for staff from now on, and its notice says so.
+                $exhausted = $status === self::STATUS_FAILED && (int) $row->attempts + 1 >= self::MAX_ATTEMPTS;
+
+                if ($exhausted) {
+                    $summary['exhausted'][(int) $row->source_id] = true;
+
+                    self::announceRefusal(
+                        row:             $row,
+                        reason:          $summary['reservedFloorNotices'][(int) $row->source_id] ?? $summary['failureNotices'][(int) $row->source_id] ?? $e->getMessage(),
+                        orderMessage:    'COM_ALFA_NOTIFY_STOCK_ORDER_EXHAUSTED_MSG',
+                        documentMessage: 'COM_ALFA_NOTIFY_STOCK_DOCUMENT_EXHAUSTED_MSG',
+                        terminal:        false,
+                    );
+                }
+
+                $verdict = match (true) {
+                    $status === self::STATUS_REFUSED => ' refused: operator resolution required: ',
+                    $exhausted => ' failed on its last automatic try (' . self::MAX_ATTEMPTS . '); it waits for staff: ',
+                    default => ' failed and remains retryable: ',
+                };
+
                 Log::add(
-                    entry:    'Inventory effect for ' . $row->source_type . ' #' . $row->source_id
-                              . ($status === self::STATUS_REFUSED
-                                  ? ' refused: operator resolution required: '
-                                  : ' failed and remains retryable: ')
-                              . $e->getMessage(),
+                    entry:    'Inventory effect for ' . $row->source_type . ' #' . $row->source_id . $verdict . $e->getMessage(),
                     priority: Log::ERROR,
                     category: 'com_alfa.inventory',
                 );
@@ -499,11 +543,7 @@ final class InventoryEffectOutbox
             . ', ' . $db->quoteName('attempts') . ' = ' . $db->quoteName('attempts') . ' + 1'
             . ', ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP()'
             . ' WHERE ' . $db->quoteName('id') . ' = ' . $id
-            . ' AND (' . $db->quoteName('status') . ' IN (' . $db->quote(self::STATUS_PENDING) . ', '
-            . $db->quote(self::STATUS_FAILED) . ')'
-            . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_CLAIMED)
-            . ' AND ' . $db->quoteName('claimed_at') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL '
-            . max(0, $staleSeconds) . ' SECOND)))',
+            . ' AND ' . self::claimableWhere($db, $staleSeconds),
         );
         $db->execute();
 
@@ -572,6 +612,12 @@ final class InventoryEffectOutbox
      */
     private static function classify(Throwable $failure): string
     {
+        // A listener of a stock before-event that refused the movement on purpose: a retry meets the same answer, so
+        // staff decide (2.2.1).
+        if (InventoryRefusedException::in($failure) !== null) {
+            return self::STATUS_REFUSED;
+        }
+
         if ($failure instanceof InventoryLineUnresolvedException) {
             $notCurrent = array_filter(
                 $failure->lines,
@@ -606,6 +652,12 @@ final class InventoryEffectOutbox
      */
     private static function refusalReason(Throwable $failure): string
     {
+        $listener = InventoryRefusedException::in($failure);
+
+        if ($listener !== null) {
+            return $listener->sentence();
+        }
+
         if (!$failure instanceof InventoryLineUnresolvedException || $failure->lines === []) {
             return $failure->getMessage();
         }
@@ -659,6 +711,12 @@ final class InventoryEffectOutbox
      */
     private static function refusalNotice(Throwable $failure): mixed
     {
+        $listener = InventoryRefusedException::in($failure);
+
+        if ($listener !== null) {
+            return $listener->sentence();
+        }
+
         if (!$failure instanceof InventoryLineUnresolvedException || $failure->lines === []) {
             return $failure->getMessage();
         }
@@ -713,6 +771,7 @@ final class InventoryEffectOutbox
      * @param string $documentMessage Language key of a document's notice text; it takes
      *                                one value, the reason.
      * @param bool $terminal Whether a retry cannot apply the obligation.
+     * @param int $decideOnOrder The order on which staff decide a stock plugin's refusal; 0 for none.
      *
      *
      * @since  2.0.0
@@ -723,6 +782,7 @@ final class InventoryEffectOutbox
         string $orderMessage,
         string $documentMessage,
         bool $terminal,
+        int $decideOnOrder = 0,
     ): void {
         try {
             if ((string) $row->source_type === 'document') {
@@ -737,8 +797,9 @@ final class InventoryEffectOutbox
                     dedupKey: self::documentNoticeKey(documentId: $documentId),
                     title:    NotificationText::of('COM_ALFA_NOTIFY_STOCK_DOCUMENT_TITLE', $number !== '' ? $number : '#' . $documentId),
                     options:  self::noticeOptions(
-                        message: NotificationText::of($documentMessage, $reason),
-                        refused: $terminal,
+                        message:       NotificationText::of($documentMessage, $reason),
+                        refused:       $terminal,
+                        decideOnOrder: $decideOnOrder,
                     ),
                 );
             } elseif ((string) $row->source_type === 'order_claim') {
@@ -748,8 +809,9 @@ final class InventoryEffectOutbox
                     dedupKey: self::orderNoticeKey(orderId: $orderId),
                     title:    NotificationText::of('COM_ALFA_NOTIFY_STOCK_ORDER_TITLE', $orderId),
                     options:  self::noticeOptions(
-                        message: NotificationText::of($orderMessage, $reason),
-                        refused: $terminal,
+                        message:       NotificationText::of($orderMessage, $reason),
+                        refused:       $terminal,
+                        decideOnOrder: $decideOnOrder,
                     ),
                 );
             }
@@ -987,28 +1049,37 @@ final class InventoryEffectOutbox
      * archived row only updates it and leaves it dismissed; without this, an order that
      * failed once, was fixed, and failed again would stay silent the second time.
      *
+     * A movement a STOCK PLUGIN REFUSED is staff's to decide on the order itself (a new
+     * status queues it again once the plugin allows it), so its notice links to the
+     * order, for the users who may edit orders (2.2.1).
+     *
      * @param NotificationText|string $message The message: a key and its parameters (core), or literal text.
      * @param bool $refused Whether the movement was refused and waits for an order
      *                      line to be resolved.
+     * @param int $decideOnOrder The order on which staff decide a plugin's refusal; 0 for none.
      *
      * @return array Options for NotificationHelper::push().
      *
      * @since  2.0.0
      */
-    public static function noticeOptions(NotificationText|string $message, bool $refused = false): array
+    public static function noticeOptions(NotificationText|string $message, bool $refused = false, int $decideOnOrder = 0): array
     {
         return [
             'group' => NotificationHelper::GROUP_INVENTORY,
             'severity' => 'warning',
             'message' => $message,
             'constant' => true,
-            'url' => $refused
-                ? 'index.php?option=com_alfa&view=inventoryaudit'
-                : 'index.php?option=com_alfa&view=tools#dbsync',
+            'url' => match (true) {
+                $decideOnOrder > 0 => 'index.php?option=com_alfa&task=order.edit&id=' . $decideOnOrder,
+                $refused => 'index.php?option=com_alfa&view=inventoryaudit',
+                default => 'index.php?option=com_alfa&view=tools#dbsync',
+            },
             'view' => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
-            'link' => $refused
-                ? ['action' => 'core.admin', 'asset' => 'com_alfa']
-                : ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
+            'link' => match (true) {
+                $decideOnOrder > 0 => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                $refused => ['action' => 'core.admin', 'asset' => 'com_alfa'],
+                default => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
+            },
         ];
     }
 
@@ -1279,9 +1350,10 @@ final class InventoryEffectOutbox
     }
 
     /**
-     * The one definition of "claimable": pending or failed, or claimed longer ago than
-     * the stale window. {@see self::claim()} repeats it inside its conditional UPDATE on
-     * purpose: that copy is the concurrency guard and must stay one statement.
+     * The one definition of "claimable": pending, failed below the cap
+     * ({@see self::MAX_ATTEMPTS}), or claimed longer ago than the stale window.
+     * {@see self::claim()} puts it inside its conditional UPDATE: that one statement is
+     * the concurrency guard.
      *
      * @param object $db Database driver.
      * @param int $staleSeconds Age after which a claim counts as abandoned.
@@ -1292,10 +1364,50 @@ final class InventoryEffectOutbox
      */
     private static function claimableWhere(object $db, int $staleSeconds): string
     {
-        return '(' . $db->quoteName('status') . ' IN (' . $db->quote(self::STATUS_PENDING) . ', '
-            . $db->quote(self::STATUS_FAILED) . ')'
+        return '(' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_PENDING)
+            . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED)
+            . ' AND ' . $db->quoteName('attempts') . ' < ' . self::MAX_ATTEMPTS . ')'
             . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_CLAIMED)
             . ' AND ' . $db->quoteName('claimed_at') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL '
             . max(0, $staleSeconds) . ' SECOND)))';
+    }
+
+    /**
+     * A failed obligation tried as many times as the cap allows: no drain claims it until staff ask for it again
+     * ({@see self::reopenExhausted()}) or its producer re-states it.
+     *
+     * @param object $db Database driver.
+     *
+     * @return string SQL condition.
+     *
+     * @since  2.2.1
+     */
+    private static function exhaustedWhere(object $db): string
+    {
+        return $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED)
+            . ' AND ' . $db->quoteName('attempts') . ' >= ' . self::MAX_ATTEMPTS;
+    }
+
+    /**
+     * Staff asked for the owed stock movements to be applied (Tools > Database Sync): the failed ones that reached
+     * the cap are tried again, each with a full set of tries.
+     *
+     * @return int How many were opened again.
+     *
+     * @since  2.2.1
+     */
+    public static function reopenExhausted(): int
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        $db->setQuery(
+            'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
+            . ' SET ' . $db->quoteName('attempts') . ' = 0'
+            . ', ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP()'
+            . ' WHERE ' . self::exhaustedWhere($db),
+        );
+        $db->execute();
+
+        return (int) $db->getAffectedRows();
     }
 }
