@@ -706,18 +706,12 @@ class ItemModel extends AlfaAdminModel
 
         unset($data['backorder'], $data['min_qty']);
 
-        // Checking valid height/width/depth/weight.
-        if ($data['width'] < 0) {
-            $data['width'] = 0;
-        }
-        if ($data['height'] < 0) {
-            $data['height'] = 0;
-        }
-        if ($data['depth'] < 0) {
-            $data['depth'] = 0;
-        }
-        if ($data['weight'] < 0) {
-            $data['weight'] = 0;
+        // A negative dimension or weight is stored as 0. One the save leaves out (a REST write that does not send
+        // it) is not touched: a new item takes the column's default, an existing one keeps what it has (2.2.1).
+        foreach (['width', 'height', 'depth', 'weight'] as $measure) {
+            if (isset($data[$measure]) && $data[$measure] < 0) {
+                $data[$measure] = 0;
+            }
         }
 
         $data['meta_data'] = json_encode(

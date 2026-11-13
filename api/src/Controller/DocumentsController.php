@@ -14,9 +14,11 @@ namespace Alfa\Component\Alfa\Api\Controller;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentIssuer;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfLibraryMissingException;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
@@ -174,6 +176,9 @@ class DocumentsController extends ApiController
      *
      * GET v1/alfa/documents/:id/pdf
      *
+     * Without the dompdf library, which is installed separately, the answer is 503 with the sentence that names it
+     * (2.2.1): the server lacks a part, the document is fine, and its HTML route still answers.
+     *
      *
      * @since  2.0.0
      */
@@ -185,6 +190,8 @@ class DocumentsController extends ApiController
 
         try {
             $bytes = PdfRenderer::pdfBytes((int) $document->id);
+        } catch (PdfLibraryMissingException $e) {
+            throw new Save(Text::_('COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING'), 503, $e);
         } catch (Throwable $e) {
             throw new Save('The document could not be rendered: ' . $e->getMessage(), 500);
         }

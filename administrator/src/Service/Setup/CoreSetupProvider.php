@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
 use Joomla\CMS\Component\ComponentHelper;
@@ -238,6 +239,16 @@ final class CoreSetupProvider
             ->tour('com_alfa.document-series')
             ->priority(400)
             ->probe(static fn (): bool => self::exists(table: '#__alfa_document_series', where: ['state' => 1]));
+
+        // Sales documents become PDFs (the PDF button, the REST PDF route, a status e-mail's attachments) through the
+        // dompdf library, which is installed separately. RECOMMENDED, not required: the documents are issued and the
+        // print view shows them without it (2.2.1).
+        $this->check('documents.pdf_library', 'COM_ALFA_SETUP_CHECK_PDF_LIBRARY_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason('COM_ALFA_SETUP_CHECK_PDF_LIBRARY_REASON')
+            ->cta('index.php?option=com_installer&view=install')
+            ->priority(390)
+            ->probe(static fn (): bool => PdfRenderer::libraryInstalled());
 
         $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)

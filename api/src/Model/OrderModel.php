@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderFulfillment;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
@@ -191,6 +192,12 @@ class OrderModel extends AdminOrderModel
         $item->excess = $facts === null ? null : $amount($facts->money->excess);
         $item->conversion_rate = self::decimal(value: $item->conversion_rate ?? null);
 
+        // How far the order has gone out, by the derivation the orders list reads, so one order and the list answer
+        // it alike (2.2.1).
+        $fulfillment = OrderFulfillment::forOrder(orderId: (int) $item->id);
+        $item->fulfillment_status = $fulfillment->status;
+        $item->fulfillment_percentage = PublishedDecimal::percent((float) $fulfillment->percentage);
+
         // Customer identity: the order's own snapshot, falling back to the
         // account for orders placed before the snapshot existed, the same
         // answer the grid, the emails and the documents give (OrderIdentity,
@@ -278,9 +285,13 @@ class OrderModel extends AdminOrderModel
                 'amount' => $amount($p->amount ?? null),
                 'conversion_rate' => self::decimal(value: $p->conversion_rate ?? null),
                 'refund_type' => $p->refund_type ?? null,
+                // The reason staff gave for a refund, as the order screen shows it (2.2.1).
+                'refund_reason' => $p->refund_reason ?? null,
                 'note' => $p->note ?? null,
                 'id_document' => isset($p->id_document) ? (int) $p->id_document : null,
-                'created' => $p->created ?? null,
+                // When the payment was recorded: the row's own time column (2.2.1; the table has no `created`, which
+                // this entry published as null until then).
+                'added' => $p->added ?? null,
             ],
             $rows($item->payments ?? null),
         );
