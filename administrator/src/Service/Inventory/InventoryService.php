@@ -307,6 +307,16 @@ final class InventoryService
     private array $policyMemo = [];
 
     /**
+     * What a restore() or a reverseRestores() moved, by operation, as appendMovement() writes it (2.2.1): the movements
+     * onInventoryRestored carries, net by item, combination and location, with no read of the ledger, which has no
+     * index on its operation. Only those two commands collect; announceRestored() takes the operation's and forgets it,
+     * and a command that fails forgets it at its rollback.
+     *
+     * @var array<string, array<string, array{itemId: int, combinationId: int, locationId: int, quantity: float}>>
+     */
+    private array $restoredMovements = [];
+
+    /**
      * Request memo of dedup keys KNOWN to carry no notification row, so a healthy shop
      * pays one indexed point read per unit per request instead of a write per operation.
      * Static because every call site constructs its own service instance. Each key holds
@@ -2532,6 +2542,7 @@ final class InventoryService
     ): array {
         $context ??= new InventoryContext();
         $operationId = $this->newOperationId();
+        $this->restoredMovements[$operationId] = [];
         $totalRestored = 0.0;
         $count = 0;
 
@@ -2934,6 +2945,7 @@ final class InventoryService
             $this->recordOperation(operationId: $operationId, command: 'restore', sourceType: $sourceType, sourceId: $sourceId, context: $context);
             TransactionState::commitLevel(db: $this->db);
         } catch (Throwable $e) {
+            unset($this->restoredMovements[$operationId]);
             $this->rollBackCommand(failure: $e);
             throw $e;
         }
@@ -3014,6 +3026,7 @@ final class InventoryService
     ): array {
         $context ??= new InventoryContext();
         $operationId = $this->newOperationId();
+        $this->restoredMovements[$operationId] = [];
         $totalReversed = 0.0;
         $count = 0;
 
@@ -3170,6 +3183,7 @@ final class InventoryService
             );
             TransactionState::commitLevel(db: $this->db);
         } catch (Throwable $e) {
+            unset($this->restoredMovements[$operationId]);
             $this->rollBackCommand(failure: $e);
 
             throw $e;
@@ -3183,8 +3197,8 @@ final class InventoryService
 
     /**
      * Announce stock put back, or taken off again by a reversal (2.2.1): onInventoryRestored after the commit, with
-     * what moved by item, combination and location, read from this operation's ledger rows on this connection (the
-     * command's own writes, visible before an outer transaction commits). Nothing is announced when nothing moved.
+     * what moved by item, combination and location, as the command wrote it ({@see self::$restoredMovements}: no
+     * read of the ledger, which has no index on its operation). Nothing is announced when nothing moved.
      *
      * @param string $sourceType The command's source domain.
      * @param int $sourceId The command's source row.
@@ -3196,28 +3210,10 @@ final class InventoryService
     private function announceRestored(string $sourceType, int $sourceId, bool $reversal, array $result): void
     {
         $operationId = (string) ($result['operation_id'] ?? '');
-        $rows = $this->db->setQuery(
-            $this->db->getQuery(true)
-                ->select($this->db->quoteName(['item_id', 'combination_id', 'location_id']))
-                ->select('SUM(' . $this->db->quoteName('qty_change') . ') AS ' . $this->db->quoteName('quantity'))
-                ->from($this->db->quoteName('#__alfa_inventory_movements'))
-                ->where($this->db->quoteName('operation_id') . ' = :operation')
-                ->bind(':operation', $operationId)
-                ->group($this->db->quoteName(['item_id', 'combination_id', 'location_id'])),
-        )->loadObjectList() ?: [];
+        $moved = $this->restoredMovements[$operationId] ?? [];
+        unset($this->restoredMovements[$operationId]);
 
-        $movements = [];
-
-        foreach ($rows as $row) {
-            if ((float) $row->quantity != 0.0) {
-                $movements[] = [
-                    'itemId' => (int) $row->item_id,
-                    'combinationId' => (int) $row->combination_id,
-                    'locationId' => (int) $row->location_id,
-                    'quantity' => (float) $row->quantity,
-                ];
-            }
-        }
+        $movements = array_values(array_filter($moved, static fn (array $movement): bool => abs($movement['quantity']) > self::EPS));
 
         if ($movements === []) {
             return;
@@ -6453,6 +6449,13 @@ final class InventoryService
         ];
 
         $this->db->insertObject('#__alfa_inventory_movements', $row, 'id');
+
+        // A restore's or a reversal's movement, net by unit and location, for its announcement (2.2.1).
+        if (isset($this->restoredMovements[$operationId])) {
+            $key = (int) $unit['item'] . ':' . (int) $unit['combination'] . ':' . $locationId;
+            $this->restoredMovements[$operationId][$key] ??= ['itemId' => (int) $unit['item'], 'combinationId' => (int) $unit['combination'], 'locationId' => $locationId, 'quantity' => 0.0];
+            $this->restoredMovements[$operationId][$key]['quantity'] += $qtyChange;
+        }
     }
 
     /**
