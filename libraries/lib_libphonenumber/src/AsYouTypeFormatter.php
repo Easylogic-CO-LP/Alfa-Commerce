@@ -23,7 +23,6 @@ use function str_starts_with;
  * formatted phone number will be returned each time a digit is added. clear() can be invoked before
  * formatting a new number.
  * @no-named-arguments
- * @since  1.0.0
  */
 class AsYouTypeFormatter
 {
@@ -154,7 +153,6 @@ class AsYouTypeFormatter
     /**
      * Constructs as as-you-type formatter. Should be obtained from PhoneNumberUtil->getAsYouTypeFormatter()
      * @param string $regionCode The country/region where the phone number is being entered
-     * @since  1.0.0
      */
     public function __construct(string $regionCode)
     {
@@ -170,7 +168,6 @@ class AsYouTypeFormatter
     /**
      * The metadata needed by this class is the same for all regions sharing the same country calling
      * code. Therefore, we return the metadata for the 'main' region for this country calling code.
-     * @since  1.0.0
      */
     private function getMetadataForRegion(string $regionCode): PhoneMetadata
     {
@@ -184,7 +181,6 @@ class AsYouTypeFormatter
 
     /**
      * Returns true if a new template is created as opposed to reusing the existing template.
-     * @since  1.0.0
      */
     private function maybeCreateNewTemplate(): bool
     {
@@ -294,7 +290,6 @@ class AsYouTypeFormatter
     /**
      * Gets a formatting template which can be used to efficiently format a partial number where
      * digits are added one by one.
-     * @since  1.0.0
      */
     private function getFormattingTemplate(string $numberPattern, string $numberFormat): string
     {
@@ -317,7 +312,6 @@ class AsYouTypeFormatter
 
     /**
      * Clears the internal state of the formatter, so it can be reused.
-     * @since  1.0.0
      */
     public function clear(): void
     {
@@ -351,7 +345,6 @@ class AsYouTypeFormatter
      *                         and not "as you type" anymore. Full width digits and Arabic-indic digits are allowed, and will
      *                         be shown as they are.
      * @return string The partially formatted phone number
-     * @since  1.0.0
      */
     public function inputDigit(string $nextChar): string
     {
@@ -364,7 +357,6 @@ class AsYouTypeFormatter
      * that is can be retrieved later by using $this->getRememberedPosition(). The remembered
      * position will be automatically adjusted if additional formatting characters are later
      * inserted/removed in front of $nextChar
-     * @since  1.0.0
      */
     public function inputDigitAndRememberPosition(string $nextChar): string
     {
@@ -469,7 +461,6 @@ class AsYouTypeFormatter
 
     /**
      * @internal
-     * @since  1.0.0
      */
     public function getExtractedNationalPrefix(): string
     {
@@ -479,7 +470,6 @@ class AsYouTypeFormatter
     /**
      * Some national prefixes are a substring of others. If extracting the shorter NDD doesn't result
      * in a number we can format, we try to see if we can extract a longer version here.
-     * @since  1.0.0
      */
     private function ableToExtractLongerNdd(): bool
     {
@@ -506,7 +496,6 @@ class AsYouTypeFormatter
     /**
      * Checks to see if there is an exact pattern match for these digits. If so, we should use this
      * instead of any other formatting template whose leadingDigitsPattern also matches the input.
-     * @since  1.0.0
      */
     public function attemptToFormatAccruedDigits(): string
     {
@@ -538,7 +527,6 @@ class AsYouTypeFormatter
     /**
      * returns the current position in the partially formatted phone number of the character which was
      * previously passed in as a parameter of $this->inputDigitAndRememberPosition().
-     * @since  1.0.0
      */
     public function getRememberedPosition(): int
     {
@@ -562,7 +550,6 @@ class AsYouTypeFormatter
      * Combines the national number with any prefix (IDD/+ and country code or national prefix) that
      * was collected. A space will be inserted between them if the current formatting template
      * indicates this to be suitable.
-     * @since  1.0.0
      */
     private function appendNationalNumber(string $nationalNumber): string
     {
@@ -582,7 +569,6 @@ class AsYouTypeFormatter
     /**
      * Attempts to set the formatting template and returns a string which contains the formatted
      * version of the digits entered so far.
-     * @since  1.0.0
      */
     private function attemptToChooseFormattingPattern(): string
     {
@@ -604,7 +590,6 @@ class AsYouTypeFormatter
     /**
      * Invokes inputDigitHelper on each digit of the national number accrued, and returns a formatted
      * string in the end
-     * @since  1.0.0
      */
     private function inputAccruedNationalNumber(): string
     {
@@ -623,7 +608,6 @@ class AsYouTypeFormatter
     /**
      * Returns true if the current country is a NANPA country and the national number beings with
      * the national prefix
-     * @since  1.0.0
      */
     private function isNanpaNumberWithNationalPrefix(): bool
     {
@@ -637,7 +621,6 @@ class AsYouTypeFormatter
 
     /**
      * Returns the national prefix extracted, or an empty string if it is not present.
-     * @since  1.0.0
      */
     private function removeNationalPrefixFromNationalNumber(): string
     {
@@ -669,7 +652,6 @@ class AsYouTypeFormatter
      * the remaining input into $this->nationalNumber.
      * @return bool true when $this->accruedInputWithoutFormatting begins with the plus sign or valid IDD
      *              for $this->defaultCountry.
-     * @since  1.0.0
      */
     private function attemptToExtractIdd(): bool
     {
@@ -694,7 +676,6 @@ class AsYouTypeFormatter
      * $this->prefixBeforeNationalNumber when they are available, and places the remaining input
      * into $this->>nationalNumber.
      * @return bool true when a valid country calling code can be found
-     * @since  1.0.0
      */
     private function attemptToExtractCountryCallingCode(): bool
     {
@@ -727,7 +708,6 @@ class AsYouTypeFormatter
      * is first normalized to the ASCII version. The return value is $nextChar itself, or its
      * normalized version, if $nextChar is a digit in non-ASCII format. This method assumes its
      * input is either a digit or the plus sign.
-     * @since  1.0.0
      */
     private function normalizeAndAccrueDigitsAndPlusSign(string $nextChar, bool $rememberPosition): string
     {

@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\nl;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Nl_31
 {

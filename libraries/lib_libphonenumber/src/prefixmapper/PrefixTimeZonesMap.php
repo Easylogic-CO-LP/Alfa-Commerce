@@ -9,7 +9,6 @@ use libphonenumber\PhoneNumberUtil;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class PrefixTimeZonesMap
 {
@@ -18,7 +17,6 @@ class PrefixTimeZonesMap
 
     /**
      * @param array<string|int,string> $map
-     * @since  1.0.0
      */
     public function __construct(array $map)
     {
@@ -31,13 +29,12 @@ class PrefixTimeZonesMap
      *
      * @param $number PhoneNumber the phone number to look up
      * @return string[] the list of corresponding time zones
-     * @since  1.0.0
      */
     public function lookupTimeZonesForNumber(PhoneNumber $number): array
     {
         $phonePrefix = $number->getCountryCode() . PhoneNumberUtil::getInstance()->getNationalSignificantNumber(
-		        $number
-	        );
+            $number
+        );
 
         return $this->lookupTimeZonesForNumberKey($phonePrefix);
     }
@@ -51,7 +48,6 @@ class PrefixTimeZonesMap
      * input. Also, any of its prefixes, such as 16502, is also valid.
      *
      * @return string[] the list of corresponding time zones
-     * @since  1.0.0
      */
     protected function lookupTimeZonesForNumberKey(string $key): array
     {
@@ -71,7 +67,6 @@ class PrefixTimeZonesMap
      *
      * @param $timezonesString string
      * @return string[]
-     * @since  1.0.0
      */
     protected function tokenizeRawOutputString(string $timezonesString): array
     {
@@ -83,7 +78,6 @@ class PrefixTimeZonesMap
      *
      * @param $number PhoneNumber the phone number to look up
      * @return string[] the list of corresponding time zones
-     * @since  1.0.0
      */
     public function lookupCountryLevelTimeZonesForNumber(PhoneNumber $number): array
     {

@@ -22,7 +22,6 @@ namespace libphonenumber;
 /**
  * Class containing string constants of region codes for easier testing.
  * @internal
- * @since  1.0.0
  */
 class RegionCode
 {

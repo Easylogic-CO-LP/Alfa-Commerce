@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\ar;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Ar_966
 {

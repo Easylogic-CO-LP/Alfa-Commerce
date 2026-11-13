@@ -14,7 +14,6 @@ use libphonenumber\PhoneNumberUtil;
  * Class PhonePrefixMap
  * @package libphonenumber\prefixmapper
  * @internal
- * @since  1.0.0
  */
 class PhonePrefixMap
 {
@@ -26,7 +25,6 @@ class PhonePrefixMap
 
     /**
      * @param array<string|int,string> $map
-     * @since  1.0.0
      */
     public function __construct(array $map)
     {
@@ -42,7 +40,6 @@ class PhonePrefixMap
      *
      * @param PhoneNumber $number The phone number to look up
      * @return string|null the description of the number
-     * @since  1.0.0
      */
     public function lookup(PhoneNumber $number): ?string
     {
