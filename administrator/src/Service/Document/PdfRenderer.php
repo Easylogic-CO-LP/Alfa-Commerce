@@ -80,6 +80,9 @@ final class PdfRenderer
         $options->setIsRemoteEnabled(false);
         $options->setTempDir($tmpDir);
         $options->setFontCache($tmpDir);
+        // A font a page declares (@font-face) is written here too, never into the library's own fonts folder, which
+        // the file-integrity check covers; dompdf's bundled fonts are still read from the library.
+        $options->setFontDir($tmpDir);
         $options->setChroot([JPATH_ROOT]);
 
         $dompdf = new \Dompdf\Dompdf($options);
@@ -114,8 +117,8 @@ final class PdfRenderer
     }
 
     /**
-     * Writable scratch directory for dompdf's font cache (runtime cache
-     * only, never document data).
+     * Writable scratch directory for dompdf's temporary files, its font cache
+     * and the fonts a page declares (runtime files only, never document data).
      *
      * @return string Absolute directory path.
      *
