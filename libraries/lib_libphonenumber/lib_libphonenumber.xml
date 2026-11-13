@@ -11,6 +11,7 @@
 	<namespace path="src">libphonenumber</namespace>
 	<files>
 		<folder>src</folder>
+		<filename>LICENSE</filename>
 	</files>
 	<scriptfile>script.php</scriptfile>
 </extension>
