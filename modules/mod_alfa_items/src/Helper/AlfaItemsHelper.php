@@ -12,6 +12,7 @@ namespace Alfa\Module\AlfaItems\Site\Helper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\RecentlyViewed;
 use Alfa\Component\Alfa\Site\Model\ItemsModel;
@@ -408,7 +409,9 @@ final class AlfaItemsHelper
      * fields) for one pricing context (currency, place, customer groups) and page;
      * the card itself, with its add-to-cart token, is still rendered on every
      * request. One visitor's recently viewed items and a random order are never
-     * cached.
+     * cached. A page that shows a visitor's own recently viewed items is never
+     * stored by Joomla's page cache either: the next visitor would be shown them
+     * (2.2.1).
      *
      * The entry also carries each item's stock verdict and figures, so the key holds
      * the shop-wide stock settings the listing is judged by and the inventory version
@@ -432,7 +435,13 @@ final class AlfaItemsHelper
     public static function cachedItems(int $moduleId, Registry $params, int $contextCategoryId, array $scopeCategoryIds, string $source, int $limit, string $ordering): array
     {
         if (self::source($source) === self::SOURCE_RECENTLY_VIEWED || $ordering === 'random') {
-            return self::getItems(params: $params, contextCategoryId: $contextCategoryId, scopeCategoryIds: $scopeCategoryIds, source: $source, limit: $limit, ordering: $ordering);
+            $items = self::getItems(params: $params, contextCategoryId: $contextCategoryId, scopeCategoryIds: $scopeCategoryIds, source: $source, limit: $limit, ordering: $ordering);
+
+            if ($items !== [] && self::source($source) === self::SOURCE_RECENTLY_VIEWED) {
+                PageCache::excludeResponse();
+            }
+
+            return $items;
         }
 
         $cache = new stdClass();
