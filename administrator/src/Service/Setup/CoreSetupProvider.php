@@ -53,14 +53,19 @@ final class CoreSetupProvider
 
     /**
      * The state of the page cache check while Joomla's System - Page Cache is enabled and System - Alfa Commerce Sync
-     * does not run for visitors who are not logged in (disabled, not installed, or an Access they do not hold): nothing
-     * then keeps a shopper's cart page, typed checkout details or cart module out of the page cache, and the next
-     * visitors can be shown them. SetupCheck::STATE_FAIL or SetupCheck::STATE_WARN; this one value decides which.
+     * does not run for visitors who are not logged in (disabled, not installed, or an Access they do not hold). Every
+     * page that shows a visitor's own data keeps itself out of the page cache whatever the plugin's state (the cart
+     * view in every layout, the cart module while it shows products, the registration page that shows a refusal, the
+     * listing's own search handle, the items module's recently viewed list, and any response priced for a currency or
+     * place of the visitor's own; PageCache::excludeResponse()), so no visitor is shown another's. What is lost is the
+     * plugin's serving side: a shopper with products in the cart, or priced for a currency or place of their own, can
+     * be served a page stored for another visitor, with an empty cart and the shop's own prices. A warning, then.
+     * SetupCheck::STATE_FAIL or SetupCheck::STATE_WARN; this one value decides which.
      *
      * @var string
      * @since  2.2.1
      */
-    public const PAGE_CACHE_WITHOUT_SYNC = SetupCheck::STATE_FAIL;
+    public const PAGE_CACHE_WITHOUT_SYNC = SetupCheck::STATE_WARN;
 
     /**
      * The checks built so far by {@see self::checks()}.
@@ -293,9 +298,10 @@ final class CoreSetupProvider
             });
 
         // Joomla's System - Page Cache stores the page a visitor who is not logged in opens, by its address, and shows
-        // it to the next visitors. System - Alfa Commerce Sync keeps a shopper's own pages out of it, when it runs for
-        // such a visitor; otherwise the cart, the typed checkout details and the cart module can reach another
-        // visitor. Read once here: the state and the reason follow the same reading.
+        // it to the next visitors. The pages that show a visitor's own data keep themselves out of it; System - Alfa
+        // Commerce Sync, when it runs for such a visitor, also keeps a shopper with a cart or prices of their own from
+        // being served a page stored for another visitor. Read once here: the state and the reason follow the same
+        // reading.
         [$pageCache, $sync] = self::pageCacheReading();
 
         $this->check('joomla.pagecache', 'COM_ALFA_SETUP_CHECK_PAGECACHE_LABEL')
