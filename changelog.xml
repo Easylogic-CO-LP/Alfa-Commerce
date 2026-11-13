@@ -3,6 +3,16 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.2.1</version>
+
+        <security>
+            <item>A thumbnail is made only from an image file inside the media folders (the Media folders of Joomla and Alfa Commerce's own image folder) whose type matches its extension. Before, a member of staff allowed to edit products, categories or manufacturers, or an API client with that right, could name any file the site can read (a backup, a log, the site's configuration file) as a thumbnail, and a copy of it, its extension kept, was published in the image folder (images/commerce by default) for anyone to download. A save that names such a thumbnail is now refused with a message and writes nothing, so the gallery keeps the thumbnails it had; the API answers 400 with the same reason; the Recreate thumbnails job names an image that breaks the rule in its report instead of copying it.</item>
+            <item>The update lists the files among the product images that are not images, with the media rows that name them, on the update page and in the media log (com_alfa_media.php in Joomla's log folder). Up to 2.2.0 such a file may be a copy of a site file published by the defect above. Nothing is deleted: look at each file and delete by hand those that are not yours to publish, then choose a new thumbnail for the rows named.</item>
+        </security>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.2.0</version>
 
         <note>
