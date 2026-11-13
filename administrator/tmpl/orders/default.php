@@ -204,7 +204,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                      currency) reads red; work (overpaid, an
                                      unsettled credit note) reads amber, and
                                      the two never merge. -->
-                                <td class="text-center">
+                                <td class="text-center"<?php echo !empty($item->needs_attention) ? ' data-alfa-label="' . $this->escape(Text::_('COM_ALFA_LIST_ATTENTION')) . '"' : ''; ?>>
 									<?php if (!empty($item->needs_attention)) : ?>
 										<?php
 											$reasons = array_map(

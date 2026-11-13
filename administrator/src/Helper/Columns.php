@@ -108,7 +108,8 @@ final class Columns
         foreach ($byAnchor[$anchor] ?? [] as $column) {
             $data = $column['data'] instanceof Closure ? ($column['data'])($row) : null;
 
-            $html .= '<td class="text-center">';
+            // Named by the column's own title, where a folding table hides the headings on a phone (2.2.1, A4).
+            $html .= '<td class="text-center" data-alfa-label="' . htmlspecialchars(Text::_($column['title']), ENT_QUOTES, 'UTF-8') . '">';
 
             if ($data !== null) {
                 $html .= Layout::render(

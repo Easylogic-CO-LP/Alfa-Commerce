@@ -301,7 +301,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 				<?php foreach (ReconciliationFacts::POOLS as $poolName) : ?>
 					<?php $pool = $semantic->pools->{$poolName}; ?>
 					<tr data-alfa-recon-pool="<?php echo $key . '.' . $poolName; ?>">
-						<td><?php echo Text::_('COM_ALFA_RECON_POOL_' . strtoupper($poolName)); ?></td>
+						<td data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_POOL'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo Text::_('COM_ALFA_RECON_POOL_' . strtoupper($poolName)); ?></td>
 						<td class="text-end" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CAPACITY'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($pool->capacity); ?></td>
 						<td class="text-end" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CONSUMED'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($pool->consumed); ?></td>
 						<!-- SIGNED, never floored: an over-claim must stay visible
@@ -321,7 +321,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 					     pool total above can balance while one of them does not. -->
 					<?php foreach ($pool->anomalies ?? [] as $member) : ?>
 						<tr class="small" data-alfa-recon-member="<?php echo $key . '.' . $poolName . ':' . (int) $member->source; ?>">
-							<td class="ps-4">
+							<td class="ps-4" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_POOL'), ENT_QUOTES, 'UTF-8'); ?>">
 								&#8627; <?php echo htmlspecialchars($member->label !== ''
 									? $member->label
 									: Text::_('COM_ALFA_RECON_MEMBER_' . strtoupper($poolName)), ENT_QUOTES, 'UTF-8'); ?>

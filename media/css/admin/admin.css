@@ -577,7 +577,7 @@ tr.alfa-row-refund > * {
 }
 
 /* A table that folds on a phone (2.2.1, DESIGN-2.2.1 A4): Tools > Tasks' jobs, the orders list and the order's
-   payments, shipments and items. Below 480 px a row's cells wrap onto as many lines as the screen needs, in their
+   payments, shipments, items, documents and reconciliation. Below 480 px a row's cells wrap onto as many lines as the screen needs, in their
    order, instead of widening the page; the cell that holds the row's actions (alfa-fold-line) takes a line of its own
    under the row. The headings give way, but a heading kept on purpose (alfa-fold-keep, the select-all box); each cell
    that needs its heading says it above its value (data-alfa-label). From 480 px up the table is as it was. */
