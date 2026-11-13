@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Plugin;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
+use Alfa\Component\Alfa\Administrator\Service\Cart\OperatorCheckout;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Closure;
 use Joomla\CMS\Extension\PluginInterface;
@@ -45,6 +47,16 @@ use Throwable;
  * the event; never the shared dispatcher, never a method called because of its name, no reflection. A plugin that is
  * missing, disabled or cannot be booted is PluginUnavailable, each caller mapping it to its own contract; there is no
  * fallback to another plugin.
+ *
+ * Mode B for a named customer (2.2.1): the commercial plugins of a cart are the ones its customer's view levels admit
+ * (admitted()), whoever operates it. A member of staff placing an order for a customer may not hold a plugin's Access
+ * level, and Joomla does not load the plugin for them. Inside an operator placement only ({@see CartSubject::operator()},
+ * its actor holding {@see OperatorCheckout::PERMISSION}), such a plugin, when it is admitted for that customer, is
+ * booted for the customer: its name, group and params from its own row ({@see self::bootForCustomer()}), through the
+ * selection methods that are given the cart's subject (participantsFor(), dispatchToEachFor(),
+ * dispatchToEachIsolatedFor()). On that path a plugin's Access no longer filters staff; the plugin runs in the staff
+ * member's request and reads the customer from the event's context, never from the application's identity. Anywhere
+ * else such a plugin stays NOT_LOADED, and the callers refuse naming it.
  *
  * @since  2.2.0
  */
@@ -100,6 +112,16 @@ final class AlfaPluginHelper
      * @since  2.2.0
      */
     private array $importFailed = [];
+
+    /**
+     * The plugins booted for a customer in this request ({@see self::bootForCustomer()}), by identity: the params from
+     * their rows, which {@see self::params()} answers for them.
+     *
+     * @var array<string, string>
+     *
+     * @since  2.2.1
+     */
+    private array $forCustomer = [];
 
     /**
      * The plugins' names read in this request ({@see self::name()}), by group.element.
@@ -499,7 +521,7 @@ final class AlfaPluginHelper
             throw new PluginUnavailable(PluginUnavailable::NO_APPLICATION, $id, 'No application: the plugin ' . $id . ' cannot be booted.');
         }
 
-        $plugin = $this->layer->bootForMaintenance($app, $id, $params);
+        $plugin = $this->layer->bootFromRow($app, $id, $params);
 
         if ($this->layer->isPlaceholder($plugin)) {
             throw new PluginUnavailable(PluginUnavailable::MISSING, $id, 'The plugin ' . $id . ' is installed but its files are missing.');
@@ -513,6 +535,83 @@ final class AlfaPluginHelper
 
         $this->booted[$id->key()] = $plugin;
         $this->checkRegistries($id, $plugin);
+
+        return new LoadedPlugin($id);
+    }
+
+    /**
+     * Boot, for the customer of an operator placement, a plugin the customer's view levels admit that Joomla does not
+     * load for the member of staff placing the order (2.2.1): never a way around bootSingle(). Allowed only when the
+     * subject is an operator placement ({@see CartSubject::operator()}), its actor holds {@see OperatorCheckout::PERMISSION}
+     * and the plugin is one admitted() lists for its customer in the plugin's group; otherwise the plugin stays
+     * NOT_LOADED. The plugin is given the name, group and params Joomla gives one it loads, from its own row (its
+     * provider leaves them out for a plugin Joomla does not list), so it prices and checks with its own configuration,
+     * never another one's and never the staff member's. Its family is checked; the selection then asks its declaration
+     * and runs its handler, as everywhere.
+     *
+     * @param PluginId $id The plugin.
+     * @param CartSubject $subject The cart's subject.
+     *
+     * @throws PluginUnavailable NOT_LOADED when the boot is not allowed for this subject (naming the plugin, as
+     *                           bootSingle() does); MISSING, UNLOADABLE, WRONG_FAMILY or NO_APPLICATION.
+     *
+     * @since  2.2.1
+     */
+    public function bootForCustomer(PluginId $id, CartSubject $subject): LoadedPlugin
+    {
+        $refused = static fn (string $why): PluginUnavailable => new PluginUnavailable(
+            PluginUnavailable::NOT_LOADED,
+            $id,
+            'The plugin ' . $id . ' is enabled, but Joomla does not load it for this request\'s user (its Access is a view level the user does not hold), and it is not booted for the customer: ' . $why . '.',
+        );
+
+        if (!$subject->isOperatorPlacement()) {
+            throw $refused('this is not an operator placement');
+        }
+
+        if (!OperatorCheckout::authorized($subject->actor())) {
+            throw $refused('the member of staff does not hold ' . OperatorCheckout::PERMISSION);
+        }
+
+        if (!\in_array($id->key(), array_map(static fn (PluginId $admitted): string => $admitted->key(), $this->admitted($subject->customer(), $id->group)), true)) {
+            throw $refused('the customer\'s view levels do not admit it');
+        }
+
+        $app = $this->layer->application();
+
+        if ($app === null) {
+            throw new PluginUnavailable(PluginUnavailable::NO_APPLICATION, $id, 'No application: the plugin ' . $id . ' cannot be booted.');
+        }
+
+        if (isset($this->importFailed[$id->key()])) {
+            throw new PluginUnavailable(PluginUnavailable::UNLOADABLE, $id, 'The plugin ' . $id . ' could not be imported in this request.');
+        }
+
+        $params = $this->layer->rowParams($id)
+            ?? throw new PluginUnavailable(PluginUnavailable::MISSING, $id, 'The plugin ' . $id . ' is not installed.');
+
+        try {
+            $plugin = $this->layer->bootFromRow($app, $id, $params);
+        } catch (Throwable $e) {
+            $this->importFailed[$id->key()] = true;
+
+            throw new PluginUnavailable(PluginUnavailable::UNLOADABLE, $id, 'The plugin ' . $id . ' could not be booted (' . $e::class . ': ' . $e->getMessage() . ').', $e);
+        }
+
+        if ($this->layer->isPlaceholder($plugin)) {
+            throw new PluginUnavailable(PluginUnavailable::MISSING, $id, 'The plugin ' . $id . ' is enabled but its files are missing.');
+        }
+
+        $family = self::FAMILIES[$id->group] ?? null;
+
+        if ($family !== null && !$plugin instanceof $family) {
+            throw new PluginUnavailable(PluginUnavailable::WRONG_FAMILY, $id, 'The plugin ' . $id . ' is not a ' . $family . '.');
+        }
+
+        $this->booted[$id->key()] = $plugin;
+        $this->forCustomer[$id->key()] = $params;
+        $this->checkRegistries($id, $plugin);
+        Log::add('Plugins: ' . $id . ' booted for the customer #' . (int) $subject->customer()->id . ' of an operator placement by #' . (int) $subject->actor()->id . ' (its Access is a level the member of staff does not hold).', Log::DEBUG, self::LOG);
 
         return new LoadedPlugin($id);
     }
@@ -633,8 +732,10 @@ final class AlfaPluginHelper
     }
 
     /**
-     * The configuration Joomla lists for an enabled plugin in this request (its params), or null when the plugin is not
-     * enabled for the request's user. A read only: nothing is imported or booted.
+     * The configuration Joomla lists for an enabled plugin in this request (its params); for a plugin booted for the
+     * customer of an operator placement in this request ({@see self::bootForCustomer()}), the params of its row it was
+     * booted with; else null (the plugin is not enabled for the request's user). A read only: nothing is imported or
+     * booted.
      *
      * @param PluginId $id The plugin.
      *
@@ -642,12 +743,14 @@ final class AlfaPluginHelper
      */
     public function params(PluginId $id): ?Registry
     {
-        return $this->layer->params($id);
+        return $this->layer->params($id)
+            ?? (isset($this->forCustomer[$id->key()]) ? new Registry($this->forCustomer[$id->key()] === '' ? '{}' : $this->forCustomer[$id->key()]) : null);
     }
 
     /**
      * Where one of a plugin's layouts is read from: the active template's override, else the plugin's own tmpl folder.
-     * A path only: the plugin is neither imported nor booted.
+     * A path only, the same for a plugin booted for the customer of an operator placement: the plugin is neither
+     * imported nor booted.
      *
      * @param PluginId $id The plugin.
      * @param string $layout The layout name.
@@ -692,15 +795,26 @@ final class AlfaPluginHelper
      */
     public function dispatchToEach(iterable $plugins, EventInterface $event): EventInterface
     {
-        foreach ($this->loadedSelection($plugins, $event) as [$id, $instance, $method]) {
-            if ($event->isStopped()) {
-                break;
-            }
+        return $this->deliverToEach($this->loadedSelection($plugins, $event, null), $event);
+    }
 
-            $this->callFor($id, $event, static fn () => $instance->{$method}($event));
-        }
-
-        return $event;
+    /**
+     * dispatchToEach() over the plugins admitted for a cart's customer, given the cart's subject (2.2.1): inside an
+     * operator placement a selected plugin Joomla does not load for the member of staff is booted for the customer
+     * ({@see self::bootForCustomer()}) and takes its part; where that boot is not allowed, it refuses the selection as
+     * dispatchToEach() does.
+     *
+     * @param CartSubject $subject The cart's subject: the customer the selection was admitted for, and who operates it.
+     * @param iterable<PluginId> $plugins The selection.
+     * @param EventInterface $event The event.
+     *
+     * @throws PluginUnavailable NOT_LOADED, naming the first plugin that cannot take its part, before any handler runs.
+     *
+     * @since  2.2.1
+     */
+    public function dispatchToEachFor(CartSubject $subject, iterable $plugins, EventInterface $event): EventInterface
+    {
+        return $this->deliverToEach($this->loadedSelection($plugins, $event, $subject), $event);
     }
 
     /**
@@ -721,7 +835,26 @@ final class AlfaPluginHelper
      */
     public function participants(iterable $plugins, EventInterface $event): array
     {
-        return array_map(static fn (array $participant): PluginId => $participant[0], $this->loadedSelection($plugins, $event));
+        return array_map(static fn (array $participant): PluginId => $participant[0], $this->loadedSelection($plugins, $event, null));
+    }
+
+    /**
+     * participants() over the plugins admitted for a cart's customer, given the cart's subject (2.2.1), as
+     * dispatchToEachFor() selects them.
+     *
+     * @param CartSubject $subject The cart's subject.
+     * @param iterable<PluginId> $plugins The selection.
+     * @param EventInterface $event The event.
+     *
+     * @return list<PluginId>
+     *
+     * @throws PluginUnavailable NOT_LOADED, naming the first plugin that cannot take its part.
+     *
+     * @since  2.2.1
+     */
+    public function participantsFor(CartSubject $subject, iterable $plugins, EventInterface $event): array
+    {
+        return array_map(static fn (array $participant): PluginId => $participant[0], $this->loadedSelection($plugins, $event, $subject));
     }
 
     /**
@@ -738,8 +871,63 @@ final class AlfaPluginHelper
      */
     public function dispatchToEachIsolated(iterable $plugins, EventInterface $event): array
     {
+        return $this->deliverToEachIsolated($this->selection($plugins, $event, null), $event);
+    }
+
+    /**
+     * dispatchToEachIsolated() over the plugins admitted for a cart's customer, given the cart's subject (2.2.1), as
+     * dispatchToEachFor() selects them: a plugin that cannot take its part is a failure of its own, NOT_LOADED.
+     *
+     * @param CartSubject $subject The cart's subject.
+     * @param iterable<PluginId> $plugins The selection.
+     * @param EventInterface $event The event.
+     *
+     * @return ListenerFailure[]
+     *
+     * @since  2.2.1
+     */
+    public function dispatchToEachIsolatedFor(CartSubject $subject, iterable $plugins, EventInterface $event): array
+    {
+        return $this->deliverToEachIsolated($this->selection($plugins, $event, $subject), $event);
+    }
+
+    /**
+     * Run each selected plugin's handler, in order, a handler's exception reaching the caller; stops when the event is
+     * stopped.
+     *
+     * @param list<array{0: PluginId, 1: PluginInterface, 2: string}> $selected What loadedSelection() answered.
+     * @param EventInterface $event The event.
+     *
+     * @since  2.2.1
+     */
+    private function deliverToEach(array $selected, EventInterface $event): EventInterface
+    {
+        foreach ($selected as [$id, $instance, $method]) {
+            if ($event->isStopped()) {
+                break;
+            }
+
+            $this->callFor($id, $event, static fn () => $instance->{$method}($event));
+        }
+
+        return $event;
+    }
+
+    /**
+     * Run each selected plugin's handler, in order, each one's Throwable logged and answered as its failure; the plugins
+     * that could not take their part answered first, as failures of their own.
+     *
+     * @param array{0: list<array{0: PluginId, 1: PluginInterface, 2: string}>, 1: list<PluginUnavailable>} $selection What selection() answered.
+     * @param EventInterface $event The event.
+     *
+     * @return ListenerFailure[]
+     *
+     * @since  2.2.1
+     */
+    private function deliverToEachIsolated(array $selection, EventInterface $event): array
+    {
         $failures = [];
-        [$selected, $notLoaded] = $this->selection($plugins, $event);
+        [$selected, $notLoaded] = $selection;
 
         foreach ($notLoaded as $unavailable) {
             $failures[] = new ListenerFailure(listener: (string) $unavailable->plugin?->key(), error: $unavailable);
@@ -780,16 +968,18 @@ final class AlfaPluginHelper
      * The selection's plugins that take part: each identity once, booted, with its declared handler for the event; and
      * apart, the selected plugins Joomla does not load for the request's user (NOT_LOADED), which cannot take part and
      * must not be left out silently. A plugin missing or unloadable takes no part, logged at WARNING; any other
-     * unavailable one at DEBUG.
+     * unavailable one at DEBUG. Given a cart's subject, a plugin Joomla does not load for the request's user is booted
+     * for its customer where that is allowed ({@see self::bootSelected()}).
      *
      * @param iterable<PluginId> $plugins The selection.
      * @param EventInterface $event The event.
+     * @param CartSubject|null $subject The cart's subject, for the methods given one; null for the others.
      *
      * @return array{0: list<array{0: PluginId, 1: PluginInterface, 2: string}>, 1: list<PluginUnavailable>}
      *
      * @since  2.2.0
      */
-    private function selection(iterable $plugins, EventInterface $event): array
+    private function selection(iterable $plugins, EventInterface $event, ?CartSubject $subject): array
     {
         $out = [];
         $notLoaded = [];
@@ -803,7 +993,7 @@ final class AlfaPluginHelper
             $seen[$id->key()] = true;
 
             try {
-                $instance = $this->instanceOf($this->bootSingle($id));
+                $instance = $this->instanceOf($this->bootSelected($id, $subject));
             } catch (PluginUnavailable $unavailable) {
                 if ($unavailable->reason === PluginUnavailable::NOT_LOADED) {
                     // Only a plugin that declares the event has a part to take (A-C14A-28): one that does not takes no
@@ -844,6 +1034,7 @@ final class AlfaPluginHelper
      *
      * @param iterable<PluginId> $plugins The selection.
      * @param EventInterface $event The event.
+     * @param CartSubject|null $subject The cart's subject, for the methods given one; null for the others.
      *
      * @return list<array{0: PluginId, 1: PluginInterface, 2: string}>
      *
@@ -851,15 +1042,40 @@ final class AlfaPluginHelper
      *
      * @since  2.2.1
      */
-    private function loadedSelection(iterable $plugins, EventInterface $event): array
+    private function loadedSelection(iterable $plugins, EventInterface $event, ?CartSubject $subject): array
     {
-        [$selected, $notLoaded] = $this->selection($plugins, $event);
+        [$selected, $notLoaded] = $this->selection($plugins, $event, $subject);
 
         if ($notLoaded !== []) {
             throw $notLoaded[0];
         }
 
         return $selected;
+    }
+
+    /**
+     * Boot a selected plugin: through Joomla's lifecycle (bootSingle()), or, when Joomla does not load it for the
+     * request's user and the selection was given a cart's subject, for that subject's customer
+     * ({@see self::bootForCustomer()}, which refuses NOT_LOADED where it is not allowed).
+     *
+     * @param PluginId $id The plugin.
+     * @param CartSubject|null $subject The cart's subject, for the methods given one; null for the others.
+     *
+     * @throws PluginUnavailable As bootSingle() or bootForCustomer().
+     *
+     * @since  2.2.1
+     */
+    private function bootSelected(PluginId $id, ?CartSubject $subject): LoadedPlugin
+    {
+        try {
+            return $this->bootSingle($id);
+        } catch (PluginUnavailable $unavailable) {
+            if ($subject === null || $unavailable->reason !== PluginUnavailable::NOT_LOADED) {
+                throw $unavailable;
+            }
+
+            return $this->bootForCustomer($id, $subject);
+        }
     }
 
     /**
