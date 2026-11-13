@@ -70,19 +70,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
+      # PHP 8.3, the oldest PHP Alfa supports, and an exact PHPStan release: the same findings on every run.
       - name: Setup PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
-          php-version: "8.2"
-          tools: phpstan
+          php-version: "8.3"
+          tools: phpstan:2.3.5
 
-      - name: Fetch latest Joomla (PHPStan symbol resolution)
+      # The installed phar is the 2.3.5 release asset, byte for byte.
+      - name: Check the PHPStan release
+        env:
+          PHPSTAN_SHA256: 4b3ed7850a20b092331bd1040e4f54a1d3c0559b4cf006431073997ebcb4324b
         run: |
-          url=$(curl -sL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/joomla/joomla-cms/releases/latest | jq -r '.assets[] | select(.name | endswith("Full_Package.zip")) | .browser_download_url' | head -1)
-          echo "Latest Joomla package: $url"
-          curl -sL -o /tmp/joomla.zip "$url"
+          echo "$PHPSTAN_SHA256  $(command -v phpstan)" | sha256sum --check --strict
+          phpstan --version
+
+      # An exact Joomla release, checked against the checksum Joomla publishes with it, so a new Joomla
+      # release never changes what this gate reports. Raise both lines together, in a pull request.
+      - name: Fetch Joomla 6.2.0 (PHPStan symbol resolution)
+        env:
+          JOOMLA_URL: https://github.com/joomla/joomla-cms/releases/download/6.2.0/Joomla_6.2.0-Stable-Full_Package.zip
+          JOOMLA_SHA256: eaafc68b5990d7b9dd9156656d4c3c3547743d1d7a85682a92e2f9121b58f018
+        run: |
+          curl -fsSL -o /tmp/joomla.zip "$JOOMLA_URL"
+          echo "$JOOMLA_SHA256  /tmp/joomla.zip" | sha256sum --check --strict
           mkdir -p joomla && unzip -q /tmp/joomla.zip -d joomla
 
+      # Blocking: any finding PHPStan reports fails this job and the run.
       - name: Run PHPStan
         run: phpstan analyse --configuration=phpstan.neon --memory-limit=1G --error-format=github
-        continue-on-error: true
