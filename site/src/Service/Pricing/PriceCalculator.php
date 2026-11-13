@@ -239,7 +239,8 @@ class PriceCalculator
         $results = [];
 
         foreach ($itemIds as $itemId) {
-            // normalizeQuantities() names every id, or refused the map (2.2.1).
+            // normalizeQuantities() names every id: a map with a whole quantity of at least 1, or it refused the map
+            // (2.2.1); a single quantity given for all is taken as at least 1.
             $quantity = max(1, (int) $quantities[$itemId]);
             $selection = $selections[$itemId] ?? null;
 
@@ -595,23 +596,30 @@ class PriceCalculator
     }
 
     /**
-     * The quantity a per-product map gives one product (2.2.1). A map that names no quantity for it is the caller's
-     * mistake: refused with the product named, never priced at a quantity the caller did not ask for (2.2.0 met a
-     * TypeError in calculate() and priced 1 in calculateBatch()).
+     * The quantity a per-product map gives one product (2.2.1): a whole number of at least 1. A map that names no
+     * such quantity for it (none, 0, a negative one, a fraction, or not a number) is the caller's mistake: refused with
+     * the product named, never priced at a quantity the caller did not ask for (2.2.0 met a TypeError in calculate(),
+     * priced 1 in calculateBatch(), and priced 2.5 as 2).
      *
      * @param array $quantities The per-product-id quantity map.
      * @param int $productId The product.
      *
-     * @throws InvalidArgumentException When the map has no quantity for the product.
+     * @throws InvalidArgumentException When the map has no whole quantity of at least 1 for the product.
      *
      * @since  2.2.1
      */
     private function mappedQuantity(array $quantities, int $productId): int
     {
-        if (!isset($quantities[$productId]) || !is_numeric($quantities[$productId])) {
+        $quantity = $quantities[$productId] ?? null;
+
+        if ($quantity === null) {
             throw new InvalidArgumentException('PriceCalculator: no quantity for product ' . $productId . '.');
         }
 
-        return (int) $quantities[$productId];
+        if (!is_numeric($quantity) || (float) $quantity < 1 || (float) $quantity !== floor((float) $quantity)) {
+            throw new InvalidArgumentException('PriceCalculator: the quantity for product ' . $productId . ' is not a whole number of at least 1.');
+        }
+
+        return (int) $quantity;
     }
 }
