@@ -713,7 +713,7 @@ final class AlfaPluginHelper
      * @param iterable<PluginId> $plugins The selection.
      * @param EventInterface $event The event.
      *
-     * @return PluginId[]
+     * @return list<PluginId>
      *
      * @throws PluginUnavailable NOT_LOADED, naming the first such plugin.
      *
