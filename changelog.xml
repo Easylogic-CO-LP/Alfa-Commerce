@@ -12,6 +12,7 @@
 
         <change>
             <item>The description of the layout fields (the sub-template choices of a product, a category, a menu item and the Options) says in plain words how to add a version of your own: copy the part's file from the component's folder into your template's override folder and give it a name of your own; it appears in the list the next time the page is opened.</item>
+            <item>When Alfa Commerce is uninstalled, a language pack that has no package manifest is reported in one sentence: "This language pack does not include a package manifest", followed by the packs and the version. The maintenance log still says why for each pack.</item>
             <item>For template and extension developers: a table in the administrator can fold on a phone with the class alfa-fold (alfa-fold-line for its actions cell, alfa-fold-keep for a heading kept, data-alfa-label for a cell's name), in media/com_alfa/css/admin/admin.css. The class alfa-nowrap-md is replaced by alfa-nowrap (one line at every width). The action page's styles moved from the layouts' inline style blocks into media/com_alfa/css/admin/action-page.css (style asset com_alfa.action-page), which layouts/action/buttons.php and the result screen load.</item>
         </change>
     </changelog>
