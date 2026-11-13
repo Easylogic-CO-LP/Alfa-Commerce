@@ -64,7 +64,9 @@ final class SyncPluginState
     public const MISSING = 'missing';
 
     /**
-     * The plugin's state now, one of the constants above.
+     * The plugin's state now, one of the constants above. One indexed read of the plugin's extension row, and the
+     * guest's view levels (Access::getAuthorisedViewLevels(), which reads the view levels table and the guest group
+     * once per request). Not kept between calls: a state switched within the request is read as it now is.
      *
      * @since  2.2.1
      */

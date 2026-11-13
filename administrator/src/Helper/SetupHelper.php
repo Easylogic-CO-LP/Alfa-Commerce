@@ -50,7 +50,9 @@ use Throwable;
  *                     is kept beside the verdict and compared on every read: Joomla's page cache
  *                     and plg_system_alfasync change without an event the plugin can hear (its own
  *                     enabling, any switch while it is off), and a verdict computed under another
- *                     reading is computed again.
+ *                     reading is computed again. Its cost on every status() call: two indexed reads
+ *                     of #__extensions (the two plugins' rows) and the guest's view levels, which
+ *                     Joomla reads once per request (the view levels table and the guest group).
  *
  * Notification push/clear happens ONLY inside a recompute, and re-alerts only when
  * the verdict actually transitions; a cache hit can never nag.

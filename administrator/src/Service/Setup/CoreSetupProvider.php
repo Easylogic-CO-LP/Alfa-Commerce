@@ -436,7 +436,9 @@ final class CoreSetupProvider
      * What the page cache check reads: whether Joomla's System - Page Cache is enabled (its extension row), and
      * System - Alfa Commerce Sync's state for visitors who are not logged in ({@see SyncPluginState}). The checklist
      * keeps it beside its cached verdict ({@see SetupHelper::status()}): Alfa Commerce Sync hears no change made while
-     * it is off, nor its own enabling, so a verdict computed under another reading is computed again.
+     * it is off, nor its own enabling, so a verdict computed under another reading is computed again. Each call reads
+     * the page cache plugin's row and Alfa Commerce Sync's ({@see SyncPluginState::read()}): two indexed reads of
+     * #__extensions, and the guest's view levels.
      *
      * @return array{0: bool, 1: string} [page cache enabled, a SyncPluginState constant]
      *

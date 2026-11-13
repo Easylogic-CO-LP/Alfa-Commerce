@@ -167,8 +167,10 @@ class Dispatcher extends ComponentDispatcher
      * Warn on an Alfa administrator page that renders while plg_system_alfasync is disabled, not installed, or enabled
      * with an Access visitors who are not logged in do not hold ({@see SyncPluginState}): what keeps a shopper's own
      * pages out of Joomla's page cache, the guided tours' texts and Alfa's following of Joomla's users and user groups
-     * run through it. The link to the plugin is offered only to a user who may manage plugins. One read of the plugin's
-     * row while it is enabled.
+     * run through it. The link to the plugin is offered only to a user who may manage plugins. Cost on every Alfa
+     * administrator HTML page: one indexed read of the plugin's extension row (SyncPluginState::read(); the guest's view
+     * levels are read once per request), besides the checklist's own read of the same row through
+     * SetupHelper::sync(); one more read, of the plugin's id, only when a warning is shown.
      *
      * @since  2.1.2
      */
