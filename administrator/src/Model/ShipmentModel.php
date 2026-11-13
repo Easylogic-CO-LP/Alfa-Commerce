@@ -44,7 +44,7 @@ class ShipmentModel extends AlfaAdminModel
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save() writes the row, the per-language translations, the five scope pivots
      *   and the taxes in one transaction, and onAlfaAdminAfterSave is announced at its
-     *   commit, so it reads the method as saved (2.2.1, P3-303; before, the base row only).
+     *   commit, so it reads the method as saved (2.2.1; before, the base row only).
      * - delete() removes the scope pivots and translations AFTER parent::delete(),
      *   so onAlfaAdminAfterDelete fires before that cleanup runs.
      */
@@ -277,7 +277,7 @@ class ShipmentModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_shipments', primaryColumnName: 'id_shipment', data: $data);
 
-        // ONE TRANSACTION for the method's row as well (2.2.1, P3-303): onAlfaAdminAfterSave and onContentAfterSave
+        // ONE TRANSACTION for the method's row as well (2.2.1): onAlfaAdminAfterSave and onContentAfterSave
         // wait for its commit, so a listener reads the shipping method as saved, translations and scope included, and a
         // failure anywhere leaves nothing of the save.
         $db = $this->alfaDriver();

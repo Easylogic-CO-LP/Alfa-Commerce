@@ -86,8 +86,8 @@ class CartruleModel extends AlfaAdminModel
      *
      * CONTRACT COVERAGE NOTE: the row, the translations, the targeting pivots
      * and the condition tree are one transaction, and the AfterSave bracket is
-     * announced at its commit, so observers see the rule as saved (2.2.1,
-     * P3-303; before, the rule ROW only, the rest synced right after).
+     * announced at its commit, so observers see the rule as saved (2.2.1;
+     * before, the rule ROW only, the rest synced right after).
      *
      * @param array $data The form data.
      *
@@ -142,7 +142,7 @@ class CartruleModel extends AlfaAdminModel
         // The language tables are extended BEFORE the transaction opens: DDL commits implicitly.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_cart_rules', primaryColumnName: 'id_cart_rule', data: $data);
 
-        // ONE TRANSACTION for the whole save (2.2.1, P3-303): onAlfaAdminAfterSave and onContentAfterSave wait for its
+        // ONE TRANSACTION for the whole save (2.2.1): onAlfaAdminAfterSave and onContentAfterSave wait for its
         // commit, so a listener reads the rule as saved, targeting and conditions included, and a failure anywhere
         // leaves nothing of the save (the condition tree's own transaction is a savepoint inside it).
         $db = $this->alfaDriver();

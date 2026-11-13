@@ -46,7 +46,7 @@ class PaymentModel extends AlfaAdminModel
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save(): the row, the per-language translations and the six scope pivots are one
      *   transaction, and the AfterSave bracket is announced at its commit, so observers see
-     *   the method as saved (2.2.1, P3-303; before, the base row only).
+     *   the method as saved (2.2.1; before, the base row only).
      * - delete(): a batch blocked by stored payment references (mandates / recurring
      *   tokens) returns before parent::delete(), so the contract's delete bracket fires
      *   only when something actually reaches the table.
@@ -284,7 +284,7 @@ class PaymentModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_payments', primaryColumnName: 'id_payment', data: $data);
 
-        // ONE TRANSACTION for the method's row as well (2.2.1, P3-303): onAlfaAdminAfterSave and onContentAfterSave
+        // ONE TRANSACTION for the method's row as well (2.2.1): onAlfaAdminAfterSave and onContentAfterSave
         // wait for its commit, so a listener reads the payment method as saved, translations and scope included, and a
         // failure anywhere leaves nothing of the save.
         $db = $this->alfaDriver();

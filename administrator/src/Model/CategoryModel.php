@@ -380,7 +380,7 @@ class CategoryModel extends AlfaAdminModel
         // the dangerous one: under inherit-from-default-category this changes the
         // EFFECTIVE audience of every product whose default category this is; the
         // event resolves that fan-out, core does not schedule it.
-        PostCommit::defer(db: $this->getDatabase(), label: 'the category save\'s catalogue events', work: static function () use ($currentId): void {
+        PostCommit::defer(db: $this->alfaDriver(), label: 'the category save\'s catalogue events', work: static function () use ($currentId): void {
             VisibilityNotifier::changed(categoryIds: [$currentId]);
             EntityChangeNotifier::changed(entity: 'category', ids: [$currentId]);
         });
