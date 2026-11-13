@@ -143,7 +143,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Storefront menu items removed -> the setup checklist must un-tick.
             'onContentAfterDelete' => 'onContentAfterDelete',
 
-            // Gateway plugins toggled / com_alfa Options saved -> setup verdict stale.
+            // Gateway plugins, Joomla's page cache or this plugin saved / com_alfa Options saved -> setup verdict stale.
             'onExtensionAfterSave' => 'onExtensionAfterSave',
 
             // A content language published from the Content Languages list -> its language tables.
@@ -826,10 +826,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Called after an extension row is saved. Two saves flip setup detectors without
+     * Called after an extension row is saved. Three saves flip setup detectors without
      * touching any Alfa table: enabling/disabling an alfa-payments or alfa-shipments
-     * plugin (the correctness join in the payments/shipping checks), and saving
-     * com_alfa's own Options (store identity, default currency, media location).
+     * plugin (the correctness join in the payments/shipping checks), saving Joomla's
+     * System - Page Cache or this plugin (the page cache check), and saving com_alfa's
+     * own Options (store identity, default currency, media location).
      *
      * Languages: Content Languages announces its saves here too (com_languages
      * LanguageModel: onExtensionAfterSave, never onContentAfterSave): a content
@@ -883,9 +884,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         // com_plugins.plugin
         $folder = (string) ($item->folder ?? '');
+        $element = (string) ($item->element ?? '');
 
         if (in_array($folder, ['alfa-payments', 'alfa-shipments'], true)) {
             $this->invalidateSetup('gateway plugin saved');
+        } elseif ($folder === 'system' && in_array($element, ['cache', 'alfasync'], true)) {
+            $this->invalidateSetup('page cache or Alfa Commerce Sync plugin saved');
         }
     }
 
