@@ -774,8 +774,11 @@ final class InventoryEffectOutbox
      * its first run with the plugin's words, and stands in Tools > Tasks, where Run again tries the movement
      * ({@see OrderDocumentStock}). One task stands per document: while one waits (failed or held) the refusal is told
      * to it, its failure line becoming the new words ({@see Tasks::failedAgain()}); while one is still to run, it reads
-     * the refusal then. Advisory, as the notice: a task that cannot be written or told never changes the verdict,
-     * unless its failure ended (or may have ended) the caller's transaction.
+     * the refusal then. A Run again in flight has read the refusal already and drains the movement itself
+     * ({@see self::retryRefusedDocument()}): a drain that claimed the movement between that run's two statements
+     * meets the refusal instead, and the run ends with nothing claimed, so the refusal is written as a task of its own,
+     * as when none stands (2.2.1). Advisory, as the notice: a task that cannot be written or told never changes the
+     * verdict, unless its failure ended (or may have ended) the caller's transaction.
      *
      * @param object $row The obligation, as the drain read it.
      * @param string $reason The plugin's words.
@@ -793,7 +796,7 @@ final class InventoryEffectOutbox
             $subjectType = 'order';
             $standing = $db->setQuery(
                 $db->getQuery(true)
-                    ->select($db->quoteName(['id', 'state']))
+                    ->select($db->quoteName(['id', 'state', 'payload']))
                     ->from($db->quoteName(Tasks::TABLE))
                     ->where($db->quoteName('handler') . ' = :handler')
                     ->where($db->quoteName('subject_type') . ' = :subjectType')
@@ -809,7 +812,10 @@ final class InventoryEffectOutbox
                 1,
             )->loadObject();
 
-            if ($standing === null) {
+            $standingPayload = $standing !== null ? (array) json_decode((string) $standing->payload, true) : [];
+            $rerunInFlight = $standing !== null && (string) $standing->state === Tasks::STATE_RUNNING && isset($standingPayload['rerun_of']);
+
+            if ($standing === null || $rerunInFlight) {
                 Tasks::single(handler: $handler, subjectType: $subjectType, subjectId: $orderId, payload: ['document' => $documentId]);
             } elseif (\in_array((string) $standing->state, [Tasks::STATE_FAILED, Tasks::STATE_HELD], true)) {
                 Tasks::failedAgain(id: (int) $standing->id, error: OrderDocumentStock::refusalError(documentId: $documentId, refusal: $reason), trigger: 'request');
