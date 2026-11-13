@@ -45,6 +45,8 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartOwner;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
@@ -106,7 +108,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            // The texts of Alfa's guided tours, before anything on an administrator request reads them.
+            // A provider's webhook in its plain address marked before Joomla routes it; the texts of Alfa's guided
+            // tours, before anything on an administrator request reads them.
             'onAfterInitialise' => 'onAfterInitialise',
 
             // User events: always active
@@ -458,16 +461,24 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Loads Alfa's guided-tour texts, com_alfa.tours.ini, for a signed-in user on the administrator
-     * client. Joomla's tour loader looks for one file per tour, so Alfa loads its one file here, the
-     * first event that knows the user's language: before the header's tour menu, the Guided Tours
-     * screens and the tour runner's JSON request read the texts.
+     * Before Joomla routes the request. On the site, a provider's webhook in its plain address is
+     * marked as one ({@see self::markProviderWebhook()}). On the administrator client, Alfa's
+     * guided-tour texts, com_alfa.tours.ini, are loaded for a signed-in user: Joomla's tour loader
+     * looks for one file per tour, so Alfa loads its one file here, the first event that knows the
+     * user's language, before the header's tour menu, the Guided Tours screens and the tour runner's
+     * JSON request read the texts.
      *
      * @since  2.1.2
      */
     public function onAfterInitialise(): void
     {
         $app = Factory::getApplication();
+
+        if ($app->isClient('site')) {
+            $this->markProviderWebhook(input: $app->getInput());
+
+            return;
+        }
 
         if (!$app->isClient('administrator')) {
             return;
@@ -480,6 +491,31 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         $app->getLanguage()->load('com_alfa.tours', JPATH_ADMINISTRATOR);
+    }
+
+    /**
+     * A provider's server calling a webhook in its plain address, index.php?option=com_alfa with
+     * task=payment.webhook or task=shipment.webhook (the address HasTransportUrlsTrait::webhookUrlFor()
+     * builds), names no language and asks for no page. It is marked so here, before Joomla routes it,
+     * through the two switches Joomla itself reads: nolangfilter, on which the language filter takes
+     * the site's default language instead of redirecting a GET to a language prefix, and the raw
+     * format, because Joomla's SEF plugin redirects HTML pages only. The controller then answers a GET
+     * as it answers a POST, with the plugin's own status and body, so a provider that checks the
+     * address with a GET and does not follow redirects reaches the plugin. An address registered in
+     * the routed form names its language and is left as it is.
+     *
+     * @param \Joomla\Input\Input $input The request.
+     *
+     * @since  2.2.1
+     */
+    private function markProviderWebhook(\Joomla\Input\Input $input): void
+    {
+        if ($input->getCmd('option') !== 'com_alfa' || !\in_array($input->getCmd('task'), [PaymentsPlugin::webhookTask(), ShipmentsPlugin::webhookTask()], true)) {
+            return;
+        }
+
+        $input->set('nolangfilter', 1);
+        $input->set('format', 'raw');
     }
 
     /**
