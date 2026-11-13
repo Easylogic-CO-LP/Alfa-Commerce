@@ -18,7 +18,8 @@ use Throwable;
  * A placement refused on purpose by a listener of onOrderPlaceValidate, thrown with the sentence the shopper is to read
  * (2.2.1): what {@see OrderPlaceValidateEvent::reject()} says, from a listener that would rather throw. The shopper reads
  * the sentence, as a rejection's; any other exception a listener throws is reported as a check that could not run, its
- * words kept in the log.
+ * words kept in the log. The sentence is required: one that is empty once its markup is stripped has nothing for the
+ * shopper to read, and the refusal is then reported as a check that could not run, as any other throw.
  *
  * @since  2.2.1
  */

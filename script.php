@@ -1198,7 +1198,19 @@ class com_alfaInstallerScript extends InstallerScript
                 // already, so it is not run: removed with the plugin, before Joomla's installer would include it.
                 $oldScript = JPATH_PLUGINS . '/task/alfapricesets/script.php';
 
-                if (is_file($oldScript) && @unlink($oldScript))
+                $hadScript = is_file($oldScript);
+                $unlinked  = $hadScript && @unlink($oldScript);
+
+                if ($hadScript && !$unlinked)
+                {
+                    // Not writable: the uninstall below still runs, and Joomla runs the old script with it, which warns
+                    // as it did in 2.2.0. The log says why that warning shows.
+                    self::maintenanceLog(
+                        line:     sprintf('Update to %s: the uninstall script of plg_task_alfapricesets could not be removed (its folder is not writable), so it ran with the uninstall and may warn that the scheduled tasks were not removed.', $this->packageVersion),
+                        priority: \Joomla\CMS\Log\Log::WARNING,
+                    );
+                }
+                elseif ($unlinked)
                 {
                     // "Removed" only when the delete above ran; else the update's warning says why they stay.
                     self::maintenanceLog(
