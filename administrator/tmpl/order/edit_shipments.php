@@ -250,8 +250,10 @@ foreach ($mergeMap as $primary => $children) {
 </div>
 
 <!--  SHIPMENTS TABLE                                               -->
+<?php // Below 480 px a row folds (alfa-fold, 2.2.1 A4): its cells wrap, each named by its column, the actions on a line
+      // of their own. ?>
 <?php if (!empty($shipments)): ?>
-    <table class="table table-striped table-bordered">
+    <table class="table table-striped table-bordered alfa-fold">
 
         <!-- Table header -->
         <!-- Auto-generated from XML fields.                        -->
@@ -306,7 +308,7 @@ foreach ($mergeMap as $primary => $children) {
 					// Get the field value from the shipment object
 					$value = $shipment->{$fieldName} ?? '';
 					?>
-                    <td>
+                    <td data-alfa-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
 						<?php
 						// STEP 1: Render the primary field
 						// Check renderMap for custom rendering, otherwise
@@ -346,7 +348,7 @@ foreach ($mergeMap as $primary => $children) {
 				<?php endforeach; ?>
 
                 <!-- Actions cell -->
-                <td>
+                <td class="alfa-fold-line">
                     <!-- Edit button (icon-only to save space) -->
                     <?php if ($canEditOrder) : ?>
                     <div class="btn-group me-1" role="group">
