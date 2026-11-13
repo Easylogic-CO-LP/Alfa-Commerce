@@ -74,6 +74,9 @@ class ItemsController extends ApiController
     /**
      * Items list view amended to add filtering of data
      *
+     * Each filter goes onto the model state under the name the items screen's filter form gives it, and the list
+     * model applies it as it does for the screen (2.2.1: stock, in, low or out, and fields, the item field values).
+     *
      * @return static A BaseController object to support chaining.
      *
      * @since  2.0.0
@@ -99,6 +102,14 @@ class ItemsController extends ApiController
             $this->modelState->set('filter.manufacturer', $filter->clean($apiFilterInfo['manufacturer'], 'INT'));
         }
 
+        if (\array_key_exists('stock', $apiFilterInfo)) {
+            $this->modelState->set('filter.stock', RequestScalar::member($apiFilterInfo, 'stock', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('fields', $apiFilterInfo)) {
+            $this->modelState->set('filter.fields', $this->fieldsFilter($apiFilterInfo['fields']));
+        }
+
         $apiListInfo = $this->input->get('list', [], 'array');
 
         if (\array_key_exists('ordering', $apiListInfo)) {
@@ -110,6 +121,40 @@ class ItemsController extends ApiController
         }
 
         return parent::displayList();
+    }
+
+    /**
+     * The item field filter as the items screen hands it to the model: field id => the value ids asked for (any of
+     * them; none asks which items use the field at all), from filter[fields][<field id>][]=<value id> or
+     * filter[fields][<field id>]=<value id>. A field id that is not a positive whole number, and a value that is not
+     * one value, is left out; a filter[fields] that is not a map narrows nothing, as on the screen.
+     *
+     * @param mixed $fields The filter's value as the request carries it.
+     *
+     * @return array<int, int[]>
+     *
+     * @since  2.2.1
+     */
+    private function fieldsFilter(mixed $fields): array
+    {
+        if (!\is_array($fields)) {
+            return [];
+        }
+
+        $map = [];
+
+        foreach ($fields as $fieldId => $valueIds) {
+            $fieldId = (int) $fieldId;
+
+            if ($fieldId <= 0) {
+                continue;
+            }
+
+            $values = array_map('intval', array_filter((array) $valueIds, 'is_scalar'));
+            $map[$fieldId] = array_values(array_filter($values, static fn (int $valueId): bool => $valueId > 0));
+        }
+
+        return $map;
     }
 
     /**
