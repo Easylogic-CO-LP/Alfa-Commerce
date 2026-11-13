@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocumentStock;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
@@ -1264,6 +1265,7 @@ final class Tasks
         return [
             NoticeTask::NAME => NoticeTask::class,
             OrderStock::NAME => OrderStock::class,
+            OrderDocumentStock::NAME => OrderDocumentStock::class,
             OrderEntitlements::NAME => OrderEntitlements::class,
             OrderDocuments::NAME => OrderDocuments::class,
             OrderStatusEmail::NAME => OrderStatusEmail::class,

@@ -19,7 +19,9 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Document\StockBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocumentStock;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskAttention;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
@@ -296,7 +298,10 @@ final class InventoryEffectOutbox
      * document's notice, so it is announced whichever drain met it. A refusal
      * a stock before-event listener threw on purpose (InventoryRefusedException)
      * is one too; 'refusedByListener' names its source ids, and its notice asks
-     * staff to decide rather than to resolve an order line (2.2.1).
+     * staff to decide rather than to resolve an order line (2.2.1). A document's
+     * such refusal is also written as a task of its order that waits for staff
+     * in Tools > Tasks, whose Run again tries the movement once the plugin allows
+     * it ({@see OrderDocumentStock}); not when staff's own Run again met it.
      *
      * A failed obligation is claimed again until it has been tried
      * {@see self::MAX_ATTEMPTS} times. The pass that makes the last try names it
@@ -322,6 +327,8 @@ final class InventoryEffectOutbox
      *                          ids are only unique WITHIN a type, so this
      *                          is meaningless without $onlySourceType.
      * @param string $onlySourceType Restrict to one producing domain.
+     * @param bool $staffAsked Whether staff asked for this try (Run again of a document's refused movement): a
+     *                         refusal it meets is reported by that task, not written as a new one.
      *
      * @return array{claimed: int, applied: int, failed: int, refused: int, results: array, errors: array, refusals: array, refusalReasons: array, reservedFloor: array, refusalNotices: array, reservedFloorNotices: array, failureNotices: array, refusedByListener: array<int, true>, exhausted: array<int, true>}
      *
@@ -332,6 +339,7 @@ final class InventoryEffectOutbox
         ?int $staleSeconds = null,
         int $onlySourceId = 0,
         string $onlySourceType = '',
+        bool $staffAsked = false,
     ): array {
         $db = Factory::getContainer()->get('DatabaseDriver');
         $staleSeconds ??= self::STALE_CLAIM_SECONDS;
@@ -415,8 +423,9 @@ final class InventoryEffectOutbox
                         $summary['refusedByListener'][(int) $row->source_id] = true;
                     }
 
-                    // A listener's refusal is staff's to decide; a line with no stock identity is resolved on the
-                    // Inventory audit page.
+                    // A listener's refusal is staff's to decide (an order's on the order, a document's in Tools > Tasks,
+                    // where its task is run again); a line with no stock identity is resolved on the Inventory audit
+                    // page.
                     self::announceRefusal(
                         row:             $row,
                         reason:          $notice,
@@ -425,6 +434,10 @@ final class InventoryEffectOutbox
                         terminal:        true,
                         decideOnOrder:   $byListener ? (int) $row->order_id : 0,
                     );
+
+                    if ($byListener && (string) $row->source_type === 'document' && !$staffAsked) {
+                        self::awaitStaff(row: $row);
+                    }
                 } elseif ($e instanceof InventoryReservedFloorException) {
                     // Still owed: the movement applies once the other claims let
                     // go of that stock, so the operator is told which stock it is.
@@ -752,6 +765,70 @@ final class InventoryEffectOutbox
     }
 
     /**
+     * A document's movement a stock plugin refused waits for staff as a task of its order: written once, it fails at
+     * its first run with the plugin's words, and stands in Tools > Tasks, where Run again tries the movement
+     * ({@see OrderDocumentStock}). Advisory, as the notice: a task that cannot be written never changes the verdict,
+     * unless its failure ended (or may have ended) the caller's transaction.
+     *
+     * @param object $row The obligation, as the drain read it.
+     *
+     * @since  2.2.1
+     */
+    private static function awaitStaff(object $row): void
+    {
+        try {
+            Tasks::single(
+                handler:     OrderDocumentStock::NAME,
+                subjectType: 'order',
+                subjectId:   (int) $row->order_id,
+                payload:     ['document' => (int) $row->source_id],
+            );
+        } catch (Throwable $e) {
+            if (self::endsTransaction(failure: $e)) {
+                throw $e;
+            }
+
+            Log::add(
+                entry:    'The task for document #' . $row->source_id . "'s refused stock movement could not be written: "
+                          . $e->getMessage(),
+                priority: Log::WARNING,
+                category: 'com_alfa.inventory',
+            );
+        }
+    }
+
+    /**
+     * Staff asked for a document's refused movement to be tried again (Run again of its task, once the stock plugin
+     * allows it): the refused obligation is opened and drained at once.
+     *
+     * @param int $documentId The document.
+     *
+     * @return array The drain's summary ({@see self::drain()}); nothing claimed when the document has no refused
+     *               movement.
+     *
+     * @since  2.2.1
+     */
+    public static function retryRefusedDocument(int $documentId): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        $db->setQuery(
+            'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
+            . ' SET ' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_PENDING)
+            . ', ' . $db->quoteName('claim_token') . ' = NULL'
+            . ', ' . $db->quoteName('claimed_at') . ' = NULL'
+            . ', ' . $db->quoteName('attempts') . ' = 0'
+            . ', ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP()'
+            . ' WHERE ' . $db->quoteName('source_type') . ' = ' . $db->quote('document')
+            . ' AND ' . $db->quoteName('source_id') . ' = ' . $documentId
+            . ' AND ' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_REFUSED),
+        );
+        $db->execute();
+
+        return self::drain(limit: 1, onlySourceId: $documentId, onlySourceType: 'document', staffAsked: true);
+    }
+
+    /**
      * Raise the notice of an obligation the inventory service refused: its
      * order's for a status change, its document's for a document.
      *
@@ -774,7 +851,8 @@ final class InventoryEffectOutbox
      * @param string $documentMessage Language key of a document's notice text; it takes
      *                                one value, the reason.
      * @param bool $terminal Whether a retry cannot apply the obligation.
-     * @param int $decideOnOrder The order on which staff decide a stock plugin's refusal; 0 for none.
+     * @param int $decideOnOrder The order on which staff decide a stock plugin's refusal; 0 for none. A document's
+     *                           such refusal is decided in Tools > Tasks, where its task is run again.
      *
      *
      * @since  2.0.0
@@ -800,9 +878,9 @@ final class InventoryEffectOutbox
                     dedupKey: self::documentNoticeKey(documentId: $documentId),
                     title:    NotificationText::of('COM_ALFA_NOTIFY_STOCK_DOCUMENT_TITLE', $number !== '' ? $number : '#' . $documentId),
                     options:  self::noticeOptions(
-                        message:       NotificationText::of($documentMessage, $reason),
-                        refused:       $terminal,
-                        decideOnOrder: $decideOnOrder,
+                        message:         NotificationText::of($documentMessage, $reason),
+                        refused:         $terminal,
+                        runAgainInTasks: $decideOnOrder > 0,
                     ),
                 );
             } elseif ((string) $row->source_type === 'order_claim') {
@@ -1054,18 +1132,21 @@ final class InventoryEffectOutbox
      *
      * A movement a STOCK PLUGIN REFUSED is staff's to decide on the order itself (a new
      * status queues it again once the plugin allows it), so its notice links to the
-     * order, for the users who may edit orders (2.2.1).
+     * order, for the users who may edit orders (2.2.1). A document's movement so
+     * refused waits as a task in Tools > Tasks, whose Run again tries it, so its
+     * notice links there, for the users who may open Tools.
      *
      * @param NotificationText|string $message The message: a key and its parameters (core), or literal text.
      * @param bool $refused Whether the movement was refused and waits for an order
      *                      line to be resolved.
      * @param int $decideOnOrder The order on which staff decide a plugin's refusal; 0 for none.
+     * @param bool $runAgainInTasks Whether staff decide a plugin's refusal of a document's movement in Tools > Tasks.
      *
      * @return array Options for NotificationHelper::push().
      *
      * @since  2.0.0
      */
-    public static function noticeOptions(NotificationText|string $message, bool $refused = false, int $decideOnOrder = 0): array
+    public static function noticeOptions(NotificationText|string $message, bool $refused = false, int $decideOnOrder = 0, bool $runAgainInTasks = false): array
     {
         return [
             'group' => NotificationHelper::GROUP_INVENTORY,
@@ -1074,12 +1155,14 @@ final class InventoryEffectOutbox
             'constant' => true,
             'url' => match (true) {
                 $decideOnOrder > 0 => 'index.php?option=com_alfa&task=order.edit&id=' . $decideOnOrder,
+                $runAgainInTasks => TaskAttention::URL,
                 $refused => 'index.php?option=com_alfa&view=inventoryaudit',
                 default => 'index.php?option=com_alfa&view=tools#dbsync',
             },
             'view' => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
             'link' => match (true) {
                 $decideOnOrder > 0 => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                $runAgainInTasks => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
                 $refused => ['action' => 'core.admin', 'asset' => 'com_alfa'],
                 default => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
             },

@@ -14,7 +14,7 @@
 
         <fix>
             <item>The stock step of a status change that fails (for example the database was briefly unreachable) is tried again with the shop's usual backoff, and if it keeps failing it shows in Tools > Tasks and in the notification bell. Before, it failed at once and nobody was told, while the order's stock stayed unmoved.</item>
-            <item>A stock movement that a stock extension refuses on purpose is no longer retried for ever: it is recorded as refused, the order's notice names the refusal and asks staff to decide, and a new status of the order tries it again. A stock movement that keeps failing for another reason stops after six tries and its notice says so; Apply outstanding stock movements in Tools > Database Sync tries it again.</item>
+            <item>A stock movement that a stock extension refuses on purpose is no longer retried for ever: it is recorded as refused and its notice names the refusal. For an order, staff decide on the order, and a new status of the order tries it again; for a document, the movement waits in Tools > Tasks, where running it again tries it once the extension allows it. A stock movement that keeps failing for another reason is tried again with the waits the shop's task runner uses (1 minute, 5 minutes, 30 minutes, 2 hours, 6 hours and 24 hours after each failure, about 33 hours in all), then waits for staff and its notice says so; Apply outstanding stock movements in Tools > Database Sync tries every failed movement at once.</item>
         </fix>
 
         <change>
