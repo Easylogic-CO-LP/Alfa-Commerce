@@ -15,6 +15,7 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -22,8 +23,8 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
 $input = Factory::getApplication()->getInput();
-$userId = $input->getInt('user_id', 0);
-$rowId = $input->getInt('info_id', 0);
+$userId = RequestScalar::int($input, 'user_id');
+$rowId = RequestScalar::int($input, 'info_id');
 
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useScript('com_alfa.validate.engine');
