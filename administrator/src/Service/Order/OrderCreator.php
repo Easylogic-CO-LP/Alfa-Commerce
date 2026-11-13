@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
+use InvalidArgumentException;
 use Joomla\Utilities\IpHelper;
 use RuntimeException;
 use stdClass;
@@ -80,7 +81,10 @@ final class OrderCreator
      *   id_shipment_method    int    0 = none (virtual orders).
      *   payment_method_name   string Frozen label ('' = none).
      *   shipment_method_name  string Frozen label ('' = none).
-     *   id_address_delivery   int    Existing #__alfa_user_info id (required).
+     *   id_address_delivery   int    Existing #__alfa_user_info id: required when
+     *                                the draft names a shipping method (refused
+     *                                otherwise, 2.2.1); 0 = none for an order with
+     *                                no shipping method (a virtual order).
      *   id_address_invoice    int    Existing #__alfa_user_info id (0 = none).
      *   id_order_status       int    0/absent = the is_initial status.
      *   id_language           int    Default 1.
@@ -159,6 +163,23 @@ final class OrderCreator
         }
 
         $db = Factory::getContainer()->get('DatabaseDriver');
+
+        // An order that is shipped is shipped somewhere (2.2.1): a draft that names a shipping method names an existing
+        // delivery record, or it is refused before anything is written; a virtual order (no shipping method) needs
+        // none. 2.2.0 wrote such an order with no delivery record at all.
+        if ((int) ($draft['id_shipment_method'] ?? 0) > 0) {
+            $deliveryId = (int) ($draft['id_address_delivery'] ?? 0);
+            $delivery = $deliveryId > 0 ? (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_user_info'))
+                    ->where($db->quoteName('id') . ' = ' . $deliveryId),
+            )->loadResult() : 0;
+
+            if ($delivery === 0) {
+                throw new InvalidArgumentException('OrderCreator: id_address_delivery must name an existing delivery record (#__alfa_user_info) when the draft names a shipping method.');
+            }
+        }
 
         $statusId = (int) ($draft['id_order_status'] ?? 0);
 

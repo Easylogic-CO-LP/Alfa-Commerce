@@ -24,9 +24,11 @@ use Throwable;
  * A gateway's call can take seconds, and nothing is booked until the
  * provider answers. A second operation asked in that window, from a second
  * tab, a second admin or a resent form, would pass every check the first one
- * passed. For a capture or a release the gateway runs its checks, the
- * provider call and the booking inside run(); a second operation on the same
- * order is refused while the first holds the lock.
+ * passed. For a capture or a release a gateway may hold the lock around its
+ * own checks, its log write and its booking (run()); a second operation on
+ * the same order is refused while the first holds it. The lock is never held
+ * across a call to the provider (2.2.1: this paragraph said it was, against
+ * the rule stated below).
  *
  * NOT for a refund (since 2.1.0). A refund start is decided and reserved in
  * the books before the provider is asked (PaymentLedger::reserveRefund(),
