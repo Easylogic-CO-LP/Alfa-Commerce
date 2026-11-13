@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentResponseEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentWebhookEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -48,7 +49,7 @@ class PaymentController extends BaseController
         // gateway was handed carries &method=<element>, exactly as the webhook
         // route does, so routing costs no database read and does not depend on
         // an order this controller has no business loading.
-        $paymentType = $this->input->getCmd('method', '');
+        $paymentType = RequestScalar::cmd($this->input, 'method', '');
 
         // The plugin the address names, booted through the plugin helper (2.2.0): never another one. A plugin that
         // is disabled, missing or cannot be loaded is refused with a neutral message.
@@ -107,7 +108,7 @@ class PaymentController extends BaseController
         // cannot carry a Joomla session token. Authenticity is the plugin's duty
         // (gateway signature / shared secret / verification API call).
 
-        $paymentType = $this->input->getCmd('method', '');
+        $paymentType = RequestScalar::cmd($this->input, 'method', '');
 
         $onWebhookPaymentEventName = 'onPaymentWebhook';
 

@@ -12,10 +12,12 @@ namespace Alfa\Component\Alfa\Site\View\Items;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Search\ResultSetRenderEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\ResultAttributes;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
@@ -129,11 +131,11 @@ class HtmlView extends BaseHtmlView
         // Single-card reload (view=items&layout=item): re-render ONE <article>
         // for the given id + buyer selection, swapped in place by the catalog
         // JS: the listing twin of the product page's component re-fetch.
-        if ($input->getCmd('layout') === 'item') {
+        if (RequestScalar::read($input, 'layout', null, 'cmd') === 'item') {
             // The model reads the buyer's sel[]/opt[]/conf[] selection itself
             // (VariantHelper::requestSelection); the view stays thin.
             $itemsModel = $this->getModel();
-            $this->item = $itemsModel->getItem($input->getInt('id', 0));
+            $this->item = $itemsModel->getItem(RequestScalar::int($input, 'id', 0));
 
             if (!$this->item) {
                 throw new Exception(\Joomla\CMS\Language\Text::_('COM_ALFA_ERROR_ITEM_NOT_FOUND'), 404);
@@ -156,7 +158,7 @@ class HtmlView extends BaseHtmlView
             // THE CARD KEEPS ITS PLACE IN THE RESULT SET (2.2.0): the swap sends the position the card
             // it replaces carried, and the card renders it back through the same call. Only a whole
             // number from 1 counts; anything else renders none. The handle stays on the container.
-            $position = trim($input->getString('position', ''));
+            $position = trim(RequestScalar::string($input, 'position', ''));
             $this->cardPosition = ctype_digit($position) && (int) $position >= 1 ? (int) $position : null;
             $this->resultAttribution = new ResultAttribution(engine: self::engineKey());
             $this->announceResultSet(kind: ResultSetRenderEvent::KIND_CARD);
@@ -177,7 +179,7 @@ class HtmlView extends BaseHtmlView
         // only; AJAX partials never reach this path.
         // getCmd returns NULL (not '') for an absent param; compare against an
         // explicit default or the strict check never matches.
-        if ($input->getCmd('tmpl', '') === '' && ($canonical = $itemsModel->getCanonicalMenuUrl())) {
+        if (RequestScalar::cmd($input, 'tmpl', '') === '' && ($canonical = $itemsModel->getCanonicalMenuUrl())) {
             $this->app->redirect($canonical, 301);
 
             return;
@@ -283,7 +285,7 @@ class HtmlView extends BaseHtmlView
         $this->_prepareDocument();
 
         // Every rendered result set is announced, from the view and never from a template, so no override can lose it.
-        $this->announceResultSet(kind: \in_array($input->getCmd('tmpl', ''), ['', 'index', 'offline'], true) ? ResultSetRenderEvent::KIND_PAGE : ResultSetRenderEvent::KIND_FRAGMENT);
+        $this->announceResultSet(kind: \in_array(RequestScalar::cmd($input, 'tmpl', ''), ['', 'index', 'offline'], true) ? ResultSetRenderEvent::KIND_PAGE : ResultSetRenderEvent::KIND_FRAGMENT);
 
         parent::display($tpl);
     }
@@ -363,8 +365,8 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * A handle that belongs to this response alone is never shared through Joomla's page cache (2.2.0): for this
-     * request, onPageCacheIsExcluded answers true. allowCache(false) would not do it: the page cache never reads it.
+     * A handle that belongs to this response alone is never shared through Joomla's page cache (2.2.0), through the
+     * storefront's one way of saying so ({@see PageCache::excludeResponse()}).
      *
      * @since  2.2.0
      */
@@ -374,9 +376,7 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        AlfaPluginHelper::get()->listen('onPageCacheIsExcluded', static function ($event): void {
-            $event->addResult(true);
-        });
+        PageCache::excludeResponse();
     }
 
     /**
@@ -653,7 +653,7 @@ class HtmlView extends BaseHtmlView
         // through to templates/system, whose index.php just includes its own component.php.
         // Not a redirect: tmpl is the filter modules' AJAX transport. The card reload
         // (layout=item) never reaches here: display() returns before _prepareDocument().
-        $tmpl = $this->app->getInput()->getCmd('tmpl', '');
+        $tmpl = RequestScalar::cmd($this->app->getInput(), 'tmpl', '');
 
         if (!\in_array($tmpl, ['', 'index', 'offline'], true)) {
             $document->setMetaData('robots', 'noindex, follow');

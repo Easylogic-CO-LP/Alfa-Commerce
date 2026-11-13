@@ -737,10 +737,8 @@ class FormfieldModel extends AlfaAdminModel
         $tableKey = $origTable->getKeyName();
 
         $isNew = $data['id'] <= 0;
-        $fallBackSqlType = 'text'; // Default SQL type if none provided
 
         $newTableColumnName = $data['field_name'];
-        $type = $data['formfieldsparams']['sql_type'] ?: $fallBackSqlType;
 
         // Get all columns from the user info table
         $tableColumns = $db->getTableColumns($this->orderUserInfoTableName, false);

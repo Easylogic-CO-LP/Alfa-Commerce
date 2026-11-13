@@ -480,7 +480,8 @@ final class IncrementalCorrection
             ];
         }
 
-        return (object) ['issued' => DocumentIssuer::issue($proposal->draft), 'proposal' => $proposal];
+        // Issued as the person the proposal was judged for: a correction is an ordinary issuance.
+        return (object) ['issued' => DocumentIssuer::issue(draft: $proposal->draft, actor: $user), 'proposal' => $proposal];
     }
 
     /**

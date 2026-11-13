@@ -12,11 +12,17 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Site\Service\ShowOn\SubmitAuthority;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Model\FormModel;
+use Joomla\CMS\User\UserHelper;
+use RuntimeException;
+use Throwable;
 
 /**
  * Registration model: wraps the core com_users registration model
@@ -126,11 +132,16 @@ class RegistrationModel extends FormModel
     }
 
     /**
-     * Create the user through the core model (activation emails included).
+     * Create the user through the core model (activation emails included), then store the customer details the form
+     * carried for that account.
+     *
+     * The details stored are the ones validate() answered: filtered by each field, checked by its rules and pruned of
+     * every field a ShowOn rule hides. The raw request is never read here, and no other user save writes customer
+     * details (2.2.1).
      *
      * @param array $data Validated form data.
      *
-     * @return string|false Activation mode on success, false on failure.
+     * @return string|int|false Activation mode or the new user's id on success, false on failure.
      *
      * @since  1.0.1
      */
@@ -142,9 +153,51 @@ class RegistrationModel extends FormModel
             foreach ($this->getCoreModel()->getErrors() as $error) {
                 $this->setError($error);
             }
+
+            return $result;
         }
 
+        $this->storeDetails(data: $data);
+
         return $result;
+    }
+
+    /**
+     * Store the validated customer details of a registration for the account it created.
+     *
+     * The account is the one the core model has just saved under the validated username: Joomla keeps usernames
+     * unique, and an account that waits for activation is saved before the core model answers, so the same read
+     * finds it whatever the activation mode. The registration stands when the details cannot be stored: the account
+     * exists and its mails are sent, so the failure is logged and the customer adds the details later.
+     *
+     * @param array $data Validated form data.
+     *
+     * @since  2.2.1
+     */
+    private function storeDetails(array $data): void
+    {
+        $values = (array) ($data[FieldsHelper::FIELDS_KEY] ?? []);
+
+        if ($values === []) {
+            return;
+        }
+
+        $userId = (int) UserHelper::getUserId((string) ($data['username'] ?? ''));
+
+        try {
+            if ($userId <= 0) {
+                throw new RuntimeException('the account just registered could not be read back by its username');
+            }
+
+            UserInfoHelper::insertData(userId: $userId, data: $values);
+        } catch (Throwable $e) {
+            AlfaLog::register();
+            Log::add(
+                'Registration' . ($userId > 0 ? ' of user #' . $userId : '') . ': the customer details were not stored: ' . $e->getMessage(),
+                Log::ERROR,
+                'com_alfa.admin',
+            );
+        }
     }
 
     /**

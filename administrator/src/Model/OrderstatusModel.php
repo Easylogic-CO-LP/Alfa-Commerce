@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\LanguageHelper;
@@ -424,10 +425,12 @@ class OrderstatusModel extends AlfaAdminModel
         $adminRecipientIds = self::extractAdminRecipientIds(data: $data);
         unset($data['admin_recipient_ids']);
 
-        // Auto-issuance rule rows (subform) -> one JSON column. Normalised on
-        // every full form save (the delivery-note radio always posts), so
-        // removing the last row clears the stored rules too.
-        if (\array_key_exists('issues_delivery_note', $data)) {
+        // Auto-issuance rule rows (subform) -> one JSON column. Normalised
+        // whenever the save carries the rules (a REST create or update with or
+        // without the delivery-note setting, 2.2.1) and on every full form save
+        // (the delivery-note radio always posts), so removing the last row
+        // clears the stored rules too.
+        if (\array_key_exists('issues_doc_rules', $data) || \array_key_exists('issues_delivery_note', $data)) {
             $rules = $data['issues_doc_rules'] ?? [];
 
             if (!\is_array($rules)) {
@@ -498,11 +501,17 @@ class OrderstatusModel extends AlfaAdminModel
         }
 
         if ((int) $value !== 1) {
+            $refusals = [];
             $pks = $this->removableStatuses(
                 pks:          $pks,
                 messageKey:   'COM_ALFA_ORDERSTATUS_PUBLISH_LAST_ROLE_HOLDER',
                 requireState: 1,
+                refusals:     $refusals,
             );
+
+            foreach ($refusals as $refusal) {
+                Factory::getApplication()->enqueueMessage($refusal, 'warning');
+            }
 
             if (empty($pks)) {
                 return false;
@@ -548,13 +557,27 @@ class OrderstatusModel extends AlfaAdminModel
         // parent::delete() normalises, and everything below runs before it.
         $pks = (array) $pks;
 
+        $refusals = [];
         $pks = $this->removableStatuses(
             pks:        $pks,
             messageKey: 'COM_ALFA_ORDERSTATUS_DELETE_LAST_ROLE_HOLDER',
+            refusals:   $refusals,
         );
 
         if (empty($pks)) {
+            // Every status asked for is the last holder of a role. A model error, not a queued message: the
+            // back office prints it, and the REST delete answers 409 with the sentence instead of 204 for a
+            // row that is still there (2.2.1).
+            if ($refusals !== []) {
+                $this->setError(new DeleteRefusedException(implode(' ', $refusals)));
+            }
+
             return false;
+        }
+
+        // Some of them were kept for their role: the others go, and each kept one is named.
+        foreach ($refusals as $refusal) {
+            Factory::getApplication()->enqueueMessage($refusal, 'warning');
         }
 
         // IN-USE GUARD: a status referenced by orders is part of their
@@ -570,10 +593,9 @@ class OrderstatusModel extends AlfaAdminModel
             )->loadResult();
 
             if ($used > 0) {
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf('COM_ALFA_ORDERSTATUS_DELETE_IN_USE', (int) $pk, $used),
-                    'error',
-                );
+                // A model error, not a queued message: the REST delete answers it with 409 and the sentence
+                // instead of 204 for a status that is still there (2.2.1).
+                $this->setError(new DeleteRefusedException(Text::sprintf('COM_ALFA_ORDERSTATUS_DELETE_IN_USE', (int) $pk, $used)));
 
                 return false;
             }
@@ -741,9 +763,11 @@ class OrderstatusModel extends AlfaAdminModel
      *
      * Walks $pks in admin-selection order with a running holder count
      * per flag. If removing a row would drop a role's count to zero,
-     * the row is excluded from the returned set and an admin warning
-     * is queued naming which role saved it. The remaining rows get
-     * passed on to `parent::delete()` / `parent::publish()`.
+     * the row is excluded from the returned set and the sentence naming
+     * which role saved it is added to $refusals; the caller says it (a
+     * warning when other rows go ahead, the delete's refusal when none
+     * does). The remaining rows get passed on to `parent::delete()` /
+     * `parent::publish()`.
      *
      * @param array $pks Row PKs submitted by the toolbar
      *                   or controller.
@@ -752,13 +776,15 @@ class OrderstatusModel extends AlfaAdminModel
      *                           name).
      * @param int|null $requireState When set, only rows in that state
      *                               count as holders.
+     * @param string[] $refusals Filled with one sentence per row kept
+     *                           for its role (by reference).
      *
      * @return int[] PKs safe to remove, in admin-selection order.
      *               Empty when every submitted PK would orphan a role.
      *
      * @since  1.0.0
      */
-    protected function removableStatuses(array $pks, string $messageKey, ?int $requireState = null): array
+    protected function removableStatuses(array $pks, string $messageKey, ?int $requireState = null, array &$refusals = []): array
     {
         $candidates = array_values(array_filter(
             array_map('intval', $pks),
@@ -816,10 +842,7 @@ class OrderstatusModel extends AlfaAdminModel
             }
 
             if ($orphanFlag !== null) {
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf($messageKey, Text::_(self::ROLE_LANG_KEYS[$orphanFlag])),
-                    'warning',
-                );
+                $refusals[] = Text::sprintf($messageKey, Text::_(self::ROLE_LANG_KEYS[$orphanFlag]));
                 continue;
             }
 

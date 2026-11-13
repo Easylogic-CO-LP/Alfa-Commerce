@@ -1557,7 +1557,9 @@ class ItemController extends FormController
         // switch without its opening figures or over open reservations, figures
         // that disagree with the stock records, a stock target the inventory
         // service would refuse. A refused save writes no column, no media and no
-        // stock, and says what is required.
+        // stock, and says what is required. A thumbnail of the variant's gallery
+        // that is not an image file of the media folders is one such refusal
+        // (2.2.1, MediaHelper::thumbnailRefusals()).
         $plan = ItemFieldsAdminHelper::studioStockPlan(
             itemId:         $itemId,
             combinationId:  $combinationId,
@@ -1566,9 +1568,10 @@ class ItemController extends FormController
             postedBaseline: $postedBaseline,
             postedOpening:  $postedOpening,
         );
+        $refusals = array_merge($plan['refusals'], MediaHelper::thumbnailRefusals(mediaData: (array) ($jform['media'] ?? [])));
 
-        if ($plan['refusals'] !== []) {
-            foreach ($plan['refusals'] as $refusal) {
+        if ($refusals !== []) {
+            foreach ($refusals as $refusal) {
                 $app->enqueueMessage($refusal, 'error');
             }
 

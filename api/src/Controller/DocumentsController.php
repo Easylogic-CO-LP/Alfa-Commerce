@@ -11,12 +11,14 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentIssuer;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfLibraryMissingException;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\InputFilter;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
@@ -59,32 +61,31 @@ class DocumentsController extends ApiController
     public function displayList()
     {
         $apiFilterInfo = $this->input->get('filter', [], 'array');
-        $filter = InputFilter::getInstance();
 
         if (\array_key_exists('search', $apiFilterInfo)) {
-            $this->modelState->set('filter.search', $filter->clean($apiFilterInfo['search'], 'STRING'));
+            $this->modelState->set('filter.search', RequestScalar::member($apiFilterInfo, 'search', 'STRING', 'filter'));
         }
 
         if (\array_key_exists('doc_type', $apiFilterInfo)) {
-            $this->modelState->set('filter.doc_type', $filter->clean($apiFilterInfo['doc_type'], 'CMD'));
+            $this->modelState->set('filter.doc_type', RequestScalar::member($apiFilterInfo, 'doc_type', 'CMD', 'filter'));
         }
 
         if (\array_key_exists('status', $apiFilterInfo)) {
-            $this->modelState->set('filter.status', $filter->clean($apiFilterInfo['status'], 'INT'));
+            $this->modelState->set('filter.status', RequestScalar::member($apiFilterInfo, 'status', 'INT', 'filter'));
         }
 
         if (\array_key_exists('id_order', $apiFilterInfo)) {
-            $this->modelState->set('filter.id_order', $filter->clean($apiFilterInfo['id_order'], 'INT'));
+            $this->modelState->set('filter.id_order', RequestScalar::member($apiFilterInfo, 'id_order', 'INT', 'filter'));
         }
 
         $apiListInfo = $this->input->get('list', [], 'array');
 
         if (\array_key_exists('ordering', $apiListInfo)) {
-            $this->modelState->set('list.ordering', $filter->clean($apiListInfo['ordering'], 'STRING'));
+            $this->modelState->set('list.ordering', RequestScalar::member($apiListInfo, 'ordering', 'STRING', 'list'));
         }
 
         if (\array_key_exists('direction', $apiListInfo)) {
-            $this->modelState->set('list.direction', $filter->clean($apiListInfo['direction'], 'STRING'));
+            $this->modelState->set('list.direction', RequestScalar::member($apiListInfo, 'direction', 'STRING', 'list'));
         }
 
         return parent::displayList();
@@ -174,6 +175,9 @@ class DocumentsController extends ApiController
      *
      * GET v1/alfa/documents/:id/pdf
      *
+     * Without the dompdf library, which is installed separately, the answer is 503 with the sentence that names it
+     * (2.2.1): the server lacks a part, the document is fine, and its HTML route still answers.
+     *
      *
      * @since  2.0.0
      */
@@ -185,6 +189,8 @@ class DocumentsController extends ApiController
 
         try {
             $bytes = PdfRenderer::pdfBytes((int) $document->id);
+        } catch (PdfLibraryMissingException $e) {
+            throw new Save(Text::_('COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING'), 503, $e);
         } catch (Throwable $e) {
             throw new Save('The document could not be rendered: ' . $e->getMessage(), 500);
         }
@@ -269,6 +275,6 @@ class DocumentsController extends ApiController
             ? $this->input->post
             : $this->input;
 
-        return (int) $bag->getInt($name, 0);
+        return RequestScalar::int($bag, $name, 0);
     }
 }

@@ -48,6 +48,7 @@ use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -160,8 +161,11 @@ class OrderPlacement
     protected int $committedOrderId = 0;
 
     /**
-     * @var array<string, \Alfa\Component\Alfa\Site\Service\Pricing\Money>|null
-     *                                                                          What the purchase came to, read while the cart still held it.
+     * What the purchase came to, read while the cart still held it (captureCompletedTotals()): the carrier's charge
+     * with and without tax, the rate, basis and ordered tax chain it was formed with, and the grand total with and
+     * without tax.
+     *
+     * @var array{shipping_incl: Money, shipping_excl: Money, shipping_rate: float, shipping_basis: string|null, shipping_chain: array<int, array{rate: string, name: string}>, paid_incl: Money, paid_excl: Money}|null
      * @since  2.0.0
      */
     private ?array $completedTotals = null;
@@ -311,9 +315,9 @@ class OrderPlacement
         return $this->place(new PlacementCommand(
             delivery:         $data,
             billing:          $billing,
-            paymentMethodId:  (int) $this->app->input->getInt('payment_method', 0),
-            shipmentMethodId: (int) $this->app->input->getInt('shipment_method', 0),
-            useCredit:        (int) $this->app->input->getInt('use_credit', 0) === 1,
+            paymentMethodId:  RequestScalar::int($this->app->input, 'payment_method', 0),
+            shipmentMethodId: RequestScalar::int($this->app->input, 'shipment_method', 0),
+            useCredit:        RequestScalar::int($this->app->input, 'use_credit', 0) === 1,
         ));
     }
 

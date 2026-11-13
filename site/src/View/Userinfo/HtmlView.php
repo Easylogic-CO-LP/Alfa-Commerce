@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\View\Userinfo;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
@@ -58,7 +59,7 @@ class HtmlView extends BaseHtmlView
         $model = $this->getModel();
         $this->rows = $model->getRows();
         $this->form = $model->getForm();
-        $this->editId = $app->input->getInt('id', 0);
+        $this->editId = RequestScalar::int($app->input, 'id', 0);
 
         $this->setDocumentTitle(Text::_('COM_ALFA_USERINFO_PAGE_TITLE'));
 

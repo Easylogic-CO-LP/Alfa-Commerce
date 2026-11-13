@@ -39,16 +39,17 @@ final class PdfRenderer
      *
      * @return string Raw PDF bytes.
      *
-     * @throws RuntimeException When the document is missing, lib_dompdf is
-     *                          not installed, or rendering fails.
+     * @throws PdfLibraryMissingException When lib_dompdf is not installed, asked first: nothing is rendered for a
+     *                                    PDF that cannot be made.
+     * @throws RuntimeException When the document is missing or rendering fails.
      *
      * @since  2.0.0
      */
     public static function pdfBytes(int $documentId): string
     {
-        $html = DocumentRenderer::render(documentId: $documentId);
-
         self::loadDompdf();
+
+        $html = DocumentRenderer::render(documentId: $documentId);
 
         $tmpDir = self::tmpDir();
 
@@ -112,10 +113,33 @@ final class PdfRenderer
     }
 
     /**
+     * Whether a PDF can be made here: the dompdf library is loaded, or the lib_dompdf Joomla library
+     * (libraries/dompdf) is installed. The setup checklist asks the same question.
+     *
+     * @since  2.2.1
+     */
+    public static function libraryInstalled(): bool
+    {
+        return class_exists(\Dompdf\Dompdf::class) || is_file(self::autoloadPath());
+    }
+
+    /**
+     * The lib_dompdf library's own autoloader.
+     *
+     * @since  2.2.1
+     */
+    private static function autoloadPath(): string
+    {
+        return JPATH_LIBRARIES . '/dompdf/autoload.inc.php';
+    }
+
+    /**
      * Load dompdf from the lib_dompdf Joomla library (libraries/dompdf).
      *
      * The library's own autoload.inc.php registers Dompdf plus every
      * bundled dependency namespace: no namespace-map entry needed.
+     *
+     * @throws PdfLibraryMissingException When the library is not installed.
      *
      * @since  2.0.0
      */
@@ -125,12 +149,10 @@ final class PdfRenderer
             return;
         }
 
-        $autoload = JPATH_LIBRARIES . '/dompdf/autoload.inc.php';
-
-        if (!is_file($autoload)) {
-            throw new RuntimeException('PdfRenderer: the dompdf library is not installed (install lib_dompdf).');
+        if (!is_file(self::autoloadPath())) {
+            throw new PdfLibraryMissingException();
         }
 
-        require_once $autoload;
+        require_once self::autoloadPath();
     }
 }

@@ -38,6 +38,10 @@ use Throwable;
  * the same guards for every row: never its own image, never a file outside the save folder, never a file
  * another row names as its path or thumbnail.
  *
+ * ONLY AN IMAGE OF THE MEDIA FOLDERS (2.2.1). A row whose image is not a file MediaHelper::isThumbnailSource() accepts
+ * (outside the media folders, not of an image extension, or not an image of its kind) is failed with that reason and
+ * named in the report; nothing is read from it or copied.
+ *
  * WHAT A TICK CAN DECODE (REV-C21 MAJOR 3, measured in c21r2). An image whose decode does not fit the memory the tick
  * has left is not opened: the row is failed with that reason and the walk goes on, so one image too big for the process
  * never ends every tick in a fatal. The need is GD's measured peak by format (decodeNeed()), with a quarter more.
@@ -139,6 +143,14 @@ final class ThumbnailRecreation
      * @since  2.2.0
      */
     public const REASON_CHANGED = 'changed';
+
+    /**
+     * Why a row's thumbnail was not made: its image is not a file a thumbnail may be made from (2.2.1,
+     * MediaHelper::isThumbnailSource()).
+     *
+     * @since  2.2.1
+     */
+    public const REASON_SOURCE = 'source';
 
     /**
      * Ask for the thumbnails to be recreated in a mode: the job, or the one already waiting or running.
@@ -270,8 +282,9 @@ final class ThumbnailRecreation
      * Recreate one row's thumbnail in a mode, when the mode asks for it.
      *
      * The outcome is 'made', 'kept' (the mode does not ask for it, or the merchant chose it on the tile), 'missing' (the
-     * row's own image file is gone) or 'failed' with its reason (self::REASON_MEMORY, self::REASON_WRITE,
-     * self::REASON_CHANGED). A row made again has its previous thumbnail file deleted (deleteUnnamed()).
+     * row's own image file is gone) or 'failed' with its reason (self::REASON_SOURCE, self::REASON_MEMORY,
+     * self::REASON_WRITE, self::REASON_CHANGED). A row made again has its previous thumbnail file deleted
+     * (deleteUnnamed()).
      *
      * @param object $row The row (id, path, thumbnail, thumbnail_origin).
      * @param string $mode self::MODE_ALL or self::MODE_MISSING.
@@ -297,6 +310,11 @@ final class ThumbnailRecreation
 
         if ($mode !== self::MODE_ALL && !self::lacks(row: $row)) {
             return self::outcome(outcome: 'kept');
+        }
+
+        // The one rule for a thumbnail's source: a stored image that breaks it is reported, never read or copied.
+        if (!MediaHelper::isThumbnailSource(file: JPATH_ROOT . '/' . $image)) {
+            return self::outcome(outcome: 'failed', reason: self::REASON_SOURCE);
         }
 
         if (!self::decodeFits(file: JPATH_ROOT . '/' . $image)) {

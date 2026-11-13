@@ -143,34 +143,6 @@ class PlaceModel extends AlfaAdminModel
     }
 
     /**
-     * Method to save the form data.
-     *
-     * @param array $data The form data.
-     *
-     * @return bool True on success, False on error.
-     *
-     * @since  1.0.0
-     */
-    public function save($data)
-    {
-        $app = Factory::getApplication();
-        $db = $this->getDatabase();
-
-        if (!parent::save($data)) {
-            return false;
-        }
-
-        $currentId = 0;
-        if ($data['id'] > 0) { //not a new
-            $currentId = intval($data['id']);
-        } else { // is new
-            $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
-        }
-
-        return true;
-    }
-
-    /**
      * Prepare and sanitise the table prior to saving.
      *
      * @param Table $table Table Object
