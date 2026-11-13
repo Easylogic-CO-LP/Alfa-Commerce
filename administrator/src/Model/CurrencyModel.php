@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartPersistenceException;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\Model;
@@ -66,7 +67,9 @@ class CurrencyModel extends AlfaAdminModel
      * their payment currency), order payments / shipments, product prices and
      * places, since those rows freeze or depend on the currency and would break
      * without it. Transient (cart) and rebuildable (price index) references are not
-     * guarded. In-use ids are dropped from the batch with a message; the rest delete.
+     * guarded. In-use ids are dropped from the batch with a message; the rest delete. When every id asked for is in
+     * use, the refusal is the model's DeleteRefusedException (2.2.1): the back office prints the sentence, and the REST
+     * delete answers 409 with it instead of 204 for a currency that is still there.
      *
      * @param array $pks The ids to delete.
      *
@@ -101,16 +104,17 @@ class CurrencyModel extends AlfaAdminModel
         }
 
         if ($blocked) {
-            Factory::getApplication()->enqueueMessage(
-                Text::sprintf('COM_ALFA_CURRENCY_IN_USE_CANNOT_DELETE', implode(', ', $blocked)),
-                'error',
-            );
-
+            $refusal = Text::sprintf('COM_ALFA_CURRENCY_IN_USE_CANNOT_DELETE', implode(', ', $blocked));
             $pks = array_values(array_diff($pks, $blocked));
 
             if (!$pks) {
+                $this->setError(new DeleteRefusedException($refusal));
+
                 return false;
             }
+
+            // Some of them are free: those go, and the ones in use are named.
+            Factory::getApplication()->enqueueMessage($refusal, 'error');
         }
 
         $deleted = $pks;
