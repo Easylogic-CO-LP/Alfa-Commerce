@@ -34,7 +34,7 @@ A full-featured eCommerce component for Joomla 6.1+, developed by [Easylogic](ht
 
 Alfa Commerce exposes a REST API for integration with external applications.
 
-[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/40562641-33ef70bd-e1ce-4aba-8119-c055ab328589?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D40562641-33ef70bd-e1ce-4aba-8119-c055ab328589%26entityType%3Dcollection%26workspaceId%3Db23f2240-19a2-4390-8194-519ced76ff26)
+REST API: the Manual's [REST API page](https://manual.alfacommerce.gr/docs/api/overview/) explains the routes and carries the Postman collection, the one place that holds its link.
 
 ## Documentation
 
