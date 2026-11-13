@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use LogicException;
 use SimpleXMLElement;
 
 /**
@@ -389,12 +390,16 @@ class UsergroupModel extends AlfaAdminModel
      *
      * @return string The column's JSON.
      *
+     * @throws LogicException For a group whose new-group value is not stated.
+     *
      * @since  2.2.1
      */
     private static function newGroupValue(string $groupName): string
     {
         return match ($groupName) {
             'prices_display' => SyncHelper::buildDefaultPricesDisplay(),
+            // A group added to OVERRIDE_FIELDSETS states its new-group value here.
+            default => throw new LogicException('A new customer group has no stated value for ' . $groupName . '.'),
         };
     }
 }
