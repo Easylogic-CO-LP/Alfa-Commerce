@@ -19,7 +19,7 @@ use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\Console\Command\AbstractCommand;
-use Joomla\Database\DatabaseInterface;
+use Joomla\Database\DatabaseDriver;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -71,11 +71,13 @@ final class InventoryAuditCommand extends AbstractCommand
     protected static $defaultName = 'alfa:inventory:audit';
 
     /**
-     * @param DatabaseInterface $db The connection the snapshot is opened on and the audit reads through.
+     * @param DatabaseDriver $db The connection the snapshot is opened on and the audit reads through. A driver: the
+     *                           snapshot is closed through TransactionState::rollBackLevel(), which reads the
+     *                           transaction depth only the driver keeps.
      *
      * @since  1.0.0
      */
-    public function __construct(private readonly DatabaseInterface $db)
+    public function __construct(private readonly DatabaseDriver $db)
     {
         parent::__construct();
     }

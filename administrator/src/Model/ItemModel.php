@@ -741,6 +741,15 @@ class ItemModel extends AlfaAdminModel
             return $this->refuseSave(messages: [$categoryRefusal]);
         }
 
+        // A thumbnail the gallery names must be an image file of the media folders (2.2.1, MediaHelper::thumbnailRefusals()):
+        // a save naming any other is refused before anything is written, from the form and the API alike, so the
+        // gallery keeps the thumbnails it stores.
+        $thumbnailRefusals = MediaHelper::thumbnailRefusals(mediaData: (array) ($data['media'] ?? []));
+
+        if ($thumbnailRefusals !== []) {
+            return $this->refuseSave(messages: $thumbnailRefusals);
+        }
+
         // PRE-FLIGHT: every stock, tracking and combination refusal that can be
         // known before the row is written refuses the whole save up front, so a
         // refused request writes nothing at all.

@@ -19,6 +19,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Response\JsonResponse;
 use Joomla\CMS\Session\Session;
+use Joomla\Input\Input;
 use Joomla\Registry\Registry;
 
 defined('_JEXEC') or die;
@@ -102,8 +103,14 @@ class AlfaCartHelper
 
         $app->getSession()->set('application.queue', $app->getMessageQueue());
 
-        $lineId = $input->getInt('id_line', 0);
-        $quantity = $input->getInt('quantity', 1);
+        $lineId = self::requestValue(input: $input, name: 'id_line', filter: 'int', default: 0);
+        $quantity = self::requestValue(input: $input, name: 'quantity', filter: 'int', default: 1);
+
+        if ($lineId === null || $quantity === null) {
+            self::refuseRequestValue();
+
+            return;
+        }
 
         $priceSettings = self::buildPriceSettings($params);
 
@@ -111,7 +118,7 @@ class AlfaCartHelper
         // line removed when it reaches 0, and ownership is scoped to this cart.
         // What comes back is the verdict and a reading of the cart the change
         // left behind, never the thing that made it.
-        $outcome = CartService::ambient()->setLineQuantity($lineId, $quantity);
+        $outcome = CartService::ambient()->setLineQuantity((int) $lineId, (int) $quantity);
         $errorOccurred = !$outcome->succeeded;
         $snapshot = $outcome->snapshot;
 
@@ -204,5 +211,40 @@ class AlfaCartHelper
         }
 
         return $builder->get();
+    }
+
+    /**
+     * One value of the request, through Joomla's filter, or null when the request sends a list in its place (2.2.1): a
+     * list handed on to a typed parameter fails with an error page that names a file of the site, so it is refused
+     * before any use.
+     *
+     * @param Input $input The request.
+     * @param string $name The value's name.
+     * @param string $filter Joomla's filter: int, cmd or string.
+     * @param int|string $default The value when the request carries none.
+     *
+     * @since  2.2.1
+     */
+    private static function requestValue(Input $input, string $name, string $filter, int|string $default): mixed
+    {
+        if (\is_array($input->get($name, null, 'raw'))) {
+            return null;
+        }
+
+        return $input->get($name, $default, $filter);
+    }
+
+    /**
+     * Answer a request that sent a list where one value is expected: 400, with this module's sentence and no file of the
+     * site named (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    private static function refuseRequestValue(): void
+    {
+        http_response_code(400);
+        header('Content-Type: application/json; charset=utf-8');
+        echo new JsonResponse(null, Text::_('MOD_ALFA_CART_ERROR_REQUEST_VALUE'), true);
+        Factory::getApplication()->close();
     }
 }

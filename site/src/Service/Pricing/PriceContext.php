@@ -145,6 +145,12 @@ class PriceContext
      *           A place that may not price a visitor (unpublished, or inside
      *           an unpublished place) is the unknown place.
      *
+     * Page cache: a visitor whose session holds either key is priced for
+     *           that visitor alone, so System - Alfa Commerce Sync keeps
+     *           every page of that visitor out of Joomla's System - Page
+     *           Cache (a page stored for one visitor's currency or place is
+     *           never served to another). Other page caches must do the same.
+     *
      * Identity: the signed-in account, or the anonymous visitor for a guest
      *           (withCustomer()).
      * @since  1.0.0

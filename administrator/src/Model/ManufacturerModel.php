@@ -153,6 +153,17 @@ class ManufacturerModel extends AlfaAdminModel
             return false;
         }
 
+        // A thumbnail the gallery names must be an image file of the media folders (2.2.1, MediaHelper::thumbnailRefusals()):
+        // a save naming any other is refused before anything is written, from the form and the API alike, so the
+        // gallery keeps the thumbnails it stores.
+        $thumbnailRefusals = MediaHelper::thumbnailRefusals(mediaData: (array) ($data['media'] ?? []));
+
+        if ($thumbnailRefusals !== []) {
+            $this->setError(implode(' ', $thumbnailRefusals));
+
+            return false;
+        }
+
         if (!parent::save($data)) {
             return false;
         }

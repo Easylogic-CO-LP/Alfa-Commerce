@@ -45,7 +45,14 @@ use Throwable;
  *                     delete/publish path, and {@see self::invalidate()} from
  *                     plg_system_alfasync when the world outside com_alfa changes
  *                     (storefront menu items, gateway plugins, component params);
- *   - demand        - surfaces that show the checklist itself pass `$fresh = true`.
+ *   - demand        - surfaces that show the checklist itself pass `$fresh = true`;
+ *   - reading       - the page cache check's reading ({@see CoreSetupProvider::pageCacheReading()})
+ *                     is kept beside the verdict and compared on every read: Joomla's page cache
+ *                     and plg_system_alfasync change without an event the plugin can hear (its own
+ *                     enabling, any switch while it is off), and a verdict computed under another
+ *                     reading is computed again. Its cost on every status() call: two indexed reads
+ *                     of #__extensions (the two plugins' rows) and the guest's view levels, which
+ *                     Joomla reads once per request (the view levels table and the guest group).
  *
  * Notification push/clear happens ONLY inside a recompute, and re-alerts only when
  * the verdict actually transitions; a cache hit can never nag.
@@ -126,7 +133,14 @@ final class SetupHelper
                     'caching' => true,
                 ]);
 
-            return (array) $cache->get([self::class, 'evaluate'], [], 'status');
+            $status = (array) $cache->get([self::class, 'evaluate'], [], 'status');
+
+            if (($status['basis'] ?? null) !== CoreSetupProvider::pageCacheReading()) {
+                self::invalidate();
+                $status = (array) $cache->get([self::class, 'evaluate'], [], 'status');
+            }
+
+            return $status;
         } catch (Throwable) {
             // Cache unavailable -> compute directly (correct, just uncached).
             return self::evaluate();
@@ -141,6 +155,7 @@ final class SetupHelper
      * Shape:
      *   version   int     - cache-shape version (bump when rows change meaning)
      *   generated string  - SQL datetime of this evaluation
+     *   basis     array   - the page cache check's reading this evaluation used
      *   checks    array[] - {id, tier, label, reason, cta, tour, priority, state,
      *                        provisionable, owner_group, owner_name}, priority DESC
      *   counts    array   - total/done/required/required_missing/recommended_missing/
@@ -199,8 +214,10 @@ final class SetupHelper
         $pairs = array_map(static fn (array $row): string => $row['id'] . ':' . $row['state'], $rows);
 
         $status = [
-            'version' => 1,
+            'version' => 2,
             'generated' => Factory::getDate()->toSql(),
+            // What the page cache check read: a later read under another one computes again (status()).
+            'basis' => CoreSetupProvider::pageCacheReading(),
             'checks' => $rows,
             'counts' => $counts,
             'signature' => md5(implode('|', $pairs)),

@@ -86,7 +86,9 @@ class Storage
      *
      * Generates a random 64-hex key, shards it into the store and captures
      * the metadata the DB rows need. The source is MOVED (upload tmp files
-     * must not linger in a public tmp dir).
+     * must not linger in a public tmp dir). The first object of a store that
+     * had nothing to protect has its protection checked once
+     * ({@see StoreProtection::fileAdded()}).
      *
      * @param string $sourcePath Absolute path of the file to ingest
      *                           (typically the PHP upload tmp_name).
@@ -122,6 +124,8 @@ class Storage
         }
 
         @chmod($targetPath, 0o640);
+
+        StoreProtection::fileAdded(object: $targetPath);
 
         return (object) [
             'storage_disk' => self::DISK_LOCAL,
