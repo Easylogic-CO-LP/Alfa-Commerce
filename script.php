@@ -1790,9 +1790,8 @@ class com_alfaInstallerScript extends InstallerScript
 
         try
         {
-            $named = $compatibility::named();
+            $named = $compatibility::notify(alert: true);
             $line  = $compatibility::coreLine();
-            $compatibility::notify(alert: true);
         }
         catch (\Throwable $e)
         {

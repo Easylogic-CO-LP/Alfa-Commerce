@@ -157,16 +157,21 @@ final class ExtensionCompatibility
      * uninstalled): a standing notification is brought up to date, its read state kept, or cleared when nothing is
      * named any more; none is raised.
      *
+     * It answers what it named ({@see self::named()}); nothing when there was no standing notification to bring up to
+     * date.
+     *
      * @param bool $alert Whether this is Alfa Commerce's own installation.
+     *
+     * @return list<array{key: string, name: string, verdict: string, why: string}>
      *
      * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
      *
      * @since  2.2.1
      */
-    public static function notify(bool $alert): void
+    public static function notify(bool $alert): array
     {
         if (!$alert && !NotificationHelper::isOpen(dedupKey: self::NOTICE)) {
-            return;
+            return [];
         }
 
         $named = self::named();
@@ -180,7 +185,7 @@ final class ExtensionCompatibility
                 NotificationHelper::clear(dedupKey: self::NOTICE);
             }
 
-            return;
+            return [];
         }
 
         $line = self::coreLine();
@@ -214,6 +219,8 @@ final class ExtensionCompatibility
                 'link' => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
             ],
         );
+
+        return $named;
     }
 
     /**
