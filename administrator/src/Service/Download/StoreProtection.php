@@ -38,8 +38,9 @@ use Throwable;
  *
  * The canary's name is random and is no storage key, so it can never be served or sold, and it
  * is deleted as soon as the answer is in. The result is recorded as `downloads_protection` in
- * `#__alfa_meta` (state, when, which URL, which store). The probe runs on four occasions only:
- * install, update, a change of the store's path, and "Check again".
+ * `#__alfa_meta` (state, when, which URL, which store). The probe runs on these occasions only:
+ * install, update, a change of the store's path, the first file written into a store that had
+ * nothing to protect, and "Check again".
  * A path change is seen by the first administrator page that resolves the store
  * ({@see self::current()}); nothing probes on a schedule or on other page loads, and never on a
  * storefront request. A result that is not verified stays a security warning on every Alfa
@@ -48,7 +49,9 @@ use Throwable;
  *
  * The check can be switched off in Options > Downloads ({@see self::isOn()}): then only "Check
  * again" probes, and nothing is said anywhere but in the Options, which show the last recorded
- * result. A result that
+ * result. While the store has nothing to protect (no file of a product, none an order hands out:
+ * {@see self::hasFiles()}) nothing probes either and nothing is said; the first file written into
+ * the store is checked at once ({@see self::fileAdded()}). A result that
  * cannot be saved is never verified: it is kept for the request and said, and the next page,
  * finding nothing recorded, says the store is unchecked instead of probing again. The raw
  * reason of any failure goes to the downloads log, never into the message.
@@ -100,6 +103,11 @@ class StoreProtection
     private static array $answers = [];
 
     /**
+     * Whether the store has anything to protect, as this request found it; null until asked.
+     */
+    private static ?bool $hasFiles = null;
+
+    /**
      * @param string|null $knownRoot The store root when the caller has settled it already (the
      *                               installer, before the Options are readable); null resolves it.
      *
@@ -119,6 +127,52 @@ class StoreProtection
     public static function isOn(): bool
     {
         return (int) ComponentHelper::getParams('com_alfa')->get(self::OPTION_CHECK, 1) === 1;
+    }
+
+    /**
+     * Whether the store has anything to protect: a file of a product, or a file an order still
+     * hands out. Every object a buyer can be handed is named by a row of one of the two download
+     * tables, so one query answers it without reading the store's folders; the answer is kept for
+     * the rest of the request.
+     *
+     * @since  2.2.1
+     */
+    public static function hasFiles(): bool
+    {
+        if (self::$hasFiles === null) {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $any = static fn (string $table): string => (string) $db->createQuery()->select('1')->from($db->quoteName($table));
+
+            self::$hasFiles = (bool) $db->setQuery(
+                $db->createQuery()
+                    ->select('EXISTS (' . $any('#__alfa_item_downloads') . ') OR EXISTS (' . $any('#__alfa_order_downloads') . ')'),
+            )->loadResult();
+        }
+
+        return self::$hasFiles;
+    }
+
+    /**
+     * An object was written into the store ({@see Storage::put()}, the store's one writer). The
+     * first one, into a store that had nothing to protect, is the moment the protection starts to
+     * matter: with the check on, the store is checked now, once. From then on the store has
+     * something to protect. Never fails the write: the reason of a failure goes to the downloads
+     * log, and the store stays unchecked until Check again.
+     *
+     * @since  2.2.1
+     */
+    public static function fileAdded(): void
+    {
+        try {
+            $first = !self::hasFiles();
+            self::$hasFiles = true;
+
+            if ($first && self::isOn()) {
+                (new self())->check();
+            }
+        } catch (Throwable $e) {
+            Log::add(entry: 'Download store protection: the check of the first file failed: ' . $e->getMessage(), priority: Log::WARNING, category: 'com_alfa.downloads');
+        }
     }
 
     /**

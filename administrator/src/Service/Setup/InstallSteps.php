@@ -219,17 +219,18 @@ final class InstallSteps
     /**
      * Probe the store's direct-download protection (install, update and Clear everything are three
      * of the occasions it is probed), and say what a person must know about the result. With the
-     * check switched off in Options > Downloads nothing is probed and nothing is said.
+     * check switched off in Options > Downloads, or with nothing in the store to protect yet,
+     * nothing is probed and nothing is said: the store's first file is checked when it is added.
      *
      * @param string $root The store's root, as {@see self::provisionDownloadStore()} settled it.
      *
-     * @return array{message: string, type: string}|null The warning, or null when the store is protected or the check is off.
+     * @return array{message: string, type: string}|null The warning, or null when the store is protected, the check is off or the store holds no file.
      *
      * @since  2.1.0
      */
     public function checkDownloadStore(string $root): ?array
     {
-        if (!StoreProtection::isOn()) {
+        if (!StoreProtection::isOn() || !StoreProtection::hasFiles()) {
             return null;
         }
 

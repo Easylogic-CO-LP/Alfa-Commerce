@@ -12,8 +12,9 @@
  * panel and the Options field, administrator pages only; reading the state probes only after the
  * store's path changed ({@see \Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection::current()}).
  *
- * With the check switched off in Options > Downloads nothing is said here: the Options alone say so,
- * with the last recorded result, read without asking anew, and Check again.
+ * With the check switched off in Options > Downloads, or with nothing in the store to protect yet,
+ * nothing is said here: the Options alone say so, with the last recorded result, read without
+ * asking anew, and Check again.
  *
  * @var array $displayData  ['always' => bool: show the states that need no warning as well]
  */
@@ -35,6 +36,8 @@ $failed = false;
 try {
     if (!StoreProtection::isOn()) {
         $notice = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_OFF');
+    } elseif (!StoreProtection::hasFiles()) {
+        $notice = Text::_('COM_ALFA_DOWNLOADS_PROTECTION_EMPTY');
     }
 
     if ($notice !== null && !$always) {
