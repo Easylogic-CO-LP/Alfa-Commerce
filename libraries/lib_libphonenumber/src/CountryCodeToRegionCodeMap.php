@@ -13,7 +13,6 @@ namespace libphonenumber;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class CountryCodeToRegionCodeMap
 {
