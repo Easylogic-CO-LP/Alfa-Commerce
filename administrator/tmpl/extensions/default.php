@@ -113,7 +113,12 @@ $clearData = function (array $entry): string {
                             <td><?php echo $row['enabled']
                                 ? '<span class="badge bg-success">' . Text::_('COM_ALFA_EXTENSIONS_STATE_ENABLED') . '</span>'
                                 : '<span class="badge bg-secondary">' . Text::_('COM_ALFA_EXTENSIONS_STATE_DISABLED') . '</span>'; ?></td>
-                            <td><?php echo $row['type'] === 'package' && $row['support']['status'] === 'remove_only' ? '' : $clearData($row); ?></td>
+                            <td><?php if ($row['type'] === 'package' && $row['support']['status'] === 'remove_only') : ?>
+                                <?php // A language pack holds no data; it goes when Alfa Commerce is uninstalled (2.2.1). ?>
+                                <?php echo $row['language_pack'] ? '<span class="small text-muted">' . Text::_('COM_ALFA_EXTENSIONS_LANGUAGE_PACK') . '</span>' : ''; ?>
+                            <?php else : ?>
+                                <?php echo $clearData($row); ?>
+                            <?php endif; ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Extensions;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
+use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -80,8 +81,12 @@ class HtmlView extends BaseHtmlView
         $statuses = ClearDataStatus::all();
         $last = static fn (array $entry): ?array => \is_array($statuses[$entry['key']] ?? null) && isset($statuses[$entry['key']]['status']) ? $statuses[$entry['key']] : null;
 
+        // A language pack owns no data: its Clear Data cell says so (2.2.1).
+        $packs = LanguagePacks::installed();
+
         foreach ($rows as $row) {
             $row['last'] = $last($row);
+            $row['language_pack'] = isset($packs[(int) $row['extension_id']]);
             $row['children'] = array_map(static fn (array $child): array => $child + ['last' => $last($child)], (array) $row['children']);
             $this->rows[] = $row;
         }
