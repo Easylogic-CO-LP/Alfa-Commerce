@@ -1568,8 +1568,20 @@ class OrderPlacement
             return true;
         }
 
+        // The question and the record under the order's row lock, in one transaction: a second asker (or a carrier's
+        // own find-or-create, which takes the same lock) waits and then finds the parcel, so it is recorded once.
+        $db = $this->db;
+        $db->transactionStart(true);
+
         try {
-            $db = $this->db;
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('id'))
+                    ->from($db->quoteName('#__alfa_orders'))
+                    ->where($db->quoteName('id') . ' = ' . $orderId)
+                . ' FOR UPDATE',
+            )->execute();
+
             $recorded = (int) $db->setQuery(
                 $db->getQuery(true)
                     ->select('COUNT(*)')
@@ -1578,17 +1590,14 @@ class OrderPlacement
                     ->where($db->quoteName('id_shipment_method') . ' = ' . $methodId),
             )->loadResult();
 
-            if ($recorded > 0) {
-                return true;
-            }
-
-            $parcelId = ShipmentLedger::for($order)
+            $parcelId = $recorded > 0 ? 0 : ShipmentLedger::for($order)
                 ->pending()
                 ->withAllItems()
                 ->cost($order->shipmentTotal(), $order->shipmentTotalExcl(), $order->shipmentTaxRate())
                 ->pluginData([ShipmentLedger::CORE_MADE => true])
                 ->save();
         } catch (Throwable $e) {
+            TransactionState::rollBackLevel($db, $e);
             Log::add(
                 'Order #' . $orderId . ': the carrier "' . $carrier . '" recorded no parcel, and core could not record it: '
                     . $e::class . ': ' . $e->getMessage(),
@@ -1597,6 +1606,13 @@ class OrderPlacement
             );
 
             return false;
+        }
+
+        // After the try: a commit that fails is not closed a second time.
+        TransactionState::commitLevel($db);
+
+        if ($recorded > 0) {
+            return true;
         }
 
         if (!$parcelId) {
