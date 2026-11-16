@@ -1298,6 +1298,14 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * turns it into M14BT and hands district M1 to district M14: the reason
      * a normalise-then-compare approach was rejected.
      *
+     * EXCEPT A POSTCODE OF DIGITS AND SPACES ONLY (2.2.1). Greek postcodes are
+     * written "412 22", Swedish "123 45", Czech and Slovak "110 00": with its
+     * spaces removed the value is all digits, so it is compared as that number,
+     * and "412 22" meets a 41000 to 41999 band as "41222" does. Compared
+     * naturally, "412" read below "41000" and the row was missed. A value with a
+     * letter or a hyphen in it (UK, Canada, the Netherlands, US ZIP+4, Japan,
+     * Poland, Portugal) keeps the comparison above.
+     *
      * KINDS THAT DO NOT MATCH CANNOT BE JUDGED. A number against a letter (a
      * 5 kg parcel against a ceiling somebody typed as 'abc', a Greek postcode
      * against a Canadian K..Q band) is refused rather than admitted. The old
@@ -1325,6 +1333,11 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         if ($subject === null || $subject === '') {
             return !$hasMin;
+        }
+
+        // Digits and spaces only: the digits, compared as a number below (2.2.1).
+        if (\is_string($subject) && str_contains($subject, ' ') && ctype_digit($digits = str_replace(' ', '', $subject))) {
+            $subject = $digits;
         }
 
         if (
