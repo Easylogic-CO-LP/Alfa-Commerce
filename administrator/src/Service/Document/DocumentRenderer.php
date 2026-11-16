@@ -138,11 +138,13 @@ final class DocumentRenderer
     /**
      * The decimal separator of a document's language, which its tax rates print with: a rate on an English document
      * prints 15.5%, on a Greek one 15,5%, whoever prints it and in whatever language the request runs (the back
-     * office, the REST API, the PDF of a status e-mail). Read from the document language's own Joomla file in the
-     * administrator (joomla.ini, its DECIMALS_SEPARATOR), the folder its labels are read from, apart from the request's
-     * language; once per language and request. A language with no such file of its own prints its labels in English,
-     * as Joomla loads them, and so its separator. The money on a document keeps its own separators
-     * ({@see DocumentMoney::formatter()}).
+     * office, the REST API, the PDF of a status e-mail). Read from Joomla's own file of the document's language in the
+     * administrator (joomla.ini, its DECIMALS_SEPARATOR), apart from the request's language, once per language and
+     * request; English's when that language has no administrator joomla.ini of its own. The labels come from another
+     * file, Alfa Commerce's own (com_alfa.ini) of that language, and Joomla loads English for them when it is missing:
+     * so a language that Joomla's administrator has and Alfa Commerce's translations do not prints English labels with
+     * that language's separator (a French document: English labels, 15,5%). The money on a document keeps its own
+     * separators ({@see DocumentMoney::formatter()}).
      *
      * @param object|null $document The document row (its `language`); null for a partial drawn without one, which then
      *                              prints in the request's language.
