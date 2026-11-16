@@ -15,7 +15,6 @@ namespace libphonenumber\timezone\data;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Map
 {

@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\el;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class El_30
 {

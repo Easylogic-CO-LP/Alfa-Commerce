@@ -7,7 +7,6 @@ namespace libphonenumber;
 /**
  * Number Format
  * @internal
- * @since  1.0.0
  */
 class NumberFormat
 {
@@ -82,7 +81,6 @@ class NumberFormat
 
     /**
      * @return array<int,string>
-     * @since  1.0.0
      */
     public function leadingDigitPatterns(): array
     {
@@ -101,7 +99,6 @@ class NumberFormat
 
     /**
      * @param array<int,string> $patterns
-     * @since  1.0.0
      */
     public function setLeadingDigitsPattern(array $patterns): static
     {
