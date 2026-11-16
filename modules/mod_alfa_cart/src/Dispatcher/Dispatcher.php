@@ -50,8 +50,7 @@ class Dispatcher extends AbstractModuleDispatcher
         // The module reads; it hands the layout a reading, not the cart. A visitor who cannot have a cart yet (no
         // account and no key of this browser) is handed none, and the layout draws the empty drawer: nothing is read
         // for them, no query on any page (2.2.1).
-        $cart = CartService::ambient();
-        $data['snapshot'] = $cart->canHaveCart() ? $cart->read(CartResolution::Current) : null;
+        $data['snapshot'] = CartService::ambient()->canHaveCart() ? CartService::ambient()->read(CartResolution::Current) : null;
 
         // A cart that holds products is this visitor's own, on a page every visitor shares: that page is never stored
         // in Joomla's page cache, whatever plugin is enabled (2.2.1). An empty cart shows nothing of the visitor, and
