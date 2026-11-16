@@ -89,12 +89,13 @@ $columnLabels = array_map(
 			$unitPrice = $price !== null ? PriceUnits::line(price: $price, withTax: true) : null;
 			$baseTotalWithTax = $price?->getBaseTotalWithTax();
 
-            // '-' means priced with no discount; the em dash means the column
-            // does not apply: the line is unpriced or its money is not counted.
+            // '-' means priced with no discount, or the column does not apply:
+            // the line is unpriced or its money is not counted.
             // The saving is tax included, as every figure of the cart: the struck
-            // total less this saving is the line's total.
+            // total less this saving is the line's total. It carries the minus
+            // sign the summary's reductions carry (2.2.1).
             $discountTotal = $payable
-                ? ($price->hasDiscount() ? $price->getSavingsTotalWithTax()->format() : '-')
+                ? ($price->hasDiscount() ? '&minus;' . $price->getSavingsTotalWithTax()->format() : '-')
                 : '-';
 
             $total = $price?->getTotal();
