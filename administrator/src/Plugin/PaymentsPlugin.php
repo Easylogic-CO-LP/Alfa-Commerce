@@ -50,6 +50,7 @@
  *  SINCE 2.2.1:
  *    $ceiling = $this->bookedRefundable(orderId: $orderId);                     // Money: collected less returned
  *    $methods = $this->ownMethods();                                             // this plugin's published methods, by id
+ *    $retry   = $this->failRefundAttempt($reservationId, $failedRefundId, $why); // keep the reservation for the retry
  *    $this->recordActionLog('PLG_ALFA_PAYMENTS_<YOU>_LOG_REFUND_STARTED', ['title' => '#12'], $orderId); // User Actions Log
  *
  *  THE RULE: this class is the supported payment API. A gateway never calls
@@ -1101,6 +1102,37 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected function releaseRefund(int $reservationId, string $reason, array $options = []): array
     {
         return PaymentLedger::releaseRefund(reservationId: $reservationId, reason: $reason, options: ['plugin' => $this->_name] + $options);
+    }
+
+    /**
+     * One attempt of a reserved refund failed at the provider and the request stands: keep the reservation for the
+     * retry ({@see PaymentLedger::failRefundAttempt()}, since 2.2.1).
+     *
+     * For your provider's definite failure of the refund it held under $providerRefundId, when you will try again for
+     * the same request. The reservation keeps its amount and is given a new key; send the retry with the answer's
+     * 'key' and exactly its 'amount', then report the retry's outcome on the same reservation (holdRefund(),
+     * settleRefund(), releaseRefund()). No figure moves: refundableNow(), refundFormMaximum() and bookedRefundable()
+     * read the same before and after, so the retry is never reserved a second time beside it. The same failure sent
+     * again answers self::OUTCOME_DUPLICATE and writes nothing. To give the request up instead, releaseRefund(). Sent
+     * outside any transaction of yours, as settleRefund() is.
+     *
+     * Usage:
+     *   $r = $this->failRefundAttempt($reservationId, $failedRefundId, $why);
+     *   if ($r['outcome'] === self::OUTCOME_RESERVED) { ...retry: $r['amount'], idempotency key $r['key']... }
+     *
+     * @param int $reservationId The reservation.
+     * @param string $providerRefundId The provider's id of the refund that failed, exactly as given.
+     * @param string $reason Why, plain text.
+     * @param array $options 'gateway_response' (string); 'plugin' is set to this plugin (a gateway acts on its own
+     *                       payments only: another plugin's payment is refused).
+     *
+     * @return array{outcome: string, reservation: int, key: string, amount: ?Money, reason: string}
+     *
+     * @since  2.2.1
+     */
+    protected function failRefundAttempt(int $reservationId, string $providerRefundId, string $reason, array $options = []): array
+    {
+        return PaymentLedger::failRefundAttempt(reservationId: $reservationId, providerRefundId: $providerRefundId, reason: $reason, options: ['plugin' => $this->_name] + $options);
     }
 
     /**
