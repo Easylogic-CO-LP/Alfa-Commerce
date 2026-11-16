@@ -151,7 +151,7 @@ class HtmlView extends BaseHtmlView
         // item fields: one source-agnostic render model, insertion order preserved.
         // Collected here and handed to the item as a read-only map after each method
         // (2.2.1), as the model hands the fields' surfaces.
-        $slots = $this->item->surfaces instanceof SurfaceMap ? $this->item->surfaces->toArray() : [];
+        $slots = (array) ($this->item->surfaces ?? []);
 
         foreach ($this->item->payment_methods as &$payment_method) {
             if (!$payment_method->show_on_product) {

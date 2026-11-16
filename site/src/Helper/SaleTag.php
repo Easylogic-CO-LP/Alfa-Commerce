@@ -54,8 +54,10 @@ final class SaleTag
             return;
         }
 
-        // The item's surfaces are read-only once handed out (2.2.1): the badges join a new map of them.
-        $slots = $item->surfaces instanceof SurfaceMap ? $item->surfaces->toArray() : [];
+        // The item's surfaces are read-only once handed out (2.2.1): the badges join a new map of them, made only
+        // when a badge is added.
+        $slots = (array) ($item->surfaces ?? []);
+        $badged = false;
 
         foreach ($applied as $discount) {
             $show = $isListing ? ($discount->tagListShow ?? false) : ($discount->tagItemShow ?? false);
@@ -71,6 +73,7 @@ final class SaleTag
                 ? (ItemListSurface::tryFrom((string) ($discount->tagListSlot ?? 'image')) ?? ItemListSurface::Image)
                 : (ItemSurface::tryFrom((string) ($discount->tagItemSlot ?? 'image')) ?? ItemSurface::Image);
 
+            $badged = true;
             $slots[$slot->value][] = [
                 'layout' => 'item.sale_tag',
                 'layoutData' => [
@@ -87,6 +90,8 @@ final class SaleTag
             ];
         }
 
-        $item->surfaces = new SurfaceMap($slots);
+        if ($badged) {
+            $item->surfaces = new SurfaceMap($slots);
+        }
     }
 }
