@@ -46,17 +46,22 @@ class OrdersController extends ApiController
      * order stayed as it was. They are worked out from the order's lines, payments and shipments, fixed when the order
      * is placed, or written by the order operations. id_order_status and state have refusals of their own (edit()).
      *
+     * Two the order form would write as sent are refused too: id_address_delivery (a hidden field: the posted id would
+     * point the order at any address record, and a guest order's name and e-mail are copied from the record it names)
+     * and created (the time the order was placed). The delivery details are written through alfa_form_fields, and a
+     * PATCH that leaves either out keeps it as stored.
+     *
      * @var string[]
      * @since  2.2.1
      */
     private const NOT_UPDATED = [
         'reference', 'id_user', 'customer_name', 'customer_email', 'id_currency', 'currency', 'conversion_rate',
-        'invoice_number', 'invoice_date', 'delivery_date', 'id_address_invoice', 'id_payment_method', 'payment_method_name',
-        'id_shipment_method', 'shipment_method_name', 'status_name', 'payment_status', 'fulfillment_status',
-        'fulfillment_percentage', 'payment_percentage', 'balance', 'overpaid', 'excess', 'still_held', 'order_total',
-        'order_total_tax_excl', 'items_total', 'shipping_total', 'discount_total', 'contributions_total', 'total_paid_real',
-        'total_refunded_real', 'source', 'modified', 'lines', 'payments', 'shipments', 'contributions', 'history',
-        'delivery_address', 'invoice_address',
+        'invoice_number', 'delivery_date', 'id_address_delivery', 'id_address_invoice', 'id_payment_method',
+        'payment_method_name', 'id_shipment_method', 'shipment_method_name', 'status_name', 'payment_status',
+        'fulfillment_status', 'fulfillment_percentage', 'payment_percentage', 'balance', 'overpaid', 'excess', 'still_held',
+        'order_total', 'order_total_tax_excl', 'items_total', 'shipping_total', 'discount_total', 'contributions_total',
+        'total_paid_real', 'total_refunded_real', 'source', 'created', 'modified', 'lines', 'payments', 'shipments',
+        'contributions', 'history', 'delivery_address', 'invoice_address',
     ];
 
     /**
