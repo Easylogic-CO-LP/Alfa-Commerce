@@ -7,7 +7,6 @@ namespace libphonenumber;
 /**
  * Cost categories of short numbers
  * @package libphonenumber
- * @since  1.0.0
  */
 enum ShortNumberCost: int
 {

@@ -11,7 +11,6 @@ use Throwable;
  * Generic exception class for errors encountered when parsing phone numbers.
  * @author Lara Rennie
  * @no-named-arguments
- * @since  1.0.0
  */
 class NumberParseException extends Exception
 {
@@ -47,7 +46,6 @@ class NumberParseException extends Exception
     /**
      * @param int $errorType
      * @param string $message
-     * @since  1.0.0
      */
     public function __construct($errorType, $message, ?Throwable $previous = null)
     {
@@ -58,7 +56,6 @@ class NumberParseException extends Exception
 
     /**
      * Returns the error type of the exception that has been thrown.
-     * @since  1.0.0
      */
     public function getErrorType(): int
     {
