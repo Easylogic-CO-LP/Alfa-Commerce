@@ -297,6 +297,16 @@ final class HydratedCart
         return new self($identity, $this->subject, $this->row, $this->lines, $this->deliveryAddress, $this->invoiceAddress);
     }
 
+    /**
+     * The same reading for a subject priced elsewhere: the delivery place the goods are priced at moved (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    public function withSubject(CartSubject $subject): self
+    {
+        return new self($this->identity, $subject, $this->row, $this->lines, $this->deliveryAddress, $this->invoiceAddress);
+    }
+
     /** @since 2.0.0 */
     public function withLines(array $lines): self
     {

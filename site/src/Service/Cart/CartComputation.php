@@ -54,7 +54,6 @@ final class CartComputation
      * @since  2.2.0
      */
     private array $contributionsNotLoaded = [];
-    private ?int $deliveryPlaceId = null;
     private ?int $assumedShipmentId = null;
 
     /** @var array<int, int[]> Per-override-field destination chains. @since 2.0.0 */
@@ -71,6 +70,8 @@ final class CartComputation
      * @param CartPluginDispatch $plugins Asks the plugins their three questions.
      * @param Closure $state (): HydratedCart - the cart as currently loaded.
      * @param Closure $touch (): void - stamp the cart's activity.
+     * @param DeliveryBinding $delivery Where the cart is delivered (2.2.1): the one binding, shared with the hydrator.
+     * @param Closure $reprice (): void - price the lines again at the delivery place, once it changed (2.2.1).
      *
      * @since  2.0.0
      */
@@ -79,6 +80,8 @@ final class CartComputation
         private readonly CartPluginDispatch $plugins,
         private readonly Closure $state,
         private readonly Closure $touch,
+        private readonly DeliveryBinding $delivery,
+        private readonly Closure $reprice,
     ) {
     }
 
@@ -235,25 +238,24 @@ final class CartComputation
 
     /**
      * Where this request says the order is going. The same place again is no
-     * change; a different one drops what was offered for the old one.
+     * change; a different one drops what was offered for the old one, and the
+     * goods are priced again at it (2.2.1): goods and carriage follow the one
+     * binding.
      *
      * @since  2.0.0
      */
     public function bindDeliveryPlace(?int $placeId): void
     {
-        $placeId = $placeId > 0 ? $placeId : null;
-
-        if ($placeId === $this->deliveryPlaceId) {
+        if (!$this->delivery->bind($placeId)) {
             return;
         }
-
-        $this->deliveryPlaceId = $placeId;
 
         // The dispatcher builds the cart a plugin reads, and that cart has to
         // name the destination this submission bound, not the one the row
         // remembers from a previous one.
-        $this->plugins->bindDeliveryPlace($placeId);
+        $this->plugins->bindDeliveryPlace($this->delivery->bound());
         $this->forgetMethods();
+        ($this->reprice)();
     }
 
     /**
@@ -264,16 +266,9 @@ final class CartComputation
      */
     public function deliveryPlaceId(): ?int
     {
-        if ($this->deliveryPlaceId !== null) {
-            return $this->deliveryPlaceId;
-        }
-
         $state = $this->state();
-        $field = FieldsHelper::deliveryPlaceField($state->subject()->customerId());
-        $name = (string) ($field->field_name ?? '');
-        $placeId = $name !== '' ? (int) ($state->deliveryAddress()->{$name} ?? 0) : 0;
 
-        return $placeId > 0 ? $placeId : null;
+        return $this->delivery->placeOf($state->deliveryAddress(), $state->subject()->customerId());
     }
 
     /**
