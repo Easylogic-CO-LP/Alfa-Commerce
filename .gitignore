@@ -736,3 +736,6 @@ Desktop.ini
 /robots.txt.dist
 /web.config.txt
 /joomla/
+
+# The Semgrep rules the php-security job fetches, when fetched by hand for tests/ci/php-security-test.sh
+/.semgrep-rules/
