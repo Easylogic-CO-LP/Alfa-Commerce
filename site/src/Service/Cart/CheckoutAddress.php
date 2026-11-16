@@ -45,7 +45,7 @@ final class CheckoutAddress
             return [];
         }
 
-        $roleColumns = array_filter(array_map([RoleRegistry::class, 'column'], RoleRegistry::roles()));
+        $roleColumns = array_filter(array_map([RoleRegistry::class, 'column'], RoleRegistry::identityRoles()));
         $activeKeys = array_diff(array_column(FieldsHelper::getFields('cart.form'), 'field_name'), $roleColumns);
         $rows = [];
 

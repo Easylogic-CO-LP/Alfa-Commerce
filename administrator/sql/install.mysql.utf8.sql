@@ -538,6 +538,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
   -- through RoleRegistry instead of guessing by field_name. One row per role.
   -- name | email = the customer's identity (system rows, always present);
   -- phone = the customer's phone (a default row the merchant may drop).
+  -- address | city | postcode = the delivery address a new shop ships (2.2.1;
+  -- default rows, not identity: RoleRegistry::identityRoles()).
   `role` varchar(32) DEFAULT NULL,
   -- SYSTEM ROW. The product owns the definition (type, column, role; never
   -- deleted, never unpublished); the merchant owns position, group, label and
@@ -570,13 +572,19 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
 -- account's address is used). `phone` and `country` are DEFAULT rows: shipped
 -- so a fresh store captures what couriers, gateways and shipping zones need,
 -- but the merchant may unpublish, regroup or delete them like any own field.
--- Their #__alfa_user_info columns are part of that table's CREATE below.
+-- `address`, `city` and `postcode` (2.2.1) are default rows too: what a courier
+-- and a sales document need, required in the delivery section, optional at
+-- registration and in the invoice section. A new shop only: an update adds no
+-- field. Their #__alfa_user_info columns are part of that table's CREATE below.
 INSERT INTO `#__alfa_form_fields` (`id`, `group_id`, `type`, `params`, `field_name`, `role`, `is_system`, `registration`, `billing`, `shipping`, `unique`, `ordering`, `created_by`, `state`)
 SELECT * FROM (
             SELECT 1 AS `id`, 0 AS `group_id`, 'text' AS `type`, '{"filter":"string","maxlength":"400","validation":"","sql_type":"varchar(400)"}' AS `params`, 'name' AS `field_name`, 'name' AS `role`, 1 AS `is_system`, 2 AS `registration`, 2 AS `billing`, 2 AS `shipping`, 0 AS `unique`, 1 AS `ordering`, 0 AS `created_by`, 1 AS `state`
   UNION ALL SELECT 2, 0, 'text', '{"filter":"string","maxlength":"254","validation":"email","sql_type":"varchar(254)"}', 'email', 'email', 1, 2, 0, 2, 0, 2, 0, 1
   UNION ALL SELECT 3, 0, 'tel', '{"allowed_regions":"","require_mobile":"0","sql_type":"varchar(20)"}', 'phone', 'phone', 0, 0, 1, 1, 0, 3, 0, 1
   UNION ALL SELECT 4, 0, 'country', '{"allowed_places":"","default_place":"","sql_type":"int(11)"}', 'country', 'country', 0, 0, 2, 2, 0, 4, 0, 1
+  UNION ALL SELECT 5, 0, 'text', '{"filter":"string","maxlength":"255","validation":"","sql_type":"varchar(255)"}', 'address', 'address', 0, 1, 1, 2, 0, 5, 0, 1
+  UNION ALL SELECT 6, 0, 'text', '{"filter":"string","maxlength":"100","validation":"","sql_type":"varchar(100)"}', 'city', 'city', 0, 1, 1, 2, 0, 6, 0, 1
+  UNION ALL SELECT 7, 0, 'text', '{"filter":"string","maxlength":"20","validation":"","sql_type":"varchar(20)"}', 'postcode', 'postcode', 0, 1, 1, 2, 0, 7, 0, 1
 ) AS `seed`
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_form_fields`);
 
@@ -601,6 +609,9 @@ SELECT * FROM (
   UNION ALL SELECT 2, 'Email', 'Email', NULL
   UNION ALL SELECT 3, 'Phone', 'Phone', NULL
   UNION ALL SELECT 4, 'Country', 'Country', NULL
+  UNION ALL SELECT 5, 'Address', 'Address', NULL
+  UNION ALL SELECT 6, 'City', 'City', NULL
+  UNION ALL SELECT 7, 'Postcode', 'Postcode', NULL
 ) AS `seed`
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_form_fields_en_gb`);
 
@@ -2812,6 +2823,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_user_info` (
   `email` varchar(254) DEFAULT NULL,
   `phone` varchar(20) DEFAULT NULL,
   `country` int(11) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `postcode` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

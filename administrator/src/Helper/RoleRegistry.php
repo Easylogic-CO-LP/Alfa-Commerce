@@ -31,6 +31,13 @@ defined('_JEXEC') or die;
  * the RECIPIENT's name and phone. A member's email is never stored on a
  * record (the account's address is authoritative); a guest's is.
  *
+ * ADDRESS ROLES (2.2.1). A new shop also ships three address fields (address,
+ * city, postcode). Their roles name the shipped rows, so their labels follow
+ * every content language (SeededNames) and a carrier's postcode setting can
+ * start on the postcode field (CheckoutfieldField's defaultrole). They are not
+ * identity: nothing is locked or required by them, and a record whose address
+ * fields are filled is a saved address (identityRoles() leaves them out).
+ *
  * @since  2.0.0
  */
 final class RoleRegistry
@@ -40,10 +47,17 @@ final class RoleRegistry
     public const PHONE = 'phone';
     public const COUNTRY = 'country';
 
+    public const ADDRESS = 'address';
+
+    public const CITY = 'city';
+
+    public const POSTCODE = 'postcode';
+
     /**
      * Per role: system lock, the `#__users` column the account owns for
-     * members (null = none), and the visibility floors per section
-     * (0 hidden, 1 optional, 2 required) the editor may not go below.
+     * members (null = none), the visibility floors per section
+     * (0 hidden, 1 optional, 2 required) the editor may not go below, and
+     * whether the role is part of the customer's identity (identityRoles()).
      *
      * The floors are a CAPTURE contract for new orders: a delivery record
      * needs a recipient name, and a guest order without an email can be
@@ -54,16 +68,19 @@ final class RoleRegistry
             'system' => true,
             'users' => 'name',
             'floors' => ['registration' => 2, 'shipping' => 2, 'billing' => 0],
+            'identity' => true,
         ],
         self::EMAIL => [
             'system' => true,
             'users' => 'email',
             'floors' => ['registration' => 2, 'shipping' => 2, 'billing' => 0],
+            'identity' => true,
         ],
         self::PHONE => [
             'system' => false,
             'users' => null,
             'floors' => ['registration' => 0, 'shipping' => 0, 'billing' => 0],
+            'identity' => true,
         ],
         // The delivery place shipping zones, taxes and method scopes are
         // judged against. Product-known but never locked: a single-country
@@ -73,6 +90,27 @@ final class RoleRegistry
             'system' => false,
             'users' => null,
             'floors' => ['registration' => 0, 'shipping' => 0, 'billing' => 0],
+            'identity' => true,
+        ],
+        // The address a new shop ships (2.2.1): named rows the merchant may
+        // change, unpublish or delete, as any field of their own.
+        self::ADDRESS => [
+            'system' => false,
+            'users' => null,
+            'floors' => ['registration' => 0, 'shipping' => 0, 'billing' => 0],
+            'identity' => false,
+        ],
+        self::CITY => [
+            'system' => false,
+            'users' => null,
+            'floors' => ['registration' => 0, 'shipping' => 0, 'billing' => 0],
+            'identity' => false,
+        ],
+        self::POSTCODE => [
+            'system' => false,
+            'users' => null,
+            'floors' => ['registration' => 0, 'shipping' => 0, 'billing' => 0],
+            'identity' => false,
         ],
     ];
 
@@ -89,6 +127,19 @@ final class RoleRegistry
     public static function roles(): array
     {
         return array_keys(self::ROLES);
+    }
+
+    /**
+     * The roles that make the customer's identity (name, email, phone, country): the values that alone are not a
+     * saved address, and whose floors are the capture contract of a new order. The address roles (2.2.1) are not.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    public static function identityRoles(): array
+    {
+        return array_keys(array_filter(self::ROLES, static fn (array $role): bool => $role['identity']));
     }
 
     /**

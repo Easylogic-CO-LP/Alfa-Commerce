@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -25,9 +26,17 @@ use Throwable;
  * courier texts, the country a locker network delivers to.
  *
  * A plugin cannot know what a shop called its fields, and the core does not
- * decide for it: a postcode is a carrier's concern, so the cart holds no
+ * decide for it: a postcode is a carrier's concern, so the cart reads no
  * postcode role and hardcodes no column. The plugin names the field here and
- * reads it off the cart. It lives in the component because the need is not one
+ * reads it off the cart.
+ *
+ * A STARTING CHOICE BY ROLE (2.2.1). `defaultrole="postcode"` starts an empty
+ * setting on the field that carries that role (RoleRegistry), when one is
+ * published: a new shop ships its address fields with their roles, so a new
+ * carrier method starts on the shop's own postcode field. It is the field's
+ * default, as Joomla treats a default: shown whenever the setting is empty. A
+ * shop with no field of that role (one installed before 2.2.1) starts on
+ * nothing, as before; a setting that names a field is never changed. It lives in the component because the need is not one
  * plugin's, and none of them should ship their own copy of this dropdown.
  *
  * IT SAVES THE FIELD'S ID, NOT ITS COLUMN NAME. Renaming a field rewrites the
@@ -77,6 +86,37 @@ class CheckoutfieldField extends ListField
      * @since  1.0.0
      */
     private const SECTIONS = ['shipping', 'billing'];
+
+    /**
+     * Set the field up; an empty setting starts on the published field carrying the `defaultrole` attribute's role
+     * (2.2.1).
+     *
+     * @param \SimpleXMLElement $element The field's XML element.
+     * @param mixed $value The value, or null.
+     * @param string|null $group The field's group.
+     *
+     * @return bool True when the field is set up.
+     *
+     * @since  2.2.1
+     */
+    public function setup(\SimpleXMLElement $element, $value, $group = null)
+    {
+        if (!parent::setup($element, $value, $group)) {
+            return false;
+        }
+
+        $role = trim((string) ($this->element['defaultrole'] ?? ''));
+
+        if ($role !== '' && ($this->value === null || $this->value === '') && RoleRegistry::isRole($role)) {
+            $field = RoleRegistry::field($role);
+
+            if ($field !== null && (int) $field->state === 1) {
+                $this->value = (string) (int) $field->id;
+            }
+        }
+
+        return true;
+    }
 
     /**
      * The shop's published checkout fields, narrowed by the XML attributes.
