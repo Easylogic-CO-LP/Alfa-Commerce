@@ -1309,12 +1309,13 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * limits are set, made of digits of one length, and shorter than a value of
      * digits, the value's first digits of that length are compared: "410" to
      * "419" meets every postcode from "410 00" to "419 99", written with the
-     * space or without. The same with one limit alone: up to "419" meets every
-     * postcode up to "419 99", and from "410" every postcode from "410 00"
-     * ("409 99" does not). Compared naturally before, such a band met the
-     * spaced form only, and not its last prefix ("419 99" sorted above "419").
-     * Limits of different lengths ("41" to "419", a band written wrong)
-     * compare as whole numbers.
+     * space or without. The same with one limit alone of three digits or more:
+     * up to "419" meets every postcode up to "419 99", and from "410" every
+     * postcode from "410 00" ("409 99" does not). Compared naturally before,
+     * such a band met the spaced form only, and not its last prefix ("419 99"
+     * sorted above "419"). A limit alone of one or two digits (a floor of "1"
+     * set to require a postcode) and limits of different lengths ("41" to
+     * "419", a band written wrong) compare as whole numbers.
      *
      * A value or a limit with a letter or a hyphen in it (UK, Canada, the
      * Netherlands, US ZIP+4, Japan, Poland, Portugal) keeps the comparison
@@ -1404,7 +1405,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     /**
      * The length of the first digits a band compares, or 0 for a band of whole values (2.2.1): a value of digits
      * against limits of digits shorter than it, both limits of one length, or one limit alone (an upper limit with no
-     * floor, or a floor with no upper limit). Limits of different lengths compare as whole numbers.
+     * floor, or a floor with no upper limit) of three digits or more, a postcode group. A limit alone of one or two
+     * digits ("1" set to require a postcode) and limits of different lengths compare as whole numbers.
      *
      * @param mixed $subject The value, as {@see self::digitsOf()} reads it.
      * @param mixed $min The lower limit, or null when the band has none.
@@ -1433,6 +1435,11 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         }
 
         $length = (int) reset($lengths);
+
+        // A limit alone reads first digits only as a postcode group: one or two digits compare as whole numbers.
+        if (\count($limits) === 1 && $length < 3) {
+            return 0;
+        }
 
         return $length < \strlen($subject) ? $length : 0;
     }
