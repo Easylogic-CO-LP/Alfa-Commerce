@@ -424,8 +424,8 @@ class PlaceModel extends AlfaAdminModel
      * @param int[] $pks The chosen places.
      *
      * @return array<int, array{name: string, outcome: string, added: string[]}> Per chosen place that exists: its name,
-     *         the outcome ('added'; 'present', every code already there; 'none', not a country Alfa ships places
-     *         inside) and the names of the places added.
+     *                                                                           the outcome ('added'; 'present', every code already there; 'none', not a country Alfa ships places
+     *                                                                           inside) and the names of the places added.
      *
      * @throws RuntimeException When the user may not create places.
      *
