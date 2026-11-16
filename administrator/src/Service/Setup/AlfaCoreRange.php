@@ -18,7 +18,8 @@ use SimpleXMLElement;
  * The Alfa Commerce versions an extension says it is built for: the one reader of the alfacore element of an
  * extension's manifest (2.2.1).
  *
- * An Alfa extension declares, once, in its manifest beside its version, the lines of Alfa Commerce it is built for:
+ * An Alfa extension declares, in the manifest of each plugin and module it installs, beside the version, the lines of
+ * Alfa Commerce it is built for (a package's own manifest is not read by core's notice):
  *
  *     <alfacore min="2.2" max="2.3"/>
  *
