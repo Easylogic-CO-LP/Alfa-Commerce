@@ -82,7 +82,7 @@ final class CartOpener
             $repository,
             new CartItemLoader($db),
             $configuration,
-            new CartLinePresenter($subject->customer()),
+            new CartLinePresenter($subject),
             $messaging,
             $app->bootComponent('com_alfa')->getMVCFactory(),
             $delivery,
