@@ -514,7 +514,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      */
     private function markProviderWebhook(\Joomla\Input\Input $input): void
     {
-        $task = $input->getCmd('task');
+        $task = $input->getCmd('task', '');
 
         if (
             $input->getCmd('option') !== 'com_alfa'
