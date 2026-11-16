@@ -8,14 +8,19 @@
  *
  * Before-Delete Event (onAlfaMediaBeforeDelete)
  *
- * Cleanup hook fired before the component removes media rows/files, so a plugin
- * can purge generated derivatives. Notification only: no outputs.
+ * Cleanup hook fired before the component removes the files of deleted media
+ * rows, so a plugin can purge generated derivatives. Notification only: no
+ * outputs. Raised on every delete path (2.2.1): Tools > Media, an image removed
+ * in a form or the API, and an entity (product, category, manufacturer,
+ * variant) deleted with its gallery. A delete made inside a transaction (a
+ * save) raises it once that has committed, the rows then already gone from the
+ * table, so a save rolled back raises nothing.
  *
  * Extends AbstractImmutableEvent directly (not MediaEvent) because the delete
  * hook has no source/dest/origin/field; it carries the rows and their paths.
  *
  * Input (set by the component, read by the plugin):
- *   $event->getRows()   -> media rows about to be deleted ({path, thumbnail, ...})
+ *   $event->getRows()   -> the media rows deleted ({id, path, thumbnail})
  *   $event->getPaths()  -> flattened relative path strings of those rows
  *
  * @since  1.0.0
