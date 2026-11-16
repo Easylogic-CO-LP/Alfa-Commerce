@@ -217,10 +217,12 @@ final class CartHydrator
 
     /**
      * The subject priced at the cart's delivery place (2.2.1): the place the binding holds (the one this request
-     * bound, else the delivery address's), so the goods are priced where the carriage is. A place the cart was opened
-     * with in its money context stands (an operator placing for a customer names one, and any caller may): only a
-     * subject opened with no place takes the binding's. A place that may not price a buyer prices as the unknown
-     * place (PriceContext::withLocation()); with no delivery place known the goods keep the request's place.
+     * bound, else the delivery address's), so the goods are priced where the carriage is, on the storefront and in
+     * the order builder alike (its screen and its placement show and charge one total). A place the cart was opened
+     * with in its money context stands (the operator placement names the one typed in its delivery details, and any
+     * caller may): only a subject opened with no place takes the binding's. A place that may not price a buyer
+     * prices as the unknown place (PriceContext::withLocation()); with no delivery place known the goods keep the
+     * request's place, or no place for staff.
      *
      * @param CartSubject $subject Whose cart it is.
      * @param object|null $deliveryAddress The delivery address row the cart points at.
@@ -229,7 +231,9 @@ final class CartHydrator
      */
     private function atDeliveryPlace(CartSubject $subject, ?object $deliveryAddress): CartSubject
     {
-        if ($subject->isOperatorPlacement() || ($this->opened ?? $subject)->moneyContext()['place'] !== null) {
+        $opened = $this->opened ?? throw new LogicException('The cart has not been opened.');
+
+        if ($opened->moneyContext()['place'] !== null) {
             return $subject;
         }
 
