@@ -137,6 +137,14 @@ final class ClearDataExtensions
     private DatabaseInterface $db;
 
     /**
+     * Whether THE lock was held by another request when this listing asked for it, so what needs it was left out or
+     * shown busy ({@see self::busy()}).
+     *
+     * @since  2.2.1
+     */
+    private bool $busy = false;
+
+    /**
      * @param DatabaseInterface|null $db The site's connection; the container's by default.
      *
      * @since  2.1.0
@@ -251,7 +259,7 @@ final class ClearDataExtensions
     /**
      * The units of Clear everything: every listed Alfa plugin, packaged or not, and every plugin of another group that
      * declares onClearData ({@see self::declaredElsewhere()}), in the order (group, element). Modules and packages are
-     * not called: a package's plugins are.
+     * not called: a package's plugins are. A plugin of another group whose code could not be read is never one.
      *
      * @return list<array<string, mixed>>
      *
@@ -259,7 +267,10 @@ final class ClearDataExtensions
      */
     public function plugins(): array
     {
-        $plugins = array_values(array_filter($this->separate(elsewhere: true), static fn (array $entry): bool => $entry['type'] === 'plugin'));
+        $plugins = array_values(array_filter(
+            $this->separate(elsewhere: true),
+            static fn (array $entry): bool => $entry['type'] === 'plugin' && ($entry['elsewhere'] ?? '') !== 'unread',
+        ));
         usort($plugins, [self::class, 'byRowOrder']);
 
         return $plugins;
@@ -269,7 +280,8 @@ final class ClearDataExtensions
      * What a row allows, before any click: `supported` (Clear Data, Remove extension only, Remove extension and its
      * data), `unsupported` (Automatic Clear Data not supported: Remove extension only), `failed` (its code could not be
      * loaded: Remove extension only; `stale` when an earlier request died while loading it, and it is not booted
-     * again), `remove_only` (a module, or a package without plugins). The caller holds THE lock: the plugin is marked
+     * again), `unread` (a plugin of another group whose code could not be read: Remove extension only; `stale` as
+     * above; since 2.2.1), `remove_only` (a module, or a package without plugins). The caller holds THE lock: the plugin is marked
      * `loading` before it is booted and the mark taken away after, so a request that dies while loading it leaves the
      * mark. Booting changes nothing.
      *
@@ -307,6 +319,11 @@ final class ClearDataExtensions
             return ['status' => 'remove_only', 'message' => ''];
         }
 
+        // A plugin of another group whose code could not be read: whether it declares onClearData is not known.
+        if (($entry['elsewhere'] ?? '') === 'unread') {
+            return ['status' => 'unread', 'message' => Text::_('COM_ALFA_EXTENSIONS_NOT_READ_DESC')] + (empty($entry['stale']) ? [] : ['stale' => true]);
+        }
+
         if (!MaintenanceState::holdsLock(db: $this->db)) {
             throw new LogicException('An Alfa plugin is booted for Clear Data only under the lock of Clear everything.');
         }
@@ -342,18 +359,21 @@ final class ClearDataExtensions
 
     /**
      * Every entry with its name, its description and what it allows, for a page (Tools > Extensions, the Clear
-     * everything confirmation), a package's extensions in `children` the same way. Takes THE lock, waiting a few
-     * seconds for a clear at work; when it cannot, nothing is booted and each plugin answers `busy`.
+     * everything confirmation), a package's extensions in `children` the same way. Takes THE lock, waiting for a
+     * clear at work as long as the caller says (Tools > Extensions does not wait, since 2.2.1); when it cannot, nothing
+     * is booted, each plugin answers `busy` and {@see self::busy()} says so.
      *
      * @param list<array<string, mixed>> $entries Rows of {@see self::rows()} or plugins of {@see self::plugins()}.
+     * @param int $wait Seconds to wait for THE lock (since 2.2.1); 10 by default.
      *
      * @return list<array<string, mixed>> Each entry + label, description, support.
      *
      * @since  2.1.0
      */
-    public function inspect(array $entries): array
+    public function inspect(array $entries, int $wait = 10): array
     {
-        $locked = MaintenanceState::lock(db: $this->db, wait: 10);
+        $locked = MaintenanceState::lock(db: $this->db, wait: $wait);
+        $this->busy = $this->busy || !$locked;
 
         try {
             $describe = function (array $entry) use ($locked): array {
@@ -865,6 +885,7 @@ final class ClearDataExtensions
             'remove_only' => Text::sprintf('COM_ALFA_EXTENSIONS_REFUSED_MODULE', $name),
             'unsupported' => Text::sprintf('COM_ALFA_EXTENSIONS_REFUSED_UNSUPPORTED', $name),
             'failed' => Text::sprintf('COM_ALFA_EXTENSIONS_REFUSED_NOT_LOADED', $name, $support['message']),
+            'unread' => Text::sprintf('COM_ALFA_EXTENSIONS_REFUSED_NOT_READ', $name),
             default => null,
         };
 
@@ -1016,12 +1037,14 @@ final class ClearDataExtensions
      * Options > About and the uninstall warning keep to the Alfa extensions ({@see self::installed()}). Joomla's own
      * plugins never declare it and are not asked. Each other plugin, enabled or not, is asked its declaration booted
      * through the plugin helper's maintenance boot under THE lock, marked `loading` while it loads, as
-     * {@see self::support()} asks: one whose code could not be loaded in an earlier request is listed, and shown so,
-     * until someone asks to try loading it again; one whose code throws while it loads now is left out and the
-     * maintenance log says why. While another request holds THE lock (Clear everything or a Clear Data at work) none
-     * is asked and none is listed; the page then says it is busy.
+     * {@see self::support()} asks, every Throwable of its boot and of its declaration caught. A plugin whose code could
+     * not be read (it threw now, and the maintenance log says why; or a request died while loading it, its mark left)
+     * is listed with `elsewhere` `unread` (`stale` with the mark, for Try loading again): shown as could not be read,
+     * never a unit of Clear Data or Clear everything. One that declares it has `elsewhere` `declares`. THE lock is
+     * never waited for: while another request holds it (Clear everything or a Clear Data at work) none is asked and
+     * none is listed, and {@see self::busy()} says so for the page.
      *
-     * @return list<array<string, mixed>> Listing entries, as {@see self::installed()} gives them.
+     * @return list<array<string, mixed>> Listing entries, as {@see self::installed()} gives them, with `elsewhere`.
      *
      * @since  2.2.1
      */
@@ -1059,38 +1082,57 @@ final class ClearDataExtensions
 
         $held = MaintenanceState::holdsLock(db: $db);
 
-        if (!$held && !MaintenanceState::lock(db: $db, wait: 10)) {
+        if (!$held && !MaintenanceState::lock(db: $db)) {
+            $this->busy = true;
+
             return [];
         }
 
+        $listed = [];
+
         try {
-            return array_values(array_filter($candidates, function (array $entry): bool {
+            foreach ($candidates as $entry) {
                 $key = (string) $entry['key'];
 
                 // A mark found under the lock was left by a request that died while it loaded this plugin.
                 if (isset((ClearDataStatus::get($key) ?? [])['loading'])) {
-                    return true;
+                    $listed[] = $entry + ['elsewhere' => 'unread', 'stale' => true];
+
+                    continue;
                 }
 
                 ClearDataStatus::loading(key: $key, loading: true);
 
                 try {
-                    return AlfaPluginHelper::get()->declares($this->boot(entry: $entry), 'onClearData');
-                } catch (PluginUnavailable) {
-                    return false;
+                    if (AlfaPluginHelper::get()->declares($this->boot(entry: $entry), 'onClearData')) {
+                        $listed[] = $entry + ['elsewhere' => 'declares'];
+                    }
                 } catch (Throwable $e) {
                     $this->logFailure(run: 'clear-data', entry: $entry, error: $e);
-
-                    return false;
+                    $listed[] = $entry + ['elsewhere' => 'unread'];
                 } finally {
                     ClearDataStatus::loading(key: $key, loading: false);
                 }
-            }));
+            }
         } finally {
             if (!$held) {
                 MaintenanceState::unlock(db: $db);
             }
         }
+
+        return $listed;
+    }
+
+    /**
+     * Whether a listing of this instance found THE lock held by another request (Clear everything or a Clear Data at
+     * work): the plugins of other groups were then not asked and not listed, and inspect() shows the rows it could not
+     * check as busy.
+     *
+     * @since  2.2.1
+     */
+    public function busy(): bool
+    {
+        return $this->busy;
     }
 
     /**

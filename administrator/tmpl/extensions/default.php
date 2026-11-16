@@ -35,7 +35,9 @@ $clearData = function (array $entry): string {
     $html = match ($support['status']) {
         'supported' => '<span class="badge bg-success">' . Text::_('COM_ALFA_EXTENSIONS_SUPPORTED') . '</span>',
         'unsupported' => '<span class="badge bg-warning text-dark">' . Text::_('COM_ALFA_EXTENSIONS_UNSUPPORTED') . '</span>',
-        'failed' => '<span class="badge bg-danger">' . Text::_('COM_ALFA_EXTENSIONS_NOT_LOADED') . '</span>'
+        // An Alfa plugin that could not be loaded, or a plugin of another group that could not be read (2.2.1).
+        'failed', 'unread' => '<span class="badge ' . ($support['status'] === 'failed' ? 'bg-danger' : 'bg-secondary') . '">'
+            . Text::_($support['status'] === 'failed' ? 'COM_ALFA_EXTENSIONS_NOT_LOADED' : 'COM_ALFA_EXTENSIONS_NOT_READ') . '</span>'
             . '<div class="small">' . $this->escape((string) $support['message']) . '</div>'
             . (!empty($support['stale'])
                 ? '<div class="small"><a href="' . Route::_('index.php?option=com_alfa&task=extensions.retryLoad&id=' . (int) $entry['extension_id'] . '&' . Session::getFormToken() . '=1') . '">'
@@ -70,6 +72,13 @@ $clearData = function (array $entry): string {
                     <span class="icon-info-circle" aria-hidden="true"></span>
                     <?php echo Text::_('COM_ALFA_EXTENSIONS_NOTE'); ?>
                 </div>
+
+                <?php if ($this->busy) : ?>
+                    <div class="alert alert-warning" role="status">
+                        <span class="icon-clock" aria-hidden="true"></span>
+                        <?php echo Text::_('COM_ALFA_EXTENSIONS_BUSY_NOTE'); ?>
+                    </div>
+                <?php endif; ?>
 
                 <?php if ($this->rows === []) : ?>
                     <div class="alert alert-info">
