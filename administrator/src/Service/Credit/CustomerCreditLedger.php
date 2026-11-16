@@ -1404,15 +1404,6 @@ final class CustomerCreditLedger
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
-        // The hint mirrors PaymentLedger's grandTotalHint: at checkout the
-        // shipment row does not exist yet, so the DB recomputation is short
-        // by shipping; max() keeps this guard from rejecting a spend the
-        // placement flow resolved from the in-memory cart total.
-        $grand = max(
-            \Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper::getOrderTotal((int) $order->id),
-            $grandTotalHint,
-        );
-
         // ONE transaction, anchored on the ORDER row
         // The outstanding check, the wallet debit and the payment insert all
         // sit inside a SELECT ... FOR UPDATE on the order, the pattern
@@ -1502,7 +1493,17 @@ final class CustomerCreditLedger
                 throw new CreditNoteRefusedException(reason: sprintf('order #%d: %s Nothing was written.', (int) $order->id, $e->getMessage()));
             }
 
-            $coverable = \Alfa\Component\Alfa\Site\Service\Pricing\Money::of($grand, $currency)
+            // The hint mirrors PaymentLedger's grandTotalHint: at checkout the
+            // shipment row does not exist yet, so the DB recomputation is short
+            // by shipping; the larger keeps this guard from rejecting a spend the
+            // placement flow resolved from the in-memory cart total. Both are the
+            // order's Money (2.2.1), read with the order locked.
+            $grand = \Alfa\Component\Alfa\Site\Service\Pricing\Money::max(
+                \Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper::getOrderTotal((int) $order->id),
+                \Alfa\Component\Alfa\Site\Service\Pricing\Money::of($grandTotalHint, $currency),
+            );
+
+            $coverable = $grand
                 ->subtract(\Alfa\Component\Alfa\Site\Service\Pricing\Money::of($collected, $currency))
                 ->nonNegative();
 
@@ -1601,8 +1602,10 @@ final class CustomerCreditLedger
             // The cap re-check on the UPDATE path measures against the DB
             // grand total, which at checkout is short by shipping (the
             // shipment row is written after us). Park the same figure the
-            // create path used, and always clear it.
-            \Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger::setUpdateGrandTotalHint($grand);
+            // create path used, and always clear it. The hint's parameter is
+            // a float; the ledger reads it back at the order's scale, where
+            // $grand already is.
+            \Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger::setUpdateGrandTotalHint($grand->getAmount());
 
             try {
                 $flipped = \Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger::load((int) $paymentId)
