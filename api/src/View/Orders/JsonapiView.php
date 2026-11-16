@@ -44,7 +44,6 @@ class JsonApiView extends BaseApiView
         'currency',
         'conversion_rate',
         'invoice_number',
-        'invoice_date',
         'delivery_date',
         'id_address_delivery',
         'id_address_invoice',
