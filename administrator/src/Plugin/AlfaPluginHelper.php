@@ -692,12 +692,7 @@ final class AlfaPluginHelper
      */
     public function dispatchTo(LoadedPlugin $plugin, EventInterface $event): EventInterface
     {
-        $instance = $this->instanceOf($plugin);
-        $method = self::declarationOf($instance)[$event->getName()] ?? null;
-
-        if ($method === null) {
-            throw new PluginUnavailable(PluginUnavailable::NO_HANDLER, $plugin->id, 'The plugin ' . $plugin->id . ' declares no targeted handler for ' . $event->getName() . '.');
-        }
+        [$instance, $method] = $this->targetedHandler($plugin, $event);
 
         $instance->{$method}($event);
 
@@ -716,12 +711,20 @@ final class AlfaPluginHelper
      *
      * @return bool True when the handler ran through; false when it failed (logged).
      *
+     * @throws PluginUnavailable NO_HANDLER when the plugin was not booted through the helper or declares no handler for
+     *                           the event (ask declares() first): core's lookup, refused as dispatchTo() refuses it,
+     *                           never isolated.
+     *
      * @since  2.2.1
      */
     public function dispatchToIsolated(LoadedPlugin $plugin, EventInterface $event, string $for): bool
     {
+        // Core's own lookups stay outside the isolation: a plugin not booted through the helper, or an event it declares
+        // no handler for, is the caller's fault and is refused as dispatchTo() refuses it, never logged as the plugin's.
+        [$instance, $method] = $this->targetedHandler($plugin, $event);
+
         try {
-            $this->dispatchTo($plugin, $event);
+            $instance->{$method}($event);
         } catch (Throwable $e) {
             $this->rethrowWhenTransactionEnded($e);
             $key = $plugin->id->key() . '|' . $event->getName();
@@ -1199,6 +1202,32 @@ final class AlfaPluginHelper
         if (TransactionState::endedBy(db: $db, failure: $e)) {
             throw $e;
         }
+    }
+
+    /**
+     * The booted instance of a loaded plugin and its declared handler for the event, for dispatchTo() and
+     * dispatchToIsolated() alike.
+     *
+     * @param LoadedPlugin $plugin The plugin.
+     * @param EventInterface $event The event.
+     *
+     * @return array{0: PluginInterface, 1: string}
+     *
+     * @throws PluginUnavailable NO_HANDLER when the plugin was not booted through the helper, or declares no handler for
+     *                           the event.
+     *
+     * @since  2.2.1
+     */
+    private function targetedHandler(LoadedPlugin $plugin, EventInterface $event): array
+    {
+        $instance = $this->instanceOf($plugin);
+        $method = self::declarationOf($instance)[$event->getName()] ?? null;
+
+        if ($method === null) {
+            throw new PluginUnavailable(PluginUnavailable::NO_HANDLER, $plugin->id, 'The plugin ' . $plugin->id . ' declares no targeted handler for ' . $event->getName() . '.');
+        }
+
+        return [$instance, $method];
     }
 
     /**
