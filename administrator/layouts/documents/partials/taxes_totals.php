@@ -20,7 +20,9 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
+use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
 use Joomla\CMS\Language\Text;
 
 /** @var array $displayData */
@@ -38,6 +40,10 @@ $taxes = $displayData['taxes'] ?? [];
 // right at every scale.
 $fmt = DocumentMoney::formatter($displayData['document'] ?? null);
 $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF-8');
+// A tax rate prints as stored (2.2.1): every digit its column holds, its padding zeros dropped, with the decimal
+// separator of the document's own language (15.5% in English, 15,5% in Greek), whoever prints it. The blank line after
+// the row's rate keeps the line break the rate printed before, so a row whose figure is unchanged prints as it did.
+$separator = DocumentRenderer::decimalSeparator(document: $document);
 ?>
 <table class="bottom-table">
     <tr>
@@ -56,7 +62,8 @@ $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF
                         <tr>
                             <td style="text-align: left;">
                                 <?php echo (($tax->tax_names ?? []) === [] ? '' : htmlspecialchars(implode(', ', $tax->tax_names), ENT_COMPAT, 'UTF-8') . ' ')
-                                    . rtrim(rtrim(number_format((float) $tax->tax_rate, 2, ',', ''), '0'), ','); ?>%
+                                    . htmlspecialchars(AlfaHelper::percentDisplay(value: $tax->tax_rate, decimalSeparator: $separator), ENT_COMPAT, 'UTF-8'); ?>
+
                                 <?php if (!empty($tax->exemption_code)) : ?>
                                     (<?php echo htmlspecialchars((string) $tax->exemption_code, ENT_COMPAT, 'UTF-8'); ?>)
                                 <?php endif; ?>

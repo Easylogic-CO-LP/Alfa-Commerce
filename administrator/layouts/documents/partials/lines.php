@@ -15,7 +15,9 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
+use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
 use Joomla\CMS\Language\Text;
 
 /** @var array $displayData */
@@ -36,6 +38,9 @@ $fmt = DocumentMoney::formatter($displayData['document'] ?? null);
 // line's own net total and quantity: a unit is presentation, the line total
 // is the money. Totals keep $fmt.
 $unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? null);
+// A tax rate prints as stored (2.2.1): every digit its column holds, its padding zeros dropped, with the decimal
+// separator of the document's own language (15.5% in English, 15,5% in Greek), whoever prints it.
+$separator = DocumentRenderer::decimalSeparator(document: $displayData['document'] ?? null);
 ?>
 <table class="lines-table">
     <thead>
@@ -74,7 +79,7 @@ $unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? nu
             <?php if ($showPrices) : ?>
                 <td class="num"><?php echo $unitFmt($line->unit_price_tax_excl, $line->total_tax_excl, $line->quantity); ?></td>
                 <td class="num"><?php echo (float) $line->discount_tax_excl > 0 ? $fmt((float) $line->discount_tax_excl) : '-'; ?></td>
-                <td class="num"><?php echo rtrim(rtrim(number_format((float) $line->tax_rate, 2, ',', ''), '0'), ','); ?>%</td>
+                <td class="num"><?php echo htmlspecialchars(AlfaHelper::percentDisplay(value: $line->tax_rate, decimalSeparator: $separator), ENT_COMPAT, 'UTF-8'); ?></td>
                 <td class="num"><?php echo $fmt((float) $line->total_tax_excl); ?></td>
                 <td class="num"><strong><?php echo $fmt((float) $line->total_tax_incl); ?></strong></td>
             <?php endif; ?>

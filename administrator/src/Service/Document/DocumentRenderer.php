@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
 defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\LayoutHelper;
 use RuntimeException;
@@ -40,6 +41,13 @@ final class DocumentRenderer
      * convention, documented in the Templating tab's help note).
      */
     private const DEFAULT_KEY_PREFIX = 'COM_ALFA_DOCUMENT_DEFAULT_';
+
+    /**
+     * The decimal separator of each document language read in this request ({@see self::decimalSeparator()}).
+     *
+     * @var array<string, string>
+     */
+    private static array $separators = [];
 
     /**
      * Render a document to its complete standalone HTML page.
@@ -125,6 +133,43 @@ final class DocumentRenderer
             null,
             ['component' => 'com_alfa', 'client' => 1],
         );
+    }
+
+    /**
+     * The decimal separator of a document's language, which its tax rates print with: a rate on an English document
+     * prints 15.5%, on a Greek one 15,5%, whoever prints it and in whatever language the request runs (the back
+     * office, the REST API, the PDF of a status e-mail). Read from the document language's own Joomla file in the
+     * administrator (joomla.ini, its DECIMALS_SEPARATOR), the folder its labels are read from, apart from the request's
+     * language; once per language and request. A language with no such file of its own prints its labels in English,
+     * as Joomla loads them, and so its separator. The money on a document keeps its own separators
+     * ({@see DocumentMoney::formatter()}).
+     *
+     * @param object|null $document The document row (its `language`); null for a partial drawn without one, which then
+     *                              prints in the request's language.
+     *
+     * @return string|null The separator; null for no document (AlfaHelper::percentDisplay() then reads the request's).
+     *
+     * @since  2.2.1
+     */
+    public static function decimalSeparator(?object $document): ?string
+    {
+        if ($document === null) {
+            return null;
+        }
+
+        $tag = (string) ($document->language ?? '');
+
+        if (!isset(self::$separators[$tag])) {
+            $language = NotificationText::own(tag: $tag);
+
+            if (!$language->hasKey('DECIMALS_SEPARATOR')) {
+                $language = NotificationText::own(tag: 'en-GB');
+            }
+
+            self::$separators[$tag] = $language->_('DECIMALS_SEPARATOR');
+        }
+
+        return self::$separators[$tag];
     }
 
     /**
