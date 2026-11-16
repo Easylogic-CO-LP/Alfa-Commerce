@@ -259,8 +259,12 @@ final class JoomlaPluginLayer
      * and the params when given, that Joomla gives a plugin it lists and the provider of one it does not list leaves out
      * (its provider builds it from PluginHelper::getPlugin(), which knows the plugins enabled for the request's user
      * only; CMSPlugin keeps the name and group protected and has no setter, so they are set from the plugin's own
-     * scope). Only what is empty is filled. The helper asks this only for its maintenance boot, under the maintenance
-     * lock (Clear Data of a disabled plugin), and for its customer boot inside an operator placement (2.2.1).
+     * scope). Only what is empty is filled. A plugin that asks Joomla to load its language when it is built
+     * (CMSPlugin's autoloadLanguage) found no name to load it by; once its name and group are filled, its language is
+     * loaded, Joomla's own step (CMSPlugin::loadLanguage(): the administrator's language folder, then the plugin's own),
+     * so its texts and the labels it gives are translated (2.2.1). The helper asks this only for its maintenance boot,
+     * under the maintenance lock (Clear Data of a disabled plugin), and for its customer boot inside an operator
+     * placement (2.2.1).
      *
      * @param CMSApplicationInterface $app The application.
      * @param PluginId $id The plugin.
@@ -273,21 +277,30 @@ final class JoomlaPluginLayer
         $plugin = $app->bootPlugin($id->element, $id->group);
 
         if ($plugin instanceof CMSPlugin) {
-            $identity = function (string $element, string $folder, ?string $params): void {
+            // Answers whether the plugin's language is owed: it asks for it when built, and it had no name then.
+            $identity = function (string $element, string $folder, ?string $params): bool {
+                $named = false;
+
                 if ((string) $this->_name === '') {
                     $this->_name = $element;
+                    $named = true;
                 }
 
                 if ((string) $this->_type === '') {
                     $this->_type = $folder;
+                    $named = true;
                 }
 
                 if ($params !== null && !$this->params instanceof Registry) {
                     $this->params = new Registry($params === '' ? '{}' : $params);
                 }
+
+                return $named && $this->autoloadLanguage;
             };
 
-            Closure::bind($identity, $plugin, CMSPlugin::class)($id->element, $id->group, $params);
+            if (Closure::bind($identity, $plugin, CMSPlugin::class)($id->element, $id->group, $params)) {
+                $plugin->loadLanguage();
+            }
         }
 
         return $plugin;
