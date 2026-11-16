@@ -898,6 +898,9 @@ class com_alfaInstallerScript extends InstallerScript
         $failed = [];
 
         try {
+            // The prefix's _ and % must match themselves: addcslashes() escapes them for LIKE, whose escape character
+            // is the backslash, and quote() escapes those backslashes again for the string literal, which MySQL reads
+            // back to one before LIKE sees the pattern.
             $statusTables = $db->setQuery(
                 'SELECT DISTINCT ' . $db->quoteName('TABLE_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
                 . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
