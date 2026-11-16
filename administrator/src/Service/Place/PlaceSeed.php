@@ -177,12 +177,12 @@ final class PlaceSeed
      * Bring a shop's places from a seed up to 2.2.0 to 2.2.1's, as the class description says. Run once, by the update
      * from a version before 2.2.1; run again it finds nothing to do.
      *
+     * The answer: corrected, id => the name now; added, code2 => name; kept, id => [the shop's name, the name 2.2.1
+     * ships]; noSuccessor, id => the shop's name, Larisa included; currencies, id => [the country's name, the code now].
+     *
      * @param DatabaseInterface $db The shop's connection.
      *
-     * @return array{corrected: array<int, string>, added: array<string, string>, kept: array<int, array{0: string, 1: string}>,
-     *               noSuccessor: array<int, string>, currencies: array<int, array{0: string, 1: string}>}
-     *               corrected: id => the name now; added: code2 => name; kept: id => [the shop's name, the name 2.2.1 ships];
-     *               noSuccessor: id => the shop's name, Larisa included; currencies: id => [the country's name, the code now].
+     * @return array{corrected: array<int, string>, added: array<string, string>, kept: array<int, array{0: string, 1: string}>, noSuccessor: array<int, string>, currencies: array<int, array{0: string, 1: string}>} What was done and what was left.
      *
      * @since  2.2.1
      */

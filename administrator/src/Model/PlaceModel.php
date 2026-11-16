@@ -421,11 +421,12 @@ class PlaceModel extends AlfaAdminModel
      * nothing is matched by name, so a place staff made without a code is not recognised. The places of one country are
      * added together or not at all.
      *
+     * The answer, per chosen place that exists: its name; the outcome, 'added', 'present' (every code already there) or
+     * 'none' (not a country Alfa ships places inside); and the names of the places added.
+     *
      * @param int[] $pks The chosen places.
      *
-     * @return array<int, array{name: string, outcome: string, added: string[]}> Per chosen place that exists: its name,
-     *                                                                           the outcome ('added'; 'present', every code already there; 'none', not a country Alfa ships places
-     *                                                                           inside) and the names of the places added.
+     * @return array<int, array{name: string, outcome: string, added: string[]}> The outcome per place.
      *
      * @throws RuntimeException When the user may not create places.
      *

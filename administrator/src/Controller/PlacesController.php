@@ -45,7 +45,6 @@ class PlacesController extends AdminController
      * the Canary Islands, Ceuta and Melilla inside Spain), the existing shop's way to them (2.2.1): an update never adds
      * them. One message per selected place says what was added, or why nothing was.
      *
-     *
      * @since  2.2.1
      */
     public function addSubdivisions(): void
