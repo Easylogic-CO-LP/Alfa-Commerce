@@ -44,7 +44,10 @@ class BeforeDeleteEvent extends AbstractImmutableEvent
     //  INPUT: set by the component, read by the plugin (notification only)
 
     /**
-     * Get the media rows about to be deleted.
+     * Get the media rows being deleted: each with its id, path and thumbnail. From Tools > Media the rows are still in
+     * the table; from a save (an image removed) or an entity deleted with its gallery, the event comes once the
+     * transaction has committed and the rows are already gone (2.2.1), so act on the values carried here, not on a
+     * read of #__alfa_media by these ids.
      *
      *
      * @since  1.0.0
