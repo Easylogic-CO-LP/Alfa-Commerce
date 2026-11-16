@@ -55,8 +55,12 @@ use Throwable;
  * booted for the customer: its name, group and params from its own row ({@see self::bootForCustomer()}), through the
  * selection methods that are given the cart's subject (participantsFor(), dispatchToEachFor(),
  * dispatchToEachIsolatedFor()). On that path a plugin's Access no longer filters staff; the plugin runs in the staff
- * member's request and reads the customer from the event's context, never from the application's identity. Anywhere
- * else such a plugin stays NOT_LOADED, and the callers refuse naming it.
+ * member's request and reads the customer from the event, never from the application's identity: onCartTotals carries
+ * the cart (CartTotalsEvent::getCart()->customer()), onOrderPlaceValidate its context's customerId; onCartItemDisplay
+ * carries no customer, so what a plugin shows on a cart line must not depend on who is looking. A plugin booted this
+ * way is never registered on the shared dispatcher, so it hears none of the broadcasts of the staff member's request
+ * (onAlfaOrderPlaced among them), while one whose Access the staff member holds is imported for them and hears them.
+ * Anywhere else such a plugin stays NOT_LOADED, and the callers refuse naming it.
  *
  * @since  2.2.0
  */
