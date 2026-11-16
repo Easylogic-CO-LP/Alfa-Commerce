@@ -36,11 +36,18 @@ defined('_JEXEC') or die;
  * unpublished country, or a town inside one, prices as an unknown place, while
  * its price rows, discounts and taxes stay as they are.
  *
+ * DISCOUNTS AND TAXES FOLLOW THE CHAIN (2.2.1). A discount or a tax scoped to
+ * a place reaches every place inside it: the goods' rules (PriceDataLoader) and
+ * the shipping taxes (ShippingTaxResolver) match the buyer's chain, and one
+ * order decides which of them applies first (RulePrecedence). A product's price
+ * rows stay exact to their place.
+ *
  * HOW LONG THE MAPS LIVE. The parent and state maps are statics, read once per
- * PHP process: on the web that is one request, so a publish or an unpublish is
- * seen by the next request. A long-running process that prices buyers in a
- * loop (a future worker; none in core does today) must reset them between
- * buyers, or it prices with the states it read first.
+ * PHP process: on the web that is one request, so a publish, an unpublish or a
+ * new parent is seen by the next request. A process that prices in a loop (the
+ * price index writer, run by the command-line task runner for up to 25 seconds)
+ * forgets them before each chunk it prices (forget()), so it prices with the
+ * tree as the database holds it then.
  *
  * @since  2.0.0
  */
@@ -121,6 +128,20 @@ final class PlaceTree
         }
 
         return true;
+    }
+
+    /**
+     * Forget the parent and state maps: the next question reads the tree again.
+     *
+     * For a process that prices in a loop, before each round: a place published,
+     * unpublished or moved under another parent meanwhile is then seen.
+     *
+     * @since  2.2.1
+     */
+    public static function forget(): void
+    {
+        self::$parents = null;
+        self::$states = [];
     }
 
     /**
