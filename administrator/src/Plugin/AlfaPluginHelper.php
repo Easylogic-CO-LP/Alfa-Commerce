@@ -111,6 +111,16 @@ final class AlfaPluginHelper
     private array $names = [];
 
     /**
+     * The plugins whose handler failed through dispatchToIsolated() in this request, by identity and event: each is
+     * logged once.
+     *
+     * @var array<string, true>
+     *
+     * @since  2.2.1
+     */
+    private array $isolatedFailures = [];
+
+    /**
      * @param JoomlaPluginLayer $layer The Joomla integration layer.
      *
      * @since  2.2.0
@@ -589,6 +599,39 @@ final class AlfaPluginHelper
         $instance->{$method}($event);
 
         return $event;
+    }
+
+    /**
+     * Deliver the event to the selected plugin's declared handler, isolated (2.2.1): the handler's Throwable is
+     * logged, once per plugin and event in the request, with what the plugin was asked for, and answered false, so the
+     * caller goes on without that plugin's part (a display that drops one field, never the page). As in
+     * dispatchToEachIsolated(), a failure that ended the caller's transaction is never hidden: it reaches the caller.
+     *
+     * @param LoadedPlugin $plugin The plugin, from bootSingle() or resolve().
+     * @param EventInterface $event The event.
+     * @param string $for What the plugin was asked for, as the log names it (a field and the screen).
+     *
+     * @return bool True when the handler ran through; false when it failed (logged).
+     *
+     * @since  2.2.1
+     */
+    public function dispatchToIsolated(LoadedPlugin $plugin, EventInterface $event, string $for): bool
+    {
+        try {
+            $this->dispatchTo($plugin, $event);
+        } catch (Throwable $e) {
+            $this->rethrowWhenTransactionEnded($e);
+            $key = $plugin->id->key() . '|' . $event->getName();
+
+            if (!isset($this->isolatedFailures[$key])) {
+                $this->isolatedFailures[$key] = true;
+                Log::add('Plugins: ' . $event->getName() . ': the plugin ' . $plugin->id . ' failed for ' . $for . ' (' . $e::class . ': ' . $e->getMessage() . '); it is shown without that plugin\'s part.', Log::ERROR, self::LOG);
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

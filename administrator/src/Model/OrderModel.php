@@ -2218,7 +2218,11 @@ class OrderModel extends AlfaAdminModel
                 ],
             ]);
 
-            $plugins->dispatchTo($plugin, $event);
+            // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
+            // order's item window renders without it.
+            if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') in the order\'s item window')) {
+                continue;
+            }
 
             Surfaces::appendTo(
                 $item->surfaces,
