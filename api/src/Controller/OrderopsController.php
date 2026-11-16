@@ -894,11 +894,11 @@ class OrderopsController extends OrdersController
             $transition->note((string) $body['note']);
         }
 
-        // Suppresses the customer status email ONLY. Stock, entitlements,
-        // document issuance, both activity rows and the plugin event all
-        // still fire.
+        // Suppresses the customer status email ONLY: the staff the status
+        // tells are still sent theirs (2.2.1; it skipped both before). Stock, entitlements, document issuance, both activity
+        // rows and the plugin event all still fire.
         if (!empty($body['silent'])) {
-            $transition->silent();
+            $transition->silentCustomer();
         }
 
         if ($forced) {

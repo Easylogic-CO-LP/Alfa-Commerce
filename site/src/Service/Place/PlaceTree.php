@@ -79,6 +79,15 @@ final class PlaceTree
     private static array $states = [];
 
     /**
+     * The place -> name map, read with the parents (2.2.1).
+     *
+     * @var array<int, string>
+     *
+     * @since  2.2.1
+     */
+    private static array $names = [];
+
+    /**
      * The place -> [code2, code3] map, read with the parents.
      *
      * @var array<int, array{0: string, 1: string}>
@@ -172,7 +181,7 @@ final class PlaceTree
     }
 
     /**
-     * Forget the parent, state and code maps: the next question reads the tree again.
+     * Forget the parent, state, name and code maps: the next question reads the tree again.
      *
      * For a process that prices in a loop, before each round: a place published,
      * unpublished or moved under another parent meanwhile is then seen.
@@ -183,7 +192,26 @@ final class PlaceTree
     {
         self::$parents = null;
         self::$states = [];
+        self::$names = [];
         self::$codes = [];
+    }
+
+    /**
+     * A place's name as stored, or null for a zero or unknown id (2.2.1: the cart page names the place it prices at).
+     *
+     * @param int $placeId The `#__alfa_places` id.
+     *
+     * @since  2.2.1
+     */
+    public static function name(int $placeId): ?string
+    {
+        if ($placeId <= 0) {
+            return null;
+        }
+
+        self::parents();
+
+        return self::$names[$placeId] ?? null;
     }
 
     /**
@@ -203,13 +231,14 @@ final class PlaceTree
 
         // A place with no parent stores 0 or NULL; both read as 0 here, because
         // a NULL column would hand back the whole row as its parent. The state
-        // (eligible()) and the codes (countryOf()) ride on the same read.
+        // (eligible()), the name (name()) and the codes (countryOf()) ride on the same read.
         $rows = $db->setQuery(
             $db->getQuery(true)
                 ->select([
                     $db->quoteName('id'),
                     'COALESCE(' . $db->quoteName('parent_id') . ', 0) AS ' . $db->quoteName('parent_id'),
                     $db->quoteName('state'),
+                    $db->quoteName('name'),
                     $db->quoteName('code2'),
                     $db->quoteName('code3'),
                 ])
@@ -217,6 +246,7 @@ final class PlaceTree
         )->loadAssocList('id') ?: [];
 
         self::$states = array_map(static fn (array $row): int => (int) $row['state'], $rows);
+        self::$names = array_map(static fn (array $row): string => (string) $row['name'], $rows);
         self::$codes = array_map(static fn (array $row): array => [strtoupper(trim((string) $row['code2'])), strtoupper(trim((string) $row['code3']))], $rows);
 
         return self::$parents = array_map(static fn (array $row): int => (int) $row['parent_id'], $rows);
