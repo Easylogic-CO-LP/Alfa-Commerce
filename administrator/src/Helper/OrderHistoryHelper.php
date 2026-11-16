@@ -40,6 +40,35 @@ use Throwable;
 final class OrderHistoryHelper
 {
     /**
+     * The field names core writes into an order's history record (2.1.4's rows and those 2.2.0 added), each said in
+     * the reader's language by its key COM_ALFA_ORDER_HISTORY_FIELD_<NAME> wherever the record's fields are listed:
+     * the Details box and the table of an edit's changes (2.2.1). A name core does not write, a plugin's own,
+     * is shown as stored.
+     *
+     * @var list<string>
+     *
+     * @since  2.2.1
+     */
+    public const FIELDS = [
+        'actor', 'actor_name', 'after', 'again', 'amount', 'amount_known', 'assigned_items', 'attempt', 'balance',
+        'before', 'booked', 'carrier_name', 'changes', 'claim', 'count', 'custom_unit_price_tax_incl', 'customer_note',
+        'deducted_quantity', 'delivered', 'delivery_date', 'doc_type', 'error', 'from', 'gateway',
+        'grand_total_tax_excl', 'grand_total_tax_incl', 'held', 'id', 'id_address_delivery', 'id_address_invoice',
+        'id_combination', 'id_document', 'id_item', 'id_payment', 'id_payment_method', 'id_refund',
+        'id_refunded_payment', 'id_reversed_payment', 'id_shipment_method', 'identified', 'initial_status',
+        'invoice_date', 'invoice_number', 'kind', 'line', 'lines', 'manual_discount_percent', 'manual_discount_scope',
+        'name', 'new_status', 'new_task', 'note', 'number', 'old_status', 'payment_amount', 'payment_method',
+        'payment_type', 'persisted', 'previewed', 'price_command', 'processed_at', 'provider_amount',
+        'provider_currency', 'provider_refund_id', 'quantity', 'reason', 'reconfigured', 'reference', 'refund_reason',
+        'refund_status', 'refund_type', 'refunds_standing', 'refused', 'released_quantity', 'replaces', 'report_id',
+        'request_key', 'resolution', 'resolved_report', 'restored_quantity', 'secure_key', 'sent',
+        'shipment_method_name', 'shipped', 'shipping_charge_basis', 'shipping_cost_tax_excl', 'shipping_cost_tax_incl',
+        'shipping_tax_chain', 'shipping_tax_rate', 'source', 'staff_decides', 'status', 'stock_restored', 'strategy',
+        'task', 'tax_rate', 'to', 'total_price_tax_incl', 'totals_after', 'totals_before', 'tracking_number',
+        'transaction_id', 'transaction_status', 'unit_price_tax_excl', 'unit_price_tax_incl', 'weight',
+    ];
+
+    /**
      * The line the History tab shows for one entry.
      *
      * @param object $entry A #__alfa_order_activity_log row: event, summary,
@@ -306,11 +335,11 @@ final class OrderHistoryHelper
      * The fields of an entry's stored context as its Details box lists them, in its order: the record of the line's
      * sentence and the handler's name left out (the line above is their reading), the task by its number, the
      * recipients through the line's own phrases, a gateway by the name Extensions: Plugins shows; any other field as
-     * stored (2.2.0's UX round; the other 2.1.4 field names stay as they are).
+     * stored (2.2.0's UX round). Each field is named by its label ({@see self::fieldLabel()}, 2.2.1).
      *
      * @param array $context The entry's context.
      *
-     * @return list<array{0: string, 1: string}> Each field's name and what it says.
+     * @return list<array{0: string, 1: string}> Each field's label and what it says.
      *
      * @since  2.2.0
      */
@@ -325,7 +354,7 @@ final class OrderHistoryHelper
                 continue;
             }
 
-            $fields[] = [$name, match (true) {
+            $fields[] = [self::fieldLabel(name: $name), match (true) {
                 $name === 'task' && is_numeric($value) => Text::sprintf('COM_ALFA_ORDER_HISTORY_DETAIL_TASK', (int) $value),
                 $name === 'sent' && \is_array($value) => self::recipients(sent: $value),
                 $name === 'gateway' && \is_string($value) && preg_match('/^[a-z0-9_-]+$/', $value) === 1 => AlfaPluginHelper::get()->name(PluginId::from('alfa-payments', $value)),
@@ -335,6 +364,19 @@ final class OrderHistoryHelper
         }
 
         return $fields;
+    }
+
+    /**
+     * A field of an entry's stored context by its label in the reader's language ({@see self::FIELDS}); a field core
+     * does not write, a plugin's own, as stored.
+     *
+     * @param string $name The field's name in the stored context.
+     *
+     * @since  2.2.1
+     */
+    public static function fieldLabel(string $name): string
+    {
+        return \in_array($name, self::FIELDS, true) ? Text::_('COM_ALFA_ORDER_HISTORY_FIELD_' . strtoupper($name)) : $name;
     }
 
     /**
