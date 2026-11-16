@@ -651,6 +651,15 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * countries only prices exactly as before. A zone with no places is the
      * catch-all, used only when no zone matches.
      *
+     * The nearest zone decides alone: a cart none of its rows fit is refused,
+     * never priced by a farther zone or the catch-all (as the first matching
+     * zone decided alone before). The places are read in the order given,
+     * nearest first, as AddressView::places() and PlaceTree::placesFor() give
+     * them; a caller passing them in another order gets another zone. A place
+     * of the chain is matched whether or not it is published, as before: only a
+     * stored address can hold an unpublished one (the address and zone pickers
+     * offer published places), and the checkout asks for it again.
+     *
      * THREE OUTCOMES, NOT TWO. A configured price; carriage at no charge; and
      * a refusal: the merchant drew zones and this cart fits none of their
      * rows, so they have said by omission that they do not carry it. Before
