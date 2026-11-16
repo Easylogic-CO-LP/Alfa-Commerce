@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\SchemaRecreator;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
+use Joomla\CMS\Extension\ExtensionHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\User\CurrentUserInterface;
@@ -40,7 +41,8 @@ use Throwable;
  * WHICH EXTENSIONS. One query of Joomla's extensions table ({@see self::installed()}, the list Options > About shows
  * too): Alfa Commerce, packages `pkg_alfa...`, plugins of a group `alfa...` or of an `Alfa\` namespace (the task
  * plugins), modules `mod_alfa...`. Tools > Extensions and Clear everything leave out Alfa Commerce and the extensions
- * its manifest bundles.
+ * its manifest bundles, and add every plugin of another group, whatever its namespace, that declares onClearData
+ * ({@see self::declaredElsewhere()}, 2.2.1): the contract invites a system, task, user or content plugin to declare it.
  *
  * WHO SUPPORTS CLEAR DATA. A plugin that declares onClearData(ClearDataEvent $event): void as a targeted handler (its
  * declaration as the plugin helper reads it: TargetedHandlersInterface, its family's constant, or, for a plugin of a
@@ -183,19 +185,7 @@ final class ClearDataExtensions
                 continue;
             }
 
-            $installed[] = [
-                'key' => AlfaInstallerGate::key(type: $type, element: (string) $row->element, folder: $folder),
-                'extension_id' => (int) $row->extension_id,
-                'package_id' => (int) $row->package_id,
-                'type' => $type,
-                'element' => (string) $row->element,
-                'folder' => $folder,
-                'client_id' => (int) $row->client_id,
-                'enabled' => (int) $row->enabled === 1,
-                'locked' => (int) $row->locked === 1,
-                'name' => (string) $row->name,
-                'version' => trim((string) ($cache['version'] ?? '')),
-            ];
+            $installed[] = self::entryOf(row: $row, cache: $cache);
         }
 
         usort($installed, static fn (array $a, array $b): int => [self::ABOUT_ORDER[$a['type']] ?? 9, self::aboutId(entry: $a)]
@@ -205,8 +195,9 @@ final class ClearDataExtensions
     }
 
     /**
-     * The rows of Tools > Extensions: every installed Alfa extension but Alfa Commerce and what it bundles. A package
-     * is one row, with its extensions in `children`; the others have none.
+     * The rows of Tools > Extensions: every installed Alfa extension but Alfa Commerce and what it bundles, and every
+     * plugin of another group that declares onClearData ({@see self::declaredElsewhere()}). A package is one row, with
+     * its extensions in `children`; the others have none.
      *
      * @return list<array<string, mixed>>
      *
@@ -214,7 +205,7 @@ final class ClearDataExtensions
      */
     public function rows(): array
     {
-        $listed = $this->separate();
+        $listed = $this->separate(elsewhere: true);
         $rows = [];
 
         foreach ($listed as $id => $entry) {
@@ -248,8 +239,9 @@ final class ClearDataExtensions
     }
 
     /**
-     * The units of Clear everything: every listed Alfa plugin, packaged or not, in the order (group, element). Modules
-     * and packages are not called: a package's plugins are.
+     * The units of Clear everything: every listed Alfa plugin, packaged or not, and every plugin of another group that
+     * declares onClearData ({@see self::declaredElsewhere()}), in the order (group, element). Modules and packages are
+     * not called: a package's plugins are.
      *
      * @return list<array<string, mixed>>
      *
@@ -257,7 +249,7 @@ final class ClearDataExtensions
      */
     public function plugins(): array
     {
-        $plugins = array_values(array_filter($this->separate(), static fn (array $entry): bool => $entry['type'] === 'plugin'));
+        $plugins = array_values(array_filter($this->separate(elsewhere: true), static fn (array $entry): bool => $entry['type'] === 'plugin'));
         usort($plugins, [self::class, 'byRowOrder']);
 
         return $plugins;
@@ -973,11 +965,14 @@ final class ClearDataExtensions
     /**
      * The installed Alfa extensions but Alfa Commerce and what it bundles, by id.
      *
+     * @param bool $elsewhere With the plugins of other groups that declare onClearData (Tools > Extensions and Clear
+     *                        everything; {@see self::declaredElsewhere()}), since 2.2.1.
+     *
      * @return array<int, array<string, mixed>>
      *
      * @since  2.1.0
      */
-    private function separate(): array
+    private function separate(bool $elsewhere = false): array
     {
         $bundled = [];
 
@@ -995,7 +990,127 @@ final class ClearDataExtensions
             $listed[$entry['extension_id']] = $entry;
         }
 
+        if ($elsewhere) {
+            foreach ($this->declaredElsewhere() as $entry) {
+                $listed[$entry['extension_id']] = $entry;
+            }
+        }
+
         return $listed;
+    }
+
+    /**
+     * The plugins of a group Joomla loads itself (system, task, user, content and the others), whatever their
+     * namespace, that declare onClearData as a targeted handler, the way the plugin helper's TargetedHandlersInterface
+     * invites them to: Tools > Extensions lists them and Clear everything calls them, as it does the Alfa plugins.
+     * Options > About and the uninstall warning keep to the Alfa extensions ({@see self::installed()}). Joomla's own
+     * plugins never declare it and are not asked. Each other plugin, enabled or not, is asked its declaration booted
+     * through the plugin helper's maintenance boot under THE lock, marked `loading` while it loads, as
+     * {@see self::support()} asks: one whose code could not be loaded in an earlier request is listed, and shown so,
+     * until someone asks to try loading it again; one whose code throws while it loads now is left out and the
+     * maintenance log says why. While another request holds THE lock (Clear everything or a Clear Data at work) none
+     * is asked and none is listed; the page then says it is busy.
+     *
+     * @return list<array<string, mixed>> Listing entries, as {@see self::installed()} gives them.
+     *
+     * @since  2.2.1
+     */
+    private function declaredElsewhere(): array
+    {
+        $db = $this->db;
+        $rows = $db->setQuery(
+            $db->createQuery()
+                ->select($db->quoteName(['extension_id', 'package_id', 'type', 'element', 'folder', 'client_id', 'enabled', 'locked', 'name', 'manifest_cache']))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('state') . ' = 0')
+                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                ->where($db->quoteName('folder') . ' NOT LIKE ' . $db->quote('alfa%')),
+        )->loadObjectList() ?: [];
+        $candidates = [];
+
+        foreach ($rows as $row) {
+            $cache = json_decode((string) $row->manifest_cache, true);
+            $cache = \is_array($cache) ? $cache : [];
+
+            // An Alfa namespace is listed already; Joomla's own plugins never declare Alfa's events.
+            if (
+                str_starts_with(ltrim((string) ($cache['namespace'] ?? ''), '\\'), 'Alfa\\')
+                || ExtensionHelper::checkIfCoreExtension('plugin', (string) $row->element, 0, (string) $row->folder)
+            ) {
+                continue;
+            }
+
+            $candidates[] = self::entryOf(row: $row, cache: $cache);
+        }
+
+        if ($candidates === []) {
+            return [];
+        }
+
+        $held = MaintenanceState::holdsLock(db: $db);
+
+        if (!$held && !MaintenanceState::lock(db: $db, wait: 10)) {
+            return [];
+        }
+
+        try {
+            return array_values(array_filter($candidates, function (array $entry): bool {
+                $key = (string) $entry['key'];
+
+                // A mark found under the lock was left by a request that died while it loaded this plugin.
+                if (isset((ClearDataStatus::get($key) ?? [])['loading'])) {
+                    return true;
+                }
+
+                ClearDataStatus::loading(key: $key, loading: true);
+
+                try {
+                    return AlfaPluginHelper::get()->declares($this->boot(entry: $entry), 'onClearData');
+                } catch (PluginUnavailable) {
+                    return false;
+                } catch (Throwable $e) {
+                    $this->logFailure(run: 'clear-data', entry: $entry, error: $e);
+
+                    return false;
+                } finally {
+                    ClearDataStatus::loading(key: $key, loading: false);
+                }
+            }));
+        } finally {
+            if (!$held) {
+                MaintenanceState::unlock(db: $db);
+            }
+        }
+    }
+
+    /**
+     * One listing entry from a row of Joomla's extensions table.
+     *
+     * @param object $row The row: extension_id, package_id, type, element, folder, client_id, enabled, locked, name.
+     * @param array<string, mixed> $cache Its manifest cache, decoded.
+     *
+     * @return array{key: string, extension_id: int, package_id: int, type: string, element: string, folder: string, client_id: int, enabled: bool, locked: bool, name: string, version: string}
+     *
+     * @since  2.2.1
+     */
+    private static function entryOf(object $row, array $cache): array
+    {
+        $type = (string) $row->type;
+        $folder = $type === 'plugin' ? (string) $row->folder : '';
+
+        return [
+            'key' => AlfaInstallerGate::key(type: $type, element: (string) $row->element, folder: $folder),
+            'extension_id' => (int) $row->extension_id,
+            'package_id' => (int) $row->package_id,
+            'type' => $type,
+            'element' => (string) $row->element,
+            'folder' => $folder,
+            'client_id' => (int) $row->client_id,
+            'enabled' => (int) $row->enabled === 1,
+            'locked' => (int) $row->locked === 1,
+            'name' => (string) $row->name,
+            'version' => trim((string) ($cache['version'] ?? '')),
+        ];
     }
 
     /**
