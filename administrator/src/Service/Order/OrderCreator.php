@@ -494,8 +494,6 @@ final class OrderCreator
         $order->shipment_method_type = (string) ($draft['shipment_method_type'] ?? '');
         $order->id_payment_currency = $currencyId;
         $order->id_language = (int) ($draft['id_language'] ?? 1);
-        $order->id_coupon = null;
-        $order->code_coupon = null;
 
         // Guest order-tracking key: same contract as checkout placement.
         $order->secure_key = bin2hex(random_bytes(16));

@@ -35,13 +35,29 @@ class ActiveDateCondition
         $moment = $db->quote($referenceDate ?? self::now());
 
         return sprintf(
-            "IFNULL({$moment} >= %s OR %s = '0000-00-00 00:00:00', 1) = 1 " .
-            "AND IFNULL(%s != '0000-00-00 00:00:00' AND {$moment} > %s, 0) = 0",
+            "IFNULL({$moment} >= %s OR %s = '0000-00-00 00:00:00', 1) = 1 AND ",
             $db->qn($startField),
             $db->qn($startField),
-            $db->qn($endField),
-            $db->qn($endField),
-        );
+        ) . $this->getNotEndedCondition(endField: $endField, referenceDate: $referenceDate);
+    }
+
+    /**
+     * The end half of the window (2.2.1): a row whose end has not passed; an empty end ('0000-00-00 00:00:00') or
+     * none is open-ended. getActiveCondition() is built with it, and the update to 2.2.1 names the rules that have not
+     * ended by it.
+     *
+     * @param string $endField The quoted-or-unquoted end date column name.
+     * @param string|null $referenceDate Evaluate at this moment instead of the live UTC clock.
+     *
+     * @return string The SQL condition.
+     * @since  2.2.1
+     */
+    public function getNotEndedCondition(string $endField, ?string $referenceDate = null): string
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $moment = $db->quote($referenceDate ?? self::now());
+
+        return sprintf("IFNULL(%s != '0000-00-00 00:00:00' AND {$moment} > %s, 0) = 0", $db->qn($endField), $db->qn($endField));
     }
 
     /**
