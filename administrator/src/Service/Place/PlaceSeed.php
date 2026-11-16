@@ -28,7 +28,9 @@ use Throwable;
  * unpublishes a place the shop changed, and never infers a place from a name:
  * - a country row still exactly as the seed up to 2.2.0 shipped it (the same
  *   id, name, codes and no parent) is corrected in place (CORRECTIONS), so
- *   every address, price and rule that names it keeps its id;
+ *   every address, price and rule that names it keeps its id; one whose
+ *   shipped default currency was wrong, and still is, gets its own
+ *   (CURRENCY_CORRECTIONS);
  * - an ISO 3166-1 country the seed lacked is added, unpublished, when no
  *   country of the shop has its code (ADDED);
  * - the rows with no single ISO successor (NO_SUCCESSOR, the development row
@@ -107,6 +109,19 @@ final class PlaceSeed
         246 => [['Sint Maarten (French Antilles)', 'MF', 'MAF'], ['Saint Martin (French part)', 'MF', 'MAF']],
         247 => [['Sint Maarten (Netherlands Antilles)', 'SX', 'SXM'], ['Sint Maarten (Dutch part)', 'SX', 'SXM']],
         248 => [['Palestinian Territory, occupied', 'PS', 'PSE'], ['Palestine, State of', 'PS', 'PSE']],
+    ];
+
+    /**
+     * The country rows of the seed up to 2.2.0 whose default currency was wrong (not a withdrawn code: another
+     * country's), corrected where the row and its currency are still as shipped: id => [the row as shipped, as [name,
+     * code2, code3], the currency code shipped, the currency code now]. Turkmenistan was given the US dollar.
+     *
+     * @var array<int, array{0: array{0: string, 1: string, 2: string}, 1: string, 2: string}>
+     *
+     * @since  2.2.1
+     */
+    public const CURRENCY_CORRECTIONS = [
+        216 => [['Turkmenistan', 'TM', 'TKM'], 'USD', 'TMT'],
     ];
 
     /**
@@ -261,6 +276,35 @@ final class PlaceSeed
             $row->code2 = $now[1];
             $row->code3 = $now[2];
             $result['corrected'][$id] = $now[0];
+        }
+
+        // 1b. The default currency shipped wrong, where the row and that currency are still as shipped; a shop that set
+        //     another keeps it and is told.
+        foreach (self::CURRENCY_CORRECTIONS as $id => [$shipped, $then, $now]) {
+            $row = $rows[$id] ?? null;
+            $nowId = self::currencyId(db: $db, code: $now);
+
+            if ($row === null || $nowId === 0 || (int) $row->currency_id === $nowId) {
+                continue;
+            }
+
+            if ([(string) $row->name, (string) $row->code2, (string) $row->code3] !== $shipped || (int) $row->parent_id !== 0
+                || (int) $row->currency_id !== self::currencyId(db: $db, code: $then)) {
+                $result['kept'][$id] = [(string) $row->name, 'its default currency ' . $now];
+
+                continue;
+            }
+
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->update($db->quoteName('#__alfa_places'))
+                    ->set($db->quoteName('currency_id') . ' = ' . $nowId)
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->bind(':id', $id, ParameterType::INTEGER),
+            )->execute();
+
+            $row->currency_id = $nowId;
+            $result['corrected'][$id] = $shipped[0] . ' (default currency ' . $now . ')';
         }
 
         // 2. The countries the shop has no country for, by code.

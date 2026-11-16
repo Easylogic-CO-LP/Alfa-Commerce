@@ -1303,10 +1303,19 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * made only of digits and spaces is read as its digits and compared as that
      * number, so "412 22" and "41222" both meet a band written "41000" to
      * "41999" or "410 00" to "419 99". Compared naturally, "412" read below
-     * "41000" and the row was missed. A band is whole postcodes: one written by
-     * the first three digits ("410" to "419") meets neither form. A value or a
-     * bound with a letter or a hyphen in it (UK, Canada, the Netherlands, US
-     * ZIP+4, Japan, Poland, Portugal) keeps the comparison above.
+     * "41000" and the row was missed.
+     *
+     * A BAND MAY BE WHOLE POSTCODES OR THEIR FIRST DIGITS (2.2.1). When both
+     * limits are set, made of digits of one length, and shorter than a value of
+     * digits, the value's first digits of that length are compared: "410" to
+     * "419" meets every postcode from "410 00" to "419 99", written with the
+     * space or without. Compared naturally before, such a band met the spaced
+     * form only, and not its last prefix ("419 99" sorted above "419"). A
+     * one-ended band, or limits of two lengths, compares whole numbers.
+     *
+     * A value or a limit with a letter or a hyphen in it (UK, Canada, the
+     * Netherlands, US ZIP+4, Japan, Poland, Portugal) keeps the comparison
+     * above.
      *
      * KINDS THAT DO NOT MATCH CANNOT BE JUDGED. A number against a letter (a
      * 5 kg parcel against a ceiling somebody typed as 'abc', a Greek postcode
@@ -1340,6 +1349,16 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         }
 
         $subject = self::digitsOf($subject);
+
+        // A band of first digits: both limits digits of one length, shorter than the value's digits (2.2.1).
+        if (
+            $hasMin && $hasMax
+            && \is_string($subject) && \is_string($min) && \is_string($max)
+            && ctype_digit($subject) && ctype_digit($min) && ctype_digit($max)
+            && \strlen($min) === \strlen($max) && \strlen($min) < \strlen($subject)
+        ) {
+            $subject = substr($subject, 0, \strlen($min));
+        }
 
         if (
             is_numeric($subject)
