@@ -3578,7 +3578,6 @@ class OrderModel extends AlfaAdminModel
         try {
             if ($isNew) {
                 $line = (object) ($plan['columns'] + [
-                    'id_order_invoice' => null,
                     'id_shipment_method' => 0,
                     'quantity_refunded' => 0,
                     'quantity_returned' => 0,
@@ -4087,7 +4086,6 @@ class OrderModel extends AlfaAdminModel
             'id_address_delivery', 'id_address_invoice',
             'id_payment_method', 'id_shipment_method', 'id_order_status',
             'id_payment_currency', 'id_language',
-            'id_coupon', 'code_coupon',
             'modified_by', 'created_by',
         ];
 
@@ -4098,7 +4096,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         // Nullable datetime columns
-        $nullableDateColumns = ['checked_out_time', 'invoice_date', 'delivery_date'];
+        $nullableDateColumns = ['checked_out_time', 'delivery_date'];
 
         foreach ($nullableDateColumns as $col) {
             if (property_exists($table, $col) && empty($table->{$col})) {
@@ -4874,7 +4872,7 @@ class OrderModel extends AlfaAdminModel
             'id_address_delivery', 'id_address_invoice',
             'id_payment_method', 'id_shipment_method',
             'customer_note', 'note', 'secure_key',
-            'invoice_number', 'invoice_date', 'delivery_date',
+            'invoice_number', 'delivery_date',
         ];
 
         foreach ($orderFields as $field) {
