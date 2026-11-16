@@ -15,8 +15,8 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\CartItemDisplayEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use Alfa\Component\Alfa\Site\Service\Data\PluginPayload;
-use Joomla\CMS\User\User;
 use Joomla\Registry\Registry;
 use Throwable;
 
@@ -39,12 +39,14 @@ defined('_JEXEC') or die;
 final class CartLinePresenter
 {
     /**
-     * @param User $customer Whose context decides which commercial plugins take part (2.2.0: the plugins are booted
-     *                       through the plugin helper, so no application is handed in).
+     * @param CartSubject $subject The cart's subject: its customer's context decides which commercial plugins take
+     *                             part (2.2.0: the plugins are booted through the plugin helper, so no application is
+     *                             handed in), and who operates it whether one Joomla does not load for them is booted
+     *                             for the customer (2.2.1).
      *
      * @since  2.0.0
      */
-    public function __construct(private readonly User $customer)
+    public function __construct(private readonly CartSubject $subject)
     {
     }
 
@@ -140,7 +142,7 @@ final class CartLinePresenter
             'line' => $cartItem,
             'item' => $item,
         ]);
-        $plugins->dispatchToEachIsolated($plugins->admitted($this->customer, 'alfa'), $displayEvent);
+        $plugins->dispatchToEachIsolatedFor($this->subject, $plugins->admitted($this->subject->customer(), 'alfa'), $displayEvent);
         $displayEvent->harvestInto($cartItem->surfaces);
     }
 }
