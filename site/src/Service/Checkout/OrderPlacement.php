@@ -1196,11 +1196,12 @@ class OrderPlacement
             $plugins = AlfaPluginHelper::get();
 
             // A plugin the customer's view levels admit but Joomla does not load for the user placing the order (staff
-            // lacking one of the customer's levels) cannot check this placement, nor add its charges to the totals: the
-            // placement is refused naming it, before anything is written and before any plugin is asked: it fails closed
-            // (2.2.0, s95).
+            // lacking one of the customer's levels) takes its part when this is an operator placement by staff allowed
+            // to place orders for customers: it is booted for the customer with its own configuration (2.2.1). Anywhere
+            // else it cannot check this placement, nor add its charges to the totals: the placement is refused naming
+            // it, before anything is written and before any plugin is asked: it fails closed (2.2.0).
             try {
-                $validators = $plugins->participants($plugins->admitted($this->user, 'alfa'), $validateEvent);
+                $validators = $plugins->participantsFor($this->subject, $plugins->admitted($this->user, 'alfa'), $validateEvent);
             } catch (PluginUnavailable $unavailable) {
                 // The plugin by the name Extensions: Plugins shows (UX-25, UX-40).
                 $this->fail(
@@ -1219,7 +1220,7 @@ class OrderPlacement
             // the log.
             foreach ($validators as $validator) {
                 try {
-                    $plugins->dispatchToEach([$validator], $validateEvent);
+                    $plugins->dispatchToEachFor($this->subject, [$validator], $validateEvent);
                 } catch (Throwable $thrown) {
                     $refused = OrderPlaceRefusedException::in($thrown);
 

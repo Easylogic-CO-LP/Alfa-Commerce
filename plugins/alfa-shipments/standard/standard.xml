@@ -9,6 +9,8 @@
 	<authorEmail>info@easylogic.gr</authorEmail>
 	<authorUrl>http://easylogic.gr</authorUrl>
 	<version>2.2.1</version>
+	<!-- The Alfa Commerce lines this build is made for (2.2.1): it ships with Alfa Commerce 2.2. -->
+	<alfacore min="2.2" max="2.2"/>
 	<description>PLG_ALFA_SHIPMENTS_STANDARD_XML_DESCRIPTION</description>
 	<namespace path="src">Alfa\Plugin\AlfaShipments\Standard</namespace>
 	<!-- Completes the log table on every install and update. -->

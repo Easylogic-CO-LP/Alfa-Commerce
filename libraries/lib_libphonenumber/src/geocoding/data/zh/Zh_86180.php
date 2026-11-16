@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\zh;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Zh_86180
 {
