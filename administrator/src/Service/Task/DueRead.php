@@ -93,6 +93,8 @@ final class DueRead
         $pending = 'SELECT 1 FROM ' . $db->quoteName(self::TABLE) . ' WHERE ' . $single . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING)
             . ' AND ' . self::singleDue(db: $db) . ' AND ' . self::unreserved(db: $db);
 
+        // Only a process with no application (a bare worker) reads the handlers, and so loads Tasks; every page, API
+        // request and console run has an application and leaves out no handler.
         if (!self::hasApplication()) {
             $needing = Tasks::handlersNeedingApplication();
 
