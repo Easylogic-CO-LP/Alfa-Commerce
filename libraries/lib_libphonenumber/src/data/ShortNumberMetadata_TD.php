@@ -16,7 +16,6 @@ use libphonenumber\PhoneNumberDesc;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class ShortNumberMetadata_TD extends PhoneMetadata
 {

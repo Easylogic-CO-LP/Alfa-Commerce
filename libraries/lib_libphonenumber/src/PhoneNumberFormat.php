@@ -15,7 +15,6 @@ namespace libphonenumber;
  *
  * Note: If you are considering storing the number in a neutral format, you are highly advised to
  * use the PhoneNumber class.
- * @since  1.0.0
  */
 enum PhoneNumberFormat: int
 {

@@ -13,7 +13,6 @@ namespace libphonenumber\carrier\data\ar;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Ar_965
 {
