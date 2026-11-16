@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Map
 {
