@@ -40,10 +40,11 @@ use Throwable;
 final class OrderHistoryHelper
 {
     /**
-     * The field names core writes into an order's history record (2.1.4's rows and those 2.2.0 added), each said in
-     * the reader's language by its key COM_ALFA_ORDER_HISTORY_FIELD_<NAME> wherever the record's fields are listed:
-     * the Details box and the table of an edit's changes (2.2.1). A name core does not write, a plugin's own,
-     * is shown as stored.
+     * The field names core writes into an order's history record (2.1.4's rows, those 2.2.0 added, and the activity
+     * writer's own record of details it could not keep whole: unencodable, truncated, original_bytes, keys), each said
+     * in the reader's language by its key COM_ALFA_ORDER_HISTORY_FIELD_<NAME> wherever the record's fields are listed:
+     * the Details box and the table of an edit's changes (2.2.1). A name core does not write, a plugin's own, is shown
+     * as stored.
      *
      * @var list<string>
      *
@@ -56,16 +57,17 @@ final class OrderHistoryHelper
         'grand_total_tax_excl', 'grand_total_tax_incl', 'held', 'id', 'id_address_delivery', 'id_address_invoice',
         'id_combination', 'id_document', 'id_item', 'id_payment', 'id_payment_method', 'id_refund',
         'id_refunded_payment', 'id_reversed_payment', 'id_shipment_method', 'identified', 'initial_status',
-        'invoice_date', 'invoice_number', 'kind', 'line', 'lines', 'manual_discount_percent', 'manual_discount_scope',
-        'name', 'new_status', 'new_task', 'note', 'number', 'old_status', 'payment_amount', 'payment_method',
-        'payment_type', 'persisted', 'previewed', 'price_command', 'processed_at', 'provider_amount',
-        'provider_currency', 'provider_refund_id', 'quantity', 'reason', 'reconfigured', 'reference', 'refund_reason',
-        'refund_status', 'refund_type', 'refunds_standing', 'refused', 'released_quantity', 'replaces', 'report_id',
-        'request_key', 'resolution', 'resolved_report', 'restored_quantity', 'secure_key', 'sent',
-        'shipment_method_name', 'shipped', 'shipping_charge_basis', 'shipping_cost_tax_excl', 'shipping_cost_tax_incl',
-        'shipping_tax_chain', 'shipping_tax_rate', 'source', 'staff_decides', 'status', 'stock_restored', 'strategy',
-        'task', 'tax_rate', 'to', 'total_price_tax_incl', 'totals_after', 'totals_before', 'tracking_number',
-        'transaction_id', 'transaction_status', 'unit_price_tax_excl', 'unit_price_tax_incl', 'weight',
+        'invoice_date', 'invoice_number', 'keys', 'kind', 'line', 'lines', 'manual_discount_percent',
+        'manual_discount_scope', 'name', 'new_status', 'new_task', 'note', 'number', 'old_status', 'original_bytes',
+        'payment_amount', 'payment_method', 'payment_type', 'persisted', 'previewed', 'price_command', 'processed_at',
+        'provider_amount', 'provider_currency', 'provider_refund_id', 'quantity', 'reason', 'reconfigured',
+        'reference', 'refund_reason', 'refund_status', 'refund_type', 'refunds_standing', 'refused',
+        'released_quantity', 'replaces', 'report_id', 'request_key', 'resolution', 'resolved_report',
+        'restored_quantity', 'secure_key', 'sent', 'shipment_method_name', 'shipped', 'shipping_charge_basis',
+        'shipping_cost_tax_excl', 'shipping_cost_tax_incl', 'shipping_tax_chain', 'shipping_tax_rate', 'source',
+        'staff_decides', 'status', 'stock_restored', 'strategy', 'task', 'tax_rate', 'to', 'total_price_tax_incl',
+        'totals_after', 'totals_before', 'tracking_number', 'transaction_id', 'transaction_status', 'truncated',
+        'unencodable', 'unit_price_tax_excl', 'unit_price_tax_incl', 'weight',
     ];
 
     /**
