@@ -1779,8 +1779,10 @@ class com_alfaInstallerScript extends InstallerScript
      * index of the version before was written with the place alone, so every product is marked owed a rebuild and the
      * catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may sort and filter a buyer below a
      * ruled place by the earlier price while the product page and the cart show the new one; the message says so, and
-     * names the rules scoped to a place that has places inside it (the rules that now reach further). A shop whose
-     * places are all countries has none. A failure is said, never a failed update.
+     * names the published rules (not ended) scoped to a place that has a published place inside it: the rules that now
+     * reach further, since a place under an unpublished one prices no buyer. A shop whose places are all countries has
+     * none; a shop that kept the seeded Larisa under Greece has its Greece-scoped rules named. A failure is said, never
+     * a failed update.
      *
      * @return  void
      * @since   2.2.1
@@ -1792,13 +1794,16 @@ class com_alfaInstallerScript extends InstallerScript
         try
         {
             $db = Factory::getContainer()->get('DatabaseDriver');
-            $reaching = static fn (string $table, string $rule): array => array_map('intval', $db->setQuery(
+            // A published rule that has not ended, scoped to a place with a published place inside it.
+            $reaching = static fn (string $table, string $rule, string $rules): array => array_map('intval', $db->setQuery(
                 'SELECT DISTINCT r.' . $db->quoteName($rule) . ' FROM ' . $db->quoteName($table, 'r')
+                . ' INNER JOIN ' . $db->quoteName($rules, 'x') . ' ON x.' . $db->quoteName('id') . ' = r.' . $db->quoteName($rule)
                 . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'c') . ' ON c.' . $db->quoteName('parent_id') . ' = r.' . $db->quoteName('place_id')
-                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 ORDER BY 1'
+                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 AND c.' . $db->quoteName('state') . ' = 1 AND x.' . $db->quoteName('state') . ' = 1'
+                . ' AND (x.' . $db->quoteName('publish_down') . ' IS NULL OR x.' . $db->quoteName('publish_down') . ' > UTC_TIMESTAMP()) ORDER BY 1'
             )->loadColumn() ?: []);
-            $discounts = $reaching('#__alfa_discount_places', 'discount_id');
-            $taxes     = $reaching('#__alfa_tax_places', 'tax_id');
+            $discounts = $reaching('#__alfa_discount_places', 'discount_id', '#__alfa_discounts');
+            $taxes     = $reaching('#__alfa_tax_places', 'tax_id', '#__alfa_taxes');
 
             \Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager::markAllForRebuild();
             \Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob::enqueue();
@@ -1816,7 +1821,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_PLACE_RULES_REBUILD',
-            fallback: 'Alfa Commerce %1$s: a discount or a tax scoped to a place now reaches every place inside it, for the goods and for the shipping taxes alike. The product list\'s prices are being rebuilt in the background (Tools > Tasks). Until that ends, for a customer whose place is inside a place with its own discounts or taxes, the product list may sort and filter by the earlier prices, while the product pages and the cart already show the new ones.',
+            fallback: 'Alfa Commerce %1$s: a discount or a tax scoped to a place now reaches every place inside it, as the shipping taxes already did; the shipping taxes now follow the goods\' order. The product list\'s prices are being rebuilt in the background (Tools > Tasks). Until that ends, for a customer whose place is inside a place with its own discounts or taxes, the product list may sort and filter by the earlier prices, while the product pages and the cart already show the new ones.',
             values:   [$this->packageVersion],
         ));
 
@@ -1826,7 +1831,7 @@ class com_alfaInstallerScript extends InstallerScript
 
             $app->enqueueMessage($this->installerText(
                 key:      'COM_ALFA_INSTALL_PLACE_RULES_REACH',
-                fallback: 'These rules are scoped to a place that has places inside it, and now reach those places too: discounts %1$s; taxes %2$s.',
+                fallback: 'These published rules are scoped to a place that has published places inside it, and now reach those places too: discounts %1$s; taxes %2$s.',
                 values:   [
                     $discounts === [] ? $none : '#' . implode(', #', $discounts),
                     $taxes === [] ? $none : '#' . implode(', #', $taxes),
