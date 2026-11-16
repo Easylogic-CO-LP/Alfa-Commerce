@@ -54,11 +54,17 @@ use RuntimeException;
  * re-checks the same sums inside the order lock, so concurrent issuance
  * cannot double-claim.
  *
- * DISCOUNT SIZING on a partial draft: a rule claims its remaining balance
- * x the draft's share of the remaining item value, measured on the frozen
- * line totals (OrderItemLines); the draft that takes the LAST remaining item
- * quantity claims the whole remaining balance instead (the same remainder
- * rule OrderItemLines::claim() applies to the item lines).
+ * DISCOUNT SIZING on a partial draft: an order or product rule follows the
+ * goods and is never picked. Each sales draft claims the rule's balance x
+ * the value of the goods it invoices / the value of the goods still to
+ * invoice, measured on the frozen line totals (OrderItemLines), one exact
+ * fraction of minor units rounded once; the draft that takes the LAST
+ * remaining item quantity claims what is left instead (the same remainder
+ * rule OrderItemLines::claim() applies to the item lines). A claim never
+ * goes past the draft's goods, so shipping and fees are never reduced by a
+ * goods discount. A balance larger than the goods still to invoice (an
+ * invoice issued before 2.2.1 without its share) keeps the rest unclaimed:
+ * unclaimableDiscounts() names it for the document screen.
  *
  * VAT of an order-level discount is attributed PRO-RATA across the draft's
  * item lines' VAT rates (one negative line per rate; rounding drift absorbed
@@ -937,20 +943,23 @@ final class OrderChargeLines
      *                        pools, get no charge lines.
      * @param array $itemLines The draft's item lines (share basis).
      * @param array|null $picks Modal selection: ['shipping' => [id...],
-     *                          'fees' => [id...], 'rules' => [id...]].
-     *                          Null = everything with a remaining
-     *                          balance (the auto-issue behaviour). A
-     *                          credit reads only shipping and fees, and
-     *                          an optional 'amounts' => ['shipping' =>
-     *                          [id => incl], 'fees' => [id => incl],
-     *                          'rules' => [id => incl]] that claims less
-     *                          than a picked line's whole remaining and
-     *                          sizes the shipping discount riding it.
+     *                          'fees' => [id...]]. Null = everything with
+     *                          a remaining balance (the auto-issue
+     *                          behaviour). Discounts are never picked: a
+     *                          shipping discount rides the shipping it
+     *                          reduces, an order or product discount the
+     *                          goods. A credit reads only shipping and
+     *                          fees, and an optional 'amounts' =>
+     *                          ['shipping' => [id => incl], 'fees' =>
+     *                          [id => incl], 'rules' => [id => incl]]
+     *                          that claims less than a picked line's
+     *                          whole remaining and sizes the shipping
+     *                          discount riding it.
      * @param bool $finalForItems True when, after this draft, no item
      *                            quantity remains in the SALES pool;
-     *                            discounts then claim their WHOLE
-     *                            remaining balance (remainder rule)
-     *                            instead of the value share. A credit
+     *                            order and product discounts then claim
+     *                            what is left of them (remainder rule)
+     *                            instead of their share. A credit
      *                            measures its own finality.
      * @param int $correctsId The corrected document of a credit draft;
      *                        a credit type without one gets no lines.
@@ -1051,13 +1060,7 @@ final class OrderChargeLines
         }
 
         // Discount adjustment lines
-        $share = self::itemShare(orderId: $orderId, docType: $docType, itemLines: $itemLines);
-
         $itemsIncl = self::sumOf(array_map(static fn (array $line): float => (float) ($line['total_tax_incl'] ?? 0), $itemLines), $currency);
-        $feesIncl = self::sumOf(array_map(
-            static fn (array $line): float => (float) $line['total_tax_incl'],
-            array_filter($lines, static fn (array $line): bool => ($line['line_type'] ?? '') === DocumentHelper::LINE_FEE),
-        ), $currency);
 
         // Shipping-class rules FIRST, and never independently pickable: the
         // benefit belongs to the shipping charge it reduces, so it rides
@@ -1112,27 +1115,35 @@ final class OrderChargeLines
             $shippingAvailIncl = $shippingAvailIncl->subtract($claimIncl);
         }
 
-        // Order/product rules: value share of THIS draft, whole remainder on
-        // the final item draft; ALWAYS clamped to the draft's remaining
-        // positive value. Without the clamp a remainder bigger than the
-        // draft (discount unchecked earlier, then a small final draft)
-        // issued an immutable NEGATIVE sales invoice.
-        $draftValueIncl = $itemsIncl->add($shippingAvailIncl)->add($feesIncl);
+        // Order and product rules follow the goods, never the shipping or the
+        // fees. Each draft claims a rule's balance in proportion to the value
+        // of the goods it invoices against the goods still to invoice, one
+        // exact fraction of minor units rounded once; the draft that takes
+        // the last goods claims what is left. A claim never goes past the
+        // draft's goods after the rules before it, so the goods' VAT rates
+        // carry it all and no rate falls below nothing.
+        $goodsToInvoice = self::goodsToInvoice(orderId: $orderId, docType: $docType, currency: $currency);
+        $claimable = self::claimableDiscounts(charges: $charges, goodsToInvoice: $goodsToInvoice, currency: $currency);
+        $goodsLeft = $itemsIncl->nonNegative();
+        $wholeShare = $finalForItems || !$itemsIncl->lessThan($goodsToInvoice);
         // What the rules before took at each of the goods' rates, gross and net.
         $taken = [];
 
         foreach ($charges->rules as $rule) {
-            if ($rule->discount_class === 'shipping'
-                || !self::isPositive($rule->remaining_incl, $currency)
-                || !$picked('rules', $rule->id)) {
+            $balance = $claimable[(int) $rule->id] ?? null;
+
+            if ($balance === null || !$balance->isPositive()) {
                 continue;
             }
 
-            $claimIncl = $finalForItems
-                ? Money::of($rule->remaining_incl, $currency)
-                : Money::min(Money::of($rule->remaining_incl, $currency), Money::of($rule->remaining_incl * $share, $currency));
-
-            $claimIncl = Money::min($claimIncl, $draftValueIncl->nonNegative());
+            $claimIncl = $wholeShare
+                ? $balance
+                : Money::ofMinor(self::proportionalMinor(
+                    pool:  $balance->getMinorUnits(),
+                    part:  $itemsIncl->nonNegative()->getMinorUnits(),
+                    whole: $goodsToInvoice->getMinorUnits(),
+                ), $currency);
+            $claimIncl = Money::min($claimIncl, $goodsLeft);
 
             if (!$claimIncl->isPositive()) {
                 continue;
@@ -1149,7 +1160,7 @@ final class OrderChargeLines
                 );
             }
 
-            $draftValueIncl = $draftValueIncl->subtract($claimIncl);
+            $goodsLeft = $goodsLeft->subtract($claimIncl);
         }
 
         // Discount REVERSALS: discount documents gave that the order no longer does
@@ -2288,28 +2299,21 @@ final class OrderChargeLines
     }
 
     /**
-     * This draft's share of the order's REMAINING item value (0..1).
+     * The value of the order's goods still to invoice, the base an order or
+     * product discount is shared over.
+     *
+     * Each line's frozen balance, never unit price x quantity, so the base and
+     * a draft's own lines agree. A line with no quantity left is never drafted
+     * again, so what it still holds is not value to share against.
      *
      * @param int $orderId The order id.
      * @param string $docType The target document type (pool semantics).
-     * @param array $itemLines The draft's item lines.
+     * @param Currency $currency The order's currency.
      *
-     *
-     * @since  2.0.0
+     * @since  2.2.1
      */
-    private static function itemShare(int $orderId, string $docType, array $itemLines): float
+    private static function goodsToInvoice(int $orderId, string $docType, Currency $currency): Money
     {
-        $currency = OrderItemLines::orderCurrency(orderId: $orderId);
-        $draftIncl = self::sumOf(array_map(static fn (array $line): float => (float) ($line['total_tax_incl'] ?? 0), $itemLines), $currency);
-
-        if (!$draftIncl->isPositive()) {
-            return 0.0;
-        }
-
-        // The remaining item value on the base the draft's own lines were built
-        // on: each line's frozen balance, never unit price x quantity, so both
-        // sides of the ratio agree. A line with no quantity left is never
-        // drafted again, so what it still holds is not value to share against.
         $remainingIncl = Money::zero($currency);
 
         foreach (OrderItemLines::remaining(orderId: $orderId, docType: $docType) as $balance) {
@@ -2318,11 +2322,88 @@ final class OrderChargeLines
             }
         }
 
-        if (!$remainingIncl->isPositive()) {
-            return 1.0;
+        return $remainingIncl;
+    }
+
+    /**
+     * What each order or product discount can still claim: its balance, as
+     * far as the goods still to invoice carry it.
+     *
+     * The goods still to invoice are shared out over the order's discounts in
+     * the order's own order, each taking at most what is left of them. A
+     * balance larger than that keeps the rest, which no sales document can
+     * claim: a partial invoice issued before 2.2.1 without its share of the
+     * discount leaves one (unclaimableDiscounts()).
+     *
+     * @param object $charges The order's charges (remaining()).
+     * @param Money $goodsToInvoice The goods still to invoice (goodsToInvoice()).
+     * @param Currency $currency The order's currency.
+     *
+     * @return array<int, Money> Keyed by the rule's id, every order or product
+     *                           rule with a balance.
+     *
+     * @since  2.2.1
+     */
+    private static function claimableDiscounts(object $charges, Money $goodsToInvoice, Currency $currency): array
+    {
+        $left = $goodsToInvoice->nonNegative();
+        $claimable = [];
+
+        foreach ($charges->rules as $rule) {
+            if ($rule->discount_class === 'shipping' || !self::isPositive($rule->remaining_incl, $currency)) {
+                continue;
+            }
+
+            $take = Money::min(Money::of($rule->remaining_incl, $currency), $left);
+            $claimable[(int) $rule->id] = $take;
+            $left = $left->subtract($take);
         }
 
-        return min(1.0, $draftIncl->getAmount() / $remainingIncl->getAmount());
+        return $claimable;
+    }
+
+    /**
+     * The part of each order or product discount that no sales document can
+     * claim any more, for the order's document screen.
+     *
+     * A discount follows the goods, so a balance larger than the goods still
+     * to invoice can carry stays unclaimed: an invoice issued before 2.2.1
+     * without its share of the discount leaves one. The order's invoices then
+     * total more than the order by that amount; issued documents are never
+     * rewritten, and staff give it back with a credit note.
+     *
+     * @param int $orderId The order id.
+     *
+     * @return array<int, Money> Keyed by the rule's id, only the rules with
+     *                           something unclaimable.
+     *
+     * @since  2.2.1
+     */
+    public static function unclaimableDiscounts(int $orderId): array
+    {
+        $currency = OrderItemLines::orderCurrency(orderId: $orderId);
+        $charges = self::remaining(orderId: $orderId);
+        // Every sales type reads the one sales pool; core's invoice names it.
+        $claimable = self::claimableDiscounts(
+            charges:        $charges,
+            goodsToInvoice: self::goodsToInvoice(orderId: $orderId, docType: DocumentHelper::TYPE_INVOICE, currency: $currency),
+            currency:       $currency,
+        );
+        $unclaimable = [];
+
+        foreach ($charges->rules as $rule) {
+            if (!isset($claimable[(int) $rule->id])) {
+                continue;
+            }
+
+            $rest = Money::of($rule->remaining_incl, $currency)->subtract($claimable[(int) $rule->id]);
+
+            if ($rest->isPositive()) {
+                $unclaimable[(int) $rule->id] = $rest;
+            }
+        }
+
+        return $unclaimable;
     }
 
     /**
@@ -2335,8 +2416,8 @@ final class OrderChargeLines
      * leaves their rest a net within its gross. So the part that takes the rest
      * of a rate takes the rest of its net, and rules that together take all of
      * a rate's lines leave its row at nothing, never a minor unit below it. A
-     * part beyond what its rate carries (a discount reaching the shipping or
-     * the fees) keeps the net of its own split.
+     * part beyond what its rate carries would keep the net of its own split;
+     * a sales draft's claim never goes past its goods, so none does.
      *
      * @param array $rateLines The draft lines the discount reduces.
      * @param float $claimIncl The gross claimed.
@@ -3350,7 +3431,7 @@ final class OrderChargeLines
      * @param int $correctsId The corrected document.
      * @param array $posted The form's `charges` array.
      *
-     * @return array{shipping: int[], fees: int[], rules: int[], amounts: array{shipping: array<int, float>, fees: array<int, float>}}
+     * @return array{shipping: int[], fees: int[], amounts: array{shipping: array<int, float>, fees: array<int, float>}}
      *
      * @throws RuntimeException Naming the charge and what is wrong with its amount.
      *
@@ -3361,7 +3442,7 @@ final class OrderChargeLines
         $document = DocumentHelper::getById($correctsId);
         $currency = DocumentMoney::currencyOf($document);
         $charges = self::correctedCharges(correctsId: $correctsId);
-        $picks = ['shipping' => [], 'fees' => [], 'rules' => [], 'amounts' => ['shipping' => [], 'fees' => []]];
+        $picks = ['shipping' => [], 'fees' => [], 'amounts' => ['shipping' => [], 'fees' => []]];
 
         foreach (['shipping' => $charges->shipping, 'fees' => $charges->fees] as $kind => $entries) {
             $byId = array_column($entries, null, 'id');
