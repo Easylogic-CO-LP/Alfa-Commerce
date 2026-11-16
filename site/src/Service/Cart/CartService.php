@@ -393,6 +393,19 @@ final class CartService
     }
 
     /**
+     * Whether this cart's person can have one at all (2.2.1): an account, or a well-formed key of the browser. A
+     * first-time visitor has neither and has no cart, and saying so reads nothing: the same test the hydrator makes
+     * before it reads a cart's row, and System - Alfa Commerce Sync before Joomla's page cache. A reader shown on
+     * every page (the cart module) asks this first, so a visitor with no cart costs it no query.
+     *
+     * @since  2.2.1
+     */
+    public function canHaveCart(): bool
+    {
+        return $this->subject->owner((new RecognizeKey(Factory::getApplication()->getInput()))->read())->isIdentified();
+    }
+
+    /**
      * A reading of a cart, changing nothing about it.
      *
      * The mode is the caller's, because this is the one use case where callers
