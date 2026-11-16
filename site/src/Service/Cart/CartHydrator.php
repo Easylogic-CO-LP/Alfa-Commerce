@@ -63,6 +63,9 @@ final class CartHydrator
 {
     private ?HydratedCart $current = null;
 
+    /** @var CartSubject|null The subject the cart was opened with, as its caller named it (2.2.1). @since 2.2.1 */
+    private ?CartSubject $opened = null;
+
     /** @since 2.0.0 */
     public function __construct(
         private readonly CartRepository $repository,
@@ -84,6 +87,7 @@ final class CartHydrator
      */
     public function begin(CartIdentity $identity, CartSubject $subject): void
     {
+        $this->opened = $subject;
         $this->current = HydratedCart::none($identity, $subject);
     }
 
@@ -213,9 +217,10 @@ final class CartHydrator
 
     /**
      * The subject priced at the cart's delivery place (2.2.1): the place the binding holds (the one this request
-     * bound, else the delivery address's), so the goods are priced where the carriage is. An operator placing for a
-     * customer names its place in its money context, which stands. A place that may not price a buyer prices as the
-     * unknown place (PriceContext::withLocation()); with no delivery place known the goods keep the request's place.
+     * bound, else the delivery address's), so the goods are priced where the carriage is. A place the cart was opened
+     * with in its money context stands (an operator placing for a customer names one, and any caller may): only a
+     * subject opened with no place takes the binding's. A place that may not price a buyer prices as the unknown
+     * place (PriceContext::withLocation()); with no delivery place known the goods keep the request's place.
      *
      * @param CartSubject $subject Whose cart it is.
      * @param object|null $deliveryAddress The delivery address row the cart points at.
@@ -224,7 +229,7 @@ final class CartHydrator
      */
     private function atDeliveryPlace(CartSubject $subject, ?object $deliveryAddress): CartSubject
     {
-        if ($subject->isOperatorPlacement()) {
+        if ($subject->isOperatorPlacement() || ($this->opened ?? $subject)->moneyContext()['place'] !== null) {
             return $subject;
         }
 
