@@ -1323,7 +1323,7 @@ class ShipmentLedger
     /**
      * A parcel's stored tax chain as its entries, in the order they apply: each the rate as exact decimal text and the
      * name of the tax rule that applied it ('' for a chain frozen before 2.2.0, which holds the rates alone). What the
-     * REST order resource publishes of a parcel (2.2.1, P3-47).
+     * REST order resource publishes of a parcel (2.2.1).
      *
      * @param string $stored The parcel's shipping_tax_chain as stored.
      *

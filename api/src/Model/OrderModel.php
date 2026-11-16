@@ -307,7 +307,7 @@ class OrderModel extends AdminOrderModel
                 // The VAT rate the charge was taxed at, as its exact decimal text.
                 'shipping_tax_rate' => self::decimal(value: $s->shipping_tax_rate ?? null),
                 // What the costs were derived from (tax_included, tax_excluded or carrier_stated), and the tax rates the
-                // charge was calculated with, in the order they apply, each with the name of its rule (2.2.1, P3-47).
+                // charge was calculated with, in the order they apply, each with the name of its rule (2.2.1).
                 'shipping_charge_basis' => $s->shipping_charge_basis ?? null,
                 'shipping_tax_chain' => isset($s->shipping_tax_chain) ? ShipmentLedger::chainEntries(stored: (string) $s->shipping_tax_chain) : null,
                 'weight' => isset($s->weight) ? (float) $s->weight : null,

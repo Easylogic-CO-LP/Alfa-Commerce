@@ -331,8 +331,8 @@ class Transition
     }
 
     /**
-     * Skip the customer's status e-mail only: the staff recipients of the status are still sent theirs (2.2.1, decision
-     * 37 (a); the REST status change's silent). silent() still skips both.
+     * Skip the customer's status e-mail only: the staff recipients of the status are still sent theirs (2.2.1; the REST
+     * status change's silent). silent() still skips both.
      *
      * @since  2.2.1
      */

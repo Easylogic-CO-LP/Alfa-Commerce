@@ -41,7 +41,7 @@ class OrdersController extends ApiController
     }
 
     /**
-     * The published attributes of an order that its update (PATCH) does not write (2.2.1, P3-308): the order form
+     * The published attributes of an order that its update (PATCH) does not write (2.2.1): the order form
      * declares none of them, or drops them on an update (id_user, id_currency), so a PATCH of one answered 200 and the
      * order stayed as it was. They are worked out from the order's lines, payments and shipments, fixed when the order
      * is placed, or written by the order operations. id_order_status and state have refusals of their own (edit()).
@@ -213,7 +213,7 @@ class OrdersController extends ApiController
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
-        // The guards' edit: the published attributes the update does not write are refused first (2.2.1, P3-308).
+        // The guards' edit: the published attributes the update does not write are refused first (2.2.1).
         $result = $this->guardedEdit();
 
         if ($restore !== null) {

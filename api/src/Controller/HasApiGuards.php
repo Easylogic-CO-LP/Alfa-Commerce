@@ -128,7 +128,7 @@ trait HasApiGuards
     }
 
     /**
-     * Whether a record of this resource is deleted from the trash only (2.2.1, decision 43 (c)): true where the
+     * Whether a record of this resource is deleted from the trash only (2.2.1): true where the
      * administrator's list moves a record to the trash before it deletes it, its Delete being the trashed view's Empty
      * trash. A DELETE of a record in any other state then answers 409 and deletes nothing; a PATCH of state -2 trashes
      * it first. Resources the administrator deletes without a trash step, and orders, keep their one-call delete.
@@ -424,7 +424,7 @@ trait HasApiGuards
         }
 
         // Done, and the record is not among the ids the model deleted: it kept it. The items model archives a product
-        // that order lines were sold as instead of deleting it (2.2.1, decision 39).
+        // that order lines were sold as instead of deleting it (2.2.1).
         if ((int) $id > 0 && !\in_array((int) $id, array_map('intval', (array) $pks), true)) {
             $this->answerKept(id: (int) $id);
 
@@ -448,7 +448,7 @@ trait HasApiGuards
 
     /**
      * Answer a delete that kept its record: 200 with the record as it now stands and meta.note saying why
-     * ({@see self::keptNote()}), where a 204 would say it is gone (2.2.1, decision 39).
+     * ({@see self::keptNote()}), where a 204 would say it is gone (2.2.1).
      *
      * @param int $id The record.
      *

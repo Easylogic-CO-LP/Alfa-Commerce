@@ -895,8 +895,7 @@ class OrderopsController extends OrdersController
         }
 
         // Suppresses the customer status email ONLY: the staff the status
-        // tells are still sent theirs (2.2.1, decision 37 (a); it skipped
-        // both before). Stock, entitlements, document issuance, both activity
+        // tells are still sent theirs (2.2.1; it skipped both before). Stock, entitlements, document issuance, both activity
         // rows and the plugin event all still fire.
         if (!empty($body['silent'])) {
             $transition->silentCustomer();

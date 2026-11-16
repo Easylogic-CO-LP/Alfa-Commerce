@@ -120,7 +120,7 @@ class ItemfieldsController extends ApiController
     }
 
     /**
-     * An item field is deleted from the trash only, as the administrator's list of item fields deletes it (2.2.1, decision 43 (c)).
+     * An item field is deleted from the trash only, as the administrator's list of item fields deletes it (2.2.1).
      *
      * @since  2.2.1
      */

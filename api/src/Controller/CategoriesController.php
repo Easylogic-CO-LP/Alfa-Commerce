@@ -88,7 +88,7 @@ class CategoriesController extends ApiController
     }
 
     /**
-     * A category is deleted from the trash only, as the administrator's list of categories deletes it (2.2.1, decision 43 (c)).
+     * A category is deleted from the trash only, as the administrator's list of categories deletes it (2.2.1).
      *
      * @since  2.2.1
      */
