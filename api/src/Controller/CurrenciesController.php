@@ -70,4 +70,14 @@ class CurrenciesController extends ApiController
 
         return parent::displayList();
     }
+
+    /**
+     * A currency is deleted from the trash only, as the administrator's list of currencies deletes it (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
 }

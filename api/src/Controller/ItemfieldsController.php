@@ -118,4 +118,14 @@ class ItemfieldsController extends ApiController
 
         return parent::displayList();
     }
+
+    /**
+     * An item field is deleted from the trash only, as the administrator's list of item fields deletes it (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
 }
