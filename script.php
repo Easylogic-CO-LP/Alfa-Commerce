@@ -240,6 +240,30 @@ class com_alfaInstallerScript extends InstallerScript
     ];
 
     /**
+     * Columns no code reads (2.2.1): written only as empty or never at all. The installation drops each one a table
+     * still has ({@see self::dropLeftoverColumns()}).
+     *
+     * @var array<string, string[]>
+     * @since 2.2.1
+     */
+    private const LEFTOVER_COLUMNS = [
+        '#__alfa_orders' => ['id_coupon', 'code_coupon', 'invoice_date'],
+        '#__alfa_order_items' => ['id_order_invoice'],
+        '#__alfa_order_cart_rule' => ['id_order_invoice'],
+        '#__alfa_order_shipments' => ['id_order_invoice'],
+    ];
+
+    /**
+     * The e-mail texts of the per-language status tables (#__alfa_orders_statuses_<language>, 2.2.1): no code reads
+     * them; a status e-mail is built from its positions and its layout. Dropped from every language's table that
+     * still has them.
+     *
+     * @var string[]
+     * @since 2.2.1
+     */
+    private const LEFTOVER_STATUS_TEXT_COLUMNS = ['email_subject_customer', 'email_body_customer', 'email_subject_admin', 'email_body_admin'];
+
+    /**
      * The cache groups an update cleans once (2.2.0, A-C16-6): Joomla's page cache, where 2.1.4 could store a guest's
      * completed order under the arrival address and serve it to the next guest, and every group the component writes
      * (the dashboard's cards, the setup checks, the storefront's category tree, the integrity verdict and the
@@ -848,6 +872,93 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
+     * Drop the columns no code reads (2.2.1, {@see self::LEFTOVER_COLUMNS} and the status texts of every language's
+     * status table, {@see self::LEFTOVER_STATUS_TEXT_COLUMNS}), each only where the table still has it.
+     *
+     * The tables' own columns are read first, from the database's catalogue, so the step drops nothing twice and
+     * changes nothing where the columns are already gone: a fresh install, an update run again after it stopped, or
+     * tables kept by an uninstall and connected again. One statement per table drops all of its leftover columns at
+     * once. No data a shop uses is in them: the order columns were written only empty, the status texts were never
+     * read. A table that refuses is named in a warning and the maintenance log, keeps its columns and the shop works;
+     * the next installation drops them. It never fails the installation.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function dropLeftoverColumns(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $prefix = $db->getPrefix();
+        $wanted = [];
+
+        foreach (self::LEFTOVER_COLUMNS as $table => $columns) {
+            $wanted[$db->replacePrefix($table)] = $columns;
+        }
+
+        $failed = [];
+
+        try {
+            // The prefix's _ and % must match themselves: addcslashes() escapes them for LIKE, whose escape character
+            // is the backslash, and quote() escapes those backslashes again for the string literal, which MySQL reads
+            // back to one before LIKE sees the pattern.
+            $statusTables = $db->setQuery(
+                'SELECT DISTINCT ' . $db->quoteName('TABLE_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' LIKE ' . $db->quote(addcslashes($prefix . 'alfa_orders_statuses_', '_%\\') . '%')
+                . ' AND ' . $db->quoteName('COLUMN_NAME') . ' IN (' . implode(', ', array_map([$db, 'quote'], self::LEFTOVER_STATUS_TEXT_COLUMNS)) . ')',
+            )->loadColumn() ?: [];
+
+            foreach ($statusTables as $table) {
+                $wanted[(string) $table] = self::LEFTOVER_STATUS_TEXT_COLUMNS;
+            }
+
+            $present = [];
+
+            foreach ($db->setQuery(
+                'SELECT ' . $db->quoteName('TABLE_NAME') . ', ' . $db->quoteName('COLUMN_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' IN (' . implode(', ', array_map([$db, 'quote'], array_keys($wanted))) . ')',
+            )->loadAssocList() ?: [] as $row) {
+                $present[(string) $row['TABLE_NAME']][(string) $row['COLUMN_NAME']] = true;
+            }
+        } catch (\Throwable $e) {
+            $failed[] = 'information_schema (' . $e->getMessage() . ')';
+            $present = [];
+        }
+
+        foreach ($wanted as $table => $columns) {
+            $drop = array_values(array_filter($columns, static fn (string $column): bool => isset($present[$table][$column])));
+
+            if ($drop === []) {
+                continue;
+            }
+
+            try {
+                $db->setQuery(
+                    'ALTER TABLE ' . $db->quoteName($table) . ' '
+                    . implode(', ', array_map(static fn (string $column): string => 'DROP COLUMN ' . $db->quoteName($column), $drop)),
+                )->execute();
+                self::maintenanceLog(
+                    line: sprintf('Update to %s: %s dropped the columns no code reads: %s.', self::SCHEMA_VERSION, $table, implode(', ', $drop)),
+                    priority: \Joomla\CMS\Log\Log::INFO,
+                );
+            } catch (\Throwable $e) {
+                $failed[] = $table . ': ' . implode(', ', $drop) . ' (' . $e->getMessage() . ')';
+            }
+        }
+
+        if ($failed !== []) {
+            $message = $this->installerText(
+                key:      'COM_ALFA_INSTALL_LEFTOVER_COLUMNS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not drop columns no code reads: %2$s. The shop works with them; the next installation drops them.',
+                values:   [$this->packageVersion, implode('; ', $failed)],
+            );
+            Factory::getApplication()->enqueueMessage($message, 'warning');
+            self::maintenanceLog(line: $message, priority: \Joomla\CMS\Log\Log::WARNING);
+        }
+    }
+
+    /**
      * Run this package's install SQL for an install that never finished, before Joomla copies a
      * file, so that nothing after it (the update files, postflight's language and user sync, the
      * tours, the task) builds on a schema the install SQL has not completed.
@@ -1323,7 +1434,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Make the component's administrator classes autoloadable in this request.
+     * Make the component's administrator and site classes autoloadable in this request.
      *
      * Joomla adds a newly installed extension's namespace to its autoloader only
      * on a later request, while the bundled extensions are installed in this one
@@ -1340,6 +1451,13 @@ class com_alfaInstallerScript extends InstallerScript
         \JLoader::registerNamespace(
             'Alfa\\Component\\Alfa\\Administrator',
             JPATH_ADMINISTRATOR . '/components/com_alfa/src'
+        );
+
+        // The site half too (2.2.1): the update names the rules that have not ended by the pricing's own reading of a
+        // rule's end (Site\Service\Pricing\ActiveDateCondition).
+        \JLoader::registerNamespace(
+            'Alfa\\Component\\Alfa\\Site',
+            JPATH_SITE . '/components/com_alfa/src'
         );
     }
 
@@ -1635,9 +1753,10 @@ class com_alfaInstallerScript extends InstallerScript
             return true;
         }
 
-        // 0. The link tables have their keys (2.0.1), then the Alfa tables are at this
-        //    package's schema: say so among them.
+        // 0. The link tables have their keys (2.0.1), the columns no code reads are gone (2.2.1), then the Alfa
+        //    tables are at this package's schema: say so among them.
         $this->completeLinkKeys();
+        $this->dropLeftoverColumns();
         $this->recordSchemaVersion();
 
         // The list prices of a new combination of customer groups are prepared by the job runner (2.2.0). On an update
@@ -1862,8 +1981,9 @@ class com_alfaInstallerScript extends InstallerScript
      * index of the version before was written with the place alone, so every product is marked owed a rebuild and the
      * catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may sort and filter a buyer below a
      * ruled place by the earlier price while the product page and the cart show the new one; the message says so, and
-     * names the published rules (not ended) scoped to a place that has a published place inside it: the rules that now
-     * reach further, since a place under an unpublished one prices no buyer. A shop whose places are all countries has
+     * names the published rules (not ended, an empty end being open as pricing reads it) scoped to a published place
+     * that has a published place inside it: the rules that now reach further, since a place under an unpublished one
+     * prices no buyer. A shop whose places are all countries has
      * none; a shop that kept the seeded Larisa under Greece has its Greece-scoped rules named. A failure is said, never
      * a failed update.
      *
@@ -1877,13 +1997,16 @@ class com_alfaInstallerScript extends InstallerScript
         try
         {
             $db = Factory::getContainer()->get('DatabaseDriver');
-            // A published rule that has not ended, scoped to a place with a published place inside it.
+            // A published rule that has not ended (by the pricing's own reading of its end: an empty end is open),
+            // scoped to a published place with a published place inside it.
+            $notEnded = (new \Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition())->getNotEndedCondition(endField: 'x.publish_down');
             $reaching = static fn (string $table, string $rule, string $rules): array => array_map('intval', $db->setQuery(
                 'SELECT DISTINCT r.' . $db->quoteName($rule) . ' FROM ' . $db->quoteName($table, 'r')
                 . ' INNER JOIN ' . $db->quoteName($rules, 'x') . ' ON x.' . $db->quoteName('id') . ' = r.' . $db->quoteName($rule)
+                . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'p') . ' ON p.' . $db->quoteName('id') . ' = r.' . $db->quoteName('place_id')
                 . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'c') . ' ON c.' . $db->quoteName('parent_id') . ' = r.' . $db->quoteName('place_id')
-                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 AND c.' . $db->quoteName('state') . ' = 1 AND x.' . $db->quoteName('state') . ' = 1'
-                . ' AND (x.' . $db->quoteName('publish_down') . ' IS NULL OR x.' . $db->quoteName('publish_down') . ' > UTC_TIMESTAMP()) ORDER BY 1'
+                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 AND p.' . $db->quoteName('state') . ' = 1 AND c.' . $db->quoteName('state') . ' = 1'
+                . ' AND x.' . $db->quoteName('state') . ' = 1 AND ' . $notEnded . ' ORDER BY 1'
             )->loadColumn() ?: []);
             $discounts = $reaching('#__alfa_discount_places', 'discount_id', '#__alfa_discounts');
             $taxes     = $reaching('#__alfa_tax_places', 'tax_id', '#__alfa_taxes');

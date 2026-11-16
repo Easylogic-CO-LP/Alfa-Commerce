@@ -145,7 +145,7 @@ class ShipmentLedger
      * Nullable integer columns: form sends '', MySQL rejects for int.
      * Sanitized to null in saveToTable().
      */
-    private const NULLABLE_INT_COLUMNS = ['id_order_invoice', 'id_employee'];
+    private const NULLABLE_INT_COLUMNS = ['id_employee'];
 
     /**
      * Nullable datetime columns: empty/zero -> null in saveToTable().
@@ -1318,6 +1318,22 @@ class ShipmentLedger
         }
 
         return $chain;
+    }
+
+    /**
+     * A parcel's stored tax chain as its entries, in the order they apply: each the rate as exact decimal text and the
+     * name of the tax rule that applied it ('' for a chain frozen before 2.2.0, which holds the rates alone). What the
+     * REST order resource publishes of a parcel (2.2.1).
+     *
+     * @param string $stored The parcel's shipping_tax_chain as stored.
+     *
+     * @return array<int, array{rate: string, name: string}>|null Null when the stored text is not a chain.
+     *
+     * @since  2.2.1
+     */
+    public static function chainEntries(string $stored): ?array
+    {
+        return self::chainOf(value: $stored);
     }
 
     /**
