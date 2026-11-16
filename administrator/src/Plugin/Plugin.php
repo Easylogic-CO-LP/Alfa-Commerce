@@ -1309,11 +1309,12 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * limits are set, made of digits of one length, and shorter than a value of
      * digits, the value's first digits of that length are compared: "410" to
      * "419" meets every postcode from "410 00" to "419 99", written with the
-     * space or without. The same with an upper limit and no floor: up to "419"
-     * meets every postcode up to "419 99". Compared naturally before, such a
-     * band met the spaced form only, and not its last prefix ("419 99" sorted
-     * above "419"). A floor with no upper limit, or limits of two lengths,
-     * compares whole numbers.
+     * space or without. The same with one limit alone: up to "419" meets every
+     * postcode up to "419 99", and from "410" every postcode from "410 00"
+     * ("409 99" does not). Compared naturally before, such a band met the
+     * spaced form only, and not its last prefix ("419 99" sorted above "419").
+     * Limits of different lengths ("41" to "419", a band written wrong)
+     * compare as whole numbers.
      *
      * A value or a limit with a letter or a hyphen in it (UK, Canada, the
      * Netherlands, US ZIP+4, Japan, Poland, Portugal) keeps the comparison
@@ -1352,8 +1353,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         $subject = self::digitsOf($subject);
 
-        // A band of first digits (2.2.1): both limits digits of one length, or an upper limit with no floor, shorter
-        // than the value's digits.
+        // A band of first digits (2.2.1): its limits (one or both) digits of one length, shorter than the value's.
         $prefix = self::prefixLength(subject: $subject, min: $hasMin ? $min : null, max: $hasMax ? $max : null);
 
         if ($prefix > 0) {
@@ -1403,7 +1403,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
     /**
      * The length of the first digits a band compares, or 0 for a band of whole values (2.2.1): a value of digits
-     * against limits of digits shorter than it, both limits of one length, or an upper limit with no floor.
+     * against limits of digits shorter than it, both limits of one length, or one limit alone (an upper limit with no
+     * floor, or a floor with no upper limit). Limits of different lengths compare as whole numbers.
      *
      * @param mixed $subject The value, as {@see self::digitsOf()} reads it.
      * @param mixed $min The lower limit, or null when the band has none.
@@ -1413,15 +1414,27 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      */
     private static function prefixLength(mixed $subject, mixed $min, mixed $max): int
     {
-        if (!\is_string($subject) || !ctype_digit($subject) || $max === null || !\is_string($max) || !ctype_digit($max)) {
+        if (!\is_string($subject) || !ctype_digit($subject)) {
             return 0;
         }
 
-        if ($min !== null && (!\is_string($min) || !ctype_digit($min) || \strlen($min) !== \strlen($max))) {
+        $limits = array_values(array_filter([$min, $max], static fn (mixed $limit): bool => $limit !== null));
+
+        foreach ($limits as $limit) {
+            if (!\is_string($limit) || !ctype_digit($limit)) {
+                return 0;
+            }
+        }
+
+        $lengths = array_unique(array_map('strlen', $limits));
+
+        if (\count($lengths) !== 1) {
             return 0;
         }
 
-        return \strlen($max) < \strlen($subject) ? \strlen($max) : 0;
+        $length = (int) reset($lengths);
+
+        return $length < \strlen($subject) ? $length : 0;
     }
 
     /**
