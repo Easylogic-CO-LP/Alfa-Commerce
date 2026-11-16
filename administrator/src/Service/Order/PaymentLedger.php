@@ -6494,9 +6494,10 @@ class PaymentLedger
      * from the first read to the commit, the reservation keeps its row, its status (pending or authorized), its amount,
      * its refund type, its payment, its document and its reason; its reference becomes REPORT_REQUEST_PREFIX and a new
      * key (a version 4 UUID, never reused: the idempotency key of the retry); its note is prefixed with the failed
-     * attempt; its gateway_response is replaced when 'gateway_response' is given; and one order activity entry
-     * EVENT_REFUND_ATTEMPT_FAILED names the failed provider refund on it. No other row is written, and no row carries
-     * the failed provider refund id afterwards.
+     * attempt; its gateway_response is replaced when 'gateway_response' is given. The order's timeline gets two entries
+     * on it, as the ledger's other words write theirs: the row's edit record (payment.edited, the reference and the
+     * note changed) and one entry EVENT_REFUND_ATTEMPT_FAILED naming the failed provider refund. No other payment row
+     * is written, and no row carries the failed provider refund id afterwards.
      *
      * The figures do not move: what the order and the payment may still refund (refundableNow(),
      * refundableRemainder(), refundFormMaximum()), bookedRefundable() and the order's balance read the same before

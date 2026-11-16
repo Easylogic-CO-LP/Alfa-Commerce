@@ -46,7 +46,8 @@ trait HasActionLogTrait
      *
      * @param string $languageKey The message's language key, the plugin's own.
      * @param array<string, string|int|float|bool> $facts The sentence's facts, by name; scalar values only (userid,
-     *                                                    username and accountlink are added).
+     *                                                    username and accountlink are the acting user's, applied last
+     *                                                    over a fact of the same name).
      * @param int $itemId The id of the thing acted on (an order, a payment), 0 when none.
      *
      * @return bool True when the row is written; false when it is not (nothing written, the reason logged).

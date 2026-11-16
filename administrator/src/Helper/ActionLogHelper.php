@@ -46,7 +46,8 @@ final class ActionLogHelper
      *                          component (com_x), or a plugin as plg_<group>_<element>.
      * @param string $languageKey The message's language key, as Joomla's action log renders it with the facts.
      * @param array<string, string|int|float|bool> $facts The sentence's facts, by name; scalar values only. The
-     *                                                    acting user's userid, username and accountlink are added.
+     *                                                    acting user's userid, username and accountlink are applied
+     *                                                    last: a fact of one of those names never replaces who acted.
      * @param int $itemId The id of the thing acted on (an order, a payment), 0 when none.
      * @param User $actor Who acted: the request's user, or a user of id 0 when none did (a provider's notification).
      *
@@ -63,11 +64,12 @@ final class ActionLogHelper
                 throw new InvalidArgumentException($refusal);
             }
 
-            $message = $facts + [
+            // Who acted is the request's user, never a fact: the actor's three names are applied last.
+            $message = array_replace($facts, [
                 'userid' => (int) $actor->id,
                 'username' => (string) $actor->username,
                 'accountlink' => 'index.php?option=com_users&task=user.edit&id=' . (int) $actor->id,
-            ];
+            ]);
 
             $row = (object) [
                 'message_language_key' => $languageKey,
