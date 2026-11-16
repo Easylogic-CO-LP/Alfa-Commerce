@@ -625,6 +625,55 @@ final class AutoIssuePolicy
 
         // The shop's own policy issues it, whoever triggered the status change: no staff permission is asked.
         DocumentIssuer::issue(draft: $draft, actor: new SystemActor(policy: 'automatic issue on a status change'));
+
+        if (DocumentHelper::poolOf($docType) === DocumentHelper::POOL_SALES) {
+            self::reportUnclaimable(orderId: $orderId);
+        }
+    }
+
+    /**
+     * Say when the order holds discount no invoice can claim any more.
+     *
+     * A discount follows the goods, so a balance larger than the goods still
+     * to invoice stays unclaimed (an invoice issued before 2.2.1 without its
+     * share leaves one, OrderChargeLines::unclaimableDiscounts()). An
+     * automatic issue then issues the order's invoices without it, and they
+     * total more than the order: the documents log and the order's
+     * notification name the amount, as the order's document screen does.
+     *
+     * @param int $orderId The order whose sales document was just issued.
+     *
+     * @since  2.2.1
+     */
+    private static function reportUnclaimable(int $orderId): void
+    {
+        $unclaimable = OrderChargeLines::unclaimableDiscounts(orderId: $orderId);
+
+        if ($unclaimable === []) {
+            return;
+        }
+
+        $currency = OrderItemLines::orderCurrency(orderId: $orderId);
+        $total = Money::zero($currency);
+
+        foreach ($unclaimable as $amount) {
+            $total = $total->add($amount);
+        }
+
+        $figure = number_format($total->getAmount(), $currency->getDecimalPlaces());
+
+        Log::add(
+            entry:    "AutoIssuePolicy: order {$orderId}: {$figure} of its discounts can no longer be claimed by an invoice; its invoices total that much more than the order.",
+            priority: Log::WARNING,
+            category: 'com_alfa.documents',
+        );
+
+        self::notify(
+            orderId: $orderId,
+            key:     self::KEY_PREFIX . $orderId . '.unclaimable',
+            title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_UNCLAIMABLE_TITLE', $orderId, $figure),
+            message: NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_UNCLAIMABLE_MSG'),
+        );
     }
 
     /**
@@ -683,6 +732,11 @@ final class AutoIssuePolicy
         }
 
         try {
+            // A credit note that gives the unclaimable discount back answers its notice.
+            if (\in_array($docType, DocumentHelper::creditTypes(), true) && OrderChargeLines::unclaimableDiscounts(orderId: $orderId) === []) {
+                $answered[] = $prefix . 'unclaimable';
+            }
+
             if ($docType !== '' && DocumentHelper::requiresBuyerVat($docType)) {
                 $answered[] = $prefix . 'vat';
             }
