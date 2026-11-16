@@ -58,6 +58,12 @@ class HtmlView extends BaseHtmlView
     /** @var string Resolved sub-template for the "images" slot */
     protected $imagesTpl = 'images';
 
+    /**
+     * @var int How many columns the images grid (default_images-grid.php) has on a wide screen, 2 to 4 (2.2.1): the
+     *          item's, else its default category's, else the menu item's or the Options'
+     */
+    protected int $imagesGridColumns = 2;
+
     /** @var string Resolved sub-template for the "manufacturers" slot */
     protected $manufacturersTpl = 'manufacturers';
 
@@ -123,6 +129,8 @@ class HtmlView extends BaseHtmlView
             slot: 'images',
             layout: $this->getLayout(),
         );
+        // The grid's columns (2.2.1), through the same chain; the grid draws them as a class, 2 to 4.
+        $this->imagesGridColumns = min(4, max(2, (int) (($own['images_grid_columns'] ?? '') ?: ($cat['images_grid_columns'] ?? '') ?: $this->params->get('item_images_grid_columns', 2))));
         $this->manufacturersTpl = SlotResolver::resolve(
             value: ($own['manufacturers'] ?? '') ?: ($cat['manufacturers'] ?? '') ?: (string) $this->params->get('item_manufacturers_layout', ''),
             view: 'item',

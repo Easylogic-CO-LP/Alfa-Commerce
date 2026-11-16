@@ -119,6 +119,41 @@
     height: auto;
 }
 
+/* THE IMAGES GRID (default_images-grid.php): every image at once, each a link to the lightbox, in the columns of
+   its modifier class; at most two columns on a phone. Never the slider's .main-images. */
+.item-images-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.item-images-grid--cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.item-images-grid--cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media screen and (max-width: 600px) {
+    .item-images-grid--cols-3,
+    .item-images-grid--cols-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.item-images-grid .item-image {
+    display: block;
+}
+
+.item-images-grid .item-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: cover;
+}
+
 .thumbnail-images {
     display: flex;
     flex-direction: row;

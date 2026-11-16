@@ -1619,6 +1619,12 @@ class ItemsModel extends UrlListModel
                     ? ($viewedCategoryLayouts['card'] ?? '')
                     : (($categoriesMapping[$item->id_category_default ?? 0]['layouts'] ?? [])['card'] ?? ''));
 
+            // Its card's images and its slider's count, from the same levels (2.2.1); '' leaves them to the view.
+            $this->stampCardImages(
+                item: $item,
+                categoryLayouts: $this->categoryId ? $viewedCategoryLayouts : ($categoriesMapping[$item->id_category_default ?? 0]['layouts'] ?? []),
+            );
+
             if ($item->stock_action == -1) {
                 $item->stock_action = $settings->get('stock_action');
                 $item->stock_low_message = $settings->get('stock_low_message');
@@ -1735,6 +1741,28 @@ class ItemsModel extends UrlListModel
         $this->dispatchItemsListPrepare($items);
 
         return $items;
+    }
+
+    /**
+     * Stamp ONE row's choice of its card's images (2.2.1), from the entity levels the card's own choice comes from: the
+     * item's own Layouts, else the category's (the viewed category on a category page, the row's default category
+     * elsewhere). cardImagesLayout is the "card_images" slot's sub-template and cardImagesCount how many images its
+     * slider shows ('0' every one); '' for either leaves it to the menu item and the Options, which the view applies.
+     *
+     * @param object $item The row, its layouts decoded.
+     * @param array<string, mixed> $categoryLayouts The deciding category's layouts, decoded.
+     *
+     * @since  2.2.1
+     */
+    private function stampCardImages(object $item, array $categoryLayouts): void
+    {
+        $own = (array) ($item->layouts ?? []);
+        $level = static fn (array $layouts, string $key): string => trim((string) ($layouts[$key] ?? ''));
+
+        $item->cardImagesLayout = $level($own, 'card_images') ?: $level($categoryLayouts, 'card_images');
+        $item->cardImagesCount = $level($own, 'card_images_count') !== ''
+            ? $level($own, 'card_images_count')
+            : $level($categoryLayouts, 'card_images_count');
     }
 
     /**
@@ -2124,6 +2152,7 @@ class ItemsModel extends UrlListModel
         // is the viewed category on category pages and the item's default one on
         // mixed listings, so the swapped card matches its page exactly.
         $item->cardLayout = ($item->layouts['card'] ?? '') ?: ($item->category_layouts['card'] ?? '');
+        $this->stampCardImages(item: $item, categoryLayouts: $item->category_layouts);
 
         // Stock-action defaults: mirror the list loop.
         $settings = ComponentHelper::getParams('com_alfa');
