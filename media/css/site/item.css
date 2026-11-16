@@ -146,7 +146,7 @@
     display: block;
 }
 
-.item-images-grid .item-image img {
+.item-images-grid img {
     display: block;
     width: 100%;
     height: auto;
