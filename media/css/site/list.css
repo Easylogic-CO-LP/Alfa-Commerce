@@ -39,8 +39,9 @@
 
 /* THE CARD'S IMAGE SLIDER (default_card_images-slider.php). The track is a row of the card's images that scrolls
    sideways and stops on each one: a swipe or a sideways scroll moves it with no script, and card-slider.js lets the
-   arrows and the dots move it one image at a time. Its scroll bar is hidden, the dots say where it is. The move is
-   smooth only for a visitor who has not asked for reduced motion. */
+   arrows and the dots move it one image at a time. Its scroll bar is hidden, the dots say where it is. The arrows and
+   the dots sit over the image, so a slider card is as tall as a card of one image and the arrows centre on the image.
+   The move is smooth only for a visitor who has not asked for reduced motion. */
 
 .card-slider {
     position: relative;
@@ -120,13 +121,19 @@
     outline-offset: 2px;
 }
 
+/* The dots' row lies over the image's lower edge; only the dots themselves take a click, the rest of the row lets
+   it through to the image. */
 .card-slider-dots {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0.25rem;
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
+    pointer-events: none;
 }
 
-/* Each dot is a 24 px target around a small round mark. */
+/* Each dot is a 24 px target around a small round mark, ringed so it shows on any picture. */
 .card-slider-dot {
     display: grid;
     place-items: center;
@@ -136,6 +143,7 @@
     border: 0;
     background: none;
     cursor: pointer;
+    pointer-events: auto;
 }
 
 .card-slider-dot::before {
@@ -143,7 +151,8 @@
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
-    background: var(--alfa-muted-color);
+    background: var(--alfa-surface);
+    box-shadow: 0 0 0 1px var(--alfa-muted-color);
 }
 
 .card-slider-dot[aria-current="true"]::before {
@@ -270,12 +279,14 @@
 }
 
 /* THE RESULTS REGION (2.2.0): brought into view below a sticky header, whose height a template sets as
-   --alfa-scroll-offset; focused by script, its outline shown to keyboard users only. */
+   --alfa-scroll-offset; focused by script, its outline shown to keyboard users only. Under either root at no weight of
+   its own (:where), so the listing's .com-alfa root and an override of the listing made before it (#alfa-app only)
+   both keep it, and a template's own rule on [data-results] needs no more weight than that to change it. */
 
-.com-alfa [data-results] {
+:where(.com-alfa, #alfa-app) [data-results] {
     scroll-margin-top: var(--alfa-scroll-offset, 0px);
 }
 
-.com-alfa [data-results]:focus:not(:focus-visible) {
+:where(.com-alfa, #alfa-app) [data-results]:focus:not(:focus-visible) {
     outline: none;
 }
