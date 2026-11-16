@@ -2009,7 +2009,7 @@ class com_alfaInstallerScript extends InstallerScript
         {
             $left[] = $this->installerText(
                 key:      'COM_ALFA_INSTALL_PLACES_SEED_LARISA',
-                fallback: 'The place #%1$d %2$s, inside Greece, came from Alfa Commerce\'s own test data up to 2.2.0 and is no longer shipped. It was kept, since addresses, prices and rules may name it. Once Greece\'s regions are added, move it under Thessaly, or unpublish it if the shop does not use it.',
+                fallback: 'The place #%1$d %2$s, inside Greece, came from Alfa Commerce\'s own test data up to 2.2.0 and is no longer shipped. It was kept, since addresses, prices and rules may name it. Once Greece\'s regions are added, publish Thessaly and then move it under Thessaly, or unpublish it if the shop does not use it.',
                 values:   [(string) $larisa, $result['noSuccessor'][$larisa]],
             );
         }

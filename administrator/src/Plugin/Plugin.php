@@ -1298,13 +1298,15 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * turns it into M14BT and hands district M1 to district M14: the reason
      * a normalise-then-compare approach was rejected.
      *
-     * EXCEPT A POSTCODE OF DIGITS AND SPACES ONLY (2.2.1). Greek postcodes are
-     * written "412 22", Swedish "123 45", Czech and Slovak "110 00": with its
-     * spaces removed the value is all digits, so it is compared as that number,
-     * and "412 22" meets a 41000 to 41999 band as "41222" does. Compared
-     * naturally, "412" read below "41000" and the row was missed. A value with a
-     * letter or a hyphen in it (UK, Canada, the Netherlands, US ZIP+4, Japan,
-     * Poland, Portugal) keeps the comparison above.
+     * EXCEPT DIGITS AND SPACES ONLY (2.2.1). Greek postcodes are written
+     * "412 22", Swedish "123 45", Czech and Slovak "110 00". A value or a bound
+     * made only of digits and spaces is read as its digits and compared as that
+     * number, so "412 22" and "41222" both meet a band written "41000" to
+     * "41999" or "410 00" to "419 99". Compared naturally, "412" read below
+     * "41000" and the row was missed. A band is whole postcodes: one written by
+     * the first three digits ("410" to "419") meets neither form. A value or a
+     * bound with a letter or a hyphen in it (UK, Canada, the Netherlands, US
+     * ZIP+4, Japan, Poland, Portugal) keeps the comparison above.
      *
      * KINDS THAT DO NOT MATCH CANNOT BE JUDGED. A number against a letter (a
      * 5 kg parcel against a ceiling somebody typed as 'abc', a Greek postcode
@@ -1322,6 +1324,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      */
     final protected function isWithinLimits(mixed $value, mixed $min = null, mixed $max = null): bool
     {
+        $min = self::digitsOf($min);
+        $max = self::digitsOf($max);
         $hasMin = !self::isNoLimit($min);
         $hasMax = !self::isNoLimit($max);
 
@@ -1335,10 +1339,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
             return !$hasMin;
         }
 
-        // Digits and spaces only: the digits, compared as a number below (2.2.1).
-        if (\is_string($subject) && str_contains($subject, ' ') && ctype_digit($digits = str_replace(' ', '', $subject))) {
-            $subject = $digits;
-        }
+        $subject = self::digitsOf($subject);
 
         if (
             is_numeric($subject)
@@ -1360,6 +1361,25 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         }
 
         return true;
+    }
+
+    /**
+     * A value or a bound made only of digits and spaces, as its digits ("412 22" as "41222"); anything else as given
+     * (2.2.1).
+     *
+     * @param mixed $value The value or the bound.
+     *
+     * @since  2.2.1
+     */
+    private static function digitsOf(mixed $value): mixed
+    {
+        if (!\is_string($value) || !str_contains($value, ' ')) {
+            return $value;
+        }
+
+        $digits = str_replace(' ', '', trim($value));
+
+        return ctype_digit($digits) ? $digits : $value;
     }
 
     /**

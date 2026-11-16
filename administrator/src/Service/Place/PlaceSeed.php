@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use Throwable;
 
 /**
  * The places Alfa Commerce ships, and how a shop installed before 2.2.1 comes to them (2.2.1).
@@ -174,8 +175,9 @@ final class PlaceSeed
     ];
 
     /**
-     * Bring a shop's places from a seed up to 2.2.0 to 2.2.1's, as the class description says. Run once, by the update
-     * from a version before 2.2.1; run again it finds nothing to do.
+     * Bring a shop's places from a seed up to 2.2.0 to 2.2.1's, as the class description says, in one transaction: a
+     * failure leaves every place as it was. Run once, by the update from a version before 2.2.1; run again it finds
+     * nothing to do.
      *
      * The answer: corrected, id => the name now; added, code2 => name; kept, id => [the shop's name, the name 2.2.1
      * ships]; noSuccessor, id => the shop's name, Larisa included; currencies, id => [the country's name, the code now].
@@ -187,6 +189,31 @@ final class PlaceSeed
      * @since  2.2.1
      */
     public static function correctOnUpdate(DatabaseInterface $db): array
+    {
+        $db->transactionStart();
+
+        try {
+            $result = self::correct(db: $db);
+            $db->transactionCommit();
+        } catch (Throwable $e) {
+            $db->transactionRollback();
+
+            throw $e;
+        }
+
+        return $result;
+    }
+
+    /**
+     * The steps of {@see self::correctOnUpdate()}, inside its transaction.
+     *
+     * @param DatabaseInterface $db The shop's connection.
+     *
+     * @return array{corrected: array<int, string>, added: array<string, string>, kept: array<int, array{0: string, 1: string}>, noSuccessor: array<int, string>, currencies: array<int, array{0: string, 1: string}>} What was done and what was left.
+     *
+     * @since  2.2.1
+     */
+    private static function correct(DatabaseInterface $db): array
     {
         $rows = $db->setQuery(
             $db->getQuery(true)

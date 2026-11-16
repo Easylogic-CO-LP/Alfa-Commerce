@@ -2611,7 +2611,7 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'TH' THEN 'THB'
     WHEN 'TJ' THEN 'TJS'
     WHEN 'TL' THEN 'USD'
-    WHEN 'TM' THEN 'USD'
+    WHEN 'TM' THEN 'TMT'
     WHEN 'TN' THEN 'TND'
     WHEN 'TO' THEN 'TOP'
     WHEN 'TR' THEN 'TRY'
