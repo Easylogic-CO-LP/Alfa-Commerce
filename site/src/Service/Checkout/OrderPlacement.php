@@ -48,6 +48,8 @@ use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderBeforePlaceEvent as S
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
@@ -66,11 +68,13 @@ use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
+use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodRequirement;
+use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\ChargeableQuantity;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
@@ -1426,6 +1430,11 @@ class OrderPlacement
      *
      * So the failure is reported rather than swallowed, and the caller is told.
      *
+     * Each hook is dispatched once. After the shipment hook, an order whose
+     * carrier recorded no parcel gets one from core with its shipping charge
+     * ({@see self::recordMissingParcel()}, since 2.2.1); 'shipment' is reported
+     * when the hook failed or core could not record the parcel.
+     *
      * @return string[] The sides that failed ('payment', 'shipment'); empty on success.
      *
      * @since  1.0.0
@@ -1433,6 +1442,8 @@ class OrderPlacement
     protected function triggerAfterPlaceEvents(): array
     {
         $failed = [];
+        // The order's carrier, named before a plugin that cannot be loaded clears it below.
+        $carrier = $this->shipment_type;
 
         try {
             if (!empty($this->payment_type) && $this->order && !$this->paymentMethodPermitted()) {
@@ -1509,12 +1520,122 @@ class OrderPlacement
                     );
                 }
             }
+
+            // The parcel carries the order's shipping charge: an order whose carrier recorded none (it returned
+            // without one, its write failed, or its plugin could not be loaded) would lack the charge the customer
+            // accepted and the gateway was asked for. Core records it once, after the one dispatch (2.2.1).
+            if ($carrier !== '' && $this->order && !$this->recordMissingParcel(carrier: $carrier) && !\in_array('shipment', $failed, true)) {
+                $failed[] = 'shipment';
+            }
         } catch (Throwable $e) {
             $failed[] = 'unknown';
             Log::add('After-place events error: ' . $e->getMessage(), Log::CRITICAL, 'com_alfa.orders');
         }
 
         return $failed;
+    }
+
+    /**
+     * Record the order's parcel when its carrier recorded none in onOrderAfterPlace (2.2.1).
+     *
+     * The order row stores no totals: its shipping is the sum of its parcels, and the parcel is the carrier's to
+     * write in onOrderAfterPlace, after the commit. A carrier that returns without one, whose write fails, or whose
+     * plugin cannot be loaded leaves an order whose own total lacks the shipping the customer accepted and the
+     * gateway was asked for, so the paid order would read as overpaid by it.
+     *
+     * Asked once per placement, after the one dispatch of the hook (the hook is never dispatched again for the
+     * order). Any parcel of the order on the order's shipment method, of any status and by any writer, is the
+     * carrier's record, and nothing is added: a carrier's own parcel is never doubled. With none, core records one
+     * pending parcel with the charge the order froze at placement (its shipping with and without tax, its rate, its
+     * chain and its basis, as a carrier records them) and every item, marked core-made in its plugin_data
+     * (ShipmentLedger::CORE_MADE), and tells staff which carrier recorded nothing and that a pickup point or locker the
+     * shopper chose was lost with it.
+     *
+     * @param string $carrier The element of the order's shipment plugin.
+     *
+     * @return bool True when the order has its parcel (the carrier's, or core's now); false when core could not record
+     *              it (logged CRITICAL).
+     *
+     * @since  2.2.1
+     */
+    private function recordMissingParcel(string $carrier): bool
+    {
+        $order = Order::of($this->order);
+        $orderId = $order->id();
+        $methodId = $order->shipmentMethodId();
+
+        if ($orderId <= 0 || $methodId <= 0) {
+            return true;
+        }
+
+        try {
+            $db = $this->db;
+            $recorded = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_order_shipments'))
+                    ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                    ->where($db->quoteName('id_shipment_method') . ' = ' . $methodId),
+            )->loadResult();
+
+            if ($recorded > 0) {
+                return true;
+            }
+
+            $parcelId = ShipmentLedger::for($order)
+                ->pending()
+                ->withAllItems()
+                ->cost($order->shipmentTotal(), $order->shipmentTotalExcl(), $order->shipmentTaxRate())
+                ->pluginData([ShipmentLedger::CORE_MADE => true])
+                ->save();
+        } catch (Throwable $e) {
+            Log::add(
+                'Order #' . $orderId . ': the carrier "' . $carrier . '" recorded no parcel, and core could not record it: '
+                    . $e::class . ': ' . $e->getMessage(),
+                Log::CRITICAL,
+                'com_alfa.orders',
+            );
+
+            return false;
+        }
+
+        if (!$parcelId) {
+            Log::add(
+                'Order #' . $orderId . ': the carrier "' . $carrier . '" recorded no parcel, and the ledger refused core\'s record of it;'
+                    . ' the order lacks its shipping charge.',
+                Log::CRITICAL,
+                'com_alfa.orders',
+            );
+
+            return false;
+        }
+
+        Log::add(
+            'Order #' . $orderId . ': the carrier "' . $carrier . '" recorded no parcel at placement; core recorded parcel #'
+                . (int) $parcelId . ' with the order\'s shipping charge and every item.',
+            Log::WARNING,
+            'com_alfa.orders',
+        );
+
+        // The parcel stands whether or not staff can be told; a notice that cannot be written is logged.
+        try {
+            NotificationHelper::push(
+                dedupKey: 'orders.parcel.coremade.' . $orderId,
+                title: NotificationText::of('COM_ALFA_NOTIFY_PARCEL_CORE_MADE_TITLE', $orderId),
+                options: [
+                    'severity' => 'warning',
+                    'group' => NotificationHelper::GROUP_SHIPPING,
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_PARCEL_CORE_MADE_MSG', $this->getShipmentMethodName($methodId), $carrier),
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                ],
+            );
+        } catch (Throwable $e) {
+            Log::add('Order #' . $orderId . ': the notice of the parcel core recorded was not written: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+        }
+
+        return true;
     }
 
     /**
