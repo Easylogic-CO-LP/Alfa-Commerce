@@ -157,7 +157,7 @@ class ShipmentLedger
      * Nullable integer columns: form sends '', MySQL rejects for int.
      * Sanitized to null in saveToTable().
      */
-    private const NULLABLE_INT_COLUMNS = ['id_order_invoice', 'id_employee'];
+    private const NULLABLE_INT_COLUMNS = ['id_employee'];
 
     /**
      * Nullable datetime columns: empty/zero -> null in saveToTable().

@@ -13,7 +13,7 @@
       CARRIER:  tracking_number, carrier_name, weight
       DATES:    added, shipped (readonly), delivered (readonly)
       HIDDEN:   id, id_order, id_currency, id_employee,
-                shipment_method_name, id_order_invoice
+                shipment_method_name
 
     The `status` list field has NO static options; always injected by
     OrderModel::getShipmentForm() from ShipmentLedger constants.
@@ -197,7 +197,6 @@
         <field name="id_currency" type="hidden"/>
         <field name="id_employee" type="hidden"/>
         <field name="shipment_method_name" type="hidden"/>
-        <field name="id_order_invoice" type="hidden"/>
 
     </fieldset>
 </form>
