@@ -1149,7 +1149,10 @@ final class OrderChargeLines
                 continue;
             }
 
-            foreach (self::discountParts(rateLines: $itemLines, claimIncl: $claimIncl->getAmount(), rule: $rule, taken: $taken, currency: $currency) as $bucket) {
+            // The claim that takes the rest of the rule's gross takes the rest of its net.
+            $restNet = $claimIncl->equals(Money::of($rule->remaining_incl, $currency)) ? Money::of($rule->remaining_excl, $currency) : null;
+
+            foreach (self::discountParts(rateLines: $itemLines, claimIncl: $claimIncl->getAmount(), rule: $rule, taken: $taken, currency: $currency, restNet: $restNet) as $bucket) {
                 $lines[] = self::adjustmentLine(
                     sourceId: $rule->id,
                     name:     $rule->label,
@@ -2419,6 +2422,13 @@ final class OrderChargeLines
      * part beyond what its rate carries would keep the net of its own split;
      * a sales draft's claim never goes past its goods, so none does.
      *
+     * A claim that takes the rest of the rule's gross takes the rest of its
+     * net too ($restNet): the parts' nets, each rounded on its own, are moved
+     * by what they differ from it, the last part first, each within its own
+     * envelope (never below nothing, never above its gross, never outside what
+     * its rate's lines leave; a part at no VAT keeps its net). So the
+     * documents of a rule state its frozen net exactly, and with it its VAT.
+     *
      * @param array $rateLines The draft lines the discount reduces.
      * @param float $claimIncl The gross claimed.
      * @param object $rule The charge entry.
@@ -2426,12 +2436,13 @@ final class OrderChargeLines
      *                                                    net in minor units, keyed by rateKey(); this rule's parts
      *                                                    are added to it.
      * @param Currency $currency The order's currency.
+     * @param Money|null $restNet The rest of the rule's net, when the claim takes the rest of its gross.
      *
      * @return array<int, array{rate: float, incl: float, excl: float}>
      *
      * @since  2.0.0
      */
-    private static function discountParts(array $rateLines, float $claimIncl, object $rule, array &$taken, Currency $currency): array
+    private static function discountParts(array $rateLines, float $claimIncl, object $rule, array &$taken, Currency $currency, ?Money $restNet = null): array
     {
         $carried = [];
 
@@ -2451,18 +2462,49 @@ final class OrderChargeLines
             taken:     array_map(static fn (array $took): int => $took[0], $taken),
         );
 
+        // Each part's gross, net and the envelope its net may move in, in minor units.
+        $sized = [];
+
         foreach ($parts as $i => $part) {
             $rate = self::rateKey((float) $part['rate']);
             $gross = Money::of($part['incl'], $currency)->getMinorUnits();
             $net = Money::of($part['excl'], $currency)->getMinorUnits();
+            $low = 0;
+            $high = $gross;
 
             if (isset($carried[$rate]) && $gross <= $carried[$rate][0] - ($taken[$rate][0] ?? 0)) {
                 $grossLeft = $carried[$rate][0] - ($taken[$rate][0] ?? 0);
                 $netLeft = $carried[$rate][1] - ($taken[$rate][1] ?? 0);
                 $net = max(min($net, $netLeft), $netLeft - ($grossLeft - $gross));
-                $parts[$i]['excl'] = Money::ofMinor($net, $currency)->getAmount();
+                $low = max($low, $netLeft - ($grossLeft - $gross));
+                $high = min($high, $netLeft);
             }
 
+            // A part at no VAT keeps its net: it is its gross.
+            if ((float) $part['rate'] <= 0.0) {
+                [$low, $high] = [$net, $net];
+            }
+
+            $sized[$i] = [$rate, $gross, $net, $low, $high];
+        }
+
+        if ($restNet !== null && $sized !== []) {
+            $differ = $restNet->getMinorUnits() - array_sum(array_column($sized, 2));
+
+            foreach (array_reverse(array_keys($sized), true) as $i) {
+                if ($differ === 0) {
+                    break;
+                }
+
+                [, , $net, $low, $high] = $sized[$i];
+                $moved = $differ > 0 ? min($differ, max(0, $high - $net)) : max($differ, min(0, $low - $net));
+                $sized[$i][2] = $net + $moved;
+                $differ -= $moved;
+            }
+        }
+
+        foreach ($sized as $i => [$rate, $gross, $net]) {
+            $parts[$i]['excl'] = Money::ofMinor($net, $currency)->getAmount();
             $taken[$rate] = [($taken[$rate][0] ?? 0) + $gross, ($taken[$rate][1] ?? 0) + $net];
         }
 
