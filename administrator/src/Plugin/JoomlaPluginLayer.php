@@ -160,6 +160,36 @@ final class JoomlaPluginLayer
     }
 
     /**
+     * The params of the plugin's enabled extension row, whatever the request's view levels: null when no enabled row
+     * exists (2.2.1, the customer boot of an operator placement).
+     *
+     * @param PluginId $id The plugin.
+     *
+     * @since  2.2.1
+     */
+    public function rowParams(PluginId $id): ?string
+    {
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $group = $id->group;
+        $element = $id->element;
+        $params = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('params'))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                ->where($db->quoteName('folder') . ' = :folder')
+                ->where($db->quoteName('element') . ' = :element')
+                ->where($db->quoteName('enabled') . ' = 1')
+                ->bind(':folder', $group)
+                ->bind(':element', $element),
+            0,
+            1,
+        )->loadResult();
+
+        return $params === null ? null : (string) $params;
+    }
+
+    /**
      * The plugin's name as Extensions: Plugins shows it: its extension row's name, translated through the plugin's own
      * .sys.ini; null when no row exists (the plugin is not installed). Read beside rowEnabled(), whatever the request's
      * view levels (2.2.0, UX-25).
@@ -225,11 +255,16 @@ final class JoomlaPluginLayer
     }
 
     /**
-     * Boot an installed plugin whether it is enabled or not, for maintenance (Clear Data): Joomla's bootPlugin(), then
-     * the name and group, and the params when given, that Joomla gives an enabled plugin and a disabled one's provider
-     * leaves out (its provider builds it from PluginHelper::getPlugin(), which knows enabled plugins only; CMSPlugin keeps
-     * the name and group protected and has no setter, so they are set from the plugin's own scope). Only what is empty
-     * is filled. The helper asks this only under the maintenance lock.
+     * Boot an installed plugin Joomla does not list for this request: Joomla's bootPlugin(), then the name and group,
+     * and the params when given, that Joomla gives a plugin it lists and the provider of one it does not list leaves out
+     * (its provider builds it from PluginHelper::getPlugin(), which knows the plugins enabled for the request's user
+     * only; CMSPlugin keeps the name and group protected and has no setter, so they are set from the plugin's own
+     * scope). Only what is empty is filled. A plugin that asks Joomla to load its language when it is built
+     * (CMSPlugin's autoloadLanguage) found no name to load it by; once its name and group are filled, its language is
+     * loaded, Joomla's own step (CMSPlugin::loadLanguage(): the administrator's language folder, then the plugin's own),
+     * so its texts and the labels it gives are translated (2.2.1). The helper asks this only for its maintenance boot,
+     * under the maintenance lock (Clear Data of a disabled plugin), and for its customer boot inside an operator
+     * placement (2.2.1).
      *
      * @param CMSApplicationInterface $app The application.
      * @param PluginId $id The plugin.
@@ -237,26 +272,35 @@ final class JoomlaPluginLayer
      *
      * @since  2.2.0
      */
-    public function bootForMaintenance(CMSApplicationInterface $app, PluginId $id, ?string $params): PluginInterface
+    public function bootFromRow(CMSApplicationInterface $app, PluginId $id, ?string $params): PluginInterface
     {
         $plugin = $app->bootPlugin($id->element, $id->group);
 
         if ($plugin instanceof CMSPlugin) {
-            $identity = function (string $element, string $folder, ?string $params): void {
+            // Answers whether the plugin's language is owed: it asks for it when built, and it had no name then.
+            $identity = function (string $element, string $folder, ?string $params): bool {
+                $named = false;
+
                 if ((string) $this->_name === '') {
                     $this->_name = $element;
+                    $named = true;
                 }
 
                 if ((string) $this->_type === '') {
                     $this->_type = $folder;
+                    $named = true;
                 }
 
                 if ($params !== null && !$this->params instanceof Registry) {
                     $this->params = new Registry($params === '' ? '{}' : $params);
                 }
+
+                return $named && $this->autoloadLanguage;
             };
 
-            Closure::bind($identity, $plugin, CMSPlugin::class)($id->element, $id->group, $params);
+            if (Closure::bind($identity, $plugin, CMSPlugin::class)($id->element, $id->group, $params)) {
+                $plugin->loadLanguage();
+            }
         }
 
         return $plugin;
