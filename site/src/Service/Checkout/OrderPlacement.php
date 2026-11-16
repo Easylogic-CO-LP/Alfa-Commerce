@@ -1303,12 +1303,13 @@ class OrderPlacement
     }
 
     /**
-     * Whether the order's total is the one the checkout page last showed (2.2.1). The goods are priced at the
-     * delivery place the submission names, so an address typed after the page last showed its total (a page that
-     * did not re-render, a second tab) can change the total: the order is then refused, never placed at a total the
-     * shopper did not see, and the shopper is shown the cart priced again with a sentence giving both totals. A shown
-     * total sent empty or unreadable is refused as well. A placement that names none (staff, an import, a renewal,
-     * the API, a storefront post that does not carry the field) is not compared.
+     * Whether the order's total is the one the checkout page last showed (2.2.1). The order is priced as it is placed
+     * (the goods at the delivery place the submission names, its methods, its coupons), so anything that changed
+     * after the page last showed its total (an address typed in a second tab, a price or a coupon changed meanwhile)
+     * can change the total: the order is then refused, never placed at a total the shopper did not see, and the
+     * shopper is shown the cart priced again with a sentence giving both totals. A shown total sent empty, or one
+     * that cannot be read as an amount in a currency of the shop, is refused as well. A placement that names none
+     * (staff, a plugin's own placement, a storefront post that does not carry the field) is not compared.
      *
      * @return bool True when the totals agree, or none was named.
      *
@@ -1329,17 +1330,22 @@ class OrderPlacement
             return true;
         }
 
-        if (preg_match('/^([A-Z]{3}):(-?\d+)$/', $shown, $parts) !== 1) {
+        // The shown total in its own currency's words: a value that is not a currency code of the shop and a whole
+        // number of its minor units cannot be read, and is refused as one sent empty is.
+        $was = null;
+
+        if (preg_match('/^([A-Z]{3}):(\d+)$/', $shown, $parts) === 1) {
+            try {
+                $was = Money::ofMinor((int) $parts[2], $parts[1] === $total->getCurrency()->getCode() ? $total->getCurrency() : Currency::loadByCode($parts[1]))->format();
+            } catch (Throwable) {
+                $was = null;
+            }
+        }
+
+        if ($was === null) {
             $this->fail('COM_ALFA_ORDER_PLACE_TOTAL_UNSHOWN', ['total' => $placed], 'Placement refused: the shown total the checkout sent cannot be read; the order total is ' . $placed . '.');
 
             return false;
-        }
-
-        // The shown total in its own currency's words; a currency the shop no longer has is said as it was sent.
-        try {
-            $was = Money::ofMinor((int) $parts[2], $parts[1] === $total->getCurrency()->getCode() ? $total->getCurrency() : Currency::loadByCode($parts[1]))->format();
-        } catch (Throwable) {
-            $was = $parts[1] . ' ' . $parts[2];
         }
 
         $this->fail(
