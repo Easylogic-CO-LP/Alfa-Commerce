@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\ko;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class Ko_82
 {

@@ -10,7 +10,6 @@ use RuntimeException;
 
 /**
  * @no-named-arguments
- * @since  1.0.0
  */
 abstract class AbstractLeniency
 {
@@ -23,13 +22,11 @@ abstract class AbstractLeniency
      * Returns true if $number is a verified number according to this leniency
      *
      * @codeCoverageIgnore
-     * @since  1.0.0
      */
     abstract public static function verify(PhoneNumber $number, string $candidate, PhoneNumberUtil $util): bool;
 
     /**
      * Compare against another Leniency
-     * @since  1.0.0
      */
     public static function compareTo(AbstractLeniency $leniency): int
     {
