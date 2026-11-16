@@ -42,6 +42,12 @@ defined('_JEXEC') or die;
  * order decides which of them applies first (RulePrecedence). A product's price
  * rows stay exact to their place.
  *
+ * THE COUNTRY OF A PLACE (2.2.1). A place below a country carries no country
+ * codes of its own (code2 and code3 belong to a country; a region may carry
+ * its ISO 3166-2 code instead), so the country of any place is the place at
+ * the top of its chain, and countryOf() is the one way to read it with its
+ * ISO 3166-1 codes.
+ *
  * HOW LONG THE MAPS LIVE. The parent and state maps are statics, read once per
  * PHP process: on the web that is one request, so a publish, an unpublish or a
  * new parent is seen by the next request. A process that prices in a loop (the
@@ -71,6 +77,15 @@ final class PlaceTree
      * @since  2.2.0
      */
     private static array $states = [];
+
+    /**
+     * The place -> [code2, code3] map, read with the parents.
+     *
+     * @var array<int, array{0: string, 1: string}>
+     *
+     * @since  2.2.1
+     */
+    private static array $codes = [];
 
     /**
      * A place and the places it belongs to, nearest first.
@@ -131,7 +146,33 @@ final class PlaceTree
     }
 
     /**
-     * Forget the parent and state maps: the next question reads the tree again.
+     * The country a place belongs to: the place at the top of its chain, with its ISO 3166-1 codes.
+     *
+     * A country answers itself; a region or a town answers the country above it, whose codes are the ones a phone
+     * number, a gateway or a document needs. A place cut from its country (a parent that no longer exists) answers the
+     * highest place left in its chain, which carries no codes.
+     *
+     * @param int $placeId The `#__alfa_places` id.
+     *
+     * @return array{id: int, code2: string, code3: string}|null The country; null for a zero or unknown id.
+     *
+     * @since  2.2.1
+     */
+    public static function countryOf(int $placeId): ?array
+    {
+        $places = self::placesFor(placeId: $placeId);
+
+        if ($places === []) {
+            return null;
+        }
+
+        $country = $places[array_key_last($places)];
+
+        return ['id' => $country, 'code2' => self::$codes[$country][0] ?? '', 'code3' => self::$codes[$country][1] ?? ''];
+    }
+
+    /**
+     * Forget the parent, state and code maps: the next question reads the tree again.
      *
      * For a process that prices in a loop, before each round: a place published,
      * unpublished or moved under another parent meanwhile is then seen.
@@ -142,6 +183,7 @@ final class PlaceTree
     {
         self::$parents = null;
         self::$states = [];
+        self::$codes = [];
     }
 
     /**
@@ -161,18 +203,21 @@ final class PlaceTree
 
         // A place with no parent stores 0 or NULL; both read as 0 here, because
         // a NULL column would hand back the whole row as its parent. The state
-        // rides on the same read (eligible()).
+        // (eligible()) and the codes (countryOf()) ride on the same read.
         $rows = $db->setQuery(
             $db->getQuery(true)
                 ->select([
                     $db->quoteName('id'),
                     'COALESCE(' . $db->quoteName('parent_id') . ', 0) AS ' . $db->quoteName('parent_id'),
                     $db->quoteName('state'),
+                    $db->quoteName('code2'),
+                    $db->quoteName('code3'),
                 ])
                 ->from($db->quoteName('#__alfa_places')),
         )->loadAssocList('id') ?: [];
 
         self::$states = array_map(static fn (array $row): int => (int) $row['state'], $rows);
+        self::$codes = array_map(static fn (array $row): array => [strtoupper(trim((string) $row['code2'])), strtoupper(trim((string) $row['code3']))], $rows);
 
         return self::$parents = array_map(static fn (array $row): int => (int) $row['parent_id'], $rows);
     }

@@ -15,13 +15,15 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RuleScopeGuard;
-use Alfa\Component\Alfa\Administrator\Service\Catalog\ScopeDeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Table\Table;
+use Joomla\Database\DatabaseInterface;
 use RuntimeException;
 use Throwable;
 
@@ -225,9 +227,11 @@ class PlaceModel extends AlfaAdminModel
      * would widen one to every place is refused (2.2.1). The delete stands and
      * names them, a warning per place with its rows and their products.
      *
-     * A place left below a deleted one has lost part of its chain, so the price
-     * index slots at or below it owe the catalogue a rebuild (2.2.1), as a new
-     * parent does ({@see self::save()}).
+     * Refused, with nothing written, while a place in the set has places inside
+     * it that are not deleted with it (2.2.1): they would be left without the
+     * country or region above them, outside its rules and carrier zones. The
+     * refusal names them; staff move them under another place or delete them
+     * with it, as Joomla asks for a category.
      *
      * @param array &$pks Record primary keys.
      *
@@ -264,7 +268,6 @@ class PlaceModel extends AlfaAdminModel
 
         $nested = TransactionState::isOpen(db: $db);
         $pricedOn = [];
-        $orphans = [];
         $db->transactionStart(true);
 
         try {
@@ -273,6 +276,21 @@ class PlaceModel extends AlfaAdminModel
             $pks = RuleScopeGuard::lockExisting(db: $db, axis: RuleScopeGuard::AXIS_PLACE, ids: $pks);
 
             if ($pks !== []) {
+                // The places inside the set that the set does not delete: a delete never leaves a place without the
+                // place above it (2.2.1).
+                $inside = $db->setQuery(
+                    $db->getQuery(true)
+                        ->select($db->quoteName(['id', 'name', 'parent_id']))
+                        ->from($db->quoteName('#__alfa_places'))
+                        ->whereIn($db->quoteName('parent_id'), $pks)
+                        ->whereNotIn($db->quoteName('id'), $pks)
+                        ->order($db->quoteName('id')),
+                )->loadObjectList() ?: [];
+
+                if ($inside !== []) {
+                    throw $this->insideRefusal(db: $db, inside: $inside);
+                }
+
                 // Zero place rows do not mean "nowhere": the engine reads them as
                 // "everywhere". A discount or tax whose last place is in the set would
                 // apply in every place, so the delete is refused, naming the rules.
@@ -289,15 +307,6 @@ class PlaceModel extends AlfaAdminModel
                         ->whereIn($db->quoteName('country_id'), $pks)
                         ->group($db->quoteName('country_id')),
                 )->loadObjectList() ?: [];
-
-                // The places the delete leaves without their parent.
-                $orphans = array_map('intval', $db->setQuery(
-                    $db->getQuery(true)
-                        ->select($db->quoteName('id'))
-                        ->from($db->quoteName('#__alfa_places'))
-                        ->whereIn($db->quoteName('parent_id'), $pks)
-                        ->whereNotIn($db->quoteName('id'), $pks),
-                )->loadColumn() ?: []);
 
                 $this->alfaDeleteAsked = true;
 
@@ -318,7 +327,7 @@ class PlaceModel extends AlfaAdminModel
             }
 
             TransactionState::commitLevel(db: $db);
-        } catch (ScopeDeleteRefusedException $refused) {
+        } catch (DeleteRefusedException $refused) {
             // A refusal is answered only while a caller's transaction still stands.
             if (TransactionState::rollBackLevel(db: $db, failure: $refused) && $nested) {
                 throw $refused;
@@ -350,10 +359,6 @@ class PlaceModel extends AlfaAdminModel
                 ->whereIn($db->quoteName('place_id'), $pks),
         )->execute();
 
-        if ((new PriceIndexSyncService())->oweChainRebuild(placeIds: $orphans)) {
-            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_PLACE_PARENT_CHANGED_REBUILD'), 'warning');
-        }
-
         foreach ($pricedOn as $priced) {
             $products = (int) $priced->products;
             $named = \array_slice(explode(',', (string) $priced->items), 0, self::PRODUCTS_NAMED);
@@ -371,5 +376,129 @@ class PlaceModel extends AlfaAdminModel
         }
 
         return true;
+    }
+
+    /**
+     * The refusal of a delete that would leave places without the place above them, naming them (2.2.1).
+     *
+     * @param DatabaseInterface $db The connection.
+     * @param object[] $inside The places left behind: id, name and parent_id.
+     *
+     * @since  2.2.1
+     */
+    private function insideRefusal(DatabaseInterface $db, array $inside): DeleteRefusedException
+    {
+        $parents = array_values(array_unique(array_map(static fn (object $place): int => (int) $place->parent_id, $inside)));
+        $parentNames = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'name']))
+                ->from($db->quoteName('#__alfa_places'))
+                ->whereIn($db->quoteName('id'), $parents),
+        )->loadAssocList('id', 'name') ?: [];
+
+        $sentences = [];
+        $plain = [];
+
+        foreach ($parents as $parent) {
+            $children = array_values(array_filter($inside, static fn (object $place): bool => (int) $place->parent_id === $parent));
+            $named = implode(', ', array_map(static fn (object $place): string => '#' . (int) $place->id . ' ' . $place->name, $children));
+            $label = '#' . $parent . ' ' . ($parentNames[$parent] ?? '');
+            $plain[] = Text::sprintf('COM_ALFA_PLACE_DELETE_HAS_PLACES_INSIDE', $label, $named);
+            $sentences[] = Text::sprintf(
+                'COM_ALFA_PLACE_DELETE_HAS_PLACES_INSIDE',
+                htmlspecialchars($label, ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($named, ENT_QUOTES, 'UTF-8'),
+            );
+        }
+
+        return new DeleteRefusedException(implode(' ', $sentences), implode(' ', $plain));
+    }
+
+    /**
+     * Add, unpublished, the places Alfa Commerce ships inside the chosen countries ({@see PlaceSeed::SUBDIVISIONS}:
+     * Greece's 13 regions and Mount Athos; the Canary Islands, Ceuta and Melilla inside Spain), each with its ISO 3166-2
+     * code and no country codes (2.2.1). A code the country already has a place for, directly inside it, is skipped;
+     * nothing is matched by name, so a place staff made without a code is not recognised. The places of one country are
+     * added together or not at all.
+     *
+     * @param int[] $pks The chosen places.
+     *
+     * @return array<int, array{name: string, outcome: string, added: string[]}> Per chosen place that exists: its name,
+     *         the outcome ('added'; 'present', every code already there; 'none', not a country Alfa ships places
+     *         inside) and the names of the places added.
+     *
+     * @throws RuntimeException When the user may not create places.
+     *
+     * @since  2.2.1
+     */
+    public function addSubdivisions(array $pks): array
+    {
+        if (!AlfaHelper::can(section: $this->alfaEntity, action: 'create', user: $this->getCurrentUser())) {
+            throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED'));
+        }
+
+        $db = $this->alfaDriver();
+        $summary = [];
+
+        foreach (array_values(array_unique(array_map('intval', $pks))) as $pk) {
+            $country = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'name', 'code2']))
+                    ->select('COALESCE(' . $db->quoteName('parent_id') . ', 0) AS ' . $db->quoteName('parent_id'))
+                    ->from($db->quoteName('#__alfa_places'))
+                    ->where($db->quoteName('id') . ' = ' . $pk),
+            )->loadObject();
+
+            if ($country === null) {
+                continue;
+            }
+
+            $shipped = (int) $country->parent_id === 0 ? PlaceSeed::SUBDIVISIONS[strtoupper(trim((string) $country->code2))] ?? [] : [];
+
+            if ($shipped === []) {
+                $summary[$pk] = ['name' => (string) $country->name, 'outcome' => 'none', 'added' => []];
+
+                continue;
+            }
+
+            $present = array_map('strtoupper', $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('subdivision_code'))
+                    ->from($db->quoteName('#__alfa_places'))
+                    ->where($db->quoteName('parent_id') . ' = ' . $pk)
+                    ->where($db->quoteName('subdivision_code') . ' IS NOT NULL'),
+            )->loadColumn() ?: []);
+            $missing = array_diff_key($shipped, array_flip($present));
+
+            if ($missing === []) {
+                $summary[$pk] = ['name' => (string) $country->name, 'outcome' => 'present', 'added' => []];
+
+                continue;
+            }
+
+            $db->transactionStart(true);
+
+            try {
+                foreach ($missing as $code => $name) {
+                    $table = $this->getTable();
+                    $table->bind(['id' => 0, 'name' => $name, 'parent_id' => $pk, 'subdivision_code' => $code, 'currency_id' => 0,
+                        'state' => 0, 'ordering' => 0, 'created_by' => $this->getCurrentUser()->id, 'modified_by' => $this->getCurrentUser()->id]);
+
+                    if (!$table->check() || !$table->store()) {
+                        throw new RuntimeException(Text::sprintf('COM_ALFA_PLACES_SUBDIVISION_NOT_ADDED', $name, (string) $table->getError()));
+                    }
+                }
+
+                TransactionState::commitLevel(db: $db);
+            } catch (Throwable $e) {
+                TransactionState::rollBackLevel(db: $db, failure: $e);
+
+                throw $e;
+            }
+
+            $summary[$pk] = ['name' => (string) $country->name, 'outcome' => 'added', 'added' => array_values($missing)];
+        }
+
+        return $summary;
     }
 }

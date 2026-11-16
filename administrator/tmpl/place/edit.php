@@ -65,6 +65,10 @@ $input = Factory::getApplication()->getInput();
 
             <?php echo $this->form->renderField('code3'); ?>
 
+            <?php echo $this->form->renderField('subdivision_code'); ?>
+
+            <?php echo $this->form->renderField('below_country_note'); ?>
+
             <?php echo $this->form->renderField('currency_id'); ?>
 
         </div>

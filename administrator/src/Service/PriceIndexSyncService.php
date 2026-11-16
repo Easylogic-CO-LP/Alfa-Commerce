@@ -138,9 +138,9 @@ use Throwable;
  *
  *   CategoryModel::delete()      -> syncItems()      (the products that lost a category)
  *   ManufacturerModel::delete()  -> syncItems()      (the products that lost a manufacturer, via ProjectionManager)
- *   PlaceModel::delete()         -> the places' own rows are deleted; no rule widens (RuleScopeGuard)
- *   PlaceModel::save() (a new parent), or a delete that leaves places
- *   without their parent          -> oweChainRebuild() (2.2.1)
+ *   PlaceModel::delete()         -> the places' own rows are deleted; no rule widens (RuleScopeGuard), and no
+ *                                   place is left without its parent: the delete is refused (2.2.1)
+ *   PlaceModel::save() (a new parent) -> oweChainRebuild() (2.2.1)
  *
  *   A user group saved under another parent, or removed; an account saved
  *   into another set of groups, or removed; the users component's options
@@ -1036,13 +1036,14 @@ class PriceIndexSyncService
     }
 
     /**
-     * The catalogue's rebuild owed when places take another parent, or lose it
-     * to a delete (2.2.1): every slot of a place at or below them was priced
-     * with the chain it had. Owed only when such a slot exists: a place no
-     * discount, tax or price row names, with none below it, keeps no slot, and
-     * the reader follows the tree as it is.
+     * The catalogue's rebuild owed when places take another parent (2.2.1):
+     * every slot of a place at or below them was priced with the chain it had.
+     * Owed only when such a slot exists: a place no discount, tax or price row
+     * names, with none below it, keeps no slot, and the reader follows the tree
+     * as it is. A delete never leaves a place without its parent (PlaceModel
+     * refuses it), so it owes none.
      *
-     * @param int[] $placeIds The places that took another parent, or the children of the places deleted.
+     * @param int[] $placeIds The places that took another parent.
      *
      * @return bool Whether the rebuild was owed (every product marked and the catalogue job enqueued).
      *
