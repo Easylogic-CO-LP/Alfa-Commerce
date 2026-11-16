@@ -12402,7 +12402,9 @@ class PaymentLedger
 
     /**
      * {@see self::amountToCollect()} as the order's Money: what the builder
-     * hands the storage door, so its digits are written as they are.
+     * hands the storage door, so its digits are written as they are, and what
+     * a carrier reads through ShipmentsPlugin::amountToCollect() (public since
+     * 2.2.1; the float form above is unchanged).
      *
      * @param object $order Loaded order (ideally with ->total_paid_tax_incl Money).
      *
@@ -12410,7 +12412,7 @@ class PaymentLedger
      *
      * @since  2.0.0
      */
-    private static function amountToCollectMoney(object $order): Money
+    public static function amountToCollectMoney(object $order): Money
     {
         // A ROW AND A HYDRATED ORDER ARE NOT THE SAME NUMBER, which is the whole
         // point of the branch: at placement the shipment row does not exist yet,

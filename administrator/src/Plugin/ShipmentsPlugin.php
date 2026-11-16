@@ -111,6 +111,10 @@
  *    $this->deleteShipment($id, $orderId);
  *    $this->assignShipmentItems($shipmentId, $orderId, [101, 102]);
  *
+ *  THE ORDER'S MONEY AND THE AUDIT LOG (since 2.2.1):
+ *    $collect = $this->amountToCollect($order);                  // Money: what cash on delivery collects, never negative
+ *    $this->recordActionLog('PLG_ALFA_SHIPMENTS_<YOU>_LOG_BOOKED', ['title' => '#12'], $orderId); // Joomla's User Actions Log
+ *
  *  An order can carry several parcels: withItems([...]) builds a partial one, and
  *  the quantity on a shipment line is what went in THAT parcel.
  *
@@ -152,10 +156,13 @@
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
 use Alfa\Component\Alfa\Administrator\Event\Shipments\CalculateShippingCostEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasActionLogTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasOrderContextTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasTransportUrlsTrait;
+use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Site\Service\Cart\CartLine;
+use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Log\Log;
 use RuntimeException;
 
@@ -163,6 +170,7 @@ defined('_JEXEC') or die;
 
 abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterface
 {
+    use HasActionLogTrait;
     use HasOrderContextTrait;
     use HasTransportUrlsTrait;
 
@@ -334,6 +342,30 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     protected function shipmentUpdate(int $shipmentId): ShipmentLedger
     {
         return ShipmentLedger::load($shipmentId)->writtenBy(element: (string) $this->_name);
+    }
+
+    /**
+     * The amount still to collect on this order, as Money: what a cash-on-delivery carrier asks the courier to
+     * collect (2.2.1).
+     *
+     * The order's grand total less what the shop still holds of its payments, in the order's currency at the scale the
+     * order froze, never negative: the same figure the gateways' amountToCollect() answers as a float, read from the
+     * ledger as Money (no float on the way). 0.00 means nothing is owed: book the parcel without cash on delivery.
+     * A carrier reads it here, never from PaymentLedger.
+     *
+     * Usage:
+     *   $collect = $this->amountToCollect($order);
+     *   if ($collect->isPositive()) { $request->cashOnDelivery($collect); }
+     *
+     * @param object $order The order: the reader a hook was handed, or a loaded row.
+     *
+     * @return Money Amount still to collect, never negative.
+     *
+     * @since  2.2.1
+     */
+    protected function amountToCollect(object $order): Money
+    {
+        return PaymentLedger::amountToCollectMoney($order);
     }
 
     //  SHIPMENT READ / DELETE / ITEMS (no builder needed)
