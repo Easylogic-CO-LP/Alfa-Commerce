@@ -63,6 +63,9 @@ final class CartHydrator
 {
     private ?HydratedCart $current = null;
 
+    /** @var CartSubject|null The subject the cart was opened with, as its caller named it (2.2.1). @since 2.2.1 */
+    private ?CartSubject $opened = null;
+
     /** @since 2.0.0 */
     public function __construct(
         private readonly CartRepository $repository,
@@ -71,6 +74,7 @@ final class CartHydrator
         private readonly CartLinePresenter $presenter,
         private readonly CartMessaging $messaging,
         private readonly MVCFactoryInterface $mvc,
+        private readonly DeliveryBinding $delivery,
     ) {
     }
 
@@ -83,6 +87,7 @@ final class CartHydrator
      */
     public function begin(CartIdentity $identity, CartSubject $subject): void
     {
+        $this->opened = $subject;
         $this->current = HydratedCart::none($identity, $subject);
     }
 
@@ -125,6 +130,24 @@ final class CartHydrator
     }
 
     /**
+     * Price the lines again at the delivery place, once the binding changed it (2.2.1); nothing is read when the
+     * place the lines were priced at stands.
+     *
+     * @since  2.2.1
+     */
+    public function reprice(): void
+    {
+        $current = $this->current();
+        $subject = $this->atDeliveryPlace(subject: $current->subject(), deliveryAddress: $current->deliveryAddress());
+
+        if ($subject->moneyContext() === $current->subject()->moneyContext()) {
+            return;
+        }
+
+        $this->current = $current->withSubject($subject)->withLines($this->lines($current->identity()->cartId, $subject));
+    }
+
+    /**
      * One reading.
      *
      * A visitor nobody can identify, naming no cart, has none; and neither has
@@ -163,7 +186,18 @@ final class CartHydrator
                 $row = null;
                 $identity = $identity->at(0);
             }
+        } catch (Throwable $e) {
+            $this->messaging->failed('getCart', $identity->cartId, $e, 'COM_ALFA_CART_LOAD_FAILED');
 
+            return HydratedCart::none($identity, $subject);
+        }
+
+        // The addresses are read outside the net, and the delivery address before the lines: the goods are priced at
+        // the delivery place (2.2.1).
+        $delivery = isset($row->id_user_info_delivery) ? $this->address($identity->cartId, (int) $row->id_user_info_delivery) : null;
+        $subject = $this->atDeliveryPlace(subject: $subject, deliveryAddress: $delivery);
+
+        try {
             $lines = $this->lines($identity->cartId, $subject);
         } catch (Throwable $e) {
             $this->messaging->failed('getCart', $identity->cartId, $e, 'COM_ALFA_CART_LOAD_FAILED');
@@ -176,8 +210,36 @@ final class CartHydrator
             $subject,
             $row,
             $lines,
-            isset($row->id_user_info_delivery) ? $this->address($identity->cartId, (int) $row->id_user_info_delivery) : null,
+            $delivery,
             isset($row->id_user_info_invoice) ? $this->address($identity->cartId, (int) $row->id_user_info_invoice) : null,
+        );
+    }
+
+    /**
+     * The subject priced at the cart's delivery place (2.2.1): the place the binding holds (the one this request
+     * bound, else the delivery address's), so the goods are priced where the carriage is, on the storefront and in
+     * the order builder alike (its screen and its placement show and charge one total). A place the cart was opened
+     * with in its money context stands (the operator placement names the one typed in its delivery details, and any
+     * caller may): only a subject opened with no place takes the binding's. A place that may not price a buyer
+     * prices as the unknown place (PriceContext::withLocation()); with no delivery place known the goods keep the
+     * request's place, or no place for staff.
+     *
+     * @param CartSubject $subject Whose cart it is.
+     * @param object|null $deliveryAddress The delivery address row the cart points at.
+     *
+     * @since  2.2.1
+     */
+    private function atDeliveryPlace(CartSubject $subject, ?object $deliveryAddress): CartSubject
+    {
+        $opened = $this->opened ?? throw new LogicException('The cart has not been opened.');
+
+        if ($opened->moneyContext()['place'] !== null) {
+            return $subject;
+        }
+
+        return $subject->withMoneyContext(
+            $subject->moneyContext()['currency'],
+            $this->delivery->placeOf(deliveryAddress: $deliveryAddress, customerId: $subject->customerId()),
         );
     }
 

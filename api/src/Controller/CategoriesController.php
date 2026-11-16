@@ -86,4 +86,14 @@ class CategoriesController extends ApiController
 
         return parent::displayList();
     }
+
+    /**
+     * A category is deleted from the trash only, as the administrator's list of categories deletes it (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
 }

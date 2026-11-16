@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
+use Alfa\Component\Alfa\Site\Service\Cart\CheckoutAddress;
 use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\Service\ShowOn\SubmitAuthority;
 use Joomla\CMS\Access\Exception\NotAllowed;
@@ -145,8 +146,8 @@ class CartModel extends FormModel
 
     /**
      * The delivery place chosen on the checkout form, the delivery
-     * section's country field as currently bound: typed values kept in
-     * user state, else the sole saved address, else the field default.
+     * section's country field as the checkout holds it: typed values kept in
+     * user state, else the sole saved address (CheckoutAddress::place()).
      *
      * @return int|null The #__alfa_places id, or null when the form has no country field or no value yet.
      *
@@ -154,21 +155,8 @@ class CartModel extends FormModel
      */
     public function getDeliveryPlaceId(): ?int
     {
-        $field = FieldsHelper::deliveryPlaceField();
-
-        if ($field === null) {
-            return null;
-        }
-
-        $form = $this->getForm();
-
-        if (!$form) {
-            return null;
-        }
-
-        $placeId = (int) $form->getValue((string) $field->field_name, FieldsHelper::FIELDS_KEY, 0);
-
-        return $placeId > 0 ? $placeId : null;
+        // The same reading the opened cart prices its goods and carriage at, on every page that shows it (2.2.1).
+        return CheckoutAddress::place(userId: $this->currentUserId());
     }
 
     /**
@@ -196,28 +184,9 @@ class CartModel extends FormModel
      */
     public function getSavedUserInfo(): array
     {
-        $userId = $this->currentUserId();
-
-        if ($userId <= 0) {
-            return [];
-        }
-
         // A saved record is an ADDRESS: a row holding only identity values
         // (the name a registration wrote) is not one to pick from.
-        $roleColumns = array_filter(array_map([RoleRegistry::class, 'column'], RoleRegistry::roles()));
-        $activeKeys = array_diff(array_column(FieldsHelper::getFields('cart.form'), 'field_name'), $roleColumns);
-        $rows = [];
-
-        foreach (UserInfoHelper::getRowsByUser(userId: $userId) as $row) {
-            foreach ($activeKeys as $key) {
-                if (trim((string) ($row->$key ?? '')) !== '') {
-                    $rows[] = $row;
-                    break;
-                }
-            }
-        }
-
-        return $rows;
+        return CheckoutAddress::saved(userId: $this->currentUserId());
     }
 
     /**

@@ -73,6 +73,15 @@ final class PlaceTree
     private static array $states = [];
 
     /**
+     * The place -> name map, read with the parents (2.2.1).
+     *
+     * @var array<int, string>
+     *
+     * @since  2.2.1
+     */
+    private static array $names = [];
+
+    /**
      * A place and the places it belongs to, nearest first.
      *
      * @param int $placeId The `#__alfa_places` id.
@@ -142,6 +151,25 @@ final class PlaceTree
     {
         self::$parents = null;
         self::$states = [];
+        self::$names = [];
+    }
+
+    /**
+     * A place's name as stored, or null for a zero or unknown id (2.2.1: the cart page names the place it prices at).
+     *
+     * @param int $placeId The `#__alfa_places` id.
+     *
+     * @since  2.2.1
+     */
+    public static function name(int $placeId): ?string
+    {
+        if ($placeId <= 0) {
+            return null;
+        }
+
+        self::parents();
+
+        return self::$names[$placeId] ?? null;
     }
 
     /**
@@ -168,11 +196,13 @@ final class PlaceTree
                     $db->quoteName('id'),
                     'COALESCE(' . $db->quoteName('parent_id') . ', 0) AS ' . $db->quoteName('parent_id'),
                     $db->quoteName('state'),
+                    $db->quoteName('name'),
                 ])
                 ->from($db->quoteName('#__alfa_places')),
         )->loadAssocList('id') ?: [];
 
         self::$states = array_map(static fn (array $row): int => (int) $row['state'], $rows);
+        self::$names = array_map(static fn (array $row): string => (string) $row['name'], $rows);
 
         return self::$parents = array_map(static fn (array $row): int => (int) $row['parent_id'], $rows);
     }
