@@ -1659,6 +1659,10 @@ class com_alfaInstallerScript extends InstallerScript
         if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.1', '<'))
         {
             $this->owePlaceRulesRebuild();
+
+            // The countries of ISO 3166-1 (2.2.1): the rows the shop never changed corrected in place, the missing
+            // countries added unpublished, and what is left as it is named.
+            $this->correctPlacesSeed();
         }
 
         // The web cron's key (2.2.0): made when none is kept; nobody sees it, staff make the one they copy in
@@ -1921,6 +1925,116 @@ class com_alfaInstallerScript extends InstallerScript
                 ],
             ), 'warning');
         }
+    }
+
+    /**
+     * Bring the shop's countries to ISO 3166-1 (2.2.1,
+     * {@see \Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed::correctOnUpdate()}): the country rows still
+     * exactly as the seed up to 2.2.0 shipped them are corrected in place, keeping their ids, and the ISO countries the
+     * shop has no country for are added, unpublished. Nothing the shop changed is changed: one message says what was
+     * corrected and added and how to add the places below Greece and Spain, and a warning names what was left as it is
+     * (the rows the shop changed, the rows that are not ISO countries, the development row Larisa, and the countries
+     * whose default currency is withdrawn or none). The maintenance log keeps the counts and the time taken. A failure is
+     * said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function correctPlacesSeed(): void
+    {
+        $app = Factory::getApplication();
+        $started = hrtime(true);
+
+        try
+        {
+            $result = \Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed::correctOnUpdate(db: Factory::getContainer()->get('DatabaseDriver'));
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_FAILED',
+                fallback: 'Alfa Commerce %1$s could not bring the countries up to ISO 3166-1: %2$s The places are as they were.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+
+            return;
+        }
+
+        $milliseconds = (int) round((hrtime(true) - $started) / 1e6);
+        $none = $this->installerText(key: 'COM_ALFA_INSTALL_PLACES_SEED_NONE', fallback: 'none', values: []);
+        $named = static fn (array $names): string => $names === [] ? $none : implode(', ', $names);
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_PLACES_SEED',
+            fallback: 'Alfa Commerce %1$s brought the countries up to ISO 3166-1. Corrected where the shop had not changed them, each keeping its number: %2$s. Added, unpublished: %3$s. The places inside Greece (its 13 regions and Mount Athos) and inside Spain (the Canary Islands, Ceuta and Melilla) are not added by the update: in Places, select Greece or Spain and press Add subdivisions to add them, unpublished.',
+            values:   [
+                $this->packageVersion,
+                $named(array_map(static fn (int $id, string $name): string => '#' . $id . ' ' . $name, array_keys($result['corrected']), $result['corrected'])),
+                $named(array_values($result['added'])),
+            ],
+        ));
+
+        $left = [];
+
+        if ($result['kept'] !== [])
+        {
+            $left[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT',
+                fallback: 'These countries were left as the shop changed them: %s.',
+                values:   [implode('; ', array_map(
+                    fn (int $id, array $names): string => '#' . $id . ' ' . $names[0] . ' ' . $this->installerText(
+                        key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT_SHIPS',
+                        fallback: '(2.2.1 ships %s)',
+                        values:   [$names[1]],
+                    ),
+                    array_keys($result['kept']),
+                    $result['kept'],
+                ))],
+            );
+        }
+
+        $larisa = \Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed::LARISA;
+        $invented = array_diff_key($result['noSuccessor'], [$larisa => true]);
+
+        if ($invented !== [])
+        {
+            $left[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_NOT_ISO',
+                fallback: 'These rows are not ISO 3166-1 countries and were kept, since addresses, prices and rules may name them: %s. The Netherlands Antilles were dissolved in 2010 (now Bonaire, Sint Eustatius and Saba, Curaçao and Sint Maarten), the second East Timor is Timor-Leste, St. Eustatius is part of Bonaire, Sint Eustatius and Saba, and the Canary Islands are a part of Spain: move what names them to the country it belongs to (the Canary Islands to the place of that name inside Spain, once added), then unpublish them.',
+                values:   [implode(', ', array_map(static fn (int $id, string $name): string => '#' . $id . ' ' . $name, array_keys($invented), $invented))],
+            );
+        }
+
+        if (isset($result['noSuccessor'][$larisa]))
+        {
+            $left[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_LARISA',
+                fallback: 'The place #%1$d %2$s, inside Greece, came from Alfa Commerce\'s own test data up to 2.2.0 and is no longer shipped. It was kept, since addresses, prices and rules may name it. Once Greece\'s regions are added, move it under Thessaly, or unpublish it if the shop does not use it.',
+                values:   [(string) $larisa, $result['noSuccessor'][$larisa]],
+            );
+        }
+
+        if ($result['currencies'] !== [])
+        {
+            $left[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_CURRENCIES',
+                fallback: 'The default currency of these countries was left as it is, though the one shipped was withdrawn or missing; set it in Places if the shop sells there: %s.',
+                values:   [implode(', ', array_map(static fn (array $country): string => $country[0] . ' (' . $country[1] . ')', $result['currencies']))],
+            );
+        }
+
+        if ($left !== [])
+        {
+            $app->enqueueMessage(implode(' ', $left), 'warning');
+        }
+
+        self::maintenanceLog(
+            line:     'Update to ' . $this->packageVersion . ': the countries brought up to ISO 3166-1: ' . \count($result['corrected']) . ' corrected, '
+                . \count($result['added']) . ' added, ' . \count($result['kept']) . ' left as the shop changed them, '
+                . \count($result['noSuccessor']) . ' rows that are not countries kept, ' . \count($result['currencies'])
+                . ' default currencies left (' . $milliseconds . ' ms).',
+            priority: \Joomla\CMS\Log\Log::INFO,
+        );
     }
 
     /**
