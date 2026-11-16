@@ -1040,7 +1040,8 @@ final class ClearDataExtensions
      * {@see self::support()} asks, every Throwable of its boot and of its declaration caught. A plugin whose code could
      * not be read (it threw now, and the maintenance log says why; or a request died while loading it, its mark left)
      * is listed with `elsewhere` `unread` (`stale` with the mark, for Try loading again): shown as could not be read,
-     * never a unit of Clear Data or Clear everything. One that declares it has `elsewhere` `declares`. THE lock is
+     * never a unit of Clear Data or Clear everything. A plugin with no code to run (its files are gone) is not listed:
+     * nothing of it can declare anything. One that declares it has `elsewhere` `declares`. THE lock is
      * never waited for: while another request holds it (Clear everything or a Clear Data at work) none is asked and
      * none is listed, and {@see self::busy()} says so for the page.
      *
@@ -1107,6 +1108,8 @@ final class ClearDataExtensions
                     if (AlfaPluginHelper::get()->declares($this->boot(entry: $entry), 'onClearData')) {
                         $listed[] = $entry + ['elsewhere' => 'declares'];
                     }
+                } catch (PluginUnavailable) {
+                    // No code of it to run (its files are gone): nothing of it can declare anything; Joomla lists it.
                 } catch (Throwable $e) {
                     $this->logFailure(run: 'clear-data', entry: $entry, error: $e);
                     $listed[] = $entry + ['elsewhere' => 'unread'];
