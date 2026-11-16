@@ -1309,9 +1309,11 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * limits are set, made of digits of one length, and shorter than a value of
      * digits, the value's first digits of that length are compared: "410" to
      * "419" meets every postcode from "410 00" to "419 99", written with the
-     * space or without. Compared naturally before, such a band met the spaced
-     * form only, and not its last prefix ("419 99" sorted above "419"). A
-     * one-ended band, or limits of two lengths, compares whole numbers.
+     * space or without. The same with an upper limit and no floor: up to "419"
+     * meets every postcode up to "419 99". Compared naturally before, such a
+     * band met the spaced form only, and not its last prefix ("419 99" sorted
+     * above "419"). A floor with no upper limit, or limits of two lengths,
+     * compares whole numbers.
      *
      * A value or a limit with a letter or a hyphen in it (UK, Canada, the
      * Netherlands, US ZIP+4, Japan, Poland, Portugal) keeps the comparison
@@ -1350,14 +1352,12 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         $subject = self::digitsOf($subject);
 
-        // A band of first digits: both limits digits of one length, shorter than the value's digits (2.2.1).
-        if (
-            $hasMin && $hasMax
-            && \is_string($subject) && \is_string($min) && \is_string($max)
-            && ctype_digit($subject) && ctype_digit($min) && ctype_digit($max)
-            && \strlen($min) === \strlen($max) && \strlen($min) < \strlen($subject)
-        ) {
-            $subject = substr($subject, 0, \strlen($min));
+        // A band of first digits (2.2.1): both limits digits of one length, or an upper limit with no floor, shorter
+        // than the value's digits.
+        $prefix = self::prefixLength(subject: $subject, min: $hasMin ? $min : null, max: $hasMax ? $max : null);
+
+        if ($prefix > 0) {
+            $subject = substr((string) $subject, 0, $prefix);
         }
 
         if (
@@ -1399,6 +1399,29 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         $digits = str_replace(' ', '', trim($value));
 
         return ctype_digit($digits) ? $digits : $value;
+    }
+
+    /**
+     * The length of the first digits a band compares, or 0 for a band of whole values (2.2.1): a value of digits
+     * against limits of digits shorter than it, both limits of one length, or an upper limit with no floor.
+     *
+     * @param mixed $subject The value, as {@see self::digitsOf()} reads it.
+     * @param mixed $min The lower limit, or null when the band has none.
+     * @param mixed $max The upper limit, or null when the band has none.
+     *
+     * @since  2.2.1
+     */
+    private static function prefixLength(mixed $subject, mixed $min, mixed $max): int
+    {
+        if (!\is_string($subject) || !ctype_digit($subject) || $max === null || !\is_string($max) || !ctype_digit($max)) {
+            return 0;
+        }
+
+        if ($min !== null && (!\is_string($min) || !ctype_digit($min) || \strlen($min) !== \strlen($max))) {
+            return 0;
+        }
+
+        return \strlen($max) < \strlen($subject) ? \strlen($max) : 0;
     }
 
     /**

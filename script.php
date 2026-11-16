@@ -2092,26 +2092,44 @@ class com_alfaInstallerScript extends InstallerScript
             fallback: 'Alfa Commerce %1$s brought the countries up to ISO 3166-1. Corrected where the shop had not changed them, each keeping its number: %2$s. Added, unpublished: %3$s. The places inside Greece (its 13 regions and Mount Athos) and inside Spain (the Canary Islands, Ceuta and Melilla) are not added by the update: in Places, select Greece or Spain and press Add subdivisions to add them, unpublished.',
             values:   [
                 $this->packageVersion,
-                $named(array_map(static fn (int $id, string $name): string => '#' . $id . ' ' . $name, array_keys($result['corrected']), $result['corrected'])),
+                $named(array_merge(
+                    array_map(static fn (int $id, string $name): string => '#' . $id . ' ' . $name, array_keys($result['corrected']), $result['corrected']),
+                    array_map(fn (int $id, array $country): string => $this->installerText(
+                        key:      'COM_ALFA_INSTALL_PLACES_SEED_CURRENCY_SET',
+                        fallback: '#%1$s %2$s (default currency %3$s)',
+                        values:   [(string) $id, $country[0], $country[1]],
+                    ), array_keys($result['currencyCorrected']), $result['currencyCorrected']),
+                )),
                 $named(array_values($result['added'])),
             ],
         ));
 
         $left = [];
 
-        if ($result['kept'] !== [])
+        if ($result['kept'] !== [] || $result['currencyKept'] !== [])
         {
             $left[] = $this->installerText(
                 key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT',
                 fallback: 'These countries were left as the shop changed them: %s.',
-                values:   [implode('; ', array_map(
-                    fn (int $id, array $names): string => '#' . $id . ' ' . $names[0] . ' ' . $this->installerText(
-                        key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT_SHIPS',
-                        fallback: '(2.2.1 ships %s)',
-                        values:   [$names[1]],
+                values:   [implode('; ', array_merge(
+                    array_map(
+                        fn (int $id, array $names): string => '#' . $id . ' ' . $names[0] . ' ' . $this->installerText(
+                            key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT_SHIPS',
+                            fallback: '(2.2.1 ships %s)',
+                            values:   [$names[1]],
+                        ),
+                        array_keys($result['kept']),
+                        $result['kept'],
                     ),
-                    array_keys($result['kept']),
-                    $result['kept'],
+                    array_map(
+                        fn (int $id, array $country): string => $this->installerText(
+                            key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT_CURRENCY',
+                            fallback: '#%1$s %2$s (2.2.1 gives it the default currency %3$s)',
+                            values:   [(string) $id, $country[0], $country[1]],
+                        ),
+                        array_keys($result['currencyKept']),
+                        $result['currencyKept'],
+                    ),
                 ))],
             );
         }
@@ -2152,8 +2170,8 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         self::maintenanceLog(
-            line:     'Update to ' . $this->packageVersion . ': the countries brought up to ISO 3166-1: ' . \count($result['corrected']) . ' corrected, '
-                . \count($result['added']) . ' added, ' . \count($result['kept']) . ' left as the shop changed them, '
+            line:     'Update to ' . $this->packageVersion . ': the countries brought up to ISO 3166-1: ' . (\count($result['corrected']) + \count($result['currencyCorrected'])) . ' corrected, '
+                . \count($result['added']) . ' added, ' . (\count($result['kept']) + \count($result['currencyKept'])) . ' left as the shop changed them, '
                 . \count($result['noSuccessor']) . ' rows that are not countries kept, ' . \count($result['currencies'])
                 . ' default currencies left (' . $milliseconds . ' ms).',
             priority: \Joomla\CMS\Log\Log::INFO,

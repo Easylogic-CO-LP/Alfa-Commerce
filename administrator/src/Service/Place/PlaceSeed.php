@@ -194,12 +194,14 @@ final class PlaceSeed
      * failure leaves every place as it was. Run once, by the update from a version before 2.2.1; run again it finds
      * nothing to do.
      *
-     * The answer: corrected, id => the name now; added, code2 => name; kept, id => [the shop's name, the name 2.2.1
-     * ships]; noSuccessor, id => the shop's name, Larisa included; currencies, id => [the country's name, the code now].
+     * The answer: corrected, id => the name now; currencyCorrected, id => [the name, the currency code now]; added,
+     * code2 => name; kept, id => [the shop's name, the name 2.2.1 ships]; currencyKept, id => [the shop's name, the
+     * currency code 2.2.1 gives it]; noSuccessor, id => the shop's name, Larisa included; currencies, id => [the
+     * country's name, the code now]. The words of the update page are the installer's (language keys).
      *
      * @param DatabaseInterface $db The shop's connection.
      *
-     * @return array{corrected: array<int, string>, added: array<string, string>, kept: array<int, array{0: string, 1: string}>, noSuccessor: array<int, string>, currencies: array<int, array{0: string, 1: string}>} What was done and what was left.
+     * @return array{corrected: array<int, string>, currencyCorrected: array<int, array{0: string, 1: string}>, added: array<string, string>, kept: array<int, array{0: string, 1: string}>, currencyKept: array<int, array{0: string, 1: string}>, noSuccessor: array<int, string>, currencies: array<int, array{0: string, 1: string}>} What was done and what was left.
      *
      * @since  2.2.1
      */
@@ -224,7 +226,7 @@ final class PlaceSeed
      *
      * @param DatabaseInterface $db The shop's connection.
      *
-     * @return array{corrected: array<int, string>, added: array<string, string>, kept: array<int, array{0: string, 1: string}>, noSuccessor: array<int, string>, currencies: array<int, array{0: string, 1: string}>} What was done and what was left.
+     * @return array{corrected: array<int, string>, currencyCorrected: array<int, array{0: string, 1: string}>, added: array<string, string>, kept: array<int, array{0: string, 1: string}>, currencyKept: array<int, array{0: string, 1: string}>, noSuccessor: array<int, string>, currencies: array<int, array{0: string, 1: string}>} What was done and what was left.
      *
      * @since  2.2.1
      */
@@ -237,7 +239,7 @@ final class PlaceSeed
                 ->from($db->quoteName('#__alfa_places')),
         )->loadObjectList('id') ?: [];
 
-        $result = ['corrected' => [], 'added' => [], 'kept' => [], 'noSuccessor' => [], 'currencies' => []];
+        $result = ['corrected' => [], 'currencyCorrected' => [], 'added' => [], 'kept' => [], 'currencyKept' => [], 'noSuccessor' => [], 'currencies' => []];
 
         // 1. The rows exactly as shipped, compared byte for byte (the table's collation would match "TURKEY" to "Turkey").
         foreach (self::CORRECTIONS as $id => [$shipped, $now]) {
@@ -290,7 +292,7 @@ final class PlaceSeed
 
             if ([(string) $row->name, (string) $row->code2, (string) $row->code3] !== $shipped || (int) $row->parent_id !== 0
                 || (int) $row->currency_id !== self::currencyId(db: $db, code: $then)) {
-                $result['kept'][$id] = [(string) $row->name, 'its default currency ' . $now];
+                $result['currencyKept'][$id] = [(string) $row->name, $now];
 
                 continue;
             }
@@ -304,7 +306,7 @@ final class PlaceSeed
             )->execute();
 
             $row->currency_id = $nowId;
-            $result['corrected'][$id] = $shipped[0] . ' (default currency ' . $now . ')';
+            $result['currencyCorrected'][$id] = [(string) $row->name, $now];
         }
 
         // 2. The countries the shop has no country for, by code.
