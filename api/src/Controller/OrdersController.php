@@ -208,11 +208,11 @@ class OrdersController extends ApiController
             throw new Save('id_order_status cannot be changed via PATCH; use POST v1/alfa/orders/:id/status.', 422);
         }
 
-        // The resource publishes state, the order row's trash flag, but no screen or request changes it: an order is
-        // never trashed, and the order form has no such field, so a PATCH of it was answered 200 and not written
-        // (2.2.1). Refused, as the status is.
+        // The resource publishes state, the order row's trash flag. Only the administrator's Orders list moves an order
+        // to the trash; over the API an order has no trash step and is deleted in one call, and the order form has no
+        // such field, so a PATCH of it was answered 200 and not written (2.2.1). Refused, as the status is.
         if (array_key_exists('state', $rawBody) || array_key_exists('state', $bodyData)) {
-            throw new Save('state cannot be changed via PATCH: an order is not trashed; its status changes through POST v1/alfa/orders/:id/status.', 422);
+            throw new Save('state cannot be changed via PATCH: over the API an order has no trash step and is deleted in one call (DELETE v1/alfa/orders/:id); its status changes through POST v1/alfa/orders/:id/status.', 422);
         }
 
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
