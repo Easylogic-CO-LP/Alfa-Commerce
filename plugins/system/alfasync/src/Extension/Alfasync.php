@@ -42,6 +42,7 @@ namespace Alfa\Plugin\System\Alfasync\Extension;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Card\CardRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
@@ -55,6 +56,7 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
+use Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility;
 use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerTrigger;
@@ -99,6 +101,16 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @since  2.0.0
      */
     private array $groupSetBeforeSave = [];
+
+    /**
+     * The Alfa extensions Joomla began to uninstall in this request, by id ({@see self::onExtensionBeforeUninstall()}):
+     * once one is gone its row no longer says it was Alfa's. Request memory only.
+     *
+     * @var array<int, true>
+     *
+     * @since  2.2.1
+     */
+    private array $uninstallingAlfa = [];
 
     // Event subscriptions: the only place to touch when adding a sync target
 
@@ -146,11 +158,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Storefront menu items removed -> the setup checklist must un-tick.
             'onContentAfterDelete' => 'onContentAfterDelete',
 
-            // Gateway plugins, Joomla's page cache or this plugin saved / com_alfa Options saved -> setup verdict stale.
+            // Alfa plugins, Joomla's page cache or this plugin saved / com_alfa Options saved -> setup verdict stale; an
+            // Alfa plugin's cached cards too (2.2.1).
             'onExtensionAfterSave' => 'onExtensionAfterSave',
 
             // A content language published from the Content Languages list -> its language tables. The same plugins
-            // enabled or disabled from the Plugins list -> setup verdict stale.
+            // enabled or disabled from the Plugins list -> setup verdict stale, and an Alfa plugin's cached cards.
             'onContentChangeState' => 'onContentChangeState',
 
             // A guided tour finished/skipped -> the checklist's tour-first buttons flip.
@@ -163,13 +176,22 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             'onExtensionBeforeSave' => 'onExtensionBeforeSave',
 
             // An Alfa extension uninstalled through Joomla: warned that its data stays (never refused). The PDF
-            // library uninstalled: the setup verdict is stale.
+            // library uninstalled: the setup verdict is stale. An Alfa extension uninstalled: the cached dashboard
+            // cards and setup verdict are dropped once it is gone, and a standing compatibility notice is brought up
+            // to date (2.2.1).
             'onExtensionBeforeUninstall' => 'onExtensionBeforeUninstall',
+            'onExtensionAfterUninstall' => 'onExtensionAfterUninstall',
 
             // An Alfa language pack installed or updated: core's language sync, Joomla's own language checked. The
-            // PDF library installed or updated: the setup verdict is stale.
+            // PDF library installed or updated: the setup verdict is stale. An Alfa extension installed or updated:
+            // the cached dashboard cards and setup verdict are dropped, and a standing compatibility notice is brought
+            // up to date (2.2.1).
             'onExtensionAfterInstall' => 'onExtensionAfterInstall',
             'onExtensionAfterUpdate' => 'onExtensionAfterInstall',
+
+            // Extensions enabled or disabled from Extensions: Manage (2.2.1): an Alfa extension among them drops the
+            // cached dashboard cards and setup verdict, as the Plugins list's switch does.
+            'onExtensionChangeState' => 'onExtensionChangeState',
 
             // Custom Alfa events: uncomment + dispatch from component/plugin
             // 'onAlfaProductAfterSave'  => 'onAlfaProductAfterSave',
@@ -869,11 +891,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Called after an extension row is saved. Three saves flip setup detectors without
-     * touching any Alfa table: enabling/disabling an alfa-payments or alfa-shipments
-     * plugin (the correctness join in the payments/shipping checks), saving Joomla's
-     * System - Page Cache or this plugin (the page cache check), and saving com_alfa's
-     * own Options (store identity, default currency, media location).
+     * Called after an extension row is saved. Three saves flip setup detectors or cards
+     * without touching any Alfa table: saving an Alfa plugin, its enabled state or Access
+     * among what changes (its own setup rows and cards, and the correctness join in the
+     * payments and shipping checks; 2.2.1 for every Alfa plugin and the cards), saving
+     * Joomla's System - Page Cache or this plugin (the page cache check), and saving
+     * com_alfa's own Options (store identity, default currency, media location).
      *
      * Languages: Content Languages announces its saves here too (com_languages
      * LanguageModel: onExtensionAfterSave, never onContentAfterSave): a content
@@ -926,27 +949,110 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         // com_plugins.plugin
-        $this->invalidateSetupForPlugin(folder: (string) ($item->folder ?? ''), element: (string) ($item->element ?? ''), how: 'saved');
+        $this->invalidateForExtensions(ids: [(int) ($item->extension_id ?? 0)], how: 'saved');
     }
 
     /**
-     * The plugins whose state a setup detector reads: a gateway or carrier plugin (the correctness join in the payments
-     * and shipping checks), Joomla's System - Page Cache or this plugin (the page cache check). One of them saved from
-     * its form ({@see self::onExtensionAfterSave()}) or enabled or disabled from the Plugins list
-     * ({@see self::onContentChangeState()}) makes the setup verdict stale.
+     * The extensions whose state the setup checklist or the dashboard reads. An Alfa extension (a plugin of a group
+     * alfa... or of an Alfa\ namespace, a module mod_alfa..., a package pkg_alfa...;
+     * {@see ClearDataExtensions::installed()}): its setup rows and cards, the correctness join of the payments and
+     * shipping checks, and the extensions row (2.2.1); Joomla's System - Page Cache or this plugin: the page cache
+     * check. One of them saved from its form
+     * ({@see self::onExtensionAfterSave()}), or enabled or disabled from the Plugins list
+     * ({@see self::onContentChangeState()}) or from Extensions: Manage ({@see self::onExtensionChangeState()}), makes
+     * the setup verdict stale, and an Alfa extension the cached cards too.
      *
-     * @param string $folder The plugin's group.
-     * @param string $element The plugin's element.
-     * @param string $how How it changed, for the debug log.
+     * @param list<int> $ids The extension ids.
+     * @param string $how How they changed, for the debug log.
      *
      * @since  2.2.1
      */
-    private function invalidateSetupForPlugin(string $folder, string $element, string $how): void
+    private function invalidateForExtensions(array $ids, string $how): void
     {
-        if (in_array($folder, ['alfa-payments', 'alfa-shipments'], true)) {
-            $this->invalidateSetup('gateway plugin ' . $how);
-        } elseif ($folder === 'system' && in_array($element, ['cache', 'alfasync'], true)) {
-            $this->invalidateSetup('page cache or Alfa Commerce Sync plugin ' . $how);
+        $ids = array_values(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0));
+
+        if ($ids === []) {
+            return;
+        }
+
+        try {
+            if ($this->alfaExtensions(ids: $ids) !== []) {
+                $this->invalidateForAlfaExtension($how);
+
+                return;
+            }
+
+            $db = $this->getDatabase();
+            $pageCache = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__extensions'))
+                    ->whereIn($db->quoteName('extension_id'), $ids)
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                    ->where($db->quoteName('folder') . ' = ' . $db->quote('system'))
+                    ->whereIn($db->quoteName('element'), ['cache', 'alfasync'], ParameterType::STRING),
+            )->loadResult();
+
+            if ($pageCache > 0) {
+                $this->invalidateSetup('page cache or Alfa Commerce Sync plugin ' . $how);
+            }
+        } catch (Throwable $e) {
+            $this->logError('invalidateForExtensions', $e->getMessage(), ['ids' => $ids]);
+        }
+    }
+
+    /**
+     * Which of the extensions are installed Alfa extensions ({@see ClearDataExtensions::installed()}, the one answer).
+     *
+     * @param list<int> $ids Extension ids.
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @since  2.2.1
+     */
+    private function alfaExtensions(array $ids): array
+    {
+        return ClearDataExtensions::installed(db: $this->getDatabase(), ids: $ids);
+    }
+
+    /**
+     * An Alfa extension installed, updated, uninstalled, enabled, disabled or saved (2.2.1): the cached
+     * dashboard cards and setup verdict are dropped, so its cards and setup rows are drawn, or left out, from the next
+     * page on instead of when their cache expires (5 minutes, 6 hours). Never breaks the caller.
+     *
+     * @param string $why Log context.
+     *
+     * @since  2.2.1
+     */
+    private function invalidateForAlfaExtension(string $why): void
+    {
+        $this->invalidateSetup('an Alfa extension ' . $why);
+
+        try {
+            CardRegistry::invalidate();
+        } catch (Throwable $e) {
+            $this->logError('invalidateForAlfaExtension', $e->getMessage(), ['why' => $why]);
+        }
+    }
+
+    /**
+     * After an Alfa extension is installed, updated or uninstalled (2.2.1): a standing notification that
+     * names the extensions not known to work with this Alfa Commerce is brought up to date, or cleared when none is
+     * left ({@see ExtensionCompatibility::notify()}); none is raised here. Not while Alfa is in maintenance. Never
+     * breaks the caller.
+     *
+     * @since  2.2.1
+     */
+    private function followCompatibility(): void
+    {
+        if ($this->paused()) {
+            return;
+        }
+
+        try {
+            ExtensionCompatibility::notify(alert: false);
+        } catch (Throwable $e) {
+            $this->logError('followCompatibility', $e->getMessage());
         }
     }
 
@@ -987,23 +1093,32 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         if ($context === 'com_plugins.plugin' && $pks !== [] && !$this->paused()) {
-            try {
-                $db = $this->getDatabase();
-                $ids = array_values(array_filter(array_map('intval', $pks), static fn (int $id): bool => $id > 0));
-                $rows = $ids === [] ? [] : $db->setQuery(
-                    $db->getQuery(true)
-                        ->select([$db->quoteName('folder'), $db->quoteName('element')])
-                        ->from($db->quoteName('#__extensions'))
-                        ->whereIn($db->quoteName('extension_id'), $ids),
-                )->loadObjectList();
-
-                foreach ($rows as $row) {
-                    $this->invalidateSetupForPlugin(folder: (string) $row->folder, element: (string) $row->element, how: $value === 1 ? 'enabled' : 'disabled');
-                }
-            } catch (Throwable $e) {
-                $this->logError('onContentChangeState', $e->getMessage());
-            }
+            $this->invalidateForExtensions(ids: array_map('intval', $pks), how: $value === 1 ? 'enabled' : 'disabled');
         }
+    }
+
+    /**
+     * Called before extensions are enabled or disabled from Extensions: Manage (com_installer's ManageModel::publish(),
+     * context com_installer.manage, the extension ids as the subject; Joomla announces it before it stores each one).
+     * An Alfa extension among them drops the cached dashboard cards and setup verdict (2.2.1), which the next
+     * page computes from the stored state; Joomla's page cache or this plugin drops the setup verdict, as the Plugins
+     * list's switch does.
+     *
+     * @param Event $event Joomla's BeforeChangeStateEvent.
+     *
+     * @since  2.2.1
+     */
+    public function onExtensionChangeState(Event $event): void
+    {
+        $context = (string) ($event->getArgument('context') ?? $event->getArgument('0') ?? '');
+        $pks = (array) ($event->getArgument('subject') ?? $event->getArgument('1') ?? []);
+        $value = (int) ($event->getArgument('value') ?? $event->getArgument('2') ?? 0);
+
+        if ($context !== 'com_installer.manage' || $pks === []) {
+            return;
+        }
+
+        $this->invalidateForExtensions(ids: array_map('intval', $pks), how: ($value === 1 ? 'enabled' : 'disabled') . ' in Extensions: Manage');
     }
 
     /**
@@ -1134,6 +1249,16 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $this->invalidateSetup('the PDF library is being uninstalled');
         }
 
+        // An Alfa extension: remembered, so its cards and setup rows are dropped once it is gone (2.2.1); after
+        // the uninstall its row no longer says whose it was.
+        try {
+            if ($extensionId > 0 && $this->alfaExtensions(ids: [$extensionId]) !== []) {
+                $this->uninstallingAlfa[$extensionId] = true;
+            }
+        } catch (Throwable $e) {
+            $this->logError(caller: 'onExtensionBeforeUninstall', message: $e->getMessage());
+        }
+
         try {
             $entry = (new ClearDataExtensions())->uninstalling(extensionId: $extensionId);
 
@@ -1178,6 +1303,48 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         if ($this->isPdfLibrary(extensionId: (int) $event->getArgument('eid'))) {
             $this->invalidateSetup('the PDF library was installed');
         }
+
+        // An Alfa extension installed or updated (2.2.1): its cards and setup rows are drawn
+        // from the next page on, the extensions row of the checklist reads its manifest again, and a standing
+        // compatibility notice is brought up to date.
+        try {
+            $extensionId = (int) $event->getArgument('eid');
+
+            if ($extensionId > 0 && $this->alfaExtensions(ids: [$extensionId]) !== []) {
+                $this->invalidateForAlfaExtension('installed or updated');
+                $this->followCompatibility();
+            }
+        } catch (Throwable $e) {
+            $this->logError(caller: 'onExtensionAfterInstall', message: $e->getMessage());
+        }
+    }
+
+    /**
+     * An extension uninstalled through Joomla (2.2.1): when it was an Alfa extension
+     * ({@see self::onExtensionBeforeUninstall()} remembered it) and it is gone, the cached dashboard cards and setup
+     * verdict are dropped, so its cards and setup rows are no longer drawn, and a standing compatibility notice is
+     * brought up to date. It never fails the uninstall.
+     *
+     * @param Event $event Joomla's AfterUninstallEvent: the installer, the extension's id and whether it was removed.
+     *
+     * @since  2.2.1
+     */
+    public function onExtensionAfterUninstall(Event $event): void
+    {
+        $extensionId = (int) ($event->getArgument('eid') ?? 0);
+
+        if (!isset($this->uninstallingAlfa[$extensionId])) {
+            return;
+        }
+
+        unset($this->uninstallingAlfa[$extensionId]);
+
+        if (!$event->getArgument('removed')) {
+            return;
+        }
+
+        $this->invalidateForAlfaExtension('uninstalled');
+        $this->followCompatibility();
     }
 
     /**
