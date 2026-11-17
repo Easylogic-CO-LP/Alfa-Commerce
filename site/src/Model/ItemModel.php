@@ -345,7 +345,11 @@ class ItemModel extends BaseItemModel
                 'selections' => $item->fieldSelections ?? [],
             ]);
 
-            $plugins->dispatchTo($plugin, $event);
+            // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
+            // product page renders without it.
+            if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') on the product page')) {
+                continue;
+            }
 
             // Contract guard: the surface's selector kind must match the field's
             // combination role (variant->sel[]/item, option->opt[]/price). Loud in dev.

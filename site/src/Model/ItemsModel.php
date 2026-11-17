@@ -36,6 +36,7 @@ use Alfa\Component\Alfa\Administrator\Service\Projection\ItemFieldValueProjectio
 use Alfa\Component\Alfa\Administrator\Service\Search\QueryNormalizer;
 use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
 use Alfa\Component\Alfa\Administrator\Service\Search\ResultSetContext;
+use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEntity;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchIntent;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchProviderFactory;
@@ -1047,7 +1048,8 @@ class ItemsModel extends UrlListModel
         $context = $this->countingForStart ? null : ($this->resultSetContext ?? ($this->getState('search.rendered')
             ? new ResultSetContext(order: $this->shownOrder(), offset: $this->renderedOffset())
             : null));
-        $engine = (string) ComponentHelper::getParams('com_alfa')->get('search_engine', 'database');
+        // The configured engine's key from its one reader: '' for the database search (2.2.1).
+        $engine = SearchEngineRegistry::shared()->configuredKey();
         $this->resultAttribution = $context === null ? null : new ResultAttribution(order: $context->order, engine: $engine);
 
         // Make the ShowOn-pruned selection effective before anything reads
