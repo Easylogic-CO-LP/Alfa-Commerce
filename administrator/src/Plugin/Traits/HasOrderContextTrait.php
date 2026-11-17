@@ -44,6 +44,8 @@ trait HasOrderContextTrait
      * one `$event->getOrder()` gives: two shapes behind one name is how a
      * gateway ends up written against whichever it was tested with.
      *
+     * @api READ ONLY: the order as the Order reader the events hand over, or null.
+     *
      * @param int $orderId Order PK.
      *
      * @return Order|null NULL when the id names nothing.
@@ -78,6 +80,8 @@ trait HasOrderContextTrait
      * the plugin's job:
      *
      *     $code = strtolower(substr($this->orderLanguage($order), 0, 2));
+     *
+     * @api READ ONLY: the order's full language tag, the site's when the order names none.
      *
      * @param Order|int $order The order, or its PK.
      *

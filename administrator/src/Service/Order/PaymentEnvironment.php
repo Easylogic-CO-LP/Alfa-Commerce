@@ -48,6 +48,8 @@ final class PaymentEnvironment
      * Live only when the saved switch is exactly 1 or '1'; absent, 0 or any
      * other value reads as sandbox, so nothing moves real money by accident.
      *
+     * @api READ ONLY: LIVE only when the saved switch is exactly 1, else SANDBOX.
+     *
      * @param array|object|string|null $params The method's params: an array, an object or a JSON string.
      *
      * @return string self::SANDBOX or self::LIVE.
@@ -101,6 +103,8 @@ final class PaymentEnvironment
      * so an empty live key stays empty, and nothing is trimmed: the form's
      * filter already did that when the admin saved.
      *
+     * @api READ ONLY: one set of credentials, unprefixed and in the order asked; the other set is never read.
+     *
      * @param array|object|string|null $params The method's params.
      * @param string $environment self::SANDBOX or self::LIVE.
      * @param string[] $keys Unprefixed credential keys.
@@ -127,6 +131,8 @@ final class PaymentEnvironment
     /**
      * A recorded environment, checked: the set a payment or reference was made in.
      *
+     * @api READ ONLY: the recorded environment, or an InvalidArgumentException when it is neither sandbox nor live.
+     *
      * @param string $environment The recorded value.
      *
      * @return string The same value.
@@ -150,6 +156,8 @@ final class PaymentEnvironment
      * The value is compared exactly: an address without it, or with anything
      * but sandbox or live, names no set, and the handler refuses it rather
      * than trying the switch or both sets.
+     *
+     * @api READ ONLY: the set a notification address names, compared exactly, or null.
      *
      * @param Input $input The request.
      *

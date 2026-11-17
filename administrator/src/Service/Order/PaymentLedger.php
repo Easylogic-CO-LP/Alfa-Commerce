@@ -1862,6 +1862,9 @@ class PaymentLedger
      *       default:                           ...the write failed: try again later, the same reference...
      *   }
      *
+     * @api ANSWERS: a PaymentWriteVerdict, its kind, a refusal's code and the row; throws only for a builder used
+     *      wrongly or a failure that ended the caller's transaction.
+     *
      * @return PaymentWriteVerdict What the write did.
      *
      * @throws RuntimeException The builder used wrongly: create mode without a status, update mode without a row.
@@ -13632,8 +13635,9 @@ class PaymentLedger
     //  sums the guards enforce, so a display can never disagree with a cap.
 
     /**
-     * THE amount a gateway should collect for an order: the ONE public
-     * contract every payment plugin (core or third-party) builds on.
+     * THE amount a gateway should collect for an order: core's one source of
+     * it. A plugin reads it through its base class, PaymentsPlugin::amountToCollect()
+     * or ShipmentsPlugin::amountToCollect(), never here.
      *
      * Grand total minus what the shop is STILL HOLDING (collected money less
      * anything given back), clamped at zero and measured at the order's frozen
