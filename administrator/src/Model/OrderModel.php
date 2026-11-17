@@ -983,13 +983,20 @@ class OrderModel extends AlfaAdminModel
             }
         }
 
-        $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
-            form: $form,
-            fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
-            values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
-            group: FieldsHelper::FIELDS_KEY,
-            extra: ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'],
-        );
+        // An update that leaves the delivery details out (a REST PATCH of the note alone) leaves them as they are, so
+        // they are not validated: a field the shop requires there is asked of a creation and of an update that sends
+        // the details, never of one that does not. The order screen always sends them.
+        if ($isNew || \array_key_exists(FieldsHelper::FIELDS_KEY, $data)) {
+            $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
+                form: $form,
+                fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
+                values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
+                group: FieldsHelper::FIELDS_KEY,
+                extra: ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'],
+            );
+        } else {
+            $form->removeGroup(FieldsHelper::FIELDS_KEY);
+        }
 
         if (empty($data['invoice_differs'])) {
             $form->removeGroup(FieldsHelper::BILLING_FIELDS_KEY);
