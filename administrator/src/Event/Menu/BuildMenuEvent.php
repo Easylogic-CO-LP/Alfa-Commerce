@@ -36,6 +36,10 @@ use Joomla\CMS\Event\AbstractEvent;
  * Ordering is data, so a plugin can place its item first, second, wherever. The builder
  * filters by ACL and sorts; the plugin only declares.
  *
+ * A PLUGIN WRITES ONLY ITS OWN ENTRIES (2.2.1). item() hands the plugin the entry it
+ * just added; all() hands copies, so a listener that reads the menu and changes what it
+ * read changes nothing: core's entries and another plugin's stay as they declared them.
+ *
  * A SECTION IS PLACED THE SAME WAY. A plugin that owns a whole heading says where
  * it belongs among the core ones with {@see self::section()}, under its identity: an analytics heading
  * read daily sits above the once-configured Market, not below it merely because a
@@ -181,7 +185,7 @@ class BuildMenuEvent extends AbstractEvent
     }
 
     /**
-     * Every valid item added so far.
+     * A copy of every valid item added so far (2.2.1: copies, so changing one changes nothing in the menu).
      *
      * @return MenuItem[]
      *
@@ -189,9 +193,12 @@ class BuildMenuEvent extends AbstractEvent
      */
     public function all(): array
     {
-        return array_values(array_filter(
-            $this->items,
-            static fn (MenuItem $item): bool => $item->isValid(),
+        return array_values(array_map(
+            static fn (MenuItem $item): MenuItem => clone $item,
+            array_filter(
+                $this->items,
+                static fn (MenuItem $item): bool => $item->isValid(),
+            ),
         ));
     }
 }

@@ -146,10 +146,14 @@
             <option value="0">COM_ALFA_FORM_OPTION_FIELD_GROUP_NONE</option>
         </field>
 
-        <field name="layout" type="fieldLayout"
-               label="JFIELD_ALT_LAYOUT_LABEL"
-               description="COM_ALFA_FORM_DESC_FIELD_LAYOUT"
-               class="form-select"/>
+        <!-- Stored in the field's params as display_layout (FieldsHelper::DISPLAY_LAYOUT): the layout its stored
+             value is shown with. Never "layout", which the checkout form gives Joomla's field for its input. -->
+        <fields name="formfieldsparams">
+            <field name="display_layout" type="fieldLayout"
+                   label="JFIELD_ALT_LAYOUT_LABEL"
+                   description="COM_ALFA_FORM_DESC_FIELD_LAYOUT"
+                   class="form-select"/>
+        </fields>
 
         <field
                 name="created_by"
