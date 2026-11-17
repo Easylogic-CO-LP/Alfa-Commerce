@@ -268,7 +268,7 @@ class HtmlView extends BaseHtmlView
         try {
             $plugins->dispatchTo($plugin, $event);
         } catch (Throwable $e) {
-            Log::add('Product page: ' . $id . ' failed in onItemView (' . $e::class . ': ' . $e->getMessage() . '); the page renders without it.', Log::ERROR, 'com_alfa');
+            Log::add('Item page: ' . $id . ' failed in onItemView (' . $e::class . ': ' . $e->getMessage() . '); the page renders without it.', Log::ERROR, 'com_alfa');
         }
     }
 
