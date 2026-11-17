@@ -310,10 +310,10 @@ class ItemModel extends BaseItemModel
     protected function dispatchFieldSurfaces(object $item): void
     {
         // A product with no price applying offers no add to cart (2.2.2): core's main slot is no layout, which the
-        // wrapper renders as nothing; a field plugin that sets its own slot decides for itself, and the cart refuses
-        // the add in any case.
+        // wrapper renders as nothing. One priced from a larger quantity keeps it, and the cart says from which quantity.
+        // A field plugin that sets its own slot decides for itself, and the cart refuses the add in any case.
         $cart = [
-            'layout' => ($item->price ?? null) === null ? '' : 'cart.add',
+            'layout' => ($item->price ?? null) === null && ($item->pricedFrom ?? null) === null ? '' : 'cart.add',
             'layoutData' => [],
             'layoutPluginType' => '',
             'layoutPluginName' => '',

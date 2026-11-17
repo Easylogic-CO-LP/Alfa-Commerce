@@ -1915,8 +1915,9 @@ class ItemsModel extends UrlListModel
 
     /**
      * A card with no price applying offers no add to cart (2.2.2): core's own main slot (the add to cart or the Choose
-     * options link) is set to no layout, which the wrapper renders as nothing. A slot a field plugin set is the plugin's
-     * to decide; the cart refuses the add in any case. The child slot (a wish list and the like) stays.
+     * options link) is set to no layout, which the wrapper renders as nothing. A card priced from a larger quantity than
+     * it opens with keeps it, and the cart says from which quantity. A slot a field plugin set is the plugin's to decide;
+     * the cart refuses the add in any case. The child slot (a wish list and the like) stays.
      *
      * @param object $item The card, priced.
      *
@@ -1924,7 +1925,8 @@ class ItemsModel extends UrlListModel
      */
     protected function withdrawCartWithoutPrice(object $item): void
     {
-        if (($item->price ?? null) !== null || !\is_array($item->cart ?? null) || ($item->cart['layoutPluginName'] ?? '') !== '') {
+        // Priced from a larger quantity: the card keeps its add to cart, and the cart says from which quantity.
+        if (($item->price ?? null) !== null || ($item->pricedFrom ?? null) !== null || !\is_array($item->cart ?? null) || ($item->cart['layoutPluginName'] ?? '') !== '') {
             return;
         }
 
