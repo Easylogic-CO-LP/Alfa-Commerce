@@ -16,6 +16,7 @@
         <change>
             <item>For plugin authors: a product field extension changes the add to cart area of a catalogue card or of the product page only through its event's setCartLayout() and setCartChildLayout(). When its method fails, what it set is left out and the other fields keep theirs, and a change it writes straight onto the product's cart ($item->cart, $item->cartChildren) is not kept, whether its method fails or not. Before, such a change stayed: after a failure the card or the page could show the failed extension's button, or none, and the card could lose its Choose options link.</item>
             <item>For plugin authors: System - Alfa Commerce Sync no longer carries a commented-out onAlfaProductAfterSave subscription and handler. Alfa Commerce announces no such event; an item's save is announced by onItemAfterSave.</item>
+            <item>Every database transaction level Alfa Commerce opens is closed through its own transaction helper, so the work it holds for after a commit (an announcement, a notice, a task) runs once the outermost transaction commits and never after a rollback. The cart, the cart rules, the translations, the price index, the item field filters and two install steps closed some of their levels with the database driver alone; none of those levels held such work, so nothing was lost.</item>
         </change>
     </changelog>
     <changelog>
