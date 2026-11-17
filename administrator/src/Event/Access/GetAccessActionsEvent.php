@@ -22,7 +22,9 @@ use Joomla\CMS\Event\AbstractEvent;
  * {@see \Alfa\Component\Alfa\Administrator\Field\AlfarulesField}. A plugin declares the
  * permissions its own screens enforce, the same fluent shape as the menu event:
  *
- *   $event->action('alfa.search.manage', 'PLG_..._ACCESS_MANAGE', 'PLG_..._ACCESS_MANAGE_DESC');
+ *   $event->action('alfa-search.myengine', 'alfa.search.manage', 'PLG_..._ACCESS_MANAGE', 'PLG_..._ACCESS_MANAGE_DESC');
+ *
+ * The first argument names the contributing plugin (group.element), as every contribution of the family does.
  *
  * and the field renders them alongside com_alfa's own access.xml actions, so a store
  * manager can grant or deny them per user group. Every action is then enforced the native
