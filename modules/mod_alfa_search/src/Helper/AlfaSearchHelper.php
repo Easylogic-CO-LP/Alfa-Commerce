@@ -106,7 +106,9 @@ class AlfaSearchHelper
      *
      * `withLayouts: false` keeps this a data-only lookup: the dropdown shows name, sku and
      * price, so rendering item-field selectors and cart layouts would be work thrown away.
-     * A results page that renders add-to-cart controls passes true.
+     * A results page that renders add-to-cart controls passes true. `withImage: true` loads
+     * each product's media as the catalogue's cards read it (the shop's placeholder for a
+     * product with none, when the shop shows one), so a result shows the product's picture.
      *
      * @param string $keyword Validated keyword.
      * @param string $lang Current language tag.
@@ -127,6 +129,7 @@ class AlfaSearchHelper
             withSuggestions: (bool) $params->get('show_suggestions', 1),
             suggestionLimit: max(1, (int) $params->get('suggestions_limit', 8)),
             withLayouts: false,
+            withImage: true,
         );
     }
 
@@ -187,7 +190,10 @@ class AlfaSearchHelper
     private static function renderAndSend(string $keyword, CatalogSearchResults $results, Registry $params): void
     {
         try {
-            $layout = new FileLayout('result', JPATH_ROOT . '/modules/mod_alfa_search/tmpl');
+            // The result layout as Joomla finds a module's layout: the active template's
+            // html/mod_alfa_search/result.php when there is one, else the module's own.
+            $path = ModuleHelper::getLayoutPath('mod_alfa_search', 'result');
+            $layout = new FileLayout(basename($path, '.php'), \dirname($path));
 
             // THIS MODULE'S WIRE AND MARKUP ARE ITS OWN MINI-CONTRACT and deliberately did
             // NOT adopt the typed shapes when the service did: the layout keeps rendering
@@ -231,7 +237,8 @@ class AlfaSearchHelper
             echo $response;
 
             Factory::getApplication()->close();
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            // A template override renders here too: an Error it raises is answered as the module's own error.
             self::logError('Render failed', ['error' => $e->getMessage()]);
             self::sendError(Text::_('MOD_ALFA_SEARCH_ERROR_RENDER'), 500);
         }
