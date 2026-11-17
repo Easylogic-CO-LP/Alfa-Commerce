@@ -272,6 +272,38 @@
                     inheritlabel="COM_ALFA_LAYOUT_INHERIT"
                     label="COM_ALFA_LAYOUT_ITEM_CATEGORIES_LABEL"
             />
+
+            <field
+                    name="related"
+                    type="subtemplate"
+                    view="item"
+                    slot="related"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_RELATED_LABEL"
+            />
+
+            <field
+                    name="related_count"
+                    type="list"
+                    label="COM_ALFA_LAYOUT_RELATED_COUNT_LABEL"
+                    description="COM_ALFA_LAYOUT_RELATED_COUNT_DESC"
+                    validate="options"
+            >
+                <option value="">COM_ALFA_LAYOUT_INHERIT</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+            </field>
         </fieldset>
     </fields>
 
