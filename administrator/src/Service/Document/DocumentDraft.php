@@ -48,11 +48,12 @@ final class DocumentDraft
      * @param int $orderId The order.
      * @param string $docType The type being drafted.
      * @param array $picks [lineId => ['selected' => 1, 'quantity' => n]].
-     * @param array $chargePicks ['shipping' => int[], 'fees' => int[], 'rules' => int[]], and optionally
+     * @param array $chargePicks ['shipping' => int[], 'fees' => int[]], and optionally
      *                           'amounts' => ['shipping' => [id => incl], 'fees' => [id => incl],
      *                           'rules' => [id => incl]]: what a credit claims of a picked source and
      *                           of the shipping discount riding it, capped by the builder at what the
-     *                           corrected document has left. Without it a pick is whole.
+     *                           corrected document has left. Without it a pick is whole. Discounts
+     *                           are never picked: they follow the goods or the shipping they reduce.
      * @param int $correctsId The corrected document, for a credit; 0 otherwise.
      * @param string $language The language the frozen names are taken in.
      *
@@ -86,7 +87,6 @@ final class DocumentDraft
             picks:         [
                 'shipping' => (array) ($chargePicks['shipping'] ?? []),
                 'fees' => (array) ($chargePicks['fees'] ?? []),
-                'rules' => (array) ($chargePicks['rules'] ?? []),
                 // A credit's per-source claim, when the picker sized one.
                 'amounts' => (array) ($chargePicks['amounts'] ?? []),
             ],

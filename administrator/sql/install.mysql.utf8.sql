@@ -1427,7 +1427,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `id_currency` int(11) NOT NULL,
   `currency_scale` tinyint(1) UNSIGNED DEFAULT NULL COMMENT 'The monetary scale in force when this record was created, 0-8. WRITE-ONCE. Every amount on this record is interpreted, rounded and formatted at THIS scale, never at the current #__alfa_currencies.decimal_place - the currency table is configuration for NEW monetary facts, not authority over ones already made. NULL = a pre-v1 row with no scale authority; it is NOT a zero scale and there is deliberately no runtime fallback to the live row.',
   `conversion_rate` decimal(13,6) NOT NULL DEFAULT 1.000000 COMMENT 'Currency conversion rate at order time',
-  `invoice_number` int(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Sequential invoice number',
   `delivery_date` datetime DEFAULT NULL COMMENT 'When order was delivered',
   `id_address_delivery` int(11) DEFAULT NULL,
   `id_address_invoice` int(11) DEFAULT NULL,
@@ -1461,7 +1460,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   -- The orders of one customer by the e-mail on the order (the REST API's filter[email], 2.2.1), a guest's included.
   KEY `idx_customer_email` (`customer_email`),
   KEY `idx_date_add` (`created`),
-  KEY `idx_invoice_number` (`invoice_number`),
   -- "Waiting for you" counts every order still in the initial status, with no date
   -- bound; it is a queue, not a period. Without this it read the whole table on
   -- every dashboard load, and it is also what the attention signals' NOT IN (...) walk.

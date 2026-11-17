@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Service\Document\StockBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocumentStock;
+use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskAttention;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
@@ -84,8 +85,8 @@ use Throwable;
  */
 final class InventoryEffectOutbox
 {
-    public const STATUS_PENDING = 'pending';
-    public const STATUS_CLAIMED = 'claimed';
+    public const STATUS_PENDING = DueRead::MOVEMENT_PENDING;
+    public const STATUS_CLAIMED = DueRead::MOVEMENT_CLAIMED;
     public const STATUS_APPLIED = 'applied';
     public const STATUS_FAILED = 'failed';
 
@@ -102,7 +103,7 @@ final class InventoryEffectOutbox
      * try (2.2.1): its claim counted the try, and it is tried again under {@see self::MAX_ATTEMPTS} and the wait of its
      * step, as any failure ({@see self::settleAbandoned()}).
      */
-    public const STALE_CLAIM_SECONDS = 300;
+    public const STALE_CLAIM_SECONDS = DueRead::STALE_CLAIM_SECONDS;
 
     /**
      * How many times a failed movement is tried before it waits for staff, spaced as the task engine spaces the retries
@@ -182,18 +183,21 @@ final class InventoryEffectOutbox
         }
 
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $now = Factory::getDate()->toSql();
 
         // INSERT IGNORE against UNIQUE(source_type, source_id): a producer that
         // is replayed re-states the same obligation rather than adding a second.
+        // Stamped by the database's clock, the one every age window of the
+        // outbox is measured with: Factory::getDate() keeps the time of its
+        // first call for the whole process, so an obligation recorded late in
+        // a task run, a console command or a queue would look older by the
+        // run's age (2.2.1).
         $db->setQuery(
             'INSERT IGNORE INTO ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' (' . $db->quoteName('source_type') . ', ' . $db->quoteName('source_id') . ', '
             . $db->quoteName('order_id') . ', ' . $db->quoteName('payload') . ', '
             . $db->quoteName('status') . ', ' . $db->quoteName('created') . ', ' . $db->quoteName('modified') . ')'
             . ' VALUES (' . $db->quote($sourceType) . ', ' . $sourceId . ', ' . $orderId . ', '
-            . $db->quote($payload) . ', ' . $db->quote(self::STATUS_PENDING) . ', '
-            . $db->quote($now) . ', ' . $db->quote($now) . ')',
+            . $db->quote($payload) . ', ' . $db->quote(self::STATUS_PENDING) . ', UTC_TIMESTAMP(), UTC_TIMESTAMP())',
         );
         $db->execute();
 
@@ -213,7 +217,7 @@ final class InventoryEffectOutbox
             'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' SET ' . $db->quoteName('payload') . ' = ' . $db->quote($payload)
             . ', ' . $db->quoteName('order_id') . ' = ' . $orderId
-            . ', ' . $db->quoteName('modified') . ' = ' . $db->quote($now)
+            . ', ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP()'
             . $where,
         );
         $db->execute();
@@ -531,7 +535,7 @@ final class InventoryEffectOutbox
         int $onlySourceId,
         string $onlySourceType = '',
     ): array {
-        $where = '(' . self::claimableWhere($db) . ' OR ' . self::abandonedClaimWhere($db, $staleSeconds) . ')';
+        $where = '(' . self::claimableWhere($db) . ' OR ' . DueRead::abandonedClaimWhere($db, $staleSeconds) . ')';
 
         if ($onlySourceId > 0) {
             $where .= ' AND ' . $db->quoteName('source_id') . ' = ' . $onlySourceId;
@@ -617,7 +621,7 @@ final class InventoryEffectOutbox
             . ', ' . $db->quoteName('modified') . ' = ' . $db->quoteName('claimed_at')
             . ' WHERE ' . $db->quoteName('id') . ' = ' . (int) $row->id
             . ' AND ' . $db->quoteName('claim_token') . ' = ' . $db->quote((string) $row->claim_token)
-            . ' AND ' . self::abandonedClaimWhere($db, $staleSeconds),
+            . ' AND ' . DueRead::abandonedClaimWhere($db, $staleSeconds),
         );
         $db->execute();
 
@@ -1326,7 +1330,7 @@ final class InventoryEffectOutbox
         $db->setQuery(
             'SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' WHERE ' . self::claimableWhere($db)
-            . ' OR ' . self::abandonedClaimWhere($db, $staleSeconds ?? self::STALE_CLAIM_SECONDS),
+            . ' OR ' . DueRead::abandonedClaimWhere($db, $staleSeconds ?? self::STALE_CLAIM_SECONDS),
         );
 
         return (int) $db->loadResult();
@@ -1594,24 +1598,6 @@ final class InventoryEffectOutbox
             . ' OR (' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_FAILED)
             . ' AND ' . $db->quoteName('attempts') . ' < ' . self::MAX_ATTEMPTS
             . ' AND ' . $db->quoteName('modified') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . self::retryWait($db) . ' SECOND)))';
-    }
-
-    /**
-     * The one definition of an abandoned claim: claimed longer ago than the stale window, so its worker is taken to
-     * have stopped. The drain settles it as a failed try ({@see self::settleAbandoned()}); the task runner owes a
-     * drain while one stands.
-     *
-     * @param object $db Database driver.
-     * @param int $staleSeconds Age after which a claim counts as abandoned.
-     *
-     * @return string SQL condition.
-     *
-     * @since  2.2.1
-     */
-    public static function abandonedClaimWhere(object $db, int $staleSeconds = self::STALE_CLAIM_SECONDS): string
-    {
-        return '(' . $db->quoteName('status') . ' = ' . $db->quote(self::STATUS_CLAIMED)
-            . ' AND ' . $db->quoteName('claimed_at') . ' <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . max(0, $staleSeconds) . ' SECOND))';
     }
 
     /**

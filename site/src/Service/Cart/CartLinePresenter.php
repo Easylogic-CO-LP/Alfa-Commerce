@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\CartItemDisplayEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -67,7 +68,10 @@ final class CartLinePresenter
             $fieldsById[(int) $f->id] = $f;
         }
 
-        $cartItem->surfaces = [];
+        // The line's surfaces are collected here and handed to the line as a read-only map after each field (2.2.1): a
+        // plugin holding the line reads what the others contributed and cannot change it.
+        $slots = [];
+        $cartItem->surfaces = new SurfaceMap();
 
         foreach ($cartItem->fields as $summary) {
             $fieldId = (int) $summary->field_id;
@@ -105,9 +109,11 @@ final class CartLinePresenter
                         'config' => $field->config ?? new Registry($field->params_decoded ?? []),
                     ]);
 
-                    $plugins->dispatchTo($plugin, $event);
-
-                    $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
+                    // Isolated (2.2.1): a plugin whose handler throws leaves the line its plain summary below,
+                    // logged once, and the cart renders.
+                    if ($plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . $fieldId . ') on a cart line')) {
+                        $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
+                    }
                 }
             }
 
@@ -130,8 +136,10 @@ final class CartLinePresenter
                 $descriptor['showon'] = '';
                 $descriptor['fieldId'] = $fieldId;
                 $descriptor['fieldName'] = $field !== null ? (string) ($field->field_name ?? '') : null;
-                $cartItem->surfaces[$slot][] = $descriptor;
+                $slots[$slot][] = $descriptor;
             }
+
+            $cartItem->surfaces = new SurfaceMap($slots);
         }
 
         // Feature plugins (onCartItemDisplay, 2.2.0): one event for the line, each
@@ -143,6 +151,7 @@ final class CartLinePresenter
             'item' => $item,
         ]);
         $plugins->dispatchToEachIsolatedFor($this->subject, $plugins->admitted($this->subject->customer(), 'alfa'), $displayEvent);
-        $displayEvent->harvestInto($cartItem->surfaces);
+        $displayEvent->harvestInto($slots);
+        $cartItem->surfaces = new SurfaceMap($slots);
     }
 }

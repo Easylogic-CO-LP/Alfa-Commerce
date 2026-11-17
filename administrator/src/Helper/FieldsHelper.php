@@ -58,6 +58,15 @@ class FieldsHelper
     public const FIELDS_KEY = 'alfa_form_fields';
 
     /**
+     * The key of a form field's params that holds its Layout setting, the layout its stored value is shown with
+     * ({@see self::render()}); the field form saves it there with the plugin's own params (2.2.1). Never `layout`:
+     * the checkout form gives that param to Joomla's field as the layout of its input.
+     *
+     * @since  2.2.1
+     */
+    public const DISPLAY_LAYOUT = 'display_layout';
+
+    /**
      * Bucket for the billing (invoice) copy of the checkout fields. Same
      * field names as FIELDS_KEY: the bucket carries the ROLE, the field
      * name carries the #__alfa_user_info column (rows stay type-neutral).
@@ -532,7 +541,7 @@ class FieldsHelper
      * Tmpls start with `extract($displayData);` and see $context, $field,
      * $fieldParams, $item, plus anything else the caller passed in.
      *
-     * Layout resolution (from $field->layout):
+     * Layout resolution (from the field's Layout setting, its params' {@see self::DISPLAY_LAYOUT}):
      *   ""              -> active-template override then plugin's default.php
      *   "_:name"        -> plugin's tmpl/name.php only
      *   "tpl:name"      -> templates/tpl/html/plg_alfa-form-fields_<type>/name.php
@@ -547,11 +556,6 @@ class FieldsHelper
             return '';
         }
 
-        $path = self::resolveLayoutPath($field, $type);
-        if ($path === null) {
-            return '';
-        }
-
         // Resolve inline {lang: value} maps (value/JSON-mode MultilingualText,
         // e.g. choice option labels) to the current language for display.
         $resolvedParams = MultilingualHelper::collapseToCurrent(
@@ -559,6 +563,11 @@ class FieldsHelper
                 ? (json_decode((string) $field->params, true) ?: [])
                 : (array) ($field->params ?? []),
         );
+
+        $path = self::resolveLayoutPath((string) ($resolvedParams[self::DISPLAY_LAYOUT] ?? ''), $type);
+        if ($path === null) {
+            return '';
+        }
 
         $fieldParams = new \Joomla\Registry\Registry();
         $fieldParams->loadArray(is_array($resolvedParams) ? $resolvedParams : []);
@@ -577,11 +586,14 @@ class FieldsHelper
     /**
      * Resolve the filesystem path for a field's chosen layout.
      * Returns null if neither the chosen file nor the plugin default exists.
+     *
+     * @param string $layoutValue The field's Layout setting ({@see self::DISPLAY_LAYOUT}): "", "_:name" or "tpl:name".
+     * @param string $type The field's type, its plugin's element.
+     *
      * @since  1.0.0
      */
-    private static function resolveLayoutPath($field, string $type): ?string
+    private static function resolveLayoutPath(string $layoutValue, string $type): ?string
     {
-        $layoutValue = (string) ($field->layout ?? '');
         $template = null;
         $name = 'default';
 

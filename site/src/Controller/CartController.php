@@ -24,6 +24,7 @@ use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
 use Alfa\Component\Alfa\Site\Service\CartRules\CouponOutcome;
 use Alfa\Component\Alfa\Site\Service\Checkout\OrderPlacement;
+use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Exception;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
@@ -710,8 +711,9 @@ class CartController extends FormController implements UserFactoryAwareInterface
                         );
                     }
 
-                    // Store order id in the session for the success page.
-                    $this->app->setUserState('com_alfa.order_id', $orderId);
+                    // The session's order, marked as placed here: the process and completed pages show this
+                    // session the order it placed, never one a request merely named (2.2.1, SessionOrder).
+                    SessionOrder::placed($this->app, $orderId);
 
                     // Clear cart-related session data.
                     $this->app->setUserState('com_alfa.cart.userinfo_pick', null);

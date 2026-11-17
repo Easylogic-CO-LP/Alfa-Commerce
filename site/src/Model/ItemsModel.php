@@ -19,6 +19,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListPrepareEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemsListPrepareEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ValueFacetGroupsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
@@ -35,6 +36,7 @@ use Alfa\Component\Alfa\Administrator\Service\Projection\ItemFieldValueProjectio
 use Alfa\Component\Alfa\Administrator\Service\Search\QueryNormalizer;
 use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
 use Alfa\Component\Alfa\Administrator\Service\Search\ResultSetContext;
+use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEntity;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchIntent;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchProviderFactory;
@@ -1046,7 +1048,8 @@ class ItemsModel extends UrlListModel
         $context = $this->countingForStart ? null : ($this->resultSetContext ?? ($this->getState('search.rendered')
             ? new ResultSetContext(order: $this->shownOrder(), offset: $this->renderedOffset())
             : null));
-        $engine = (string) ComponentHelper::getParams('com_alfa')->get('search_engine', 'database');
+        // The configured engine's key from its one reader: '' for the database search (2.2.1).
+        $engine = SearchEngineRegistry::shared()->configuredKey();
         $this->resultAttribution = $context === null ? null : new ResultAttribution(order: $context->order, engine: $engine);
 
         // Make the ShowOn-pruned selection effective before anything reads
@@ -1619,6 +1622,12 @@ class ItemsModel extends UrlListModel
                     ? ($viewedCategoryLayouts['card'] ?? '')
                     : (($categoriesMapping[$item->id_category_default ?? 0]['layouts'] ?? [])['card'] ?? ''));
 
+            // Its card's images and its slider's count, from the same levels (2.2.1); '' leaves them to the view.
+            $this->stampCardImages(
+                item: $item,
+                categoryLayouts: $this->categoryId ? $viewedCategoryLayouts : ($categoriesMapping[$item->id_category_default ?? 0]['layouts'] ?? []),
+            );
+
             if ($item->stock_action == -1) {
                 $item->stock_action = $settings->get('stock_action');
                 $item->stock_low_message = $settings->get('stock_low_message');
@@ -1735,6 +1744,28 @@ class ItemsModel extends UrlListModel
         $this->dispatchItemsListPrepare($items);
 
         return $items;
+    }
+
+    /**
+     * Stamp ONE row's choice of its card's images (2.2.1), from the entity levels the card's own choice comes from: the
+     * item's own Layouts, else the category's (the viewed category on a category page, the row's default category
+     * elsewhere). cardImagesLayout is the "card_images" slot's sub-template and cardImagesCount how many images its
+     * slider shows ('0' every one); '' for either leaves it to the menu item and the Options, which the view applies.
+     *
+     * @param object $item The row, its layouts decoded.
+     * @param array<string, mixed> $categoryLayouts The deciding category's layouts, decoded.
+     *
+     * @since  2.2.1
+     */
+    private function stampCardImages(object $item, array $categoryLayouts): void
+    {
+        $own = (array) ($item->layouts ?? []);
+        $level = static fn (array $layouts, string $key): string => trim((string) ($layouts[$key] ?? ''));
+
+        $item->cardImagesLayout = $level($own, 'card_images') ?: $level($categoryLayouts, 'card_images');
+        $item->cardImagesCount = $level($own, 'card_images_count') !== ''
+            ? $level($own, 'card_images_count')
+            : $level($categoryLayouts, 'card_images_count');
     }
 
     /**
@@ -1875,7 +1906,7 @@ class ItemsModel extends UrlListModel
         ];
 
         $item->cartChildren = [];
-        $item->surfaces = [];
+        $item->surfaces = new SurfaceMap();
     }
 
     /**
@@ -2124,6 +2155,7 @@ class ItemsModel extends UrlListModel
         // is the viewed category on category pages and the item's default one on
         // mixed listings, so the swapped card matches its page exactly.
         $item->cardLayout = ($item->layouts['card'] ?? '') ?: ($item->category_layouts['card'] ?? '');
+        $this->stampCardImages(item: $item, categoryLayouts: $item->category_layouts);
 
         // Stock-action defaults: mirror the list loop.
         $settings = ComponentHelper::getParams('com_alfa');
@@ -2179,7 +2211,10 @@ class ItemsModel extends UrlListModel
      * can make cross-item adjustments. Runs AFTER the per-item loop, so every
      * item already carries its fields/options/combinations and resolved cart,
      * including the core's Choose options decision, which a plugin here may
-     * still overwrite (the whole-page pass has the last word).
+     * still overwrite (the whole-page pass has the last word on the cart). The
+     * cards' surfaces are not the pass's to change (2.2.1): each card is handed
+     * its surfaces again after it, as core collected them, so a listener that
+     * replaced or removed a card's map changes nothing on the page.
      *
      * @param object[] $items The hydrated page of items.
      *
@@ -2188,6 +2223,13 @@ class ItemsModel extends UrlListModel
      */
     protected function dispatchItemsListPrepare(array $items): void
     {
+        // The surfaces each card was handed, kept before the pass (null: the card was drawn without them).
+        $handed = [];
+
+        foreach ($items as $key => $item) {
+            $handed[$key] = isset($item->surfaces) ? (array) $item->surfaces : null;
+        }
+
         // Mode A, a display phase, isolated (2.2.0): the item-fields group imported once through
         // Joomla's own import (so each plugin is registered once per request), the page raised
         // once on the shared dispatcher; a listener that throws is logged with its name and the
@@ -2195,6 +2237,16 @@ class ItemsModel extends UrlListModel
         $plugins = AlfaPluginHelper::get();
         $plugins->importGroup('alfa-item-fields');
         $plugins->dispatchIsolated(new ItemsListPrepareEvent('onItemsListPrepare', ['subject' => $items]));
+
+        foreach ($items as $key => $item) {
+            if ($handed[$key] === null) {
+                unset($item->surfaces);
+
+                continue;
+            }
+
+            $item->surfaces = new SurfaceMap($handed[$key]);
+        }
     }
 
     /**
@@ -2221,6 +2273,11 @@ class ItemsModel extends UrlListModel
         $plugins = AlfaPluginHelper::get();
         $drawnFieldIds = [];
         $listed = array_flip($item->listingFieldIds);
+
+        // The card's surfaces (emptied by setDefaultCart() for this draw) are collected here and handed to the item as a
+        // read-only map after each contribution (2.2.1): a plugin holding the item reads what the others contributed and
+        // cannot change it.
+        $slots = [];
 
         // Card initial visibility painted server-side (no FOUC), same rule + state as JS.
         $showonBag = StateBagBuilder::fromItem($item);
@@ -2256,7 +2313,7 @@ class ItemsModel extends UrlListModel
                 // Aggregate this field's card surfaces onto the page slot map
                 // (insertion order). Legacy setLayout() bridges to BuyForm.
                 Surfaces::appendTo(
-                    $item->surfaces,
+                    $slots,
                     $event,
                     'alfa-item-fields',
                     (string) $field->type,
@@ -2264,6 +2321,7 @@ class ItemsModel extends UrlListModel
                     Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                     field: $field,
                 );
+                $item->surfaces = new SurfaceMap($slots);
 
                 // Drawn = a buy-form input the card posts; a read-only rendering
                 // (text, spec) leaves the field to the product page.
@@ -2303,6 +2361,10 @@ class ItemsModel extends UrlListModel
                 );
             }
         }
+
+        // Handed once more after the last field (2.2.1): a plugin that changed the card's surfaces and then failed has
+        // its field caught above, and its change must not outlive it.
+        $item->surfaces = new SurfaceMap($slots);
 
         return $drawnFieldIds;
     }

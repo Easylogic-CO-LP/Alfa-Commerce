@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\View\Item;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
@@ -57,6 +58,12 @@ class HtmlView extends BaseHtmlView
 
     /** @var string Resolved sub-template for the "images" slot */
     protected $imagesTpl = 'images';
+
+    /**
+     * @var int How many columns the images grid (default_images-grid.php) has on a wide screen, 2 to 4 (2.2.1): the
+     *          item's, else its default category's, else the menu item's or the Options'
+     */
+    protected int $imagesGridColumns = 2;
 
     /** @var string Resolved sub-template for the "manufacturers" slot */
     protected $manufacturersTpl = 'manufacturers';
@@ -123,6 +130,8 @@ class HtmlView extends BaseHtmlView
             slot: 'images',
             layout: $this->getLayout(),
         );
+        // The grid's columns (2.2.1), through the same chain; the grid draws them as a class, 2 to 4.
+        $this->imagesGridColumns = min(4, max(2, (int) (($own['images_grid_columns'] ?? '') ?: ($cat['images_grid_columns'] ?? '') ?: $this->params->get('item_images_grid_columns', 2))));
         $this->manufacturersTpl = SlotResolver::resolve(
             value: ($own['manufacturers'] ?? '') ?: ($cat['manufacturers'] ?? '') ?: (string) $this->params->get('item_manufacturers_layout', ''),
             view: 'item',
@@ -148,7 +157,9 @@ class HtmlView extends BaseHtmlView
         // (their hooks can issue a redirect, so they stay in the view layer). What
         // they produce is aggregated into the SAME $item->surfaces container as the
         // item fields: one source-agnostic render model, insertion order preserved.
-        $this->item->surfaces ??= [];
+        // Collected here and handed to the item as a read-only map after each method
+        // (2.2.1), as the model hands the fields' surfaces.
+        $slots = (array) ($this->item->surfaces ?? []);
 
         foreach ($this->item->payment_methods as &$payment_method) {
             if (!$payment_method->show_on_product) {
@@ -174,12 +185,13 @@ class HtmlView extends BaseHtmlView
             }
 
             Surfaces::appendTo(
-                target: $this->item->surfaces,
+                target: $slots,
                 event: $paymentEvent,
                 ownerGroup: 'alfa-payments',
                 ownerName: $payment_method->type,
                 defaultSlot: ItemSurface::PaymentMethods->value,
             );
+            $this->item->surfaces = new SurfaceMap($slots);
         }
 
         foreach ($this->item->shipment_methods as &$shipment_method) {
@@ -205,12 +217,13 @@ class HtmlView extends BaseHtmlView
             }
 
             Surfaces::appendTo(
-                target: $this->item->surfaces,
+                target: $slots,
                 event: $shipment_event,
                 ownerGroup: 'alfa-shipments',
                 ownerName: $shipment_method->type,
                 defaultSlot: ItemSurface::ShipmentMethods->value,
             );
+            $this->item->surfaces = new SurfaceMap($slots);
         }
 
         // ITEM FIELDS selectors + cart slot are harvested by the model

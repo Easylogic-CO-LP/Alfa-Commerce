@@ -241,13 +241,14 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * Columns no code reads (2.2.1): written only as empty or never at all. The installation drops each one a table
-     * still has ({@see self::dropLeftoverColumns()}).
+     * still has ({@see self::dropLeftoverColumns()}). The orders' invoice_number was never written either: the order
+     * number is the order's id (EmailService::orderNumber()).
      *
      * @var array<string, string[]>
      * @since 2.2.1
      */
     private const LEFTOVER_COLUMNS = [
-        '#__alfa_orders' => ['id_coupon', 'code_coupon', 'invoice_date'],
+        '#__alfa_orders' => ['id_coupon', 'code_coupon', 'invoice_date', 'invoice_number'],
         '#__alfa_order_items' => ['id_order_invoice'],
         '#__alfa_order_cart_rule' => ['id_order_invoice'],
         '#__alfa_order_shipments' => ['id_order_invoice'],
@@ -878,7 +879,9 @@ class com_alfaInstallerScript extends InstallerScript
      * The tables' own columns are read first, from the database's catalogue, so the step drops nothing twice and
      * changes nothing where the columns are already gone: a fresh install, an update run again after it stopped, or
      * tables kept by an uninstall and connected again. One statement per table drops all of its leftover columns at
-     * once. No data a shop uses is in them: the order columns were written only empty, the status texts were never
+     * once; a key made only of them (the orders' idx_invoice_number) is dropped before, in a statement of its own, so
+     * that the column drop can stay a change of the table's definition alone where the server makes it one. No data a
+     * shop uses is in them: the order columns were written only empty or not at all, the status texts were never
      * read. A table that refuses is named in a warning and the maintenance log, keeps its columns and the shop works;
      * the next installation drops them. It never fails the installation.
      *
@@ -921,9 +924,23 @@ class com_alfaInstallerScript extends InstallerScript
             )->loadAssocList() ?: [] as $row) {
                 $present[(string) $row['TABLE_NAME']][(string) $row['COLUMN_NAME']] = true;
             }
+
+            // The tables' keys other than the primary one, each with its columns.
+            $keys = [];
+
+            foreach ($db->setQuery(
+                'SELECT ' . $db->quoteName('TABLE_NAME') . ', ' . $db->quoteName('INDEX_NAME') . ', ' . $db->quoteName('COLUMN_NAME')
+                . ' FROM ' . $db->quoteName('information_schema.STATISTICS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' IN (' . implode(', ', array_map([$db, 'quote'], array_keys($wanted))) . ')'
+                . ' AND ' . $db->quoteName('INDEX_NAME') . ' <> ' . $db->quote('PRIMARY'),
+            )->loadAssocList() ?: [] as $row) {
+                $keys[(string) $row['TABLE_NAME']][(string) $row['INDEX_NAME']][] = (string) $row['COLUMN_NAME'];
+            }
         } catch (\Throwable $e) {
             $failed[] = 'information_schema (' . $e->getMessage() . ')';
             $present = [];
+            $keys = [];
         }
 
         foreach ($wanted as $table => $columns) {
@@ -933,7 +950,16 @@ class com_alfaInstallerScript extends InstallerScript
                 continue;
             }
 
+            $dropKeys = array_keys(array_filter(
+                $keys[$table] ?? [],
+                static fn (array $keyColumns): bool => array_diff($keyColumns, $drop) === [],
+            ));
+
             try {
+                foreach ($dropKeys as $key) {
+                    $db->setQuery('ALTER TABLE ' . $db->quoteName($table) . ' DROP KEY ' . $db->quoteName((string) $key))->execute();
+                }
+
                 $db->setQuery(
                     'ALTER TABLE ' . $db->quoteName($table) . ' '
                     . implode(', ', array_map(static fn (string $column): string => 'DROP COLUMN ' . $db->quoteName($column), $drop)),
@@ -1410,7 +1436,7 @@ class com_alfaInstallerScript extends InstallerScript
     {
         $this->registerComponentNamespace();
         $this->installLibraries($parent);
-        $this->installPlugins($parent);
+        $this->installPlugins($parent, 'install');
         $this->installModules($parent);
     }
 
@@ -1429,7 +1455,7 @@ class com_alfaInstallerScript extends InstallerScript
     {
         $this->registerComponentNamespace();
         $this->installLibraries($parent);
-        $this->installPlugins($parent);
+        $this->installPlugins($parent, 'update');
         $this->installModules($parent);
     }
 
@@ -3636,7 +3662,20 @@ class com_alfaInstallerScript extends InstallerScript
 
     // Plugin helpers
 
-    private function installPlugins($parent): void
+    /**
+     * Install or update every plugin the package manifest lists, through Joomla's installer. A plugin the site did not
+     * have before this run is enabled once its install succeeded; a plugin the site already had keeps the state it had,
+     * so one staff disabled stays disabled (2.2.1: up to 2.2.0 every update enabled each bundled plugin again).
+     * A plugin whose installer failed is never enabled. On an update, the bundled plugins kept disabled are named once
+     * on the installation page and in the maintenance log.
+     *
+     * @param   object  $parent  The installer adapter providing the package manifest
+     * @param   string  $route   'install' or 'update'
+     *
+     * @return  void
+     * @since  1.0.0
+     */
+    private function installPlugins($parent, string $route): void
     {
         $installationFolder = $parent->getParent()->getPath('source');
         $app                = Factory::getApplication();
@@ -3650,14 +3689,17 @@ class com_alfaInstallerScript extends InstallerScript
             return;
         }
 
-        $db    = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
+        $db   = Factory::getContainer()->get('DatabaseDriver');
+        $kept = [];
 
         foreach ($plugins->children() as $plugin)
         {
             $pluginName  = (string) $plugin['plugin'];
             $pluginGroup = (string) $plugin['group'];
             $path        = $installationFolder . '/plugins/' . $pluginGroup . '/' . $pluginName;
+
+            // Whether the site had the plugin before this run, and its state then: null when it had none.
+            $stored = $this->storedPluginState($pluginGroup, $pluginName);
 
             $installer = new Installer();
             $installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
@@ -3673,19 +3715,72 @@ class com_alfaInstallerScript extends InstallerScript
                 $result ? 'message' : 'error'
             );
 
-            $query
-                ->clear()
-                ->update($db->quoteName('#__extensions'))
-                ->set('enabled = 1')
-                ->where([
-                    'type LIKE '    . $db->quote('plugin'),
-                    'element LIKE ' . $db->quote($pluginName),
-                    'folder LIKE '  . $db->quote($pluginGroup),
-                ]);
+            if (!$result)
+            {
+                continue;
+            }
 
-            $db->setQuery($query);
-            $db->execute();
+            if ($stored === null)
+            {
+                $query = $db->getQuery(true)
+                    ->update($db->quoteName('#__extensions'))
+                    ->set($db->quoteName('enabled') . ' = 1')
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                    ->where($db->quoteName('element') . ' = :element')
+                    ->where($db->quoteName('folder') . ' = :folder')
+                    ->bind(':element', $pluginName)
+                    ->bind(':folder', $pluginGroup);
+
+                $db->setQuery($query)->execute();
+            }
+            elseif ($stored === 0)
+            {
+                $kept[] = $pluginGroup . '/' . $pluginName;
+            }
         }
+
+        if ($route !== 'update' || $kept === [])
+        {
+            return;
+        }
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_PLUGINS_KEPT_DISABLED',
+            fallback: 'Alfa Commerce %1$s kept these plugins of its package disabled, as they were before the update: %2$s.'
+                . ' Up to 2.2.0 an update enabled them again. Enable one in System > Manage > Plugins if the shop needs it.',
+            values:   [$this->packageVersion, implode(', ', $kept)],
+        ), 'notice');
+        self::maintenanceLog(
+            line:     sprintf('Update to %s: plugins of the package kept disabled, as they were: %s.', $this->packageVersion, implode(', ', $kept)),
+            priority: \Joomla\CMS\Log\Log::INFO,
+        );
+    }
+
+    /**
+     * The state the site holds for a plugin before the installer runs: 1 enabled, 0 disabled, null when the site has
+     * no such plugin.
+     *
+     * @param   string  $group    The plugin group.
+     * @param   string  $element  The plugin element.
+     *
+     * @return  int|null
+     * @since  2.2.1
+     */
+    private function storedPluginState(string $group, string $element): ?int
+    {
+        $db    = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select($db->quoteName('enabled'))
+            ->from($db->quoteName('#__extensions'))
+            ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+            ->where($db->quoteName('element') . ' = :element')
+            ->where($db->quoteName('folder') . ' = :folder')
+            ->bind(':element', $element)
+            ->bind(':folder', $group);
+
+        $state = $db->setQuery($query)->loadResult();
+
+        return $state === null ? null : (int) $state;
     }
 
     /**

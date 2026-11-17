@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
+use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
@@ -244,12 +245,22 @@ class HtmlView extends BaseHtmlView
         }
 
         if ($this->_layout == 'default_order_process') {
-            $orderId = $app->getUserState('com_alfa.order_id');
+            $orderId = SessionOrder::id($app);
 
-            if ($orderId == null) {
+            if ($orderId <= 0) {
                 $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_ENDED'), 'message');
                 // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
                 $app->redirect(Uri::root());
+            }
+
+            // ONLY AN ORDER THIS SESSION MAY SHOW (2.2.1): placed here, or a return a gateway authenticated. Any other
+            // id is one a request named, and the page would ask that order's gateway for a payment page; refused
+            // before the order is read, with nothing of it shown.
+            if (!SessionOrder::isEntitled($app, $orderId)) {
+                SessionOrder::refuse($app, $orderId, 'process');
+                $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
+
+                return;
             }
 
             $ordersModel = Factory::getApplication()->bootComponent('com_alfa')
@@ -486,7 +497,9 @@ class HtmlView extends BaseHtmlView
 
     /**
      * The arrival address: the session's order, cleared once, then 303 to its keyed address. The query a gateway added
-     * to the arrival address (a result flag its completion view reads) goes along, so no gateway changes.
+     * to the arrival address (a result flag its completion view reads) goes along, so no gateway changes. The order
+     * must be one this session placed or a gateway authenticated a return for (2.2.1): any other is refused, and the
+     * visitor goes to the cart with the neutral message.
      *
      * @param string|null $tpl Template name.
      *
@@ -496,7 +509,7 @@ class HtmlView extends BaseHtmlView
     private function arriveAtCompletedOrder(?string $tpl): void
     {
         $app = $this->app;
-        $orderId = (int) $app->getUserState('com_alfa.order_id');
+        $orderId = SessionOrder::id($app);
 
         if ($orderId <= 0) {
             $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_ENDED'), 'message');
@@ -506,10 +519,19 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
+        // ONLY AN ORDER THIS SESSION MAY SHOW (2.2.1): placed here, or a return a gateway authenticated. Any other id
+        // is one a request named, and its keyed address would open that order's page to whoever sent it.
+        if (!SessionOrder::isEntitled($app, $orderId)) {
+            SessionOrder::refuse($app, $orderId, 'completed');
+            $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
+
+            return;
+        }
+
         // Every reader of the session's order id has run by now (the gateway's return through PaymentController,
         // another gateway from its own payload, retry links carrying the id in their address). Cleared here, once,
-        // so a stale id never re-enters the process page.
-        $app->setUserState('com_alfa.order_id', null);
+        // with its mark, so a stale id never re-enters the process page.
+        SessionOrder::clear($app);
 
         $key = $this->getModel()->getCompletedOrderKey(id: $orderId);
 

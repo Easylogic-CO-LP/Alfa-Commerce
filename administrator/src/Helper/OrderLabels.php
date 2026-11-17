@@ -132,6 +132,7 @@ final class OrderLabels
         'refund_identified' => 'COM_ALFA_ORDER_HISTORY_ACTION_REFUND_IDENTIFIED',
         'refund_beyond_decision' => 'COM_ALFA_ORDER_HISTORY_ACTION_REFUND_BEYOND_DECISION',
         'refund_unbooked_reported' => 'COM_ALFA_ORDER_HISTORY_ACTION_REFUND_UNBOOKED_REPORTED',
+        'refund_attempt_failed' => 'COM_ALFA_ORDER_HISTORY_ACTION_REFUND_ATTEMPT_FAILED',
         'tracking_updated' => 'COM_ALFA_ORDER_HISTORY_ACTION_TRACKING_UPDATED',
         'delivered' => 'COM_ALFA_STATUS_DELIVERED',
         'issued' => 'COM_ALFA_DOCUMENT_STATUS_ISSUED',
