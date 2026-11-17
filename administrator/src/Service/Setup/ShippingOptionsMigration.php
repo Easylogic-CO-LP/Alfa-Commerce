@@ -160,7 +160,7 @@ final class ShippingOptionsMigration
             // The record that the move ran, written last: the Options lose both keys only with everything above.
             ComponentOptions::write(params: $remaining, db: $db);
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             ComponentOptions::forgetCachedRecords();

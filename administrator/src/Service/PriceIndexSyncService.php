@@ -30,6 +30,7 @@ use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
+use LogicException;
 use RuntimeException;
 use stdClass;
 use Throwable;
@@ -250,6 +251,23 @@ class PriceIndexSyncService
     {
         $this->db = Factory::getContainer()->get('DatabaseDriver');
         $this->calculator = $calculator ?? new PriceCalculator();
+    }
+
+    /**
+     * The connection as the driver whose transaction levels TransactionState keeps: every connection Joomla's
+     * container hands out is one, and a level this class opens is closed through it.
+     *
+     * @throws LogicException When the connection keeps no transaction levels.
+     *
+     * @since  2.2.2
+     */
+    private function transactional(): DatabaseDriver
+    {
+        if (!$this->db instanceof DatabaseDriver) {
+            throw new LogicException('The price index needs a database driver that keeps transaction levels.');
+        }
+
+        return $this->db;
     }
 
     // Public API
@@ -1237,7 +1255,7 @@ class PriceIndexSyncService
             $chunkWritten = $this->writeChunk(chunk: $chunk, combinations: $combinations, globalEdges: $globalEdges);
 
             if ($chunkWritten !== null) {
-                $this->db->transactionCommit(true);
+                TransactionState::commitLevel(db: $this->transactional());
                 // Committed: what the chunk changed joins the announcement (2.2.0).
                 $this->keepChunkChanges();
 
@@ -1251,7 +1269,7 @@ class PriceIndexSyncService
         }
 
         $this->dropChunkChanges();
-        $this->db->transactionRollback(true);
+        TransactionState::rollBackLevel(db: $this->transactional());
 
         return null;
     }
@@ -2334,7 +2352,7 @@ class PriceIndexSyncService
             $this->db->setQuery(
                 'DELETE FROM ' . $this->db->quoteName('#__alfa_items_price_index') . ' WHERE ' . $this->db->quoteName('group_set_id') . ' IN (' . $list . ')',
             )->execute();
-            $this->db->transactionCommit(true);
+            TransactionState::commitLevel(db: $this->transactional());
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $this->db, failure: $e);
 
@@ -2405,7 +2423,7 @@ class PriceIndexSyncService
 
             if ($written === null && $this->lastFailure !== '') {
                 $this->lastFailure = '';
-                $this->db->transactionRollback(true);
+                TransactionState::rollBackLevel(db: $this->transactional());
                 $this->db->transactionStart(true);
                 $written = $holdSet() ? 0 : null;
 
@@ -2423,7 +2441,7 @@ class PriceIndexSyncService
 
                     if ($one === null) {
                         $this->dropChunkChanges();
-                        $this->db->transactionRollback(true);
+                        TransactionState::rollBackLevel(db: $this->transactional());
                         $left[] = ['set' => $setId, 'product' => $itemId, 'message' => $this->lastFailure];
                         $this->logWarning(message: "Product {$itemId} could not be priced for set {$setId} and is left out of it: " . $this->lastFailure);
                         $this->lastFailure = '';
@@ -2431,7 +2449,7 @@ class PriceIndexSyncService
                         continue;
                     }
 
-                    $this->db->transactionCommit(true);
+                    TransactionState::commitLevel(db: $this->transactional());
                     $written += $one;
                     $kept = ['changes' => array_merge($kept['changes'], $this->chunkChanges['changes']), 'sets' => array_values(array_unique(array_merge($kept['sets'], $this->chunkChanges['sets'])))];
                 }
@@ -2439,7 +2457,7 @@ class PriceIndexSyncService
 
             if ($written === null) {
                 $this->dropChunkChanges();
-                $this->db->transactionRollback(true);
+                TransactionState::rollBackLevel(db: $this->transactional());
 
                 return null;
             }
@@ -2450,7 +2468,7 @@ class PriceIndexSyncService
                     . $this->db->quoteName('left_out') . ', ' . $this->db->quote('') . '), ' . $this->db->quote(implode(',', array_column($left, 'product'))) . ')')
                 . ' WHERE ' . $this->db->quoteName('id') . ' = ' . $setId,
             )->execute();
-            $this->db->transactionCommit(true);
+            TransactionState::commitLevel(db: $this->transactional());
             $this->chunkChanges = $kept;
             $this->keepChunkChanges();
             array_push($leftOut, ...$left);
