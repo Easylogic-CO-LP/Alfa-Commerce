@@ -77,6 +77,7 @@
             <item>A list of an extension's own screen in the back office that cannot be read shows an empty list and says so in plain words, the reason in com_alfa_panel.php, instead of PHP warnings or an error.</item>
             <item>An installed search engine plugin that fails while giving its name or saying whether it is ready no longer stops the Options of Alfa Commerce from opening: it is listed as not ready, and the storefront searches the live catalogue.</item>
             <item>The cart module reads nothing for a visitor who cannot have a cart yet (no account and no cart key in the browser): no database query for it on any page, for first-time visitors and crawlers alike, where it ran fifteen.</item>
+            <item>A long run of the background work (the task runner started from the command line or a scheduler, a console command, a queue) reads the time again each time it needs it, instead of keeping the time it started at: a download granted later in the run is dated by its own grant and expires counted from it; a notification that expired during the run is no longer read as standing or kept by the clean-up, and one archived during the run expires counted from its own archiving; the product list's prices rebuilt during the run no longer count price, discount and tax dates already passed as still to come, which could leave a later start or end of a promotion out of the list's prices; and a stock movement recorded late in the run is no longer reported as stranded at once.</item>
         </fix>
 
         <addition>

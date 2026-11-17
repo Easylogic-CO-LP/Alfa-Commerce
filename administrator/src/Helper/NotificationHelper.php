@@ -18,8 +18,10 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Task\NoticeTask;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use DateInterval;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
@@ -230,7 +232,7 @@ class NotificationHelper
             // A notice staff closed is over: the next refusal is the first of a new one.
             $open = $row !== null && $row->dismissed === null;
             $previous = $open ? (NotificationText::arguments(row: $row)['message'] ?? []) : [];
-            $now = Factory::getDate('now', 'UTC')->toSql();
+            $now = self::now();
             $count = (int) ($previous[1] ?? 0) + 1;
             // The first time as stored: a time parameter ({dt}), or the time itself in a notice raised before 2.2.0's UX
             // round.
@@ -546,7 +548,7 @@ class NotificationHelper
     public static function markRead(int $id, int $userId = 0): void
     {
         $db = self::db();
-        $now = Factory::getDate()->toSql();
+        $now = self::now();
         $query = $db->getQuery(true)
             ->update($db->quoteName(self::TABLE))
             ->set($db->quoteName('readed') . ' = :now')
@@ -584,7 +586,7 @@ class NotificationHelper
             ->bind(':exp', $exp, ParameterType::STRING)
             ->bind(':id', $id, ParameterType::INTEGER);
 
-        $now = Factory::getDate()->toSql();
+        $now = self::now();
         $exp = self::historyExpiry(historyDays: $historyDays);
         $query->where(self::unexpired(now: $now));
 
@@ -644,7 +646,7 @@ class NotificationHelper
             return;
         }
 
-        $now = Factory::getDate()->toSql();
+        $now = self::now();
         $exp = self::historyExpiry(historyDays: $historyDays);
         $query = $db->getQuery(true)
             ->update($db->quoteName(self::TABLE))
@@ -736,7 +738,7 @@ class NotificationHelper
             'SELECT 0 AS ' . $db->quoteName('task') . ', ' . $db->quoteName('dedup_key') . ' AS ' . $db->quoteName('k')
             . ', ' . $db->quoteName('modified') . ' AS ' . $db->quoteName('at') . ', NULL AS ' . $db->quoteName('payload')
             . ' FROM ' . $db->quoteName(self::TABLE)
-            . ' WHERE ' . $db->quoteName('dedup_key') . ' LIKE ' . $db->quote($pattern) . ' AND ' . self::unexpired(now: Factory::getDate()->toSql())
+            . ' WHERE ' . $db->quoteName('dedup_key') . ' LIKE ' . $db->quote($pattern) . ' AND ' . self::unexpired(now: self::now())
             . ' UNION ALL ' . self::owedSelect(patterns: [Tasks::noticePattern(key: $prefix, prefix: true)]),
         )->loadAssocList() ?: [];
         $found = [];
@@ -826,7 +828,7 @@ class NotificationHelper
             . ', ' . $db->quoteName('modified') . ' AS ' . $db->quoteName('at') . ', NULL AS ' . $db->quoteName('payload')
             . ' FROM ' . $db->quoteName(self::TABLE)
             . ' WHERE ' . $db->quoteName('dedup_key') . ' IN (' . implode(', ', array_map(static fn (string $key): string => $db->quote($key), array_map('strval', array_keys($last)))) . ')'
-            . ' AND ' . self::unexpired(now: Factory::getDate()->toSql())
+            . ' AND ' . self::unexpired(now: self::now())
             . ' UNION ALL ' . self::owedSelect(patterns: array_map(static fn (string $key): string => Tasks::noticePattern(key: $key), array_map('strval', array_keys($last))))
             . ' AND ' . $db->quoteName('id') . ' < ' . max($last),
         )->loadAssocList() ?: [];
@@ -996,7 +998,7 @@ class NotificationHelper
             'SELECT 0 AS ' . $db->quoteName('task') . ', (' . $db->quoteName('dismissed') . ' IS NULL) AS ' . $db->quoteName('open')
             . ', ' . $db->quoteName('modified') . ' AS ' . $db->quoteName('at') . ', NULL AS ' . $db->quoteName('payload')
             . ' FROM ' . $db->quoteName(self::TABLE)
-            . ' WHERE ' . $db->quoteName('dedup_key') . ' = ' . $db->quote($dedupKey) . ' AND ' . self::unexpired(now: Factory::getDate()->toSql())
+            . ' WHERE ' . $db->quoteName('dedup_key') . ' = ' . $db->quote($dedupKey) . ' AND ' . self::unexpired(now: self::now())
             . ' UNION ALL ' . self::owedSelect(patterns: [Tasks::noticePattern(key: $dedupKey)]),
         )->loadAssocList() ?: [];
         $state = ['exists' => false, 'open' => false];
@@ -1171,7 +1173,7 @@ class NotificationHelper
             ->select('MAX(CASE WHEN ' . $unread . ' THEN ' . $rank . ' END) AS ' . $db->quoteName('worst'))
             ->from($db->quoteName(self::TABLE))
             ->where($db->quoteName('dismissed') . ' IS NULL');
-        $query->where(self::unexpired(now: Factory::getDate()->toSql()));
+        $query->where(self::unexpired(now: self::now()));
 
         if ($pairs !== null) {
             $query->where(self::visibilityCondition(pairs: $pairs));
@@ -1465,7 +1467,7 @@ class NotificationHelper
     public static function purge(): void
     {
         $db = self::db();
-        $now = Factory::getDate()->toSql();
+        $now = self::now();
         $query = $db->getQuery(true)
             ->delete($db->quoteName(self::TABLE))
             ->where($db->quoteName('expires') . ' IS NOT NULL')
@@ -1489,7 +1491,22 @@ class NotificationHelper
         $days = $historyDays
             ?? (int) ComponentHelper::getParams('com_alfa')->get('notifications_history_days', self::DEFAULT_HISTORY_DAYS);
 
-        return Factory::getDate('+' . max(1, $days) . ' days')->toSql();
+        return (new Date('now', 'UTC'))->add(new DateInterval('P' . max(1, $days) . 'D'))->toSql();
+    }
+
+    /**
+     * The clock as it is now, as an SQL datetime in UTC, read on every call. Factory::getDate() keeps the time of its
+     * first call for the whole process, and a task run, a console command or a queue raises, archives, reads and
+     * purges notices long after that: a notice that expired during the run would still read as live, and every archive
+     * would expire counted from the first (2.2.1).
+     *
+     * @return string SQL datetime, UTC.
+     *
+     * @since  2.2.1
+     */
+    private static function now(): string
+    {
+        return (new Date('now', 'UTC'))->toSql();
     }
 
     /**
@@ -1533,7 +1550,7 @@ class NotificationHelper
     private static function liveIdForKey(string $dedupKey): int
     {
         $db = self::db();
-        $now = Factory::getDate()->toSql();
+        $now = self::now();
         $query = $db->getQuery(true)
             ->select($db->quoteName('id'))
             ->select('(' . $db->quoteName('expires') . ' IS NOT NULL AND ' . $db->quoteName('expires') . ' <= :now) AS ' . $db->quoteName('expired'))
@@ -1620,7 +1637,7 @@ class NotificationHelper
      */
     private static function write(int $id, array $data, bool $constant, ?string $raised = null): array
     {
-        $now = Factory::getDate()->toSql();
+        $now = self::now();
 
         if ($id === 0) {
             return self::firstWrite(data: $data, constant: $constant, now: $now, raised: $raised);
