@@ -24,8 +24,10 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -529,10 +531,7 @@ final class SetupHelper
             return ['ok' => false, 'error' => 'COM_ALFA_SETUP_IGNORE_DONE'];
         }
 
-        self::storeIgnored(array_merge(self::ignored(), [$identity]));
-        self::invalidate();
-
-        return ['ok' => true, 'error' => ''];
+        return self::changeIgnored(static fn (array $identities): array => array_merge($identities, [$identity]));
     }
 
     /**
@@ -542,15 +541,15 @@ final class SetupHelper
      * @param string $owner The step's owner, `group.element`.
      * @param string $checkId The step's id.
      *
+     * @return array{ok: bool, error: string} The error is a language key.
      *
      * @since  2.2.2
      */
-    public static function showAgain(string $owner, string $checkId): void
+    public static function showAgain(string $owner, string $checkId): array
     {
         $identity = self::identity(owner: $owner, checkId: $checkId);
 
-        self::storeIgnored(array_values(array_diff(self::ignored(), [$identity])));
-        self::invalidate();
+        return self::changeIgnored(static fn (array $identities): array => array_values(array_diff($identities, [$identity])));
     }
 
     /**
@@ -573,41 +572,61 @@ final class SetupHelper
     }
 
     /**
-     * Store the ignored identities: one `#__alfa_meta` row, removed when the list is empty.
+     * Change the ignored list in one transaction: the row is read locked (SELECT ... FOR UPDATE), so two
+     * administrators who press at once change it one after the other and neither loses the other's choice, then
+     * written again (removed when the list is empty). A row that cannot be read, or holds no list, refuses the change
+     * and writes nothing: a failed read never replaces the list.
      *
-     * @param list<string> $identities The identities.
+     * @param callable $change fn(list<string> $identities): list<string>, the list as it is to be.
      *
+     * @return array{ok: bool, error: string} The error is a language key.
      *
      * @since  2.2.2
      */
-    private static function storeIgnored(array $identities): void
+    private static function changeIgnored(callable $change): array
     {
-        $db = Factory::getContainer()->get(DatabaseInterface::class);
-        $name = self::IGNORED_META;
-        $identities = array_values(array_unique($identities));
-        $delete = $db->getQuery(true)
-            ->delete($db->quoteName('#__alfa_meta'))
-            ->where($db->quoteName('name') . ' = :name')
-            ->bind(':name', $name, ParameterType::STRING);
+        /** @var DatabaseDriver $db */
+        $db = Factory::getContainer()->get(DatabaseDriver::class);
+        $where = $db->quoteName('name') . ' = ' . $db->quote(self::IGNORED_META);
 
-        // One change: the row removed and written again together, so a failure between the two never empties the list.
         $db->transactionStart(true);
 
         try {
-            $db->setQuery($delete)->execute();
+            $read = $db->getQuery(true)
+                ->select($db->quoteName('value'))
+                ->from($db->quoteName('#__alfa_meta'))
+                ->where($where);
+            $stored = $db->setQuery((string) $read . ' FOR UPDATE')->loadResult();
+            $identities = $stored === null ? [] : json_decode((string) $stored, true);
+
+            if (!\is_array($identities)) {
+                throw new RuntimeException('The stored list of ignored setup steps is not a list.');
+            }
+
+            $identities = array_values(array_unique(array_filter(
+                $change(array_values(array_filter($identities, static fn ($value): bool => \is_string($value) && $value !== ''))),
+                static fn ($value): bool => \is_string($value) && $value !== '',
+            )));
+
+            $db->setQuery($db->getQuery(true)->delete($db->quoteName('#__alfa_meta'))->where($where))->execute();
 
             if ($identities !== []) {
                 // A variable, not an inline expression: insertObject() takes the row by reference.
-                $row = (object) ['name' => $name, 'value' => json_encode($identities, JSON_UNESCAPED_SLASHES)];
+                $row = (object) ['name' => self::IGNORED_META, 'value' => json_encode($identities, JSON_UNESCAPED_SLASHES)];
                 $db->insertObject('#__alfa_meta', $row);
             }
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
-            $db->transactionRollback(true);
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+            Log::add('SetupHelper: the ignored setup steps were not changed (' . $e::class . ').', Log::WARNING, 'com_alfa.setup');
 
-            throw $e;
+            return ['ok' => false, 'error' => 'COM_ALFA_SETUP_IGNORE_NOT_SAVED'];
         }
+
+        self::invalidate();
+
+        return ['ok' => true, 'error' => ''];
     }
 
     /**
