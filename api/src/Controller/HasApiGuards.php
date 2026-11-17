@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
@@ -110,6 +111,33 @@ trait HasApiGuards
     protected function unwrittenReason(): string
     {
         return '';
+    }
+
+    /**
+     * Body keys this resource's update (PATCH) does not take, beyond {@see self::unwrittenKeys()} (2.2.1): where the
+     * create and the update write different keys, the ones only the update leaves unwritten. A PATCH that carries one
+     * is refused with 422 naming them, before anything is saved and before core's edit() checks the record out.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenOnUpdate(): array
+    {
+        return [];
+    }
+
+    /**
+     * Whether a record of this resource is deleted from the trash only (2.2.1): true where the
+     * administrator's list moves a record to the trash before it deletes it, its Delete being the trashed view's Empty
+     * trash. A DELETE of a record in any other state then answers 409 and deletes nothing; a PATCH of state -2 trashes
+     * it first. Resources the administrator deletes without a trash step, and orders, keep their one-call delete.
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return false;
     }
 
     /**
@@ -249,7 +277,7 @@ trait HasApiGuards
             throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
         }
 
-        $this->refuseUnwrittenKeys();
+        $this->refuseUnwrittenKeys(update: false);
 
         $recordId = (int) $this->save();
 
@@ -260,9 +288,9 @@ trait HasApiGuards
     }
 
     /**
-     * Update a record: core's edit, refused first when the body carries a key the resource's write does not take
-     * ({@see self::unwrittenKeys()}), before core looks the record up and checks it out, so a refused PATCH leaves it
-     * as it was (2.2.1).
+     * Update a record: core's edit, refused first when the body carries a key the resource's update does not take
+     * ({@see self::unwrittenKeys()}, {@see self::unwrittenOnUpdate()}), before core looks the record up and checks it
+     * out, so a refused PATCH leaves it as it was (2.2.1).
      *
      * @return static
      *
@@ -272,21 +300,25 @@ trait HasApiGuards
      */
     public function edit()
     {
-        $this->refuseUnwrittenKeys();
+        $this->refuseUnwrittenKeys(update: true);
 
         return parent::edit();
     }
 
     /**
-     * Answer 422, naming them, when the body carries keys of {@see self::unwrittenKeys()}.
+     * Answer 422, naming them, when the body carries keys of {@see self::unwrittenKeys()}, or on an update of
+     * {@see self::unwrittenOnUpdate()}.
+     *
+     * @param bool $update Whether the write is an update (PATCH) rather than a create (POST).
      *
      * @throws Save When it does.
      *
      * @since  2.2.1
      */
-    protected function refuseUnwrittenKeys(): void
+    protected function refuseUnwrittenKeys(bool $update): void
     {
-        $carried = array_values(array_intersect($this->unwrittenKeys(), array_keys($this->requestBody())));
+        $unwritten = $update ? array_merge($this->unwrittenKeys(), $this->unwrittenOnUpdate()) : $this->unwrittenKeys();
+        $carried = array_values(array_intersect($unwritten, array_keys($this->requestBody())));
 
         if ($carried !== []) {
             throw new Save(implode(', ', $carried) . ' cannot be written through the API: ' . $this->unwrittenReason(), 422);
@@ -314,16 +346,20 @@ trait HasApiGuards
      *
      * The resource's own delete permission was already required by {@see self::execute()} and is
      * required again by the model's canDelete(); core's check would add a Global Configuration
-     * right on top of both. Everything after that check is core's, except one answer: a
-     * delete the model refused by its own rule (a category that still has children or is a
-     * product's default, an entity whose delete would widen a discount, tax or cart rule)
-     * answers 409 with the refusal's sentence as text.
+     * right on top of both. Everything after that check is core's, except two answers: a
+     * record of a resource deleted from the trash only that is not in the trash answers 409
+     * (2.2.1, {@see self::deletesFromTrash()}), and a delete the model refused by its own rule
+     * (a category that still has children or is a product's default, an entity whose delete
+     * would widen a discount, tax or cart rule) answers 409 with the refusal's sentence as text.
+     * A delete the model reports done while it kept the record is answered with the record
+     * ({@see self::answerKept()}), never 204 (2.2.1).
      *
      * @param int $id The primary key to delete item.
      *
      * @return void
      *
-     * @throws Save When the model refused the delete by its own rule; nothing was deleted.
+     * @throws Save When the record is not in the trash, or the model refused the delete by its own rule; nothing was
+     *              deleted.
      *
      * @since  2.0.0
      */
@@ -343,7 +379,12 @@ trait HasApiGuards
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_MODEL_CREATE'));
         }
 
-        if (!$model->delete($id)) {
+        $this->refuseUntrashed(model: $model, id: (int) $id);
+
+        // The ids the model reports deleted come back in $pks.
+        $pks = [(int) $id];
+
+        if (!$model->delete($pks)) {
             // Core's fallback handler would answer a bare 500 and hide the sentence.
             $refusal = $model->getError(null, false);
 
@@ -382,7 +423,84 @@ trait HasApiGuards
             $this->app->close();
         }
 
+        // Done, and the record is not among the ids the model deleted: it kept it. The items model archives a product
+        // that order lines were sold as instead of deleting it (2.2.1).
+        if ((int) $id > 0 && !\in_array((int) $id, array_map('intval', (array) $pks), true)) {
+            $this->answerKept(id: (int) $id);
+
+            return;
+        }
+
         $this->app->setHeader('status', '204');
+    }
+
+    /**
+     * What meta.note says of a record a delete kept ({@see self::answerKept()}); '' for no note.
+     *
+     * @param int $id The record.
+     *
+     * @since  2.2.1
+     */
+    protected function keptNote(int $id): string
+    {
+        return '';
+    }
+
+    /**
+     * Answer a delete that kept its record: 200 with the record as it now stands and meta.note saying why
+     * ({@see self::keptNote()}), where a 204 would say it is gone (2.2.1).
+     *
+     * @param int $id The record.
+     *
+     * @since  2.2.1
+     */
+    private function answerKept(int $id): void
+    {
+        $note = $this->keptNote(id: $id);
+
+        if ($note !== '') {
+            $this->app->getDocument()->addMeta('note', $note);
+        }
+
+        $this->displayItem($id);
+        $this->app->setHeader('status', '200', true);
+    }
+
+    /**
+     * Answer 409 when this resource is deleted from the trash only ({@see self::deletesFromTrash()}) and the record is
+     * not in the trash, before the model is asked: nothing is deleted, archived or checked. A record that does not
+     * exist is left to the delete, which answers 404.
+     *
+     * @param AdminModel $model The resource's model.
+     * @param int $id The record.
+     *
+     * @throws Save When the record exists and is not in the trash (409).
+     *
+     * @since  2.2.1
+     */
+    private function refuseUntrashed(AdminModel $model, int $id): void
+    {
+        if (!$this->deletesFromTrash() || $id <= 0) {
+            return;
+        }
+
+        $table = $model->getTable();
+
+        if (!$table->load($id)) {
+            return;
+        }
+
+        $state = $table->getColumnAlias('published');
+
+        if ((int) $table->{$state} === AlfaComponent::CONDITION_TRASHED) {
+            return;
+        }
+
+        throw new Save(
+            'Only a record in the trash is deleted, as in the administrator: move it to the trash first (PATCH v1/alfa/'
+            . $this->contentType . '/' . $id . ' with state -2), then delete it. Nothing was deleted.',
+            409,
+        );
     }
 
     /**

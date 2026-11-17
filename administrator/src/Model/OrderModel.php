@@ -37,6 +37,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderDeleteEvent as PaymentBeforeDeleteEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderDeleteEvent as ShipmentBeforeDeleteEvent;
@@ -695,6 +696,10 @@ class OrderModel extends AlfaAdminModel
             // authority is OrderTable::store(), which refuses a change or a
             // clear whatever route it arrives by, including REST.
             $form->setFieldAttribute('id_currency', 'filter', 'unset');
+
+            // The delivery record is the order's own, read from the stored order by save(): the hidden field is
+            // dropped from the save like id_user, so an id posted in its place is never read.
+            $form->setFieldAttribute('id_address_delivery', 'filter', 'unset');
         }
 
         // Two buckets, same field names, identical to the storefront checkout:
@@ -2064,7 +2069,7 @@ class OrderModel extends AlfaAdminModel
      */
     private static function drawnAsSold(object $item): object
     {
-        $item->surfaces = [];
+        $item->surfaces = new SurfaceMap();
 
         return $item;
     }
@@ -2187,7 +2192,9 @@ class OrderModel extends AlfaAdminModel
      */
     protected function dispatchItemConfigSurfaces(object $item, array $seed): void
     {
-        $item->surfaces = [];
+        // Collected here and handed to the item as a read-only map after each field (2.2.1), as the storefront does.
+        $slots = [];
+        $item->surfaces = new SurfaceMap();
 
         // Conditional visibility: the SAME showon rules + initial-state painting
         // as the storefront, so a field hidden for the customer's selection is
@@ -2218,10 +2225,14 @@ class OrderModel extends AlfaAdminModel
                 ],
             ]);
 
-            $plugins->dispatchTo($plugin, $event);
+            // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
+            // order's item window renders without it.
+            if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') in the order\'s item window')) {
+                continue;
+            }
 
             Surfaces::appendTo(
-                $item->surfaces,
+                $slots,
                 $event,
                 'alfa-item-fields',
                 (string) $field->type,
@@ -2229,6 +2240,7 @@ class OrderModel extends AlfaAdminModel
                 Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                 field: $field,
             );
+            $item->surfaces = new SurfaceMap($slots);
         }
     }
 
@@ -4360,6 +4372,13 @@ class OrderModel extends AlfaAdminModel
         $db = $this->getDatabase();
         $orderId = $pk;
 
+        // THE DELIVERY RECORD IS THE STORED ORDER'S, whatever the submission carries. The edit form posts its id as a
+        // hidden field, and an id sent in its place pointed the order at another customer's record: a guest order then
+        // took that record's name and e-mail (refreshGuestSnapshot()), so its status e-mails went to that person, and
+        // deleting the order deleted that record when it was a guest's. The details typed into the form are written to this record, or to a
+        // new one when the order has none.
+        $data['id_address_delivery'] = isset($prevOrder->id_address_delivery) ? (int) $prevOrder->id_address_delivery : null;
+
         $oldStatusId = (int) ($prevOrder->id_order_status ?? 0);
         $targetStatusId = (int) ($data['id_order_status'] ?? $oldStatusId);
 
@@ -4405,9 +4424,9 @@ class OrderModel extends AlfaAdminModel
 
             $orderId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id');
 
-            // The customer's details become the order's delivery record.
-            if (!empty($userInfoData) && !empty($data['id_address_delivery'])) {
-                $currentId = (int) $data['id_address_delivery'];
+            // The customer's details become the order's delivery record (a new one for an order that has none).
+            if (!empty($userInfoData)) {
+                $currentId = (int) ($data['id_address_delivery'] ?? 0);
                 $newId = UserInfoHelper::insertData(
                     // id_user is filter="unset" on edit, so $data never carries it there;
                     // read the customer from the authoritative record, not the form; else

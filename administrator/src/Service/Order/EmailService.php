@@ -804,10 +804,12 @@ class EmailService
      * work (2.2.0).
      *
      * @param int $statusId The status entered.
+     * @param bool $customer Whether the customer may be told; false for a change made silent for the customer (2.2.1),
+     *                       when only the administrator recipients count.
      *
      * @since  2.2.0
      */
-    public static function notifiesForStatus(int $statusId): bool
+    public static function notifiesForStatus(int $statusId, bool $customer = true): bool
     {
         if ($statusId <= 0) {
             return false;
@@ -829,7 +831,7 @@ class EmailService
             ->bind(':statusId', $statusId, ParameterType::INTEGER);
         $row = $db->setQuery($query)->loadObject();
 
-        return $row !== null && ((int) ($row->notify_customer ?? 0) === 1 || (int) ($row->admins ?? 0) === 1);
+        return $row !== null && (($customer && (int) ($row->notify_customer ?? 0) === 1) || (int) ($row->admins ?? 0) === 1);
     }
 
     /**
@@ -847,12 +849,14 @@ class EmailService
      * @param int $statusId The status the e-mail is about.
      * @param callable(string): bool $attempt Whether to send to a recipient, by unit.
      * @param callable(string, string, string): void $outcome A recipient's unit, outcome and error.
+     * @param bool $customer Whether the customer is told when the status says so; false for a change made silent for the
+     *                       customer (2.2.1), whose e-mail goes to the administrator recipients alone.
      *
      * @throws Throwable When the order or its data cannot be read (nothing was sent).
      *
      * @since  2.1.4
      */
-    public static function deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome): void
+    public static function deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome, bool $customer = true): void
     {
         if ($orderId <= 0 || $statusId <= 0) {
             return;
@@ -884,7 +888,7 @@ class EmailService
             return;
         }
 
-        $notifyCustomer = (int) ($status->notify_customer ?? 0) === 1;
+        $notifyCustomer = $customer && (int) ($status->notify_customer ?? 0) === 1;
         $adminRecipients = self::resolveAdminRecipientEmails(statusId: $statusId);
 
         if (!$notifyCustomer && empty($adminRecipients)) {

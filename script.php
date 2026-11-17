@@ -1410,7 +1410,7 @@ class com_alfaInstallerScript extends InstallerScript
     {
         $this->registerComponentNamespace();
         $this->installLibraries($parent);
-        $this->installPlugins($parent);
+        $this->installPlugins($parent, 'install');
         $this->installModules($parent);
     }
 
@@ -1429,12 +1429,12 @@ class com_alfaInstallerScript extends InstallerScript
     {
         $this->registerComponentNamespace();
         $this->installLibraries($parent);
-        $this->installPlugins($parent);
+        $this->installPlugins($parent, 'update');
         $this->installModules($parent);
     }
 
     /**
-     * Make the component's administrator classes autoloadable in this request.
+     * Make the component's administrator and site classes autoloadable in this request.
      *
      * Joomla adds a newly installed extension's namespace to its autoloader only
      * on a later request, while the bundled extensions are installed in this one
@@ -1451,6 +1451,13 @@ class com_alfaInstallerScript extends InstallerScript
         \JLoader::registerNamespace(
             'Alfa\\Component\\Alfa\\Administrator',
             JPATH_ADMINISTRATOR . '/components/com_alfa/src'
+        );
+
+        // The site half too (2.2.1): the update names the rules that have not ended by the pricing's own reading of a
+        // rule's end (Site\Service\Pricing\ActiveDateCondition).
+        \JLoader::registerNamespace(
+            'Alfa\\Component\\Alfa\\Site',
+            JPATH_SITE . '/components/com_alfa/src'
         );
     }
 
@@ -1974,8 +1981,9 @@ class com_alfaInstallerScript extends InstallerScript
      * index of the version before was written with the place alone, so every product is marked owed a rebuild and the
      * catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may sort and filter a buyer below a
      * ruled place by the earlier price while the product page and the cart show the new one; the message says so, and
-     * names the published rules (not ended) scoped to a place that has a published place inside it: the rules that now
-     * reach further, since a place under an unpublished one prices no buyer. A shop whose places are all countries has
+     * names the published rules (not ended, an empty end being open as pricing reads it) scoped to a published place
+     * that has a published place inside it: the rules that now reach further, since a place under an unpublished one
+     * prices no buyer. A shop whose places are all countries has
      * none; a shop that kept the seeded Larisa under Greece has its Greece-scoped rules named. A failure is said, never
      * a failed update.
      *
@@ -1989,13 +1997,16 @@ class com_alfaInstallerScript extends InstallerScript
         try
         {
             $db = Factory::getContainer()->get('DatabaseDriver');
-            // A published rule that has not ended, scoped to a place with a published place inside it.
+            // A published rule that has not ended (by the pricing's own reading of its end: an empty end is open),
+            // scoped to a published place with a published place inside it.
+            $notEnded = (new \Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition())->getNotEndedCondition(endField: 'x.publish_down');
             $reaching = static fn (string $table, string $rule, string $rules): array => array_map('intval', $db->setQuery(
                 'SELECT DISTINCT r.' . $db->quoteName($rule) . ' FROM ' . $db->quoteName($table, 'r')
                 . ' INNER JOIN ' . $db->quoteName($rules, 'x') . ' ON x.' . $db->quoteName('id') . ' = r.' . $db->quoteName($rule)
+                . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'p') . ' ON p.' . $db->quoteName('id') . ' = r.' . $db->quoteName('place_id')
                 . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'c') . ' ON c.' . $db->quoteName('parent_id') . ' = r.' . $db->quoteName('place_id')
-                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 AND c.' . $db->quoteName('state') . ' = 1 AND x.' . $db->quoteName('state') . ' = 1'
-                . ' AND (x.' . $db->quoteName('publish_down') . ' IS NULL OR x.' . $db->quoteName('publish_down') . ' > UTC_TIMESTAMP()) ORDER BY 1'
+                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 AND p.' . $db->quoteName('state') . ' = 1 AND c.' . $db->quoteName('state') . ' = 1'
+                . ' AND x.' . $db->quoteName('state') . ' = 1 AND ' . $notEnded . ' ORDER BY 1'
             )->loadColumn() ?: []);
             $discounts = $reaching('#__alfa_discount_places', 'discount_id', '#__alfa_discounts');
             $taxes     = $reaching('#__alfa_tax_places', 'tax_id', '#__alfa_taxes');
@@ -3493,7 +3504,20 @@ class com_alfaInstallerScript extends InstallerScript
 
     // Plugin helpers
 
-    private function installPlugins($parent): void
+    /**
+     * Install or update every plugin the package manifest lists, through Joomla's installer. A plugin the site did not
+     * have before this run is enabled once its install succeeded; a plugin the site already had keeps the state it had,
+     * so one staff disabled stays disabled (2.2.1: up to 2.2.0 every update enabled each bundled plugin again).
+     * A plugin whose installer failed is never enabled. On an update, the bundled plugins kept disabled are named once
+     * on the installation page and in the maintenance log.
+     *
+     * @param   object  $parent  The installer adapter providing the package manifest
+     * @param   string  $route   'install' or 'update'
+     *
+     * @return  void
+     * @since  1.0.0
+     */
+    private function installPlugins($parent, string $route): void
     {
         $installationFolder = $parent->getParent()->getPath('source');
         $app                = Factory::getApplication();
@@ -3507,14 +3531,17 @@ class com_alfaInstallerScript extends InstallerScript
             return;
         }
 
-        $db    = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
+        $db   = Factory::getContainer()->get('DatabaseDriver');
+        $kept = [];
 
         foreach ($plugins->children() as $plugin)
         {
             $pluginName  = (string) $plugin['plugin'];
             $pluginGroup = (string) $plugin['group'];
             $path        = $installationFolder . '/plugins/' . $pluginGroup . '/' . $pluginName;
+
+            // Whether the site had the plugin before this run, and its state then: null when it had none.
+            $stored = $this->storedPluginState($pluginGroup, $pluginName);
 
             $installer = new Installer();
             $installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
@@ -3530,19 +3557,72 @@ class com_alfaInstallerScript extends InstallerScript
                 $result ? 'message' : 'error'
             );
 
-            $query
-                ->clear()
-                ->update($db->quoteName('#__extensions'))
-                ->set('enabled = 1')
-                ->where([
-                    'type LIKE '    . $db->quote('plugin'),
-                    'element LIKE ' . $db->quote($pluginName),
-                    'folder LIKE '  . $db->quote($pluginGroup),
-                ]);
+            if (!$result)
+            {
+                continue;
+            }
 
-            $db->setQuery($query);
-            $db->execute();
+            if ($stored === null)
+            {
+                $query = $db->getQuery(true)
+                    ->update($db->quoteName('#__extensions'))
+                    ->set($db->quoteName('enabled') . ' = 1')
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                    ->where($db->quoteName('element') . ' = :element')
+                    ->where($db->quoteName('folder') . ' = :folder')
+                    ->bind(':element', $pluginName)
+                    ->bind(':folder', $pluginGroup);
+
+                $db->setQuery($query)->execute();
+            }
+            elseif ($stored === 0)
+            {
+                $kept[] = $pluginGroup . '/' . $pluginName;
+            }
         }
+
+        if ($route !== 'update' || $kept === [])
+        {
+            return;
+        }
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_PLUGINS_KEPT_DISABLED',
+            fallback: 'Alfa Commerce %1$s kept these plugins of its package disabled, as they were before the update: %2$s.'
+                . ' Up to 2.2.0 an update enabled them again. Enable one in System > Manage > Plugins if the shop needs it.',
+            values:   [$this->packageVersion, implode(', ', $kept)],
+        ), 'notice');
+        self::maintenanceLog(
+            line:     sprintf('Update to %s: plugins of the package kept disabled, as they were: %s.', $this->packageVersion, implode(', ', $kept)),
+            priority: \Joomla\CMS\Log\Log::INFO,
+        );
+    }
+
+    /**
+     * The state the site holds for a plugin before the installer runs: 1 enabled, 0 disabled, null when the site has
+     * no such plugin.
+     *
+     * @param   string  $group    The plugin group.
+     * @param   string  $element  The plugin element.
+     *
+     * @return  int|null
+     * @since  2.2.1
+     */
+    private function storedPluginState(string $group, string $element): ?int
+    {
+        $db    = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select($db->quoteName('enabled'))
+            ->from($db->quoteName('#__extensions'))
+            ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+            ->where($db->quoteName('element') . ' = :element')
+            ->where($db->quoteName('folder') . ' = :folder')
+            ->bind(':element', $element)
+            ->bind(':folder', $group);
+
+        $state = $db->setQuery($query)->loadResult();
+
+        return $state === null ? null : (int) $state;
     }
 
     /**

@@ -19,17 +19,13 @@ if (isset($displayData)) {
     extract($displayData);
 }
 
-// Nothing to draw without a reading of the cart, and the reading is what this
-// layout renders from, so it is the reading that decides.
+// The reading of the visitor's cart is what this layout renders from. A visitor
+// who has no cart yet is handed none (2.2.1): the empty drawer, read from nothing.
 $snapshot = ($snapshot ?? null);
-
-if ($snapshot === null) {
-    return;
-}
 
 $priceSettings = ($priceSettings ?? null);
 
-$items = $snapshot->lines;
+$items = $snapshot === null ? [] : $snapshot->lines;
 $itemsCount = count($items);
 
 ?>
