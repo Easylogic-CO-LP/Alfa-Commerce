@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -119,6 +120,10 @@ final class ComponentOptions
         'final_price_show' => 1,
         'final_price_show_label' => 1,
         'price_breakdown_show' => 0,
+
+        // Online sales: sell online (2.2.2). Catalogue only is a shop's own choice; an install, Clear
+        // everything and Reset to default write Sell online.
+        'catalogue_only' => 0,
 
         // Currency: the ISO-4217 NUMBER (the `number` column, the Options field's
         // key_field, and what Pricing\Currency / OrderCreator read). NEVER the row id.
@@ -244,6 +249,7 @@ final class ComponentOptions
     public static function write(array $params, ?DatabaseInterface $db = null): void
     {
         $db ??= Factory::getContainer()->get(DatabaseInterface::class);
+        $before = self::stored(db: $db);
         $json = json_encode($params);
 
         if ($json === false) {
@@ -259,11 +265,33 @@ final class ComponentOptions
         )->execute();
 
         self::forgetCachedRecords();
+        self::followOnlineSales(before: $before, after: $params);
 
         try {
             ComponentHelper::getComponent('com_alfa')->setParams(new Registry($params));
         } catch (Throwable) {
             // A request that never loaded the component records has nothing to refresh.
+        }
+    }
+
+    /**
+     * The one rule for online sales switched by a write of the Options (2.2.2): when Online sales changed between the
+     * two, the pages Joomla's page cache stored are dropped ({@see PageCache::forget()}), so no stored guest page keeps
+     * prices and buy buttons the shop no longer shows, or the reverse. Every path that writes the Options asks it: write()
+     * (an install, an update, Clear everything), Reset to default, and a shop's own Options save, which Joomla writes
+     * itself, not through write() (System - Alfa Commerce Sync asks it after that save).
+     *
+     * @param array<string, mixed> $before The Options before the write.
+     * @param array<string, mixed> $after The Options written.
+     *
+     * @since  2.2.2
+     */
+    public static function followOnlineSales(array $before, array $after): void
+    {
+        $sellsOnline = static fn (array $params): bool => (int) ($params['catalogue_only'] ?? 0) !== 1;
+
+        if ($sellsOnline($before) !== $sellsOnline($after)) {
+            PageCache::forget();
         }
     }
 

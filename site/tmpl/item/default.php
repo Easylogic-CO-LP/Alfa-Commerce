@@ -22,17 +22,24 @@
     use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
     use Alfa\Component\Alfa\Site\Helper\Surface;
 
+    // Whether the shop sells online (2.2.2): in catalogue-only mode the item says so, and the page draws no buy form and
+    // asks for none of its scripts. An override reads the same property.
+    $sellsOnline = (bool) ($this->item->sellsOnline ?? true);
+
     // Import CSS
     $wa = $this->document->getWebAssetManager();
 
     $wa->useStyle('com_alfa.item');
-    $wa->useScript('com_alfa.item')
-        ->useScript('com_alfa.item.recalculate')
-        ->usePreset('com_alfa.item.addtocart')
-        ->useScript('com_alfa.item.variant')
-        ->useScript('com_alfa.showon.engine')
-        ->useScript('com_alfa.validate.engine')
-        ->useStyle('com_alfa.validate');
+    $wa->useScript('com_alfa.item');
+
+    if ($sellsOnline) {
+        $wa->useScript('com_alfa.item.recalculate')
+            ->usePreset('com_alfa.item.addtocart')
+            ->useScript('com_alfa.item.variant')
+            ->useScript('com_alfa.showon.engine')
+            ->useScript('com_alfa.validate.engine')
+            ->useStyle('com_alfa.validate');
+    }
 
     $priceSettings = $this->priceSettings;
     $medias = $this->item->medias;
@@ -64,6 +71,7 @@
 
         <?php echo Layout::render('item.stock_info', ['item' => $this->item]); ?>
 
+        <?php if ($sellsOnline): ?>
         <form class="item-buy-form" data-item-form
               data-action="<?php echo $this->escape($this->item->reloadUrl); ?>"
               action="<?php echo $this->escape($this->item->addToCartUrl); ?>" method="post">
@@ -72,6 +80,10 @@
             <?php if (!empty($this->item->editLine)): ?>
             <input type="hidden" name="edit_line" value="<?php echo (int) $this->item->editLine; ?>">
             <?php endif; ?>
+        <?php else: ?>
+        <?php // Catalogue only (2.2.2): a plain block, no form; the fields arrive as read-only lists. ?>
+        <div class="item-catalogue">
+        <?php endif; ?>
 
         <div class="item-fields-surfaces">
             <?php echo Surface::render($this->item, ItemSurface::BuyForm); ?>
@@ -110,7 +122,7 @@
         <?php echo Layout::render('cart.wrapper', $this->item); ?>
         <?php echo Surface::render($this->item, ItemSurface::NearAddToCart); ?>
 
-        </form>
+        <?php echo $sellsOnline ? '</form>' : '</div>'; ?>
 
         <div class="item-full-description">
             <?php echo nl2br($this->item->full_desc); ?>

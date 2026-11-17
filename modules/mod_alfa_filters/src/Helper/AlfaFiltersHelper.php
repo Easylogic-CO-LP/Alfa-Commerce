@@ -3,6 +3,7 @@
 namespace Alfa\Module\AlfaFilters\Site\Helper;
 
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Module\AlfaFilters\Site\Section\FilterSections;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -15,6 +16,13 @@ defined('_JEXEC') or die;
 
 class AlfaFiltersHelper
 {
+    /**
+     * The sections that read the price index, which catalogue-only mode leaves out (2.2.2).
+     *
+     * @var string[]
+     */
+    private const PRICE_SECTIONS = ['price', 'on_sale', 'discount_amount', 'discount_percent'];
+
     private static $itemsModel = null;
     private static array $paramsCache = [];
 
@@ -202,10 +210,15 @@ class AlfaFiltersHelper
     {
         $fieldIds = array_map('intval', array_keys((array) ($filters['fields'] ?? [])));
 
-        return FilterSections::resolve(
+        $sections = FilterSections::resolve(
             FilterSections::natural($fieldIds),
             $params->get('filter_sections', ''),
         );
+
+        // Catalogue only (2.2.2): no price is read, so the panel draws no price range and no sale or saving filter.
+        return ShopMode::sellsOnline()
+            ? $sections
+            : array_values(array_diff($sections, self::PRICE_SECTIONS));
     }
 
     /**
@@ -265,12 +278,18 @@ class AlfaFiltersHelper
         $filterForm->setFieldAttribute('discount_amount_min', 'id', 'alfa_filters_discount_amount_min_' . $moduleId, 'filter');
         $filterForm->setFieldAttribute('discount_percent_min', 'id', 'alfa_filters_discount_percent_min_' . $moduleId, 'filter');
 
-        // 3. Render the fields
-        $orderingHtml = $filterForm->getField('fullordering', 'list')->input;
-        $limitHtml = $filterForm->getField('limit', 'list')->input;
-        $onSaleHtml = $filterForm->getField('on_sale', 'filter')->input;
-        $discountAmountMinHtml = $filterForm->getField('discount_amount_min', 'filter')->input;
-        $discountPercentMinHtml = $filterForm->getField('discount_percent_min', 'filter')->input;
+        // 3. Render the fields; one the form left out (the price and saving filters in catalogue-only mode, 2.2.2)
+        //    renders as nothing.
+        $render = static function (string $name, string $group) use ($filterForm): string {
+            $field = $filterForm->getField($name, $group);
+
+            return $field ? (string) $field->input : '';
+        };
+        $orderingHtml = $render('fullordering', 'list');
+        $limitHtml = $render('limit', 'list');
+        $onSaleHtml = $render('on_sale', 'filter');
+        $discountAmountMinHtml = $render('discount_amount_min', 'filter');
+        $discountPercentMinHtml = $render('discount_percent_min', 'filter');
 
         return [
             'ordering' => $orderingHtml,
