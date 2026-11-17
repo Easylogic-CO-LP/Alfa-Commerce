@@ -447,6 +447,23 @@ final class CartHydrator
             $cartItem->fields = $summary;  // chosen fields, for the line summary
             $this->presenter->decorate($cartItem, $item, $payloads);
 
+            // A LINE WITH NO PRICE (2.2.2). No price row applies to its product at its quantity for this cart's terms,
+            // and it carries no custom price: its price is null, its money is in no total, and placement refuses it by
+            // name. In the order builder it waits for its custom price; elsewhere the product lost its price, or the
+            // quantity is under the first one priced.
+            if ($item->price === null) {
+                $cartItem->unavailable = true;
+                $cartItem->unavailable_reason = match (true) {
+                    $subject->isOperatorPlacement() => Text::_('COM_ALFA_CART_LINE_ENTER_PRICE'),
+                    ($item->pricedFrom ?? null) !== null => Text::sprintf('COM_ALFA_CART_LINE_QUANTITY_NOT_PRICED', (int) $item->pricedFrom),
+                    default => Text::_('COM_ALFA_CART_LINE_NOT_PRICED'),
+                };
+
+                $cartItems[] = $cartItem;
+
+                continue;
+            }
+
             // A priced line whose quantity is too small to be charged cannot be
             // bought as it stands: it stays in the cart, named and priced, and
             // says which quantity can be.
@@ -623,7 +640,7 @@ final class CartHydrator
     {
         $candidate = clone $item;
 
-        $this->price(
+        return $this->price(
             item: $candidate,
             selection: $selection,
             optionValueIds: $optionValueIds,
@@ -633,8 +650,6 @@ final class CartHydrator
             context: $this->terms(subject: $this->current()->subject()),
             calculator: new PriceCalculator(),
         );
-
-        return $candidate->price;
     }
 
     /**
@@ -668,12 +683,13 @@ final class CartHydrator
      * @param PriceContext|null $context Whose terms the line is priced under.
      * @param PriceCalculator $calculator The pricing service.
      *
+     * @return PriceResult The result as the calculator states it; the item carries it only when a price applies.
      *
      * @since  2.0.0
      */
-    private function price(object $item, array $selection, array $optionValueIds, array $payloads, int $quantity, ?ExplicitPriceInstruction $instruction, ?PriceContext $context, PriceCalculator $calculator): void
+    private function price(object $item, array $selection, array $optionValueIds, array $payloads, int $quantity, ?ExplicitPriceInstruction $instruction, ?PriceContext $context, PriceCalculator $calculator): PriceResult
     {
-        VariantHelper::resolveAndPrice(
+        return VariantHelper::resolveAndPrice(
             $item,
             $selection,
             $context,
@@ -806,10 +822,11 @@ final class CartHydrator
         $context = $this->terms(subject: $subject);
         $calculator = new PriceCalculator();
 
-        $unitAt = function (int $quantity) use ($product, $configuration, $instruction, $context, $calculator, $unitOf): string {
+        // A quantity with no price (2.2.2) has no unit: the search goes on to the next tier.
+        $unitAt = function (int $quantity) use ($product, $configuration, $instruction, $context, $calculator, $unitOf): ?string {
             $candidate = clone $product;
 
-            $this->price(
+            $result = $this->price(
                 item: $candidate,
                 selection: $configuration['selection'],
                 optionValueIds: $configuration['optionValueIds'],
@@ -820,7 +837,7 @@ final class CartHydrator
                 calculator: $calculator,
             );
 
-            return $unitOf($candidate->price);
+            return $result->isPriced() ? $unitOf($result) : null;
         };
 
         return (new LineQuantityClamp($this->repository, $this->messaging))->smallestCharged(

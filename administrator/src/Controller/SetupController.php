@@ -117,6 +117,71 @@ class SetupController extends BaseController
     }
 
     /**
+     * Ignore one step of the checklist (a recommended or optional step that is not done) and return the re-evaluated
+     * card. A step that is not on the checklist, a required step or a done one answers 409 with the sentence; the page
+     * keeps its current card.
+     *
+     *
+     * @since  2.2.2
+     */
+    public function ignore(): void
+    {
+        $this->checkToken();
+        $this->assertAdministrator();
+
+        $this->answer(SetupHelper::ignore(
+            owner: RequestScalar::cmd($this->input, 'owner'),
+            checkId: RequestScalar::cmd($this->input, 'check'),
+        ));
+    }
+
+    /**
+     * Show an ignored step again and return the re-evaluated card. Any stored step is taken off the ignored list,
+     * whether it is on the checklist now or not. A list that cannot be read or written answers 409 with the sentence.
+     *
+     *
+     * @since  2.2.2
+     */
+    public function showAgain(): void
+    {
+        $this->checkToken();
+        $this->assertAdministrator();
+
+        $this->answer(SetupHelper::showAgain(
+            owner: RequestScalar::cmd($this->input, 'owner'),
+            checkId: RequestScalar::cmd($this->input, 'check'),
+        ));
+    }
+
+    /**
+     * Answer a change of the ignored list: 409 with its sentence when it was refused, else the card, evaluated afresh.
+     *
+     * @param array{ok: bool, error: string} $result What the change answered.
+     *
+     *
+     * @since  2.2.2
+     */
+    private function answer(array $result): void
+    {
+        if (!$result['ok']) {
+            $this->app->setHeader('status', '409 Conflict', true);
+            $this->app->setHeader('Content-Type', 'text/plain; charset=utf-8', true);
+            $this->app->sendHeaders();
+
+            echo Text::_($result['error']);
+
+            $this->app->close();
+        }
+
+        $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
+        $this->app->sendHeaders();
+
+        echo SetupHelper::renderCard(fresh: true);
+
+        $this->app->close();
+    }
+
+    /**
      * Guard: the current user administers com_alfa.
      *
      * Provisioning creates and associates Joomla site menu items (configuration of the

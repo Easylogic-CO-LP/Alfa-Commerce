@@ -43,6 +43,34 @@ final class InstallSteps
     }
 
     /**
+     * Write the cursor of the announced price periods (`#__alfa_meta` DueRead::META_WINDOWS, 2.2.2) where it is missing,
+     * at this moment, so no period that began before the install or the update is announced. A row that exists is
+     * kept as it is. The install SQL writes it for a new shop; an update from a release before 2.2.2 gets it here.
+     *
+     * @since  2.2.2
+     */
+    public function seedPriceWindowsCursor(): void
+    {
+        $db = $this->db;
+        $name = \Alfa\Component\Alfa\Administrator\Service\Task\DueRead::META_WINDOWS;
+        $present = $db->setQuery(
+            $db->createQuery()
+                ->select('1')
+                ->from($db->quoteName('#__alfa_meta'))
+                ->where($db->quoteName('name') . ' = ' . $db->quote($name)),
+        )->loadResult();
+
+        if ($present === null) {
+            $db->setQuery(
+                $db->createQuery()
+                    ->insert($db->quoteName('#__alfa_meta'))
+                    ->columns($db->quoteName(['name', 'value']))
+                    ->values($db->quote($name) . ', ' . $db->quote(gmdate('Y-m-d H:i:s'))),
+            )->execute();
+        }
+    }
+
+    /**
      * Record a schema version as the one the Alfa tables are at (`schema_version` in
      * `#__alfa_meta`), once an install, an update or a recreation has brought them there.
      *

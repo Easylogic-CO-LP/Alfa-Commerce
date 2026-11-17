@@ -98,6 +98,13 @@
     width: 150px;
 }
 
+/* The product's thumbnail fits its column, whatever size it was stored at. */
+.searchbar-popup .search-image-container img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
 .searchbar-popup .search-info-container {
     width: 50%;
     max-width: 300px;

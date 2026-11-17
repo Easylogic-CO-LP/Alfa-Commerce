@@ -198,6 +198,8 @@ final class ResetToDefault
 
         $before = $this->preview();
         $keys = array_column($before['options'], 'key');
+        $storedBefore = ComponentOptions::stored(db: $this->db);
+        $target = $this->target();
 
         // Joomla's own Options save: the same path, events and cache cleaning as the Options form.
         $app = Factory::getApplication();
@@ -213,10 +215,13 @@ final class ResetToDefault
                     ->where($this->db->quoteName('element') . ' = ' . $this->db->quote('com_alfa')),
             )->loadResult(),
             'option' => 'com_alfa',
-            'params' => $this->target(),
+            'params' => $target,
         ]);
 
         ComponentOptions::forgetCachedRecords();
+
+        // Online sales back to their default (2.2.2): the stored pages follow, as after any write of the Options.
+        ComponentOptions::followOnlineSales(before: $storedBefore, after: $target);
 
         $groups = $before['groups'] === [] ? 0 : SyncHelper::applyDefaultPricesDisplay(db: $this->db, sourceParams: ComponentOptions::DEFAULTS);
         $rebuild = array_intersect($keys, self::PRICE_INDEX_KEYS) !== [];
