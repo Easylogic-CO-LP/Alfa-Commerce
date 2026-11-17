@@ -1626,6 +1626,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * @return array Rows, newest first ([] when none).
      *
+     * @throws OrderCurrencyException When rows are found and their order does not exist or names no currency: a payment
+     *                                row whose order cannot be read is an integrity fault, never an answer of no row.
+     *
      * @since  2.0.0
      */
     protected function gatewayPayments(int $orderId, int|array $methodId = 0): array
@@ -1839,6 +1842,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * @return object|null NULL when nothing matches; settle nothing on a guess.
      *
+     * @throws OrderCurrencyException When the row is found and its order does not exist or names no currency: a payment
+     *                                row whose order cannot be read is an integrity fault, never an answer of no row.
+     *
      * @since  2.0.0
      */
     protected function gatewayPaymentByReference(array $references, int $orderId = 0, int|array $methodId = 0): ?object
@@ -1922,6 +1928,19 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         return $query;
     }
 
+    /**
+     * One payment row by its id, with its payment method's record attached ({@see PaymentLedger::get()}). Not scoped
+     * to this plugin: the row may be another gateway's.
+     *
+     * @param int $id The payment row's id.
+     *
+     * @return object|null The row, its amount as Money; NULL when the id names no row.
+     *
+     * @throws OrderCurrencyException When the row is found and its order does not exist or names no currency: a payment
+     *                                row whose order cannot be read is an integrity fault, never an answer of no row.
+     *
+     * @since  1.0.0
+     */
     protected function getPayment(int $id): ?object
     {
         return PaymentLedger::get($id);

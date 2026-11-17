@@ -41,6 +41,20 @@ use Throwable;
  * Nothing runs while the connection holds a transaction or one of Alfa's named locks, while Alfa is in maintenance,
  * or while an update has paused the runner (`runner.paused_until`).
  *
+ * THE CLOCK IN A LONG RUN (2.2.1). Joomla's Factory::getDate() keeps the time of its first call for the whole process,
+ * and a run started from the command line, a scheduler or a queue goes on long after that, so an instant that starts a
+ * window, or is compared with one, in a handler or a service it reaches is read afresh: new Date('now', 'UTC'), or
+ * UTC_TIMESTAMP() where the row is compared with the database's clock, as the runner's own leases and due times are.
+ * The places that do: DocumentIssuer::issue() (one instant per document, its shop date and year from the same instant),
+ * Entitlements::grantForOrder() (one instant per order it grants, each expiry counted from it), NotificationHelper
+ * (every stamp and every read of what has not expired, through its now()), PriceIndexSyncService::writeChunk() (one
+ * instant per chunk, the global boundaries read on their own fresh clock before it) and
+ * InventoryEffectOutbox::enqueue() (UTC_TIMESTAMP()). The other reads of the cached clock are stamps that no window of
+ * a run is measured from, or windows of a short administrator, storefront or API request; the one exception is
+ * InventoryService::expireDueReservations(), which core never calls (its docblock says what it means for a caller).
+ * Each place above compares like with like, a row stamped by PHP's clock with PHP's and one stamped by the database's
+ * with the database's, so a drift between the web server's and the database server's clocks moves none of its windows.
+ *
  * @since  2.2.0
  */
 final class Runner

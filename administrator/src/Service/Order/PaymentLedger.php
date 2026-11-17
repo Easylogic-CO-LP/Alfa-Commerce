@@ -12205,6 +12205,15 @@ class PaymentLedger
      * not saved and the reason is in the orders log (without a number when the write named no order). A database
      * driver's text is never queued: it goes to the log only.
      *
+     * The ledger's other refusals and failures do not come here: lockOrders(), rejectMovedAttempt(),
+     * supersedeAttempt(), flipIfCovered(), delete() (deleteFromTable() included), adoptMethodOnOrderIfEmpty(),
+     * moneyForStorage() (the amount check of createLocked(), update() and updateIfStatusLocked()) and
+     * clampGatewayReference() (the record write's warning that an over-long gateway reference was stored truncated)
+     * still tell through LedgerSupport::warn(), which queues its sentence on every client, the storefront included. The
+     * lock wait in lockOrders(), the failures of rejectMovedAttempt() and adoptMethodOnOrderIfEmpty(), delete()'s
+     * removal of the row and moneyForStorage()'s third refusal carry the failure's own text, and
+     * clampGatewayReference()'s warning quotes the first 32 characters of the reference.
+     *
      * @param string $detail The detail for the log.
      * @param int $orderId The order, 0 when none is known.
      * @param (Closure(string): string)|string|null $plain The sentence for staff, or a function of the order number
