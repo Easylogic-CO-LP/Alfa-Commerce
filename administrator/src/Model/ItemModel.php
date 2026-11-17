@@ -30,6 +30,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -581,6 +582,9 @@ class ItemModel extends AlfaAdminModel
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id', 'user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
 
+            // The related products, in their order, as the Related tab's rows (2.2.2).
+            $item->related = RelatedItems::rows(db: $this->getDatabase(), itemId: (int) $item->id);
+
             // get media origin (cat, man, item...)
             $item->medias = MediaHelper::getMediaData(
                 origin: $this->name,
@@ -749,6 +753,16 @@ class ItemModel extends AlfaAdminModel
 
         if ($categoryRefusal !== null) {
             return $this->refuseSave(messages: [$categoryRefusal]);
+        }
+
+        // RELATED PRODUCTS (2.2.2), judged before the transaction: the product itself, a product named twice or one that
+        // does not exist is refused and nothing is saved. A copy has no id yet, so none of its rows can name it. A form
+        // with no row carries no list, which empties the links as it empties the other lists.
+        $relatedIds = RelatedItems::posted(posted: $data['related'] ?? []);
+        $relatedRefusals = RelatedItems::refusals(db: $db, itemId: $pk, ids: $relatedIds);
+
+        if ($relatedRefusals !== []) {
+            return $this->refuseSave(messages: $relatedRefusals);
         }
 
         // A thumbnail the gallery names must be an image file of the media folders (2.2.1, MediaHelper::thumbnailRefusals()):
@@ -1020,6 +1034,10 @@ class ItemModel extends AlfaAdminModel
 
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+
+            // The related products, in the posted order (2.2.2): each written only while its product exists, so a
+            // product deleted since the check above leaves no link.
+            RelatedItems::replace(db: $db, itemId: (int) $currentId, ids: $relatedIds);
 
             // ITEM FIELDS: no wizard step; option values are ADDED via the
             // picker popup (item.addOptions), informational values save via
@@ -2974,12 +2992,14 @@ class ItemModel extends AlfaAdminModel
 
     /**
      * A product's name in the staff member's language, for a refusal that names it (UX-42); its number when it has none.
+     * The one rule for naming a product to staff: the item's own refusals, the Related tab's refusals and the title of
+     * its product picker (2.2.2).
      *
      * @param int $itemId The product.
      *
      * @since  2.2.0
      */
-    private static function nameForStaff(int $itemId): string
+    public static function nameForStaff(int $itemId): string
     {
         $name = (string) MultilingualHelper::getTranslatedValue(id: $itemId, tableName: '#__alfa_items', primaryColumnName: 'id_item', field: 'name');
 
@@ -3332,6 +3352,10 @@ class ItemModel extends AlfaAdminModel
                         ->whereIn($db->quoteName($column), $pks),
                 )->execute();
             }
+
+            // The related products (2.2.2), on both sides: the links the deleted products hold and the links other
+            // products hold to them. One statement of its own: the list above maps each table to one column.
+            RelatedItems::deleteFor(db: $db, itemIds: $pks);
 
             // LIVE CART LINES HOLDING THE ITEM, and the clocks of the carts that
             // lose one. Cart storage is owned by CartRepository; this model states
