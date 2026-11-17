@@ -2362,6 +2362,10 @@ class ItemsModel extends UrlListModel
             }
         }
 
+        // Handed once more after the last field (2.2.1): a plugin that changed the card's surfaces and then failed has
+        // its field caught above, and its change must not outlive it.
+        $item->surfaces = new SurfaceMap($slots);
+
         return $drawnFieldIds;
     }
 

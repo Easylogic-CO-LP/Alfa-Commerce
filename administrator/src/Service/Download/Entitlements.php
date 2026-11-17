@@ -14,6 +14,8 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
+use DateInterval;
+use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
@@ -303,7 +305,10 @@ class Entitlements
             $existingByPair[$row->id_order_item . ':' . $row->id_download] = $row;
         }
 
-        $now = Factory::getDate('now', 'UTC');
+        // The clock as it is now, read for this grant: Factory::getDate() keeps the time of its first call for the
+        // whole process, so a task run, a console command or a queue granting several orders would date every grant,
+        // and every expiry, from the first one (2.2.1).
+        $now = new Date('now', 'UTC');
         $granted = 0;
 
         foreach ($candidates as $candidate) {
@@ -362,7 +367,7 @@ class Entitlements
                 'storage_key' => (string) $candidate->storage_key,
                 'sha256' => (string) $candidate->sha256,
                 'expires_at' => $daysValid > 0
-                    ? Factory::getDate('+' . $daysValid . ' days', 'UTC')->toSql()
+                    ? (clone $now)->add(new DateInterval('P' . $daysValid . 'D'))->toSql()
                     : null,
                 'status' => self::STATUS_AVAILABLE,
                 'granted_at' => $now->toSql(),

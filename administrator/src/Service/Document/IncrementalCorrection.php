@@ -415,7 +415,7 @@ final class IncrementalCorrection
                 orderId:     $orderId,
                 docType:     $docType,
                 picks:       $picks,
-                chargePicks: self::salesCharges($orderId, $charges),
+                chargePicks: self::salesCharges($charges),
                 // NOT id_corrects: that column is the credit/correction-cap
                 // axis. A supplementary sales document is an ordinary issuance
                 // against the order, and overloading it would put a
@@ -818,7 +818,7 @@ final class IncrementalCorrection
      * @param string $docType The type being drafted.
      * @param int $correctsId The corrected document, or 0.
      *
-     * @return array{shipping: int[], fees: int[], rules: int[], amounts?: array}
+     * @return array{shipping: int[], fees: int[], amounts?: array}
      *
      * @since   2.0.0
      */
@@ -828,7 +828,7 @@ final class IncrementalCorrection
 
         return $correctsId > 0
             ? self::creditCharges($orderId, $correctsId, $charges)->picks
-            : self::salesCharges($orderId, $charges);
+            : self::salesCharges($charges);
     }
 
     /**
@@ -847,8 +847,8 @@ final class IncrementalCorrection
      * @param int $correctsId The corrected document.
      * @param object $charges OrderChargeLines::chargeDrift() for the order.
      *
-     * @return object{picks: array{shipping: int[], fees: int[], rules: int[], amounts: array}, unabsorbed: object[]}
-     *                                                                                                                `amounts` is [shipping => [id => incl], fees => [id => incl], rules => [id => incl]].
+     * @return object{picks: array{shipping: int[], fees: int[], amounts: array}, unabsorbed: object[]}
+     *                                                                                                  `amounts` is [shipping => [id => incl], fees => [id => incl], rules => [id => incl]].
      *
      * @since   2.0.0
      */
@@ -868,7 +868,6 @@ final class IncrementalCorrection
             'picks' => [
                 'shipping' => array_keys($credit->amounts['shipping']),
                 'fees' => array_keys($credit->amounts['fees']),
-                'rules' => [],
                 'amounts' => $credit->amounts + ['grants' => $charges->negative['grants']],
             ],
             'unabsorbed' => $credit->unabsorbed,
@@ -876,24 +875,20 @@ final class IncrementalCorrection
     }
 
     /**
-     * A sales draft's charge picks: the positive charge drift, and every rule.
+     * A sales draft's charge picks: the positive charge drift. Its discounts
+     * follow the goods and the shipping it claims; none is picked.
      *
-     * @param int $orderId The order.
      * @param object $charges OrderChargeLines::chargeDrift() for the order.
      *
-     * @return array{shipping: int[], fees: int[], rules: int[]}
+     * @return array{shipping: int[], fees: int[], amounts: array{reversals: array<int, float>}}
      *
      * @since   2.0.0
      */
-    private static function salesCharges(int $orderId, object $charges): array
+    private static function salesCharges(object $charges): array
     {
         return [
             'shipping' => array_keys($charges->positive['shipping']),
             'fees' => array_keys($charges->positive['fees']),
-            'rules' => array_map(
-                static fn (object $rule): int => (int) $rule->id,
-                OrderChargeLines::remaining(orderId: $orderId)->rules,
-            ),
             // Discount documents gave that the order no longer gives, charged back.
             'amounts' => ['reversals' => $charges->positive['reversals']],
         ];
