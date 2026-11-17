@@ -73,6 +73,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodRequirement;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\ChargeableQuantity;
@@ -332,6 +333,15 @@ class OrderPlacement
         $this->deliveryData = $command->delivery;
         $this->billingData = $command->billing;
         $held = false;
+
+        // CATALOGUE ONLY (2.2.2): the storefront places no order, by whatever path it reaches this class; this is the
+        // authority behind the storefront controller's refusal. An operator's placement (the administrator's operator
+        // checkout) is the shop's own order taking and goes on.
+        if (!ShopMode::sellsOnline() && !$this->subject->isOperatorPlacement()) {
+            $this->fail('COM_ALFA_CATALOGUE_ONLY_NOTICE', [], 'Placement refused: the shop shows its catalogue only');
+
+            return false;
+        }
 
         try {
             Log::add('=== Starting V3 order placement ===', Log::INFO, 'com_alfa.orders');
