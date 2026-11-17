@@ -2242,6 +2242,10 @@ class OrderModel extends AlfaAdminModel
             );
             $item->surfaces = new SurfaceMap($slots);
         }
+
+        // Handed once more after the last field (2.2.1): a plugin that changed the item's surfaces and then failed has
+        // its field skipped above, and its change must not outlive it.
+        $item->surfaces = new SurfaceMap($slots);
     }
 
     /**
