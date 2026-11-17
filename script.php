@@ -2120,7 +2120,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_PLACES_SEED',
-            fallback: 'Alfa Commerce %1$s brought the countries up to ISO 3166-1. Corrected where the shop had not changed them, each keeping its number: %2$s. Added, unpublished: %3$s. The places inside Greece (its 13 regions and Mount Athos) and inside Spain (the Canary Islands, Ceuta and Melilla) are not added by the update: in Places, select Greece or Spain and press Add subdivisions to add them, unpublished.',
+            fallback: 'Alfa Commerce %1$s brought the countries up to ISO 3166-1. Corrected where the shop had not changed them, each keeping its number: %2$s. Added, unpublished: %3$s. The places inside Greece (its 13 regions and Mount Athos) and inside Spain (the Canary Islands, Ceuta and Melilla) are not added by the update: in Countries/States, select Greece or Spain and press Add subdivisions to add them, unpublished.',
             values:   [
                 $this->packageVersion,
                 $named(array_merge(
@@ -2190,7 +2190,7 @@ class com_alfaInstallerScript extends InstallerScript
         {
             $left[] = $this->installerText(
                 key:      'COM_ALFA_INSTALL_PLACES_SEED_CURRENCIES',
-                fallback: 'The default currency of these countries was left as it is, though the one shipped was withdrawn or missing; set it in Places if the shop sells there: %s.',
+                fallback: 'The default currency of these countries was left as it is, though the one shipped was withdrawn or missing; set it in Countries/States if the shop sells there: %s.',
                 values:   [implode(', ', array_map(static fn (array $country): string => $country[0] . ' (' . $country[1] . ')', $result['currencies']))],
             );
         }
