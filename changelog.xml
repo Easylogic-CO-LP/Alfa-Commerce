@@ -14,6 +14,10 @@
             <item>REST API: an order created over the API (POST v1/alfa/orders) is placed in the currency its id_currency names, when that is a currency the shop publishes, at the rate the checkout places orders at. An id_currency the shop does not publish (unpublished, unknown, or not an id) answers 400 naming the field, and nothing is created. Leaving id_currency out places the order in the shop's default currency, as before. Before, id_currency was ignored and every order was placed in the default currency.</item>
             <item>REST API: an update of an order (PATCH v1/alfa/orders/{id}) that does not send the delivery details (alfa_form_fields), for example one that changes only customer_note, no longer asks for the fields the shop requires there. Before, on a shop with a required delivery field of its own, such an update answered 400 naming that field. Creating an order, and an update that sends the delivery details, still need every required field.</item>
         </fix>
+
+        <change>
+            <item>For plugin authors: a product field extension changes the add to cart area of a catalogue card or of the product page only through its event's setCartLayout() and setCartChildLayout(). When its method fails, what it set is left out and the other fields keep theirs, and a change it writes straight onto the product's cart ($item->cart, $item->cartChildren) is not kept, whether its method fails or not. Before, such a change stayed: after a failure the card or the page could show the failed extension's button, or none, and the card could lose its Choose options link.</item>
+        </change>
     </changelog>
     <changelog>
         <element>com_alfa</element>
