@@ -185,21 +185,31 @@
 
     /**
      * Call back once the page's scroll has come to rest: at the scroll's end, or soon after when no scroll happens
-     * (already in place) or the browser has no scrollend event.
+     * (already in place) or the browser has no scrollend event; whichever comes first, once, the other then dropped.
+     * Not at all when the shopper takes over meanwhile (a wheel, a touch or a key): the place is theirs from then on.
      *
      * @param {Function} done What to run.
      */
     function whenScrollEnds(done) {
-        var called = false;
-        var once = function () {
-            if (!called) {
-                called = true;
-                done();
-            }
+        var timer = 0;
+        var takeovers = ['wheel', 'touchstart', 'keydown'];
+        var stop = function () {
+            window.clearTimeout(timer);
+            window.removeEventListener('scrollend', finish);
+            takeovers.forEach(function (name) {
+                window.removeEventListener(name, stop, true);
+            });
+        };
+        var finish = function () {
+            stop();
+            done();
         };
 
-        window.addEventListener('scrollend', once, { once: true });
-        window.setTimeout(once, 900);
+        window.addEventListener('scrollend', finish);
+        takeovers.forEach(function (name) {
+            window.addEventListener(name, stop, { capture: true, passive: true });
+        });
+        timer = window.setTimeout(finish, 900);
     }
 
     /**
