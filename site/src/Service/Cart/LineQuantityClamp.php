@@ -74,7 +74,8 @@ final class LineQuantityClamp
      * @param int|null $combinationId The variant, when it has them.
      * @param int $from The quantity asked for.
      * @param int[] $tierStarts Every quantity at which the product's unit may change.
-     * @param Closure(int):string $unitAt The unit that prices a quantity, as the caller reads it.
+     * @param Closure(int):(string|null) $unitAt The unit that prices a quantity, as the caller reads it; null for a
+     *                                           quantity with no price (2.2.2).
      * @param Currency $currency The currency the line is charged in.
      * @param int $excludeLineId A line not to count as already held.
      *

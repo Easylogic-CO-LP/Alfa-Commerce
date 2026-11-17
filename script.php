@@ -1898,6 +1898,13 @@ class com_alfaInstallerScript extends InstallerScript
             $this->correctPlacesSeed();
         }
 
+        // The product list prices each product at the quantity it opens with, its minimum (2.2.2): the products whose
+        // minimum is above 1 are owed a rebuild of their list prices, in the background, and staff are told.
+        if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.2', '<'))
+        {
+            $this->oweOpeningQuantityRebuild();
+        }
+
         // The web cron's key (2.2.0): made when none is kept; nobody sees it, staff make the one they copy in
         // Tools > Tasks. A failure is said, never a failed install: the web cron refuses every call until a key exists.
         try
@@ -2096,6 +2103,55 @@ class com_alfaInstallerScript extends InstallerScript
                 . ' setup checklist keeps a row until each one named says it is built for this version.',
             values:   [$this->packageVersion, implode(' ', $sentences), $line],
         ), 'warning');
+    }
+
+    /**
+     * From 2.2.2 the price index prices each product at the quantity it opens with, its minimum, as a card prints it,
+     * where the version before priced every product at quantity 1. The rows of a product whose minimum is above 1 are
+     * therefore written again: those products are marked owed a rebuild (in ranges of ids) and the catalogue job is
+     * enqueued (Tools > Tasks). Until it ends, the product list may filter and sort such a product by its earlier
+     * price, or leave it out when its prices begin at its minimum; the message says so. A shop with no such product has
+     * nothing owed and no message. A failure is said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.2
+     */
+    private function oweOpeningQuantityRebuild(): void
+    {
+        $app = Factory::getApplication();
+
+        try
+        {
+            // In ranges of ids, one statement per range (quantity_min has no index of its own, so one statement over
+            // the table would scan and lock every row of a large catalogue).
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $marked = \Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager::markForRebuildWhere(
+                condition: $db->quoteName('quantity_min') . ' > 1'
+            );
+
+            if ($marked === 0)
+            {
+                return;
+            }
+
+            \Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob::enqueue();
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_OPENING_QUANTITY_REBUILD_FAILED',
+                fallback: 'Alfa Commerce %1$s could not start the rebuild of the product list\'s prices: %2$s Run Rebuild catalogue projections in Tools, so the product list filters and sorts each product by its price at its minimum quantity.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+
+            return;
+        }
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_OPENING_QUANTITY_REBUILD',
+            fallback: 'Alfa Commerce %1$s: the product list now filters and sorts each product by its price at the quantity it sells from, its minimum quantity, as its card shows it. The list prices of %2$d products with a minimum quantity above 1 are being rebuilt in the background (Tools > Tasks); until that ends, the price filters and the price sort may use their price for one piece, or leave out a product whose prices begin at its minimum.',
+            values:   [$this->packageVersion, $marked],
+        ));
     }
 
     /**

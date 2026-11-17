@@ -23,10 +23,13 @@ use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
+use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
+use Alfa\Component\Alfa\Site\Service\Pricing\PricingIntent;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
@@ -1350,6 +1353,10 @@ class PriceIndexSyncService
         // chunk's, as the unpublish path deletes them, and nothing is priced for it.
         $published = $this->publishedOf(itemIds: $chunk);
 
+        // Each product is priced at the quantity it opens with (2.2.2): its minimum, as a listing card prices it, so a
+        // product sold from 10 with prices from 10 keeps its row, its price filters and its sort place.
+        $opening = $this->openingQuantities(itemIds: $published);
+
         // The products each set is written for in this chunk.
         $itemsOf = [];
 
@@ -1442,7 +1449,7 @@ class PriceIndexSyncService
                     ->withReferenceDate($reference);
 
                 try {
-                    $results = $this->calculator->calculate($items, 1, $context);
+                    $results = $this->calculator->calculate($items, array_intersect_key($opening, array_flip($items)), $context);
                 } catch (Throwable $e) {
                     $this->lastFailure = $e->getMessage();
 
@@ -1464,32 +1471,43 @@ class PriceIndexSyncService
 
                 foreach ($items as $itemId) {
                     $result = $results[$itemId] ?? null;
-                    if ($result === null) {
+
+                    // No price row applying at the product's opening quantity for this slot and period (2.2.2): no row is
+                    // written, so every price filter leaves the product out and the price sort lists it after the priced
+                    // ones.
+                    if ($result === null || !$result->isPriced()) {
                         continue;
                     }
 
                     // Map PriceResult -> index columns
-                    // Column names match config fields exactly.
+                    // Column names match config fields exactly. Each figure is the price of ONE piece at the product's
+                    // opening quantity, exactly as its card prints it (2.2.2): every column through the one unit rule
+                    // (PriceUnits::exact(), its figure of the price block). At quantity 1 a total was the unit; at a
+                    // minimum of 10 it is ten units, and a filter or a sort would read the line's money instead of the
+                    // card's price; a line divided by the quantity can differ from the card by a minor unit.
+                    $figure = static fn (string $name): string => PriceUnits::exact(price: $result, figure: $name);
+                    $base = $figure('base');
 
-                    $basePrice = round($result->getBaseTotal()->getAmount(), 4);
-
-                    // Skip segments with no matching price row: the item is
-                    // simply absent from the catalog for that period.
-                    if ($basePrice <= 0) {
+                    // A base of zero writes no row either: the item is absent
+                    // from the catalog's price filters for that period. Read
+                    // exact, so half a cent a piece is a base, not a zero.
+                    if (!ExactAmount::of($base)->isPositive()) {
                         continue;
                     }
 
-                    $discountAmount = round($result->getSavingsTotal()->getAmount(), 4);
-                    $basePriceWithDiscounts = round($result->getSubtotal()->getAmount(), 4);
-                    $taxAmount = round($result->getTaxTotal()->getAmount(), 4);
-                    $finalPrice = round($result->getTotal()->getAmount(), 4);
+                    $basePrice = round((float) $base, 4);
+                    // The saving beside the price paid: the tax-included saving, on the basis final_price is on.
+                    $discountAmount = round((float) $figure('discount_with_tax'), 4);
+                    $basePriceWithDiscounts = round((float) $figure('subtotal'), 4);
+                    $taxAmount = round((float) $figure('tax'), 4);
+                    $finalPrice = round((float) $figure('final'), 4);
 
                     // base_price_with_tax is the UNDISCOUNTED gross: the struck
                     // "was" price. PriceResult owns that derivation (tax on the full
                     // base at the effective rate); $taxTotal is the tax on what the
                     // customer pays and is the wrong figure for it, before tax and
                     // after tax alike.
-                    $basePriceWithTax = round($result->getBaseTotalWithTax()->getAmount(), 4);
+                    $basePriceWithTax = round((float) $figure('base_with_tax'), 4);
 
                     // discount_percent: use PriceResult's authoritative calculation
                     // which correctly handles both before-tax and after-tax discounts
@@ -2797,6 +2815,37 @@ class PriceIndexSyncService
         $published = array_map('intval', $this->db->setQuery($query)->loadColumn() ?: []);
 
         return array_values(array_intersect(array_map('intval', $itemIds), $published));
+    }
+
+    /**
+     * The quantity each product opens with (2.2.2): its minimum, as a listing card prices it
+     * ({@see PricingIntent::getQuantityForItem()}), read now.
+     *
+     * @param int[] $itemIds The items.
+     *
+     * @return array<int, int> By item id, every id given (1 for an id not found).
+     *
+     * @since  2.2.2
+     */
+    private function openingQuantities(array $itemIds): array
+    {
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName(['id', 'quantity_min']))
+            ->from($this->db->quoteName('#__alfa_items'))
+            ->whereIn($this->db->quoteName('id'), array_map('intval', $itemIds));
+        $rows = $this->db->setQuery($query)->loadObjectList('id') ?: [];
+        $intent = PricingIntent::catalog();
+        $opening = [];
+
+        foreach ($itemIds as $itemId) {
+            $opening[(int) $itemId] = $intent->getQuantityForItem($rows[(int) $itemId] ?? (object) ['id' => (int) $itemId]);
+        }
+
+        return $opening;
     }
 
     /**
