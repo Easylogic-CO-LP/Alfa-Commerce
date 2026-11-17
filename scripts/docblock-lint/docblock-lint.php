@@ -46,6 +46,7 @@ const DL_RULE_IDS = ['D1', 'D2', 'D3', 'D4'];
  * The public methods of Joomla's event base classes an Alfa event extends, as [required, total, variadic] parameter
  * counts, read from Joomla 6.2.0 (Joomla\CMS\Event\AbstractImmutableEvent and AbstractEvent, Joomla\Event\Event and
  * AbstractEvent). Both bases answer the same list: the immutable one overrides offsetSet() and offsetUnset() alone.
+ * At each Joomla version bump, compare this list again with those classes' public methods by reflection.
  */
 const DL_JOOMLA_EVENT_METHODS = [
     'create' => [1, 2, false],

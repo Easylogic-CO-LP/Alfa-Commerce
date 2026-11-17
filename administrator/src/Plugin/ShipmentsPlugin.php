@@ -294,11 +294,13 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     //  The builder validates, auto-fills, and delegates to
     //  static CRUD methods internally.
     //
-    //  A carrier writes its parcels through these wrappers only: the
-    //  builder names this plugin as the writer, so a parcel is written
-    //  only on a method of this plugin. A direct ShipmentLedger::create(),
-    //  update() or delete() names no writer and skips that check; it is
-    //  core's own path, not a plugin's.
+    //  A carrier writes its parcels through these wrappers only, with
+    //  deleteShipment() and assignShipmentItems() below: each names this
+    //  plugin as the writer, so a parcel is written only on a method of
+    //  this plugin and another plugin's parcel is refused. A direct
+    //  ShipmentLedger::create(), update(), delete() or assignItems() names
+    //  no writer and skips that check; it is core's own path, not a
+    //  plugin's.
 
     /**
      * Create a new shipment (returns fluent builder in CREATE mode).

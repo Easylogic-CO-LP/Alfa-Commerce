@@ -100,7 +100,8 @@ final class SetupCheck
     public int $priority = 0;
 
     /**
-     * @var array<string, mixed> Metadata; `owner_group`/`owner_name` are written by CollectSetupChecksEvent::add().
+     * @var array<string, mixed> Metadata; `owner_group`/`owner_name` are written by CollectSetupChecksEvent::add()
+     *                           for a plugin's check, and by CoreSetupProvider::check() (core / com_alfa) for core's.
      * @since  2.0.0
      */
     public array $metadata = [];

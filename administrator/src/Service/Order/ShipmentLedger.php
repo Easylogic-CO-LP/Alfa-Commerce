@@ -9,9 +9,10 @@
  * Order Shipment Helper: Unified CRUD Engine + Fluent Builder
  *
  *  TWO APIs, ONE CLASS, for core's own code. A carrier plugin writes only
- *  through ShipmentsPlugin's shipment() and shipmentUpdate() (the PLUGIN lines),
- *  which name it as the writer, so its own-parcels check runs; a direct call here
- *  names no writer and skips it.
+ *  through ShipmentsPlugin's shipment(), shipmentUpdate() (the PLUGIN lines),
+ *  deleteShipment() and assignShipmentItems(), which name it as the writer, so
+ *  its own-parcels check runs; a direct create(), update(), delete() or
+ *  assignItems() here names no writer and skips it.
  *
  *  HIGH-LEVEL - Fluent Builder (recommended):
  *
