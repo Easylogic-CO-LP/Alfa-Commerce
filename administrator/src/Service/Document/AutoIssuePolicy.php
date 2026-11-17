@@ -639,7 +639,9 @@ final class AutoIssuePolicy
      * share leaves one, OrderChargeLines::unclaimableDiscounts()). An
      * automatic issue then issues the order's invoices without it, and they
      * total more than the order: the documents log and the order's
-     * notification name the amount, as the order's document screen does.
+     * notification name the amount, as the order's document screen does,
+     * in the currency's own format with its sign, as the other
+     * notifications state money.
      *
      * @param int $orderId The order whose sales document was just issued.
      *
@@ -660,7 +662,7 @@ final class AutoIssuePolicy
             $total = $total->add($amount);
         }
 
-        $figure = number_format($total->getAmount(), $currency->getDecimalPlaces());
+        $figure = $total->format();
 
         Log::add(
             entry:    "AutoIssuePolicy: order {$orderId}: {$figure} of its discounts can no longer be claimed by an invoice; its invoices total that much more than the order.",
