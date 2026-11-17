@@ -771,9 +771,9 @@ class com_alfaInstallerScript extends InstallerScript
                 continue;
             }
 
-            // On the driver, savepoint-aware: this runs in an update's preflight, before the package's own classes
-            // may be loaded (an installed class loaded here stays loaded for the rest of the update). Nothing is
-            // deferred inside the level.
+            // On the driver, savepoint-aware: this runs in an update's preflight (and again from completeLinkKeys() in
+            // postflight), and in preflight the package's own classes may not be loaded yet: an installed class
+            // loaded here stays loaded for the rest of the update. Nothing is deferred inside the level.
             $db->transactionStart(true);
 
             try {
