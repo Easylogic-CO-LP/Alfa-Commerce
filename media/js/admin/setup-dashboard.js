@@ -34,6 +34,8 @@
         cta:             'a.setup-cta',        // row deep link -> opens in the iframe modal
         item:            'li.setup-item',      // one checklist row, the scope of its own answers
         provision: '[data-action="provision"]', // row one-click auto-fix
+        ignore:    '[data-action="ignore"]',    // row: leave a recommended or optional step out of the count
+        showAgain: '[data-action="show-again"]', // ignored row: back into its tier
         stateAttr: 'data-state'                 // 'open' | 'collapsed'
     };
 
@@ -237,6 +239,18 @@
                 });
             }
             requestCard(opts.provisionUrl, provisionBody, provision);
+
+            return;
+        }
+
+        var ownChoice = event.target.closest(SEL.ignore) || event.target.closest(SEL.showAgain);
+
+        if (ownChoice) {
+            var choiceBody = new URLSearchParams();
+
+            choiceBody.set('owner', ownChoice.getAttribute('data-owner') || '');
+            choiceBody.set('check', ownChoice.getAttribute('data-check') || '');
+            requestCard(ownChoice.matches(SEL.ignore) ? opts.ignoreUrl : opts.showAgainUrl, choiceBody, ownChoice);
 
             return;
         }

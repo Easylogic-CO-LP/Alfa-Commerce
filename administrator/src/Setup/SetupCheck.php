@@ -427,6 +427,18 @@ final class SetupCheck
     }
 
     /**
+     * Whether the merchant may ignore this step: a recommended or optional step may be, a required one never. The tier
+     * alone decides; a check needs nothing else for it (2.2.2).
+     *
+     *
+     * @since  2.2.2
+     */
+    public function ignorable(): bool
+    {
+        return $this->tier !== self::TIER_REQUIRED;
+    }
+
+    /**
      * @return bool Whether a one-click auto-fix is available.
      *
      * @since  2.0.0
