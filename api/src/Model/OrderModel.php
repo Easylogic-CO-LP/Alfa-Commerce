@@ -53,6 +53,18 @@ class OrderModel extends AdminOrderModel
     }
 
     /**
+     * A PATCH changes what it sends: a detail field it leaves out keeps its value (2.2.2). Without this the details a
+     * PATCH sent replaced the order's delivery record whole, so a city sent alone left a record with only the city, and
+     * a guest order whose name was sent without the e-mail lost its customer e-mail.
+     *
+     * @since  2.2.2
+     */
+    protected function keepsOmittedDetails(): bool
+    {
+        return true;
+    }
+
+    /**
      * Get the order with API-consumable scalar totals and status names.
      *
      * @param int|null $pk The record id.

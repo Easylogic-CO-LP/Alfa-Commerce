@@ -971,6 +971,14 @@ class OrderModel extends AlfaAdminModel
             }
         }
 
+        // A WRITER WHOSE OMITTED KEYS MEAN "UNCHANGED" (the REST API): on an update, the details a submission sends are
+        // laid over the order's stored records, so a field it leaves out keeps its value and the record is not replaced
+        // by the part sent. The prune and the validation below then read the details whole. The order screen posts its
+        // sections whole (an emptied field, an unticked box and a field its rule hides each mean empty), so it is not.
+        if (!$isNew && $this->keepsOmittedDetails()) {
+            $data = $this->withStoredDetails(data: $data, orderId: (int) ($data['id'] ?? 0), visibilityId: $visibilityId);
+        }
+
         $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
             form: $form,
             fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
@@ -992,6 +1000,89 @@ class OrderModel extends AlfaAdminModel
         }
 
         return parent::validate($form, $data, $group);
+    }
+
+    /**
+     * Whether a submission's omitted detail fields mean "unchanged" (the REST API's PATCH) rather than "empty" (the order
+     * screen, which posts its sections whole).
+     *
+     * @return bool False here; the API's order model answers true.
+     *
+     * @since  2.2.2
+     */
+    protected function keepsOmittedDetails(): bool
+    {
+        return false;
+    }
+
+    /**
+     * The submission's detail sections laid over the order's stored records: for each section it sends (the delivery
+     * details, and the invoice details), every field of that section it leaves out takes the stored record's value.
+     * A section it does not send is left alone, and so is a field the stored record holds no value for.
+     *
+     * A choice field with several values is stored as a JSON list (UserInfoHelper::normalizeFieldValues()) and is
+     * handed back as the list a submission sends; every other stored value is handed back as stored.
+     *
+     * @param array $data The submission.
+     * @param int $orderId The order.
+     * @param int|null $visibilityId Whose fields the sections show.
+     *
+     * @return array The submission with its sections completed.
+     *
+     * @since  2.2.2
+     */
+    private function withStoredDetails(array $data, int $orderId, ?int $visibilityId): array
+    {
+        if ($orderId <= 0) {
+            return $data;
+        }
+
+        $db = $this->getDatabase();
+        $pointers = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id_address_delivery', 'id_address_invoice']))
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadAssoc() ?: [];
+
+        $sections = [
+            FieldsHelper::FIELDS_KEY => ['cart.shipping', (int) ($pointers['id_address_delivery'] ?? 0)],
+            FieldsHelper::BILLING_FIELDS_KEY => ['cart.billing', (int) ($pointers['id_address_invoice'] ?? 0)],
+        ];
+
+        foreach ($sections as $key => [$context, $recordId]) {
+            if ($recordId <= 0 || !\is_array($data[$key] ?? null)) {
+                continue;
+            }
+
+            $stored = $db->setQuery(
+                $db->getQuery(true)
+                    ->select('*')
+                    ->from($db->quoteName('#__alfa_user_info'))
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->bind(':id', $recordId, ParameterType::INTEGER),
+            )->loadAssoc() ?: [];
+
+            foreach (FieldsHelper::getFields($context, null, $visibilityId) as $field) {
+                $column = (string) ($field->field_name ?? '');
+
+                if ($column === '' || \array_key_exists($column, $data[$key]) || !isset($stored[$column]) || $stored[$column] === '') {
+                    continue;
+                }
+
+                $value = $stored[$column];
+
+                if ((string) ($field->type ?? '') === 'choice' && \is_string($value) && str_starts_with($value, '[')) {
+                    $list = json_decode($value, true);
+                    $value = \is_array($list) && array_is_list($list) ? $list : $value;
+                }
+
+                $data[$key][$column] = $value;
+            }
+        }
+
+        return $data;
     }
 
     /**
