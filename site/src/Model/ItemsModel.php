@@ -38,7 +38,9 @@ use Alfa\Component\Alfa\Administrator\Service\Search\SearchProviderFactory;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchQuery;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
+use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
 use Alfa\Component\Alfa\Site\Helper\SaleTag;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\Facet\FacetGroupResolver;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBag;
@@ -56,6 +58,7 @@ use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\ParameterType;
+use SimpleXMLElement;
 use Throwable;
 
 /**
@@ -253,10 +256,34 @@ class ItemsModel extends UrlListModel
             return ResultSetContext::RELEVANCE;
         }
 
-        $column = (string) $this->state->get('list.ordering', 'id');
-        $direction = strtolower((string) $this->state->get('list.direction', 'DESC')) === 'asc' ? 'asc' : 'desc';
+        [$column, $direction] = $this->effectiveOrdering();
+        $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
 
         return 'sort:' . (self::ORDER_KEYS[$column] ?? 'id') . ':' . $direction;
+    }
+
+    /**
+     * The order the listing applies: the state's column and direction, except in catalogue-only mode (2.2.2), where a
+     * sort by a figure of the price index (the price, the saving) is not read and falls back to the listing's default
+     * order, or to the newest first when that default is a price-index sort too.
+     *
+     * @return array{0: string, 1: string} The column and the direction.
+     *
+     * @since  2.2.2
+     */
+    private function effectiveOrdering(): array
+    {
+        $column = (string) $this->state->get('list.ordering', 'id');
+        $direction = (string) $this->state->get('list.direction', 'DESC');
+        $readsIndex = static fn (string $col): bool => $col === 'price' || str_starts_with($col, 'pf.');
+
+        if (ShopMode::sellsOnline() || !$readsIndex($column)) {
+            return [$column, $direction];
+        }
+
+        [$column, $direction] = $this->parseFullordering((string) ($this->getDefaults()['list']['fullordering'] ?? ''));
+
+        return $readsIndex((string) $column) ? ['a.id', 'DESC'] : [(string) $column, (string) $direction];
     }
 
     /**
@@ -831,6 +858,22 @@ class ItemsModel extends UrlListModel
             $form->setValue($name, 'filter', $this->getState('filter.' . $name));
         }
 
+        // Catalogue only (2.2.2): no price is read, so the bar offers no price or saving filter and no price or saving
+        // sort (the query leaves them out in any case).
+        if (!ShopMode::sellsOnline()) {
+            foreach (['price_min', 'price_max', 'on_sale', 'discount_amount_min', 'discount_percent_min'] as $name) {
+                $form->removeField($name, 'filter');
+            }
+
+            $ordering = $form->getFieldXml('fullordering', 'list');
+
+            if ($ordering instanceof SimpleXMLElement) {
+                foreach ($ordering->xpath('option[starts-with(@value, "pf.")]') ?: [] as $option) {
+                    unset($option[0]);
+                }
+            }
+        }
+
         // Merchant-configured page sizes -> the dropdown's option list. The
         // field is core-limitbox-shaped, so this is just its `limits` attribute;
         // "All" travels as a 0 entry and becomes the showall flag (core appends
@@ -1083,8 +1126,13 @@ class ItemsModel extends UrlListModel
             )
             ->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
 
-        // Architecture B price index subquery JOIN
-        $this->applyPriceIndexJoin($query);
+        // Architecture B price index subquery JOIN. Catalogue only (2.2.2): no price is read, so the index is not
+        // joined, and every price filter and sort below is left out with it (the sale filter matches nothing).
+        $sellsOnline = ShopMode::sellsOnline();
+
+        if ($sellsOnline) {
+            $this->applyPriceIndexJoin($query);
+        }
 
         // MULTILINGUAL: resolve name / alias in the active language
         // 1:1 LEFT JOIN on the PK, so it does not affect the GROUP BY a.id below.
@@ -1307,8 +1355,8 @@ class ItemsModel extends UrlListModel
         }
 
         // Price range filter
-        $priceMin = $this->getState('filter.price_min');
-        $priceMax = $this->getState('filter.price_max');
+        $priceMin = $sellsOnline ? $this->getState('filter.price_min') : null;
+        $priceMax = $sellsOnline ? $this->getState('filter.price_max') : null;
         $hasMin = is_numeric($priceMin) && $priceMin !== '' && $priceMin !== null;
         $hasMax = is_numeric($priceMax) && $priceMax !== '' && $priceMax !== null;
 
@@ -1327,8 +1375,9 @@ class ItemsModel extends UrlListModel
 
         // On sale filter
         // discount_amount > 0 is the canonical test; no separate has_discount column needed.
+        // A sale nobody sees is no sale: in catalogue-only mode the filter matches nothing.
         if ($this->getState('filter.on_sale')) {
-            $query->where('pf.discount_amount > 0');
+            $query->where($sellsOnline ? 'pf.discount_amount > 0' : '0 = 1');
         }
 
         // Availability
@@ -1344,21 +1393,20 @@ class ItemsModel extends UrlListModel
 
         // Minimum discount amount filter
         // "Show items where the visitor saves at least €X."
-        $discountAmountMin = $this->getState('filter.discount_amount_min');
+        $discountAmountMin = $sellsOnline ? $this->getState('filter.discount_amount_min') : null;
         if (is_numeric($discountAmountMin) && (float) $discountAmountMin > 0) {
             $query->where('pf.discount_amount >= ' . (float) $discountAmountMin);
         }
 
         // Minimum discount percentage filter
         // "Show items discounted by at least X%."
-        $discountPercentMin = $this->getState('filter.discount_percent_min');
+        $discountPercentMin = $sellsOnline ? $this->getState('filter.discount_percent_min') : null;
         if (is_numeric($discountPercentMin) && (float) $discountPercentMin > 0) {
             $query->where('pf.discount_percent >= ' . (float) $discountPercentMin);
         }
 
-        // Ordering
-        $orderCol = $this->state->get('list.ordering', 'id');
-        $orderDirn = $this->state->get('list.direction', 'DESC');
+        // Ordering (a price-index sort falls back in catalogue-only mode, 2.2.2)
+        [$orderCol, $orderDirn] = $this->effectiveOrdering();
 
         // RELEVANCE WINS ONLY WHERE NOTHING ELSE WAS ASKED FOR. A search is active and the
         // visitor has not chosen a sort, so the best answer to "show me these" is the engine's
@@ -1604,7 +1652,12 @@ class ItemsModel extends UrlListModel
         //    so the whole page can be priced in ONE batched pass afterwards
         $selections = [];
 
+        // Catalogue only (2.2.2): every card says whether the shop sells online, for its template and for the per-card
+        // collector, which then lists the fields read-only and leaves no add to cart; no card is priced.
+        $sellsOnline = ShopMode::sellsOnline();
+
         foreach ($items as &$item) {
+            $item->sellsOnline = $sellsOnline;
             $item->categories = $this->mapIdsToNames($item->category_ids, $categoriesMapping);
             $item->manufacturers = $this->mapIdsToNames($item->manufacturer_ids, $manufacturersMapping);
 
@@ -1694,7 +1747,9 @@ class ItemsModel extends UrlListModel
         //    reloads). Plain items get their base; variant items their default.
         //    Opt-out via setState('list.price', false): per-user pricing is the
         //    expensive pass, and a price-less dropdown must not run it per keystroke.
-        $prices = $this->getState('list.price', true)
+        //    In catalogue-only mode (2.2.2) it never runs, whatever a caller set.
+        $priced = $sellsOnline && (bool) $this->getState('list.price', true);
+        $prices = $priced
             ? $this->getPriceCalculator()->calculateBatch($productIds, $quantities, $context, $selections)
             : [];
 
@@ -1718,15 +1773,13 @@ class ItemsModel extends UrlListModel
 
         // Pass 2: assign each price, then overlay the active combination's data
         //    (sku/stock/name/media) onto the variant cards.
-        $priced = (bool) $this->getState('list.price', true);
-
         foreach ($items as &$item) {
             // A card with no price applying gets a null price and, when the pass ran, no add to cart (2.2.2).
             if ($priced) {
                 VariantHelper::priceOnto(item: $item, result: $prices[$item->id] ?? null);
                 $this->withdrawCartWithoutPrice(item: $item);
             } else {
-                $item->price = null;
+                VariantHelper::priceOnto(item: $item, result: null);
             }
 
             if (!empty($item->combinations)) {
@@ -1745,6 +1798,13 @@ class ItemsModel extends UrlListModel
         // Whole-page onItemsListPrepare: engage the plugins on the dispatcher and
         // let them adjust across the fully-built page (cross-item pass).
         $this->dispatchItemsListPrepare($items);
+
+        // Catalogue only (2.2.2): core's last word on each card's buy area, after the whole-page pass.
+        if ($this->getState('plugin.layouts', true)) {
+            foreach ($items as $item) {
+                $this->catalogueOnlyBuyArea(item: $item);
+            }
+        }
 
         return $items;
     }
@@ -1793,6 +1853,8 @@ class ItemsModel extends UrlListModel
      */
     protected function finishItemCard(object $item, PriceContext $context, array $selection, array $optionValueIds = [], array $payloads = []): void
     {
+        // Catalogue only (2.2.2): the card is resolved and drawn, never priced.
+        $item->sellsOnline = ShopMode::sellsOnline();
         $shownFieldIds = null;
 
         if ($this->getState('plugin.layouts', true)) {
@@ -1803,7 +1865,9 @@ class ItemsModel extends UrlListModel
         // At the quantity the card opens with: the product's minimum, as the listing prices it (2.2.2).
         $opening = PricingIntent::catalog()->getQuantityForItem($item);
 
-        if (!empty($item->combinations) || $optionValueIds !== [] || $payloads !== []) {
+        if (!$item->sellsOnline) {
+            VariantHelper::resolveWithoutPrice($item, $selection, $optionValueIds, $payloads, $context, $shownFieldIds);
+        } elseif (!empty($item->combinations) || $optionValueIds !== [] || $payloads !== []) {
             VariantHelper::resolveAndPrice($item, $selection, $context, $this->getPriceCalculator(), $opening, $optionValueIds, $payloads, shownFieldIds: $shownFieldIds);
         } else {
             // Priced by the caller; resolved here only so the card carries its cart
@@ -1821,7 +1885,14 @@ class ItemsModel extends UrlListModel
             // to the resolver, and the card is drawn again.
             if ($readOnly !== []) {
                 $item->listingFieldIds = ItemFieldsHelper::listingFieldIds($item, $readOnly);
-                VariantHelper::resolveAndPrice($item, $selection, $context, $this->getPriceCalculator(), $opening, $optionValueIds, $payloads, shownFieldIds: array_values(array_diff($item->listingFieldIds, $readOnly)));
+                $shown = array_values(array_diff($item->listingFieldIds, $readOnly));
+
+                if ($item->sellsOnline) {
+                    VariantHelper::resolveAndPrice($item, $selection, $context, $this->getPriceCalculator(), $opening, $optionValueIds, $payloads, shownFieldIds: $shown);
+                } else {
+                    VariantHelper::resolveWithoutPrice($item, $selection, $optionValueIds, $payloads, $context, $shown);
+                }
+
                 $drawn = $this->drawCard($item, $selection);
             }
 
@@ -2214,8 +2285,8 @@ class ItemsModel extends UrlListModel
 
         // Base price (kept as-is for a plain item; finishItemCard overwrites it
         // through VariantHelper for a variant item), at the quantity the card opens with: the product's minimum, as the
-        // listing prices it (2.2.2).
-        VariantHelper::priceOnto(item: $item, result: $this->getPriceCalculator()->calculate($id, PricingIntent::catalog()->getQuantityForItem($item), $context));
+        // listing prices it (2.2.2). None in catalogue-only mode, and none computed.
+        VariantHelper::priceOnto(item: $item, result: ShopMode::sellsOnline() ? $this->getPriceCalculator()->calculate($id, PricingIntent::catalog()->getQuantityForItem($item), $context) : null);
 
         $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
         $item->link = $this->buildRoute(
@@ -2229,6 +2300,11 @@ class ItemsModel extends UrlListModel
 
         // Engage the plugins on the dispatcher once (parity with the list path).
         $this->dispatchItemsListPrepare([$item]);
+
+        // Catalogue only (2.2.2): core's last word on the card's buy area, after the whole-page pass.
+        if ($this->getState('plugin.layouts', true)) {
+            $this->catalogueOnlyBuyArea(item: $item);
+        }
 
         return $item;
     }
@@ -2409,7 +2485,45 @@ class ItemsModel extends UrlListModel
         // its field caught above, and its change must not outlive it.
         $item->surfaces = new SurfaceMap($slots);
 
+        // Catalogue only (2.2.2): the card's buy area as core draws it in the mode. The fields that drew a selector are
+        // still answered, so the card resolves the variant it shows as when selling. Handed again after the whole-page
+        // pass, which runs after this one.
+        $this->catalogueOnlyBuyArea(item: $item);
+
         return $drawnFieldIds;
+    }
+
+    /**
+     * A card's buy area in catalogue-only mode (2.2.2), core's last word: the buy form's slot holds only plain read-only
+     * lists of the card's own fields (its listing fields, the informational ones left to its specifications), whoever
+     * contributed to it, and the cart main slot is none, whatever a plugin set. Called after the per-card field events
+     * and again after the whole-page pass (onItemsListPrepare), the last two passes that can change it; repeatable. A
+     * card that sells is left as it is.
+     *
+     * @param object $item The drawn card (->sellsOnline, ->fields, ->listingFieldIds, ->surfaces).
+     *
+     * @since  2.2.2
+     */
+    protected function catalogueOnlyBuyArea(object $item): void
+    {
+        if ($item->sellsOnline ?? true) {
+            return;
+        }
+
+        $listed = array_flip(array_map('intval', (array) ($item->listingFieldIds ?? [])));
+        $item->surfaces = new SurfaceMap(ReadOnlyFields::replace(
+            slots: $item->surfaces instanceof SurfaceMap ? $item->surfaces->toArray() : (array) ($item->surfaces ?? []),
+            fields: (array) ($item->fields ?? []),
+            buySlots: [ItemListSurface::BuyForm->value],
+            listed: array_values(array_map(
+                static fn (object $field): int => (int) $field->id,
+                array_filter(
+                    (array) ($item->fields ?? []),
+                    static fn (object $field): bool => isset($listed[(int) $field->id]) && empty($field->informational),
+                ),
+            )),
+        ));
+        $item->cart = ReadOnlyFields::NO_CART;
     }
 
     // Filter option helpers
@@ -2426,6 +2540,11 @@ class ItemsModel extends UrlListModel
      */
     public function getAvailablePriceRange(): array
     {
+        // Catalogue only (2.2.2): no price is read, so there is no range.
+        if (!ShopMode::sellsOnline()) {
+            return ['min' => null, 'max' => null];
+        }
+
         $model = $this->createFilterSubModel([
             'filter.price_min',
             'filter.price_max',

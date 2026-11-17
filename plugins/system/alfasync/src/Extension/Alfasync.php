@@ -49,6 +49,7 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
+use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility;
 use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
@@ -105,6 +106,16 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @since  2.2.1
      */
     private array $uninstallingAlfa = [];
+
+    /**
+     * Alfa's Options as they were when a save of them began ({@see self::onExtensionBeforeSave()}), so the save can ask
+     * the one rule for online sales with what it changed (2.2.2). Request memory only; null when no such save began.
+     *
+     * @var array<string, mixed>|null
+     *
+     * @since  2.2.2
+     */
+    private ?array $alfaOptionsBeforeSave = null;
 
     // Event subscriptions: the only place to touch when adding a sync target
 
@@ -928,6 +939,18 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             if ($component === 'com_alfa') {
                 $this->invalidateSetup('com_alfa options saved');
+
+                // Online sales switched on or off (2.2.2): the one rule of every write of the Options
+                // (ComponentOptions::followOnlineSales()). Joomla's Options save writes the row itself, not through
+                // ComponentOptions::write(), so this save asks it here, with the Options it found before.
+                if ($this->alfaOptionsBeforeSave !== null) {
+                    ComponentOptions::followOnlineSales(
+                        before: $this->alfaOptionsBeforeSave,
+                        after: (new Registry((string) ($item->params ?? '{}')))->toArray(),
+                    );
+                }
+
+                $this->alfaOptionsBeforeSave = null;
             }
 
             // The guest group, or the group new accounts are placed in, may be another one.
@@ -1199,6 +1222,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * between would see them replaced or would set them on a shop that is not whole. Joomla's Options
      * save stops on a false result (com_config ComponentModel::save()).
      *
+     * It also keeps the Options as they were before the save (2.2.2), for the one rule of online sales
+     * ({@see ComponentOptions::followOnlineSales()}) the save after it asks: Joomla's Options save writes
+     * the row itself, never through ComponentOptions::write(), which asks the rule for every other write.
+     *
      * @param Event $event The save event (Joomla's BeforeSaveEvent): context, the extension table.
      *
      * @since  2.1.0
@@ -1208,7 +1235,14 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         $context = (string) ($event->getArgument('context') ?? $event->getArgument('0') ?? '');
         $item = $event->getArgument('subject') ?? $event->getArgument('1');
 
-        if ($context !== 'com_config.component' || !\is_object($item) || (string) ($item->element ?? '') !== 'com_alfa' || !$this->paused()) {
+        if ($context !== 'com_config.component' || !\is_object($item) || (string) ($item->element ?? '') !== 'com_alfa') {
+            return;
+        }
+
+        // The Options as they were before this save, for the rule the save after it asks (2.2.2).
+        $this->alfaOptionsBeforeSave = ComponentOptions::stored();
+
+        if (!$this->paused()) {
             return;
         }
 
