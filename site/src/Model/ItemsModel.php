@@ -1879,9 +1879,13 @@ class ItemsModel extends UrlListModel
 
         $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
 
+        // A related product's card on a product page (2.2.2) is drawn again from the levels it was drawn from: its own,
+        // its default category's, the Options (Items\HtmlView::cardsFor()).
+        $context = $this->getState('card.context') === 'related' ? '&context=related' : '';
+
         $item->reloadUrl = $this->buildRoute(
             'index.php?option=com_alfa&view=items&layout=item&tmpl=component&id=' . (int) $item->id
-            . '&category_id=' . (int) $urlCategoryId,
+            . '&category_id=' . (int) $urlCategoryId . $context,
             false,
         );
     }

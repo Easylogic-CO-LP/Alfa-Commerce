@@ -122,3 +122,7 @@
 
     </div>
 </div>
+
+<?php // The related products (2.2.2), a part of their own after the product's container: a variant change replaces the
+      // container and leaves them as they are. An override of this page shows them where it loads the part. ?>
+<?php echo $this->loadTemplate($this->relatedTpl); ?>
