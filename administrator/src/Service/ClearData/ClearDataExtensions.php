@@ -517,16 +517,18 @@ final class ClearDataExtensions
             $thrown = $e;
         }
 
-        // Work an extension left uncommitted is never committed by core's next statement.
+        // Work an extension left uncommitted is never committed by core's next statement. Each level it left is closed
+        // through the helper, so the work it deferred inside goes with it and the driver counts no level the server
+        // no longer holds; the bound keeps a driver that never answers closed from looping.
         $open = false;
 
         if ($this->db instanceof DatabaseDriver && TransactionState::isOpen(db: $this->db)) {
             $open = true;
 
-            try {
-                $this->db->transactionRollback();
-            } catch (Throwable) {
-                // The connection ends with the request; nothing of it is committed.
+            for ($guard = 0; $guard < 32; $guard++) {
+                if (TransactionState::rollBackLevel(db: $this->db)) {
+                    break;
+                }
             }
         }
 

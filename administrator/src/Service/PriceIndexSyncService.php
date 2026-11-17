@@ -21,10 +21,13 @@ use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
+use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
+use Alfa\Component\Alfa\Site\Service\Pricing\PricingIntent;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
@@ -234,8 +237,11 @@ class PriceIndexSyncService
 
     // Dependencies
 
-    /** @var \Joomla\Database\DatabaseInterface */
-    private $db;
+    /**
+     * @var DatabaseDriver The connection, narrowed once to the driver whose transaction levels TransactionState keeps.
+     * @since  1.0.0
+     */
+    private DatabaseDriver $db;
 
     /** @var PriceCalculator */
     private $calculator;
@@ -248,7 +254,7 @@ class PriceIndexSyncService
      */
     public function __construct(?PriceCalculator $calculator = null)
     {
-        $this->db = Factory::getContainer()->get('DatabaseDriver');
+        $this->db = TransactionState::driver(Factory::getContainer()->get('DatabaseDriver'));
         $this->calculator = $calculator ?? new PriceCalculator();
     }
 
@@ -606,7 +612,7 @@ class PriceIndexSyncService
                 } catch (Throwable $e) {
                     // Inside a caller's transaction the failure is the caller's (2.2.0, A-C18-14): a lock wait timeout
                     // or a deadlock swallowed here would let a delete go on, and its cascade take rows no event named.
-                    if ($this->db instanceof DatabaseDriver && TransactionState::isOpen(db: $this->db)) {
+                    if (TransactionState::isOpen(db: $this->db)) {
                         throw $e;
                     }
 
@@ -1237,7 +1243,7 @@ class PriceIndexSyncService
             $chunkWritten = $this->writeChunk(chunk: $chunk, combinations: $combinations, globalEdges: $globalEdges);
 
             if ($chunkWritten !== null) {
-                $this->db->transactionCommit(true);
+                TransactionState::commitLevel(db: $this->db);
                 // Committed: what the chunk changed joins the announcement (2.2.0).
                 $this->keepChunkChanges();
 
@@ -1251,7 +1257,7 @@ class PriceIndexSyncService
         }
 
         $this->dropChunkChanges();
-        $this->db->transactionRollback(true);
+        TransactionState::rollBackLevel(db: $this->db);
 
         return null;
     }
@@ -1337,6 +1343,10 @@ class PriceIndexSyncService
         // Only a published product has rows (2.2.1): the rows of one that is not are deleted below with the
         // chunk's, as the unpublish path deletes them, and nothing is priced for it.
         $published = $this->publishedOf(itemIds: $chunk);
+
+        // Each product is priced at the quantity it opens with (2.2.2): its minimum, as a listing card prices it, so a
+        // product sold from 10 with prices from 10 keeps its row, its price filters and its sort place.
+        $opening = $this->openingQuantities(itemIds: $published);
 
         // The products each set is written for in this chunk.
         $itemsOf = [];
@@ -1430,7 +1440,7 @@ class PriceIndexSyncService
                     ->withReferenceDate($reference);
 
                 try {
-                    $results = $this->calculator->calculate($items, 1, $context);
+                    $results = $this->calculator->calculate($items, array_intersect_key($opening, array_flip($items)), $context);
                 } catch (Throwable $e) {
                     $this->lastFailure = $e->getMessage();
 
@@ -1452,32 +1462,43 @@ class PriceIndexSyncService
 
                 foreach ($items as $itemId) {
                     $result = $results[$itemId] ?? null;
-                    if ($result === null) {
+
+                    // No price row applying at the product's opening quantity for this slot and period (2.2.2): no row is
+                    // written, so every price filter leaves the product out and the price sort lists it after the priced
+                    // ones.
+                    if ($result === null || !$result->isPriced()) {
                         continue;
                     }
 
                     // Map PriceResult -> index columns
-                    // Column names match config fields exactly.
+                    // Column names match config fields exactly. Each figure is the price of ONE piece at the product's
+                    // opening quantity, exactly as its card prints it (2.2.2): every column through the one unit rule
+                    // (PriceUnits::exact(), its figure of the price block). At quantity 1 a total was the unit; at a
+                    // minimum of 10 it is ten units, and a filter or a sort would read the line's money instead of the
+                    // card's price; a line divided by the quantity can differ from the card by a minor unit.
+                    $figure = static fn (string $name): string => PriceUnits::exact(price: $result, figure: $name);
+                    $base = $figure('base');
 
-                    $basePrice = round($result->getBaseTotal()->getAmount(), 4);
-
-                    // Skip segments with no matching price row: the item is
-                    // simply absent from the catalog for that period.
-                    if ($basePrice <= 0) {
+                    // A base of zero writes no row either: the item is absent
+                    // from the catalog's price filters for that period. Read
+                    // exact, so half a cent a piece is a base, not a zero.
+                    if (!ExactAmount::of($base)->isPositive()) {
                         continue;
                     }
 
-                    $discountAmount = round($result->getSavingsTotal()->getAmount(), 4);
-                    $basePriceWithDiscounts = round($result->getSubtotal()->getAmount(), 4);
-                    $taxAmount = round($result->getTaxTotal()->getAmount(), 4);
-                    $finalPrice = round($result->getTotal()->getAmount(), 4);
+                    $basePrice = round((float) $base, 4);
+                    // The saving beside the price paid: the tax-included saving, on the basis final_price is on.
+                    $discountAmount = round((float) $figure('discount_with_tax'), 4);
+                    $basePriceWithDiscounts = round((float) $figure('subtotal'), 4);
+                    $taxAmount = round((float) $figure('tax'), 4);
+                    $finalPrice = round((float) $figure('final'), 4);
 
                     // base_price_with_tax is the UNDISCOUNTED gross: the struck
                     // "was" price. PriceResult owns that derivation (tax on the full
                     // base at the effective rate); $taxTotal is the tax on what the
                     // customer pays and is the wrong figure for it, before tax and
                     // after tax alike.
-                    $basePriceWithTax = round($result->getBaseTotalWithTax()->getAmount(), 4);
+                    $basePriceWithTax = round((float) $figure('base_with_tax'), 4);
 
                     // discount_percent: use PriceResult's authoritative calculation
                     // which correctly handles both before-tax and after-tax discounts
@@ -1575,12 +1596,11 @@ class PriceIndexSyncService
             self::$announcement = null;
 
             if ($announcement->listening) {
-                $db = Factory::getContainer()->get('DatabaseDriver');
                 $deliver = static function () use ($announcement): void {
                     self::deliver(announcement: $announcement);
                 };
 
-                $db instanceof DatabaseDriver ? PostCommit::defer(db: $db, label: PricesChangedEvent::NAME, work: $deliver) : $deliver();
+                PostCommit::defer(db: TransactionState::driver(Factory::getContainer()->get('DatabaseDriver')), label: PricesChangedEvent::NAME, work: $deliver);
             }
         }
     }
@@ -1644,7 +1664,7 @@ class PriceIndexSyncService
             // THE BOUND (A-C18-4). Past the limit, with no transaction open around the write, what is collected is
             // committed: it goes out as its own event and the collection starts again, so a listener never holds the
             // whole of a catalogue-wide write in memory. Inside a caller's transaction the rows wait for its commit.
-            if (\count($announcement->changes) >= self::ANNOUNCE_LIMIT && !($db instanceof DatabaseDriver && TransactionState::isOpen($db))) {
+            if (\count($announcement->changes) >= self::ANNOUNCE_LIMIT && !TransactionState::isOpen($db)) {
                 $part = clone $announcement;
                 $announcement->changes = [];
                 $announcement->items = [];
@@ -1653,7 +1673,7 @@ class PriceIndexSyncService
             }
         };
 
-        $this->db instanceof DatabaseDriver ? PostCommit::defer(db: $this->db, label: PricesChangedEvent::NAME, work: $join) : $join();
+        PostCommit::defer(db: $this->db, label: PricesChangedEvent::NAME, work: $join);
     }
 
     /**
@@ -2334,7 +2354,7 @@ class PriceIndexSyncService
             $this->db->setQuery(
                 'DELETE FROM ' . $this->db->quoteName('#__alfa_items_price_index') . ' WHERE ' . $this->db->quoteName('group_set_id') . ' IN (' . $list . ')',
             )->execute();
-            $this->db->transactionCommit(true);
+            TransactionState::commitLevel(db: $this->db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $this->db, failure: $e);
 
@@ -2405,7 +2425,7 @@ class PriceIndexSyncService
 
             if ($written === null && $this->lastFailure !== '') {
                 $this->lastFailure = '';
-                $this->db->transactionRollback(true);
+                TransactionState::rollBackLevel(db: $this->db);
                 $this->db->transactionStart(true);
                 $written = $holdSet() ? 0 : null;
 
@@ -2423,7 +2443,7 @@ class PriceIndexSyncService
 
                     if ($one === null) {
                         $this->dropChunkChanges();
-                        $this->db->transactionRollback(true);
+                        TransactionState::rollBackLevel(db: $this->db);
                         $left[] = ['set' => $setId, 'product' => $itemId, 'message' => $this->lastFailure];
                         $this->logWarning(message: "Product {$itemId} could not be priced for set {$setId} and is left out of it: " . $this->lastFailure);
                         $this->lastFailure = '';
@@ -2431,7 +2451,7 @@ class PriceIndexSyncService
                         continue;
                     }
 
-                    $this->db->transactionCommit(true);
+                    TransactionState::commitLevel(db: $this->db);
                     $written += $one;
                     $kept = ['changes' => array_merge($kept['changes'], $this->chunkChanges['changes']), 'sets' => array_values(array_unique(array_merge($kept['sets'], $this->chunkChanges['sets'])))];
                 }
@@ -2439,7 +2459,7 @@ class PriceIndexSyncService
 
             if ($written === null) {
                 $this->dropChunkChanges();
-                $this->db->transactionRollback(true);
+                TransactionState::rollBackLevel(db: $this->db);
 
                 return null;
             }
@@ -2450,7 +2470,7 @@ class PriceIndexSyncService
                     . $this->db->quoteName('left_out') . ', ' . $this->db->quote('') . '), ' . $this->db->quote(implode(',', array_column($left, 'product'))) . ')')
                 . ' WHERE ' . $this->db->quoteName('id') . ' = ' . $setId,
             )->execute();
-            $this->db->transactionCommit(true);
+            TransactionState::commitLevel(db: $this->db);
             $this->chunkChanges = $kept;
             $this->keepChunkChanges();
             array_push($leftOut, ...$left);
@@ -2565,6 +2585,37 @@ class PriceIndexSyncService
         $published = array_map('intval', $this->db->setQuery($query)->loadColumn() ?: []);
 
         return array_values(array_intersect(array_map('intval', $itemIds), $published));
+    }
+
+    /**
+     * The quantity each product opens with (2.2.2): its minimum, as a listing card prices it
+     * ({@see PricingIntent::getQuantityForItem()}), read now.
+     *
+     * @param int[] $itemIds The items.
+     *
+     * @return array<int, int> By item id, every id given (1 for an id not found).
+     *
+     * @since  2.2.2
+     */
+    private function openingQuantities(array $itemIds): array
+    {
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName(['id', 'quantity_min']))
+            ->from($this->db->quoteName('#__alfa_items'))
+            ->whereIn($this->db->quoteName('id'), array_map('intval', $itemIds));
+        $rows = $this->db->setQuery($query)->loadObjectList('id') ?: [];
+        $intent = PricingIntent::catalog();
+        $opening = [];
+
+        foreach ($itemIds as $itemId) {
+            $opening[(int) $itemId] = $intent->getQuantityForItem($rows[(int) $itemId] ?? (object) ['id' => (int) $itemId]);
+        }
+
+        return $opening;
     }
 
     /**

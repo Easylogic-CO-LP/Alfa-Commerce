@@ -227,12 +227,20 @@ class ItemModel extends BaseItemModel
                 $data->editLine = $editLine; // wrapper: "Update" + hidden edit_line
             }
 
+            // Priced at the quantity the page opens with (2.2.2): the product's minimum, as a listing card prices it, or
+            // the quantity the request states (recalculate() sets it), never under the minimum.
+            // The item says the quantity it was priced at ($data->pricedQuantity), for a caller that draws beside the
+            // price (recalculate()'s stock line).
+            $opening = Pricing\PricingIntent::catalog()->getQuantityForItem($data);
+            $stated = $this->getState('quantity');
+            $data->pricedQuantity = $stated === null ? $opening : max((int) $stated, $opening);
+
             VariantHelper::resolveAndPrice(
                 $data,
                 $request['selection'],
                 Pricing\PriceContext::fromSession(),
                 new Pricing\PriceCalculator(),
-                (int) $this->getState('quantity', 1),
+                $data->pricedQuantity,
                 $request['optionValueIds'],
                 $request['payloads'],
             );
@@ -309,8 +317,11 @@ class ItemModel extends BaseItemModel
      */
     protected function dispatchFieldSurfaces(object $item): void
     {
+        // A product with no price applying offers no add to cart (2.2.2): core's main slot is no layout, which the
+        // wrapper renders as nothing. One priced from a larger quantity keeps it, and the cart says from which quantity.
+        // A field plugin that sets its own slot decides for itself, and the cart refuses the add in any case.
         $cart = [
-            'layout' => 'cart.add',
+            'layout' => ($item->price ?? null) === null && ($item->pricedFrom ?? null) === null ? '' : 'cart.add',
             'layoutData' => [],
             'layoutPluginType' => '',
             'layoutPluginName' => '',
