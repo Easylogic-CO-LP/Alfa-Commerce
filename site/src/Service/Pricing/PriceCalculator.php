@@ -56,7 +56,7 @@ class PriceCalculator
         // The fence lives here and not only on calculateBatch(), because the
         // catalogue PRICE INDEX reaches this method with an array:
         // PriceIndexSyncService prices a whole (currency, place, usergroup,
-        // date) segment with calculate($group['items'], 1, $context). Silently
+        // date) segment with calculate($items, $openingQuantities, $context). Silently
         // applying one operator's negotiated price to every item of a segment
         // would write it into #__alfa_items_price_index and serve it to every
         // shopper: the leak the custom-price contract forbids by name.

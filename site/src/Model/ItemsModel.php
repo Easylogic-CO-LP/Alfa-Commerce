@@ -1800,8 +1800,11 @@ class ItemsModel extends UrlListModel
             $shownFieldIds = $item->listingFieldIds;
         }
 
+        // At the quantity the card opens with: the product's minimum, as the listing prices it (2.2.2).
+        $opening = PricingIntent::catalog()->getQuantityForItem($item);
+
         if (!empty($item->combinations) || $optionValueIds !== [] || $payloads !== []) {
-            VariantHelper::resolveAndPrice($item, $selection, $context, $this->getPriceCalculator(), 1, $optionValueIds, $payloads, shownFieldIds: $shownFieldIds);
+            VariantHelper::resolveAndPrice($item, $selection, $context, $this->getPriceCalculator(), $opening, $optionValueIds, $payloads, shownFieldIds: $shownFieldIds);
         } else {
             // Priced by the caller; resolved here only so the card carries its cart
             // state, exactly as the list loop's cards do.
@@ -1818,7 +1821,7 @@ class ItemsModel extends UrlListModel
             // to the resolver, and the card is drawn again.
             if ($readOnly !== []) {
                 $item->listingFieldIds = ItemFieldsHelper::listingFieldIds($item, $readOnly);
-                VariantHelper::resolveAndPrice($item, $selection, $context, $this->getPriceCalculator(), 1, $optionValueIds, $payloads, shownFieldIds: array_values(array_diff($item->listingFieldIds, $readOnly)));
+                VariantHelper::resolveAndPrice($item, $selection, $context, $this->getPriceCalculator(), $opening, $optionValueIds, $payloads, shownFieldIds: array_values(array_diff($item->listingFieldIds, $readOnly)));
                 $drawn = $this->drawCard($item, $selection);
             }
 
@@ -2210,8 +2213,9 @@ class ItemsModel extends UrlListModel
         $context = PriceContext::fromSession();
 
         // Base price (kept as-is for a plain item; finishItemCard overwrites it
-        // through VariantHelper for a variant item).
-        VariantHelper::priceOnto(item: $item, result: $this->getPriceCalculator()->calculate($id, 1, $context));
+        // through VariantHelper for a variant item), at the quantity the card opens with: the product's minimum, as the
+        // listing prices it (2.2.2).
+        VariantHelper::priceOnto(item: $item, result: $this->getPriceCalculator()->calculate($id, PricingIntent::catalog()->getQuantityForItem($item), $context));
 
         $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
         $item->link = $this->buildRoute(

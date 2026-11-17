@@ -227,12 +227,17 @@ class ItemModel extends BaseItemModel
                 $data->editLine = $editLine; // wrapper: "Update" + hidden edit_line
             }
 
+            // Priced at the quantity the page opens with (2.2.2): the product's minimum, as a listing card prices it, or
+            // the quantity the request states (recalculate() sets it), never under the minimum.
+            $opening = Pricing\PricingIntent::catalog()->getQuantityForItem($data);
+            $stated = $this->getState('quantity');
+
             VariantHelper::resolveAndPrice(
                 $data,
                 $request['selection'],
                 Pricing\PriceContext::fromSession(),
                 new Pricing\PriceCalculator(),
-                (int) $this->getState('quantity', 1),
+                $stated === null ? $opening : max((int) $stated, $opening),
                 $request['optionValueIds'],
                 $request['payloads'],
             );

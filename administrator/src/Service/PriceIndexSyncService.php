@@ -25,6 +25,7 @@ use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
+use Alfa\Component\Alfa\Site\Service\Pricing\PricingIntent;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
@@ -1338,6 +1339,10 @@ class PriceIndexSyncService
         // chunk's, as the unpublish path deletes them, and nothing is priced for it.
         $published = $this->publishedOf(itemIds: $chunk);
 
+        // Each product is priced at the quantity it opens with (2.2.2): its minimum, as a listing card prices it, so a
+        // product sold from 10 with prices from 10 keeps its row, its price filters and its sort place.
+        $opening = $this->openingQuantities(itemIds: $published);
+
         // The products each set is written for in this chunk.
         $itemsOf = [];
 
@@ -1430,7 +1435,7 @@ class PriceIndexSyncService
                     ->withReferenceDate($reference);
 
                 try {
-                    $results = $this->calculator->calculate($items, 1, $context);
+                    $results = $this->calculator->calculate($items, array_intersect_key($opening, array_flip($items)), $context);
                 } catch (Throwable $e) {
                     $this->lastFailure = $e->getMessage();
 
@@ -1453,8 +1458,9 @@ class PriceIndexSyncService
                 foreach ($items as $itemId) {
                     $result = $results[$itemId] ?? null;
 
-                    // No price row applying at quantity 1 for this slot and period (2.2.2): no row is written, so every
-                    // price filter leaves the product out and the price sort lists it after the priced ones.
+                    // No price row applying at the product's opening quantity for this slot and period (2.2.2): no row is
+                    // written, so every price filter leaves the product out and the price sort lists it after the priced
+                    // ones.
                     if ($result === null || !$result->isPriced()) {
                         continue;
                     }
@@ -2568,6 +2574,37 @@ class PriceIndexSyncService
         $published = array_map('intval', $this->db->setQuery($query)->loadColumn() ?: []);
 
         return array_values(array_intersect(array_map('intval', $itemIds), $published));
+    }
+
+    /**
+     * The quantity each product opens with (2.2.2): its minimum, as a listing card prices it
+     * ({@see PricingIntent::getQuantityForItem()}), read now.
+     *
+     * @param int[] $itemIds The items.
+     *
+     * @return array<int, int> By item id, every id given (1 for an id not found).
+     *
+     * @since  2.2.2
+     */
+    private function openingQuantities(array $itemIds): array
+    {
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName(['id', 'quantity_min']))
+            ->from($this->db->quoteName('#__alfa_items'))
+            ->whereIn($this->db->quoteName('id'), array_map('intval', $itemIds));
+        $rows = $this->db->setQuery($query)->loadObjectList('id') ?: [];
+        $intent = PricingIntent::catalog();
+        $opening = [];
+
+        foreach ($itemIds as $itemId) {
+            $opening[(int) $itemId] = $intent->getQuantityForItem($rows[(int) $itemId] ?? (object) ['id' => (int) $itemId]);
+        }
+
+        return $opening;
     }
 
     /**
