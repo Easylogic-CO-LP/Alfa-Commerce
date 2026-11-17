@@ -49,7 +49,7 @@ final class TransactionState
      * The connection as the driver whose transaction levels this class keeps (2.2.2): the narrowing of a connection to
      * a DatabaseDriver for TransactionState and PostCommit that the cart, the price index, the item field projection
      * and the inventory service use, each once, in its constructor, closing the levels it opens through commitLevel()
-     * or rollBackLevel() on what this returns. A few older places still narrow on their own (P3-376). Every connection
+     * or rollBackLevel() on what this returns. A few older places still narrow on their own. Every connection
      * Joomla's container hands out is a driver.
      *
      * @param DatabaseInterface $db The connection.
