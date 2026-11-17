@@ -25,13 +25,14 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 class UsersModel extends AlfaListModel
 {
     /**
-     * The Joomla account's state, as Joomla's users list tells it: 0 enabled, 1 blocked, 2 awaiting activation (a
-     * pending activation code, which Joomla's list reads as longer than one character). Selected and filtered through
-     * this one expression; the code itself never leaves the query.
+     * The Joomla account's state, as Joomla 6 reads it at sign-in, which checks the block only: 0 enabled (the account
+     * can sign in, even with an activation code still set, as after an unblock from Joomla's users list), 1 blocked,
+     * 2 awaiting activation (blocked with a pending activation code, which Joomla's list reads as longer than one
+     * character). Selected and filtered through this one expression; the code itself never leaves the query.
      *
      * @since  2.2.2
      */
-    public const ACCOUNT_STATE = 'CASE WHEN CHAR_LENGTH(u.activation) > 1 THEN 2 WHEN u.block = 1 THEN 1 ELSE 0 END';
+    public const ACCOUNT_STATE = 'CASE WHEN u.block = 1 AND CHAR_LENGTH(u.activation) > 1 THEN 2 WHEN u.block = 1 THEN 1 ELSE 0 END';
 
     /**
      * The account states, by their code in {@see self::ACCOUNT_STATE}.
@@ -208,8 +209,8 @@ class UsersModel extends AlfaListModel
             return $items;
         }
 
-        // Each account's user groups, in one read for the page (never a query per row): their titles in the
-        // groups' tree order, as Joomla's users list shows them.
+        // Each account's user groups, in one read for the page (never a query per row): their titles, in the
+        // groups' tree order.
         $db = $this->getDatabase();
         $userIds = array_values(array_unique(array_map(static fn (object $item): int => (int) $item->id_user, $items)));
         $query = $db->getQuery(true)
