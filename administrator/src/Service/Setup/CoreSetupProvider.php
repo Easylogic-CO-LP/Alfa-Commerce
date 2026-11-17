@@ -15,6 +15,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
+use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
@@ -205,6 +206,9 @@ final class CoreSetupProvider
             ->tour(self::menuTourFor(self::customerViews()))
             ->priority(645)
             ->probe(static fn (): bool => MenuProvisioningService::missingViews(self::customerViews()) === [])
+            // The sign-up page is left out while Joomla refuses sign-ups; the row says so in every state, since a
+            // complete row shows no reason. Turning sign-ups on stays the administrator's, in Users: Options.
+            ->note(static fn (): string => SignUpHelper::open() ? '' : 'COM_ALFA_SETUP_CHECK_CUSTOMER_PAGES_NO_SIGNUP')
             ->choice('menutype', 'COM_ALFA_SETUP_MENU_TARGET_LABEL', static fn (): array => MenuProvisioningService::menuOptions())
             ->provision(static fn (array $answers = []) => MenuProvisioningService::provisionStorefront(
                 menutype: $answers['menutype'] ?? null,
