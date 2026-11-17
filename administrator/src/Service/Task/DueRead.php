@@ -79,9 +79,9 @@ final class DueRead
     /**
      * The `#__alfa_meta` row that holds how far the stored price periods that began are announced (onAlfaPricesChanged,
      * cause window): the moment before which every period that began is announced, UTC as `Y-m-d H:i:s`, followed,
-     * while one moment is announced in parts, by `#` and the last slot key announced in it (item, combination,
-     * currency, place, set of pricing groups). Written by the install SQL and by the installer's update; never seeded
-     * at run time.
+     * while one moment is announced in parts, by `#` and the position of the last row announced in it in idx_validity's
+     * order: its end (`-` for an open end) and its slot key (item, combination, currency, place, set of pricing groups),
+     * comma separated. Written by the install SQL and by the installer's update; never seeded at run time.
      *
      * @since 2.2.2
      */
