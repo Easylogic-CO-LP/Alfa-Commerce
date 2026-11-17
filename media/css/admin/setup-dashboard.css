@@ -277,7 +277,8 @@
     font-weight: 400;
 }
 
-.setup-item-reason {
+.setup-item-reason,
+.setup-item-note {
     display: block;
     margin-top: 0.1rem;
     font-size: 0.85rem;
@@ -749,4 +750,19 @@ a.alfa-card-metric:hover {
     border-color: var(--secondary-color, #6c757d);
     color: var(--emphasis-color, #000);
     text-decoration: none;
+}
+
+/* The steps the merchant ignored: listed at the end, their tier named, read quieter than the rest. */
+.setup-ignored-text,
+.setup-item-tier {
+    font-size: 0.85rem;
+    color: var(--secondary-color, #6c757d);
+}
+
+.setup-item-tier {
+    margin-inline-start: 0.4rem;
+}
+
+.setup-item.is-ignored .setup-item-label {
+    color: var(--secondary-color, #6c757d);
 }
