@@ -12,14 +12,20 @@
  *       an enum: the first describes nothing (a docblock left behind when its method moved or went), and a reader
  *       takes it for the next element's;
  *   D2  a sample `targets('x')` names an entity some screen declares (a `$alfaEntity = 'x'` of the code);
- *   D3  a sample `Name::method(` whose Name is a class, interface or trait of this code calls a method that class or
- *       one of its parents in this code declares (a parent outside this code, Joomla's for example, is not judged);
+ *   D3  a sample `Name::method(` whose Name is a class, interface or trait of this code calls a method that class, its
+ *       traits or one of its parents in this code declares (a parent outside this code, Joomla's for example, is not
+ *       judged). Name is resolved across the whole code, not through the file's use statements: it is judged only
+ *       when exactly one class of this code has that short name, so a sample naming a class of another code that
+ *       shares a short name with one of this code's would be judged against the wrong class;
  *   D4  a sample `$event->method(` in the docblocks of an event class calls a method the event or one of its parents
- *       in this code declares, with a number of arguments the method accepts.
+ *       declares, with a number of arguments the method accepts. Joomla's event base classes are known from a fixed
+ *       list (DL_JOOMLA_EVENT_METHODS, read from Joomla 6.2.0), so a method no class of the chain has is caught; an
+ *       event whose chain leaves this code through any other class is not judged.
  *
  * What stays on purpose is listed in docblock-lint-allow.json beside this file, one entry per file, rule and the
- * first words of the docblock or the sample, with its reason; an entry that matches nothing fails, so the list never
- * outlives its reason.
+ * first words of the docblock or the sample, with how many findings it covers and its reason; an entry that matches
+ * nothing, or a number of findings other than its count, fails, so the list never outlives its reason and never
+ * hides a new finding of the same words.
  *
  * Reads files only: no database, no Joomla application, no write. Runs in seconds.
  *
@@ -35,6 +41,38 @@ PHP_SAPI === 'cli' or exit;
 
 /** The rules this lint enforces, as its docblock lists them. */
 const DL_RULE_IDS = ['D1', 'D2', 'D3', 'D4'];
+
+/**
+ * The public methods of Joomla's event base classes an Alfa event extends, as [required, total, variadic] parameter
+ * counts, read from Joomla 6.2.0 (Joomla\CMS\Event\AbstractImmutableEvent and AbstractEvent, Joomla\Event\Event and
+ * AbstractEvent). Both bases answer the same list: the immutable one overrides offsetSet() and offsetUnset() alone.
+ */
+const DL_JOOMLA_EVENT_METHODS = [
+    'create' => [1, 2, false],
+    'getname' => [0, 0, false],
+    'getargument' => [1, 2, false],
+    'hasargument' => [1, 1, false],
+    'getarguments' => [0, 0, false],
+    'setargument' => [2, 2, false],
+    'addargument' => [2, 2, false],
+    'removeargument' => [1, 1, false],
+    'cleararguments' => [0, 0, false],
+    'stop' => [0, 0, false],
+    'isstopped' => [0, 0, false],
+    'stoppropagation' => [0, 0, false],
+    'count' => [0, 0, false],
+    'offsetexists' => [1, 1, false],
+    'offsetget' => [1, 1, false],
+    'offsetset' => [2, 2, false],
+    'offsetunset' => [1, 1, false],
+    'serialize' => [0, 0, false],
+    'unserialize' => [1, 1, false],
+    '__serialize' => [0, 0, false],
+    '__unserialize' => [1, 1, false],
+];
+
+/** The Joomla event base classes DL_JOOMLA_EVENT_METHODS describes. */
+const DL_JOOMLA_EVENT_BASES = ['Joomla\CMS\Event\AbstractImmutableEvent', 'Joomla\CMS\Event\AbstractEvent'];
 
 /** Findings printed before the count alone is given. */
 const DL_PRINT_LIMIT = 60;
@@ -480,6 +518,72 @@ function dl_judge_doc(string $doc, array $entities, callable $methodOf, callable
     return $findings;
 }
 
+/**
+ * A method's parameter counts as PHP would find it: the class, then its traits, then its parent; Joomla's event base
+ * classes from DL_JOOMLA_EVENT_METHODS.
+ *
+ * @param array<string, array{parent: ?string, traits: list<string>, methods: array<string, array{0: int, 1: int, 2: bool}>}> $byFqcn The classes of this code, by fqcn.
+ *
+ * @return array{0: int, 1: int, 2: bool}|array{}|null The counts; [] when the chain declares no such method; null when
+ *                                                      the chain leaves this code through a class the lint does not know.
+ */
+function dl_method(array $byFqcn, string $fqcn, string $method, int $guard = 0): ?array
+{
+    if ($guard > 20) {
+        return null;
+    }
+
+    if (!isset($byFqcn[$fqcn])) {
+        return \in_array($fqcn, DL_JOOMLA_EVENT_BASES, true) ? (DL_JOOMLA_EVENT_METHODS[$method] ?? []) : null;
+    }
+
+    if (isset($byFqcn[$fqcn]['methods'][$method])) {
+        return $byFqcn[$fqcn]['methods'][$method];
+    }
+
+    foreach ($byFqcn[$fqcn]['traits'] as $trait) {
+        $found = dl_method($byFqcn, $trait, $method, $guard + 1);
+
+        if ($found !== []) {
+            return $found;
+        }
+    }
+
+    return $byFqcn[$fqcn]['parent'] === null ? [] : dl_method($byFqcn, $byFqcn[$fqcn]['parent'], $method, $guard + 1);
+}
+
+/**
+ * The allow-list entries that do not hold: each must match exactly as many findings as its count says.
+ *
+ * @param list<array{file: string, rule: string, text: string, count?: int}> $entries The allow list's entries.
+ * @param array<int, int> $matched How many findings each entry matched, by its index.
+ *
+ * @return list<string> One line per entry that does not hold, empty when every entry does.
+ */
+function dl_allow_failures(array $entries, array $matched): array
+{
+    $failures = [];
+    $seen = [];
+
+    foreach ($entries as $n => $entry) {
+        $key = $entry['file'] . "\0" . $entry['rule'] . "\0" . $entry['text'];
+        $count = (int) ($entry['count'] ?? 0);
+        $got = $matched[$n] ?? 0;
+
+        if (isset($seen[$key])) {
+            $failures[] = "entry {$n} repeats entry {$seen[$key]}: {$entry['file']} {$entry['rule']} {$entry['text']}";
+        } elseif ($count < 1) {
+            $failures[] = "entry {$n} gives no count of at least 1: {$entry['file']} {$entry['rule']} {$entry['text']}";
+        } elseif ($got !== $count) {
+            $failures[] = "entry {$n} covers {$count} finding(s) and matched {$got}: {$entry['file']} {$entry['rule']} {$entry['text']}";
+        }
+
+        $seen[$key] ??= $n;
+    }
+
+    return $failures;
+}
+
 // Nothing above runs; the lint starts here.
 
 $root = \dirname(__DIR__, 2);
@@ -511,23 +615,10 @@ $check = static function (string $what, bool $ok, string $detail = '') use (&$pa
 };
 
 // [DL0] the judge itself: each rule goes red on a planted sample, and a true sample stays green.
-$plantRead = dl_read("<?php\nnamespace P;\nabstract class BaseEvent { public function action(string \$c, string \$n, string \$t = ''): static { return \$this; } }\n"
+$plantRead = dl_read("<?php\nnamespace P;\nuse Joomla\\CMS\\Event\\AbstractEvent;\nabstract class BaseEvent extends AbstractEvent { public function action(string \$c, string \$n, string \$t = ''): static { return \$this; } }\n"
     . "/** One. */\n/** Two. */\nfinal class SampleEvent extends BaseEvent { public static function make(int \$a): void {} }\n");
-$plantMethod = static function (string $key) use ($plantRead): ?array {
-    [$class, $method] = explode('::', $key);
-    $short = substr((string) strrchr('\\' . $class, '\\'), 1);
-
-    for ($guard = 0; $guard < 10 && $short !== null && isset($plantRead['classes'][$short]); $guard++) {
-        if (isset($plantRead['classes'][$short]['methods'][$method])) {
-            return $plantRead['classes'][$short]['methods'][$method];
-        }
-
-        $parent = $plantRead['classes'][$short]['parent'];
-        $short = $parent === null ? null : substr((string) strrchr('\\' . $parent, '\\'), 1);
-    }
-
-    return $short === null ? [] : null;
-};
+$plantByFqcn = array_column($plantRead['classes'], null, 'fqcn');
+$plantMethod = static fn (string $key): ?array => dl_method($plantByFqcn, ...explode('::', $key));
 $plantClass = static fn (string $short): ?string => isset($plantRead['classes'][$short]) ? $plantRead['classes'][$short]['fqcn'] : null;
 $reached = [];
 $plant = static function (string $doc) use (&$reached, $plantMethod, $plantClass): array {
@@ -546,6 +637,14 @@ $check('[DL0f] an event sample with too few arguments is D4', $plant("/**\n * \$
 $check('[DL0g] an inherited method with the arguments it takes is not', $plant("/**\n * \$event->action('a.b', 'name', 'title');\n */") === []);
 $check('[DL0h] an elided sample is not counted', $plant("/**\n * \$event->action(...);\n */") === []);
 $check('[DL0j] an escaped quote does not end a sample\'s string', dl_args("x('a\\'b, c', 'd')", 1) === 2);
+$check('[DL0k] a method no class of the event\'s chain has, Joomla\'s base included, is D4', $plant("/**\n * \$event->noSuchMethod();\n */") === ['D4']);
+$check('[DL0l] a method of Joomla\'s event base with the arguments it takes is not', $plant("/**\n * \$event->getArgument('x');\n */") === []);
+$plantAllow = [
+    ['file' => 'f', 'rule' => 'D1', 'text' => 'a', 'count' => 1],
+    ['file' => 'f', 'rule' => 'D1', 'text' => 'b', 'count' => 2],
+    ['file' => 'f', 'rule' => 'D1', 'text' => 'a', 'count' => 1],
+];
+$check('[DL0m] an allow-list entry matching more findings than its count fails, a repeated entry fails, an exact one does not', \count(dl_allow_failures($plantAllow, [0 => 2, 1 => 2])) === 2 && dl_allow_failures([$plantAllow[1]], [0 => 2]) === []);
 $reached = array_values(array_unique($reached));
 sort($reached);
 $check('[DL0i] the planted samples reach exactly the rules DL_RULE_IDS names', $reached === DL_RULE_IDS, 'reached: ' . implode(', ', $reached));
@@ -572,41 +671,20 @@ foreach ($files as $rel) {
     }
 }
 
-$methodOf = static function (string $key) use ($byFqcn): ?array {
-    [$fqcn, $method] = explode('::', $key);
-    // A class, then its traits, then its parent, as PHP looks a method up; null when the search leaves this code.
-    $find = static function (string $fqcn, int $guard) use (&$find, $byFqcn, $method): ?array {
-        if ($guard > 20 || !isset($byFqcn[$fqcn])) {
-            return null;
-        }
-
-        if (isset($byFqcn[$fqcn]['methods'][$method])) {
-            return $byFqcn[$fqcn]['methods'][$method];
-        }
-
-        foreach ($byFqcn[$fqcn]['traits'] as $trait) {
-            $found = $find($trait, $guard + 1);
-
-            if ($found === null || $found !== []) {
-                return $found;
-            }
-        }
-
-        return $byFqcn[$fqcn]['parent'] === null ? [] : $find($byFqcn[$fqcn]['parent'], $guard + 1);
-    };
-
-    return $find($fqcn, 0);
-};
+$methodOf = static fn (string $key): ?array => dl_method($byFqcn, ...explode('::', $key));
 $classOf = static fn (string $short): ?string => \count($byShort[$short] ?? []) === 1 ? $byShort[$short][0] : null;
 
 $allow = [];
 $allowed = [];
+$entries = [];
 
 if (is_file($allowPath)) {
     $list = json_decode((string) file_get_contents($allowPath), true, 512, JSON_THROW_ON_ERROR);
 
-    foreach ($list['entries'] as $n => $entry) {
-        $allow[$entry['file'] . "\0" . $entry['rule'] . "\0" . $entry['text']] = $n;
+    $entries = $list['entries'];
+
+    foreach ($entries as $n => $entry) {
+        $allow[$entry['file'] . "\0" . $entry['rule'] . "\0" . $entry['text']] ??= $n;
     }
 }
 
@@ -618,7 +696,7 @@ $report = static function (string $rel, int $line, string $rule, string $why, st
     $id = $rel . "\0" . $rule . "\0" . $key;
 
     if (isset($allow[$id])) {
-        $allowed[$allow[$id]] = true;
+        $allowed[$allow[$id]] = ($allowed[$allow[$id]] ?? 0) + 1;
 
         return;
     }
@@ -657,18 +735,17 @@ if ($findings > DL_PRINT_LIMIT) {
     echo '  ... and ' . ($findings - DL_PRINT_LIMIT) . " more finding(s) not printed\n";
 }
 
-foreach ($allow as $key => $n) {
-    if (!isset($allowed[$n])) {
-        [$file, $rule, $text] = explode("\0", $key);
-        $check("[DL3] allow-list entry {$n} still matches something", false, "{$file} {$rule} {$text}");
-    }
+$allowFailures = dl_allow_failures($entries, $allowed);
+
+foreach ($allowFailures as $failure) {
+    $check('[DL3] an allow-list entry matches exactly the findings its count gives', false, $failure);
 }
 
-if ($allow !== [] && \count($allowed) === \count($allow)) {
-    $check('[DL3] every allow-list entry still matches a finding', true);
+if ($entries !== [] && $allowFailures === []) {
+    $check('[DL3] every allow-list entry matches exactly the findings its count gives', true);
 }
 
 printf("docblock lint: %d files, %d classes; %d finding(s) allowed by %d entries; %d not allowed %s\n",
-    \count($files), \count($byFqcn), \count($allowed), \count($allow), $findings, $byRule === [] ? '' : json_encode($byRule));
+    \count($files), \count($byFqcn), array_sum($allowed), \count($entries), $findings, $byRule === [] ? '' : json_encode($byRule));
 echo "{$pass} passed, {$fail} failed\n";
 exit($fail === 0 ? 0 : 1);
