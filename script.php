@@ -1917,9 +1917,14 @@ class com_alfaInstallerScript extends InstallerScript
             // 6. Thumbnails that are not images (2.2.1): up to 2.2.0 a thumbnail could be a copy of any file the site
             //    could read; the update lists what is left, deleting nothing.
             $this->listNonImageFiles();
+
+            // 7. E-mail layout overrides left in a site template (2.2.1): the e-mails read their layouts from the
+            //    default administrator template only; the update names the files a site template still holds,
+            //    moving nothing.
+            $this->listSiteTemplateEmailLayouts();
         }
 
-        // 7. The installed Alfa extensions not known to work with this version (2.2.1): named on this page,
+        // 8. The installed Alfa extensions not known to work with this version (2.2.1): named on this page,
         //    in the maintenance log and to the administrators.
         $this->reportExtensionCompatibility(type: $type);
 
@@ -2115,7 +2120,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_PLACES_SEED',
-            fallback: 'Alfa Commerce %1$s brought the countries up to ISO 3166-1. Corrected where the shop had not changed them, each keeping its number: %2$s. Added, unpublished: %3$s. The places inside Greece (its 13 regions and Mount Athos) and inside Spain (the Canary Islands, Ceuta and Melilla) are not added by the update: in Places, select Greece or Spain and press Add subdivisions to add them, unpublished.',
+            fallback: 'Alfa Commerce %1$s brought the countries up to ISO 3166-1. Corrected where the shop had not changed them, each keeping its number: %2$s. Added, unpublished: %3$s. The places inside Greece (its 13 regions and Mount Athos) and inside Spain (the Canary Islands, Ceuta and Melilla) are not added by the update: in Countries/States, select Greece or Spain and press Add subdivisions to add them, unpublished.',
             values:   [
                 $this->packageVersion,
                 $named(array_merge(
@@ -2185,7 +2190,7 @@ class com_alfaInstallerScript extends InstallerScript
         {
             $left[] = $this->installerText(
                 key:      'COM_ALFA_INSTALL_PLACES_SEED_CURRENCIES',
-                fallback: 'The default currency of these countries was left as it is, though the one shipped was withdrawn or missing; set it in Places if the shop sells there: %s.',
+                fallback: 'The default currency of these countries was left as it is, though the one shipped was withdrawn or missing; set it in Countries/States if the shop sells there: %s.',
                 values:   [implode(', ', array_map(static fn (array $country): string => $country[0] . ' (' . $country[1] . ')', $result['currencies']))],
             );
         }
@@ -2264,6 +2269,115 @@ class com_alfaInstallerScript extends InstallerScript
         {
             // The installation page says it; the log is the second copy.
         }
+    }
+
+    /**
+     * Name the e-mail layout overrides kept in a site template (2.2.1). Since 2.2.1 every e-mail reads its layouts
+     * from the default administrator template (then the template it inherits from) and the component
+     * ({@see \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts}), whatever sends it, so a file under a site
+     * template's html/layouts/com_alfa/emails, where the 2.2.0 Manual advised a copy for the e-mails the storefront
+     * sends, is no longer read. One warning names every such file, and the maintenance log (com_alfa_maintenance.php)
+     * keeps one line per file. Nothing is moved or deleted: staff copy each file they want to keep into the
+     * administrator template. A failure is said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function listSiteTemplateEmailLayouts(): void
+    {
+        try
+        {
+            $files = self::siteTemplateEmailLayouts(templates: JPATH_SITE . '/templates');
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage('The site templates were not checked for e-mail layout overrides: '
+                . $e->getMessage(), 'warning');
+
+            return;
+        }
+
+        if ($files === [])
+        {
+            return;
+        }
+
+        Factory::getApplication()->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_EMAIL_LAYOUTS_SITE_TEMPLATE',
+            fallback: 'Alfa Commerce %1$s reads the e-mail layout overrides from the default administrator template'
+                . ' only. These files in a site template are no longer read: %2$s. Copy each one you want to keep into'
+                . ' the same subfolder (order or partials) under %3$s. Nothing was moved or deleted.',
+            values:   [$this->packageVersion, implode('; ', array_map(
+                static fn (string $file): string => htmlspecialchars($file, ENT_QUOTES, 'UTF-8'),
+                $files,
+            )), htmlspecialchars(self::administratorEmailLayoutFolder(), ENT_QUOTES, 'UTF-8')],
+        ), 'warning');
+
+        foreach ($files as $file)
+        {
+            self::maintenanceLog('Update to ' . $this->packageVersion . ': an e-mail layout override in a site template,'
+                . ' no longer read; move it to the administrator template: ' . $file, \Joomla\CMS\Log\Log::WARNING);
+        }
+    }
+
+    /**
+     * Where an e-mail layout override is read from since 2.2.1, relative to the site root: the default administrator
+     * template's html/layouts/com_alfa/emails ({@see \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts}),
+     * named by that template's own folder. When no default administrator template style can be read, the folder is
+     * described in words instead, so the warning still says where to copy.
+     *
+     * @return  string
+     * @since   2.2.1
+     */
+    private static function administratorEmailLayoutFolder(): string
+    {
+        try
+        {
+            $paths = \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts::includePaths();
+            $first = (string) ($paths[0] ?? '');
+
+            if (\count($paths) > 1 && str_starts_with($first, JPATH_ADMINISTRATOR . '/templates/'))
+            {
+                return ltrim(substr($first, \strlen(JPATH_ROOT)), '/') . '/emails';
+            }
+        }
+        catch (\Throwable)
+        {
+            // Described in words below.
+        }
+
+        return 'html/layouts/com_alfa/emails of the default administrator template';
+    }
+
+    /**
+     * The e-mail layout files under every site template's html/layouts/com_alfa/emails, relative to the site root,
+     * sorted. A template without that folder adds nothing.
+     *
+     * @param   string  $templates  The site templates' folder.
+     *
+     * @return  string[]
+     * @since   2.2.1
+     */
+    private static function siteTemplateEmailLayouts(string $templates): array
+    {
+        $files = [];
+
+        foreach (glob($templates . '/*/html/layouts/com_alfa/emails', GLOB_ONLYDIR) ?: [] as $folder)
+        {
+            $walk = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($folder, \FilesystemIterator::SKIP_DOTS));
+
+            foreach ($walk as $file)
+            {
+                if ($file->isFile() && strtolower($file->getExtension()) === 'php')
+                {
+                    $files[] = ltrim(substr($file->getPathname(), \strlen(JPATH_ROOT)), '/');
+                }
+            }
+        }
+
+        sort($files);
+
+        return $files;
     }
 
     /**
@@ -3644,8 +3758,11 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * Delete Joomla's cached PSR-4 namespace map so it is regenerated on the
-     * next request. Required after any library install/update/uninstall
-     * because Joomla core does not invalidate this cache automatically.
+     * next request. Joomla's own Extension - Namespace Updater plugin
+     * (plg_extension_namespacemap, protected and locked) rebuilds this map after
+     * every install, update and uninstall made through its installer; deleting
+     * it here after the bundled libraries are installed, updated or uninstalled
+     * is a second guard, should that plugin not have run.
      *
      * @return  void
      * @since  1.0.0

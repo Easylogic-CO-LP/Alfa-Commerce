@@ -752,6 +752,22 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * payment recorded as this plugin's, and move it only to another method of this plugin; anything else is refused
      * and nothing is written (2.2.0).
      *
+     * THE PAYMENT'S PLUGIN DATA. A payment reads its own payload, and a write goes back through this builder, which
+     * merges:
+     *
+     *     $payment = $order->payments()[0];
+     *     $payment->pluginData()->getString(key: 'wallet', default: '');
+     *     $payment->pluginData()->has('wallet');
+     *
+     *     $this->paymentUpdate($id)->pluginData(['wallet' => $v])->save();
+     *     $this->paymentUpdate($id)->removePluginData(['wallet'])->save();
+     *
+     * Pass PHP arrays, never JSON: encoding belongs to the ledger. Only the keys you name change, and the merge happens
+     * with the row held, so a webhook writing one key and an admin action writing another cannot erase each other.
+     * Storing null KEEPS the key (has() stays true, a typed getter answers with its default); removing takes it away.
+     * The merge is one level deep: a key you write replaces what was under it, wholesale. Core never looks inside any
+     * of it.
+     *
      * @param int $paymentId Existing payment row PK
      *
      * @return PaymentLedger Builder: chain setters, finish with ->save()
@@ -1648,50 +1664,6 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     }
 
     /**
-     * THE ROW READS ITS OWN PAYLOAD. `$this->pluginData($payment)` used to live
-     * here and was a second way to ask what the gateway itself now answers:
-     *
-     *     $payment = $event->payments()[0];
-     *     $payment->pluginData()->getString(key: 'wallet', default: '');
-     *     $payment->pluginData()->has('wallet');
-     *
-     * WRITE IT BACK THROUGH THE LEDGER, WHICH MERGES:
-     *
-     *     $this->paymentUpdate($id)->pluginData(['wallet' => $v])->save();
-     *     $this->paymentUpdate($id)->removePluginData(['wallet'])->save();
-     *
-     * Pass PHP arrays, never JSON: encoding belongs to the ledger. Only the
-     * keys you name change, and the merge happens with the row held, so a
-     * webhook writing one key and an admin action writing another cannot erase
-     * each other. Storing null KEEPS the key (has() stays true, a typed getter
-     * answers with its default); removing takes it away. The merge is one level
-     * deep: a key you write replaces what was under it, wholesale.
-     *
-     * The core never looks inside any of it.
-     */
-
-    /**
-     * This gateway's newest attempt on the order that is still pending.
-     *
-     * Every gateway needs this and two had written it privately, with the same
-     * body and INCOMPATIBLE empty answers: one returned null, the other
-     * returned `new stdClass()`. That is why the second one's callers carried shape
-     * checks, and why one of them was dead: `empty()` is never true for an
-     * object, so `empty($payment) || empty($payment->id)` only ever tested the
-     * second half. NULL is the honest answer to "there isn't one".
-     *
-     * Scoped through gatewayPayments(), so it can only ever return a row of
-     * THIS plugin's type: the unscoped list holds every gateway's rows, and on
-     * an order that also carries another gateway's pending row the naive
-     * version handed back somebody else's payment. Rows arrive newest first,
-     * so the first pending one genuinely is the latest.
-     *
-     *
-     * @return object|null The pending attempt, or NULL when there is none.
-     *
-     * @since  2.0.0
-     */
-    /**
      * The order a browser-return link names, IF it proves it may see it.
      *
      * A gateway that comes back through the buyer's browser gets no session:
@@ -1807,6 +1779,32 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         }
     }
 
+    /**
+     * This gateway's newest attempt on the order that is still pending.
+     *
+     * Every gateway needs this and two had written it privately, with the same
+     * body and INCOMPATIBLE empty answers: one returned null, the other
+     * returned `new stdClass()`. That is why the second one's callers carried shape
+     * checks, and why one of them was dead: `empty()` is never true for an
+     * object, so `empty($payment) || empty($payment->id)` only ever tested the
+     * second half. NULL is the honest answer to "there isn't one".
+     *
+     * Scoped through gatewayPayments(), so it can only ever return a row of
+     * THIS plugin's type: the unscoped list holds every gateway's rows, and on
+     * an order that also carries another gateway's pending row the naive
+     * version handed back somebody else's payment. Rows arrive newest first,
+     * so the first pending one genuinely is the latest.
+     *
+     * @param int $orderId Order PK.
+     * @param int $methodId Narrow to one method (0 = any of this gateway's).
+     *
+     * @return object|null The pending attempt, or NULL when there is none.
+     *
+     * @throws OrderCurrencyException When rows are found and their order does not exist or names no currency: a payment
+     *                                row whose order cannot be read is an integrity fault, never an answer of no row.
+     *
+     * @since  2.0.0
+     */
     protected function latestPendingPayment(int $orderId, int $methodId = 0): ?object
     {
         foreach ($this->gatewayPayments($orderId, $methodId) as $row) {

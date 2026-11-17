@@ -30,8 +30,8 @@ use InvalidArgumentException;
  * relevance and no attribution; when that subsystem arrives it returns its own shape.
  * Borrowing this one would smuggle search semantics into surfaces that have none.
  *
- * Per-hit relevance is deliberately ABSENT until its first real consumer (the premium
- * module / section-order policy) lands; it will arrive as an appended nullable field
+ * Per-hit relevance is deliberately ABSENT until its first real consumer (a results
+ * module or a section-order policy) lands; it will arrive as an appended nullable field
  * fed by the model's scores passback, the same route the eventId travels.
  *
  * @since  2.0.0

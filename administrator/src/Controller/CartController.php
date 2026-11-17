@@ -85,7 +85,9 @@ class CartController extends BaseController
      * after the admin one, and a shared key would come back in the shopper's
      * words. Each takes the same parameters as the code it replaces. A plugin's
      * veto, which only the plugin can word, is framed for the operator with its
-     * words inside.
+     * words inside. A plugin whose check failed is named to the operator: the
+     * failure carries the plugin's name, which the shopper's sentence leaves out
+     * (2.2.1).
      *
      * @var array<string, string>
      * @since  2.0.0
@@ -99,6 +101,7 @@ class CartController extends BaseController
         'COM_ALFA_CART_LOAD_FAILED' => 'COM_ALFA_CART_CHECKOUT_CART_NOT_LOADED',
         'COM_ALFA_SHIPMENT_QUOTE_FAILED' => 'COM_ALFA_CART_CHECKOUT_SHIPMENT_QUOTE_FAILED',
         'COM_ALFA_ORDER_PLACE_PLUGIN_REFUSED' => 'COM_ALFA_CART_CHECKOUT_PLUGIN_REFUSED',
+        'COM_ALFA_ORDER_PLACE_PLUGIN_FAILED' => 'COM_ALFA_CART_CHECKOUT_PLUGIN_FAILED',
     ];
 
     /**

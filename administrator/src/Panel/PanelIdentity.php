@@ -20,7 +20,7 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
  * of its screens is being served, the same words Joomla identifies a plugin by:
  *
  *   group   -> the plugin GROUP   (the #__extensions folder, e.g. alfa-search)
- *   element -> the plugin ELEMENT (the #__extensions element, e.g. enterprise)
+ *   element -> the plugin ELEMENT (the #__extensions element, e.g. myengine)
  *   panel   -> the screen id within that plugin (e.g. synonyms)
  *
  * From those every layer derives the same URLs, state keys and layout path. The record
