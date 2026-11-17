@@ -25,7 +25,9 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
+use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
 use Alfa\Component\Alfa\Site\Helper\SaleTag;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBagBuilder;
@@ -227,23 +229,36 @@ class ItemModel extends BaseItemModel
                 $data->editLine = $editLine; // wrapper: "Update" + hidden edit_line
             }
 
-            // Priced at the quantity the page opens with (2.2.2): the product's minimum, as a listing card prices it, or
-            // the quantity the request states (recalculate() sets it), never under the minimum.
-            // The item says the quantity it was priced at ($data->pricedQuantity), for a caller that draws beside the
-            // price (recalculate()'s stock line).
+            // Catalogue only (2.2.2): the storefront sells nothing, so no price is computed and the item says so; every
+            // template reads $data->sellsOnline, never a view (the cards carry it too).
+            $data->sellsOnline = ShopMode::sellsOnline();
+
+            // The quantity the page opens with (2.2.2): the product's minimum, as a listing card prices it, or the quantity
+            // the request states (recalculate() sets it), never under the minimum. The item says it ($data->pricedQuantity)
+            // for a caller that draws beside the price (recalculate()'s stock line).
             $opening = Pricing\PricingIntent::catalog()->getQuantityForItem($data);
             $stated = $this->getState('quantity');
             $data->pricedQuantity = $stated === null ? $opening : max((int) $stated, $opening);
 
-            VariantHelper::resolveAndPrice(
-                $data,
-                $request['selection'],
-                Pricing\PriceContext::fromSession(),
-                new Pricing\PriceCalculator(),
-                $data->pricedQuantity,
-                $request['optionValueIds'],
-                $request['payloads'],
-            );
+            if ($data->sellsOnline) {
+                VariantHelper::resolveAndPrice(
+                    $data,
+                    $request['selection'],
+                    Pricing\PriceContext::fromSession(),
+                    new Pricing\PriceCalculator(),
+                    $data->pricedQuantity,
+                    $request['optionValueIds'],
+                    $request['payloads'],
+                );
+            } else {
+                VariantHelper::resolveWithoutPrice(
+                    $data,
+                    $request['selection'],
+                    $request['optionValueIds'],
+                    $request['payloads'],
+                    Pricing\PriceContext::fromSession(),
+                );
+            }
 
             // Per-field payloads exposed for the render: the current-value
             // source a payload plugin seeds from, alongside where the variant/
@@ -416,6 +431,18 @@ class ItemModel extends BaseItemModel
                 Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                 field: $field,
             );
+            $item->surfaces = new SurfaceMap($slots);
+        }
+
+        // Catalogue only (2.2.2), core's last word after the field events: the buy form's field surfaces become plain
+        // read-only lists of the fields that drew one, and the cart main slot is none, whatever a plugin set.
+        if (!($item->sellsOnline ?? true)) {
+            $slots = ReadOnlyFields::replace(
+                slots: $slots,
+                fields: (array) $item->fields,
+                buySlots: [ItemSurface::BuyForm->value, ItemSurface::NearAddToCart->value],
+            );
+            $item->cart = ReadOnlyFields::NO_CART;
             $item->surfaces = new SurfaceMap($slots);
         }
 

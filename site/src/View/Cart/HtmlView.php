@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Site\Helper\PageCache;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
@@ -170,6 +171,17 @@ class HtmlView extends BaseHtmlView
         // form or the checkout's state.
         if ($this->_layout == 'default_order_completed') {
             $this->displayOrderCompleted($tpl);
+
+            return;
+        }
+
+        // CATALOGUE ONLY (2.2.2): the cart and the checkout show one sentence instead of the cart, HTTP 200 and no form,
+        // and no cart is read; a stored cart is kept untouched and comes back when selling is switched on again. The
+        // order pages above and below go on for orders already placed.
+        if (!ShopMode::sellsOnline() && \in_array($this->_layout, ['default', 'default_cart_empty'], true)) {
+            $this->_layout = 'default_catalogue_only';
+            $this->_prepareDocument();
+            parent::display($tpl);
 
             return;
         }
