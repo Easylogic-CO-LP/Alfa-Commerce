@@ -12573,17 +12573,6 @@ class PaymentLedger
     //  Static read API
 
     /**
-     * Load a single payment with its method params attached.
-     *
-     * Returns the raw DB row enriched with:
-     *   - params -> full payment method record (from PaymentModel)
-     *
-     *
-     * @return object|null Payment record with params, or null if not found
-     *
-     * @since  1.0.0
-     */
-    /**
      * Give a payment row's amount its currency.
      *
      * THE BOUNDARY. A row arrives from the driver with `amount` as a string,
@@ -12644,6 +12633,20 @@ class PaymentLedger
         return $rows;
     }
 
+    /**
+     * Load a single payment with its method params attached.
+     *
+     * Returns the raw DB row enriched with:
+     *   - params -> full payment method record (from PaymentModel)
+     *
+     * @param int $id Payment row PK.
+     *
+     * @return object|null Payment record with params, its amount as Money, or null if not found
+     *
+     * @throws OrderCurrencyException When the row's order does not exist or names no currency ({@see self::hydrate()}).
+     *
+     * @since  1.0.0
+     */
     public static function get(int $id): ?object
     {
         if ($id <= 0) {
