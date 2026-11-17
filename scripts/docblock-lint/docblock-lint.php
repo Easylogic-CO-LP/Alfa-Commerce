@@ -76,11 +76,11 @@ function dl_files(string $root): array
 }
 
 /**
- * What one file declares: its class-like names (short name => [fqcn, parent fqcn or null]), their methods with
- * their parameter counts, its docblocks in order, whether one directly follows another, and the entity names its
- * code assigns to $alfaEntity.
+ * What one file declares: its class-like names (short name => [fqcn, parent fqcn or null]), each one's methods with
+ * their parameter counts, the traits it uses and its docblocks, where a docblock directly follows another, and the
+ * entity names its code assigns to $alfaEntity.
  *
- * @return array{classes: array<string, array{fqcn: string, parent: ?string, event: bool, methods: array<string, array{0: int, 1: int, 2: bool}>, docs: list<array{0: string, 1: int}>}>, pairs: list<array{0: int, 1: string}>, entities: list<string>, declares: bool}
+ * @return array{classes: array<string, array{fqcn: string, parent: ?string, event: bool, methods: array<string, array{0: int, 1: int, 2: bool}>, traits: list<string>, docs: list<array{0: string, 1: int}>}>, pairs: list<array{0: int, 1: string}>, entities: list<string>, declares: bool}
  */
 function dl_read(string $src): array
 {
@@ -95,7 +95,6 @@ function dl_read(string $src): array
     $depth = 0;
     $classDepth = null;
     $lastDoc = null;
-    $docsSeen = [];
 
     $next = static function (int $i) use ($tokens, $count): int {
         for ($j = $i + 1; $j < $count; $j++) {
@@ -144,8 +143,6 @@ function dl_read(string $src): array
             if ($j < $count && \is_array($tokens[$j]) && $tokens[$j][0] === T_DOC_COMMENT) {
                 $pairs[] = [$tokens[$j][2], dl_first_words($text)];
             }
-
-            $docsSeen[] = [$text, $line];
 
             if ($current !== null) {
                 $classes[$current]['docs'][] = [$text, $line];
@@ -273,7 +270,7 @@ function dl_read(string $src): array
         }
     }
 
-    return ['classes' => $classes, 'pairs' => $pairs, 'entities' => $entities, 'declares' => $classes !== [], 'docs' => $docsSeen];
+    return ['classes' => $classes, 'pairs' => $pairs, 'entities' => $entities, 'declares' => $classes !== []];
 }
 
 /**
@@ -381,9 +378,14 @@ function dl_args(string $text, int $open): ?int
         $c = $text[$i];
 
         if ($c === "'" || $c === '"') {
-            $end = strpos($text, $c, $i + 1);
+            // The string ends at the next quote of its kind that no backslash escapes.
+            for ($end = $i + 1; $end < $len && $text[$end] !== $c; $end++) {
+                if ($text[$end] === '\\') {
+                    $end++;
+                }
+            }
 
-            if ($end === false) {
+            if ($end >= $len) {
                 return null;
             }
 
@@ -543,6 +545,7 @@ $check('[DL0e] one it declares is not, and a class of another code is not judged
 $check('[DL0f] an event sample with too few arguments is D4', $plant("/**\n * \$event->action('a.b');\n */") === ['D4']);
 $check('[DL0g] an inherited method with the arguments it takes is not', $plant("/**\n * \$event->action('a.b', 'name', 'title');\n */") === []);
 $check('[DL0h] an elided sample is not counted', $plant("/**\n * \$event->action(...);\n */") === []);
+$check('[DL0j] an escaped quote does not end a sample\'s string', dl_args("x('a\\'b, c', 'd')", 1) === 2);
 $reached = array_values(array_unique($reached));
 sort($reached);
 $check('[DL0i] the planted samples reach exactly the rules DL_RULE_IDS names', $reached === DL_RULE_IDS, 'reached: ' . implode(', ', $reached));
