@@ -1229,8 +1229,8 @@ class OrderPlacement
             // Then the plugins that take part, one at a time, in their order, so a plugin that throws is named (2.2.1):
             // a throw refuses the placement as the event's contract says. A refusal thrown on purpose
             // (OrderPlaceRefusedException) is read in its own words, as a rejection is; for any other throw the shopper
-            // is told which check could not run instead of the bare "Order placement failed", and its own words stay in
-            // the log.
+            // is told that the order could not be checked instead of the bare "Order placement failed", and the
+            // plugin's id and its own words stay in the log.
             foreach ($validators as $validator) {
                 try {
                     $plugins->dispatchToEachFor($this->subject, [$validator], $validateEvent);
