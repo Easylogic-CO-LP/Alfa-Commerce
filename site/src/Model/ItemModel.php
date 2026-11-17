@@ -229,15 +229,18 @@ class ItemModel extends BaseItemModel
 
             // Priced at the quantity the page opens with (2.2.2): the product's minimum, as a listing card prices it, or
             // the quantity the request states (recalculate() sets it), never under the minimum.
+            // The item says the quantity it was priced at ($data->pricedQuantity), for a caller that draws beside the
+            // price (recalculate()'s stock line).
             $opening = Pricing\PricingIntent::catalog()->getQuantityForItem($data);
             $stated = $this->getState('quantity');
+            $data->pricedQuantity = $stated === null ? $opening : max((int) $stated, $opening);
 
             VariantHelper::resolveAndPrice(
                 $data,
                 $request['selection'],
                 Pricing\PriceContext::fromSession(),
                 new Pricing\PriceCalculator(),
-                $stated === null ? $opening : max((int) $stated, $opening),
+                $data->pricedQuantity,
                 $request['optionValueIds'],
                 $request['payloads'],
             );

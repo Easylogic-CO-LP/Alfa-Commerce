@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
+use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
@@ -1466,9 +1467,12 @@ class PriceIndexSyncService
                     }
 
                     // Map PriceResult -> index columns
-                    // Column names match config fields exactly.
+                    // Column names match config fields exactly. Each figure is the price of ONE piece at the product's
+                    // opening quantity, as its card prints it (2.2.2): the result's unit figures, and the final price by
+                    // the one unit rule (PriceUnits::exact()). At quantity 1 a total was the unit; at a minimum of 10
+                    // it is ten units, and a filter or a sort would read the line's money instead of the card's price.
 
-                    $basePrice = round($result->getBaseTotal()->getAmount(), 4);
+                    $basePrice = round($result->getBasePrice()->getAmount(), 4);
 
                     // A base of zero writes no row either: the item is absent
                     // from the catalog's price filters for that period.
@@ -1476,17 +1480,17 @@ class PriceIndexSyncService
                         continue;
                     }
 
-                    $discountAmount = round($result->getSavingsTotal()->getAmount(), 4);
-                    $basePriceWithDiscounts = round($result->getSubtotal()->getAmount(), 4);
-                    $taxAmount = round($result->getTaxTotal()->getAmount(), 4);
-                    $finalPrice = round($result->getTotal()->getAmount(), 4);
+                    $discountAmount = round($result->getSavingsPrice()->getAmount(), 4);
+                    $basePriceWithDiscounts = round($result->getSubtotalPrice()->getAmount(), 4);
+                    $taxAmount = round($result->getTaxPrice()->getAmount(), 4);
+                    $finalPrice = round((float) PriceUnits::exact(price: $result, figure: 'final'), 4);
 
                     // base_price_with_tax is the UNDISCOUNTED gross: the struck
                     // "was" price. PriceResult owns that derivation (tax on the full
                     // base at the effective rate); $taxTotal is the tax on what the
                     // customer pays and is the wrong figure for it, before tax and
                     // after tax alike.
-                    $basePriceWithTax = round($result->getBaseTotalWithTax()->getAmount(), 4);
+                    $basePriceWithTax = round($result->getBasePriceWithTax()->getAmount(), 4);
 
                     // discount_percent: use PriceResult's authoritative calculation
                     // which correctly handles both before-tax and after-tax discounts

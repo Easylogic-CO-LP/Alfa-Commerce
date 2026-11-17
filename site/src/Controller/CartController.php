@@ -152,11 +152,12 @@ class CartController extends FormController implements UserFactoryAwareInterface
             ],
         );
 
+        // The stock line at the quantity the price is for: the model never prices under the product's minimum (2.2.2).
         $stockAvailabilityLayout = Layout::render(
             'item.stock_info',
             [
                 'item' => $item,
-                'quantity' => $quantity,
+                'quantity' => (int) ($item->pricedQuantity ?? $quantity),
             ],
         );
 
