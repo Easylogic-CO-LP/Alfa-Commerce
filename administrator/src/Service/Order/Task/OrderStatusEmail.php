@@ -93,6 +93,9 @@ class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
             EmailService::deliverForStatus(
                 orderId: $run->subjectId(),
                 statusId: (int) ($run->payload()['status'] ?? 0),
+                // false for a change made silent for the customer (2.2.1); a single written before 2.2.1 carries no
+                // such key and tells the customer, as it did when it was written.
+                customer: ($run->payload()['customer'] ?? true) !== false,
                 attempt: static fn (string $unit): bool => $run->shouldAttempt(unit: $unit),
                 outcome: static function (string $unit, string $outcome, string $error) use ($run, &$failed, &$unknown, &$off): void {
                     $run->unit(unit: $unit, outcome: match ($outcome) {

@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionInterface;
+use BadMethodCallException;
 use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractEvent;
 
@@ -41,12 +42,29 @@ use Joomla\CMS\Event\AbstractEvent;
  * {@see VisibilityChangedEvent}, since nothing else will tell it that an allowlist
  * moved underneath the rows it stores.
  *
+ * THE LIST IS WRITTEN ONLY THROUGH addProjection() (2.2.1). It is the event's own, not an
+ * argument: setting the projections argument (setArgument(), or $event['projections'])
+ * is refused with a BadMethodCallException, so no listener replaces or empties what the
+ * others registered.
+ *
  * @since  2.0.0
  */
 class CollectCatalogProjectionsEvent extends AbstractEvent
 {
     /**
+     * The projections contributed so far, in contribution order.
+     *
+     * @var list<array{projection: ProjectionInterface, contributor: string, version: string}>
+     * @since  2.2.1
+     */
+    private array $entries = [];
+
+    /**
      * Contribute a projection under its owning plugin's identity.
+     *
+     * A registry's entry names its plugin second, after the object it registers: the four registries (addProjection(),
+     * addEngine(), and addProvider() of the document types and of the stock allocation) share that shape, while a
+     * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
      *
      * @param ProjectionInterface $projection The projection instance.
      * @param string $contributor The owning plugin, group.element (2.2.0; attribution, never an authorisation).
@@ -59,26 +77,40 @@ class CollectCatalogProjectionsEvent extends AbstractEvent
     public function addProjection(ProjectionInterface $projection, string $contributor, string $version = ''): void
     {
         $owner = PluginId::of($contributor);
-        $entries = (array) ($this->arguments['projections'] ?? []);
 
-        $entries[] = [
+        $this->entries[] = [
             'projection' => $projection,
             'contributor' => $owner->key(),
             'version' => trim($version),
         ];
-
-        $this->arguments['projections'] = $entries;
     }
 
     /**
      * The collected projection entries.
      *
-     * @return array<int, array{projection: ProjectionInterface, contributor: string, version: string}>
+     * @return list<array{projection: ProjectionInterface, contributor: string, version: string}>
      *
      * @since  2.0.0
      */
     public function getProjections(): array
     {
-        return (array) ($this->arguments['projections'] ?? []);
+        return $this->entries;
+    }
+
+    /**
+     * Refuses the projections argument: the list is written only through addProjection() (2.2.1).
+     *
+     * @param mixed $value The value a caller tried to set.
+     *
+     * @throws BadMethodCallException Always.
+     *
+     * @since  2.2.1
+     */
+    protected function onSetProjections(mixed $value): never
+    {
+        throw new BadMethodCallException(
+            'The projections of onCollectCatalogProjections are added through addProjection(), each under its plugin;'
+            . ' the list itself cannot be set.',
+        );
     }
 }
