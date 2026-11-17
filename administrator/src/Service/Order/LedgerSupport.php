@@ -475,7 +475,7 @@ trait LedgerSupport
         $failure = self::writeRow($data);
 
         if ($failure !== null) {
-            self::warn($failure);
+            self::warn(message: $failure['detail'], shown: $failure['shown']);
 
             return false;
         }
@@ -495,12 +495,14 @@ trait LedgerSupport
      *
      * @param array $data Row data (by reference; PK back-filled on insert).
      *
-     * @return string|null Null when the row is written; otherwise the failure's
-     *                     detail for the log, a driver's message included.
+     * @return array{detail: string, shown: string}|null Null when the row is
+     *                                                   written; otherwise the failure's detail for the log (a
+     *                                                   driver's message included) and what staff read (2.2.2:
+     *                                                   never a driver's message).
      *
      * @since  2.2.1
      */
-    private static function writeRow(array &$data): ?string
+    private static function writeRow(array &$data): ?array
     {
         $db = self::db();
 
@@ -509,7 +511,7 @@ trait LedgerSupport
         $filtered = array_intersect_key($data, $tableColumns);
 
         if (empty($filtered)) {
-            return 'saveToTable(): no valid columns after filtering';
+            return ['detail' => 'saveToTable(): no valid columns after filtering', 'shown' => 'saveToTable(): no valid columns after filtering'];
         }
 
         // Sanitize nullable columns: forms send '' which MySQL strict rejects
@@ -561,7 +563,7 @@ trait LedgerSupport
                 throw $e;
             }
 
-            return 'saveToTable() failed: ' . $e->getMessage();
+            return ['detail' => 'saveToTable() failed: ' . $e->getMessage(), 'shown' => 'saveToTable() failed'];
         }
 
         return null;
@@ -670,7 +672,7 @@ trait LedgerSupport
                 throw $e;
             }
 
-            self::warn('deleteFromTable() failed: ' . $e->getMessage());
+            self::warnFailure(message: 'deleteFromTable() failed', failure: $e);
             return false;
         }
 
@@ -827,6 +829,9 @@ trait LedgerSupport
                     $orderId,
                     $currency->getCode(),
                 ));
+                // The verdict's code (2.2.2): PaymentLedger::REFUSAL_AMOUNT_CURRENCY, written as its value because this trait
+                // serves the shipments ledger too.
+                self::noteVerdict(kind: 'refused', code: 'amount_currency', orderId: $orderId);
 
                 return false;
             }
@@ -841,6 +846,7 @@ trait LedgerSupport
                     $orderId,
                     $currency->getDecimalPlaces(),
                 ));
+                self::noteVerdict(kind: 'refused', code: 'amount_scale', orderId: $orderId);
 
                 return false;
             }
@@ -852,6 +858,7 @@ trait LedgerSupport
             return StoredDecimal::of(Money::of($value === null || $value === '' ? 0 : $value, $currency));
         } catch (InvalidArgumentException | TypeError $e) {
             self::warn(sprintf('%s of order #%d is not an amount of its money (%s); nothing was written', $field, $orderId, $e->getMessage()));
+            self::noteVerdict(kind: 'refused', code: 'amount_invalid', orderId: $orderId);
 
             return false;
         }
@@ -910,24 +917,79 @@ trait LedgerSupport
      * message is plain text: the log takes it as is, the message area escaped.
      * A sentence written for the operator names its call in the log only.
      *
+     * Queued for staff and API clients only, never on a storefront request
+     * (2.2.2): a shopper is told by the plugin, in its own words. What
+     * is queued may be shorter than what is logged ($shown): a database
+     * driver's text stays in the log.
+     *
      * @param string $message Warning text (plain text, never markup)
      * @param string $context The call it concerns, for the log only ('create()'); empty when the message names it.
+     * @param string|null $shown What staff read, when it differs from the log line (2.2.2).
      *
      *
      * @since  1.0.0
      */
-    private static function warn(string $message, string $context = ''): void
+    private static function warn(string $message, string $context = '', ?string $shown = null): void
     {
         $label = substr((string) strrchr(static::class, '\\'), 1);
 
         Log::add('[' . $label . '] ' . ($context !== '' ? $context . ': ' : '') . $message, Log::WARNING, 'com_alfa.orders');
 
         try {
+            $app = Factory::getApplication();
+
+            if (!$app->isClient('administrator') && !$app->isClient('api')) {
+                return;
+            }
+
             // Plain text, and the queue renders HTML: a message can quote a
             // typed Transaction ID or a driver error that echoes a value.
-            Factory::getApplication()->enqueueMessage(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars($shown ?? $message, ENT_QUOTES, 'UTF-8'), 'error');
         } catch (Exception $e) {
             // Silently ignore: CLI or early boot context
         }
+    }
+
+    /**
+     * Warn of a failure whose own text (a database driver's message, which can
+     * name a table) is for the log only (2.2.2): the log line is the message
+     * and the failure's text, staff and API clients read the message alone.
+     * The one place a ledger's failure warning keeps its text out of the queue.
+     *
+     * @param string $message What failed, for staff and the log.
+     * @param Throwable $failure The failure; its text goes to the log only.
+     * @param string $context The call it concerns, for the log only; empty when the message names it.
+     *
+     * @since  2.2.2
+     */
+    private static function warnFailure(string $message, Throwable $failure, string $context = ''): void
+    {
+        self::warn(message: $message . ': ' . $failure->getMessage(), context: $context, shown: $message);
+    }
+
+    /**
+     * Note what a write did not do, for a verdict (2.2.2): the payments ledger keeps it
+     * ({@see PaymentLedger::noteVerdict()}, which replaces this one there); the shipments ledger answers
+     * no verdict, so the note goes nowhere.
+     *
+     * @param string $kind The verdict kind's value.
+     * @param string $code The refusal code's value, '' for another kind.
+     * @param int $orderId The order, 0 when none is known.
+     * @param mixed $plain Unused here.
+     * @param array $figures Unused here.
+     * @param int $rowId Unused here.
+     * @param bool $existing Unused here.
+     *
+     * @since  2.2.2
+     */
+    private static function noteVerdict(
+        string $kind,
+        string $code,
+        int $orderId = 0,
+        mixed $plain = null,
+        array $figures = [],
+        int $rowId = 0,
+        bool $existing = false,
+    ): void {
     }
 }
