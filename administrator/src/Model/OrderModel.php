@@ -6356,6 +6356,8 @@ class OrderModel extends AlfaAdminModel
      * whose side effects ran) use the best-effort method instead: undoing is
      * not on the table there, and throwing would only lose more.
      *
+     * @api DURABLE: writes the entry or throws, so a caller whose own write is still open rolls back with it.
+     *
      * @param int $orderId Order PK.
      * @param string $event Dot-notation event.
      * @param string $summary Human-readable summary.
@@ -6548,6 +6550,9 @@ class OrderModel extends AlfaAdminModel
      * Callers whose mutation is still open (inside a transaction) must use
      * {@see logOrderActivityStrict} instead, so the mutation rolls back with
      * its record.
+     *
+     * @api BEST EFFORT: answers the entry's id or null; a lost entry is logged CRITICAL and raised as a notification,
+     *      and only a failure that ended the caller's transaction is thrown.
      *
      * @param int $orderId Order PK.
      * @param string $event Dot-notation event.

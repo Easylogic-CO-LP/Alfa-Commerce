@@ -58,6 +58,9 @@ final class OrderMoneyLock
      * transaction or not, runs after its release ({@see PostCommit}), so no
      * e-mail or plugin keeps a second operation on the order refused as busy.
      *
+     * @api ANSWERS: false when another request holds the lock and the work did not run; throws when the lock cannot be
+     *      taken; re-entrant for its connection.
+     *
      * @param int $orderId The order the operation is on.
      * @param callable $work Called with no arguments.
      *

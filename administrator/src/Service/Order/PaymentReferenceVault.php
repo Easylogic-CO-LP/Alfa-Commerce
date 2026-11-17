@@ -38,6 +38,8 @@ class PaymentReferenceVault
     /**
      * Persist a reference produced by a StoreReferenceEvent.
      *
+     * @api DURABLE: writes the reference and answers its row's id.
+     *
      * @param int $userId Owning customer (0 = guest).
      * @param int $paymentMethodId `#__alfa_payments` row that can charge it.
      * @param string $gateway Payment plugin element (denormalized guard).
@@ -128,7 +130,9 @@ class PaymentReferenceVault
     }
 
     /**
-     * Active references of a customer (future saved-cards UI / method pickers).
+     * Active references of a customer, for a saved-cards gateway's choice of a stored card.
+     *
+     * @api READ ONLY: a customer's active references, newest first.
      *
      * @param int $userId Customer id.
      *
