@@ -1,0 +1,68 @@
+{
+ "format": "one entry per file + rule + the first words of the docblock left behind (D1) or the sample (D2 to D4); an entry that matches nothing fails",
+ "entries": [
+  {
+   "file": "administrator/src/Model/OrderModel.php",
+   "rule": "D1",
+   "text": "@package    Alfa Commerce",
+   "class": "deferred",
+   "why": "OrderModel.php is being changed by P3-349's pull request; its two docblock pairs (the file header beside the class description, and the stale prefill docblock) are fixed after that merge"
+  },
+  {
+   "file": "administrator/src/Model/OrderModel.php",
+   "rule": "D1",
+   "text": "Prefill order data for partial updates.",
+   "class": "deferred",
+   "why": "OrderModel.php is being changed by P3-349's pull request; its two docblock pairs (the file header beside the class description, and the stale prefill docblock) are fixed after that merge"
+  },
+  {
+   "file": "administrator/src/Service/Order/PaymentLedger.php",
+   "rule": "D1",
+   "text": "Shape one refundPayment() verdict.",
+   "class": "deferred",
+   "why": "PaymentLedger.php is being changed by P3-353's pull request; its seven docblocks left above another docblock are fixed after that merge"
+  },
+  {
+   "file": "administrator/src/Service/Order/PaymentLedger.php",
+   "rule": "D1",
+   "text": "Payment-method automation: move the ORDER when a transaction",
+   "class": "deferred",
+   "why": "PaymentLedger.php is being changed by P3-353's pull request; its seven docblocks left above another docblock are fixed after that merge"
+  },
+  {
+   "file": "administrator/src/Service/Order/PaymentLedger.php",
+   "rule": "D1",
+   "text": "Sum every refund already recorded against one payment.",
+   "class": "deferred",
+   "why": "PaymentLedger.php is being changed by P3-353's pull request; its seven docblocks left above another docblock are fixed after that merge"
+  },
+  {
+   "file": "administrator/src/Service/Order/PaymentLedger.php",
+   "rule": "D1",
+   "text": "Net customer-credit (\"wallet\") amount settling this order's ",
+   "class": "deferred",
+   "why": "PaymentLedger.php is being changed by P3-353's pull request; its seven docblocks left above another docblock are fixed after that merge"
+  },
+  {
+   "file": "administrator/src/Service/Order/PaymentLedger.php",
+   "rule": "D1",
+   "text": "Sum every payment recorded toward an order's total.",
+   "class": "deferred",
+   "why": "PaymentLedger.php is being changed by P3-353's pull request; its seven docblocks left above another docblock are fixed after that merge"
+  },
+  {
+   "file": "administrator/src/Service/Order/PaymentLedger.php",
+   "rule": "D1",
+   "text": "Money actually collected for an order.",
+   "class": "deferred",
+   "why": "PaymentLedger.php is being changed by P3-353's pull request; its seven docblocks left above another docblock are fixed after that merge"
+  },
+  {
+   "file": "administrator/src/Service/Order/PaymentLedger.php",
+   "rule": "D1",
+   "text": "How much of one payment can still be refunded.",
+   "class": "deferred",
+   "why": "PaymentLedger.php is being changed by P3-353's pull request; its seven docblocks left above another docblock are fixed after that merge"
+  }
+ ]
+}
