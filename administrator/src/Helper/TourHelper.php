@@ -140,14 +140,19 @@ final class TourHelper
     }
 
     /**
-     * Load the language of every platform plugin, for the sake of the tours they ship.
+     * Load the language of each platform plugin that has a published tour of its own, for the sake of that tour.
      *
-     * A plugin's tour carries language KEYS into the database, and nothing in the
-     * `#__guidedtours` row says which extension owns the wording, so the Take a Tour
-     * list and the running tour would both render raw PLG_... strings. Importing or
-     * even booting the plugin is NOT enough: measured on this install, only an
-     * explicit load() resolves them. Same call the card registry makes for the same
-     * reason, and idempotent, so the repeat costs nothing.
+     * A plugin's tour carries language KEYS into the database, and Joomla looks for
+     * their texts in a file per tour, so the Take a Tour list and the running tour
+     * would both render raw PLG_... strings. Importing or even booting the plugin is
+     * NOT enough: measured on this install, only an explicit load() resolves them.
+     *
+     * ONLY THE PLUGINS WITH A TOUR (2.2.1). A plugin's tour is named after its own
+     * extension, plg_<group>_<element>.<tour> (Joomla's own mapping from a tour to
+     * its wording); the Take a Tour list shows every published tour and the running
+     * tour is one of them. Loading every platform plugin's language on every page
+     * cost each page a file per plugin and showed the strings of a plugin that
+     * forgets to load its own language, while Guided Tours is on, hiding its fault.
      *
      *
      * @since  2.0.0
@@ -164,8 +169,18 @@ final class TourHelper
             return;                                 // a broken contributor costs the page nothing
         }
 
+        $withTour = [];
+
+        foreach (self::ownTours() as $uid) {
+            if (preg_match('/^plg_' . preg_quote($group, '/') . '_([a-z0-9\-]+)\./', strtolower($uid), $match) === 1) {
+                $withTour[$match[1]] = true;
+            }
+        }
+
         foreach ($plugins as $plugin) {
-            AlfaHelper::loadPluginLanguage(group: $group, element: $plugin->element);
+            if (isset($withTour[$plugin->element])) {
+                AlfaHelper::loadPluginLanguage(group: $group, element: $plugin->element);
+            }
         }
     }
 
@@ -179,12 +194,25 @@ final class TourHelper
      */
     public static function ownTourIds(): array
     {
-        static $ids = null;
+        return array_keys(self::ownTours());
+    }
 
-        if ($ids === null) {
+    /**
+     * The published tours Alfa Commerce seeded, core's and its platform plugins', by id: their uids. One read per
+     * request.
+     *
+     * @return array<int, string>
+     *
+     * @since  2.2.1
+     */
+    private static function ownTours(): array
+    {
+        static $tours = null;
+
+        if ($tours === null) {
             $db = Factory::getContainer()->get(DatabaseInterface::class);
             $query = $db->getQuery(true)
-                ->select($db->quoteName('id'))
+                ->select($db->quoteName(['id', 'uid']))
                 ->from($db->quoteName('#__guidedtours'))
                 // OURS IS WHAT THE SEEDER STAMPED, not what the uid starts with: a
                 // platform plugin names its tour after its own extension (Joomla reads
@@ -194,9 +222,13 @@ final class TourHelper
                 ->where($db->quoteName('note') . ' LIKE ' . $db->quote('alfa:v%'))
                 ->where($db->quoteName('published') . ' = 1');
 
-            $ids = array_map('intval', $db->setQuery($query)->loadColumn());
+            $tours = [];
+
+            foreach ((array) $db->setQuery($query)->loadObjectList() as $row) {
+                $tours[(int) $row->id] = (string) $row->uid;
+            }
         }
 
-        return $ids;
+        return $tours;
     }
 }

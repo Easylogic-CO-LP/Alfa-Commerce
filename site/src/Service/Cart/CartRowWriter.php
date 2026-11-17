@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartPersistenceException;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSource;
+use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Factory;
@@ -311,7 +312,7 @@ final class CartRowWriter
         $cartObject->id_payment = 0;
         $cartObject->id_user_info_delivery = 0;
         $cartObject->id_user_info_invoice = 0;
-        $cartObject->id_currency = self::currentCurrencyId();
+        $cartObject->id_currency = self::currentCurrencyId($current->subject());
         $cartObject->id_customer = $owner->customerId();
         $cartObject->added = $currentDate->toSql(false);
         $cartObject->updated = $currentDate->toSql(false);
@@ -344,14 +345,25 @@ final class CartRowWriter
     }
 
     /**
-     * The currency a new cart is opened in: the session's, else the default.
+     * The currency a new cart is opened in: a shopper's cart in the session's,
+     * else the shop's default; a cart the order builder makes for a customer
+     * always in the shop's default.
+     *
+     * AN OPERATOR PLACEMENT TAKES NOTHING FROM A SESSION. The session is the
+     * member of staff's, and with Joomla's Shared Sessions on it is their own
+     * storefront session, so its currency is the one they last chose as a
+     * shopper, never the customer's.
+     *
+     * @param CartSubject $subject Whose cart is being opened, and by whom.
      */
-    private static function currentCurrencyId(): int
+    private static function currentCurrencyId(CartSubject $subject): int
     {
-        $sessionCurrency = (int) Factory::getApplication()->getSession()->get('alfa.currency_id', 0);
+        if (!$subject->isOperatorPlacement()) {
+            $sessionCurrency = (int) Factory::getApplication()->getSession()->get('alfa.currency_id', 0);
 
-        if ($sessionCurrency > 0) {
-            return $sessionCurrency;
+            if ($sessionCurrency > 0) {
+                return $sessionCurrency;
+            }
         }
 
         try {

@@ -70,4 +70,14 @@ class OrderstatusesController extends ApiController
 
         return parent::displayList();
     }
+
+    /**
+     * An order status is deleted from the trash only, as the administrator's list of order statuses deletes it (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
 }

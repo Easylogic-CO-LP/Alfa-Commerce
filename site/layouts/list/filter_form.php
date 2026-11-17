@@ -22,7 +22,6 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Alfa\Component\Alfa\Site\Helper\Layout;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
@@ -86,10 +85,11 @@ if ($searchField && $searchField->getAttribute('data-alfa-search')) {
 		// plugin ALONE (2.2.0, mode B): no other listener can take the input. With no such
 		// plugin (the database search, an engine core ships itself, a plugin disabled or
 		// failing) this renders the stock searchtools input exactly as before. `method`
-		// carries the configured engine key; redirects are deliberately not honoured here.
+		// carries the configured engine key from its one reader ('' for the database
+		// search, 2.2.1); redirects are deliberately not honoured here.
 		$inputEvent = new SearchInputLayoutEvent('onAlfaSearchInputLayout', [
 			'subject' => $view,
-			'method'  => (string) ComponentHelper::getParams('com_alfa')->get('search_engine', 'database'),
+			'method'  => SearchEngineRegistry::shared()->configuredKey(),
 			// This layout serves several list views (items AND manufacturers today), so the
 			// surface travels with the question: the engine may dress them differently, or
 			// claim only one.
