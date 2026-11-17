@@ -11,6 +11,7 @@ namespace Alfa\Module\AlfaCart\Site\Helper;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartResolution;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Exception;
 use Joomla\CMS\Factory;
@@ -36,6 +37,8 @@ class AlfaCartHelper
         if (!$module = ModuleHelper::getModule('mod_alfa_cart')) {
             return;
         }
+
+        self::refuseInCatalogueOnly();
 
         $app = Factory::getApplication();
         $params = new Registry($module->params);
@@ -84,6 +87,8 @@ class AlfaCartHelper
         if (!$module = ModuleHelper::getModule('mod_alfa_cart')) {
             return;
         }
+
+        self::refuseInCatalogueOnly();
 
         $app = Factory::getApplication();
         $input = $app->input;
@@ -232,6 +237,25 @@ class AlfaCartHelper
         }
 
         return $input->get($name, $default, $filter);
+    }
+
+    /**
+     * Answer 403 with the catalogue-only sentence when the shop shows its catalogue only (2.2.2): the drawer is not
+     * drawn, so neither its reading nor its quantity change is served.
+     *
+     * @since  2.2.2
+     */
+    private static function refuseInCatalogueOnly(): void
+    {
+        if (ShopMode::sellsOnline()) {
+            return;
+        }
+
+        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_SITE);
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo new JsonResponse(null, Text::_('COM_ALFA_CATALOGUE_ONLY_NOTICE'), true);
+        Factory::getApplication()->close();
     }
 
     /**

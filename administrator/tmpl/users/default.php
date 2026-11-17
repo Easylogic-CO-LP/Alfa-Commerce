@@ -68,6 +68,12 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
                                 <?php echo HTMLHelper::_('searchtools.sort', 'JGLOBAL_EMAIL', 'u.email', $listDirn, $listOrder); ?>
                             </th>
                             <th scope="col" class="d-none d-md-table-cell">
+                                <?php echo HTMLHelper::_('searchtools.sort', 'COM_ALFA_HEADING_ACCOUNT_STATE', 'account_state', $listDirn, $listOrder); ?>
+                            </th>
+                            <th scope="col" class="d-none d-md-table-cell">
+                                <?php echo Text::_('COM_ALFA_HEADING_USER_GROUPS'); ?>
+                            </th>
+                            <th scope="col" class="d-none d-md-table-cell">
                                 <?php echo HTMLHelper::_('searchtools.sort', 'COM_ALFA_HEADING_NOTE', 'a.note', $listDirn, $listOrder); ?>
                             </th>
                             <th scope="col" class="d-none d-lg-table-cell">
@@ -100,6 +106,14 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
 
                                 <td class="d-none d-md-table-cell">
                                     <?php echo $this->escape($item->email); ?>
+                                </td>
+
+                                <td class="d-none d-md-table-cell">
+                                    <?php echo LayoutHelper::render('users.account_state', ['state' => (int) ($item->account_state ?? 0)], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+                                </td>
+
+                                <td class="d-none d-md-table-cell">
+                                    <?php echo implode('<br>', array_map([$this, 'escape'], (array) ($item->group_titles ?? []))); ?>
                                 </td>
 
                                 <td class="d-none d-md-table-cell">
