@@ -32,10 +32,11 @@ use Throwable;
  */
 class OrdersController extends ApiController
 {
-    // The trait's delete() and edit() are reached through aliases: this class overrides both, and its
+    // The trait's add(), delete() and edit() are reached through aliases: this class overrides them, and its
     // parent::delete() would be ApiController's, which asks core.delete, and its parent::edit() ApiController's, which
     // does not refuse the keys an order's update does not write.
     use HasApiGuards {
+        HasApiGuards::add as protected guardedAdd;
         HasApiGuards::delete as protected guardedDelete;
         HasApiGuards::edit as protected guardedEdit;
     }
@@ -215,6 +216,8 @@ class OrdersController extends ApiController
             throw new Save('state cannot be changed via PATCH: over the API an order has no trash step and is deleted in one call (DELETE v1/alfa/orders/:id); its status changes through POST v1/alfa/orders/:id/status.', 422);
         }
 
+        $this->refuseUnstatedInvoice();
+
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
@@ -226,6 +229,39 @@ class OrdersController extends ApiController
         }
 
         return $result;
+    }
+
+    /**
+     * Create an order: the guards' create, after the invoice details' own refusal ({@see self::refuseUnstatedInvoice()}).
+     *
+     * @return void
+     *
+     * @since  2.2.2
+     */
+    public function add()
+    {
+        $this->refuseUnstatedInvoice();
+
+        $this->guardedAdd();
+    }
+
+    /**
+     * Answer 400 naming invoice_differs when the body sends invoice details (alfa_form_fields_billing) without it
+     * (2.2.2). The invoice details are written only by the choice invoice_differs states; details sent without it were
+     * dropped without a word, so a client was not told that its invoice details were not saved.
+     *
+     * @throws Save When the body sends the invoice details without invoice_differs (400).
+     *
+     * @since  2.2.2
+     */
+    private function refuseUnstatedInvoice(): void
+    {
+        $body = $this->requestBody();
+
+        if (($body[FieldsHelper::BILLING_FIELDS_KEY] ?? null) !== null && !\array_key_exists('invoice_differs', $body)) {
+            throw new Save('invoice_differs: send invoice_differs with alfa_form_fields_billing (1 for invoice details of their own,'
+                . ' 0 to invoice to the delivery details). Nothing was saved.', 400);
+        }
     }
 
     /**
