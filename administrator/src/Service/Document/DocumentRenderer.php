@@ -14,7 +14,7 @@ use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
+use Joomla\CMS\Language\Language;
 use Joomla\CMS\Layout\LayoutHelper;
 use RuntimeException;
 use Throwable;
@@ -149,7 +149,8 @@ final class DocumentRenderer
      * Commerce's own (com_alfa.ini) of that language, and Joomla loads English for them when it is missing: so a
      * language that Joomla's administrator has and Alfa Commerce's translations do not prints English labels with that
      * language's separators (a French document: English labels, 15,5%). A partial drawn without a document prints with
-     * the request's language's separators.
+     * the request's language's separators, by the same rule: English's when the request's language names neither (a
+     * command line request, which loads no joomla.ini).
      *
      * @param object|null $document The document row (its `language`); null for a partial drawn without one.
      *
@@ -160,25 +161,37 @@ final class DocumentRenderer
     public static function separators(?object $document): array
     {
         if ($document === null) {
-            return ['decimal' => Text::_('DECIMALS_SEPARATOR'), 'thousands' => Text::_('THOUSANDS_SEPARATOR')];
+            return self::separatorsOf(language: Factory::getApplication()->getLanguage());
         }
 
         $tag = (string) ($document->language ?? '');
 
         if (!isset(self::$separators[$tag])) {
-            $language = NotificationText::own(tag: $tag);
-
-            if (!$language->hasKey('DECIMALS_SEPARATOR') || !$language->hasKey('THOUSANDS_SEPARATOR')) {
-                $language = NotificationText::own(tag: 'en-GB');
-            }
-
-            self::$separators[$tag] = [
-                'decimal' => $language->_('DECIMALS_SEPARATOR'),
-                'thousands' => $language->_('THOUSANDS_SEPARATOR'),
-            ];
+            self::$separators[$tag] = self::separatorsOf(language: NotificationText::own(tag: $tag));
         }
 
         return self::$separators[$tag];
+    }
+
+    /**
+     * The two separators a language names, or English's (its administrator joomla.ini) when it does not name both.
+     *
+     * @param Language $language The language read.
+     *
+     * @return array{decimal: string, thousands: string}
+     *
+     * @since  2.2.2
+     */
+    private static function separatorsOf(Language $language): array
+    {
+        if (!$language->hasKey('DECIMALS_SEPARATOR') || !$language->hasKey('THOUSANDS_SEPARATOR')) {
+            $language = NotificationText::own(tag: 'en-GB');
+        }
+
+        return [
+            'decimal' => $language->_('DECIMALS_SEPARATOR'),
+            'thousands' => $language->_('THOUSANDS_SEPARATOR'),
+        ];
     }
 
     /**
