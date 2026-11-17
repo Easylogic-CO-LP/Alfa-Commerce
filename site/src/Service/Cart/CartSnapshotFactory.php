@@ -29,6 +29,8 @@ defined('_JEXEC') or die;
 final class CartSnapshotFactory
 {
     /**
+     * A settled reading: everything a view asks, the offers included.
+     *
      * @param HydratedCart $state The cart as loaded.
      * @param CartComputation $computation What is computed about it.
      * @param array $paymentViews What each payment method asked to show, keyed by id.
@@ -38,9 +40,33 @@ final class CartSnapshotFactory
      */
     public function from(HydratedCart $state, CartComputation $computation, array $paymentViews = [], array $shipmentViews = []): CartSnapshot
     {
+        return $this->reading($state, $computation, true, $paymentViews, $shipmentViews);
+    }
+
+    /**
+     * A plain reading: the lines and the totals, and no offers (null). The mini-cart's: it shows no method, so no
+     * method list is read and no carrier is asked to quote for one; the chosen carrier is still asked for the
+     * shipping total.
+     *
+     * @param HydratedCart $state The cart as loaded.
+     * @param CartComputation $computation What is computed about it.
+     *
+     * @since  2.2.2
+     */
+    public function plain(HydratedCart $state, CartComputation $computation): CartSnapshot
+    {
+        return $this->reading($state, $computation, false);
+    }
+
+    private function reading(
+        HydratedCart $state,
+        CartComputation $computation,
+        bool $withOffers,
+        array $paymentViews = [],
+        array $shipmentViews = [],
+    ): CartSnapshot {
         $totals = $computation->totals();
         $rules = $computation->rules();
-        $methods = $computation->methods();
 
         return new CartSnapshot(
             cartId: $state->id(),
@@ -72,32 +98,41 @@ final class CartSnapshotFactory
                 progress: $rules->displayableProgress(),
                 total: $rules->total(),
             ),
-            offers: new CartOffersView(
-                hasPayments: $methods->hasPaymentCandidates(),
-                hasShipments: $methods->hasShipmentCandidates(),
-                paymentRequirement: $methods->paymentRequirement(),
-                shipmentRequirement: $methods->shipmentRequirement(),
-                payments: $methods->payments(),
-                paymentsIgnoringShipping: $methods->paymentsIgnoringShipping(),
-                shipments: $methods->shipments(),
-                selectedPaymentId: $state->paymentId(),
-                selectedShipmentId: $state->shipmentId(),
-                // The reconciliation notices, plus, only where the page can
-                // actually act on it, the reason a cart with no known
-                // destination is being offered less.
-                notices: [
-                    'payment' => $methods->notices('payment'),
-                    'shipment' => array_values(array_filter(array_merge(
-                        $methods->notices('shipment'),
-                        [$methods->destinationNotice('shipment')],
-                    ))),
-                ],
-                paymentViews: $paymentViews,
-                shipmentViews: $shipmentViews,
-                shipmentNeeds: $methods->shipmentNeeds(),
-            ),
+            // After the totals, as always: the offer read finds the chosen carrier's answer they asked for.
+            offers: $withOffers ? $this->offers($state, $computation, $paymentViews, $shipmentViews) : null,
             customer: $state->subject()->customer(),
             placeId: $computation->deliveryPlaceId(),
+            shipmentId: $state->shipmentId(),
+        );
+    }
+
+    private function offers(HydratedCart $state, CartComputation $computation, array $paymentViews, array $shipmentViews): CartOffersView
+    {
+        $methods = $computation->methods();
+
+        return new CartOffersView(
+            hasPayments: $methods->hasPaymentCandidates(),
+            hasShipments: $methods->hasShipmentCandidates(),
+            paymentRequirement: $methods->paymentRequirement(),
+            shipmentRequirement: $methods->shipmentRequirement(),
+            payments: $methods->payments(),
+            paymentsIgnoringShipping: $methods->paymentsIgnoringShipping(),
+            shipments: $methods->shipments(),
+            selectedPaymentId: $state->paymentId(),
+            selectedShipmentId: $state->shipmentId(),
+            // The reconciliation notices, plus, only where the page can
+            // actually act on it, the reason a cart with no known
+            // destination is being offered less.
+            notices: [
+                'payment' => $methods->notices('payment'),
+                'shipment' => array_values(array_filter(array_merge(
+                    $methods->notices('shipment'),
+                    [$methods->destinationNotice('shipment')],
+                ))),
+            ],
+            paymentViews: $paymentViews,
+            shipmentViews: $shipmentViews,
+            shipmentNeeds: $methods->shipmentNeeds(),
         );
     }
 }
