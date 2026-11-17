@@ -13,11 +13,12 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
-use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\Database\ParameterType;
+use SimpleXMLElement;
 use Throwable;
 
 /**
@@ -91,7 +92,7 @@ class CheckoutfieldField extends ListField
      * Set the field up; an empty setting starts on the published field carrying the `defaultrole` attribute's role
      * (2.2.1).
      *
-     * @param \SimpleXMLElement $element The field's XML element.
+     * @param SimpleXMLElement $element The field's XML element.
      * @param mixed $value The value, or null.
      * @param string|null $group The field's group.
      *
@@ -99,7 +100,7 @@ class CheckoutfieldField extends ListField
      *
      * @since  2.2.1
      */
-    public function setup(\SimpleXMLElement $element, $value, $group = null)
+    public function setup(SimpleXMLElement $element, $value, $group = null)
     {
         if (!parent::setup($element, $value, $group)) {
             return false;
