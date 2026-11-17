@@ -990,6 +990,10 @@ class OrderModel extends AlfaAdminModel
         if (empty($data['invoice_differs'])) {
             $form->removeGroup(FieldsHelper::BILLING_FIELDS_KEY);
             unset($data[FieldsHelper::BILLING_FIELDS_KEY]);
+        } elseif ($this->keepsStoredInvoice(data: $data, isNew: $isNew)) {
+            // invoice_differs 1 with no invoice details, on an update through the API: a section not sent keeps its
+            // stored value, so the order's own invoice details stay as they are and are not validated.
+            $form->removeGroup(FieldsHelper::BILLING_FIELDS_KEY);
         } else {
             $data[FieldsHelper::BILLING_FIELDS_KEY] = SubmitAuthority::prune(
                 form: $form,
@@ -1008,6 +1012,24 @@ class OrderModel extends AlfaAdminModel
         }
 
         return $valid;
+    }
+
+    /**
+     * Whether a submission keeps the order's stored invoice details whole: an update through the API (whose omitted
+     * sections mean "unchanged") that states invoice_differs 1 and sends no invoice details. The API refuses that request
+     * when the order has no invoice details of its own (OrdersController), so the details kept are the order's own.
+     *
+     * @param array $data The submission (raw or validated).
+     * @param bool $isNew Whether the order is being created.
+     *
+     * @since  2.2.2
+     */
+    private function keepsStoredInvoice(array $data, bool $isNew): bool
+    {
+        return !$isNew
+            && $this->keepsOmittedDetails()
+            && !empty($data['invoice_differs'])
+            && !\is_array($data[FieldsHelper::BILLING_FIELDS_KEY] ?? null);
     }
 
     /**
@@ -4498,7 +4520,10 @@ class OrderModel extends AlfaAdminModel
         // delivery address" choice, or a submission that states invoice_differs (a REST PATCH may send the invoice
         // details without the delivery details). Invoice details sent without invoice_differs are dropped by the
         // validation, as the checkout drops them, and change nothing.
-        $hasInvoiceChoice = $hasAddressSection || \array_key_exists('invoice_differs', $data);
+        // invoice_differs 1 with no invoice details, on an update through the API, keeps the order's own invoice details
+        // whole: nothing is written for the invoice (keepsStoredInvoice()).
+        $hasInvoiceChoice = ($hasAddressSection || \array_key_exists('invoice_differs', $data))
+            && !$this->keepsStoredInvoice(data: $data, isNew: $isNew);
 
         // Rows this save re-points AWAY from. Collected rather than deleted on
         // the spot: the invoice pointer may still be on the delivery row at

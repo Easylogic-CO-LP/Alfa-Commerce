@@ -219,6 +219,7 @@ class OrdersController extends ApiController
         $this->refuseUnstatedInvoice();
 
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
+        $this->refuseInvoiceWithoutDetails(orderId: $orderId);
         $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
         // The guards' edit: the published attributes the update does not write are refused first (2.2.1).
@@ -261,6 +262,41 @@ class OrdersController extends ApiController
         if (($body[FieldsHelper::BILLING_FIELDS_KEY] ?? null) !== null && !\array_key_exists('invoice_differs', $body)) {
             throw new Save('invoice_differs: send invoice_differs with alfa_form_fields_billing (1 for invoice details of their own,'
                 . ' 0 to invoice to the delivery details). Nothing was saved.', 400);
+        }
+    }
+
+    /**
+     * Answer 400 naming alfa_form_fields_billing when a PATCH states invoice_differs 1 without the invoice details and
+     * the order has no invoice details of its own (2.2.2). With its own invoice details the order keeps them whole, as a
+     * section a PATCH does not send keeps its stored value; without them there is nothing to keep and nothing to write.
+     *
+     * @param int $orderId The order.
+     *
+     * @throws Save When the order has no invoice details of its own to keep (400).
+     *
+     * @since  2.2.2
+     */
+    private function refuseInvoiceWithoutDetails(int $orderId): void
+    {
+        $body = $this->requestBody();
+
+        if (empty($body['invoice_differs']) || \is_array($body[FieldsHelper::BILLING_FIELDS_KEY] ?? null) || $orderId <= 0) {
+            return;
+        }
+
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $exists = (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadResult() > 0;
+
+        // An id that names no order is core's to answer (404).
+        if ($exists && $this->invoiceAddressId($orderId) === null) {
+            throw new Save('alfa_form_fields_billing: send the invoice details with invoice_differs 1; this order has no invoice'
+                . ' details of its own to keep. Nothing was saved.', 400);
         }
     }
 
