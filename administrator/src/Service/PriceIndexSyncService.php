@@ -7,11 +7,6 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-/**
- * @package    Alfa Commerce
- * @since  1.0.0
- */
-
 namespace Alfa\Component\Alfa\Administrator\Service;
 
 defined('_JEXEC') or die;

@@ -1051,9 +1051,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_field_values` (
 --
 -- Table structure for table `#__alfa_item_fields`
 --
--- Global product field definitions (behavior: 0=informational, 1=option,
--- 2=variant). Translatable label/description live in
--- #__alfa_item_fields_<langtag>.
+-- Global item field definitions. An informational field (`informational` = 1)
+-- is shown only: never selectable and never building variants. Translatable
+-- label/description live in #__alfa_item_fields_<langtag>.
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_item_fields` (
@@ -1567,9 +1567,9 @@ SELECT * FROM (
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_orders_statuses_en_gb`);
 
 --
--- Order statuses are intentionally NOT seeded. They are created (and named
--- per language) by the admin / install wizard; the translatable name lives in
--- the per-language tables #__alfa_orders_statuses_<langtag>.
+-- An order status's translatable name lives in the per-language tables
+-- #__alfa_orders_statuses_<langtag>; the en-GB names of the seeded statuses
+-- are written above.
 --
 
 --

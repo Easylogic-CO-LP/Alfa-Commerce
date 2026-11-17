@@ -16,16 +16,17 @@ defined('_JEXEC') or die;
 /**
  * What a contributor is asked to charge for.
  *
- * DELIBERATELY WITHOUT TOTALS, AND STILL IS. Contributions are folded into the
- * cart's money after they are collected, so a contributor that could read the
- * grand total would be reading a number its own answer is about to change. The
- * lines are settled; the money is not, and is not offered.
+ * DELIBERATELY WITHOUT THE TOTAL. Contributions are folded into the cart's
+ * money after they are collected, so a contributor that could read the grand
+ * total would be reading a number its own answer is about to change. The lines
+ * and the goods subtotal are settled; the total is not, and is not offered.
  *
- * $cart does not weaken that. It is {@see Cart} (the settled state,
- * with no totals() and no computation behind it), so a contributor can see what
- * is in the basket, where it is going and in which currency, and still cannot
- * reach the figure it is about to move. The rule the docblock states is
- * enforced by which class is handed over, not by leaving the caller in the dark.
+ * $cart does not weaken that. It is {@see Cart}, built with the settled goods
+ * subtotal (getSubtotal() answers) and no total (getTotal() throws at this
+ * stage), so a contributor can see what is in the basket, where it is going, in
+ * which currency and what the goods come to, and still cannot reach the figure
+ * it is about to move. The rule is enforced by which class is handed over, not
+ * by leaving the caller in the dark.
  *
  * @since  2.0.0
  */

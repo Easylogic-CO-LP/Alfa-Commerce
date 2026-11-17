@@ -14,7 +14,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
 
 /**
- * Tools -> "Contributing" card: the step-by-step guide for turning the changes
+ * Tools > "Contributing" card: the step-by-step guide for turning the changes
  * made in this live install into a pull request. The package-export download is
  * step 3 of that flow (a zip of your changed files in the repo layout, for the
  * PR, not a general site export), so it lives inside the guide.
@@ -86,7 +86,7 @@ $cautionDeletionsDesktop = <<<'HTML'
     Just <strong>delete those files directly</strong> (in Finder / Explorer or your editor); GitHub Desktop shows them
     in the <strong>Changes</strong> tab as deletions, ready to commit. Remove <em>only</em> what you took out on purpose;
     don't delete a file just because it isn't in your install: the repo keeps things your install doesn't have (e.g.
-    other-language files like <code>el-GR</code>, since your install is en-GB), and those must stay.
+    its tests and its CI tooling), and those must stay.
 </div>
 HTML;
 

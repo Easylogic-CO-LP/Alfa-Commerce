@@ -508,14 +508,6 @@ class EmailPositionsField extends EditorField
     }
 
     /**
-     * The layout-owned items + totals block (not editable). Conveys that
-     * the table is rendered by the layout, not authored here.
-     *
-     * @return string
-     *
-     * @since  1.0.0
-     */
-    /**
      * Per-section visibility state: slug => bool, one entry per structural
      * block the layout renders. Resolved once from the full saved values
      * (shared across languages; default ON). Feeds the hidden posting inputs

@@ -201,8 +201,9 @@
 
     <?php
     // EXTENSIBILITY: every form fieldset beyond the core ones renders as its
-    // own tab: a plugin injecting fields into the com_alfa.item form via the
-    // standard onContentPrepareForm (Form XML with a new <fieldset>) gets a
+    // own tab: a plugin injecting fields into the com_alfa.item form through
+    // Alfa's onItemPrepareForm, or Joomla's onContentPrepareForm, which the
+    // form's loading raises too (Form XML with a new <fieldset>), gets a
     // tab here with zero template changes. Same convention as the itemfield,
     // formfield, payment and shipment edit screens.
     $coreFieldsets = ['general', 'identity', 'inventory', 'prices', 'Images', 'publish', 'meta'];

@@ -28,8 +28,9 @@ use Throwable;
  *
  * Queued items are pushed once per request by a shutdown flush, so the notification
  * is written outside the transaction whose command was refused and survives its
- * rollback. One notification per item (deduplicated by key), shown to Super Users
- * only, cleared by the audited repair and after the item is deleted.
+ * rollback. One notification per item (deduplicated by key), shown only to staff
+ * who hold core.admin on com_alfa (Super Users, and any group granted it),
+ * cleared by the audited repair and after the item is deleted.
  *
  * @since  2.0.0
  */
