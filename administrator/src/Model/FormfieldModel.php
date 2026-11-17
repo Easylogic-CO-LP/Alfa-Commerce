@@ -20,9 +20,10 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Exception;
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\Language\LanguageFactoryInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Table\Table;
@@ -135,6 +136,13 @@ class FormfieldModel extends AlfaAdminModel
         $app->enqueueMessage(Text::_('COM_ALFA_FORM_FIELDS_GROUP_SET_SUCCESSFULLY'), 'info');
         return true;
     }
+
+    /**
+     * The longest column name MySQL and MariaDB accept: a field name is its #__alfa_user_info column.
+     *
+     * @since  2.2.2
+     */
+    public const COLUMN_NAME_MAX = 64;
 
     /**
      * Unparameterised MySQL types accepted as-is (no size/precision).
@@ -402,13 +410,24 @@ class FormfieldModel extends AlfaAdminModel
             }
         }
 
-        $data['field_name'] = OutputFilter::stringURLSafe((string) $data['field_name']);
+        $typedName = trim((string) $data['field_name']);
+        $data['field_name'] = self::columnName($typedName);
 
         // A field_name is mandatory: it becomes the #__alfa_user_info column.
         // Bail out with a friendly message rather than letting an empty
-        // "ALTER TABLE ADD ``" blow up (MySQL 1166 Incorrect column name '').
+        // "ALTER TABLE ADD ``" blow up (MySQL 1166 Incorrect column name ''),
+        // and refuse a name the column cannot carry before anything is saved:
+        // the ALTER runs after the row save and must not fail there.
         if ($data['field_name'] === '') {
-            $this->setError(Text::_('COM_ALFA_FORMFIELD_NAME_REQUIRED'));
+            $this->setError($typedName === ''
+                ? Text::_('COM_ALFA_FORMFIELD_NAME_REQUIRED')
+                : Text::sprintf('COM_ALFA_FORMFIELD_NAME_EMPTY', $typedName));
+
+            return false;
+        }
+
+        if (mb_strlen($data['field_name']) > self::COLUMN_NAME_MAX) {
+            $this->setError(Text::sprintf('COM_ALFA_FORMFIELD_NAME_TOO_LONG', $data['field_name'], mb_strlen($data['field_name']), self::COLUMN_NAME_MAX));
 
             return false;
         }
@@ -445,6 +464,14 @@ class FormfieldModel extends AlfaAdminModel
         // column while #__alfa_form_fields still stored the old field_name.
         $this->pendingUserInfoDdl = null;
         $data['field_name'] = $this->manageUserInfoTable($data);
+
+        // A name already taken gets a number added (vat-number-2), which can carry it past the limit.
+        if (mb_strlen($data['field_name']) > self::COLUMN_NAME_MAX) {
+            $this->pendingUserInfoDdl = null;
+            $this->setError(Text::sprintf('COM_ALFA_FORMFIELD_NAME_TOO_LONG', $data['field_name'], mb_strlen($data['field_name']), self::COLUMN_NAME_MAX));
+
+            return false;
+        }
 
         if (!parent::save($data)) {
             return false;
@@ -710,6 +737,33 @@ class FormfieldModel extends AlfaAdminModel
         }
 
         return array_values(array_diff($pks, $locked));
+    }
+
+    /**
+     * The #__alfa_user_info column a field name gives: lowercase letters, digits, underscores and hyphens, every other
+     * run of characters one hyphen, no hyphen at either end. Letters of other alphabets are spelled in Latin letters by
+     * the site's default language, so the column is the same whoever saves the field. Every name this rule gives,
+     * gives itself again, so saving an existing field never renames its column.
+     *
+     *   vat_number -> vat_number, VAT Number -> vat-number, Αριθμός ΦΠΑ -> arithmos-fpa (a Greek site)
+     *
+     * @param string $name The name typed, or the title it is made from.
+     *
+     * @return string The column name; '' when nothing of the name is left.
+     *
+     * @since  2.2.2
+     */
+    public static function columnName(string $name): string
+    {
+        $siteLanguage = (string) ComponentHelper::getParams('com_languages')->get('site', 'en-GB');
+        $language = Factory::getContainer()->get(LanguageFactoryInterface::class)->createLanguage($siteLanguage);
+
+        // As Joomla's own alias rule, with the underscore kept: a hyphen joins words, so it is read as a space first.
+        $text = StringHelper::strtolower(trim((string) $language->transliterate(str_replace('-', ' ', $name))));
+        $text = str_replace("'", '', $text);
+        $text = (string) preg_replace('/(\s|[^a-z0-9_\-])+/', '-', $text);
+
+        return trim($text, '-');
     }
 
     /**
