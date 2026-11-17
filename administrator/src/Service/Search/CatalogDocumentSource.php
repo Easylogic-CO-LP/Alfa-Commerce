@@ -91,21 +91,6 @@ final class CatalogDocumentSource implements DocumentSourceInterface
     }
 
     /**
-     * Stream the catalogue, one item at a time, in ascending id order.
-     *
-     * Pages by keyset (`id > :cursor ORDER BY id`) so the cost of reaching page N is
-     * constant rather than proportional to N, and so an item inserted or deleted
-     * mid-rebuild cannot shift the window and skip products.
-     *
-     * The generator holds one page of ids at a time; documents are built lazily per
-     * item, so a consumer that stops early pays only for what it consumed.
-     *
-     *
-     * @return iterable<int, SearchDocument[]>
-     *
-     * @since  2.0.0
-     */
-    /**
      * Re-read a named set of items, for reconciliation before activation.
      *
      * Deliberately reuses {@see self::buildFor()} rather than repeating the language
@@ -162,6 +147,21 @@ final class CatalogDocumentSource implements DocumentSourceInterface
         return $documents;
     }
 
+    /**
+     * Stream the catalogue, one item at a time, in ascending id order.
+     *
+     * Pages by keyset (`id > :cursor ORDER BY id`) so the cost of reaching page N is
+     * constant rather than proportional to N, and so an item inserted or deleted
+     * mid-rebuild cannot shift the window and skip products.
+     *
+     * The generator holds one page of ids at a time; documents are built lazily per
+     * item, so a consumer that stops early pays only for what it consumed.
+     *
+     *
+     * @return iterable<int, SearchDocument[]>
+     *
+     * @since  2.0.0
+     */
     public function documents(int $afterId = 0): iterable
     {
         $languages = $this->languages();

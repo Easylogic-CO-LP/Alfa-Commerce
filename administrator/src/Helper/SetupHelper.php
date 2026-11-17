@@ -443,9 +443,11 @@ final class SetupHelper
     }
 
     /**
-     * Collect every check: core first and through the same door, then each enabled
-     * `alfa` PLATFORM plugin, individually booted so ownership is attributed to the
-     * contributor that was actually asked: the ToolRegistry contract, verbatim.
+     * Collect every check: core's first (in the event's constructor), then every
+     * listener's on the shared dispatcher, in one isolated dispatch after the `alfa`
+     * platform group is imported; a listener that throws is skipped (logged in
+     * com_alfa.plugins, and named in com_alfa.setup). Each plugin's check is owned by the contributor it names to
+     * CollectSetupChecksEvent::add() (group.element, attribution only).
      *
      * @return array<string, SetupCheck> Keyed `owner_group/owner_name:check_id`.
      *

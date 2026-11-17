@@ -156,16 +156,6 @@ class Entitlements
     }
 
     /**
-     * Whether entering this status grants download entitlements.
-     *
-     * The flag is the whole rule: nothing is inferred from is_completed.
-     *
-     * @param int $statusId Order status id.
-     *
-     *
-     * @since  2.0.0
-     */
-    /**
      * Whether an order in this status may hold live entitlements.
      *
      * Cancellation outranks the grant flag: a cancelled order never entitles,
@@ -181,6 +171,16 @@ class Entitlements
         return !OrderStatusHelper::isCancelled($statusId) && self::grantsDownloads($statusId);
     }
 
+    /**
+     * Whether entering this status grants download entitlements.
+     *
+     * The flag is the whole rule: nothing is inferred from is_completed.
+     *
+     * @param int $statusId Order status id.
+     *
+     *
+     * @since  2.0.0
+     */
     public static function grantsDownloads(int $statusId): bool
     {
         if ($statusId <= 0) {

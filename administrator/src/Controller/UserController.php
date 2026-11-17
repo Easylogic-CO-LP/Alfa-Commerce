@@ -82,14 +82,6 @@ class UserController extends FormController
     }
 
     /**
-     * AJAX (admin user edit, User Info tab): save one saved-info row of the
-     * customer. Same contract as the frontend screen: explicit edit merges
-     * into an owned unfrozen row, anything else inserts.
-     *
-     *
-     * @since  2.0.0
-     */
-    /**
      * Add credit to the profile's linked Joomla account (manual entry).
      *
      * The Credit tab's buttons repoint the user adminForm here via
@@ -244,6 +236,14 @@ class UserController extends FormController
         $this->setRedirect(Route::_($redirect, false));
     }
 
+    /**
+     * AJAX (admin user edit, User Info tab): save one saved-info row of the
+     * customer. Same contract as the frontend screen: explicit edit merges
+     * into an owned unfrozen row, anything else inserts.
+     *
+     *
+     * @since  2.0.0
+     */
     public function saveUserinfo(): void
     {
         $this->checkToken();

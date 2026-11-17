@@ -123,10 +123,11 @@
             search over the live product tables, which needs no index, no rebuild and no
             configuration. What it does not ship is a search ENGINE.
 
-            An engine is a separately licensed extension. plg_alfa-search_indexed prepares a
-            denormalised copy of the catalogue and searches that instead: faster on a
-            large catalogue, and able to search descriptive text the live search does not
-            cover. It is installed by the merchant, not by this manifest.
+            An engine is a separate extension (a plugin of the alfa-search group). An engine
+            that keeps an index prepares a denormalised copy of the catalogue and searches
+            that instead: faster on a large catalogue, and able to search descriptive text
+            the live search does not cover. It is installed by the merchant, not by this
+            manifest.
 
             What core DOES ship is the contract every engine implements:
             SearchEngineInterface, SearchIndexerInterface, SearchProviderInterface,

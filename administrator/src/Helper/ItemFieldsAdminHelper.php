@@ -1554,18 +1554,6 @@ class ItemFieldsAdminHelper
     }
 
     /**
-     * The ShowOn state of each field for the visibility buttons, in two batched
-     * queries (item-scoped overrides global field-scoped):
-     *   - 'set'       an item-scoped rule exists here,
-     *   - 'inherited' only a global field-definition rule applies,
-     *   - 'none'      no rule anywhere.
-     *
-     *
-     * @return array<int, string> field id => 'set' | 'inherited' | 'none'.
-     *
-     * @since  2.0.0
-     */
-    /**
      * Per-field GLOBAL (field-definition) ShowOn summaries for the item-fields list,
      * in one batched value-label query. Only fields that carry a rule appear in the
      * result. Operand labels come from the page's own fields (an off-page operand
@@ -1738,6 +1726,18 @@ class ItemFieldsAdminHelper
         }
     }
 
+    /**
+     * The ShowOn state of each field for the visibility buttons, in two batched
+     * queries (item-scoped overrides global field-scoped), with the rule's summary:
+     *   - 'set'       an item-scoped rule exists here,
+     *   - 'inherited' only a global field-definition rule applies,
+     *   - 'none'      no rule anywhere, or one naming a field this item lacks (never applied),
+     *   - 'invalid'   a rule gating on a later or an informational field (the storefront drops it).
+     *
+     * @return array<int, array{state: string, summary: string}> field id => its state and the rule's summary in words.
+     *
+     * @since  2.0.0
+     */
     public static function getShowonDisplay(int $itemId, array $fields, array $allFields = [], ?array $presentFieldNames = null, ?array $roleRank = null): array
     {
         if ($itemId <= 0 || !$fields) {
