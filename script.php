@@ -1434,7 +1434,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Make the component's administrator classes autoloadable in this request.
+     * Make the component's administrator and site classes autoloadable in this request.
      *
      * Joomla adds a newly installed extension's namespace to its autoloader only
      * on a later request, while the bundled extensions are installed in this one
@@ -1451,6 +1451,13 @@ class com_alfaInstallerScript extends InstallerScript
         \JLoader::registerNamespace(
             'Alfa\\Component\\Alfa\\Administrator',
             JPATH_ADMINISTRATOR . '/components/com_alfa/src'
+        );
+
+        // The site half too (2.2.1): the update names the rules that have not ended by the pricing's own reading of a
+        // rule's end (Site\Service\Pricing\ActiveDateCondition).
+        \JLoader::registerNamespace(
+            'Alfa\\Component\\Alfa\\Site',
+            JPATH_SITE . '/components/com_alfa/src'
         );
     }
 
@@ -1974,8 +1981,9 @@ class com_alfaInstallerScript extends InstallerScript
      * index of the version before was written with the place alone, so every product is marked owed a rebuild and the
      * catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may sort and filter a buyer below a
      * ruled place by the earlier price while the product page and the cart show the new one; the message says so, and
-     * names the published rules (not ended) scoped to a place that has a published place inside it: the rules that now
-     * reach further, since a place under an unpublished one prices no buyer. A shop whose places are all countries has
+     * names the published rules (not ended, an empty end being open as pricing reads it) scoped to a published place
+     * that has a published place inside it: the rules that now reach further, since a place under an unpublished one
+     * prices no buyer. A shop whose places are all countries has
      * none; a shop that kept the seeded Larisa under Greece has its Greece-scoped rules named. A failure is said, never
      * a failed update.
      *
@@ -1989,13 +1997,16 @@ class com_alfaInstallerScript extends InstallerScript
         try
         {
             $db = Factory::getContainer()->get('DatabaseDriver');
-            // A published rule that has not ended, scoped to a place with a published place inside it.
+            // A published rule that has not ended (by the pricing's own reading of its end: an empty end is open),
+            // scoped to a published place with a published place inside it.
+            $notEnded = (new \Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition())->getNotEndedCondition(endField: 'x.publish_down');
             $reaching = static fn (string $table, string $rule, string $rules): array => array_map('intval', $db->setQuery(
                 'SELECT DISTINCT r.' . $db->quoteName($rule) . ' FROM ' . $db->quoteName($table, 'r')
                 . ' INNER JOIN ' . $db->quoteName($rules, 'x') . ' ON x.' . $db->quoteName('id') . ' = r.' . $db->quoteName($rule)
+                . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'p') . ' ON p.' . $db->quoteName('id') . ' = r.' . $db->quoteName('place_id')
                 . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'c') . ' ON c.' . $db->quoteName('parent_id') . ' = r.' . $db->quoteName('place_id')
-                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 AND c.' . $db->quoteName('state') . ' = 1 AND x.' . $db->quoteName('state') . ' = 1'
-                . ' AND (x.' . $db->quoteName('publish_down') . ' IS NULL OR x.' . $db->quoteName('publish_down') . ' > UTC_TIMESTAMP()) ORDER BY 1'
+                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 AND p.' . $db->quoteName('state') . ' = 1 AND c.' . $db->quoteName('state') . ' = 1'
+                . ' AND x.' . $db->quoteName('state') . ' = 1 AND ' . $notEnded . ' ORDER BY 1'
             )->loadColumn() ?: []);
             $discounts = $reaching('#__alfa_discount_places', 'discount_id', '#__alfa_discounts');
             $taxes     = $reaching('#__alfa_tax_places', 'tax_id', '#__alfa_taxes');
