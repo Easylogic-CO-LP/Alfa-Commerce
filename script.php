@@ -894,6 +894,9 @@ class com_alfaInstallerScript extends InstallerScript
      * install (the install SQL created them), an update run again after it stopped, a table kept by an uninstall and
      * connected again, and a site whose database check already added a column all go on. A table that refuses is named
      * in an error and the maintenance log: the screens that read the column need it, and the next installation adds it.
+     * The schema version is recorded after it all the same ({@see self::recordSchemaVersion()}): this step runs on every
+     * install and update and adds what is still missing, while a version left behind would make a reconnect of kept
+     * tables, which already hold the release's other changes, refuse this package ({@see self::keptDataRefusal()}).
      *
      * @return  void
      * @since   2.2.1
