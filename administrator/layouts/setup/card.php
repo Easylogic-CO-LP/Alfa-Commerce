@@ -79,9 +79,21 @@ $svg = static function (string $name): string {
         . ($paths[$name] ?? '') . '</svg>';
 };
 
+// The steps the merchant ignored leave their tier and are listed together at the end, under their own heading.
+$ignored = ['label' => Text::_('COM_ALFA_SETUP_TIER_IGNORED'), 'rows' => []];
+
 foreach ($status['checks'] ?? [] as $row) {
+    if (!empty($row['ignored'])) {
+        $ignored['rows'][] = $row;
+
+        continue;
+    }
+
     $tiers[$row['tier'] ?? SetupCheck::TIER_REQUIRED]['rows'][] = $row;
 }
+
+$tiers['ignored'] = $ignored;
+$ignoredCount = \count($ignored['rows']);
 ?>
 <section class="setup-card" data-region="component" data-state="<?php echo $state; ?>" data-ready="<?php echo $ready ? '1' : '0'; ?>">
 
@@ -93,6 +105,9 @@ foreach ($status['checks'] ?? [] as $row) {
                     ? Text::_('COM_ALFA_SETUP_CARD_READY_SHORT')
                     : Text::sprintf('COM_ALFA_SETUP_CARD_PROGRESS', $done, $total); ?>
             </span>
+            <?php if ($ignoredCount > 0) : ?>
+                <span class="setup-ignored-text"><?php echo Text::sprintf('COM_ALFA_SETUP_CARD_IGNORED', $ignoredCount); ?></span>
+            <?php endif; ?>
         </div>
         <div class="setup-progress" role="progressbar" aria-valuenow="<?php echo $percent; ?>" aria-valuemin="0" aria-valuemax="100">
             <span class="setup-progress-fill" style="width: <?php echo $percent; ?>%"></span>
@@ -132,19 +147,39 @@ foreach ($status['checks'] ?? [] as $row) {
                     $cta      = (string) ($row['cta'] ?? '');
                     $ctaHref  = $cta !== '' ? Route::_($cta) : '';
                     $tourFirst = !$isPass && $tour !== null && empty($tour['seen']);
+                    // Ignore and Show again: the Super User's, as the one-click fixes. Ignore is offered on a
+                    // recommended or optional step that is not done; Show again on every ignored step.
+                    $owner     = (string) ($row['owner_group'] ?? '') . '.' . (string) ($row['owner_name'] ?? '');
+                    $isIgnored = !empty($row['ignored']);
+                    $canIgnore = $canProvision && !$isIgnored && !$isPass && !empty($row['ignorable']);
+                    $canShow   = $canProvision && $isIgnored;
+                    // An ignored step's actions stay quiet, as a done one's.
+                    $quiet     = $isPass || $isIgnored;
+                    $ownButton = static function (string $action, string $words) use ($owner, $row): void {
+                        echo '<button type="button" class="setup-item-alt setup-item-' . $action . '" data-action="' . $action . '"'
+                            . ' data-owner="' . htmlspecialchars($owner, ENT_QUOTES, 'UTF-8') . '"'
+                            . ' data-check="' . htmlspecialchars((string) $row['id'], ENT_QUOTES, 'UTF-8') . '">'
+                            . Text::_($words) . '</button>';
+                    };
                     ?>
-                    <li class="setup-item is-<?php echo $rowState; ?> tier-<?php echo $tierKey; ?>" data-check="<?php echo htmlspecialchars((string) $row['id'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <li class="setup-item is-<?php echo $rowState; ?> tier-<?php echo $tierKey; ?><?php echo $isIgnored ? ' is-ignored' : ''; ?>" data-check="<?php echo htmlspecialchars((string) $row['id'], ENT_QUOTES, 'UTF-8'); ?>">
                         <span class="setup-state" aria-hidden="true">
                             <?php echo $svg($isPass ? 'check' : ($rowState === SetupCheck::STATE_WARN ? 'warn' : 'circle')); ?>
                         </span>
                         <div class="setup-item-body">
                             <span class="setup-item-label"><?php echo Text::_((string) $row['label']); ?></span>
+                            <?php if ($isIgnored) : ?>
+                                <span class="setup-item-tier"><?php echo Text::_('COM_ALFA_SETUP_TIER_' . strtoupper((string) ($row['tier'] ?? ''))); ?></span>
+                            <?php endif; ?>
                             <?php if (!$isPass && (string) ($row['reason'] ?? '') !== '') : ?>
                                 <?php $reasonArgs = array_map(static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'), (array) ($row['reason_args'] ?? [])); ?>
                                 <span class="setup-item-reason"><?php echo $reasonArgs === [] ? Text::_((string) $row['reason']) : Text::sprintf((string) $row['reason'], ...$reasonArgs); ?></span>
                             <?php endif; ?>
+                            <?php if ((string) ($row['note'] ?? '') !== '') : ?>
+                                <span class="setup-item-note"><?php echo Text::_((string) $row['note']); ?></span>
+                            <?php endif; ?>
                         </div>
-                        <?php if ($ctaHref !== '' || $tour !== null || (!$isPass && $canProvision && !empty($row['provisionable']))) : ?>
+                        <?php if ($ctaHref !== '' || $tour !== null || $canIgnore || $canShow || (!$isPass && $canProvision && !empty($row['provisionable']))) : ?>
                             <?php
                             // NOTHING disappears: Open and the tour stay
                             // available even on a completed row; the checklist doubles
@@ -162,7 +197,7 @@ foreach ($status['checks'] ?? [] as $row) {
                             };
                             ?>
                             <div class="setup-item-actions">
-                                <?php if (!$isPass && $canProvision && !empty($row['provisionable'])) : ?>
+                                <?php if (!$quiet && $canProvision && !empty($row['provisionable'])) : ?>
                                     <?php foreach ((array) ($row['choices'] ?? []) as $choice) : ?>
                                         <?php if (($choice['options'] ?? []) === []) { continue; } ?>
                                         <label class="setup-item-choice">
@@ -183,16 +218,18 @@ foreach ($status['checks'] ?? [] as $row) {
                                     </button>
                                     <?php if ($ctaHref !== '') { $openLink('setup-item-alt'); } ?>
                                     <?php if ($tour !== null) { $tourButton('setup-item-alt'); } ?>
-                                <?php elseif (!$isPass && $tourFirst) : ?>
+                                <?php elseif (!$quiet && $tourFirst) : ?>
                                     <?php $tourButton('btn btn-sm btn-primary'); ?>
                                     <?php if ($ctaHref !== '') { $openLink('setup-item-alt'); } ?>
-                                <?php elseif (!$isPass) : ?>
+                                <?php elseif (!$quiet) : ?>
                                     <?php if ($ctaHref !== '') { $openLink('btn btn-sm btn-primary'); } ?>
                                     <?php if ($tour !== null) { $tourButton('setup-item-alt'); } ?>
                                 <?php else : ?>
                                     <?php if ($ctaHref !== '') { $openLink('setup-item-alt'); } ?>
                                     <?php if ($tour !== null) { $tourButton('setup-item-alt'); } ?>
                                 <?php endif; ?>
+                                <?php if ($canIgnore) { $ownButton('ignore', 'COM_ALFA_SETUP_ROW_IGNORE'); } ?>
+                                <?php if ($canShow) { $ownButton('show-again', 'COM_ALFA_SETUP_ROW_SHOW_AGAIN'); } ?>
                             </div>
                         <?php endif; ?>
                     </li>
