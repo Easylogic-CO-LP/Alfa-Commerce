@@ -120,8 +120,8 @@ final class SessionOrder
     }
 
     /**
-     * Refuse the session's order on one of the checkout's pages: one log line, the id and its mark forgotten, the
-     * neutral message queued. The caller sends the visitor to the cart.
+     * Refuse the session's order on one of the checkout's pages: the id and its mark forgotten, the neutral message
+     * queued, one log line. The caller sends the visitor to the cart.
      *
      * @param CMSApplicationInterface $app The storefront request.
      * @param int $orderId The order the session names.
@@ -131,6 +131,10 @@ final class SessionOrder
      */
     public static function refuse(CMSApplicationInterface $app, int $orderId, string $page): void
     {
+        // Forgotten first: whatever happens after, the next request finds no order in this session.
+        self::clear($app);
+        $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_REFUSED'), 'notice');
+
         $cart = CartService::ambient()->canHaveCart() ? 'yes' : 'no';
 
         AlfaLog::register();
@@ -140,9 +144,6 @@ final class SessionOrder
             Log::WARNING,
             'com_alfa.orders',
         );
-
-        self::clear($app);
-        $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_REFUSED'), 'notice');
     }
 
     /**
