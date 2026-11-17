@@ -544,8 +544,9 @@ final class AlfaAdminContext
 
     /**
      * Veto the operation with a reason. Veto is DATA, never an exception: the model collects
-     * every handler's objection, aborts cleanly and redisplays with all of them shown, instead
-     * of dying on the first one.
+     * every handler's objection and refuses cleanly, instead of dying on the first one. How many
+     * staff read is Joomla's controller's: a form's validation shows up to three, while a refused
+     * save or delete shows the last one (getError()), so word each objection to stand on its own.
      *
      * @param string $message The reason, already translated.
      *
