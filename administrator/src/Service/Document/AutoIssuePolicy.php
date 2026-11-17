@@ -402,16 +402,6 @@ final class AutoIssuePolicy
     }
 
     /**
-     * Issue one document type with full remaining quantities, or skip with
-     * an admin notification when a human is needed.
-     *
-     * @param int $orderId The order id.
-     * @param string $docType The document type to issue.
-     * @param int $seriesId Explicit series (rule rows); 0 = type default.
-     *
-     * @since  2.0.0
-     */
-    /**
      * Issue ONE document, and keep its failure to itself.
      *
      * issues_doc_rules and issues_delivery_note are independent switches
@@ -527,6 +517,16 @@ final class AutoIssuePolicy
         return false;
     }
 
+    /**
+     * Issue one document type with full remaining quantities, or skip with
+     * an admin notification when a human is needed.
+     *
+     * @param int $orderId The order id.
+     * @param string $docType The document type to issue.
+     * @param int $seriesId Explicit series (rule rows); 0 = type default.
+     *
+     * @since  2.0.0
+     */
     private static function issueFor(int $orderId, string $docType, int $seriesId = 0): void
     {
         // Every line's whole remainder, at its exact remaining frozen amount.

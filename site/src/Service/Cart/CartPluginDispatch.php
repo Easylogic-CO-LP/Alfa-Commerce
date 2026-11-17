@@ -561,16 +561,6 @@ final class CartPluginDispatch
     }
 
     /**
-     * What a carrier is asked to quote against.
-     *
-     * THE DESTINATION IS THE REQUEST'S, NOT THE ROW'S. Where the order is going
-     * is settled by the checkout before this is built and handed in, because
-     * the cart row records where a previous submission was going and quoting
-     * against that charged the wrong zone.
-     *
-     * @since  2.0.0
-     */
-    /**
      * The cart as a plugin reads it, carrying what the checkout currently holds.
      *
      * THE PENDING VALUES ARE READ ONCE, HERE. A plugin asking for the postcode
@@ -684,6 +674,16 @@ final class CartPluginDispatch
         return $this->reader($cart)->delivery();
     }
 
+    /**
+     * What a carrier is asked to quote against.
+     *
+     * THE DESTINATION IS THE REQUEST'S, NOT THE ROW'S. Where the order is going
+     * is settled by the checkout before this is built and handed in, because
+     * the cart row records where a previous submission was going and quoting
+     * against that charged the wrong zone.
+     *
+     * @since  2.0.0
+     */
     private function shippingCostRequest(
         object $method,
         HydratedCart $cart,

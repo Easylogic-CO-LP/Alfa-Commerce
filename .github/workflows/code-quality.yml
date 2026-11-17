@@ -60,6 +60,11 @@ jobs:
       - name: Run the copy-clean gate
         run: php scripts/copy-clean/copy-clean-gate.php --package=. --allow=scripts/copy-clean/copy-clean-allow.json
 
+      # The docblocks a plugin author reads stay true to the code: no docblock left above another, and the samples
+      # call what exists (the rules are in the lint's docblock).
+      - name: Run the docblock lint
+        run: php scripts/docblock-lint/docblock-lint.php
+
   phpstan:
     name: PHPStan
     runs-on: ubuntu-latest

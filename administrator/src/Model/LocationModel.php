@@ -44,7 +44,7 @@ class LocationModel extends AlfaAdminModel
      */
     protected string $alfaEntity = 'location';
 
-    /**
+    /*
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save() normalises capabilities, strips the protected ownership columns and
      *   runs the default-location guards BEFORE parent::save(), so

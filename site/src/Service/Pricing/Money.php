@@ -133,9 +133,9 @@ class Money
      * @throws InvalidArgumentException When the amount is not a finite number, or is more than minor units can hold.
      *
      * @example
-     * $price = Money::of(19.99, Currency::usd()); // $19.99
-     * $price = Money::of('19.99000000', Currency::usd()); // $19.99, as a decimal column prints it
-     * $btc = Money::of(0.5, Currency::btc()); // 0.5 BTC
+     * $price = Money::of(19.99, Currency::loadByCode('USD')); // $19.99
+     * $price = Money::of('19.99000000', Currency::loadByCode('USD')); // $19.99, as a decimal column prints it
+     * $btc = Money::of(0.5, Currency::loadByCode('BTC')); // 0.5 BTC
      * @since  1.0.0
      */
     public static function of(string|int|float $amount, Currency $currency): self
@@ -210,8 +210,8 @@ class Money
      * @return self Immutable Money object
      *
      * @example
-     * $price = Money::ofMinor(1999, Currency::usd()); // $19.99
-     * $btc = Money::ofMinor(50000000, Currency::btc()); // 0.5 BTC
+     * $price = Money::ofMinor(1999, Currency::loadByCode('USD')); // $19.99
+     * $btc = Money::ofMinor(50000000, Currency::loadByCode('BTC')); // 0.5 BTC
      * @since  1.0.0
      */
     public static function ofMinor(int $minorUnits, Currency $currency): self
@@ -281,21 +281,6 @@ class Money
     }
 
     /**
-     * Create zero money
-     *
-     * Useful as a starting point for accumulation.
-     *
-     * @param Currency $currency Currency object
-     * @return self Money object with zero value
-     *
-     * @example
-     * $total = Money::zero(Currency::usd());
-     * foreach ($items as $item) {
-     *     $total = $total->add($item->price);
-     * }
-     * @since  1.0.0
-     */
-    /**
      * THE monetary rounding primitive: one rule, one place.
      *
      * Every rounding of a monetary amount goes through here, so the whole
@@ -323,6 +308,21 @@ class Money
         return self::of($amount, $currency)->getAmount();
     }
 
+    /**
+     * Create zero money
+     *
+     * Useful as a starting point for accumulation.
+     *
+     * @param Currency $currency Currency object
+     * @return self Money object with zero value
+     *
+     * @example
+     * $total = Money::zero(Currency::loadByCode('USD'));
+     * foreach ($items as $item) {
+     *     $total = $total->add($item->price);
+     * }
+     * @since  1.0.0
+     */
     public static function zero(Currency $currency): self
     {
         return new self(0, $currency);
@@ -428,7 +428,7 @@ class Money
      * @return float Amount in major units (e.g., 19.99)
      *
      * @example
-     * $money = Money::of(19.99, Currency::usd());
+     * $money = Money::of(19.99, Currency::loadByCode('USD'));
      * echo $money->getAmount(); // 19.99
      * @since  1.0.0
      */
@@ -446,7 +446,7 @@ class Money
      * @return int Amount in minor units (e.g., 1999)
      *
      * @example
-     * $money = Money::of(19.99, Currency::usd());
+     * $money = Money::of(19.99, Currency::loadByCode('USD'));
      * echo $money->getMinorUnits(); // 1999
      * @since  1.0.0
      */
@@ -552,7 +552,7 @@ class Money
      * @return Currency Currency information
      *
      * @example
-     * $money = Money::of(19.99, Currency::usd());
+     * $money = Money::of(19.99, Currency::loadByCode('USD'));
      * echo $money->getCurrency()->getCode(); // "USD"
      * @since  1.0.0
      */
@@ -575,8 +575,8 @@ class Money
      * @throws InvalidArgumentException If currencies don't match, or the sum is more than minor units can hold
      *
      * @example
-     * $price = Money::of(10.00, Currency::usd());
-     * $tax = Money::of(2.00, Currency::usd());
+     * $price = Money::of(10.00, Currency::loadByCode('USD'));
+     * $tax = Money::of(2.00, Currency::loadByCode('USD'));
      * $total = $price->add($tax); // $12.00
      * @since  1.0.0
      */
@@ -605,8 +605,8 @@ class Money
      * @throws InvalidArgumentException If currencies don't match, or the difference is more than minor units can hold
      *
      * @example
-     * $price = Money::of(100.00, Currency::usd());
-     * $discount = Money::of(10.00, Currency::usd());
+     * $price = Money::of(100.00, Currency::loadByCode('USD'));
+     * $discount = Money::of(10.00, Currency::loadByCode('USD'));
      * $final = $price->subtract($discount); // $90.00
      * @since  1.0.0
      */
@@ -637,7 +637,7 @@ class Money
      *                                  units can hold
      *
      * @example
-     * $unitPrice = Money::of(19.99, Currency::usd());
+     * $unitPrice = Money::of(19.99, Currency::loadByCode('USD'));
      * $total = $unitPrice->multiply(5); // $99.95
      * @since  1.0.0
      */
@@ -659,7 +659,7 @@ class Money
      *                                  minor units can hold
      *
      * @example
-     * $total = Money::of(100.00, Currency::usd());
+     * $total = Money::of(100.00, Currency::loadByCode('USD'));
      * $perMonth = $total->divide(12); // $8.33 (rounded)
      * @since  1.0.0
      */
@@ -682,7 +682,7 @@ class Money
      *                                  minor units can hold
      *
      * @example
-     * $price = Money::of(100.00, Currency::usd());
+     * $price = Money::of(100.00, Currency::loadByCode('USD'));
      * $tax = $price->percentage(10); // $10.00 (10% of $100)
      * $discount = $price->percentage('17.500'); // $17.50, the rate as a decimal column prints it
      * @since  1.0.0
@@ -970,7 +970,7 @@ class Money
      * @throws InvalidArgumentException If the absolute value is more than minor units can hold
      *
      * @example
-     * $debt = Money::of(-50.00, Currency::usd());
+     * $debt = Money::of(-50.00, Currency::loadByCode('USD'));
      * $amount = $debt->abs(); // $50.00
      * @since  1.0.0
      */
@@ -988,7 +988,7 @@ class Money
      * @throws InvalidArgumentException If the negated amount is more than minor units can hold
      *
      * @example
-     * $credit = Money::of(50.00, Currency::usd());
+     * $credit = Money::of(50.00, Currency::loadByCode('USD'));
      * $debit = $credit->negate(); // -$50.00
      * @since  1.0.0
      */
@@ -1010,8 +1010,8 @@ class Money
      * @return self New Money object, zero if negative
      *
      * @example
-     * $price = Money::of(10.00, Currency::usd());
-     * $discount = Money::of(20.00, Currency::usd());
+     * $price = Money::of(10.00, Currency::loadByCode('USD'));
+     * $discount = Money::of(20.00, Currency::loadByCode('USD'));
      * $final = $price->subtract($discount)->nonNegative(); // $0.00
      * @since  1.0.0
      */
@@ -1058,11 +1058,11 @@ class Money
      * @throws InvalidArgumentException If n < 1
      *
      * @example
-     * $money = Money::of(10.00, Currency::usd());
+     * $money = Money::of(10.00, Currency::loadByCode('USD'));
      * $parts = $money->allocate(3);
      * // Result: [$3.34, $3.33, $3.33] = $10.00 (no cents lost!)
      *
-     * $money = Money::of(5.00, Currency::usd());
+     * $money = Money::of(5.00, Currency::loadByCode('USD'));
      * $parts = $money->allocate(3);
      * // Result: [$1.67, $1.67, $1.66] = $5.00
      * @since  1.0.0
@@ -1125,11 +1125,11 @@ class Money
      *                                  or a part is more than minor units can hold
      *
      * @example
-     * $profit = Money::of(100.00, Currency::usd());
+     * $profit = Money::of(100.00, Currency::loadByCode('USD'));
      * $split = $profit->allocateByRatios([30, 70]);
      * // Result: [$30.00, $70.00]
      *
-     * $profit = Money::of(100.00, Currency::usd());
+     * $profit = Money::of(100.00, Currency::loadByCode('USD'));
      * $split = $profit->allocateByRatios([1, 1, 1]);
      * // Result: [$33.33, $33.34, $33.33] = $100.00
      * @since  1.0.0
@@ -1189,9 +1189,9 @@ class Money
      * @throws InvalidArgumentException If targets exceed total
      *
      * @example
-     * $total = Money::of(100.00, Currency::usd());
-     * $rent = Money::of(50.00, Currency::usd());
-     * $food = Money::of(30.00, Currency::usd());
+     * $total = Money::of(100.00, Currency::loadByCode('USD'));
+     * $rent = Money::of(50.00, Currency::loadByCode('USD'));
+     * $food = Money::of(30.00, Currency::loadByCode('USD'));
      * $allocated = $total->allocateToTargets([$rent, $food]);
      * // Remainder $20 distributed proportionally
      * @since  1.0.0
@@ -1250,7 +1250,7 @@ class Money
      * @return bool True if zero
      *
      * @example
-     * $money = Money::of(0, Currency::usd());
+     * $money = Money::of(0, Currency::loadByCode('USD'));
      * $money->isZero(); // true
      * @since  1.0.0
      */
@@ -1265,7 +1265,7 @@ class Money
      * @return bool True if greater than zero
      *
      * @example
-     * $money = Money::of(10.00, Currency::usd());
+     * $money = Money::of(10.00, Currency::loadByCode('USD'));
      * $money->isPositive(); // true
      * @since  1.0.0
      */
@@ -1280,7 +1280,7 @@ class Money
      * @return bool True if less than zero
      *
      * @example
-     * $debt = Money::of(-50.00, Currency::usd());
+     * $debt = Money::of(-50.00, Currency::loadByCode('USD'));
      * $debt->isNegative(); // true
      * @since  1.0.0
      */
@@ -1297,8 +1297,8 @@ class Money
      * @throws InvalidArgumentException If currencies don't match
      *
      * @example
-     * $a = Money::of(10.00, Currency::usd());
-     * $b = Money::of(20.00, Currency::usd());
+     * $a = Money::of(10.00, Currency::loadByCode('USD'));
+     * $b = Money::of(20.00, Currency::loadByCode('USD'));
      * $a->compareTo($b); // -1 (less than)
      * @since  1.0.0
      */
@@ -1326,8 +1326,8 @@ class Money
      * @return bool True if equal
      *
      * @example
-     * $a = Money::of(10.00, Currency::usd());
-     * $b = Money::of(10.00, Currency::usd());
+     * $a = Money::of(10.00, Currency::loadByCode('USD'));
+     * $b = Money::of(10.00, Currency::loadByCode('USD'));
      * $a->equals($b); // true
      * @since  1.0.0
      */
@@ -1345,8 +1345,8 @@ class Money
      * @throws InvalidArgumentException If currencies don't match
      *
      * @example
-     * $a = Money::of(20.00, Currency::usd());
-     * $b = Money::of(10.00, Currency::usd());
+     * $a = Money::of(20.00, Currency::loadByCode('USD'));
+     * $b = Money::of(10.00, Currency::loadByCode('USD'));
      * $a->greaterThan($b); // true
      * @since  1.0.0
      */
@@ -1376,8 +1376,8 @@ class Money
      * @throws InvalidArgumentException If currencies don't match
      *
      * @example
-     * $a = Money::of(10.00, Currency::usd());
-     * $b = Money::of(20.00, Currency::usd());
+     * $a = Money::of(10.00, Currency::loadByCode('USD'));
+     * $b = Money::of(20.00, Currency::loadByCode('USD'));
      * $a->lessThan($b); // true
      * @since  1.0.0
      */
@@ -1410,7 +1410,7 @@ class Money
      * @return string Formatted money string
      *
      * @example
-     * $price = Money::of(1999.99, Currency::usd());
+     * $price = Money::of(1999.99, Currency::loadByCode('USD'));
      * echo $price->format(); // "$1,999.99"
      * echo $price->format(false); // "1,999.99"
      * @since  1.0.0
@@ -1430,7 +1430,7 @@ class Money
      * @return array{amount: string, formatted: string, currency_code: string, currency_symbol: string, minor_units: int}
      *
      * @example
-     * $price = Money::of(19.99, Currency::usd());
+     * $price = Money::of(19.99, Currency::loadByCode('USD'));
      * $array = $price->toArray();
      * // [
      * //   'amount' => '19.99',
@@ -1460,7 +1460,7 @@ class Money
      * @return string Formatted money with symbol
      *
      * @example
-     * $price = Money::of(19.99, Currency::usd());
+     * $price = Money::of(19.99, Currency::loadByCode('USD'));
      * echo $price; // "$19.99"
      * @since  1.0.0
      */
@@ -1488,8 +1488,8 @@ class Money
      *                                  units can hold
      *
      * @example
-     * $usd = Money::of(100.00, Currency::usd());
-     * $eur = $usd->convertTo(Currency::eur(), 0.85); // €85.00
+     * $usd = Money::of(100.00, Currency::loadByCode('USD'));
+     * $eur = $usd->convertTo(Currency::loadByCode('EUR'), 0.85); // €85.00
      * @since  1.0.0
      */
     public function convertTo(Currency $targetCurrency, string|int|float $exchangeRate): self
@@ -1519,9 +1519,9 @@ class Money
      *
      * @example
      * $min = Money::min(
-     *     Money::of(10.00, Currency::usd()),
-     *     Money::of(5.00, Currency::usd()),
-     *     Money::of(15.00, Currency::usd())
+     *     Money::of(10.00, Currency::loadByCode('USD')),
+     *     Money::of(5.00, Currency::loadByCode('USD')),
+     *     Money::of(15.00, Currency::loadByCode('USD'))
      * ); // $5.00
      * @since  1.0.0
      */
@@ -1550,9 +1550,9 @@ class Money
      *
      * @example
      * $max = Money::max(
-     *     Money::of(10.00, Currency::usd()),
-     *     Money::of(5.00, Currency::usd()),
-     *     Money::of(15.00, Currency::usd())
+     *     Money::of(10.00, Currency::loadByCode('USD')),
+     *     Money::of(5.00, Currency::loadByCode('USD')),
+     *     Money::of(15.00, Currency::loadByCode('USD'))
      * ); // $15.00
      * @since  1.0.0
      */
@@ -1581,9 +1581,9 @@ class Money
      *
      * @example
      * $total = Money::sum(
-     *     Money::of(10.00, Currency::usd()),
-     *     Money::of(5.00, Currency::usd()),
-     *     Money::of(15.00, Currency::usd())
+     *     Money::of(10.00, Currency::loadByCode('USD')),
+     *     Money::of(5.00, Currency::loadByCode('USD')),
+     *     Money::of(15.00, Currency::loadByCode('USD'))
      * ); // $30.00
      * @since  1.0.0
      */
@@ -1610,9 +1610,9 @@ class Money
      *
      * @example
      * $avg = Money::avg(
-     *     Money::of(10.00, Currency::usd()),
-     *     Money::of(20.00, Currency::usd()),
-     *     Money::of(30.00, Currency::usd())
+     *     Money::of(10.00, Currency::loadByCode('USD')),
+     *     Money::of(20.00, Currency::loadByCode('USD')),
+     *     Money::of(30.00, Currency::loadByCode('USD'))
      * ); // $20.00
      * @since  1.0.0
      */

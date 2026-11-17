@@ -7,11 +7,6 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-/**
- * @package    Alfa Commerce
- * @since  1.0.0
- */
-
 namespace Alfa\Component\Alfa\Site\Model;
 
 defined('_JEXEC') or die;
@@ -2439,12 +2434,6 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * Return available manufacturers for the current non-manufacturer filters.
-     *
-     * @return array Keyed by id: [1 => ['id' => 1, 'name' => 'Nike'], ...]
-     * @since  1.0.0
-     */
-    /**
      * How many of the products under the other active filters are sellable right now,
      * and how many are not: the availability facet's two counts. Asked with the
      * stock filter itself removed, as every facet is, so the counts describe what
@@ -2491,6 +2480,12 @@ class ItemsModel extends UrlListModel
         return \count($picked) === 1 ? $picked[0] : '';
     }
 
+    /**
+     * Return available manufacturers for the current non-manufacturer filters.
+     *
+     * @return array Keyed by id: [1 => ['id' => 1, 'name' => 'Nike'], ...]
+     * @since  1.0.0
+     */
     public function getAvailableManufacturers(): array
     {
         $model = $this->createFilterSubModel(['filter.manufacturer']);

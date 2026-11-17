@@ -7,14 +7,13 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
+namespace Alfa\Component\Alfa\Site\Service\Pricing;
+
 /**
  * PricingIntent - Immutable, type-safe declaration of pricing context
  *
  * @package    Alfa Commerce
  */
-
-namespace Alfa\Component\Alfa\Site\Service\Pricing;
-
 final class PricingIntent
 {
     public const CATALOG = 'catalog';
