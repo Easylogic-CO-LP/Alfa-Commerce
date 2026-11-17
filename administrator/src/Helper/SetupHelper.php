@@ -27,7 +27,6 @@ use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -574,8 +573,8 @@ final class SetupHelper
     /**
      * Change the ignored list in one transaction: the row is read locked (SELECT ... FOR UPDATE), so two
      * administrators who press at once change it one after the other and neither loses the other's choice, then
-     * written again (removed when the list is empty). A row that cannot be read, or holds no list, refuses the change
-     * and writes nothing: a failed read never replaces the list.
+     * written again (removed when the list is empty). A read that fails refuses the change and writes nothing, so it
+     * never replaces the list; a stored value that is not a list is read as an empty one and written as a list.
      *
      * @param callable $change fn(list<string> $identities): list<string>, the list as it is to be.
      *
@@ -599,8 +598,11 @@ final class SetupHelper
             $stored = $db->setQuery((string) $read . ' FOR UPDATE')->loadResult();
             $identities = $stored === null ? [] : json_decode((string) $stored, true);
 
+            // A stored value that is not a list is read as no step ignored, as the evaluation reads it, and the
+            // change writes a list again: only a read that fails refuses.
             if (!\is_array($identities)) {
-                throw new RuntimeException('The stored list of ignored setup steps is not a list.');
+                Log::add('SetupHelper: the stored list of ignored setup steps was not a list; it is read as empty.', Log::WARNING, 'com_alfa.setup');
+                $identities = [];
             }
 
             $identities = array_values(array_unique(array_filter(
