@@ -237,7 +237,8 @@ class AlfaSearchHelper
             echo $response;
 
             Factory::getApplication()->close();
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            // A template override renders here too: an Error it raises is answered as the module's own error.
             self::logError('Render failed', ['error' => $e->getMessage()]);
             self::sendError(Text::_('MOD_ALFA_SEARCH_ERROR_RENDER'), 500);
         }
