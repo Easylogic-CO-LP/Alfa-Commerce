@@ -2,37 +2,31 @@
 <form>
     <fields name="formfieldsparams">
         <fieldset name="fieldparams" label="PLG_ALFA_FORM_FIELDS_TEL_PARAMS_TAB">
+            <!-- The countries only (places with no parent), by their ISO 3166-1 code: a place inside a country carries
+                 no country code of its own (2.2.1). -->
             <field
-                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
                 layout="joomla.form.field.list-fancy-select"
                 name="default_region"
-                component="com_alfa"
-                type="model"
-                model="places"
-                column_value="code2"
-                column_text="name"
+                type="sql"
+                query="SELECT code2, name FROM #__alfa_places WHERE COALESCE(parent_id, 0) = 0 ORDER BY name ASC"
+                key_field="code2"
+                value_field="name"
                 default="GR"
-                label="PLG_ALFA_FORM_FIELDS_TEL_DEFAULT_REGION_LABEL"
-                orderBy="name"
-                orderDir="ASC">
+                label="PLG_ALFA_FORM_FIELDS_TEL_DEFAULT_REGION_LABEL">
             </field>
 
             <field
-                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
                 layout="joomla.form.field.list-fancy-select"
                 name="allowed_regions"
-                component="com_alfa"
-                type="model"
-                model="places"
-                column_value="code2"
-                column_text="name"
+                type="sql"
+                query="SELECT code2, name FROM #__alfa_places WHERE COALESCE(parent_id, 0) = 0 ORDER BY name ASC"
+                key_field="code2"
+                value_field="name"
                 default=""
                 label="PLG_ALFA_FORM_FIELDS_TEL_ALLOWED_REGIONS_LABEL"
                 hint="PLG_ALFA_FORM_FIELDS_TEL_SELECT_COUNTRY"
                 description="PLG_ALFA_FORM_FIELDS_TEL_ALLOWED_REGIONS_DESC"
-                multiple="true"
-                orderBy="name"
-                orderDir="ASC" />
+                multiple="true" />
 
             <field name="require_mobile" type="radio" default="0"
                    label="PLG_ALFA_FORM_FIELDS_TEL_REQUIRE_MOBILE_LABEL">
