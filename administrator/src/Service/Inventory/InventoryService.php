@@ -33,6 +33,8 @@ use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\DatabaseDriver;
+use LogicException;
 use RuntimeException;
 use Throwable;
 use WeakMap;
@@ -3902,6 +3904,23 @@ final class InventoryService
     }
 
     //  Shared command internals
+
+    /**
+     * The connection as the driver whose transaction levels TransactionState keeps: every connection Joomla's
+     * container hands out is one, and a level this service opens is closed through it.
+     *
+     * @throws LogicException When the connection keeps no transaction levels.
+     *
+     * @since  2.2.2
+     */
+    private function transactional(): DatabaseDriver
+    {
+        if (!$this->db instanceof DatabaseDriver) {
+            throw new LogicException('The inventory service needs a database driver that keeps transaction levels.');
+        }
+
+        return $this->db;
+    }
 
     /**
      * Close the level a command opened, after a failure inside it, without
@@ -11340,7 +11359,7 @@ final class InventoryService
         }
 
         if ($alreadyHeld) {
-            $this->db->transactionRollback(true);
+            TransactionState::rollBackLevel(db: $this->transactional());
 
             return;
         }

@@ -3232,20 +3232,21 @@ final class DocumentIssuer
             return true;
         }
 
-        try {
-            $db->transactionRollback(true);
-        } catch (Throwable $savepointGone) {
+        // Through the helper, so what the level deferred is dropped with it. A savepoint the server no longer holds
+        // makes the helper end the whole transaction: reported here, and answered true for the caller to refuse.
+        $level = TransactionState::level($db);
+        $noneLeft = TransactionState::rollBackLevel(db: $db);
+
+        if ($noneLeft && $level > 1) {
             self::logQuietly(
-                entry:    'DocumentIssuer: a savepoint rollback was refused (' . $savepointGone->getMessage()
-                          . '): the server most likely rolled the transaction back already; ending it in full.',
+                entry:    'DocumentIssuer: a savepoint rollback was refused: the server most likely rolled the transaction'
+                          . ' back already; it was ended in full.',
                 priority: Log::WARNING,
                 category: 'com_alfa.documents',
             );
-
-            return TransactionState::rollBackLevel(db: $db, failure: $savepointGone);
         }
 
-        return !TransactionState::isOpen($db);
+        return $noneLeft;
     }
 
     /**

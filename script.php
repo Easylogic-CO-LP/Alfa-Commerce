@@ -771,7 +771,7 @@ class com_alfaInstallerScript extends InstallerScript
                 continue;
             }
 
-            $db->transactionStart();
+            $db->transactionStart(true);
 
             try {
                 foreach ($repeats as $pair) {
@@ -789,9 +789,9 @@ class com_alfaInstallerScript extends InstallerScript
                     $removed += (int) $pair->copies - 1;
                 }
 
-                $db->transactionCommit();
+                \Alfa\Component\Alfa\Administrator\Helper\TransactionState::commitLevel($db);
             } catch (\Throwable $e) {
-                $db->transactionRollback();
+                \Alfa\Component\Alfa\Administrator\Helper\TransactionState::rollBackLevel($db, $e);
 
                 throw new \RuntimeException($db->replacePrefix($table) . ': ' . $e->getMessage(), 0, $e);
             }

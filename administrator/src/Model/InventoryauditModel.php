@@ -41,6 +41,8 @@ class InventoryauditModel extends BaseDatabaseModel
      *
      * Opens its own transaction on the model's connection and reads through that connection, so
      * it must not run inside a caller's transaction: starting one would commit the caller's work.
+     * A full transaction by design, one read-only snapshot always rolled back; inside a caller's
+     * transaction SET TRANSACTION READ ONLY is refused by the server before it starts.
      *
      * @return array{findings: array<string, array>, classifications: array<string, array>, scanned: array{units: int, rows: int}}
      *                                                                                                                             The integrity reader's report, inconsistencies and classifications grouped by category.
