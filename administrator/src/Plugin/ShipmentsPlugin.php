@@ -192,6 +192,23 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     public const WRITE_FAILED = ShipmentLedger::WRITE_FAILED;
 
     /**
+     * @var string The refusal costFromZones() records when the delivery country is not given yet and no zone covers an
+     *             unknown destination: core's own reason, worded in core's language file, since the destination field
+     *             is core's. The checkout keeps such a carrier off its list and names the country instead.
+     *
+     * @since  2.2.2
+     */
+    public const REFUSAL_NEEDS_PLACE = 'COM_ALFA_SHIPMENT_NEEDS_PLACE';
+
+    /**
+     * @var string The refusal costFromZones() records when the carrier's postcode field is unanswered and a row with a
+     *             postcode band would fit: core's own reason, as {@see self::REFUSAL_NEEDS_PLACE}.
+     *
+     * @since  2.2.2
+     */
+    public const REFUSAL_NEEDS_POSTCODE = 'COM_ALFA_SHIPMENT_NEEDS_POSTCODE';
+
+    /**
      * @var string The plugin_data key of a parcel core recorded itself at placement because the order's carrier
      *             recorded none in onOrderAfterPlace (true on that parcel). A carrier that looks for its own parcel
      *             afterwards recognises core's by it: $shipment->pluginData()->getBool(key: self::CORE_MADE).
@@ -581,6 +598,10 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * "too large" send a shopper to do different things, and a suite that could
      * only see `null` would pass while the carrier blamed the wrong dimension.
      *
+     * A key of this carrier's language namespace ({@see self::refusalKey()}), or one of core's two keys for a fact the
+     * checkout has not given yet: {@see self::REFUSAL_NEEDS_PLACE} and {@see self::REFUSAL_NEEDS_POSTCODE} (2.2.2),
+     * worded in core's language file, so a carrier needs no key of its own for them.
+     *
      *
      * @since  2.0.0
      */
@@ -696,10 +717,11 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * never priced by a farther zone or the catch-all (as the first matching
      * zone decided alone before).
      *
-     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2). With no destination at all and no zone for it (no place, no
-     * catch-all), the refusal is NEEDS_PLACE; with the carrier's postcode field unanswered ('') and a zone whose every row
-     * that would fit has a postcode band, it is NEEDS_POSTCODE. A carrier that reads no postcode field passes null, and
-     * is refused NO_BAND_FITS as before: no shopper could give it one. The cart's offer read takes such a carrier off the list until the checkout has the
+     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2), in core's words: with no destination at all and no zone for it
+     * (no place, no catch-all), the refusal is {@see self::REFUSAL_NEEDS_PLACE}; with the carrier's postcode field
+     * unanswered ('') and a zone whose every row that would fit has a postcode band, it is
+     * {@see self::REFUSAL_NEEDS_POSTCODE}. A carrier that reads no postcode field passes null, and is refused NO_BAND_FITS
+     * as before: no shopper could give it one. The cart's offer read takes such a carrier off the list until the checkout has the
      * fact, and names it, instead of offering a carrier that refuses the shopper's first click. The places are read in the order given,
      * nearest first, as AddressView::places() and PlaceTree::placesFor() give
      * them; a caller passing them in another order gets another zone. A place
@@ -800,7 +822,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         // Not even the catch-all matched, so there is no configured price for
         // where this cart is going. Quoting 0 here shipped it free.
         if (empty($calculationData)) {
-            $this->refusal = $this->refusalKey($places === [] ? 'NEEDS_PLACE' : 'NO_ZONE_FOR_DESTINATION');
+            $this->refusal = $places === [] ? self::REFUSAL_NEEDS_PLACE : $this->refusalKey('NO_ZONE_FOR_DESTINATION');
 
             return null;
         }
@@ -821,7 +843,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
             $unbanded = array_map(static fn (array $row): array => ['zip-start' => null, 'zip-end' => null] + $row, (array) $calculationData['costs']);
             $postcodeMissing = $postcode !== null && trim($postcode) === ''
                 && $this->cheapestMatchingCost($lines, $unbanded, null, $subtotal) !== null;
-            $this->refusal = $this->refusalKey($postcodeMissing ? 'NEEDS_POSTCODE' : 'NO_BAND_FITS');
+            $this->refusal = $postcodeMissing ? self::REFUSAL_NEEDS_POSTCODE : $this->refusalKey('NO_BAND_FITS');
         }
 
         return $cost;

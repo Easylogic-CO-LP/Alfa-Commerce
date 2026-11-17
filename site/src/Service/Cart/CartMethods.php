@@ -29,6 +29,7 @@
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
 use Alfa\Component\Alfa\Administrator\Service\Cart\OperatorPaymentPolicy;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
@@ -301,9 +302,9 @@ final class CartMethods
         $countryAskable = $state === FieldsHelper::DESTINATION_CONFIGURED || $state === FieldsHelper::DESTINATION_INFERRED;
 
         foreach ($this->withheld as $answer) {
-            if (str_ends_with($answer->reasonKey, '_NEEDS_PLACE') && $countryAskable) {
+            if ($answer->reasonKey === ShipmentsPlugin::REFUSAL_NEEDS_PLACE && $countryAskable) {
                 $needs['country'] = true;
-            } elseif (str_ends_with($answer->reasonKey, '_NEEDS_POSTCODE')) {
+            } elseif ($answer->reasonKey === ShipmentsPlugin::REFUSAL_NEEDS_POSTCODE) {
                 $needs['postcode'] = true;
             }
         }
@@ -325,7 +326,7 @@ final class CartMethods
      */
     public static function waitsForFact(ShippingQuote $answer): bool
     {
-        return str_ends_with($answer->reasonKey, '_NEEDS_PLACE') || str_ends_with($answer->reasonKey, '_NEEDS_POSTCODE');
+        return \in_array($answer->reasonKey, [ShipmentsPlugin::REFUSAL_NEEDS_PLACE, ShipmentsPlugin::REFUSAL_NEEDS_POSTCODE], true);
     }
 
     /**
