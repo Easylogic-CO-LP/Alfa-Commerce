@@ -12373,6 +12373,9 @@ class PaymentLedger
      *
      * @return object|null The same row, amount hydrated.
      *
+     * @throws OrderCurrencyException When the row's order does not exist or names no currency: a payment row whose
+     *                                order cannot be read is an integrity fault, never an answer of no row.
+     *
      * @since  2.0.0
      */
     public static function hydrate(?object $row, int $orderId = 0): ?object
