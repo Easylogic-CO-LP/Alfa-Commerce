@@ -12223,11 +12223,8 @@ class PaymentLedger
                 return;
             }
 
-            $row = $orderId > 0
-                ? self::db()->setQuery('SELECT ' . self::db()->quoteName('id') . ', ' . self::db()->quoteName('invoice_number')
-                    . ' FROM ' . self::db()->quoteName('#__alfa_orders') . ' WHERE ' . self::db()->quoteName('id') . ' = ' . $orderId)->loadObject()
-                : null;
-            $number = $orderId > 0 ? EmailService::orderNumber(order: $row ?? (object) ['id' => $orderId]) : '';
+            // The customer's order number is the order's id (EmailService::orderNumber(), 2.2.1): nothing to read.
+            $number = $orderId > 0 ? EmailService::orderNumber(order: (object) ['id' => $orderId]) : '';
             $sentence = match (true) {
                 $plain instanceof Closure => $plain($number),
                 \is_string($plain) => $plain,
