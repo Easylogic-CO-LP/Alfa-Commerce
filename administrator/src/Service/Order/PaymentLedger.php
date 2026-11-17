@@ -12205,6 +12205,12 @@ class PaymentLedger
      * not saved and the reason is in the orders log (without a number when the write named no order). A database
      * driver's text is never queued: it goes to the log only.
      *
+     * The ledger's other refusals and failures do not come here: lockOrders(), rejectMovedAttempt(),
+     * supersedeAttempt(), flipIfCovered(), delete() (deleteFromTable() included) and adoptMethodOnOrderIfEmpty() still
+     * tell through LedgerSupport::warn(), which queues its sentence on every client, the storefront included; the lock
+     * wait in lockOrders(), the failures of rejectMovedAttempt() and adoptMethodOnOrderIfEmpty() and delete()'s removal
+     * of the row carry the failure's own text.
+     *
      * @param string $detail The detail for the log.
      * @param int $orderId The order, 0 when none is known.
      * @param (Closure(string): string)|string|null $plain The sentence for staff, or a function of the order number
