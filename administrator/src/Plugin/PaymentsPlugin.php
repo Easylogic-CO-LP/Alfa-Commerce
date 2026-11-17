@@ -65,6 +65,8 @@
  *    $verdict = $this->claimPendingAttemptVerdict(paymentId: $paymentId, reference: $sessionId); // a placement row without a reference
  *    // WRITTEN with ->existing true on a pending row: your provider call may have been made; make it safe to repeat
  *    // (the provider's idempotency key from the reference) or ask the provider by the reference before creating anything
+ *    // call these outside any transaction of your own: inside one that has already read, the reference lookup sees its
+ *    // older snapshot
  *
  *  THE RULE: this class is the supported payment API. A gateway never calls
  *  PaymentLedger and never reads or writes #__alfa_order_payments itself;

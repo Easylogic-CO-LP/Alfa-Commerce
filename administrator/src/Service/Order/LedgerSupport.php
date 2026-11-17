@@ -475,7 +475,7 @@ trait LedgerSupport
         $failure = self::writeRow($data);
 
         if ($failure !== null) {
-            self::warn($failure);
+            self::warn(message: $failure['detail'], shown: $failure['shown']);
 
             return false;
         }
@@ -495,12 +495,14 @@ trait LedgerSupport
      *
      * @param array $data Row data (by reference; PK back-filled on insert).
      *
-     * @return string|null Null when the row is written; otherwise the failure's
-     *                     detail for the log, a driver's message included.
+     * @return array{detail: string, shown: string}|null Null when the row is
+     *                                                   written; otherwise the failure's detail for the log (a
+     *                                                   driver's message included) and what staff read (2.2.2:
+     *                                                   never a driver's message).
      *
      * @since  2.2.1
      */
-    private static function writeRow(array &$data): ?string
+    private static function writeRow(array &$data): ?array
     {
         $db = self::db();
 
@@ -509,7 +511,7 @@ trait LedgerSupport
         $filtered = array_intersect_key($data, $tableColumns);
 
         if (empty($filtered)) {
-            return 'saveToTable(): no valid columns after filtering';
+            return ['detail' => 'saveToTable(): no valid columns after filtering', 'shown' => 'saveToTable(): no valid columns after filtering'];
         }
 
         // Sanitize nullable columns: forms send '' which MySQL strict rejects
@@ -561,7 +563,7 @@ trait LedgerSupport
                 throw $e;
             }
 
-            return 'saveToTable() failed: ' . $e->getMessage();
+            return ['detail' => 'saveToTable() failed: ' . $e->getMessage(), 'shown' => 'saveToTable() failed'];
         }
 
         return null;
@@ -670,7 +672,7 @@ trait LedgerSupport
                 throw $e;
             }
 
-            self::warn('deleteFromTable() failed: ' . $e->getMessage());
+            self::warnFailure(message: 'deleteFromTable() failed', failure: $e);
             return false;
         }
 
@@ -946,6 +948,23 @@ trait LedgerSupport
         } catch (Exception $e) {
             // Silently ignore: CLI or early boot context
         }
+    }
+
+    /**
+     * Warn of a failure whose own text (a database driver's message, which can
+     * name a table) is for the log only (2.2.2): the log line is the message
+     * and the failure's text, staff and API clients read the message alone.
+     * The one place a ledger's failure warning keeps its text out of the queue.
+     *
+     * @param string $message What failed, for staff and the log.
+     * @param Throwable $failure The failure; its text goes to the log only.
+     * @param string $context The call it concerns, for the log only; empty when the message names it.
+     *
+     * @since  2.2.2
+     */
+    private static function warnFailure(string $message, Throwable $failure, string $context = ''): void
+    {
+        self::warn(message: $message . ': ' . $failure->getMessage(), context: $context, shown: $message);
     }
 
     /**

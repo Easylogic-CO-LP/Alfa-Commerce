@@ -1848,6 +1848,10 @@ class PaymentLedger
      * other row is refused, REFUSAL_REFERENCE_TAKEN, naming the row when it is the same order's and the same plugin's. A
      * create without a reference is never matched.
      *
+     * Call it outside any transaction of your own. The reference is looked up under the order's lock with a plain read,
+     * and inside a transaction that has already read, that read sees the transaction's older snapshot (a row another
+     * request committed meanwhile would be missed).
+     *
      * Usage:
      *   $verdict = $this->payment($order)->pending()->transactionId($minted)->saveWithVerdict();
      *   switch ($verdict->kind) {
@@ -2940,7 +2944,7 @@ class PaymentLedger
         $failure = self::writeRow($data);
 
         if ($failure !== null) {
-            self::failWrite(detail: 'create(): ' . $failure, orderId: $orderId, kind: self::VERDICT_WRITE_FAILED);
+            self::failWrite(detail: 'create(): ' . $failure['detail'], orderId: $orderId, kind: self::VERDICT_WRITE_FAILED);
 
             return false;
         }
@@ -3337,7 +3341,7 @@ class PaymentLedger
             $success = $failure === null;
 
             if (!$success) {
-                self::failWrite(detail: 'update(): ' . $failure, orderId: $orderId, kind: self::VERDICT_WRITE_FAILED);
+                self::failWrite(detail: 'update(): ' . $failure['detail'], orderId: $orderId, kind: self::VERDICT_WRITE_FAILED);
             }
 
             // INSIDE the transaction, before the commit: a wallet movement
@@ -3475,7 +3479,7 @@ class PaymentLedger
                     throw $e;
                 }
 
-                self::warn("lockOrders(): order #{$id} is held by another writer: " . $e->getMessage(), shown: "lockOrders(): order #{$id} is held by another writer");
+                self::warnFailure(message: "lockOrders(): order #{$id} is held by another writer", failure: $e);
                 self::noteVerdict(kind: self::VERDICT_LOCK_NOT_TAKEN, code: '', orderId: $id);
 
                 return false;
@@ -3635,7 +3639,7 @@ class PaymentLedger
                 throw $e;
             }
 
-            self::warn('the rejected callback of ' . $gateway . ' for attempt #' . $attempt . ' could not be recorded: ' . $e->getMessage(), 'rejectMovedAttempt()');
+            self::warnFailure(message: 'the rejected callback of ' . $gateway . ' for attempt #' . $attempt . ' could not be recorded', failure: $e, context: 'rejectMovedAttempt()');
         }
     }
 
@@ -16498,7 +16502,7 @@ class PaymentLedger
                 throw $e;
             }
 
-            self::warn('adoptMethodOnOrderIfEmpty(): ' . $e->getMessage());
+            self::warnFailure(message: 'adoptMethodOnOrderIfEmpty(): the order\'s payment method was not filled in', failure: $e);
         }
     }
 }
