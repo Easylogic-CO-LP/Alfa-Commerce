@@ -19,6 +19,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListPrepareEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemsListPrepareEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ValueFacetGroupsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
@@ -1877,7 +1878,7 @@ class ItemsModel extends UrlListModel
         ];
 
         $item->cartChildren = [];
-        $item->surfaces = [];
+        $item->surfaces = new SurfaceMap();
     }
 
     /**
@@ -2181,7 +2182,10 @@ class ItemsModel extends UrlListModel
      * can make cross-item adjustments. Runs AFTER the per-item loop, so every
      * item already carries its fields/options/combinations and resolved cart,
      * including the core's Choose options decision, which a plugin here may
-     * still overwrite (the whole-page pass has the last word).
+     * still overwrite (the whole-page pass has the last word on the cart). The
+     * cards' surfaces are not the pass's to change (2.2.1): each card is handed
+     * its surfaces again after it, as core collected them, so a listener that
+     * replaced or removed a card's map changes nothing on the page.
      *
      * @param object[] $items The hydrated page of items.
      *
@@ -2190,6 +2194,13 @@ class ItemsModel extends UrlListModel
      */
     protected function dispatchItemsListPrepare(array $items): void
     {
+        // The surfaces each card was handed, kept before the pass (null: the card was drawn without them).
+        $handed = [];
+
+        foreach ($items as $key => $item) {
+            $handed[$key] = isset($item->surfaces) ? (array) $item->surfaces : null;
+        }
+
         // Mode A, a display phase, isolated (2.2.0): the item-fields group imported once through
         // Joomla's own import (so each plugin is registered once per request), the page raised
         // once on the shared dispatcher; a listener that throws is logged with its name and the
@@ -2197,6 +2208,16 @@ class ItemsModel extends UrlListModel
         $plugins = AlfaPluginHelper::get();
         $plugins->importGroup('alfa-item-fields');
         $plugins->dispatchIsolated(new ItemsListPrepareEvent('onItemsListPrepare', ['subject' => $items]));
+
+        foreach ($items as $key => $item) {
+            if ($handed[$key] === null) {
+                unset($item->surfaces);
+
+                continue;
+            }
+
+            $item->surfaces = new SurfaceMap($handed[$key]);
+        }
     }
 
     /**
@@ -2223,6 +2244,11 @@ class ItemsModel extends UrlListModel
         $plugins = AlfaPluginHelper::get();
         $drawnFieldIds = [];
         $listed = array_flip($item->listingFieldIds);
+
+        // The card's surfaces (emptied by setDefaultCart() for this draw) are collected here and handed to the item as a
+        // read-only map after each contribution (2.2.1): a plugin holding the item reads what the others contributed and
+        // cannot change it.
+        $slots = [];
 
         // Card initial visibility painted server-side (no FOUC), same rule + state as JS.
         $showonBag = StateBagBuilder::fromItem($item);
@@ -2258,7 +2284,7 @@ class ItemsModel extends UrlListModel
                 // Aggregate this field's card surfaces onto the page slot map
                 // (insertion order). Legacy setLayout() bridges to BuyForm.
                 Surfaces::appendTo(
-                    $item->surfaces,
+                    $slots,
                     $event,
                     'alfa-item-fields',
                     (string) $field->type,
@@ -2266,6 +2292,7 @@ class ItemsModel extends UrlListModel
                     Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                     field: $field,
                 );
+                $item->surfaces = new SurfaceMap($slots);
 
                 // Drawn = a buy-form input the card posts; a read-only rendering
                 // (text, spec) leaves the field to the product page.
