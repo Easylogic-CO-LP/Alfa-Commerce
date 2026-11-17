@@ -7,30 +7,6 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-/**
- * Order Model: Admin CRUD for orders and related entities
- *
- * Handles orders, payments, shipments, and order items through
- * a unified architecture with shared helpers.
- *
- * Architecture:
- *   Reusable helpers   -> getRelatedModel(), toMoney(),
- *                         saveDataOnTable(), deleteTableEntry()
- *   Data loading       -> getItem(), getPaymentData(), getShipmentData(), getOrderItemData()
- *   Save / Delete      -> save(), saveOrderPayment(), saveOrderShipment(), saveOrderItem()
- *   Activity log       -> logOrderActivity(), getOrderActivityLog()
- *
- * Totals:
- *   grand_total = items + shipping - discounts
- *   Computed by getItem() via OrderTotalHelper::computeFromArrays().
- *   Single source of truth: same method used by OrdersModel list view.
- *   No total columns stored on #__alfa_orders; always computed.
- *
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- */
-
 namespace Alfa\Component\Alfa\Administrator\Model;
 
 defined('_JEXEC') or die;
@@ -109,6 +85,25 @@ use RuntimeException;
 use stdClass;
 use Throwable;
 
+/**
+ * Order Model: Admin CRUD for orders and related entities
+ *
+ * Handles orders, payments, shipments, and order items through
+ * a unified architecture with shared helpers.
+ *
+ * Architecture:
+ *   Reusable helpers   -> getRelatedModel(), toMoney(),
+ *                         saveDataOnTable(), deleteTableEntry()
+ *   Data loading       -> getItem(), getPaymentData(), getShipmentData(), getOrderItemData()
+ *   Save / Delete      -> save(), saveOrderPayment(), saveOrderShipment(), saveOrderItem()
+ *   Activity log       -> logOrderActivity(), getOrderActivityLog()
+ *
+ * Totals:
+ *   grand_total = items + shipping - discounts
+ *   Computed by getItem() via OrderTotalHelper::computeFromArrays().
+ *   Single source of truth: same method used by OrdersModel list view.
+ *   No total columns stored on #__alfa_orders; always computed.
+ */
 class OrderModel extends AlfaAdminModel
 {
     protected $text_prefix = 'COM_ALFA';
@@ -943,6 +938,18 @@ class OrderModel extends AlfaAdminModel
 
         $isNew = (int) ($data['id'] ?? 0) === 0;
 
+        // A new order's currency, when the submission names one, is a currency the shop publishes; the refusal names
+        // the field. Nothing is put in its place.
+        if ($isNew) {
+            try {
+                $this->sentCurrencyId(data: $data);
+            } catch (InvalidArgumentException $e) {
+                $this->setError($e->getMessage());
+
+                return false;
+            }
+        }
+
         // WHOSE FORM THIS IS. The buckets were built for the order's customer
         // (getForm), so visibility must be judged for that same customer here
         // - a field the customer has and the administrator does not would
@@ -971,13 +978,20 @@ class OrderModel extends AlfaAdminModel
             }
         }
 
-        $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
-            form: $form,
-            fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
-            values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
-            group: FieldsHelper::FIELDS_KEY,
-            extra: ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'],
-        );
+        // An update that leaves the delivery details out (a REST PATCH of the note alone) leaves them as they are, so
+        // they are not validated: a field the shop requires there is asked of a creation and of an update that sends
+        // the details, never of one that does not. The order screen always sends them.
+        if ($isNew || \array_key_exists(FieldsHelper::FIELDS_KEY, $data)) {
+            $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
+                form: $form,
+                fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
+                values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
+                group: FieldsHelper::FIELDS_KEY,
+                extra: ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'],
+            );
+        } else {
+            $form->removeGroup(FieldsHelper::FIELDS_KEY);
+        }
 
         if (empty($data['invoice_differs'])) {
             $form->removeGroup(FieldsHelper::BILLING_FIELDS_KEY);
@@ -992,6 +1006,53 @@ class OrderModel extends AlfaAdminModel
         }
 
         return parent::validate($form, $data, $group);
+    }
+
+    /**
+     * The currency a new order is placed in, as the submission names it.
+     *
+     * Null when it names none: the order is placed in the shop's default currency, as the checkout and the order
+     * screen place it. Otherwise the id of a currency the shop publishes, which the order is placed in.
+     *
+     * @param array $data The submission.
+     *
+     * @return int|null The currency id, or null when the submission names none.
+     *
+     * @throws InvalidArgumentException When it names anything else: a currency the shop does not publish, one that
+     *                                  does not exist, or a value that is not an id.
+     *
+     * @since  2.2.2
+     */
+    private function sentCurrencyId(array $data): ?int
+    {
+        $sent = $data['id_currency'] ?? null;
+
+        if ($sent === null || $sent === '') {
+            return null;
+        }
+
+        $id = \is_int($sent) || (\is_string($sent) && preg_match('/^[1-9][0-9]{0,9}$/', $sent) === 1) ? (int) $sent : 0;
+
+        if ($id > 0) {
+            $db = $this->getDatabase();
+            $published = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_currencies'))
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->where($db->quoteName('state') . ' = 1')
+                    ->bind(':id', $id, ParameterType::INTEGER),
+            )->loadResult();
+
+            if ($published === 1) {
+                return $id;
+            }
+        }
+
+        // Shown as sent when it is a plain value; anything else is not repeated back.
+        $shown = \is_scalar($sent) && preg_match('/^[A-Za-z0-9_.+-]{1,40}$/', (string) $sent) === 1 ? (string) $sent : '?';
+
+        throw new InvalidArgumentException(Text::sprintf('COM_ALFA_ORDER_ERROR_CURRENCY_NOT_PUBLISHED', $shown));
     }
 
     /**
@@ -4299,6 +4360,10 @@ class OrderModel extends AlfaAdminModel
                 // OrderCreator already takes `manageTransaction: false` for
                 // exactly this: a caller that owns the wider transaction. No
                 // new mechanism, just the seam it already offers.
+                //
+                // The currency the submission names, a published one, is read
+                // first: a refusal writes nothing.
+                $currencyId = $this->sentCurrencyId(data: $data);
                 $db = $this->getDatabase();
                 $db->transactionStart(true);
 
@@ -4320,7 +4385,7 @@ class OrderModel extends AlfaAdminModel
                         ? OrderIdentity::snapshotFromUser($customerId)
                         : OrderIdentity::snapshotFromDetails((array) ($data[FieldsHelper::FIELDS_KEY] ?? []));
 
-                    $created = OrderCreator::create(draft: [
+                    $draft = [
                         'id_user' => $customerId,
                         'customer_name' => $customer['customer_name'],
                         'customer_email' => $customer['customer_email'],
@@ -4333,7 +4398,16 @@ class OrderModel extends AlfaAdminModel
                         'actor_name' => (string) ($identity?->name ?? 'System'),
                         'allow_empty' => true,
                         'lines' => [],
-                    ], manageTransaction: false);
+                    ];
+
+                    // At the rate the checkout places every order at (1.0: each currency has prices of its own);
+                    // none named, the shop's default.
+                    if ($currencyId !== null) {
+                        $draft['id_currency'] = $currencyId;
+                        $draft['conversion_rate'] = 1.0;
+                    }
+
+                    $created = OrderCreator::create(draft: $draft, manageTransaction: false);
 
                     TransactionState::commitLevel($db);
                 } catch (Throwable $inner) {
@@ -5760,23 +5834,6 @@ class OrderModel extends AlfaAdminModel
     //   - getItem loads items, payments, shipments, Money objects, history
     //   - For a status change we just need the orders row, not the universe
 
-    /**
-     * Prefill order data for partial updates.
-     *
-     * Loads the FULL current row from the Table object (1 lightweight query),
-     * then overlays the provided $data on top. Fields in $data win;
-     * all other fields keep their current DB values.
-     *
-     * This ensures save() always receives a complete record, so all its
-     * logic fires correctly: prepareTable, stock transitions, activity log.
-     *
-     * @param int $recordKey Order PK
-     * @param array $data Partial data to overlay (changed fields only)
-     *
-     * @return array Complete data array safe for save()
-     *
-     * @since  1.0.0
-     */
     /**
      * Columns the RAW/inline order-update paths may write.
      *
