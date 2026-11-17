@@ -28,8 +28,21 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * save that also archives the product (its rows changed, then removed), a delete of products some of which were sold
  * (those archived, the others removed).
  *
- * WHAT IT DOES NOT COVER: a stored window that opens by itself (nothing is written; a listener reads validFrom and
- * validUntil to know of future windows), the prices the product page and the cart compute live from their rules, and
+ * A STORED PERIOD THAT BEGINS (2.2.2, cause window): nothing is written when a period stored ahead of time becomes the
+ * one read, so the task runner announces it at its first turn at least a minute after the moment
+ * (PriceIndexSyncService::announceOpenedWindows(); the minute is longer than a chunk of the writer, which decides its
+ * live period at its start and commits after): one PriceChange per slot whose final price moved, the period that
+ * ended as the old price (none for a slot with no period before it), the one that began as the new; a slot whose price
+ * stayed the same is not named. On a shop with visitors or cron, within about two minutes of the moment; on an idle
+ * shop, at its next turn. A moment of more than the limit goes out as several exact events. Only the periods the
+ * index stores: at most eight per product (the nearest edges of its own prices and of the discounts and taxes), so a
+ * period beyond them is neither stored nor announced. The cursor (the #__alfa_meta row prices.windows_announced_until)
+ * decides what is owed: a restored backup announces again the periods that began since its cursor and that its index
+ * holds (what the shop reads again); a clock set forward is caught at the next turn; a clock set back announces
+ * nothing until the clock passes the cursor again; a period edited after it began is announced by the edit's own
+ * write (with its cause), one edited before it begins when its new moment comes.
+ *
+ * WHAT IT DOES NOT COVER: the prices the product page and the cart compute live from their rules, and
  * whether a place may buy (decided when prices are read). Nor are two removals no customer reads: the rows of a set of
  * pricing groups nobody holds any more, dropped with the set, and the rows of a deleted place (a listener learns of a
  * deleted place from the administrator's delete event, onAlfaAdminAfterDelete). A product deleted outright is
@@ -97,6 +110,13 @@ final class PricesChangedEvent extends AbstractImmutableEvent
      * @since  2.2.0
      */
     public const CAUSE_REBUILD = 'rebuild';
+
+    /**
+     * @var string A stored price period began: a period of a price, a discount or a tax stored ahead of time is now the
+     *             one read; announced by the task runner, not by a write; causeId 0.
+     * @since  2.2.2
+     */
+    public const CAUSE_WINDOW = 'window';
 
     /**
      * The products whose stored rows changed, ascending.
