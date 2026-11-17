@@ -1862,8 +1862,9 @@ class PaymentLedger
      *       default:                           ...the write failed: try again later, the same reference...
      *   }
      *
-     * @api ANSWERS: a PaymentWriteVerdict, its kind, a refusal's code and the row; throws only for a builder used
-     *      wrongly or a failure that ended the caller's transaction.
+     * @api ANSWERS: a PaymentWriteVerdict, its kind, a refusal's code and the row, on the builder payment() and
+     *      paymentUpdate() hand out; throws only for a builder used wrongly or a failure that ended the caller's
+     *      transaction.
      *
      * @return PaymentWriteVerdict What the write did.
      *

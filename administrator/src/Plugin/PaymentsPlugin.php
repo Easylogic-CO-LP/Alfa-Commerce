@@ -337,6 +337,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * shared dispatcher, never in getSubscribedEvents(). onPaymentStoreReference and onPaymentChargeReference
      * are addressed by an extension's billing engine (a subscriptions extension); core dispatches neither.
      *
+     * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
+     *      answered through the event.
+     *
      * @since  2.2.0
      */
     public const TARGETED_EVENTS = [
@@ -590,8 +593,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Send it to the gateway in minor units through the order's own currency,
      * never `* 100`:
      *
-     *   $left  = $this->refundFormMaximum((int) $payment->id);
-     *   $minor = Money::of($left, $order->currency)->getMinorUnits();
+     *   $minor = $this->refundFormMaximum((int) $payment->id)->getMinorUnits();
      *
      * Alfa ships currencies with 0, 1, 3 and 4 decimals (JPY, MOP, OMR, ...), so
      * a hard-coded hundred is wrong on four of them.

@@ -200,8 +200,8 @@ final class TransactionState
      * without a failure.
      *
      * @api ANSWERS: closes only the caller's own level (the whole transaction when the server ended it or the savepoint
-     *      is gone) and answers true when no transaction is left: inside a caller's transaction that ended it, and the
-     *      failure is rethrown, never answered as a refusal.
+     *      is gone) and answers true when no transaction is left; called inside core's transaction, true means core's
+     *      work is gone too, and the caller rethrows its failure, never answering a refusal.
      *
      * @param DatabaseDriver $db The connection.
      * @param Throwable|null $failure What failed inside the level; null for a refusal.

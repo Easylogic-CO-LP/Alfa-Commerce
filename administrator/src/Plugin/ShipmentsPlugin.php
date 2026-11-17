@@ -214,6 +214,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
      * shared dispatcher, never in getSubscribedEvents().
      *
+     * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
+     *      answered through the event.
+     *
      * @since  2.2.0
      */
     public const TARGETED_EVENTS = [
