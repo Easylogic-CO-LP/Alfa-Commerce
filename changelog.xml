@@ -15,6 +15,7 @@
 
         <change>
             <item>For plugin authors: a product field extension changes the add to cart area of a catalogue card or of the product page only through its event's setCartLayout() and setCartChildLayout(). When its method fails, what it set is left out and the other fields keep theirs, and a change it writes straight onto the product's cart ($item->cart, $item->cartChildren) is not kept, whether its method fails or not. Before, such a change stayed: after a failure the card or the page could show the failed extension's button, or none, and the card could lose its Choose options link.</item>
+            <item>For plugin authors: System - Alfa Commerce Sync no longer carries a commented-out onAlfaProductAfterSave subscription and handler. Alfa Commerce announces no such event; an item's save is announced by onItemAfterSave.</item>
             <item>For plugin authors: EmailService::orderNumber() takes the Order reader a payment or shipping plugin is handed, EmailService::orderNumber(order: $order), and gives the number the customer knows the order by. A plugin no longer needs Order::row(), which is not part of the plugin-facing API, to call it. Core's own code still passes the order row.</item>
         </change>
     </changelog>
