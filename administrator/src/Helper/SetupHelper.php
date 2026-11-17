@@ -589,15 +589,25 @@ final class SetupHelper
             ->delete($db->quoteName('#__alfa_meta'))
             ->where($db->quoteName('name') . ' = :name')
             ->bind(':name', $name, ParameterType::STRING);
-        $db->setQuery($delete)->execute();
 
-        if ($identities === []) {
-            return;
+        // One change: the row removed and written again together, so a failure between the two never empties the list.
+        $db->transactionStart(true);
+
+        try {
+            $db->setQuery($delete)->execute();
+
+            if ($identities !== []) {
+                // A variable, not an inline expression: insertObject() takes the row by reference.
+                $row = (object) ['name' => $name, 'value' => json_encode($identities, JSON_UNESCAPED_SLASHES)];
+                $db->insertObject('#__alfa_meta', $row);
+            }
+
+            $db->transactionCommit(true);
+        } catch (Throwable $e) {
+            $db->transactionRollback(true);
+
+            throw $e;
         }
-
-        // A variable, not an inline expression: insertObject() takes the row by reference.
-        $row = (object) ['name' => $name, 'value' => json_encode($identities, JSON_UNESCAPED_SLASHES)];
-        $db->insertObject('#__alfa_meta', $row);
     }
 
     /**
