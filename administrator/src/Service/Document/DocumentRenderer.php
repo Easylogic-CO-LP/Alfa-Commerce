@@ -14,6 +14,7 @@ use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use RuntimeException;
 use Throwable;
@@ -43,9 +44,9 @@ final class DocumentRenderer
     private const DEFAULT_KEY_PREFIX = 'COM_ALFA_DOCUMENT_DEFAULT_';
 
     /**
-     * The decimal separator of each document language read in this request ({@see self::decimalSeparator()}).
+     * The separators of each document language read in this request ({@see self::separators()}).
      *
-     * @var array<string, string>
+     * @var array<string, array{decimal: string, thousands: string}>
      */
     private static array $separators = [];
 
@@ -136,27 +137,30 @@ final class DocumentRenderer
     }
 
     /**
-     * The decimal separator of a document's language, which its tax rates print with: a rate on an English document
-     * prints 15.5%, on a Greek one 15,5%, whoever prints it and in whatever language the request runs (the back
-     * office, the REST API, the PDF of a status e-mail). Read from Joomla's own file of the document's language in the
-     * administrator (joomla.ini, its DECIMALS_SEPARATOR), apart from the request's language, once per language and
-     * request; English's when that language has no administrator joomla.ini of its own. The labels come from another
-     * file, Alfa Commerce's own (com_alfa.ini) of that language, and Joomla loads English for them when it is missing:
-     * so a language that Joomla's administrator has and Alfa Commerce's translations do not prints English labels with
-     * that language's separator (a French document: English labels, 15,5%). The money on a document keeps its own
-     * separators ({@see DocumentMoney::formatter()}).
+     * The separators a document's numbers print with, those of the document's own language: its amounts, its
+     * quantities and its tax rates. An English document prints 1,234.56, 1,200 and 15.5%; a Greek one 1.234,56, 1.200
+     * and 15,5%; whoever prints it and in whatever language the request runs (the back office, the REST API, the PDF of
+     * a status e-mail). Only how the numbers are written follows the language: what is stored, the totals and the
+     * REST API's figures do not change.
      *
-     * @param object|null $document The document row (its `language`); null for a partial drawn without one, which then
-     *                              prints in the request's language.
+     * Read from Joomla's own file of the document's language in the administrator (joomla.ini, its DECIMALS_SEPARATOR
+     * and THOUSANDS_SEPARATOR), apart from the request's language, once per language and request; English's when that
+     * language has no administrator joomla.ini of its own that names both. The labels come from another file, Alfa
+     * Commerce's own (com_alfa.ini) of that language, and Joomla loads English for them when it is missing: so a
+     * language that Joomla's administrator has and Alfa Commerce's translations do not prints English labels with that
+     * language's separators (a French document: English labels, 15,5%). A partial drawn without a document prints with
+     * the request's language's separators.
      *
-     * @return string|null The separator; null for no document (AlfaHelper::percentDisplay() then reads the request's).
+     * @param object|null $document The document row (its `language`); null for a partial drawn without one.
      *
-     * @since  2.2.1
+     * @return array{decimal: string, thousands: string}
+     *
+     * @since  2.2.2
      */
-    public static function decimalSeparator(?object $document): ?string
+    public static function separators(?object $document): array
     {
         if ($document === null) {
-            return null;
+            return ['decimal' => Text::_('DECIMALS_SEPARATOR'), 'thousands' => Text::_('THOUSANDS_SEPARATOR')];
         }
 
         $tag = (string) ($document->language ?? '');
@@ -164,11 +168,14 @@ final class DocumentRenderer
         if (!isset(self::$separators[$tag])) {
             $language = NotificationText::own(tag: $tag);
 
-            if (!$language->hasKey('DECIMALS_SEPARATOR')) {
+            if (!$language->hasKey('DECIMALS_SEPARATOR') || !$language->hasKey('THOUSANDS_SEPARATOR')) {
                 $language = NotificationText::own(tag: 'en-GB');
             }
 
-            self::$separators[$tag] = $language->_('DECIMALS_SEPARATOR');
+            self::$separators[$tag] = [
+                'decimal' => $language->_('DECIMALS_SEPARATOR'),
+                'thousands' => $language->_('THOUSANDS_SEPARATOR'),
+            ];
         }
 
         return self::$separators[$tag];
