@@ -287,26 +287,9 @@ class OrderPlacement
     }
 
     /**
-     * Main order placement
-     *
-     * Flow:
-     *   1. Validate prerequisites (cart, payment, shipment methods)
-     *   2. Fire onOrderBeforePlace to payment + shipment plugins
-     *   3. BEGIN TRANSACTION
-     *      a. Save user info
-     *      b. Save order (with dynamic default status)
-     *      c. Save order items
-     *      d. Deduct stock (IF default status requires it)
-     *      e. Log order creation
-     *   4. COMMIT
-     *   5. Load complete order from model
-     *   6. Attach cart for plugins
-     *   7. Fire onOrderAfterPlace -> plugins create payment + shipment records
-     *   8. Clear cart
-     *
-     * Stock deduction respects the default order status's stock_operation:
-     *   stock_operation = 0 -> deduct stock (Confirmed, Shipped, etc.)
-     *   stock_operation = 1 -> keep stock   (rare: default status = Pending)
+     * The storefront's placement: reads what the shopper chose from the request (the payment method, the shipping
+     * method, the use of credit and the total the cart page showed) and places the order through
+     * {@see self::place()}, which does the work and reads no request.
      *
      * @param array $data User form data (address fields), already validated + filtered.
      * @param array $billing The invoice section's validated values; empty = same as delivery.

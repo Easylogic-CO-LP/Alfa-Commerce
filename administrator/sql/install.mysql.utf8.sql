@@ -1561,9 +1561,9 @@ SELECT * FROM (
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_orders_statuses_en_gb`);
 
 --
--- Order statuses are intentionally NOT seeded. They are created (and named
--- per language) by the admin / install wizard; the translatable name lives in
--- the per-language tables #__alfa_orders_statuses_<langtag>.
+-- An order status's translatable name lives in the per-language tables
+-- #__alfa_orders_statuses_<langtag>; the en-GB names of the seeded statuses
+-- are written above.
 --
 
 --

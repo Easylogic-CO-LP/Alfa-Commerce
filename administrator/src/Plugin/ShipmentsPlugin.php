@@ -290,12 +290,15 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
     //  Shipment fluent builder wrappers
     //
-    //  These return an ShipmentLedger builder instance.
+    //  These return a ShipmentLedger builder instance.
     //  The builder validates, auto-fills, and delegates to
     //  static CRUD methods internally.
     //
-    //  For direct CRUD access (batch ops, admin form saves),
-    //  use ShipmentLedger::create/update/delete() directly.
+    //  A carrier writes its parcels through these wrappers only: the
+    //  builder names this plugin as the writer, so a parcel is written
+    //  only on a method of this plugin. A direct ShipmentLedger::create(),
+    //  update() or delete() names no writer and skips that check; it is
+    //  core's own path, not a plugin's.
 
     /**
      * Create a new shipment (returns fluent builder in CREATE mode).
