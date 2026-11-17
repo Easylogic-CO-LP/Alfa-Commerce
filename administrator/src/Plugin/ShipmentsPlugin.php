@@ -749,14 +749,14 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * never priced by a farther zone or the catch-all (as the first matching
      * zone decided alone before).
      *
-     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2), in core's words: with no destination at all and no zone for it
-     * (no place, no catch-all), the refusal is {@see self::REFUSAL_NEEDS_PLACE}; with the carrier's postcode field
+     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2), in core's words: with no destination at all and no zone for
+     * it (no place, no catch-all), the refusal is {@see self::REFUSAL_NEEDS_PLACE}; with the carrier's postcode field
      * unanswered ('') and a zone whose every row that would fit has a postcode band, it is
-     * {@see self::REFUSAL_NEEDS_POSTCODE}. A carrier that reads no postcode field passes null, and is refused NO_BAND_FITS
-     * as before: no shopper could give it one. The cart's offer read takes such a carrier off the list until the checkout has the
-     * fact, and names it, instead of offering a carrier that refuses the shopper's first click. The places are read in the order given,
-     * nearest first, as AddressView::places() and PlaceTree::placesFor() give
-     * them; a caller passing them in another order gets another zone. A place
+     * {@see self::REFUSAL_NEEDS_POSTCODE}. A carrier that reads no postcode field passes null, and is refused
+     * NO_BAND_FITS as before: no shopper could give it one. The cart's offer read takes such a carrier off the list
+     * until the checkout has the fact, and names it, instead of offering a carrier that refuses the shopper's first
+     * click. The places are read in the order given, nearest first, as AddressView::places() and PlaceTree::placesFor()
+     * give them; a caller passing them in another order gets another zone. A place
      * of the chain is matched whether or not it is published, as before: only a
      * stored address can hold an unpublished one (the address and zone pickers
      * offer published places), and the checkout asks for it again.
@@ -765,6 +765,11 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * a refusal: the merchant drew zones and this cart fits none of their
      * rows, so they have said by omission that they do not carry it. Before
      * 1.10 all three were the float 0.00, and the third one shipped free.
+     *
+     * @api READ ONLY: the price, or NULL when this carrier cannot carry the cart (the nearest zone decides alone), its
+     *      reason then read with refusal(): a key of this carrier's language namespace, or core's REFUSAL_NEEDS_PLACE
+     *      or REFUSAL_NEEDS_POSTCODE for a fact not yet given; pass the postcode as '' while the carrier's postcode
+     *      field is unanswered and NULL when it reads none.
      *
      * @param array $zones The method's configured cost-per-place zones.
      * @param CartLine[] $lines What there is to carry.
@@ -995,6 +1000,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
     /**
      * Calculate shipping cost for the cart.
+     *
+     * @api HOOK: asked for every method the checkout would list, many times a page (every listing, every change of a
+     *      delivery field) and at placement, and when the cart's totals are worked out with the method chosen;
+     *      $event->getMethod()->isSelected() is true only for the chosen one. Answer with setShippingCost(),
+     *      setShippingAmounts() or setUnavailable($reasonKey); free of side effects (no booking, no provider write, no
+     *      row written), quick and repeatable. Abstract: no default.
      *
      * @since  1.0.0
      */
