@@ -4880,7 +4880,7 @@ class OrderModel extends AlfaAdminModel
             'id_address_delivery', 'id_address_invoice',
             'id_payment_method', 'id_shipment_method',
             'customer_note', 'note', 'secure_key',
-            'invoice_number', 'delivery_date',
+            'delivery_date',
         ];
 
         foreach ($orderFields as $field) {

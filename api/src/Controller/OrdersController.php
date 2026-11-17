@@ -56,7 +56,7 @@ class OrdersController extends ApiController
      */
     private const NOT_UPDATED = [
         'reference', 'id_user', 'customer_name', 'customer_email', 'id_currency', 'currency', 'conversion_rate',
-        'invoice_number', 'delivery_date', 'id_address_delivery', 'id_address_invoice', 'id_payment_method',
+        'delivery_date', 'id_address_delivery', 'id_address_invoice', 'id_payment_method',
         'payment_method_name', 'id_shipment_method', 'shipment_method_name', 'status_name', 'payment_status',
         'fulfillment_status', 'fulfillment_percentage', 'payment_percentage', 'balance', 'overpaid', 'excess', 'still_held',
         'order_total', 'order_total_tax_excl', 'items_total', 'shipping_total', 'discount_total', 'contributions_total',

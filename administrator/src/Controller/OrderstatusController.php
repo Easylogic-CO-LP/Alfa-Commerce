@@ -536,7 +536,7 @@ class OrderstatusController extends FormController
         foreach ($orders as $order) {
             $label = sprintf(
                 '#%s - %s',
-                $order->invoice_number > 0 ? (string) $order->invoice_number : (string) $order->id,
+                EmailService::orderNumber(order: $order),
                 (string) ($order->created ?? ''),
             );
             $orderOptions .= sprintf(
@@ -701,7 +701,6 @@ class OrderstatusController extends FormController
             $query = $db->getQuery(true)
                 ->select([
                     $db->quoteName('id'),
-                    $db->quoteName('invoice_number'),
                     $db->quoteName('created'),
                 ])
                 ->from($db->quoteName('#__alfa_orders'))
