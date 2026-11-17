@@ -183,18 +183,21 @@ final class InventoryEffectOutbox
         }
 
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $now = Factory::getDate()->toSql();
 
         // INSERT IGNORE against UNIQUE(source_type, source_id): a producer that
         // is replayed re-states the same obligation rather than adding a second.
+        // Stamped by the database's clock, the one every age window of the
+        // outbox is measured with: Factory::getDate() keeps the time of its
+        // first call for the whole process, so an obligation recorded late in
+        // a task run, a console command or a queue would look older by the
+        // run's age (2.2.1).
         $db->setQuery(
             'INSERT IGNORE INTO ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' (' . $db->quoteName('source_type') . ', ' . $db->quoteName('source_id') . ', '
             . $db->quoteName('order_id') . ', ' . $db->quoteName('payload') . ', '
             . $db->quoteName('status') . ', ' . $db->quoteName('created') . ', ' . $db->quoteName('modified') . ')'
             . ' VALUES (' . $db->quote($sourceType) . ', ' . $sourceId . ', ' . $orderId . ', '
-            . $db->quote($payload) . ', ' . $db->quote(self::STATUS_PENDING) . ', '
-            . $db->quote($now) . ', ' . $db->quote($now) . ')',
+            . $db->quote($payload) . ', ' . $db->quote(self::STATUS_PENDING) . ', UTC_TIMESTAMP(), UTC_TIMESTAMP())',
         );
         $db->execute();
 
@@ -214,7 +217,7 @@ final class InventoryEffectOutbox
             'UPDATE ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' SET ' . $db->quoteName('payload') . ' = ' . $db->quote($payload)
             . ', ' . $db->quoteName('order_id') . ' = ' . $orderId
-            . ', ' . $db->quoteName('modified') . ' = ' . $db->quote($now)
+            . ', ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP()'
             . $where,
         );
         $db->execute();
