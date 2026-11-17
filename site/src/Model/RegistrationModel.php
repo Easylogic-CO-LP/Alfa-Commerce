@@ -12,9 +12,9 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
-use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Site\Service\ShowOn\SubmitAuthority;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -209,6 +209,6 @@ class RegistrationModel extends FormModel
      */
     public function registrationAllowed(): bool
     {
-        return MenuProvisioningService::signUpsOpen();
+        return SignUpHelper::open();
     }
 }

@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Setup;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
+use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageFactoryInterface;
@@ -208,18 +209,14 @@ final class MenuProvisioningService
     }
 
     /**
-     * Whether Joomla accepts sign-ups (Users: Options, Allow User Registration). A site
-     * that has not saved the option reads Joomla's own default, which is No. The one
-     * reader: the storefront's sign-up form guards its submit with it too
-     * (RegistrationModel::registrationAllowed()), since com_users' own model, which
-     * creates the account, never reads the option.
+     * Whether Joomla accepts sign-ups, as the one reader answers it (SignUpHelper::open()).
      *
      *
      * @since  2.2.2
      */
-    public static function signUpsOpen(): bool
+    private static function signUpsOpen(): bool
     {
-        return (bool) ComponentHelper::getParams('com_users')->get('allowUserRegistration', 0);
+        return SignUpHelper::open();
     }
 
     /**
