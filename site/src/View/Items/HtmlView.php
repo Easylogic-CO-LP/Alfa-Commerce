@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\View\Items;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\Search\ResultSetRenderEvent;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -343,6 +344,10 @@ class HtmlView extends BaseHtmlView
      */
     private function announceResultSet(string $kind): void
     {
+        // A listener holds the view, and through its model the cards (2.2.1): the surfaces each card was handed are
+        // kept before the announcement and handed again after it, so a listener cannot replace or remove a card's.
+        $handed = $this->cardSurfaces();
+
         try {
             $plugins = AlfaPluginHelper::get();
             $plugins->importGroup('alfa-search');
@@ -361,6 +366,66 @@ class HtmlView extends BaseHtmlView
             } catch (Throwable) {
                 // A log that cannot be written must not break the listing.
             }
+        }
+
+        $this->handCardSurfaces($handed);
+    }
+
+    /**
+     * The surfaces each card of this response was handed (2.2.1): the listing's cards by their key, and the one card of
+     * a single-card reload; null for a card drawn without them.
+     *
+     * @return array{items: array<int|string, array<string, list<array<string, mixed>>>|null>, item?: array<string, list<array<string, mixed>>>|null}
+     *
+     * @since  2.2.1
+     */
+    private function cardSurfaces(): array
+    {
+        $handed = ['items' => []];
+
+        foreach ((array) ($this->items ?? []) as $key => $card) {
+            if (\is_object($card)) {
+                $handed['items'][$key] = isset($card->surfaces) ? (array) $card->surfaces : null;
+            }
+        }
+
+        if (\is_object($this->item ?? null)) {
+            $handed['item'] = isset($this->item->surfaces) ? (array) $this->item->surfaces : null;
+        }
+
+        return $handed;
+    }
+
+    /**
+     * Hand each card the surfaces {@see self::cardSurfaces()} kept (2.2.1): a new read-only map, or none for a card
+     * drawn without them.
+     *
+     * @param array{items: array<int|string, array<string, list<array<string, mixed>>>|null>, item?: array<string, list<array<string, mixed>>>|null} $handed What the cards were handed.
+     *
+     * @since  2.2.1
+     */
+    private function handCardSurfaces(array $handed): void
+    {
+        $cards = [];
+
+        foreach ($handed['items'] as $key => $slots) {
+            if (\is_object($this->items[$key] ?? null)) {
+                $cards[] = [$this->items[$key], $slots];
+            }
+        }
+
+        if (\array_key_exists('item', $handed) && \is_object($this->item ?? null)) {
+            $cards[] = [$this->item, $handed['item']];
+        }
+
+        foreach ($cards as [$card, $slots]) {
+            if ($slots === null) {
+                unset($card->surfaces);
+
+                continue;
+            }
+
+            $card->surfaces = new SurfaceMap($slots);
         }
     }
 
