@@ -48,9 +48,9 @@ use Throwable;
  *   EmailService::sendForStatusChange(int $orderId, int $newStatusId): void
  *     every recipient at once, failures logged only.
  *
- * Hooked from OrderModel::save() right after the stock-transition
- * branch on `$oldStatusId !== $newStatusId`. Wrapped in its own
- * try/catch so a mail failure never blocks the order save.
+ * A status change queues the order.status_email task (2.1.4), which sends
+ * through deliverForStatus() once the change has committed; a mail failure is
+ * recorded on that task and never touches the order.
  *
  * Token catalogue (see availableTokens() for the live list shown in the
  * admin picker):
