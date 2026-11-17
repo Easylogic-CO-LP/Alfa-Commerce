@@ -13,8 +13,10 @@ namespace Alfa\Component\Alfa\Administrator\Setup;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
+use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\LanguageFactoryInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Table\Table;
 use Joomla\Database\DatabaseInterface;
@@ -139,7 +141,7 @@ final class MenuProvisioningService
             // A sign-up page on a site that refuses sign-ups is a dead end: the form
             // renders and the controller then refuses the submit. Skip it entirely
             // rather than hand the merchant a page that cannot work.
-            if ($view === 'registration' && !ComponentHelper::getParams('com_users')->get('allowUserRegistration', 1)) {
+            if ($view === 'registration' && !self::signUpsOpen()) {
                 continue;
             }
 
@@ -151,7 +153,10 @@ final class MenuProvisioningService
                 // Lazily, so a run with nothing missing leaves no empty menu behind.
                 $menutype ??= self::ensureOwnMenu($db);
 
-                $title = Text::_($item['title']);
+                // Shoppers read the title: it is written in the item's own language, and an
+                // all-languages item in the site's default one, never the language of whoever
+                // pressed the button.
+                $title = self::title(key: $item['title'], language: $language === '*' ? self::siteLanguage() : $language);
                 $alias = self::uniqueAlias($db, $item['alias'] . ($sef !== '' ? '-' . $sef : ''));
 
                 /** @var \Joomla\CMS\Table\Menu $table */
@@ -201,6 +206,47 @@ final class MenuProvisioningService
         }
 
         return $created;
+    }
+
+    /**
+     * Whether Joomla accepts sign-ups, as the one reader answers it (SignUpHelper::open()).
+     *
+     *
+     * @since  2.2.2
+     */
+    private static function signUpsOpen(): bool
+    {
+        return SignUpHelper::open();
+    }
+
+    /**
+     * A storefront menu item's title in the given language. Joomla's load reads the
+     * en-GB strings first and then the language's own, so a key the language has not
+     * translated reads in English.
+     *
+     * @param string $key The title's language key.
+     * @param string $language The language tag the item is written in.
+     *
+     *
+     * @since  2.2.2
+     */
+    private static function title(string $key, string $language): string
+    {
+        $strings = Factory::getContainer()->get(LanguageFactoryInterface::class)->createLanguage($language);
+        $strings->load('com_alfa', JPATH_ADMINISTRATOR, $language);
+
+        return $strings->_($key);
+    }
+
+    /**
+     * The site's default language (Languages: Site), the language of an all-languages item.
+     *
+     *
+     * @since  2.2.2
+     */
+    private static function siteLanguage(): string
+    {
+        return (string) ComponentHelper::getParams('com_languages')->get('site', 'en-GB');
     }
 
     /**
@@ -401,7 +447,7 @@ final class MenuProvisioningService
         $missing = [];
 
         foreach ($views ?? array_keys(self::STOREFRONT) as $view) {
-            if ($view === 'registration' && !ComponentHelper::getParams('com_users')->get('allowUserRegistration', 1)) {
+            if ($view === 'registration' && !self::signUpsOpen()) {
                 continue;
             }
 

@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
@@ -95,6 +96,39 @@ class CartController extends FormController implements UserFactoryAwareInterface
     public function batch($model = null)
     {
         throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+    }
+
+    /**
+     * Run a cart task, unless the shop shows its catalogue only (2.2.2): then every task is refused before anything is
+     * read or written, HTTP 403 with the catalogue-only sentence, as JSON to a script and as the error page to a
+     * browser's navigation. recalculate() changes no cart and answers through the item model with no price, so it runs.
+     * Placement is refused by OrderPlacement as well, the authority for a storefront order.
+     *
+     * @param string $task The task.
+     *
+     * @return mixed What the task answers.
+     *
+     * @throws NotAllowed To a browser's navigation, in catalogue-only mode.
+     *
+     * @since  2.2.2
+     */
+    public function execute($task)
+    {
+        if (ShopMode::sellsOnline() || strtolower((string) $task) === 'recalculate') {
+            return parent::execute($task);
+        }
+
+        $sentence = Text::_('COM_ALFA_CATALOGUE_ONLY_NOTICE');
+
+        if ($this->wantsHtml()) {
+            throw new NotAllowed($sentence, 403);
+        }
+
+        $this->app->setHeader('status', '403 Forbidden', true);
+        $this->app->setHeader(name: 'Content-Type', value: 'application/json; charset=utf-8', replace: true);
+        $this->app->sendHeaders();
+        echo new JsonResponse(null, $sentence, true);
+        $this->app->close();
     }
 
     /**

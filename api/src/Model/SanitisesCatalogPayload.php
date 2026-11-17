@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
@@ -176,7 +177,9 @@ trait SanitisesCatalogPayload
      * An option's amount is a money delta ('+', '-') at the priced result's
      * currency scale, never fewer decimals ("5.00", "0.125"), or a percentage
      * ('%', '-%') in its own digits ("10"). With no priced result no scale is
-     * stated, and a delta keeps its own digits.
+     * stated, and a delta keeps its own digits. In catalogue-only mode (2.2.2) an
+     * option's amount is null, as the product's price is: no price leaves the
+     * server for a shop that sells nothing online.
      *
      * @param object $item The item being sanitised, modified in place.
      * @param int|null $scale The priced result's currency scale, or null when the item has none.
@@ -247,8 +250,9 @@ trait SanitisesCatalogPayload
             ));
         }
 
+        $sellsOnline = ShopMode::sellsOnline();
         $amount = static fn ($o): ?string => match (true) {
-            !is_numeric($o->amount ?? null) => null,
+            !$sellsOnline, !is_numeric($o->amount ?? null) => null,
             $scale !== null && \in_array($o->operation ?? null, ['+', '-'], true) => PublishedDecimal::unit(value: ExactAmount::ofNumber($o->amount), scale: $scale),
             default => PublishedDecimal::decimal(value: ExactAmount::ofNumber($o->amount)),
         };

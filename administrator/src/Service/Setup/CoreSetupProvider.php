@@ -15,9 +15,11 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
+use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -204,6 +206,9 @@ final class CoreSetupProvider
             ->tour(self::menuTourFor(self::customerViews()))
             ->priority(645)
             ->probe(static fn (): bool => MenuProvisioningService::missingViews(self::customerViews()) === [])
+            // The sign-up page is left out while Joomla refuses sign-ups; the row says so in every state, since a
+            // complete row shows no reason. Turning sign-ups on stays the administrator's, in Users: Options.
+            ->note(static fn (): string => SignUpHelper::open() ? '' : 'COM_ALFA_SETUP_CHECK_CUSTOMER_PAGES_NO_SIGNUP')
             ->choice('menutype', 'COM_ALFA_SETUP_MENU_TARGET_LABEL', static fn (): array => MenuProvisioningService::menuOptions())
             ->provision(static fn (array $answers = []) => MenuProvisioningService::provisionStorefront(
                 menutype: $answers['menutype'] ?? null,
@@ -313,6 +318,15 @@ final class CoreSetupProvider
                 arguments: static fn (): array => $minimumUnderTier()['count'] === 0 ? [] : [(string) $minimumUnderTier()['count'], implode(', ', $minimumUnderTier()['names'])],
                 unnamed:   'COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER_UNNAMED',
             );
+
+        // Online sales switched off (2.2.2): the shop shows its catalogue only. An information row, so the mode is never
+        // forgotten: the shop runs, and nothing can be bought online.
+        $this->check('cart.catalogue_only', 'COM_ALFA_SETUP_CHECK_CATALOGUE_ONLY_LABEL')
+            ->tier(SetupCheck::TIER_OPTIONAL)
+            ->reason('COM_ALFA_SETUP_CHECK_CATALOGUE_ONLY')
+            ->cta('index.php?option=com_config&view=component&component=com_alfa')
+            ->priority(385)
+            ->probe(static fn (): string => ShopMode::sellsOnline() ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN);
 
         $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)

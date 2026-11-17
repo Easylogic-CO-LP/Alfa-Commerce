@@ -24,6 +24,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use Throwable;
@@ -109,6 +110,25 @@ final class SetupHelper
     private const TTL_MINUTES = 360;
 
     /**
+     * The shape of the evaluated status ({@see self::evaluate()}). A cached status of another version is computed
+     * again ({@see self::status()}): its rows mean something else.
+     *
+     * @var int
+     * @since  2.2.2
+     */
+    public const STATUS_VERSION = 3;
+
+    /**
+     * The `#__alfa_meta` row that holds the steps the merchant ignored: a JSON list of their identities
+     * (`group/element:check id`, the key of {@see self::collect()}). Per site, beside the shop's data and outside its
+     * Options, so a reset of the Options keeps it.
+     *
+     * @var string
+     * @since  2.2.2
+     */
+    public const IGNORED_META = 'setup.ignored';
+
+    /**
      * The evaluated setup status, served from cache within the TTL.
      *
      * @param bool $fresh True to force a recompute (the checklist UI wants truth,
@@ -135,7 +155,8 @@ final class SetupHelper
 
             $status = (array) $cache->get([self::class, 'evaluate'], [], 'status');
 
-            if (($status['basis'] ?? null) !== CoreSetupProvider::pageCacheReading()) {
+            // Computed again under another page cache reading, or when the cached status has another shape.
+            if (($status['basis'] ?? null) !== CoreSetupProvider::pageCacheReading() || ($status['version'] ?? null) !== self::STATUS_VERSION) {
                 self::invalidate();
                 $status = (array) $cache->get([self::class, 'evaluate'], [], 'status');
             }
@@ -157,10 +178,12 @@ final class SetupHelper
      *   generated string  - SQL datetime of this evaluation
      *   basis     array   - the page cache check's reading this evaluation used
      *   checks    array[] - {id, tier, label, reason, cta, tour, priority, state,
-     *                        provisionable, owner_group, owner_name}, priority DESC
+     *                        provisionable, owner_group, owner_name, ignorable, ignored},
+     *                        priority DESC
      *   counts    array   - total/done/required/required_missing/recommended_missing/
-     *                        optional_missing
-     *   signature string  - md5 over id:state pairs (transition detection)
+     *                        optional_missing/ignored; an ignored step is counted in
+     *                        `ignored` only
+     *   signature string  - md5 over id:state:ignored triples (transition detection)
      *
      * Rows carry language KEYS, not translated strings; the cache is shared across
      * admin languages; renderers translate.
@@ -178,18 +201,28 @@ final class SetupHelper
             'required_missing' => 0,
             'recommended_missing' => 0,
             'optional_missing' => 0,
+            'ignored' => 0,
         ];
 
-        foreach (self::collect() as $check) {
+        // The steps the merchant ignored. The tier decides whether an ignore applies, each time: a step whose tier
+        // becomes required is counted as required while it is, its ignore kept for when it is not.
+        $ignoredSet = array_flip(self::ignored());
+
+        foreach (self::collect() as $identity => $check) {
             $state = $check->run();
+            $ignored = isset($ignoredSet[$identity]) && $check->ignorable();
 
-            $counts['total']++;
-            $counts['required'] += $check->tier === SetupCheck::TIER_REQUIRED ? 1 : 0;
-
-            if ($state === SetupCheck::STATE_PASS) {
-                $counts['done']++;
+            if ($ignored) {
+                $counts['ignored']++;
             } else {
-                $counts[$check->tier . '_missing']++;
+                $counts['total']++;
+                $counts['required'] += $check->tier === SetupCheck::TIER_REQUIRED ? 1 : 0;
+
+                if ($state === SetupCheck::STATE_PASS) {
+                    $counts['done']++;
+                } else {
+                    $counts[$check->tier . '_missing']++;
+                }
             }
 
             $reasonArgs = $state === SetupCheck::STATE_PASS ? [] : $check->reasonArgumentsNow();
@@ -200,6 +233,7 @@ final class SetupHelper
                 'label' => $check->label,
                 'reason' => $state === SetupCheck::STATE_PASS ? $check->reason : $check->reasonFor(arguments: $reasonArgs),
                 'reason_args' => $reasonArgs,
+                'note' => $check->noteNow(),
                 'cta' => $check->cta,
                 'tour' => $check->tour,
                 'priority' => $check->priority,
@@ -209,15 +243,17 @@ final class SetupHelper
                 'choices' => $check->canProvision() ? $check->choices() : [],
                 'owner_group' => (string) ($check->metadata['owner_group'] ?? ''),
                 'owner_name' => (string) ($check->metadata['owner_name'] ?? ''),
+                'ignorable' => $check->ignorable(),
+                'ignored' => $ignored,
             ];
         }
 
         usort($rows, static fn (array $a, array $b): int => $b['priority'] <=> $a['priority']);
 
-        $pairs = array_map(static fn (array $row): string => $row['id'] . ':' . $row['state'], $rows);
+        $pairs = array_map(static fn (array $row): string => $row['id'] . ':' . $row['state'] . ':' . (int) $row['ignored'], $rows);
 
         $status = [
-            'version' => 2,
+            'version' => self::STATUS_VERSION,
             'generated' => Factory::getDate()->toSql(),
             // What the page cache check read: a later read under another one computes again (status()).
             'basis' => CoreSetupProvider::pageCacheReading(),
@@ -440,6 +476,160 @@ final class SetupHelper
         }
 
         return ['ok' => false, 'error' => 'No provisionable check: ' . $checkId];
+    }
+
+    /**
+     * The identities of the steps the merchant ignored (`group/element:check id`), as stored.
+     *
+     * @return list<string>
+     *
+     * @since  2.2.2
+     */
+    public static function ignored(): array
+    {
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $name = self::IGNORED_META;
+            $query = $db->getQuery(true)
+                ->select($db->quoteName('value'))
+                ->from($db->quoteName('#__alfa_meta'))
+                ->where($db->quoteName('name') . ' = :name')
+                ->bind(':name', $name, ParameterType::STRING);
+            $stored = json_decode((string) $db->setQuery($query)->loadResult(), true);
+        } catch (Throwable) {
+            return [];
+        }
+
+        return \is_array($stored) ? array_values(array_unique(array_filter($stored, static fn ($value): bool => \is_string($value) && $value !== ''))) : [];
+    }
+
+    /**
+     * Ignore one step of the checklist: a recommended or optional step that is not done. A required step is never
+     * ignored, and a done step has nothing to ignore.
+     *
+     * @param string $owner The step's owner, `group.element` (`core.com_alfa` for core's steps).
+     * @param string $checkId The step's id, e.g. `mail.configured`.
+     *
+     * @return array{ok: bool, error: string} The error is a language key.
+     *
+     * @since  2.2.2
+     */
+    public static function ignore(string $owner, string $checkId): array
+    {
+        $identity = self::identity(owner: $owner, checkId: $checkId);
+        $check = $identity === '' ? null : (self::collect()[$identity] ?? null);
+
+        if ($check === null) {
+            return ['ok' => false, 'error' => 'COM_ALFA_SETUP_IGNORE_UNKNOWN'];
+        }
+
+        if (!$check->ignorable()) {
+            return ['ok' => false, 'error' => 'COM_ALFA_SETUP_IGNORE_REQUIRED'];
+        }
+
+        if ($check->run() === SetupCheck::STATE_PASS) {
+            return ['ok' => false, 'error' => 'COM_ALFA_SETUP_IGNORE_DONE'];
+        }
+
+        return self::changeIgnored(static fn (array $identities): array => array_merge($identities, [$identity]));
+    }
+
+    /**
+     * Show an ignored step again. Any stored identity is removed, whether its step is on the checklist or not: a step
+     * whose plugin has gone can still be taken off the list.
+     *
+     * @param string $owner The step's owner, `group.element`.
+     * @param string $checkId The step's id.
+     *
+     * @return array{ok: bool, error: string} The error is a language key.
+     *
+     * @since  2.2.2
+     */
+    public static function showAgain(string $owner, string $checkId): array
+    {
+        $identity = self::identity(owner: $owner, checkId: $checkId);
+
+        return self::changeIgnored(static fn (array $identities): array => array_values(array_diff($identities, [$identity])));
+    }
+
+    /**
+     * A step's identity from its owner as the card names it (`group.element`) and its id: the key of
+     * {@see self::collect()}. '' when the owner names no group and element.
+     *
+     * @param string $owner `group.element`.
+     * @param string $checkId The step's id.
+     *
+     *
+     * @since  2.2.2
+     */
+    private static function identity(string $owner, string $checkId): string
+    {
+        $parts = explode('.', $owner, 2);
+
+        return \count($parts) === 2 && $parts[0] !== '' && $parts[1] !== '' && $checkId !== ''
+            ? $parts[0] . '/' . $parts[1] . ':' . $checkId
+            : '';
+    }
+
+    /**
+     * Change the ignored list in one transaction: the row is read locked (SELECT ... FOR UPDATE), so two
+     * administrators who press at once change it one after the other and neither loses the other's choice, then
+     * written again (removed when the list is empty). A read that fails refuses the change and writes nothing, so it
+     * never replaces the list; a stored value that is not a list is read as an empty one and written as a list.
+     *
+     * @param callable $change fn(list<string> $identities): list<string>, the list as it is to be.
+     *
+     * @return array{ok: bool, error: string} The error is a language key.
+     *
+     * @since  2.2.2
+     */
+    private static function changeIgnored(callable $change): array
+    {
+        /** @var DatabaseDriver $db */
+        $db = Factory::getContainer()->get(DatabaseDriver::class);
+        $where = $db->quoteName('name') . ' = ' . $db->quote(self::IGNORED_META);
+
+        $db->transactionStart(true);
+
+        try {
+            $read = $db->getQuery(true)
+                ->select($db->quoteName('value'))
+                ->from($db->quoteName('#__alfa_meta'))
+                ->where($where);
+            $stored = $db->setQuery((string) $read . ' FOR UPDATE')->loadResult();
+            $identities = $stored === null ? [] : json_decode((string) $stored, true);
+
+            // A stored value that is not a list is read as no step ignored, as the evaluation reads it, and the
+            // change writes a list again: only a read that fails refuses.
+            if (!\is_array($identities)) {
+                Log::add('SetupHelper: the stored list of ignored setup steps was not a list; it is read as empty.', Log::WARNING, 'com_alfa.setup');
+                $identities = [];
+            }
+
+            $identities = array_values(array_unique(array_filter(
+                $change(array_values(array_filter($identities, static fn ($value): bool => \is_string($value) && $value !== ''))),
+                static fn ($value): bool => \is_string($value) && $value !== '',
+            )));
+
+            $db->setQuery($db->getQuery(true)->delete($db->quoteName('#__alfa_meta'))->where($where))->execute();
+
+            if ($identities !== []) {
+                // A variable, not an inline expression: insertObject() takes the row by reference.
+                $row = (object) ['name' => self::IGNORED_META, 'value' => json_encode($identities, JSON_UNESCAPED_SLASHES)];
+                $db->insertObject('#__alfa_meta', $row);
+            }
+
+            TransactionState::commitLevel(db: $db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+            Log::add('SetupHelper: the ignored setup steps were not changed (' . $e::class . ').', Log::WARNING, 'com_alfa.setup');
+
+            return ['ok' => false, 'error' => 'COM_ALFA_SETUP_IGNORE_NOT_SAVED'];
+        }
+
+        self::invalidate();
+
+        return ['ok' => true, 'error' => ''];
     }
 
     /**

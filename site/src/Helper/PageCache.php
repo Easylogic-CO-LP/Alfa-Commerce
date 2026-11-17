@@ -13,6 +13,9 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Closure;
+use Joomla\CMS\Cache\CacheControllerFactoryInterface;
+use Joomla\CMS\Factory;
+use Throwable;
 
 /**
  * How a storefront view says "do not store me" to Joomla's System - Page Cache.
@@ -56,5 +59,24 @@ final class PageCache
 
         $plugins->forget('onPageCacheIsExcluded', $answer);
         $plugins->listen('onPageCacheIsExcluded', $answer);
+    }
+
+    /**
+     * Drop every page Joomla's page cache stored for the site (its `page` group), so the next visitor of each page is
+     * served it as the shop is now (2.2.2: online sales switched on or off; a stored guest page would keep its prices
+     * and its buy buttons, or keep showing none). Joomla's own Options save cleans only the cache of the client it runs
+     * in, and the page cache is the site's. A cache that cannot be cleaned is said in the log and expires on its own.
+     *
+     * @since  2.2.2
+     */
+    public static function forget(): void
+    {
+        try {
+            Factory::getContainer()->get(CacheControllerFactoryInterface::class)
+                ->createCacheController('callback', ['defaultgroup' => 'page', 'cachebase' => JPATH_SITE . '/cache'])
+                ->clean();
+        } catch (Throwable $e) {
+            \Joomla\CMS\Log\Log::add('The stored pages of Joomla\'s page cache could not be dropped: ' . $e->getMessage(), \Joomla\CMS\Log\Log::WARNING, 'com_alfa');
+        }
     }
 }
