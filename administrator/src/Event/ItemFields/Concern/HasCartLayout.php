@@ -33,11 +33,12 @@ defined('_JEXEC') or die;
  * buyer must answer. A MAIN a plugin sets here is never replaced by the core.
  *
  * What a field plugin may and may not do (2.2.2):
- * - It changes the cart region only through these setters, in its own
+ * - It changes the cart region only by calling these setters, in its own
  *   onItemListPrepare or onItemView. The values live in this event's private
- *   properties and the setters are the one way in: setArgument('cartLayout', ...)
- *   reaches the same setter (Joomla's set<Name> preprocessor), and the argument
- *   it stores is never read.
+ *   properties and the setters are the one way in. setArgument() and $event[...]
+ *   are not a way in: Joomla 6 routes setArgument('cartLayout', ...) to a setter
+ *   only through a deprecated path, and Joomla 7 drops it, so the value would be
+ *   lost.
  * - It does not write the item's cart: $item->cart and $item->cartChildren are
  *   core's record, kept by the model and handed to the item again after each
  *   field, so a write to them from these events is not kept.
