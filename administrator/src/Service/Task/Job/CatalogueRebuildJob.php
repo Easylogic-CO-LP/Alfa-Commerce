@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
@@ -46,7 +47,7 @@ final class CatalogueRebuildJob implements JobHandler
      *
      * @since  2.2.0
      */
-    public const NAME = 'catalogue.rebuild';
+    public const NAME = DueRead::CATALOGUE_REBUILD;
 
     /**
      * Owe a pass over the marked items: the job, or the one already waiting or running.

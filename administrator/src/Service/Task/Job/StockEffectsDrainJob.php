@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
+use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
@@ -36,7 +37,7 @@ final class StockEffectsDrainJob implements JobHandler
      *
      * @since  2.2.0
      */
-    public const NAME = 'stock.effects.drain';
+    public const NAME = DueRead::STOCK_EFFECTS_DRAIN;
 
     /**
      * Owe a drain: the job, or the one already waiting or running.
