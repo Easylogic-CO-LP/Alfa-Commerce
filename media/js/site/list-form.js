@@ -27,14 +27,17 @@
  * anything ever round-trips this subtree through its own innerHTML, where an attribute would
  * come back set on a node whose listeners did not.
  *
- * THE RESULTS ARE BROUGHT TO THE SHOPPER (2.2.0, design 2.20). revealResults() scrolls the results region
- * (`[data-results]`, the pagination and the list) into view when its top is outside the viewport, the sticky offset
- * (its scroll-margin-top, --alfa-scroll-offset) counted, instantly under prefers-reduced-motion and smoothly otherwise,
- * then gives it the focus without scrolling again, so keyboard and screen-reader users land on the results. It runs once
- * for each new result set: after the filters module's swap (`alfa:results:updated`), and on a page the server marked
- * (`data-results-reveal`: a later page reached by its link, a submitted filter), once its layout is final (the window's
- * load). Never on `joomla:updated` alone or on a
- * card's reload: a re-read of the same results moves nothing.
+ * THE RESULTS ARE BROUGHT TO THE SHOPPER (2.2.0, design 2.20; 2.2.2). revealResults() scrolls the results region
+ * (`[data-results]`, the pagination and the list) so that its top sits right under the page's sticky header, every
+ * time a new result set comes in, wherever the region was, instantly under prefers-reduced-motion and smoothly
+ * otherwise; then it gives the region the focus without scrolling again, so keyboard and screen-reader users land on the
+ * results and hear the region's name, the pagination's count. The header's height is the template's
+ * --alfa-scroll-offset when the template sets it; when it does not, it is measured (headerOffset()) before the scroll and
+ * again where the scroll ends, and the place corrected once. It runs once for each new result set: after the filters
+ * module's swap (`alfa:results:updated`), and on a page the server marked (`data-results-reveal`: a later page reached
+ * by its link, a submitted filter), once its layout is final (the window's load), unless the shopper came back to that
+ * page by a reload or the back button. Never on `joomla:updated` alone or on a card's reload: a variant or a quantity
+ * changed in a card is the same results, and moves nothing.
  */
 
 (function () {
@@ -133,7 +136,91 @@
     }
 
     /**
-     * Bring the results region into view and focus it.
+     * The height the page's sticky header covers at the viewport's top: the template's --alfa-scroll-offset (the
+     * region's scroll-margin-top) when the template sets it; otherwise measured now, from the boxes of the page's
+     * elements outside the region: those whose position is sticky or fixed, that reach into the viewport's top 8 px,
+     * that are no taller than half the viewport (a cookie wall's backdrop or an open off-canvas menu is a layer, not a
+     * header) and that are on screen (visible, and not moved wholly out of the viewport sideways, as a closed side
+     * menu often is): the lowest bottom among them. The boxes, not a hit test at the top edge: right after a smooth scroll a
+     * hit test there can find nothing but the page itself.
+     *
+     * @param {Element} region The results region.
+     *
+     * @return {number} Pixels from the viewport's top.
+     */
+    function headerOffset(region) {
+        var style = window.getComputedStyle(region);
+
+        if (style.getPropertyValue('--alfa-scroll-offset').trim() !== '') {
+            return parseFloat(style.scrollMarginTop) || 0;
+        }
+
+        var band = 8;
+        var half = window.innerHeight / 2;
+        var bottom = 0;
+        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, {
+            acceptNode: function (node) {
+                return node === region ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+            },
+        });
+
+        for (var node = walker.nextNode(); node; node = walker.nextNode()) {
+            if (node.contains(region)) {
+                continue;
+            }
+
+            var box = node.getBoundingClientRect();
+
+            if (box.top > band || box.bottom <= bottom || box.height > half || box.width === 0) {
+                continue;
+            }
+
+            var computed = window.getComputedStyle(node);
+
+            if ((computed.position === 'sticky' || computed.position === 'fixed')
+                && computed.visibility !== 'hidden' && computed.visibility !== 'collapse'
+                && box.right > 0 && box.left < window.innerWidth) {
+                bottom = box.bottom;
+            }
+        }
+
+        return bottom;
+    }
+
+    /**
+     * Call back once the page's scroll has come to rest: at the scroll's end, or soon after when no scroll happens
+     * (already in place) or the browser has no scrollend event; whichever comes first, once, the other then dropped.
+     * Not at all when the shopper takes over meanwhile (a wheel, a touch or a key): the place is theirs from then on.
+     *
+     * @param {Function} done What to run.
+     */
+    function whenScrollEnds(done) {
+        var timer = 0;
+        var takeovers = ['wheel', 'touchstart', 'keydown'];
+        var stop = function () {
+            window.clearTimeout(timer);
+            window.removeEventListener('scrollend', finish);
+            takeovers.forEach(function (name) {
+                window.removeEventListener(name, stop, true);
+            });
+        };
+        var finish = function () {
+            stop();
+            done();
+        };
+
+        window.addEventListener('scrollend', finish);
+        takeovers.forEach(function (name) {
+            window.addEventListener(name, stop, { capture: true, passive: true });
+        });
+        timer = window.setTimeout(finish, 900);
+    }
+
+    /**
+     * Bring the results region's top under the page's sticky header and focus it; its name (the pagination's count)
+     * is what the focus announces. Where the scroll ends the header is measured again and the place corrected once: a
+     * header that becomes sticky or fixed only once the page has scrolled (a bar under a static top bar, a header a
+     * template's script fixes past a threshold) covers the region's top only then.
      *
      * @param {Element|null} region The results region.
      */
@@ -142,17 +229,31 @@
             return;
         }
 
-        var offset = parseFloat(window.getComputedStyle(region).scrollMarginTop) || 0;
-        var top = region.getBoundingClientRect().top;
+        var behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
 
-        if (top < offset || top >= window.innerHeight) {
-            region.scrollIntoView({
-                block: 'start',
-                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
-            });
-        }
-
+        window.scrollTo({ top: window.scrollY + region.getBoundingClientRect().top - headerOffset(region), behavior: behavior });
         region.focus({ preventScroll: true });
+
+        whenScrollEnds(function () {
+            var gap = region.getBoundingClientRect().top - headerOffset(region);
+
+            if (Math.abs(gap) > 1) {
+                window.scrollTo({ top: window.scrollY + gap, behavior: 'instant' });
+            }
+        });
+    }
+
+    /**
+     * Whether the page was loaded again by a reload or a back or forward move: the shopper's own scroll is restored
+     * then, and is kept.
+     *
+     * @return {boolean}
+     */
+    function returnedToPage() {
+        var entries = window.performance && window.performance.getEntriesByType ? window.performance.getEntriesByType('navigation') : [];
+        var type = entries.length > 0 ? entries[0].type : '';
+
+        return type === 'reload' || type === 'back_forward';
     }
 
     // Back/forward cache restores the DOM as submitted, with the stripped fields still
@@ -186,12 +287,15 @@
     }
 
     // A page the server marked is revealed once its layout is final: an image above the region (a subcategory tile)
-    // that arrives after the scroll began would leave the region short of the top.
-    if (document.readyState === 'complete') {
-        revealResults(document.querySelector(MARKED_SELECTOR));
-    } else {
-        window.addEventListener('load', function () {
+    // that arrives after the scroll began would leave the region short of the top. Not when the shopper came back to
+    // the page by a reload or the back button (2.2.2): the scroll the browser restores is theirs.
+    if (!returnedToPage()) {
+        if (document.readyState === 'complete') {
             revealResults(document.querySelector(MARKED_SELECTOR));
-        }, { once: true });
+        } else {
+            window.addEventListener('load', function () {
+                revealResults(document.querySelector(MARKED_SELECTOR));
+            }, { once: true });
+        }
     }
 })();
