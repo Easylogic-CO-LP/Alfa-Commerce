@@ -555,7 +555,8 @@ final class AutoIssuePolicy
             // money in the ORDER'S currency: 0.01 was one unit at two decimals
             // and a million at eight. Resolve the currency the way OrderFacts
             // does and let Money answer: here and in the figure the merchant
-            // is shown.
+            // is shown, in the currency's own format with its sign, as the
+            // other notifications state money.
             $currency = OrderItemLines::orderCurrency(orderId: $orderId);
             $strandedMoney = Money::of($stranded, $currency);
 
@@ -566,7 +567,7 @@ final class AutoIssuePolicy
                     title:   NotificationText::of(
                         'COM_ALFA_NOTIFY_AUTOISSUE_CHARGES_TITLE',
                         $orderId,
-                        number_format($strandedMoney->getAmount(), $currency->getDecimalPlaces()),
+                        $strandedMoney->format(),
                     ),
                 );
             }
@@ -625,6 +626,74 @@ final class AutoIssuePolicy
 
         // The shop's own policy issues it, whoever triggered the status change: no staff permission is asked.
         DocumentIssuer::issue(draft: $draft, actor: new SystemActor(policy: 'automatic issue on a status change'));
+
+        if (DocumentHelper::poolOf($docType) === DocumentHelper::POOL_SALES) {
+            try {
+                self::reportUnclaimable(orderId: $orderId);
+            } catch (Throwable $noticeError) {
+                // The document is issued: the notice is advisory, so its failure is a line of the documents log,
+                // never "could not be issued" nor a retry of an issue that stands. A failure that ended a caller's
+                // transaction reaches the caller: the document went with it.
+                if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $noticeError)) {
+                    throw $noticeError;
+                }
+
+                Log::add(
+                    entry:    "AutoIssuePolicy: order {$orderId}: {$docType} was issued, but the notice of discount no invoice can claim could not be raised: "
+                              . $noticeError->getMessage(),
+                    priority: Log::WARNING,
+                    category: 'com_alfa.documents',
+                );
+            }
+        }
+    }
+
+    /**
+     * Say when the order holds discount no invoice can claim any more.
+     *
+     * A discount follows the goods, so a balance larger than the goods still
+     * to invoice stays unclaimed (an invoice issued before 2.2.1 without its
+     * share leaves one, OrderChargeLines::unclaimableDiscounts()). An
+     * automatic issue then issues the order's invoices without it, and they
+     * total more than the order: the documents log and the order's
+     * notification name the amount, as the order's document screen does,
+     * in the currency's own format with its sign, as the other
+     * notifications state money. Advisory: the caller logs its failure and
+     * the document issued stands.
+     *
+     * @param int $orderId The order whose sales document was just issued.
+     *
+     * @since  2.2.1
+     */
+    private static function reportUnclaimable(int $orderId): void
+    {
+        $unclaimable = OrderChargeLines::unclaimableDiscounts(orderId: $orderId);
+
+        if ($unclaimable === []) {
+            return;
+        }
+
+        $currency = OrderItemLines::orderCurrency(orderId: $orderId);
+        $total = Money::zero($currency);
+
+        foreach ($unclaimable as $amount) {
+            $total = $total->add($amount);
+        }
+
+        $figure = $total->format();
+
+        Log::add(
+            entry:    "AutoIssuePolicy: order {$orderId}: {$figure} of its discounts can no longer be claimed by an invoice; its invoices total that much more than the order.",
+            priority: Log::WARNING,
+            category: 'com_alfa.documents',
+        );
+
+        self::notify(
+            orderId: $orderId,
+            key:     self::KEY_PREFIX . $orderId . '.unclaimable',
+            title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_UNCLAIMABLE_TITLE', $orderId, $figure),
+            message: NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_UNCLAIMABLE_MSG'),
+        );
     }
 
     /**
@@ -683,6 +752,11 @@ final class AutoIssuePolicy
         }
 
         try {
+            // A credit note that gives the unclaimable discount back answers its notice.
+            if (\in_array($docType, DocumentHelper::creditTypes(), true) && OrderChargeLines::unclaimableDiscounts(orderId: $orderId) === []) {
+                $answered[] = $prefix . 'unclaimable';
+            }
+
             if ($docType !== '' && DocumentHelper::requiresBuyerVat($docType)) {
                 $answered[] = $prefix . 'vat';
             }

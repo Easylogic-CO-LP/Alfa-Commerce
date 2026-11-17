@@ -278,9 +278,11 @@ class EmailService
     }
 
     /**
-     * The number an order is known by to its customer: its invoice number when it has one, else its id.
+     * The number an order is known by to its customer: its id.
      *
-     * The confirmation e-mail's {order_number} and the order-complete page both show it.
+     * The confirmation e-mail's {order_number}, the fallback subject of the status e-mails, the order-complete page and
+     * the order picker of the test e-mail all show it. Up to 2.2.0 an invoice number was preferred; nothing wrote one,
+     * and 2.2.1 drops the column.
      *
      * @param object $order The order row.
      *
@@ -290,9 +292,7 @@ class EmailService
      */
     public static function orderNumber(object $order): string
     {
-        $invoiceNo = (int) ($order->invoice_number ?? 0);
-
-        return $invoiceNo > 0 ? (string) $invoiceNo : (string) (int) ($order->id ?? 0);
+        return (string) (int) ($order->id ?? 0);
     }
 
     /**
@@ -629,7 +629,7 @@ class EmailService
         if ($subject === '') {
             $subject = Text::sprintf(
                 'COM_ALFA_ORDEREMAIL_SUBJECT_FALLBACK',
-                (int) ($order->id ?? 0),
+                self::orderNumber(order: $order),
                 (string) ($tokens['{status_customer}'] ?? ''),
             );
         }
@@ -716,7 +716,7 @@ class EmailService
      * exist yet.
      *
      * Matches the column shape EmailService reads, minimum
-     * viable: id, invoice_number, created, id_user, id_address_delivery,
+     * viable: id, created, id_user, id_address_delivery,
      * id_language. Token values resolve to placeholder strings. It names no
      * order, so it carries the currency a new order would take.
      *
@@ -728,7 +728,6 @@ class EmailService
         return (object) [
             'id' => 999,
             'currency' => OrderCurrency::forNewOrder(),
-            'invoice_number' => 0,
             'created' => Factory::getDate()->toSql(),
             'id_user' => 0,
             'id_address_delivery' => 0,
@@ -932,6 +931,7 @@ class EmailService
                     positions:   self::decodePositions(json: $status->email_positions_customer ?? ''),
                     tokens:      $tokens,
                     orderId:     $orderId,
+                    orderNumber: self::orderNumber(order: $order),
                     statusId:    $statusId,
                     layoutId:    (string) ($status->email_layout_customer ?? self::LAYOUT_ID),
                     context:     self::buildLayoutContext(order: $order, status: $status, recipient: 'customer', langTag: $langTag, withDownloadLinks: true),
@@ -963,13 +963,14 @@ class EmailService
                 }
 
                 $result = self::dispatch(
-                    recipient: $adminEmail,
-                    positions: $adminPositions,
-                    tokens:    $tokens,
-                    orderId:   $orderId,
-                    statusId:  $statusId,
-                    layoutId:  $adminLayout,
-                    context:   $adminContext,
+                    recipient:   $adminEmail,
+                    positions:   $adminPositions,
+                    tokens:      $tokens,
+                    orderId:     $orderId,
+                    orderNumber: self::orderNumber(order: $order),
+                    statusId:    $statusId,
+                    layoutId:    $adminLayout,
+                    context:     $adminContext,
                 );
 
                 if ($result !== null) {
@@ -1034,7 +1035,8 @@ class EmailService
      * @param array<string, string> $positions Decoded positions for this
      *                                         recipient (subject + body).
      * @param array<string, string> $tokens Map of {token} -> value.
-     * @param int $orderId Used for fallback subject.
+     * @param int $orderId Used for log context.
+     * @param string $orderNumber The order's number ({@see self::orderNumber()}), for the fallback subject.
      * @param int $statusId Used for log context.
      * @param string $layoutId Wrapper layout id for this
      *                         recipient's email.
@@ -1053,6 +1055,7 @@ class EmailService
         array $positions,
         array $tokens,
         int $orderId,
+        string $orderNumber,
         int $statusId,
         string $layoutId = self::LAYOUT_ID,
         array $context = [],
@@ -1087,7 +1090,7 @@ class EmailService
                 // but left subject blank.
                 $subject = Text::sprintf(
                     'COM_ALFA_ORDEREMAIL_SUBJECT_FALLBACK',
-                    $orderId,
+                    $orderNumber,
                     $tokens['{status_customer}'] ?? '',
                 );
             }

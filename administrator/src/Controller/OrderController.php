@@ -2362,23 +2362,24 @@ class OrderController extends FormController
     /**
      * The charge picks of a posted issue draft, kept for the group the draft claims.
      *
-     * A sales draft claims the order's remaining charges, a credit the
-     * corrected document's shipping and fees with the amounts the operator
-     * stated (discounts follow the goods on a credit, so none are kept). A
-     * credit that names no correctable document keeps no charge at all.
+     * A sales draft claims the order's remaining shipping and fees, a credit
+     * the corrected document's shipping and fees with the amounts the
+     * operator stated. Discounts are never kept: they follow the goods or the
+     * shipping they reduce. A credit that names no correctable document keeps
+     * no charge at all.
      *
      * @param int $orderId The order.
      * @param bool $isCredit Whether the draft is a credit.
      * @param int $correctsId The validated corrected document, or 0.
      *
-     * @return array{shipping: int[], fees: int[], rules: int[], amounts: array{shipping: array<int, string>, fees: array<int, string>}}
+     * @return array{shipping: int[], fees: int[], amounts: array{shipping: array<int, string>, fees: array<int, string>}}
      *
      * @since   2.0.0
      */
     private function postedIssueCharges(int $orderId, bool $isCredit, int $correctsId): array
     {
         $posted = (array) $this->input->post->get('charges', [], 'array');
-        $kept = ['shipping' => [], 'fees' => [], 'rules' => [], 'amounts' => ['shipping' => [], 'fees' => []]];
+        $kept = ['shipping' => [], 'fees' => [], 'amounts' => ['shipping' => [], 'fees' => []]];
 
         $offeredIds = static function ($ids, array $offered): array {
             $picked = [];
@@ -2395,7 +2396,7 @@ class OrderController extends FormController
         if (!$isCredit) {
             $open = OrderChargeLines::remaining(orderId: $orderId);
 
-            foreach (['shipping' => $open->shipping, 'fees' => $open->fees, 'rules' => $open->rules] as $kind => $entries) {
+            foreach (['shipping' => $open->shipping, 'fees' => $open->fees] as $kind => $entries) {
                 $kept[$kind] = $offeredIds($posted[$kind] ?? [], array_map(static fn (object $entry): int => (int) $entry->id, $entries));
             }
 

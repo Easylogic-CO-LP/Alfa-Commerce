@@ -2242,6 +2242,10 @@ class OrderModel extends AlfaAdminModel
             );
             $item->surfaces = new SurfaceMap($slots);
         }
+
+        // Handed once more after the last field (2.2.1): a plugin that changed the item's surfaces and then failed has
+        // its field skipped above, and its change must not outlive it.
+        $item->surfaces = new SurfaceMap($slots);
     }
 
     /**
@@ -4891,7 +4895,7 @@ class OrderModel extends AlfaAdminModel
             'id_address_delivery', 'id_address_invoice',
             'id_payment_method', 'id_shipment_method',
             'customer_note', 'note', 'secure_key',
-            'invoice_number', 'delivery_date',
+            'delivery_date',
         ];
 
         foreach ($orderFields as $field) {

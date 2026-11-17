@@ -38,11 +38,14 @@ use Joomla\CMS\Language\Text;
  * A refused issue's kept draft ticks and fills the
  * one group it claimed; with no draft the render is unchanged.
  *
- * Some rows deliberately carry no checkbox. A discount that rides shipping
- * follows the shipping it reduces; on a credit, every discount follows the
- * goods. Made independently pickable, such a benefit could be left behind on
- * the draft that claimed what it reduces: permanently unclaimable, and the
- * documents would over-bill.
+ * Discount rows carry no checkbox. A discount that rides shipping follows
+ * the shipping it reduces; an order or product discount follows the goods,
+ * each sales document taking it in proportion to the value of the goods it
+ * invoices; on a credit, every discount follows what is credited. Made
+ * independently pickable, such a benefit could be left behind on the draft
+ * that claimed what it reduces: permanently unclaimable, and the documents
+ * would over-bill. Where an invoice issued before 2.2.1 already left one
+ * behind, the row says how much of it no sales document can claim.
  *
  * @since  2.0.0
  */
@@ -128,6 +131,8 @@ class DocumentChargesField extends FormField
                 }
             }
 
+            $unclaimable = OrderChargeLines::unclaimableDiscounts(orderId: $orderId);
+
             foreach ($orderCharges->rules as $charge) {
                 $html[] = $this->chargeRow(
                     kind:     'rules',
@@ -135,13 +140,21 @@ class DocumentChargesField extends FormField
                     label:    (string) $charge->label,
                     note:     Text::_($charge->discount_class === 'shipping'
                         ? 'COM_ALFA_DOCUMENTS_MODAL_CHARGE_WITH_SHIPPING'
-                        : 'COM_ALFA_DOCUMENTS_MODAL_CHARGE_DISCOUNT'),
+                        : 'COM_ALFA_DOCUMENTS_MODAL_CHARGE_WITH_GOODS'),
                     amount:   (float) $charge->remaining_incl,
                     sign:     '−',
                     open:     !Money::of(abs((float) $charge->remaining_incl), $orderCurrency)->isZero(),
-                    pickable: $charge->discount_class !== 'shipping',
-                    kept:     $keptGroup === 0 ? $kept : null,
+                    pickable: false,
                 );
+
+                if (isset($unclaimable[(int) $charge->id])) {
+                    $html[] = '<tr><td class="w-1"></td><td colspan="2" class="small text-danger">'
+                        . htmlspecialchars(Text::sprintf(
+                            'COM_ALFA_DOCUMENTS_MODAL_CHARGE_UNCLAIMABLE',
+                            number_format($unclaimable[(int) $charge->id]->getAmount(), $orderCurrency->getDecimalPlaces(), ',', '.'),
+                        ), ENT_QUOTES, 'UTF-8')
+                        . '</td></tr>';
+                }
             }
 
             $html[] = '</tbody></table></div>';
