@@ -952,6 +952,17 @@ class PaymentLedger
     public const EVENT_REFUND_UNBOOKED_REPORTED = 'payment.refund_unbooked_reported';
 
     /**
+     * @var string The order activity event of one attempt of a reserved refund that its provider reported failed
+     *             while the request it was made for stands ({@see self::failRefundAttempt()}): written on the
+     *             reservation (entity_id) with the failed provider refund (provider_refund_id), the request key the
+     *             reservation carries for the retry (request_key) and the reason. The reservation is kept; nothing is
+     *             booked or released.
+     *
+     * @since  2.2.1
+     */
+    public const EVENT_REFUND_ATTEMPT_FAILED = 'payment.refund_attempt_failed';
+
+    /**
      * @var string Where the outcome of each provider refund report is kept.
      *
      * @since  2.1.0
@@ -6471,6 +6482,223 @@ class PaymentLedger
             'key' => $isKey ? substr($reference, \strlen(self::REPORT_REQUEST_PREFIX)) : null,
             'providerRefundId' => self::providerIdOf(row: $row),
         ];
+    }
+
+    /**
+     * One attempt of a reserved refund failed at the provider, and the request it was made for stands: the
+     * reservation is kept for the retry (since 2.2.1).
+     *
+     * For the provider's definite failure of the refund it holds under $providerRefundId, when the gateway will try
+     * again for the same request: never for an unknown outcome (nothing is sent then), and never when the request is
+     * given up (releaseRefund() then). In one transaction under the order's lock (the frame of every provider word),
+     * from the first read to the commit, the reservation keeps its row, its status (pending or authorized), its amount,
+     * its refund type, its payment, its document and its reason; its reference becomes REPORT_REQUEST_PREFIX and a new
+     * key (a version 4 UUID, never reused: the idempotency key of the retry); its note is prefixed with the failed
+     * attempt; its gateway_response is replaced when 'gateway_response' is given. The order's timeline gets two entries
+     * on it, as the ledger's other words write theirs: the row's edit record (payment.edited, the reference and the
+     * note changed) and one entry EVENT_REFUND_ATTEMPT_FAILED naming the failed provider refund. No other payment row
+     * is written, and no row carries the failed provider refund id afterwards.
+     *
+     * The figures do not move: what the order and the payment may still refund (refundableNow(),
+     * refundableRemainder(), refundFormMaximum()), bookedRefundable() and the order's balance read the same before
+     * and after, because the reservation still reserves its amount, once, and the failed attempt counts nowhere. Then
+     * the retry is sent with the answer's key and exactly its amount, and its outcome reported on the same reservation
+     * (holdRefund(), settleRefund(), releaseRefund()).
+     *
+     * Idempotent: the same failure again (the reservation no longer carries the provider refund, and its activity
+     * names it failed) answers OUTCOME_DUPLICATE and writes nothing; once the provider names the retry, the key is ''.
+     * A reservation that keeps a word for staff is never changed here: the failure is added to its report, as
+     * releaseRefund() adds one (OUTCOME_UNRECONCILED). Sent outside any transaction of the caller's, as every provider
+     * word is (inside one: OUTCOME_FAILED, nothing written).
+     *
+     * Answers: OUTCOME_RESERVED (the reservation carries the retry); OUTCOME_DUPLICATE; OUTCOME_UNRECONCILED; or, with
+     * nothing written, OUTCOME_REFUSED (not a refund row of a payment; another plugin's payment; settled, failed or
+     * cancelled; it carries another provider refund; it carries its request's key while another refund row of the
+     * payment carries the provider refund; the provider refund id empty, not valid UTF-8, or one of the core's own
+     * references), OUTCOME_FAILED or OUTCOME_RACED.
+     *
+     * @param int $reservationId The reservation: a refund row of a payment, pending or authorized.
+     * @param string $providerRefundId The provider's id of the refund that failed, exactly as given.
+     * @param string $reason Why, plain text (kept in the note, the first 255 characters of the note).
+     * @param array $options 'gateway_response' (string); 'plugin' (string: the calling payment plugin's element;
+     *                       PaymentsPlugin passes it).
+     *
+     * @return array{outcome: string, reservation: int, key: string, amount: ?Money, reason: string}
+     *
+     * @since  2.2.1
+     */
+    public static function failRefundAttempt(int $reservationId, string $providerRefundId, string $reason, array $options = []): array
+    {
+        // One transaction under the order's lock, from the first read to the commit, as every provider word.
+        $framed = self::inWord(rowId: $reservationId, word: static fn (): array => self::failRefundAttempt(reservationId: $reservationId, providerRefundId: $providerRefundId, reason: $reason, options: $options));
+
+        if ($framed !== null) {
+            // The frame's own answers (a caller's transaction, the order not locked, the row moved) carry its shape.
+            return isset($framed['reservation'])
+                ? $framed
+                : self::attemptAnswer(outcome: (string) $framed['outcome'], reservation: 0, reason: (string) ($framed['reason'] ?? ''));
+        }
+
+        $row = $reservationId > 0 ? self::getRaw(id: $reservationId) : null;
+
+        if ($row === null || (string) $row->payment_type !== self::TYPE_REFUND || (int) ($row->id_refunded_payment ?? 0) <= 0) {
+            return self::attemptAnswer(outcome: self::OUTCOME_REFUSED, reservation: 0, reason: sprintf('row #%d is not a refund of a payment', $reservationId));
+        }
+
+        $orderId = (int) $row->id_order;
+        $rowId = (int) $row->id;
+
+        if ($providerRefundId === '' || !mb_check_encoding($providerRefundId, 'UTF-8')
+            || str_starts_with($providerRefundId, self::REPORT_REQUEST_PREFIX) || str_starts_with($providerRefundId, self::REFUND_BEYOND_PREFIX)
+            || str_starts_with($providerRefundId, self::REPORT_RESERVATION_PREFIX)) {
+            return self::attemptAnswer(outcome: self::OUTCOME_REFUSED, reservation: $rowId, reason: 'a provider refund id is a non-empty valid UTF-8 text, never one of the core\'s own references');
+        }
+
+        $payment = self::getRaw(id: (int) $row->id_refunded_payment);
+        $notTheirs = $payment === null ? sprintf('payment #%d does not exist', (int) $row->id_refunded_payment) : self::pluginRefusal(payment: $payment, options: $options);
+
+        if ($notTheirs !== null) {
+            return self::attemptAnswer(outcome: self::OUTCOME_REFUSED, reservation: $rowId, reason: sprintf('reservation #%d: %s', $rowId, $notTheirs));
+        }
+
+        $status = (string) $row->transaction_status;
+
+        if (!\in_array($status, self::REFUND_RESERVING_STATUSES, true)) {
+            return self::attemptAnswer(outcome: self::OUTCOME_REFUSED, reservation: $rowId, reason: \in_array($status, self::REFUND_SETTLED_STATUSES, true)
+                ? sprintf('reservation #%d is settled; a settled refund is corrected only to failed or cancelled, in the payment form', $rowId)
+                : sprintf('reservation #%d was released (%s): there is no reservation to keep', $rowId, $status));
+        }
+
+        // A reservation that keeps a word for staff is never changed by a provider's word: the failure joins its report.
+        if (self::keepsForStaff(row: $row)) {
+            $kept = self::keptWordAdded(row: $row, kind: self::STATUS_FAILED, figure: null, providerRefundId: $providerRefundId)
+                ?? self::keptAnswer(row: $row, what: sprintf('the provider\'s failure report about refund #%d', $rowId));
+
+            return self::attemptAnswer(outcome: (string) $kept['outcome'], reservation: $rowId, reason: (string) $kept['reason']);
+        }
+
+        $reference = (string) ($row->transaction_id ?? '');
+        $carried = self::providerIdOf(row: $row);
+        $currentKey = str_starts_with($reference, self::REPORT_REQUEST_PREFIX) ? (string) self::requestKeyOf(reference: $reference) : '';
+        $held = self::money($row->amount, $orderId)->abs();
+
+        if ($carried !== $providerRefundId) {
+            // The same failure again: the reservation carries the retry already.
+            if (self::attemptFailedOn(row: $row, providerRefundId: $providerRefundId)) {
+                return self::attemptAnswer(outcome: self::OUTCOME_DUPLICATE, reservation: $rowId, key: $currentKey, amount: $held, reason: sprintf('provider refund %s is already recorded failed on reservation #%d: nothing was written', $providerRefundId, $rowId));
+            }
+
+            if ($carried !== null) {
+                return self::attemptAnswer(outcome: self::OUTCOME_REFUSED, reservation: $rowId, reason: sprintf('reservation #%d holds provider refund %s, not %s: nothing was written', $rowId, $carried, $providerRefundId));
+            }
+
+            if ($currentKey === '') {
+                return self::attemptAnswer(outcome: self::OUTCOME_REFUSED, reservation: $rowId, reason: sprintf('row #%d carries neither provider refund %s nor a refund request: it is no reservation of a request', $rowId, $providerRefundId));
+            }
+
+            $owner = self::refundUnderReference((int) $row->id_refunded_payment, $providerRefundId);
+
+            if ($owner !== null) {
+                return self::attemptAnswer(outcome: self::OUTCOME_REFUSED, reservation: $rowId, reason: sprintf('provider refund %s is on refund row #%d of payment #%d, not on reservation #%d: name that row', $providerRefundId, (int) $owner->id, (int) $row->id_refunded_payment, $rowId));
+            }
+        }
+
+        $key = self::newRequestKey();
+        $why = trim($reason);
+        $stamp = 'Attempt ' . $providerRefundId . ' failed' . ($why !== '' ? ': ' . $why : '');
+        $existing = trim((string) ($row->note ?? ''));
+        $data = [
+            'id_order' => $orderId,
+            'transaction_id' => self::REPORT_REQUEST_PREFIX . $key,
+            'note' => mb_substr($existing !== '' ? $stamp . ' | ' . $existing : $stamp, 0, 255),
+        ];
+
+        if ((string) ($options['gateway_response'] ?? '') !== '') {
+            $data['gateway_response'] = (string) $options['gateway_response'];
+        }
+
+        // Compare and set: the row still in its status and still under the reference this decision read.
+        $verdict = self::updateIfStatus(
+            $rowId,
+            $data,
+            $status,
+            bookkeeping: true,
+            precondition: static fn (): bool => (string) (self::getRaw(id: $rowId)->transaction_id ?? '') === $reference,
+        );
+
+        if ($verdict !== self::WRITE_OK) {
+            return self::attemptAnswer(
+                outcome: $verdict === self::WRITE_RACED ? self::OUTCOME_RACED : self::OUTCOME_FAILED,
+                reservation: $rowId,
+                reason: sprintf('reservation #%d could not be written; nothing was written', $rowId),
+            );
+        }
+
+        // In the frame's transaction: a failure here reaches the frame, which rolls the whole word back.
+        OrderModel::logOrderActivityStrict(
+            orderId: $orderId,
+            event: self::EVENT_REFUND_ATTEMPT_FAILED,
+            summary: sprintf('Refund #%d: provider refund %s failed; the reservation of %s is kept for the retry, under refund request %s.', $rowId, $providerRefundId, $held->format(), $key),
+            context: [
+                'id_refund' => $rowId,
+                'id_payment' => (int) $row->id_refunded_payment,
+                'provider_refund_id' => $providerRefundId,
+                'request_key' => $key,
+                'reason' => mb_substr($why, 0, 255),
+            ],
+            entityId: $rowId,
+        );
+
+        return self::attemptAnswer(outcome: self::OUTCOME_RESERVED, reservation: $rowId, key: $key, amount: $held);
+    }
+
+    /**
+     * Whether a reservation's activity names this provider refund as one of its failed attempts
+     * ({@see self::EVENT_REFUND_ATTEMPT_FAILED}).
+     *
+     * @param object $row The reservation (id, id_order).
+     * @param string $providerRefundId The provider refund id, compared byte for byte.
+     *
+     * @since  2.2.1
+     */
+    private static function attemptFailedOn(object $row, string $providerRefundId): bool
+    {
+        $db = self::db();
+
+        foreach ($db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('context'))
+                ->from($db->quoteName('#__alfa_order_activity_log'))
+                ->where($db->quoteName('id_order') . ' = ' . (int) $row->id_order)
+                ->where($db->quoteName('entity_id') . ' = ' . (int) $row->id)
+                ->where($db->quoteName('event') . ' = ' . $db->quote(self::EVENT_REFUND_ATTEMPT_FAILED)),
+        )->loadColumn() ?: [] as $context) {
+            $facts = json_decode((string) $context, true);
+
+            if (\is_array($facts) && (string) ($facts['provider_refund_id'] ?? '') === $providerRefundId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The answer of {@see self::failRefundAttempt()}.
+     *
+     * @param string $outcome One of the OUTCOME_* constants.
+     * @param int $reservation The reservation, 0 when none was found.
+     * @param string $key The request key the reservation carries for the retry; '' when none.
+     * @param Money|null $amount What the reservation reserves; null when it was not read.
+     * @param string $reason Why, in plain words; '' when the reservation carries the retry.
+     *
+     * @return array{outcome: string, reservation: int, key: string, amount: ?Money, reason: string}
+     *
+     * @since  2.2.1
+     */
+    private static function attemptAnswer(string $outcome, int $reservation, string $key = '', ?Money $amount = null, string $reason = ''): array
+    {
+        return ['outcome' => $outcome, 'reservation' => $reservation, 'key' => $key, 'amount' => $amount, 'reason' => $reason];
     }
 
     /**
@@ -12402,7 +12630,9 @@ class PaymentLedger
 
     /**
      * {@see self::amountToCollect()} as the order's Money: what the builder
-     * hands the storage door, so its digits are written as they are.
+     * hands the storage door, so its digits are written as they are, and what
+     * a carrier reads through ShipmentsPlugin::amountToCollect() (public since
+     * 2.2.1; the float form above is unchanged).
      *
      * @param object $order Loaded order (ideally with ->total_paid_tax_incl Money).
      *
@@ -12410,7 +12640,7 @@ class PaymentLedger
      *
      * @since  2.0.0
      */
-    private static function amountToCollectMoney(object $order): Money
+    public static function amountToCollectMoney(object $order): Money
     {
         // A ROW AND A HYDRATED ORDER ARE NOT THE SAME NUMBER, which is the whole
         // point of the branch: at placement the shipment row does not exist yet,
