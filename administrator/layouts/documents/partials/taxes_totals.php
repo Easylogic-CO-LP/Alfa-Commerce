@@ -45,7 +45,7 @@ $taxes = $displayData['taxes'] ?? [];
 $separators = DocumentRenderer::separators(document: $document);
 $fmt = DocumentMoney::formatter($displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
 $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF-8');
-// A tax rate prints as stored (2.2.1): every digit its column holds, its padding zeros dropped. The blank line after
+// A tax rate prints as stored (2.2.2): every digit its column holds, its padding zeros dropped. The blank line after
 // the row's rate keeps the line break the rate printed before, so a row whose figure is unchanged prints as it did.
 ?>
 <table class="bottom-table">
