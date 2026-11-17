@@ -3758,8 +3758,11 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * Delete Joomla's cached PSR-4 namespace map so it is regenerated on the
-     * next request. Required after any library install/update/uninstall
-     * because Joomla core does not invalidate this cache automatically.
+     * next request. Joomla's own Extension - Namespace Updater plugin
+     * (plg_extension_namespacemap, protected and locked) rebuilds this map after
+     * every install, update and uninstall made through its installer; deleting
+     * it here after the bundled libraries are installed, updated or uninstalled
+     * is a second guard, should that plugin not have run.
      *
      * @return  void
      * @since  1.0.0
