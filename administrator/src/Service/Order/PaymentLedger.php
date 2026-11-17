@@ -11963,9 +11963,9 @@ class PaymentLedger
      * caller answered by its own false or WRITE_FAILED, and a plain sentence queued only for staff and for an API client
      * (on an administrator or an api request), never on a storefront request: a shopper is told by the payment plugin,
      * in its own words. The plain sentence is the one given, a reason the ledger already words for people; or else the
-     * general one, saying the record of the customer's order number was not saved and the reason is in the orders log
-     * (without a number when the write named no order). It never names a method or an internal id, and never carries a
-     * database driver's text: that goes to the log only.
+     * general one, which names the customer's order number and never a method or an internal id, saying the record was
+     * not saved and the reason is in the orders log (without a number when the write named no order). A database
+     * driver's text is never queued: it goes to the log only.
      *
      * @param string $detail The detail for the log.
      * @param int $orderId The order, 0 when none is known.
