@@ -352,6 +352,10 @@ class MediaHelper
      * delete in saveMedia). Call from an entity's delete() so removing a
      * manufacturer / item / category doesn't leave orphaned media rows + files.
      *
+     * The rows go in the caller's transaction, when one is open; once it has committed, the plugins hear
+     * onAlfaMediaBeforeDelete with the rows and then the files go (2.2.1: before, this path told no plugin and
+     * took the files at once, so a delete rolled back had lost them). With no transaction open, both follow at once.
+     *
      * @param int[] $itemIds Entity ids whose media should be removed.
      * @param string $origin Media origin ('item' | 'category' | 'manufacturer').
      *
@@ -371,19 +375,16 @@ class MediaHelper
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
-        // The single "Complete Media Deletion" setting (media_full_deletion) governs
-        // whether removing media also deletes the file from disk: both here (whole
-        // entity deleted) and in saveMedia (a single image removed). On by default.
-        if ((bool) ComponentHelper::getParams('com_alfa')->get('media_full_deletion', 1)) {
-            $rows = $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName(['id', 'path', 'thumbnail']))
-                    ->from($db->quoteName('#__alfa_media'))
-                    ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
-                    ->whereIn($db->quoteName('item_id'), $itemIds),
-            )->loadObjectList();
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'path', 'thumbnail']))
+                ->from($db->quoteName('#__alfa_media'))
+                ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
+                ->whereIn($db->quoteName('item_id'), $itemIds),
+        )->loadObjectList();
 
-            self::deleteFilesOfRows(rows: $rows);
+        if ($rows === []) {
+            return;
         }
 
         $db->setQuery(
@@ -394,6 +395,23 @@ class MediaHelper
         )->execute();
 
         self::$mediaRead = [];
+
+        // The single "Complete Media Deletion" setting (media_full_deletion) governs
+        // whether removing media also deletes the file from disk: both here (whole
+        // entity deleted) and in saveMedia (a single image removed). On by default.
+        $withFiles = (bool) ComponentHelper::getParams('com_alfa')->get('media_full_deletion', 1);
+
+        PostCommit::defer(
+            db: $db,
+            label: 'the removal of the ' . $origin . ' media of ' . \count($itemIds) . ' entities',
+            work: static function () use ($rows, $withFiles): void {
+                self::dispatchBeforeDelete(rows: $rows);
+
+                if ($withFiles) {
+                    self::deleteFilesOfRows(rows: $rows);
+                }
+            },
+        );
     }
 
     /**
@@ -887,9 +905,16 @@ class MediaHelper
             $isPicker = str_starts_with($media['source'], 'picker:');
             $isUrl = $media['type'] == 'url';
 
-            // Process thumbnail upfront for all non-blob sources.
-            // Blob thumbnails are handled later, after the main image is saved to disk.
-            if (!str_contains($media['thumbnail'], 'blob:')) {
+            // The tile's own thumbnail, for every non-blob source (a blob thumbnail is the dropped file's own, made below
+            // from the stored image). Made only once the image it belongs to stands (2.2.1): a new image after
+            // its own checks and its store, a URL after its scheme check, an existing row only when it is kept. Before,
+            // it was made first, so an image refused afterwards had already written a thumbnail no row names and had
+            // told onAlfaMediaThumbnail of it.
+            $tileThumbnail = static function () use (&$finalThumbnail, &$thumbnailOrigin, &$keepOrigin, $media, $isNew, $isPicker, $id, $stored, $urlDefaultThumbnail, $absolutePath, $params): void {
+                if (str_contains($media['thumbnail'], 'blob:')) {
+                    return;
+                }
+
                 $finalThumbnail = self::processThumbnail(
                     rawThumbnail:       $media['thumbnail'],
                     defaultThumbPath:   $urlDefaultThumbnail,
@@ -910,7 +935,7 @@ class MediaHelper
                         ? self::THUMBNAIL_FROM_IMAGE
                         : self::THUMBNAIL_CHOSEN;
                 }
-            }
+            };
 
             // New media
             if ($isNew) {
@@ -918,10 +943,14 @@ class MediaHelper
                 $nameForFile = '';
 
                 // FIND THE UNIQUE NAME FOR THE FILE
+                // The image's name as staff gave it, for a refusal (2.2.1).
+                $sourceName = '';
+
                 if ($isDrop) { // Dropped Media Handler
                     //dropped media and mediaData has the same ordering sequence
                     if (isset($droppedMedia[$dropIndex])) {
                         $file = $droppedMedia[$dropIndex];
+                        $sourceName = (string) $file['name'];
 
                         $noError = $file['error'] === 0;
 
@@ -953,6 +982,7 @@ class MediaHelper
                     $cleanPath = HTMLHelper::cleanImageURL($media['source']);
                     // The media field stores a URL: a file name with a space arrives as %20 (2.2.0).
                     $cleanPath = rawurldecode(str_replace('picker://', '', $cleanPath->url));
+                    $sourceName = basename($cleanPath);
 
                     // Containment: the resolved file must sit inside one of the
                     // media roots, not merely inside the web root: a picker path
@@ -1013,6 +1043,8 @@ class MediaHelper
                         continue;
                     }
 
+                    $tileThumbnail();
+
                     $insertObject = (object) [
                         'item_id' => $itemId,
                         'path' => $media['source'],
@@ -1071,12 +1103,25 @@ class MediaHelper
                             } catch (Throwable $e) {
                                 $storeOk = false;
                             }
+                        } elseif ($relativeDest === '' || !is_file(JPATH_ROOT . '/' . $relativeDest)) {
+                            // A plugin that claims the image and writes no file gets no row (2.2.1): the row
+                            // would name a file that is not there, a broken image on the storefront.
+                            Factory::getApplication()->enqueueMessage(
+                                Text::sprintf('COM_ALFA_MEDIA_ERROR_PROCESSED_NO_FILE', htmlspecialchars($sourceName, ENT_QUOTES, 'UTF-8')),
+                                'error',
+                            );
+                            $storeOk = false;
                         }
 
                         // CORE concern: the dominant colour is the image-load placeholder
                         // and must always be stored, plugin or not. Compute it from the
                         // FINAL file now that $dest is settled (optimised or copied as-is).
                         $color = $storeOk ? self::dominantColor($dest) : '';
+
+                        // The tile's own thumbnail, now that the image stands.
+                        if ($storeOk) {
+                            $tileThumbnail();
+                        }
 
                         // A new image with no thumbnail of its own gets one from its stored main
                         // image: a drop (its blob URL is browser-only and unreachable server-side)
@@ -1130,17 +1175,16 @@ class MediaHelper
                 $isFullDelete = (bool) $params->get('media_full_deletion', 1);
 
                 if ($toDelete) {
-                    // The row goes in the caller's transaction, its files once that has committed (2.2.1): a save
-                    // rolled back keeps the row and the files it names. A failure of the delete reaches the caller,
-                    // whose transaction it may have ended.
-                    $files = $isFullDelete
-                        ? $db->setQuery(
-                            $db->getQuery(true)
-                                ->select($db->quoteName(['path', 'thumbnail']))
-                                ->from($db->quoteName('#__alfa_media'))
-                                ->where($db->quoteName('id') . ' = ' . (int) $id),
-                        )->loadObject()
-                        : null;
+                    // The row goes in the caller's transaction (2.2.1). Once that has committed, the plugins hear
+                    // onAlfaMediaBeforeDelete with the row (2.2.1: before, only Tools > Media raised it), then
+                    // its files go when the setting says so. A save rolled back keeps the row and its files, and tells
+                    // no plugin. A failure of the delete reaches the caller, whose transaction it may have ended.
+                    $removed = $db->setQuery(
+                        $db->getQuery(true)
+                            ->select($db->quoteName(['id', 'path', 'thumbnail']))
+                            ->from($db->quoteName('#__alfa_media'))
+                            ->where($db->quoteName('id') . ' = ' . (int) $id),
+                    )->loadObject();
 
                     $db->setQuery(
                         $db->getQuery(true)
@@ -1148,17 +1192,23 @@ class MediaHelper
                             ->where($db->quoteName('id') . ' = ' . (int) $id),
                     )->execute();
 
-                    if ($files) {
+                    if ($removed) {
                         $mediaId = (int) $id;
                         PostCommit::defer(
                             db: $db,
-                            label: 'the files of media #' . $mediaId,
-                            work: static function () use ($files, $mediaId, $absolutePath): void {
-                                self::deleteRemovedFiles(files: [(string) $files->path, (string) $files->thumbnail], mediaId: $mediaId, absolutePath: $absolutePath);
+                            label: 'the removal of media #' . $mediaId,
+                            work: static function () use ($removed, $mediaId, $absolutePath, $isFullDelete): void {
+                                self::dispatchBeforeDelete(rows: [$removed]);
+
+                                if ($isFullDelete) {
+                                    self::deleteRemovedFiles(files: [(string) $removed->path, (string) $removed->thumbnail], mediaId: $mediaId, absolutePath: $absolutePath);
+                                }
                             },
                         );
                     }
                 } else {
+                    $tileThumbnail();
+
                     // Update ordering, alt text and thumbnail for existing records.
                     // The stored file path is immutable and is never taken from the
                     // client here; only an external URL may be re-pointed.
@@ -2178,9 +2228,12 @@ class MediaHelper
 
     /**
      * Dispatch the pre-delete cleanup event so a plugin can purge derivatives
-     * before the component removes the media rows/files.
+     * before the component removes the media files: on every delete path
+     * (2.2.1), Tools > Media, an image removed in a save and an entity deleted
+     * with its gallery. A delete inside a transaction raises it once that has
+     * committed, the rows then already gone from the table.
      *
-     * @param object[] $rows Media rows about to be deleted (path, thumbnail, ...).
+     * @param object[] $rows Media rows being deleted (id, path, thumbnail).
      *
      *
      * @since  1.0.0

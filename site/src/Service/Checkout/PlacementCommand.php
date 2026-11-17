@@ -105,6 +105,11 @@ final class PlacementCommand
      *                             to the initial status and refuses one that
      *                             requires payment a new order cannot have.
      *
+     * @param string|null $shownTotal The total the checkout page last showed, as the currency's code and the minor
+     *                                units ("EUR:34720"), sent with the storefront's checkout form (2.2.1): the placement
+     *                                refuses an order whose total differs from it (or a value it cannot read). Null when
+     *                                none was sent (staff, a plugin's own placement): nothing is compared.
+     *
      * @since  2.0.0
      */
     public function __construct(
@@ -117,6 +122,7 @@ final class PlacementCommand
         public readonly ?string $ipAddress = null,
         public readonly string $source = self::SOURCE_STOREFRONT,
         public readonly int $initialStatusId = 0,
+        public readonly ?string $shownTotal = null,
     ) {
     }
 }

@@ -37,6 +37,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderDeleteEvent as PaymentBeforeDeleteEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderDeleteEvent as ShipmentBeforeDeleteEvent;
@@ -2064,7 +2065,7 @@ class OrderModel extends AlfaAdminModel
      */
     private static function drawnAsSold(object $item): object
     {
-        $item->surfaces = [];
+        $item->surfaces = new SurfaceMap();
 
         return $item;
     }
@@ -2187,7 +2188,9 @@ class OrderModel extends AlfaAdminModel
      */
     protected function dispatchItemConfigSurfaces(object $item, array $seed): void
     {
-        $item->surfaces = [];
+        // Collected here and handed to the item as a read-only map after each field (2.2.1), as the storefront does.
+        $slots = [];
+        $item->surfaces = new SurfaceMap();
 
         // Conditional visibility: the SAME showon rules + initial-state painting
         // as the storefront, so a field hidden for the customer's selection is
@@ -2218,10 +2221,14 @@ class OrderModel extends AlfaAdminModel
                 ],
             ]);
 
-            $plugins->dispatchTo($plugin, $event);
+            // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
+            // order's item window renders without it.
+            if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') in the order\'s item window')) {
+                continue;
+            }
 
             Surfaces::appendTo(
-                $item->surfaces,
+                $slots,
                 $event,
                 'alfa-item-fields',
                 (string) $field->type,
@@ -2229,6 +2236,7 @@ class OrderModel extends AlfaAdminModel
                 Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                 field: $field,
             );
+            $item->surfaces = new SurfaceMap($slots);
         }
     }
 
@@ -3578,7 +3586,6 @@ class OrderModel extends AlfaAdminModel
         try {
             if ($isNew) {
                 $line = (object) ($plan['columns'] + [
-                    'id_order_invoice' => null,
                     'id_shipment_method' => 0,
                     'quantity_refunded' => 0,
                     'quantity_returned' => 0,
@@ -4087,7 +4094,6 @@ class OrderModel extends AlfaAdminModel
             'id_address_delivery', 'id_address_invoice',
             'id_payment_method', 'id_shipment_method', 'id_order_status',
             'id_payment_currency', 'id_language',
-            'id_coupon', 'code_coupon',
             'modified_by', 'created_by',
         ];
 
@@ -4098,7 +4104,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         // Nullable datetime columns
-        $nullableDateColumns = ['checked_out_time', 'invoice_date', 'delivery_date'];
+        $nullableDateColumns = ['checked_out_time', 'delivery_date'];
 
         foreach ($nullableDateColumns as $col) {
             if (property_exists($table, $col) && empty($table->{$col})) {
@@ -4874,7 +4880,7 @@ class OrderModel extends AlfaAdminModel
             'id_address_delivery', 'id_address_invoice',
             'id_payment_method', 'id_shipment_method',
             'customer_note', 'note', 'secure_key',
-            'invoice_number', 'invoice_date', 'delivery_date',
+            'invoice_number', 'delivery_date',
         ];
 
         foreach ($orderFields as $field) {

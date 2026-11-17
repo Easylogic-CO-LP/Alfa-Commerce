@@ -71,6 +71,9 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @return Order|null The loaded order object, or null
      *
+     * @deprecated 2.2.1 Always null when the plugin is called: the controller resolves no order before the plugin
+     *             answers, so the plugin resolves it from its own reference (the carrier's reference in the
+     *             notification). Removed in 2.3.0.
      * @since  2.0.0
      */
     public function getOrder(): ?Order
