@@ -17,7 +17,9 @@ use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExplicitPriceInstruction;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use Joomla\CMS\Factory;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
+use LogicException;
 use stdClass;
 use Throwable;
 
@@ -83,7 +85,9 @@ class CartRepository
     //  WRITING LINES: the line and the selections that describe it
 
     /**
-     * Add a line and the selections that configure it.
+     * Add a line and the selections that configure it, in one transaction level (2.2.1): a selection that
+     * cannot be written takes the line with it, so a cart never keeps a line without the choices that configure and
+     * price it.
      *
      * @param int $cartId The cart.
      * @param int $itemId The product.
@@ -99,7 +103,8 @@ class CartRepository
      */
     public function insertLine(int $cartId, int $itemId, ?int $combinationId, int $quantity, array $selectionRows): int
     {
-        $db = $this->db;
+        $db = $this->transactional();
+        $db->transactionStart(true);
 
         try {
             $line = new stdClass();
@@ -112,8 +117,12 @@ class CartRepository
 
             $this->writeSelections((int) $line->id, $selectionRows);
 
+            TransactionState::commitLevel(db: $db);
+
             return (int) $line->id;
         } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
             throw new CartPersistenceException('insertLine', $cartId, $e);
         }
     }
@@ -125,10 +134,9 @@ class CartRepository
      * The quantity is SET, not summed: this is the shopper editing what they
      * already chose, not adding more of it.
      *
-     * NOT ATOMIC, deliberately unchanged. The statements run as they did before
-     * they moved here: a failure between dropping the old selection and writing
-     * the new one leaves a line with none. Wrapping it is a behaviour change and
-     * belongs to whoever decides it, not to the move.
+     * ONE TRANSACTION LEVEL (2.2.1): a failure between dropping the old
+     * selection and writing the new one rolls the line back to the configuration
+     * it had, never a line with none.
      *
      * @param int $lineId The line being re-configured.
      * @param int|null $combinationId The newly resolved combination, or null.
@@ -142,7 +150,8 @@ class CartRepository
      */
     public function replaceLineConfiguration(int $lineId, ?int $combinationId, int $quantity, array $selectionRows): void
     {
-        $db = $this->db;
+        $db = $this->transactional();
+        $db->transactionStart(true);
 
         try {
             $db->setQuery(
@@ -163,7 +172,11 @@ class CartRepository
             )->execute();
 
             $this->writeSelections($lineId, $selectionRows);
+
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
             throw new CartPersistenceException('replaceLineConfiguration', 0, $e);
         }
     }
@@ -1599,6 +1612,23 @@ class CartRepository
     }
 
     //  Internals
+
+    /**
+     * The connection as the driver whose transaction levels TransactionState keeps (2.2.1): every connection Joomla's
+     * container hands out is one, and a write that opens a level needs it.
+     *
+     * @throws LogicException When the connection keeps no transaction levels.
+     *
+     * @since  2.2.1
+     */
+    private function transactional(): DatabaseDriver
+    {
+        if (!$this->db instanceof DatabaseDriver) {
+            throw new LogicException('The cart repository needs a database driver that keeps transaction levels.');
+        }
+
+        return $this->db;
+    }
 
     /**
      * The rows that say how a line was configured.

@@ -1333,6 +1333,22 @@ class ShipmentLedger
     }
 
     /**
+     * A parcel's stored tax chain as its entries, in the order they apply: each the rate as exact decimal text and the
+     * name of the tax rule that applied it ('' for a chain frozen before 2.2.0, which holds the rates alone). What the
+     * REST order resource publishes of a parcel (2.2.1).
+     *
+     * @param string $stored The parcel's shipping_tax_chain as stored.
+     *
+     * @return array<int, array{rate: string, name: string}>|null Null when the stored text is not a chain.
+     *
+     * @since  2.2.1
+     */
+    public static function chainEntries(string $stored): ?array
+    {
+        return self::chainOf(value: $stored);
+    }
+
+    /**
      * The tax name a document line freezes for a parcel's charge: the names of
      * the rules its chain was calculated with, in the order they apply, joined
      * as the pricing engine joins combined rules. Empty when the chain names

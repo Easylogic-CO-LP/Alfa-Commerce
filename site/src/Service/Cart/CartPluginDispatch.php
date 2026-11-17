@@ -580,6 +580,10 @@ final class CartPluginDispatch
      * is being evaluated, and a facade that read the session on its own could
      * hand one plugin a different cart than the plugin beside it.
      *
+     * An operator placement reads none (2.2.1): the session's checkout values
+     * are the storefront's, and with Joomla's Shared Sessions on they are the
+     * staff member's own, never the customer's whose order the builder makes.
+     *
      * @param HydratedCart $cart The settled cart.
      * @param Money|null $subtotal The settled cart-item amount the caller already has.
      *
@@ -588,7 +592,7 @@ final class CartPluginDispatch
      */
     private function reader(HydratedCart $cart, ?Money $subtotal = null, ?Money $payable = null): Cart
     {
-        $form = (array) $this->app->getUserState('com_alfa.cart.form_data', []);
+        $form = $cart->subject()->isOperatorPlacement() ? [] : (array) $this->app->getUserState('com_alfa.cart.form_data', []);
 
         return Cart::of(
             $cart,

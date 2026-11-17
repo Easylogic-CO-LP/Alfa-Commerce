@@ -89,12 +89,13 @@ $columnLabels = array_map(
 			$unitPrice = $price !== null ? PriceUnits::line(price: $price, withTax: true) : null;
 			$baseTotalWithTax = $price?->getBaseTotalWithTax();
 
-            // '-' means priced with no discount; the em dash means the column
-            // does not apply: the line is unpriced or its money is not counted.
+            // '-' means priced with no discount, or the column does not apply:
+            // the line is unpriced or its money is not counted.
             // The saving is tax included, as every figure of the cart: the struck
-            // total less this saving is the line's total.
+            // total less this saving is the line's total. It carries the minus
+            // sign the summary's reductions carry (2.2.1).
             $discountTotal = $payable
-                ? ($price->hasDiscount() ? $price->getSavingsTotalWithTax()->format() : '-')
+                ? ($price->hasDiscount() ? '&minus;' . $price->getSavingsTotalWithTax()->format() : '-')
                 : '-';
 
             $total = $price?->getTotal();
@@ -223,6 +224,18 @@ $columnLabels = array_map(
         ),
         'label' => Text::_('COM_ALFA_CART_SUMMARY_LABEL'),
     ]); ?>
+
+    <?php // WHERE THESE PRICES ARE FOR (2.2.1): the goods are priced at the delivery place the checkout holds, which
+          // may not be the place the shop's other pages price this visitor at. ?>
+    <?php $pricedAt = \Alfa\Component\Alfa\Site\Helper\CartPricedAt::place($snapshot->placeId); ?>
+    <?php if ($pricedAt !== null) : ?>
+    <p class="cart-priced-at"><?php echo Text::sprintf('COM_ALFA_CART_PRICED_AT', htmlspecialchars($pricedAt, ENT_QUOTES, 'UTF-8')); ?></p>
+    <?php endif; ?>
+
+    <?php // THE TOTAL THIS PAGE SHOWS, sent with the checkout form (form="cart-form") and replaced with these rows on
+          // every change: the placement refuses an order whose total is not this one (2.2.1). ?>
+    <input type="hidden" form="cart-form" name="shown_total"
+           value="<?php echo htmlspecialchars($snapshot->currency->getCode() . ':' . $snapshot->totals->grand->getMinorUnits(), ENT_QUOTES, 'UTF-8'); ?>"/>
 
 	<?php
 	// EVERY HELD CODE THE ROWS ABOVE DID NOT ALREADY GIVE A REMOVE CONTROL.
