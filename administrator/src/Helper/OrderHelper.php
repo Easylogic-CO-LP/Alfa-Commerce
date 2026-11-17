@@ -468,7 +468,8 @@ class OrderHelper
      */
     protected static function attachPriceResult(object $item, $priceResult, float $fallbackPrice = 0): void
     {
-        if ($priceResult && is_object($priceResult)) {
+        // A product with no price applying (2.2.2) has no figure to map: it takes the no-authority branch below.
+        if ($priceResult instanceof \Alfa\Component\Alfa\Site\Service\Pricing\PriceResult && $priceResult->isPriced()) {
             $item->price_result = $priceResult;
 
             // Correct price mapping:

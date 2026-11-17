@@ -56,7 +56,7 @@ class PriceCalculator
         // The fence lives here and not only on calculateBatch(), because the
         // catalogue PRICE INDEX reaches this method with an array:
         // PriceIndexSyncService prices a whole (currency, place, usergroup,
-        // date) segment with calculate($group['items'], 1, $context). Silently
+        // date) segment with calculate($items, $openingQuantities, $context). Silently
         // applying one operator's negotiated price to every item of a segment
         // would write it into #__alfa_items_price_index and serve it to every
         // shopper: the leak the custom-price contract forbids by name.
@@ -318,7 +318,20 @@ class PriceCalculator
         // Nothing shifts the price -> feed the base rows straight to the engine, so
         // a combination's (or the item's) OWN sale/override renders exactly like
         // the main product: strikethrough base, - sale amount, savings percent.
+        // When no row applies, the engine says so itself on this path too (2.2.2).
         if ($adjustRow === null && $optionDeltas === [] && $contributions === []) {
+            return $this->calculator->compute($itemId, $quantity, $baseRows, $discounts, $taxes, $context, $price);
+        }
+
+        // NO BASE, NO PRICE (2.2.2). The base is chosen here, from the combination's price rows else the item's. When
+        // none applies, a combination's adjust, an option's delta or a contribution shifts nothing: the product is not
+        // priced, and the engine says so from the rows themselves. With an operator's explicit price and no row, the
+        // line is the operator's price and the deltas price nothing. Only a contribution that states it supplies the
+        // whole price (PriceContribution::$suppliesBase) prices a product with no row.
+        $winningRow = $this->calculator->selectBaseRow($baseRows, $quantity, $context->groupDistances());
+        $suppliesBase = array_filter($contributions, static fn (PriceContribution $contribution): bool => $contribution->suppliesBase) !== [];
+
+        if ($winningRow === null && !$suppliesBase) {
             return $this->calculator->compute($itemId, $quantity, $baseRows, $discounts, $taxes, $context, $price);
         }
 
@@ -345,7 +358,6 @@ class PriceCalculator
         // The list figure is the SAME delta applied to the un-discounted base,
         // so the sale still renders as it does without a delta (strikethrough
         // base, minus the sale amount) rather than silently losing it.
-        $winningRow = $this->calculator->selectBaseRow($baseRows, $quantity, $context->groupDistances());
         $wasSale = $winningRow !== null
             && isset($winningRow->override_value)
             && $winningRow->override_value !== null

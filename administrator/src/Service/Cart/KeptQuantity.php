@@ -107,7 +107,8 @@ final class KeptQuantity
      * @param float $pooledDraw What the cart already draws from the same pool on its other lines.
      * @param int[] $tierStarts Every quantity at which the unit may change: the first quantity
      *                          of each tier and the one after its last. More is harmless.
-     * @param Closure(int):string $unitAt The unit that prices a quantity, as the caller reads it.
+     * @param Closure(int):(string|null) $unitAt The unit that prices a quantity, as the caller reads it; null for a quantity
+     *                                           with no price (2.2.2).
      * @param Currency $currency The currency the line is charged in.
      *
      * @return int|null The quantity, or null when the policy keeps none that is charged, up to the line capacity.
@@ -136,7 +137,16 @@ final class KeptQuantity
                 }
             }
 
-            $charge = ChargeableQuantity::ofUnit(unit: $unitAt($at), currency: $currency);
+            // A tier with no price (2.2.2) charges nothing at any quantity of it: the walk goes on to the next tier.
+            $unit = $unitAt($at);
+
+            if ($unit === null) {
+                $at = $end + 1;
+
+                continue;
+            }
+
+            $charge = ChargeableQuantity::ofUnit(unit: $unit, currency: $currency);
             $charged = $charge->refuses(quantity: $at) ? $charge->smallest() : $at;
 
             if ($charged > $end) {
