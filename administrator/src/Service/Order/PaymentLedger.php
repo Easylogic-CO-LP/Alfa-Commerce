@@ -2595,11 +2595,14 @@ class PaymentLedger
             $data['processed_at'] = Factory::getDate('now', 'UTC')->toSql();
         }
 
-        // Persist to database
+        // Persist to database. A failure is a refusal like the others: its
+        // detail, a driver's message included, goes to the log only (2.2.1).
         self::withoutReferenceHash($data);
-        $success = self::saveToTable($data);
+        $failure = self::writeRow($data);
 
-        if (!$success) {
+        if ($failure !== null) {
+            self::refuse(detail: 'create(): ' . $failure, orderId: $orderId);
+
             return false;
         }
 
@@ -2972,7 +2975,14 @@ class PaymentLedger
             }
 
             self::withoutReferenceHash($data);
-            $success = self::saveToTable($data);
+            // A failure is a refusal like the others: its detail, a driver's
+            // message included, goes to the log only (2.2.1).
+            $failure = self::writeRow($data);
+            $success = $failure === null;
+
+            if (!$success) {
+                self::refuse(detail: 'update(): ' . $failure, orderId: $orderId);
+            }
 
             // INSIDE the transaction, before the commit: a wallet movement
             // that cannot happen must take the status write down with it.
