@@ -53,6 +53,19 @@
  *    $retry   = $this->failRefundAttempt($reservationId, $failedRefundId, $why); // keep the reservation for the retry
  *    $this->recordActionLog('PLG_ALFA_PAYMENTS_<YOU>_LOG_REFUND_STARTED', ['title' => '#12'], $orderId); // User Actions Log
  *
+ *  SINCE 2.2.2, every write of a buyer's visit answers WHY (a PaymentWriteVerdict: decide on ->kind, then ->code):
+ *    $open    = $this->latestPendingPayment($orderId);                           // 0. your own open attempt first: resume, claim or close it
+ *    $verdict = $this->payment($order)->pending()->transactionId($minted)->saveWithVerdict(); // 1. the row first, a reference you minted
+ *    // only VERDICT_WRITTEN goes on to the provider, with an idempotency key derived from $verdict->rowId or $minted;
+ *    // VERDICT_REFUSED stops (REFUSAL_OPEN_ATTEMPT: another payment of this order is still open; REFUSAL_OVER_TOTAL:
+ *    // covered); VERDICT_LOCK_NOT_TAKEN and VERDICT_WRITE_FAILED: try again with the SAME reference, no provider call made
+ *    $verdict = $this->paymentUpdate($rowId)->transactionId($providerId)->saveWithVerdict(); // 3. the provider's id on the row
+ *    $verdict = $this->settleAttemptVerdict($write, $orderId, $txId);            // the settle, its CRITICAL or WARNING line kept
+ *    $verdict = $this->supersedeAttemptVerdict($paymentId, 'New gateway visit'); // close your own attempt, never another gateway's
+ *    $verdict = $this->claimPendingAttemptVerdict(paymentId: $paymentId, reference: $sessionId); // a placement row without a reference
+ *    // WRITTEN with ->existing true on a pending row: your provider call may have been made; make it safe to repeat
+ *    // (the provider's idempotency key from the reference) or ask the provider by the reference before creating anything
+ *
  *  THE RULE: this class is the supported payment API. A gateway never calls
  *  PaymentLedger and never reads or writes #__alfa_order_payments itself;
  *  what it needs is a method here. A need this class does not cover is a
@@ -88,6 +101,7 @@ use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
+use Alfa\Component\Alfa\Administrator\Service\Order\PaymentWriteVerdict;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
@@ -151,6 +165,39 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     public const WRITE_OK = PaymentLedger::WRITE_OK;
     public const WRITE_RACED = PaymentLedger::WRITE_RACED;
     public const WRITE_FAILED = PaymentLedger::WRITE_FAILED;
+
+    // The kinds and codes of a write's verdict (2.2.2): saveWithVerdict(), settleAttemptVerdict(),
+    // supersedeAttemptVerdict(), claimPendingAttemptVerdict(). A plugin decides by kind, and handles a code it does not
+    // know as its kind; a value never changes and is never reused in 2.x. Their meanings: PaymentLedger's constants.
+    public const VERDICT_WRITTEN = PaymentLedger::VERDICT_WRITTEN;
+    public const VERDICT_REFUSED = PaymentLedger::VERDICT_REFUSED;
+    public const VERDICT_LOCK_NOT_TAKEN = PaymentLedger::VERDICT_LOCK_NOT_TAKEN;
+    public const VERDICT_WRITE_FAILED = PaymentLedger::VERDICT_WRITE_FAILED;
+    public const VERDICT_RACED = PaymentLedger::VERDICT_RACED;
+    public const REFUSAL_NO_ORDER = PaymentLedger::REFUSAL_NO_ORDER;
+    public const REFUSAL_ORDER_UNREADABLE = PaymentLedger::REFUSAL_ORDER_UNREADABLE;
+    public const REFUSAL_AMOUNT_CURRENCY = PaymentLedger::REFUSAL_AMOUNT_CURRENCY;
+    public const REFUSAL_AMOUNT_SCALE = PaymentLedger::REFUSAL_AMOUNT_SCALE;
+    public const REFUSAL_AMOUNT_INVALID = PaymentLedger::REFUSAL_AMOUNT_INVALID;
+    public const REFUSAL_AMOUNT_NEGATIVE = PaymentLedger::REFUSAL_AMOUNT_NEGATIVE;
+    public const REFUSAL_OVER_TOTAL = PaymentLedger::REFUSAL_OVER_TOTAL;
+    public const REFUSAL_OPEN_ATTEMPT = PaymentLedger::REFUSAL_OPEN_ATTEMPT;
+    public const REFUSAL_CURRENCY_MISMATCH = PaymentLedger::REFUSAL_CURRENCY_MISMATCH;
+    public const REFUSAL_NOT_WRITER = PaymentLedger::REFUSAL_NOT_WRITER;
+    public const REFUSAL_WALLET = PaymentLedger::REFUSAL_WALLET;
+    public const REFUSAL_FACT_TYPE = PaymentLedger::REFUSAL_FACT_TYPE;
+    public const REFUSAL_REFERENCE_TAKEN = PaymentLedger::REFUSAL_REFERENCE_TAKEN;
+    public const REFUSAL_ROW_MISSING = PaymentLedger::REFUSAL_ROW_MISSING;
+    public const REFUSAL_HISTORY_LOCKED = PaymentLedger::REFUSAL_HISTORY_LOCKED;
+    public const REFUSAL_METHOD_FIXED = PaymentLedger::REFUSAL_METHOD_FIXED;
+    public const REFUSAL_SETTLED_REFUND = PaymentLedger::REFUSAL_SETTLED_REFUND;
+    public const REFUSAL_CLASSIFICATION = PaymentLedger::REFUSAL_CLASSIFICATION;
+    public const REFUSAL_REFUND_SOURCE = PaymentLedger::REFUSAL_REFUND_SOURCE;
+    public const REFUSAL_REFUND_DUPLICATE = PaymentLedger::REFUSAL_REFUND_DUPLICATE;
+    public const REFUSAL_REFUND_PAST_PAYMENT = PaymentLedger::REFUSAL_REFUND_PAST_PAYMENT;
+    public const REFUSAL_REFUND_PAST_ORDER = PaymentLedger::REFUSAL_REFUND_PAST_ORDER;
+    public const REFUSAL_REFUND_START = PaymentLedger::REFUSAL_REFUND_START;
+    public const REFUSAL_REFUND_DOCUMENT = PaymentLedger::REFUSAL_REFUND_DOCUMENT;
 
     // refundPayment() outcomes
     public const OUTCOME_OK = PaymentLedger::OUTCOME_OK;
@@ -874,6 +921,67 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     }
 
     /**
+     * Settle a verified attempt exactly once, and answer what the write did (2.2.2).
+     *
+     * The write settleAttempt() makes, answered as a verdict: written, raced (the other transport won: agree with it),
+     * refused (a rule refused it: repeating the settle is useless; $code says which), lock_not_taken (the settle waits
+     * for the provider's next delivery or the buyer's return; the row stays pending and is settled once then), or
+     * write_failed. Its line in this plugin's log: CRITICAL for refused and write_failed (the money moved and the books
+     * did not: reconcile), WARNING for lock_not_taken, none for written and raced. What the gateway answers its provider
+     * stays the plugin's decision.
+     *
+     * Usage:
+     *   $verdict = $this->settleAttemptVerdict($write, (int) $order->id, $txId);
+     *   switch ($verdict->kind) {
+     *       case self::VERDICT_WRITTEN:
+     *       case self::VERDICT_RACED:          ... fire the success answer
+     *       case self::VERDICT_LOCK_NOT_TAKEN: ... ask the provider to deliver again
+     *       default:                           ... reconcile; repeating is useless for refused
+     *   }
+     *
+     * @param PaymentLedger $write Update builder with ->expectStatus() armed.
+     * @param int $orderId Order the attempt belongs to.
+     * @param string $reference Gateway transaction id or order reference, for the log line.
+     *
+     * @return PaymentWriteVerdict What the write did.
+     *
+     * @since  2.2.2
+     */
+    protected function settleAttemptVerdict(PaymentLedger $write, int $orderId, string $reference = ''): PaymentWriteVerdict
+    {
+        $verdict = $write->saveWithVerdict();
+        $shown = $reference !== '' ? $reference : '(no reference)';
+
+        if ($verdict->kind === self::VERDICT_REFUSED || $verdict->kind === self::VERDICT_WRITE_FAILED) {
+            Log::add(
+                sprintf(
+                    '%s: verified transaction %s on order #%d was rejected by the ledger (%s%s): the money moved and the books did not. Reconcile manually.',
+                    ucfirst((string) $this->_name),
+                    $shown,
+                    $orderId,
+                    $verdict->kind,
+                    $verdict->code !== '' ? ', ' . $verdict->code : '',
+                ),
+                Log::CRITICAL,
+                $this->logCategory(),
+            );
+        } elseif ($verdict->kind === self::VERDICT_LOCK_NOT_TAKEN) {
+            Log::add(
+                sprintf(
+                    '%s: verified transaction %s on order #%d waits: another operation held the order; the provider\'s next delivery or the buyer\'s return settles it once.',
+                    ucfirst((string) $this->_name),
+                    $shown,
+                    $orderId,
+                ),
+                Log::WARNING,
+                $this->logCategory(),
+            );
+        }
+
+        return $verdict;
+    }
+
+    /**
      * Close a gateway attempt nobody is going to pay: the buyer walked
      * away, or came back and started a new one.
      *
@@ -911,6 +1019,30 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected function supersedeAttempt(int $paymentId, string $reason = ''): int
     {
         return PaymentLedger::supersedeAttempt($paymentId, $reason, writer: (string) $this->_name);
+    }
+
+    /**
+     * Close a gateway attempt nobody is going to pay, and answer what the write did (2.2.2): the write
+     * supersedeAttempt() makes, as a verdict. Written when this call closed it; raced when it was no longer pending;
+     * refused with REFUSAL_ROW_MISSING (the row or its order is gone) or REFUSAL_NOT_WRITER (another gateway's row: a
+     * gateway never closes another gateway's attempt); lock_not_taken; write_failed.
+     *
+     * Usage (step zero of opening an attempt: the plugin's own open attempt first):
+     *   $open = $this->latestPendingPayment((int) $order->id);
+     *   if ($open !== null && !$reusable) {
+     *       $closed = $this->supersedeAttemptVerdict((int) $open->id, 'New gateway visit');
+     *   }
+     *
+     * @param int $paymentId Pending attempt row PK.
+     * @param string $reason Why it was abandoned, stamped into the row's note.
+     *
+     * @return PaymentWriteVerdict What the write did.
+     *
+     * @since  2.2.2
+     */
+    protected function supersedeAttemptVerdict(int $paymentId, string $reason = ''): PaymentWriteVerdict
+    {
+        return PaymentLedger::supersedeAttemptVerdict($paymentId, $reason, writer: (string) $this->_name);
     }
 
     /**
@@ -2331,6 +2463,32 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         }
 
         return PaymentLedger::claimReference(id: $paymentId, gateway: (string) $this->_name, reference: $reference);
+    }
+
+    /**
+     * Claim one of this gateway's pending attempts for a provider reference, and answer what the write did (2.2.2):
+     * the claim claimPendingAttempt() makes, as a verdict. Written when this call claimed it; raced when it is
+     * this gateway's but no longer a pending attempt without a reference (another visit or delivery owns it: agree with
+     * the winner); refused with REFUSAL_ROW_MISSING (the row or its order is gone) or REFUSAL_NOT_WRITER (another
+     * gateway's row, or not a payment or authorization); lock_not_taken where claimPendingAttempt() throws today (the
+     * attempt stays claimable: try again); write_failed. A plugin never reads a refusal or a lock as "make a new row".
+     *
+     * @param int $paymentId The pending attempt.
+     * @param string $reference The provider reference, not blank, stored whole.
+     *
+     * @return PaymentWriteVerdict What the write did.
+     *
+     * @throws InvalidArgumentException A payment id under 1 or a blank reference.
+     *
+     * @since  2.2.2
+     */
+    protected function claimPendingAttemptVerdict(int $paymentId, string $reference): PaymentWriteVerdict
+    {
+        if ($paymentId <= 0 || trim($reference) === '') {
+            throw new InvalidArgumentException('claimPendingAttemptVerdict(): a payment id and a reference that is not blank are required.');
+        }
+
+        return PaymentLedger::claimReferenceVerdict(id: $paymentId, gateway: (string) $this->_name, reference: $reference);
     }
 
     //  FRONTEND HOOKS (abstract: plugin MUST implement)
