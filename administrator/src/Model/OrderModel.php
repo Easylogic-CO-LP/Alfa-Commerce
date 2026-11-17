@@ -2287,7 +2287,8 @@ class OrderModel extends AlfaAdminModel
 
         $request = VariantHelper::requestSelection();
 
-        VariantHelper::resolveAndPrice(
+        // The result as stated: one with no price applying (2.2.2) is the caller's to show as such.
+        return VariantHelper::resolveAndPrice(
             item: $item,
             selection: $request['selection'],
             context: $context,
@@ -2297,8 +2298,6 @@ class OrderModel extends AlfaAdminModel
             payloads: $request['payloads'],
             price: $price,
         );
-
-        return $item->price;
     }
 
     // ORDER ITEMS (single-item CRUD, for admin popup)
@@ -2917,6 +2916,14 @@ class OrderModel extends AlfaAdminModel
 
         if (!$result instanceof PriceResult) {
             throw new RuntimeException(Text::_('COM_ALFA_ORDER_ITEM_ERROR_PRICE_UNAVAILABLE'));
+        }
+
+        // A product with no price applying for this order (2.2.2) is added only with a custom price, never at zero by
+        // accident: the order popup and the REST API's order lines send the custom price with the line.
+        if (!$result->isPriced()) {
+            $name = trim((string) ($item->name ?? ''));
+
+            throw new RuntimeException(Text::sprintf('COM_ALFA_ORDER_LINE_NOT_PRICED', $name !== '' ? $name : '#' . $itemId));
         }
 
         // The explicit reprice IS the line's pre-manual amount; the manual

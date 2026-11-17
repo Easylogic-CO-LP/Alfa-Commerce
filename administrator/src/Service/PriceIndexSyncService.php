@@ -1452,7 +1452,10 @@ class PriceIndexSyncService
 
                 foreach ($items as $itemId) {
                     $result = $results[$itemId] ?? null;
-                    if ($result === null) {
+
+                    // No price row applying at quantity 1 for this slot and period (2.2.2): no row is written, so every
+                    // price filter leaves the product out and the price sort lists it after the priced ones.
+                    if ($result === null || !$result->isPriced()) {
                         continue;
                     }
 
@@ -1461,8 +1464,8 @@ class PriceIndexSyncService
 
                     $basePrice = round($result->getBaseTotal()->getAmount(), 4);
 
-                    // Skip segments with no matching price row: the item is
-                    // simply absent from the catalog for that period.
+                    // A base of zero writes no row either: the item is absent
+                    // from the catalog's price filters for that period.
                     if ($basePrice <= 0) {
                         continue;
                     }

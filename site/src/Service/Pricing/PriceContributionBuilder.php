@@ -66,6 +66,13 @@ final class PriceContributionBuilder
     private int $sortOrder = 0;
 
     /**
+     * Whether the plugin's contributions are the whole price of the product.
+     *
+     * @since  2.2.2
+     */
+    private bool $suppliesBase = false;
+
+    /**
      * @param string $code Stable id for the line, e.g. 'configurator3d.images'.
      *
      * @since  2.0.0
@@ -194,6 +201,22 @@ final class PriceContributionBuilder
     }
 
     /**
+     * State that this plugin's contributions are the whole price of the product (2.2.2): a product with no price row
+     * that applies to the shopper is then priced from them, for a field that prices what the buyer fills in (areas,
+     * pieces). Without it, a product with no price row is not priced, whatever the contribution adds.
+     *
+     * @return static For chaining.
+     *
+     * @since  2.2.2
+     */
+    public function suppliesBase(): static
+    {
+        $this->suppliesBase = true;
+
+        return $this;
+    }
+
+    /**
      * Materialize the immutable artifact: the collector's harvest calls
      * this; a missing required part throws, naming the contribution.
      *
@@ -217,6 +240,7 @@ final class PriceContributionBuilder
             amount:    $this->amount,
             target:    $this->target,
             sortOrder: $this->sortOrder,
+            suppliesBase: $this->suppliesBase,
         );
     }
 

@@ -1718,8 +1718,16 @@ class ItemsModel extends UrlListModel
 
         // Pass 2: assign each price, then overlay the active combination's data
         //    (sku/stock/name/media) onto the variant cards.
+        $priced = (bool) $this->getState('list.price', true);
+
         foreach ($items as &$item) {
-            $item->price = $prices[$item->id] ?? null;
+            // A card with no price applying gets a null price and, when the pass ran, no add to cart (2.2.2).
+            if ($priced) {
+                VariantHelper::priceOnto(item: $item, result: $prices[$item->id] ?? null);
+                $this->withdrawCartWithoutPrice(item: $item);
+            } else {
+                $item->price = null;
+            }
 
             if (!empty($item->combinations)) {
                 VariantHelper::overlay($item, $item->variant->activeCombination ?? null);
@@ -1815,6 +1823,7 @@ class ItemsModel extends UrlListModel
             }
 
             $this->chooseOptionsCart($item, $drawn);
+            $this->withdrawCartWithoutPrice(item: $item);
 
             // Sale-tag badges for the single-card reload path (the list loop uses a
             // different path, so no double badge).
@@ -1902,6 +1911,25 @@ class ItemsModel extends UrlListModel
 
         $item->cartChildren = [];
         $item->surfaces = new SurfaceMap();
+    }
+
+    /**
+     * A card with no price applying offers no add to cart (2.2.2): core's own main slot (the add to cart or the Choose
+     * options link) is set to no layout, which the wrapper renders as nothing. A slot a field plugin set is the plugin's
+     * to decide; the cart refuses the add in any case. The child slot (a wish list and the like) stays.
+     *
+     * @param object $item The card, priced.
+     *
+     * @since  2.2.2
+     */
+    protected function withdrawCartWithoutPrice(object $item): void
+    {
+        if (($item->price ?? null) !== null || !\is_array($item->cart ?? null) || ($item->cart['layoutPluginName'] ?? '') !== '') {
+            return;
+        }
+
+        $item->cart['layout'] = '';
+        $item->cart['layoutData'] = [];
     }
 
     /**
@@ -2181,7 +2209,7 @@ class ItemsModel extends UrlListModel
 
         // Base price (kept as-is for a plain item; finishItemCard overwrites it
         // through VariantHelper for a variant item).
-        $item->price = $this->getPriceCalculator()->calculate($id, 1, $context);
+        VariantHelper::priceOnto(item: $item, result: $this->getPriceCalculator()->calculate($id, 1, $context));
 
         $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
         $item->link = $this->buildRoute(
