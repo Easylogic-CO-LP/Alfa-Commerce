@@ -33,6 +33,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
+use Joomla\CMS\Date\Date;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -381,8 +382,14 @@ final class DocumentIssuer
 
             $series = self::lockSeries(db: $db, seriesId: $seriesId, docType: $docType);
 
-            $nowUtc = Factory::getDate('now', 'UTC');
-            $localDate = Factory::getDate('now', DocumentHelper::shopTimezone());
+            // The clock as it is now, read for this document, and its date in the shop's time zone from the same
+            // instant (2.2.1). Factory::getDate() keeps the time of its first call for the whole process, so a task
+            // run or a console command issuing several documents would date them all at its start (a run crossing
+            // midnight dating the later ones the day before, a year-scoped series numbering a new year's first
+            // documents in the old year's series) and refuse a series another request had issued in since.
+            $nowUtc = new Date('now', 'UTC');
+            $localDate = clone $nowUtc;
+            $localDate->setTimezone(DocumentHelper::shopTimezone());
             $localYear = (int) $localDate->format('Y', true);
 
             if ((int) $series->year_scoped === 1 && (int) $series->current_year !== $localYear) {
