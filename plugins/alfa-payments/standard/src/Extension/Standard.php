@@ -23,7 +23,6 @@
  * |   |-- params.xml                   <- Method config; status_on_* automation
  * |   `-- logs.xml                     <- Plugin-specific log table schema
  * |-- tmpl/                            <- Layout templates
- * |   |-- default_item_view.php        <- Product page (payment info)
  * |   |-- default_cart_view.php        <- Cart page (method selector)
  * |   |-- default_order_completed.php  <- Thank-you page
  * |   |-- action_view_details.php      <- Admin: payment details modal
@@ -644,14 +643,19 @@ final class Standard extends PaymentsPlugin
     //
     //  These render HTML on the storefront. Each hook receives an event
     //  with the relevant context (product, cart, order) and the payment
-    //  method record. You MUST call setLayout(), even for an empty layout.
+    //  method record. The cart and order hooks MUST call setLayout(), even for
+    //  an empty layout; on the product page a method with nothing to add sets none.
     //
     //  For gateway plugins: onOrderProcessView() is where you redirect
     //  the customer to the external payment page (a hosted checkout,
     //  a wallet redirect, etc.).
 
     /**
-     * Product page: show payment-related info (e.g. "Pay in installments").
+     * Product page: what the method adds below itself (e.g. "Pay in installments").
+     *
+     * Core draws every method there first (2.2.2): its image when the shop set one,
+     * its title and its description (layout methods.item). A plugin's layout adds
+     * only its own content below them, never a logo, the title or the description.
      *
      * Available on $event:
      *   $event->getItem()     -> Product item object   (alias of getSubject())
@@ -659,20 +663,15 @@ final class Standard extends PaymentsPlugin
      *   $event->setLayout()   -> Template file in tmpl/ (without .php)
      *   $event->setLayoutData() -> Associative array passed to template
      *
-     * For Standard: shows basic payment info text.
+     * For Standard: nothing; core's drawing of the method is all it shows.
      * For a card gateway: could show "Pay in 4 installments" badge.
-     * For a wallet gateway: could show "Wallet accepted" logo.
      *
      * @param object $event ItemViewEvent
      * @since  1.0.0
      */
     public function onItemView($event): void
     {
-        $event->setLayout('default_item_view');
-        $event->setLayoutData([
-            'method' => $event->getMethod(),
-            'item' => $event->getItem(),   // getSubject(): this event's subject is the product
-        ]);
+        // No layout: the Standard method adds nothing below core's drawing of it.
     }
 
     /**

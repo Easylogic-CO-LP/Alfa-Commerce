@@ -44,6 +44,9 @@ $emptyKey = match (true) {
 
 		$checked = $snapshot->offers->selectedPaymentId === (int) $payment->id ? 'checked' : '';
 		$view = $snapshot->offers->viewFor('payment', (int) $payment->id);
+		// Each method in the order every method keeps (2.2.2): its radio, then in its label the image the shop set (none
+		// drawn without one) and its title, then the description the shop wrote, then what its plugin adds.
+		$image = Layout::render('methods.image', ['image' => $snapshot->offers->imageFor('payment', (int) $payment->id), 'title' => (string) $payment->name]);
 		?>
         <div>
             <input
@@ -56,7 +59,7 @@ $emptyKey = match (true) {
             >
 
             <label for="payment_method_<?php echo $payment->id; ?>">
-				<?php echo htmlspecialchars($payment->name, ENT_QUOTES, 'UTF-8'); ?>
+				<?php echo $image . htmlspecialchars($payment->name, ENT_QUOTES, 'UTF-8'); ?>
             </label>
 
             <p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p>

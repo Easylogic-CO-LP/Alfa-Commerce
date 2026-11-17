@@ -609,7 +609,8 @@ class MediaHelper
 
     /**
      * Return the ids of every media row whose (origin, item_id) no longer points
-     * at a live parent entity (item / category / manufacturer / combination).
+     * at a live parent entity (item / category / manufacturer / combination /
+     * payment method / shipping method).
      * Detected purely
      * in SQL via LEFT JOINs. Used by the Tools -> Media "delete all orphans" action.
      *
@@ -632,11 +633,17 @@ class MediaHelper
                 . ' ON a.origin = ' . $db->quote('manufacturer') . ' AND m.id = a.item_id')
             ->join('LEFT', $db->quoteName('#__alfa_item_combinations', 'co')
                 . ' ON a.origin = ' . $db->quote('combination') . ' AND co.id = a.item_id')
+            ->join('LEFT', $db->quoteName('#__alfa_payments', 'pm')
+                . ' ON a.origin = ' . $db->quote('payment') . ' AND pm.id = a.item_id')
+            ->join('LEFT', $db->quoteName('#__alfa_shipments', 'sm')
+                . ' ON a.origin = ' . $db->quote('shipment') . ' AND sm.id = a.item_id')
             ->where('(CASE a.origin'
                 . ' WHEN ' . $db->quote('item') . ' THEN (i.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('category') . ' THEN (c.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('manufacturer') . ' THEN (m.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('combination') . ' THEN (co.id IS NOT NULL)'
+                . ' WHEN ' . $db->quote('payment') . ' THEN (pm.id IS NOT NULL)'
+                . ' WHEN ' . $db->quote('shipment') . ' THEN (sm.id IS NOT NULL)'
                 . ' ELSE 1 END) = 0');
 
         return array_map('intval', $db->setQuery($query)->loadColumn() ?: []);

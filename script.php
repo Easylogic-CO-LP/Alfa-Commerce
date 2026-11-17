@@ -2555,6 +2555,13 @@ class com_alfaInstallerScript extends InstallerScript
             // editor's prices are AlfapricesField's own editor. Its content hash (PackageHelper::contentHash()).
             'administrator/components/com_alfa/forms/price.xml' => ['74af1fca867e1535090b791e348a19700ca2fcadda1de7f0c6dc093475dd3b4f'],
         ],
+        '2.2.2' => [
+            // The Standard methods' product page layouts: core draws every method there (its image, title and
+            // description, layout methods.item), and the Standard methods add nothing below it. The copy every
+            // release from 2.0.0 to 2.2.1 installed (PackageHelper::contentHash()).
+            'plugins/alfa-payments/standard/tmpl/default_item_view.php' => ['031d61b4d1714c3dd1a10bed3325a62f31987a41d4dedc422b1e43d1b725d203'],
+            'plugins/alfa-shipments/standard/tmpl/default_item_view.php' => ['031d61b4d1714c3dd1a10bed3325a62f31987a41d4dedc422b1e43d1b725d203'],
+        ],
     ];
 
     /**

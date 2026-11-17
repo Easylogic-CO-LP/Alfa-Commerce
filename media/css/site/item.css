@@ -274,6 +274,31 @@
     flex-direction: column;
 }
 /* PAYMENT METHOD END */
+
+/* A payment or shipping method's image (2.2.2), before its title: held to the token's height, never wider than a
+   few words, its own proportions kept. */
+.method-image {
+    display: inline-block;
+    margin-inline-end: 0.5em;
+    vertical-align: middle;
+}
+
+.method-image img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-height: var(--alfa-method-image-height);
+    max-width: 6rem;
+}
+
+.method-item-title {
+    display: block;
+    font-weight: 600;
+}
+
+.method-item-description {
+    margin: 0.25rem 0 0;
+}
 /*
    Item-fields variant selectors + reload loading state
    */

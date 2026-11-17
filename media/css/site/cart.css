@@ -74,6 +74,22 @@
     margin-bottom: 1rem;
 }
 
+/* A payment or shipping method's image (2.2.2), before its title: held to the token's height, never wider than a
+   few words, its own proportions kept. */
+.method-image {
+    display: inline-block;
+    margin-inline-end: 0.5em;
+    vertical-align: middle;
+}
+
+.method-image img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-height: var(--alfa-method-image-height);
+    max-width: 6rem;
+}
+
 /* Method-list messages: a dropped choice, or nothing offered in this context.
    Informational, not errors (the shopper has done nothing wrong), so they take the
    info colour rather than sitting in body copy where they read as ordinary prose.
