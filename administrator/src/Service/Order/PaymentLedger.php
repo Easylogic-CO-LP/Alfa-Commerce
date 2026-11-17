@@ -8,7 +8,8 @@
  *
  * Order Payment Helper: Unified CRUD Engine + Fluent Builder
  *
- *  TWO APIs, ONE CLASS: accessible from anywhere
+ *  TWO APIs, ONE CLASS, for core and staff code. A payment plugin writes through PaymentsPlugin
+ *  (payment(), paymentUpdate(), the intent verbs and their verdicts), never this class.
  *
  *  HIGH-LEVEL - Fluent Builder (recommended for 95% of use cases):
  *
@@ -10401,14 +10402,6 @@ class PaymentLedger
     }
 
     /**
-     * Shape one refundPayment() verdict.
-     *
-     *
-     * @return array{outcome:string,refund_id:int,reason:string,amount:float}
-     *
-     * @since  2.0.0
-     */
-    /**
      * Register the ledger's own file logger once per request.
      *
      * The lines below it are the ones a person has to act on: "the gateway
@@ -10432,6 +10425,18 @@ class PaymentLedger
         AlfaLog::register();
     }
 
+    /**
+     * Shape one refundPayment() verdict.
+     *
+     * @param string $outcome One of the OUTCOME_ constants.
+     * @param int $refundId The refund row written or named, 0 for none.
+     * @param string $reason Why, for a verdict that did not book.
+     * @param float $amount The amount the verdict concerns, in major units.
+     *
+     * @return array{outcome:string,refund_id:int,reason:string,amount:float}
+     *
+     * @since  2.0.0
+     */
     private static function refundResult(string $outcome, int $refundId = 0, string $reason = '', float $amount = 0.0): array
     {
         return [
@@ -10835,48 +10840,6 @@ class PaymentLedger
         return \in_array($stored, $moneyIn, true) && \in_array($written, $moneyIn, true);
     }
 
-    /**
-     * Payment-method automation: move the ORDER when a transaction enters a
-     * phase the method has mapped.
-     *
-     * The map is PLUGIN-DECLARED: each payment plugin's params/params.xml
-     * exposes only the phases its lifecycle reaches, as fields named
-     * `status_on_<transaction_status>` (stored in the method's params JSON).
-     * This helper just reads the conventional key and executes through
-     * Transition, so stock/downloads/emails/activity-log can
-     * never diverge from a manual admin change. Guards inherited from the
-     * builder: same-status = no-op (duplicate callbacks harmless) and no
-     * automatic exit from the cancelled family (no force() here, ever).
-     *
-     * Never throws; automation failure must not break the payment write.
-     *
-     *
-     * @since  2.0.0
-     */
-    /**
-     * Sum every refund already recorded against one payment.
-     *
-     * Counts only refund rows that actually moved money: the reference
-     * plugins write them 'refunded', some gateways write 'completed'; a
-     * cancelled or failed refund is not money back. Amounts are stored
-     * positive, hence ABS().
-     *
-     * @param int $paymentId The original payment's PK
-     *
-     * @return float Total already refunded, in major units
-     *
-     * @since  2.0.0
-     */
-    /**
-     * Net customer-credit ("wallet") amount settling this order's credit
-     * notes. Void claw-backs are negative entries with the same source, so
-     * the SUM self-corrects; clamped at zero against stray data.
-     *
-     *
-     * @return float
-     *
-     * @since  2.0.0
-     */
     /**
      * The ONE note shape for every wallet return of a credit payment.
      *
@@ -12355,24 +12318,6 @@ class PaymentLedger
     }
 
     /**
-     * Sum every payment recorded toward an order's total.
-     *
-     * Counts 'payment' rows in any live status: a pending instalment
-     * reserves its slice of the total so the same money cannot be promised
-     * twice; failed/cancelled rows are dead, and a REFUNDED row reserves
-     * nothing either (its money came in and went back, so a replacement
-     * payment must fit). The refund pool (sumRefundablePool) deliberately
-     * STILL counts refunded originals (that is the collected money being
-     * returned), while this overpayment figure does not. Authorization-type
-     * rows never enter (own payment_type).
-     *
-     * @param int $orderId Order PK
-     *
-     * @return float Recorded payment total in major units
-     *
-     * @since  2.0.0
-     */
-    /**
      * The order's own currency, as a Currency object.
      *
      * Every figure this ledger reports is money IN SOME CURRENCY, and until
@@ -12571,6 +12516,25 @@ class PaymentLedger
         return $held->greaterThan(self::money($limit, $orderId));
     }
 
+    /**
+     * Sum every payment recorded toward an order's total.
+     *
+     * Counts 'payment' rows in any live status: a pending instalment
+     * reserves its slice of the total so the same money cannot be promised
+     * twice; failed/cancelled rows are dead, and a REFUNDED row reserves
+     * nothing either (its money came in and went back, so a replacement
+     * payment must fit). The refund pool (sumRefundablePool) deliberately
+     * STILL counts refunded originals (that is the collected money being
+     * returned), while this overpayment figure does not. Authorization-type
+     * rows never enter (own payment_type).
+     *
+     * @param int $orderId Order PK
+     * @param int $excludeId Row PK to leave out (0 = none)
+     *
+     * @return string Recorded payment total in major units, as the SUM's decimal text
+     *
+     * @since  2.0.0
+     */
     private static function sumRecordedPayments(int $orderId, int $excludeId = 0): string
     {
         return self::sumAbsAmounts(
@@ -13668,18 +13632,6 @@ class PaymentLedger
     //  sums the guards enforce, so a display can never disagree with a cap.
 
     /**
-     * Money actually collected for an order.
-     *
-     * SUM(ABS(amount)) of completed 'payment' rows: the SAME figure the
-     * admin Totals card and the orders-list payment ladder derive, served
-     * from the guards' own sum.
-     *
-     *
-     * @return float Collected total in major units
-     *
-     * @since  2.0.0
-     */
-    /**
      * THE amount a gateway should collect for an order: the ONE public
      * contract every payment plugin (core or third-party) builds on.
      *
@@ -13854,20 +13806,6 @@ class PaymentLedger
         return self::money(OrderFacts::forOrder($orderId)->still_held, $orderId);
     }
 
-    /**
-     * How much of one payment can still be refunded.
-     *
-     * The payment's gross minus every settled refund recorded against it:
-     * the SAME per-payment remainder the admin Totals card and the
-     * orders-list payment ladder derive, and the exact figure the linked
-     * over-refund guard enforces.
-     *
-     *
-     * @return float Remaining refundable amount, never negative
-     *               (0.0 when the row is missing)
-     *
-     * @since  2.0.0
-     */
     /**
      * How much may still be refunded on this order, once every reservation the
      * core counts is kept apart.
