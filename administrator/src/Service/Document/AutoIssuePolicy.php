@@ -555,7 +555,8 @@ final class AutoIssuePolicy
             // money in the ORDER'S currency: 0.01 was one unit at two decimals
             // and a million at eight. Resolve the currency the way OrderFacts
             // does and let Money answer: here and in the figure the merchant
-            // is shown.
+            // is shown, in the currency's own format with its sign, as the
+            // other notifications state money.
             $currency = OrderItemLines::orderCurrency(orderId: $orderId);
             $strandedMoney = Money::of($stranded, $currency);
 
@@ -566,7 +567,7 @@ final class AutoIssuePolicy
                     title:   NotificationText::of(
                         'COM_ALFA_NOTIFY_AUTOISSUE_CHARGES_TITLE',
                         $orderId,
-                        number_format($strandedMoney->getAmount(), $currency->getDecimalPlaces()),
+                        $strandedMoney->format(),
                     ),
                 );
             }
@@ -627,7 +628,23 @@ final class AutoIssuePolicy
         DocumentIssuer::issue(draft: $draft, actor: new SystemActor(policy: 'automatic issue on a status change'));
 
         if (DocumentHelper::poolOf($docType) === DocumentHelper::POOL_SALES) {
-            self::reportUnclaimable(orderId: $orderId);
+            try {
+                self::reportUnclaimable(orderId: $orderId);
+            } catch (Throwable $noticeError) {
+                // The document is issued: the notice is advisory, so its failure is a line of the documents log,
+                // never "could not be issued" nor a retry of an issue that stands. A failure that ended a caller's
+                // transaction reaches the caller: the document went with it.
+                if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $noticeError)) {
+                    throw $noticeError;
+                }
+
+                Log::add(
+                    entry:    "AutoIssuePolicy: order {$orderId}: {$docType} was issued, but the notice of discount no invoice can claim could not be raised: "
+                              . $noticeError->getMessage(),
+                    priority: Log::WARNING,
+                    category: 'com_alfa.documents',
+                );
+            }
         }
     }
 
@@ -641,7 +658,8 @@ final class AutoIssuePolicy
      * total more than the order: the documents log and the order's
      * notification name the amount, as the order's document screen does,
      * in the currency's own format with its sign, as the other
-     * notifications state money.
+     * notifications state money. Advisory: the caller logs its failure and
+     * the document issued stands.
      *
      * @param int $orderId The order whose sales document was just issued.
      *
