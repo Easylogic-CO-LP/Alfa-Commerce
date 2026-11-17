@@ -765,6 +765,21 @@ class ProjectionManager
      */
     public static function markAllForRebuild(): int
     {
+        return self::markForRebuildWhere(condition: '');
+    }
+
+    /**
+     * Mark the items a condition names owed a rebuild, in ranges of 1,000 ids as markAllForRebuild() does: one
+     * statement per range, so a large catalogue is never scanned or locked whole by one statement (2.2.2).
+     *
+     * @param string $condition An SQL condition on #__alfa_items, from core's own code only; '' for every item.
+     *
+     * @return int The items marked.
+     *
+     * @since  2.2.2
+     */
+    public static function markForRebuildWhere(string $condition): int
+    {
         $db = Factory::getContainer()->get('DatabaseDriver');
         $items = $db->quoteName('#__alfa_items');
         [$low, $high] = array_map('intval', (array) $db->setQuery('SELECT COALESCE(MIN(id), 0), COALESCE(MAX(id), 0) FROM ' . $items)->loadRow());
@@ -772,7 +787,7 @@ class ProjectionManager
 
         for ($from = $low; $high > 0 && $from <= $high; $from += self::MARK_RANGE) {
             $db->setQuery('UPDATE ' . $items . ' SET ' . $db->quoteName('projection_dirty_at') . ' = UTC_TIMESTAMP(6) WHERE ' . $db->quoteName('id')
-                . ' BETWEEN ' . $from . ' AND ' . ($from + self::MARK_RANGE - 1))->execute();
+                . ' BETWEEN ' . $from . ' AND ' . ($from + self::MARK_RANGE - 1) . ($condition === '' ? '' : ' AND (' . $condition . ')'))->execute();
             $marked += (int) $db->getAffectedRows();
         }
 

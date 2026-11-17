@@ -146,11 +146,14 @@ if ($hasItem) {
                     </div>
 
                     <?php // The quote: the line as the cart will price it, the Items
-                          // table's own cells, re-rendered by the server on change. ?>
-                    <?php if (!empty($item->price)) : ?>
+                          // table's own cells, re-rendered by the server on change. The
+                          // layout decides between the figures and, for a line with no
+                          // price applying (2.2.2: its price is null), the sentence that
+                          // it waits for its custom price. ?>
+                    <?php if ($hasItem) : ?>
                         <div class="col-auto" data-builder-quote aria-live="polite">
                             <div data-builder-quote-figures>
-                                <?php echo LayoutHelper::render('cart.builder_quote', ['price' => $item->price], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+                                <?php echo LayoutHelper::render('cart.builder_quote', ['price' => $item->price ?? null], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
                             </div>
                             <div class="alert alert-danger small mt-2 mb-0" data-builder-quote-error hidden></div>
                         </div>

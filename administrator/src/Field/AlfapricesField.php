@@ -175,17 +175,20 @@ class AlfapricesField extends FormField
      * @param int $itemId The item id.
      * @param int $combinationId The variant.
      *
+     * @return Money|null The price; null when no price applies to the variant at one unit (2.2.2).
      *
      * @since  2.0.0
      */
-    public static function chargedPrice(int $itemId, int $combinationId): Money
+    public static function chargedPrice(int $itemId, int $combinationId): ?Money
     {
-        return (new PriceCalculator())->calculate(
+        $result = (new PriceCalculator())->calculate(
             productIds: $itemId,
             quantities: 1,
             context: self::previewContext(row: []),
             selection: new VariantSelection(combinationId: $combinationId),
-        )->getPrice();
+        );
+
+        return $result->isPriced() ? $result->getPrice() : null;
     }
 
     /**

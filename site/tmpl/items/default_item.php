@@ -62,15 +62,22 @@ if ($itemName === '') {
     <?php echo Surface::render($item, ItemListSurface::Title); ?>
 
     <?php
-        // Always a buy form (same as the product page). reloadUrl is empty when the
-        // item has no interactive fields: variant.js just skips the reload; the
-        // add-to-cart still works (JS reads item_id + quantity). One path, no fork.
+        // A buy form (same as the product page) when the shop sells online. reloadUrl
+        // is empty when the item has no interactive fields: variant.js just skips the
+        // reload; the add-to-cart still works (JS reads item_id + quantity). In
+        // catalogue-only mode (2.2.2, $item->sellsOnline false) a plain block, no
+        // form: the fields arrive as read-only lists and there is no add to cart.
+        $sellsOnline = (bool) ($item->sellsOnline ?? true);
     ?>
+    <?php if ($sellsOnline): ?>
     <form class="list-item-buy-form" data-item-form
           data-action="<?php echo $this->escape($item->reloadUrl); ?>"
           action="<?php echo $this->escape($item->addToCartUrl); ?>" method="post">
         <input type="hidden" name="item_id" value="<?php echo (int) $item->id; ?>">
         <?php echo HTMLHelper::_('form.token'); ?>
+    <?php else: ?>
+    <div class="list-item-catalogue">
+    <?php endif; ?>
 
         <div class="item-fields-surfaces">
             <?php echo Surface::render($item, ItemListSurface::BuyForm); ?>
@@ -86,6 +93,6 @@ if ($itemName === '') {
         <?php echo Layout::render('item.price', ['item' => $item, 'settings' => $priceSettings]); ?>
         <?php echo Layout::render('item.stock_info', ['item' => $item]); ?>
         <?php echo Layout::render('cart.wrapper', $item); ?>
-    </form>
+    <?php echo $sellsOnline ? '</form>' : '</div>'; ?>
 
 </article>

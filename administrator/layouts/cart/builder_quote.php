@@ -12,7 +12,7 @@
  *
  * Three cells, each the Items table's own (tmpl/cart/default_items.php): the
  * unit with tax (by the one unit rule), the discount and the line total, read
- * off the priced line.
+ * off the priced line. With no price applying, the sentence that the line waits for its custom price.
  * Nothing here computes money. The popup renders it at open and the
  * cart.priceLineConfig endpoint renders it again on every change.
  *
@@ -24,8 +24,14 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Joomla\CMS\Language\Text;
 
-/** @var \Alfa\Component\Alfa\Site\Service\Pricing\PriceResult $price */
-$price = $displayData['price'];
+/** @var \Alfa\Component\Alfa\Site\Service\Pricing\PriceResult|null $price Null when no price applies to the line (2.2.2). */
+$price = $displayData['price'] ?? null;
+
+// No price applies to the product at this quantity for this customer: the line waits for its custom price.
+if ($price === null) : ?>
+<p class="text-warning-emphasis mb-0"><?php echo $this->escape(Text::_('COM_ALFA_CART_LINE_ENTER_PRICE')); ?></p>
+<?php return;
+endif;
 ?>
 <div class="row g-3">
     <div class="col-auto">

@@ -13,10 +13,13 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
+use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -203,6 +206,9 @@ final class CoreSetupProvider
             ->tour(self::menuTourFor(self::customerViews()))
             ->priority(645)
             ->probe(static fn (): bool => MenuProvisioningService::missingViews(self::customerViews()) === [])
+            // The sign-up page is left out while Joomla refuses sign-ups; the row says so in every state, since a
+            // complete row shows no reason. Turning sign-ups on stays the administrator's, in Users: Options.
+            ->note(static fn (): string => SignUpHelper::open() ? '' : 'COM_ALFA_SETUP_CHECK_CUSTOMER_PAGES_NO_SIGNUP')
             ->choice('menutype', 'COM_ALFA_SETUP_MENU_TARGET_LABEL', static fn (): array => MenuProvisioningService::menuOptions())
             ->provision(static fn (array $answers = []) => MenuProvisioningService::provisionStorefront(
                 menutype: $answers['menutype'] ?? null,
@@ -293,6 +299,34 @@ final class CoreSetupProvider
                 arguments: static fn (): array => [ExtensionCompatibility::describe(named: $compatibility()), ExtensionCompatibility::coreLine()],
                 unnamed:   'COM_ALFA_SETUP_CHECK_EXTENSIONS_REASON_UNNAMED',
             );
+
+        // Products that sell from a quantity no price row covers (2.2.2): the card and the product page open at that
+        // quantity and show no price there, and the cart refuses it. An information row: the shop runs; the named
+        // products are priced only from a larger quantity. Read once per computation: the state and the reason follow.
+        $underTier = null;
+        $minimumUnderTier = static function () use (&$underTier): array {
+            return $underTier ??= self::minimumUnderTier();
+        };
+
+        $this->check('catalog.minimum_under_tier', 'COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER_LABEL')
+            ->tier(SetupCheck::TIER_OPTIONAL)
+            ->reason('COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER')
+            ->cta('index.php?option=com_alfa&view=items')
+            ->priority(380)
+            ->probe(static fn (): string => $minimumUnderTier()['count'] === 0 ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN)
+            ->reasonArguments(
+                arguments: static fn (): array => $minimumUnderTier()['count'] === 0 ? [] : [(string) $minimumUnderTier()['count'], implode(', ', $minimumUnderTier()['names'])],
+                unnamed:   'COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER_UNNAMED',
+            );
+
+        // Online sales switched off (2.2.2): the shop shows its catalogue only. An information row, so the mode is never
+        // forgotten: the shop runs, and nothing can be bought online.
+        $this->check('cart.catalogue_only', 'COM_ALFA_SETUP_CHECK_CATALOGUE_ONLY_LABEL')
+            ->tier(SetupCheck::TIER_OPTIONAL)
+            ->reason('COM_ALFA_SETUP_CHECK_CATALOGUE_ONLY')
+            ->cta('index.php?option=com_config&view=component&component=com_alfa')
+            ->priority(385)
+            ->probe(static fn (): string => ShopMode::sellsOnline() ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN);
 
         $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
@@ -496,6 +530,48 @@ final class CoreSetupProvider
             ->bind(':registration', $required, ParameterType::INTEGER);
 
         return $db->setQuery($query)->loadObjectList() ?: [];
+    }
+
+    /**
+     * The published products whose minimum quantity no price row covers (2.2.2): the product has price rows for every
+     * shopper of a currency (no group, customer or place of their own; an empty scope read as none, as 0), and none of
+     * them covers the minimum, whether the rows begin above it or all end below it. A row of any currency counts, so a
+     * shop with one row per currency is named only where none covers the minimum. A product priced only for a group, a
+     * customer or a place is not named: it is priced for them on purpose. Product rows only (a variant's own rows and
+     * minimum are not read); a row's publish window is not read.
+     *
+     * @return array{count: int, names: list<string>} How many, and the names of the first ten in the default language.
+     *
+     * @since  2.2.2
+     */
+    private static function minimumUnderTier(): array
+    {
+        $db = self::db();
+        $minimum = 'GREATEST(' . $db->quoteName('i.quantity_min') . ', 1)';
+        $general = $db->quoteName('p.item_id') . ' = ' . $db->quoteName('i.id') . ' AND ' . $db->quoteName('p.combination_id') . ' IS NULL'
+            . ' AND ' . $db->quoteName('p.state') . ' = 1'
+            . ' AND COALESCE(' . $db->quoteName('p.usergroup_id') . ', 0) = 0 AND COALESCE(' . $db->quoteName('p.user_id') . ', 0) = 0'
+            . ' AND COALESCE(' . $db->quoteName('p.country_id') . ', 0) = 0';
+        $where = $db->quoteName('i.state') . ' = 1'
+            . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices', 'p') . ' WHERE ' . $general . ')'
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices', 'p') . ' WHERE ' . $general
+            . ' AND COALESCE(' . $db->quoteName('p.quantity_start') . ', 0) <= ' . $minimum
+            . ' AND (' . $db->quoteName('p.quantity_end') . ' IS NULL OR ' . $db->quoteName('p.quantity_end') . ' >= ' . $minimum . '))';
+        $count = (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_items', 'i') . ' WHERE ' . $where)->loadResult();
+
+        if ($count === 0) {
+            return ['count' => 0, 'names' => []];
+        }
+
+        $names = $db->setQuery(
+            'SELECT COALESCE(NULLIF(' . $db->quoteName('n.name') . ", ''), CONCAT('#', " . $db->quoteName('i.id') . ')) FROM ' . $db->quoteName('#__alfa_items', 'i')
+            . ' LEFT JOIN ' . $db->quoteName('#__alfa_items_' . MultilingualHelper::getDefaultLanguageTag(), 'n') . ' ON ' . $db->quoteName('n.id_item') . ' = ' . $db->quoteName('i.id')
+            . ' WHERE ' . $where . ' ORDER BY ' . $db->quoteName('i.id'),
+            0,
+            10,
+        )->loadColumn() ?: [];
+
+        return ['count' => $count, 'names' => array_map('strval', $names)];
     }
 
     /**

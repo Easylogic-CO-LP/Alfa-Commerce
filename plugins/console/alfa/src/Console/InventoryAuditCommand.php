@@ -160,7 +160,8 @@ final class InventoryAuditCommand extends AbstractCommand
     /**
      * The audit, read from one read-only snapshot that is always rolled back.
      * The connection must not be inside a transaction: starting the snapshot
-     * would end it.
+     * would end it. A full transaction by design; inside a caller's transaction
+     * SET TRANSACTION READ ONLY is refused by the server before it starts.
      *
      * @param int[]|null $itemIds The items to audit; null audits the whole catalogue.
      *

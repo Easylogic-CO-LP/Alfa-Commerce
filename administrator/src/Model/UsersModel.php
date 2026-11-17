@@ -25,6 +25,25 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 class UsersModel extends AlfaListModel
 {
     /**
+     * The Joomla account's state, as Joomla 6 reads it at sign-in, which checks the block only: 0 enabled (the account
+     * can sign in, even with an activation code still set, as after an unblock from Joomla's users list), 1 blocked,
+     * 2 awaiting activation (blocked with a pending activation code, which Joomla's list reads as longer than one
+     * character). Selected and filtered through this one expression; the code itself never leaves the query.
+     *
+     * @since  2.2.2
+     */
+    public const ACCOUNT_STATE = 'CASE WHEN u.block = 1 AND CHAR_LENGTH(u.activation) > 1 THEN 2 WHEN u.block = 1 THEN 1 ELSE 0 END';
+
+    /**
+     * The account states, by their code in {@see self::ACCOUNT_STATE}.
+     *
+     * @since  2.2.2
+     */
+    public const ACCOUNT_ENABLED = 0;
+    public const ACCOUNT_BLOCKED = 1;
+    public const ACCOUNT_AWAITING_ACTIVATION = 2;
+
+    /**
      * The admin-contract entity this list serves.
      *
      *
@@ -52,6 +71,7 @@ class UsersModel extends AlfaListModel
                 'username',    'u.username',
                 'email',       'u.email',
                 'lastvisitDate', 'u.lastvisitDate',
+                'account_state',
             ];
         }
 
@@ -131,7 +151,8 @@ class UsersModel extends AlfaListModel
         $query->select(
             $this->getState(
                 'list.select',
-                'a.*, u.name AS joomla_name, u.username, u.email, u.lastvisitDate',  // no DISTINCT
+                'a.*, u.name AS joomla_name, u.username, u.email, u.lastvisitDate, '
+                . self::ACCOUNT_STATE . ' AS account_state',  // no DISTINCT
             ),
         );
 
@@ -159,6 +180,13 @@ class UsersModel extends AlfaListModel
             }
         }
 
+        // The Joomla account's state: enabled, blocked or awaiting activation.
+        $accountState = $this->getState('filter.account_state');
+
+        if (is_numeric($accountState)) {
+            $query->where('(' . self::ACCOUNT_STATE . ') = ' . (int) $accountState);
+        }
+
         $orderCol = $this->getState('list.ordering', 'a.id');
         $orderDirn = $this->getState('list.direction', 'ASC');
         $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
@@ -175,6 +203,33 @@ class UsersModel extends AlfaListModel
      */
     public function getItems()
     {
-        return parent::getItems();
+        $items = parent::getItems();
+
+        if (!\is_array($items) || $items === []) {
+            return $items;
+        }
+
+        // Each account's user groups, in one read for the page (never a query per row): their titles, in the
+        // groups' tree order.
+        $db = $this->getDatabase();
+        $userIds = array_values(array_unique(array_map(static fn (object $item): int => (int) $item->id_user, $items)));
+        $query = $db->getQuery(true)
+            ->select([$db->quoteName('m.user_id'), $db->quoteName('g.title')])
+            ->from($db->quoteName('#__user_usergroup_map', 'm'))
+            ->join('INNER', $db->quoteName('#__usergroups', 'g') . ' ON ' . $db->quoteName('g.id') . ' = ' . $db->quoteName('m.group_id'))
+            ->whereIn($db->quoteName('m.user_id'), $userIds)
+            ->order([$db->quoteName('m.user_id'), $db->quoteName('g.lft')]);
+        $titles = [];
+
+        foreach ($db->setQuery($query)->loadObjectList() as $row) {
+            $titles[(int) $row->user_id][] = (string) $row->title;
+        }
+
+        foreach ($items as $item) {
+            $item->group_titles = $titles[(int) $item->id_user] ?? [];
+            $item->account_state = (int) ($item->account_state ?? self::ACCOUNT_ENABLED);
+        }
+
+        return $items;
     }
 }
