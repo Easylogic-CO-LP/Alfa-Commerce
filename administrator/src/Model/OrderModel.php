@@ -6150,16 +6150,6 @@ class OrderModel extends AlfaAdminModel
     // when an event happened.
 
     /**
-     * Log an event to the unified order activity log
-     *
-     * @param int $orderId Order ID
-     * @param string $event Dot-notation event: 'order.edited', 'item.added', etc.
-     * @param string $summary Human-readable summary
-     * @param array|null $context Structured data (changes, metadata, gateway info)
-     * @param int|null $entityId Related entity PK (order_items.id, order_payments.id, etc.)
-     * @since  1.0.0
-     */
-    /**
      * Record an activity entry, or fail loudly.
      *
      * The strict sibling of {@see logOrderActivity}: it lets a write failure
