@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Media;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\ThumbnailsRecreateJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
@@ -174,7 +175,7 @@ final class ThumbnailRecreation
 
         $db = self::db();
         $name = self::META;
-        $db->transactionStart();
+        $db->transactionStart(true);
 
         try {
             $db->setQuery(
@@ -192,7 +193,7 @@ final class ThumbnailRecreation
             $active = self::activeJob(db: $db);
 
             if ($mode === self::MODE_MISSING && $active !== null) {
-                $db->transactionCommit();
+                TransactionState::commitLevel(db: $db);
 
                 return $active;
             }
@@ -206,11 +207,11 @@ final class ThumbnailRecreation
                     ->bind(':name', $name),
             )->execute();
             $id = Runner::enqueue(handler: ThumbnailsRecreateJob::NAME, scopeKey: ThumbnailsRecreateJob::NAME, payload: [])->id;
-            $db->transactionCommit();
+            TransactionState::commitLevel(db: $db);
 
             return $id;
         } catch (Throwable $e) {
-            $db->transactionRollback();
+            TransactionState::rollBackLevel(db: $db, failure: $e);
 
             throw $e;
         }
