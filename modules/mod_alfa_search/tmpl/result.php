@@ -9,7 +9,6 @@
 
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Uri\Uri;
 
 defined('_JEXEC') or die;
 
@@ -70,8 +69,10 @@ endif;
         <a class="search-product-item"
            href="<?php echo htmlspecialchars($product->link, ENT_QUOTES, 'UTF-8'); ?>" tabindex="0">
             <div class="search-image-container">
-                <img src="<?php echo Uri::root(true); ?>/media/com_alfa/images/no-image.webp"
-                     alt="<?php echo htmlspecialchars($product->name, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php /* The first picture as the catalogue's card reads it (its thumbnail, or the shop's placeholder when it has none and the shop shows one); decorative, the title names it. */ ?>
+                <?php if (!empty($product->medias[0]->thumbnail)): ?>
+                <img src="<?php echo htmlspecialchars($product->medias[0]->thumbnail_url, ENT_QUOTES, 'UTF-8'); ?>" alt="">
+                <?php endif; ?>
             </div>
             <div class="search-info-container">
                 <div class="search-product-title">
