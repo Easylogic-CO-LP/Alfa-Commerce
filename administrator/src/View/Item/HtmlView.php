@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Item;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -63,7 +64,7 @@ class HtmlView extends FormView
         // Add form control fields
         $this->form
             ->addControlField('task', '')
-            ->addControlField('return', $input->getBase64('return', ''));
+            ->addControlField('return', RequestScalar::read($input, 'return', '', 'base64'));
 
         // "Fields & combinations" popup data: category-scoped fields with pools,
         // this item's assignments/subsets. Availability follows the SAVED
@@ -102,10 +103,10 @@ class HtmlView extends FormView
 
         // The Studio popup (layout=edit_combination) edits ONE combination in
         // its own iframe with its own save; load it fully.
-        if ($input->get('layout') === 'edit_combination') {
+        if (RequestScalar::cmd($input, 'layout') === 'edit_combination') {
             $this->studioCombination = \Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper::getCombination(
                 itemId:        (int) ($this->item->id ?? 0),
-                combinationId: $input->getInt('combination_id', 0),
+                combinationId: RequestScalar::int($input, 'combination_id'),
             );
         }
     }

@@ -23,7 +23,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *
  *     public function onAlfaAdminAfterSave(AdminAfterSaveEvent $event): void
  *     {
- *         if (!$event->targets('product')) {
+ *         if (!$event->targets('item')) {
  *             return;
  *         }
  *

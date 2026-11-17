@@ -13,7 +13,6 @@ namespace libphonenumber\geocoding\data\de;
 
 /**
  * @internal
- * @since  1.0.0
  */
 class De_41
 {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field" addruleprefix="Alfa\Component\Alfa\Administrator\Rule">
   <fieldset>
 
     <field
@@ -11,10 +11,14 @@
       description="JGLOBAL_FIELD_ID_DESC"
     />
 
+    <!-- validate=customerUser: an existing Joomla user that no other customer record names (CustomerUserRule). -->
     <field
       name="id_user"
       type="hidden"
       default="0"
+      required="true"
+      filter="integer"
+      validate="customerUser"
     />
 
     <field

@@ -33,10 +33,13 @@ use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
+use Joomla\CMS\Date\Date;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\CMS\User\User;
+use Joomla\CMS\User\UserFactoryInterface;
 use Joomla\Database\ParameterType;
 use RuntimeException;
 use stdClass;
@@ -221,9 +224,17 @@ final class DocumentIssuer
      *                               true). Pass FALSE only when the caller
      *                               has ALREADY moved these goods through
      *                               the inventory kernel itself; see below.
+     * @param User|SystemActor|null $actor Who issues: a person, who must hold
+     *                                     Sales Documents: Create; the shop's
+     *                                     own policy, named (SystemActor); null
+     *                                     = the request's identity (2.2.1,
+     *                                     the service checks, whoever
+     *                                     calls it).
      *
      * @return object The issued `#__alfa_documents` row (fresh read).
      *
+     * @throws DocumentRefusedException When the actor may not issue; nothing is
+     *                                  issued and no number is drawn.
      * @throws RuntimeException On guard/validation failure or write errors
      *                          (after rollback when this call owns the tx).
      *
@@ -233,6 +244,34 @@ final class DocumentIssuer
         array $draft,
         bool $manageTransaction = true,
         bool $applyStockEffect = true,
+        User|SystemActor|null $actor = null,
+    ): object {
+        if (!$actor instanceof SystemActor && !AlfaHelper::can(section: 'documents', action: 'create', user: $actor ?? self::currentUser())) {
+            throw new DocumentRefusedException(
+                message: 'DocumentIssuer: issuing a sales document requires the Sales Documents: Create permission (documents.create).',
+                key:     'COM_ALFA_DOCUMENTS_ISSUE_REFUSED_PERMISSION',
+            );
+        }
+
+        return self::issueDraft(draft: $draft, manageTransaction: $manageTransaction, applyStockEffect: $applyStockEffect);
+    }
+
+    /**
+     * Issue a document whose actor is already judged: issue() for a caller of this class, replace() for the
+     * replacement its own capability covers.
+     *
+     * @param array $draft The document draft ({@see self::issue()}).
+     * @param bool $manageTransaction Own the transaction.
+     * @param bool $applyStockEffect Apply the type's stock effect.
+     *
+     * @return object The issued `#__alfa_documents` row (fresh read).
+     *
+     * @since  2.2.1
+     */
+    private static function issueDraft(
+        array $draft,
+        bool $manageTransaction,
+        bool $applyStockEffect,
     ): object {
         // The stock-effect lines below (skipped / failed) are written to
         // com_alfa.inventory, and an unregistered category is dropped in
@@ -343,8 +382,14 @@ final class DocumentIssuer
 
             $series = self::lockSeries(db: $db, seriesId: $seriesId, docType: $docType);
 
-            $nowUtc = Factory::getDate('now', 'UTC');
-            $localDate = Factory::getDate('now', DocumentHelper::shopTimezone());
+            // The clock as it is now, read for this document, and its date in the shop's time zone from the same
+            // instant (2.2.1). Factory::getDate() keeps the time of its first call for the whole process, so a task
+            // run or a console command issuing several documents would date them all at its start (a run crossing
+            // midnight dating the later ones the day before, a year-scoped series numbering a new year's first
+            // documents in the old year's series) and refuse a series another request had issued in since.
+            $nowUtc = new Date('now', 'UTC');
+            $localDate = clone $nowUtc;
+            $localDate->setTimezone(DocumentHelper::shopTimezone());
             $localYear = (int) $localDate->format('Y', true);
 
             if ((int) $series->year_scoped === 1 && (int) $series->current_year !== $localYear) {
@@ -749,11 +794,16 @@ final class DocumentIssuer
      *
      * @param int $documentId The document to void.
      * @param string $reason Mandatory human reason (audit).
-     * @param int|null $actorId Acting admin; null = current identity.
+     * @param int|null $actorId Acting admin; null = current identity. The
+     *                          actor must hold Sales Documents: Change State
+     *                          (2.2.1, the service checks, whoever
+     *                          calls it).
      * @param bool $manageTransaction Own the transaction (default true).
      *
      * @return object The voided document row (fresh read).
      *
+     * @throws DocumentRefusedException When the reason is empty or the actor
+     *                                  may not void; nothing is changed.
      * @throws RuntimeException When the document is not issued, is referenced
      *                          by non-voided correctives, or the write fails;
      *                          and when its order names no currency, in which
@@ -765,11 +815,37 @@ final class DocumentIssuer
     public static function void(int $documentId, string $reason, ?int $actorId = null, bool $manageTransaction = true): object
     {
         if (trim($reason) === '') {
-            throw new RuntimeException('DocumentIssuer: a void requires a reason.');
+            throw new DocumentRefusedException(message: 'DocumentIssuer: a void requires a reason.', key: 'COM_ALFA_DOCUMENTS_VOID_NEEDS_REASON');
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
         $actorId ??= self::currentUserId();
+
+        if (!AlfaHelper::can(section: 'documents', action: 'edit.state', user: self::user(userId: $actorId))) {
+            throw new DocumentRefusedException(
+                message: 'DocumentIssuer: voiding a sales document requires the Sales Documents: Change State permission (documents.edit.state).',
+                key:     'COM_ALFA_DOCUMENTS_VOID_REFUSED_PERMISSION',
+            );
+        }
+
+        return self::voidDocument(documentId: $documentId, reason: $reason, actorId: $actorId, manageTransaction: $manageTransaction);
+    }
+
+    /**
+     * Void a document whose actor is already judged: void() for a caller of this class, replace() for the source its
+     * own capability covers.
+     *
+     * @param int $documentId The document to void.
+     * @param string $reason The reason, not empty.
+     * @param int $actorId Acting admin.
+     * @param bool $manageTransaction Own the transaction.
+     *
+     * @return object The voided document row (fresh read).
+     *
+     * @since  2.2.1
+     */
+    private static function voidDocument(int $documentId, string $reason, int $actorId, bool $manageTransaction): object
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
 
         // Order before document, and this read before the transaction
         // The lock order was the reverse (document, then order), which is the
@@ -1199,7 +1275,7 @@ final class DocumentIssuer
         }
 
         $actorId ??= self::currentUserId();
-        $actor = Factory::getContainer()->get(\Joomla\CMS\User\UserFactoryInterface::class)->loadUserById($actorId);
+        $actor = self::user(userId: $actorId);
 
         // 1. The service boundary
         // A composite destructive financial act answers to its own capability.
@@ -1278,7 +1354,7 @@ final class DocumentIssuer
             }
 
             // 5. The void: its announcement is HELD, not sent
-            self::void(documentId: $sourceId, reason: $reason, actorId: $actorId, manageTransaction: false);
+            self::voidDocument(documentId: $sourceId, reason: $reason, actorId: $actorId, manageTransaction: false);
 
             // The caller's own check, with the source voided and no number
             // drawn: a refusal here still undoes everything.
@@ -1293,7 +1369,7 @@ final class DocumentIssuer
             self::$replacing = $sourceId;
 
             try {
-                $replacement = self::issue(draft: $answered, manageTransaction: false);
+                $replacement = self::issueDraft(draft: $answered, manageTransaction: false, applyStockEffect: true);
             } finally {
                 self::$replacing = 0;
             }
@@ -3834,6 +3910,28 @@ final class DocumentIssuer
     }
 
     /**
+     * The current identity, as the permission checks judge it (a guest outside a session).
+     *
+     * @since  2.2.1
+     */
+    private static function currentUser(): User
+    {
+        return self::user(userId: self::currentUserId());
+    }
+
+    /**
+     * A user by id, as the permission checks judge it (a guest for 0).
+     *
+     * @param int $userId The user.
+     *
+     * @since  2.2.1
+     */
+    private static function user(int $userId): User
+    {
+        return Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($userId);
+    }
+
+    /**
      * Current identity display name ('System' outside a session).
      *
      * @since  2.0.0
@@ -3867,7 +3965,7 @@ final class DocumentIssuer
     {
         self::logQuietly(
             entry:    "Document #{$documentId}: stock effect deferred: {$reason}"
-                      . ' (the obligation remains in the outbox; Tools -> Database Sync applies it).',
+                      . ' (the obligation remains in the outbox; Tools > Database Sync applies it).',
             priority: Log::ERROR,
             category: 'com_alfa.inventory',
         );

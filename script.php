@@ -135,7 +135,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @var string
      */
-    public const SCHEMA_VERSION = '2.2.0';
+    public const SCHEMA_VERSION = '2.2.1';
 
     /**
      * Whether this run completes an install that never finished: preflight ran
@@ -240,11 +240,52 @@ class com_alfaInstallerScript extends InstallerScript
     ];
 
     /**
+     * Columns no code reads (2.2.1): written only as empty or never at all. The installation drops each one a table
+     * still has ({@see self::dropLeftoverColumns()}). The orders' invoice_number was never written either: the order
+     * number is the order's id (EmailService::orderNumber()).
+     *
+     * @var array<string, string[]>
+     * @since 2.2.1
+     */
+    private const LEFTOVER_COLUMNS = [
+        '#__alfa_orders' => ['id_coupon', 'code_coupon', 'invoice_date', 'invoice_number'],
+        '#__alfa_order_items' => ['id_order_invoice'],
+        '#__alfa_order_cart_rule' => ['id_order_invoice'],
+        '#__alfa_order_shipments' => ['id_order_invoice'],
+    ];
+
+    /**
+     * The e-mail texts of the per-language status tables (#__alfa_orders_statuses_<language>, 2.2.1): no code reads
+     * them; a status e-mail is built from its positions and its layout. Dropped from every language's table that
+     * still has them.
+     *
+     * @var string[]
+     * @since 2.2.1
+     */
+    private const LEFTOVER_STATUS_TEXT_COLUMNS = ['email_subject_customer', 'email_body_customer', 'email_subject_admin', 'email_body_admin'];
+
+    /**
+     * Columns a release adds to a table an earlier one created (2.2.1): table => column => its definition, exactly as
+     * the install SQL's CREATE has it, and the column it follows. The installation adds each one a table lacks
+     * ({@see self::addMissingColumns()}); the install SQL creates them for a new shop.
+     *
+     * @var array<string, array<string, array{0: string, 1: string}>>
+     * @since 2.2.1
+     */
+    private const NEW_COLUMNS = [
+        '#__alfa_places' => [
+            'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
+        ],
+    ];
+
+    /**
      * The cache groups an update cleans once (2.2.0, A-C16-6): Joomla's page cache, where 2.1.4 could store a guest's
      * completed order under the arrival address and serve it to the next guest, and every group the component writes
      * (the dashboard's cards, the setup checks, the storefront's category tree, the integrity verdict and the
-     * throttles of the notices, the tasks and the stock effects), whose entries the version before computed. A
-     * group added to the component is added here; the release tests compare this list with the source.
+     * throttles of the notices, the tasks and the stock effects), whose entries the version before computed, and the
+     * group of the bundled items module (mod_alfa_items: its best sellers ranking and its listings, 2.2.1). A group
+     * added to the component or to a bundled mod_alfa_ module is added here; the release tests compare this list with
+     * the source.
      *
      * @var string[]
      * @since 2.2.0
@@ -259,6 +300,7 @@ class com_alfaInstallerScript extends InstallerScript
         'com_alfa.notifications',
         'com_alfa.stockeffects',
         'com_alfa.tasks',
+        'mod_alfa_items',
     ];
 
     // Installer lifecycle hooks
@@ -845,6 +887,187 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
+     * Add the columns this release adds to a table an earlier one created ({@see self::NEW_COLUMNS}), each only where
+     * the table lacks it.
+     *
+     * The table's own columns are read first, from the database's catalogue, so the step adds nothing twice: a fresh
+     * install (the install SQL created them), an update run again after it stopped, a table kept by an uninstall and
+     * connected again, and a site whose database check already added a column all go on. A table that refuses is named
+     * in an error and the maintenance log: the screens that read the column need it, and the next installation adds it.
+     * The schema version is recorded after it all the same ({@see self::recordSchemaVersion()}): this step runs on every
+     * install and update and adds what is still missing, while a version left behind would make a reconnect of kept
+     * tables, which already hold the release's other changes, refuse this package ({@see self::keptDataRefusal()}).
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function addMissingColumns(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $failed = [];
+
+        foreach (self::NEW_COLUMNS as $name => $columns) {
+            $table = $db->replacePrefix($name);
+
+            try {
+                $present = $db->setQuery(
+                    'SELECT ' . $db->quoteName('COLUMN_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                    . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                    . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($table),
+                )->loadColumn() ?: [];
+
+                // A table the installation did not make is not this step's to change.
+                if ($present === []) {
+                    continue;
+                }
+
+                $add = array_diff_key($columns, array_flip(array_map('strval', $present)));
+
+                if ($add === []) {
+                    continue;
+                }
+
+                $clauses = [];
+
+                foreach ($add as $column => [$definition, $after]) {
+                    $clauses[] = 'ADD COLUMN ' . $db->quoteName($column) . ' ' . $definition
+                        . (\in_array($after, $present, true) ? ' AFTER ' . $db->quoteName($after) : '');
+                }
+
+                $db->setQuery('ALTER TABLE ' . $db->quoteName($table) . ' ' . implode(', ', $clauses))->execute();
+                self::maintenanceLog(
+                    line: sprintf('Update to %s: %s gained the columns %s.', self::SCHEMA_VERSION, $table, implode(', ', array_keys($add))),
+                    priority: \Joomla\CMS\Log\Log::INFO,
+                );
+            } catch (\Throwable $e) {
+                $failed[] = $table . ': ' . implode(', ', array_keys($columns)) . ' (' . $e->getMessage() . ')';
+            }
+        }
+
+        if ($failed !== []) {
+            $message = $this->installerText(
+                key:      'COM_ALFA_INSTALL_NEW_COLUMNS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not add columns this version needs: %2$s. Install the package again; the pages that read them need them.',
+                values:   [$this->packageVersion, implode('; ', $failed)],
+            );
+            Factory::getApplication()->enqueueMessage($message, 'error');
+            self::maintenanceLog(line: $message, priority: \Joomla\CMS\Log\Log::ERROR);
+        }
+    }
+
+    /**
+     * Drop the columns no code reads (2.2.1, {@see self::LEFTOVER_COLUMNS} and the status texts of every language's
+     * status table, {@see self::LEFTOVER_STATUS_TEXT_COLUMNS}), each only where the table still has it.
+     *
+     * The tables' own columns are read first, from the database's catalogue, so the step drops nothing twice and
+     * changes nothing where the columns are already gone: a fresh install, an update run again after it stopped, or
+     * tables kept by an uninstall and connected again. One statement per table drops all of its leftover columns at
+     * once; a key made only of them (the orders' idx_invoice_number) is dropped before, in a statement of its own, so
+     * that the column drop can stay a change of the table's definition alone where the server makes it one. No data a
+     * shop uses is in them: the order columns were written only empty or not at all, the status texts were never
+     * read. A table that refuses is named in a warning and the maintenance log, keeps its columns and the shop works;
+     * the next installation drops them. It never fails the installation.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function dropLeftoverColumns(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $prefix = $db->getPrefix();
+        $wanted = [];
+
+        foreach (self::LEFTOVER_COLUMNS as $table => $columns) {
+            $wanted[$db->replacePrefix($table)] = $columns;
+        }
+
+        $failed = [];
+
+        try {
+            // The prefix's _ and % must match themselves: addcslashes() escapes them for LIKE, whose escape character
+            // is the backslash, and quote() escapes those backslashes again for the string literal, which MySQL reads
+            // back to one before LIKE sees the pattern.
+            $statusTables = $db->setQuery(
+                'SELECT DISTINCT ' . $db->quoteName('TABLE_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' LIKE ' . $db->quote(addcslashes($prefix . 'alfa_orders_statuses_', '_%\\') . '%')
+                . ' AND ' . $db->quoteName('COLUMN_NAME') . ' IN (' . implode(', ', array_map([$db, 'quote'], self::LEFTOVER_STATUS_TEXT_COLUMNS)) . ')',
+            )->loadColumn() ?: [];
+
+            foreach ($statusTables as $table) {
+                $wanted[(string) $table] = self::LEFTOVER_STATUS_TEXT_COLUMNS;
+            }
+
+            $present = [];
+
+            foreach ($db->setQuery(
+                'SELECT ' . $db->quoteName('TABLE_NAME') . ', ' . $db->quoteName('COLUMN_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' IN (' . implode(', ', array_map([$db, 'quote'], array_keys($wanted))) . ')',
+            )->loadAssocList() ?: [] as $row) {
+                $present[(string) $row['TABLE_NAME']][(string) $row['COLUMN_NAME']] = true;
+            }
+
+            // The tables' keys other than the primary one, each with its columns.
+            $keys = [];
+
+            foreach ($db->setQuery(
+                'SELECT ' . $db->quoteName('TABLE_NAME') . ', ' . $db->quoteName('INDEX_NAME') . ', ' . $db->quoteName('COLUMN_NAME')
+                . ' FROM ' . $db->quoteName('information_schema.STATISTICS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' IN (' . implode(', ', array_map([$db, 'quote'], array_keys($wanted))) . ')'
+                . ' AND ' . $db->quoteName('INDEX_NAME') . ' <> ' . $db->quote('PRIMARY'),
+            )->loadAssocList() ?: [] as $row) {
+                $keys[(string) $row['TABLE_NAME']][(string) $row['INDEX_NAME']][] = (string) $row['COLUMN_NAME'];
+            }
+        } catch (\Throwable $e) {
+            $failed[] = 'information_schema (' . $e->getMessage() . ')';
+            $present = [];
+            $keys = [];
+        }
+
+        foreach ($wanted as $table => $columns) {
+            $drop = array_values(array_filter($columns, static fn (string $column): bool => isset($present[$table][$column])));
+
+            if ($drop === []) {
+                continue;
+            }
+
+            $dropKeys = array_keys(array_filter(
+                $keys[$table] ?? [],
+                static fn (array $keyColumns): bool => array_diff($keyColumns, $drop) === [],
+            ));
+
+            try {
+                foreach ($dropKeys as $key) {
+                    $db->setQuery('ALTER TABLE ' . $db->quoteName($table) . ' DROP KEY ' . $db->quoteName((string) $key))->execute();
+                }
+
+                $db->setQuery(
+                    'ALTER TABLE ' . $db->quoteName($table) . ' '
+                    . implode(', ', array_map(static fn (string $column): string => 'DROP COLUMN ' . $db->quoteName($column), $drop)),
+                )->execute();
+                self::maintenanceLog(
+                    line: sprintf('Update to %s: %s dropped the columns no code reads: %s.', self::SCHEMA_VERSION, $table, implode(', ', $drop)),
+                    priority: \Joomla\CMS\Log\Log::INFO,
+                );
+            } catch (\Throwable $e) {
+                $failed[] = $table . ': ' . implode(', ', $drop) . ' (' . $e->getMessage() . ')';
+            }
+        }
+
+        if ($failed !== []) {
+            $message = $this->installerText(
+                key:      'COM_ALFA_INSTALL_LEFTOVER_COLUMNS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not drop columns no code reads: %2$s. The shop works with them; the next installation drops them.',
+                values:   [$this->packageVersion, implode('; ', $failed)],
+            );
+            Factory::getApplication()->enqueueMessage($message, 'warning');
+            self::maintenanceLog(line: $message, priority: \Joomla\CMS\Log\Log::WARNING);
+        }
+    }
+
+    /**
      * Run this package's install SQL for an install that never finished, before Joomla copies a
      * file, so that nothing after it (the update files, postflight's language and user sync, the
      * tours, the task) builds on a schema the install SQL has not completed.
@@ -1101,7 +1324,7 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         $plugin = $state === 'removed'
-            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed', values: [])
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed by Alfa Commerce', values: [])
             : ($state === 'kept'
                 ? $this->installerText(
                     key:      'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_KEPT',
@@ -1120,9 +1343,11 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * The update's step from the scheduled task to the job runner for the list prices of customer groups (2.2.0):
-     * every waiting set gets its price.set.prepare job, plg_task_alfapricesets is uninstalled through Joomla's
-     * installer, and any scheduled task of its routine left behind is deleted; each of the three on its own, so a
-     * failure of one never skips the next. A failure is said, never a failed update: the jobs are given again by the
+     * every waiting set gets its price.set.prepare job, the scheduled tasks of plg_task_alfapricesets' routine are
+     * deleted, and the plugin is uninstalled through Joomla's installer; each of the three on its own, so a failure of
+     * one never skips the next. The tasks go first (2.2.1): the plugin's own uninstall script (2.1.x) removes them
+     * through a constant this version no longer has and says it failed, so it is not run (removed with the plugin
+     * before the uninstall, logged), and this step's one message says what was done. A failure is said, never a failed update: the jobs are given again by the
      * next request of a set, and Tools > Database Sync shows what waits. The message names the plugin's state:
      * removed, not installed, or still installed (refused by Joomla's installer), the last as a warning that names
      * where to uninstall it.
@@ -1137,12 +1362,28 @@ class com_alfaInstallerScript extends InstallerScript
         $failures = [];
         $converted = 0;
         $rows      = 0;
+        $deleted   = false;
         $state     = 'absent';
 
         // Three steps, each on its own: a failure of one never skips the next.
         try
         {
             $converted = (new \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService())->queueWaitingSets();
+        }
+        catch (\Throwable $e)
+        {
+            $failures[] = $e->getMessage();
+        }
+
+        try
+        {
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->delete($db->quoteName('#__scheduler_tasks'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('alfapricesets.prepare'))
+            )->execute();
+            $rows    = (int) $db->getAffectedRows();
+            $deleted = true;
         }
         catch (\Throwable $e)
         {
@@ -1171,26 +1412,44 @@ class com_alfaInstallerScript extends InstallerScript
 
                 $installer = new Installer();
                 $installer->setDatabase($db);
+
+                // The plugin's own install script (2.1.x) does one thing at its uninstall: it removes the tasks above,
+                // through a constant this version no longer has, and then warns they were not removed. They are gone
+                // already, so it is not run: removed with the plugin, before Joomla's installer would include it.
+                $oldScript = JPATH_PLUGINS . '/task/alfapricesets/script.php';
+
+                $hadScript = is_file($oldScript);
+                $unlinked  = $hadScript && @unlink($oldScript);
+
+                if ($hadScript && !$unlinked)
+                {
+                    // Not writable: the uninstall below still runs, and Joomla runs the old script with it, which warns
+                    // as it did in 2.2.0. The log says why that warning shows.
+                    self::maintenanceLog(
+                        line:     sprintf('Update to %s: the uninstall script of plg_task_alfapricesets could not be removed (its folder is not writable), so it ran with the uninstall and may warn that the scheduled tasks were not removed.', $this->packageVersion),
+                        priority: \Joomla\CMS\Log\Log::WARNING,
+                    );
+                }
+                elseif ($unlinked)
+                {
+                    // "Removed" only when the delete above ran; else the update's warning says why they stay.
+                    self::maintenanceLog(
+                        line:     sprintf(
+                            $deleted
+                                ? 'Update to %s: the scheduled tasks of plg_task_alfapricesets were removed by Alfa Commerce, so the plugin\'s own uninstall script was not run.'
+                                : 'Update to %s: the scheduled tasks of plg_task_alfapricesets could not be removed (the update says why); the plugin\'s own uninstall script was not run, as it cannot remove them either.',
+                            $this->packageVersion,
+                        ),
+                        priority: $deleted ? \Joomla\CMS\Log\Log::INFO : \Joomla\CMS\Log\Log::WARNING,
+                    );
+                }
+
                 $state = $installer->uninstall('plugin', $extensionId) ? 'removed' : 'kept';
             }
         }
         catch (\Throwable $e)
         {
             $state      = 'kept';
-            $failures[] = $e->getMessage();
-        }
-
-        try
-        {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->quoteName('#__scheduler_tasks'))
-                    ->where($db->quoteName('type') . ' = ' . $db->quote('alfapricesets.prepare'))
-            )->execute();
-            $rows = (int) $db->getAffectedRows();
-        }
-        catch (\Throwable $e)
-        {
             $failures[] = $e->getMessage();
         }
 
@@ -1206,7 +1465,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         // A plugin that stayed reads in its scheduler routine what 2.2.0 removed: it must go by hand, said as a warning.
         $plugin = $state === 'removed'
-            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed', values: [])
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed by Alfa Commerce', values: [])
             : ($state === 'kept'
                 ? $this->installerText(
                     key:      'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_KEPT',
@@ -1260,7 +1519,7 @@ class com_alfaInstallerScript extends InstallerScript
     {
         $this->registerComponentNamespace();
         $this->installLibraries($parent);
-        $this->installPlugins($parent);
+        $this->installPlugins($parent, 'install');
         $this->installModules($parent);
     }
 
@@ -1279,12 +1538,12 @@ class com_alfaInstallerScript extends InstallerScript
     {
         $this->registerComponentNamespace();
         $this->installLibraries($parent);
-        $this->installPlugins($parent);
+        $this->installPlugins($parent, 'update');
         $this->installModules($parent);
     }
 
     /**
-     * Make the component's administrator classes autoloadable in this request.
+     * Make the component's administrator and site classes autoloadable in this request.
      *
      * Joomla adds a newly installed extension's namespace to its autoloader only
      * on a later request, while the bundled extensions are installed in this one
@@ -1301,6 +1560,13 @@ class com_alfaInstallerScript extends InstallerScript
         \JLoader::registerNamespace(
             'Alfa\\Component\\Alfa\\Administrator',
             JPATH_ADMINISTRATOR . '/components/com_alfa/src'
+        );
+
+        // The site half too (2.2.1): the update names the rules that have not ended by the pricing's own reading of a
+        // rule's end (Site\Service\Pricing\ActiveDateCondition).
+        \JLoader::registerNamespace(
+            'Alfa\\Component\\Alfa\\Site',
+            JPATH_SITE . '/components/com_alfa/src'
         );
     }
 
@@ -1387,10 +1653,9 @@ class com_alfaInstallerScript extends InstallerScript
             'failed' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_FAILED', 'Alfa Commerce %1$s could not uninstall these language packs:'
                 . ' %2$s. Uninstall them in System > Manage > Extensions.', 'warning', 'could not uninstall the language pack %s',
                 \Joomla\CMS\Log\Log::WARNING],
-            'no_manifest' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_NO_MANIFEST', 'Alfa Commerce %1$s could not uninstall these language packs,'
-                . ' because their package manifest is missing and Joomla cannot uninstall them without it either: %2$s.'
-                . ' The maintenance log (com_alfa_maintenance.php) has the details.', 'warning',
-                'could not uninstall the language pack %s', \Joomla\CMS\Log\Log::WARNING],
+            // The owner's sentence, word for word; the maintenance log names each pack and why.
+            'no_manifest' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_NO_MANIFEST', 'This language pack does not include a package manifest.',
+                'warning', 'could not uninstall the language pack %s', \Joomla\CMS\Log\Log::WARNING],
         ];
 
         foreach ($outcomes as $outcome => [$key, $fallback, $type, $line, $priority]) {
@@ -1530,8 +1795,8 @@ class com_alfaInstallerScript extends InstallerScript
         // File integrity is verified online against the signed canonical checksums on the
         // CDN (single source of truth: IntegrityHelper::verifyAgainstOfficial), so there
         // is no local baseline to capture. The verdict is cached for 24h, though, and an
-        // update changes the files, so drop the cache here, exactly as the Tools view does
-        // on each visit, and the next Security check re-verifies this version cleanly.
+        // update changes the files, so drop the cache here, as the Tools page's Recheck
+        // button does, and the next read re-verifies this version cleanly.
         $integrityHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/IntegrityHelper.php';
 
         if (file_exists($integrityHelperPath))
@@ -1597,9 +1862,11 @@ class com_alfaInstallerScript extends InstallerScript
             return true;
         }
 
-        // 0. The link tables have their keys (2.0.1), then the Alfa tables are at this
-        //    package's schema: say so among them.
+        // 0. The link tables have their keys (2.0.1), the columns no code reads are gone and the columns this release
+        //    adds are there (2.2.1), then the Alfa tables are at this package's schema: say so among them.
         $this->completeLinkKeys();
+        $this->dropLeftoverColumns();
+        $this->addMissingColumns();
         $this->recordSchemaVersion();
 
         // The list prices of a new combination of customer groups are prepared by the job runner (2.2.0). On an update
@@ -1614,6 +1881,17 @@ class com_alfaInstallerScript extends InstallerScript
             // The console commands moved to plg_console_alfa (2.2.0): the inventory console plugin goes, its command
             // keeping its name, so a server's cron line keeps working.
             $this->retireInventoryConsolePlugin();
+        }
+
+        // A discount or a tax scoped to a place reaches every place inside it (2.2.1): the product list's prices are
+        // rebuilt once, in the background, and staff are told which rules now reach further.
+        if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.1', '<'))
+        {
+            $this->owePlaceRulesRebuild();
+
+            // The countries of ISO 3166-1 (2.2.1): the rows the shop never changed corrected in place, the missing
+            // countries added unpublished, and what is left as it is named.
+            $this->correctPlacesSeed();
         }
 
         // The web cron's key (2.2.0): made when none is kept; nobody sees it, staff make the one they copy in
@@ -1719,9 +1997,471 @@ class com_alfaInstallerScript extends InstallerScript
         if ($type === 'update')
         {
             $this->convergeCollation();
+
+            // 6. Thumbnails that are not images (2.2.1): up to 2.2.0 a thumbnail could be a copy of any file the site
+            //    could read; the update lists what is left, deleting nothing.
+            $this->listNonImageFiles();
+
+            // 7. E-mail layout overrides left in a site template (2.2.1): the e-mails read their layouts from the
+            //    default administrator template only; the update names the files a site template still holds,
+            //    moving nothing.
+            $this->listSiteTemplateEmailLayouts();
         }
 
+        // 8. The installed Alfa extensions not known to work with this version (2.2.1): named on this page,
+        //    in the maintenance log and to the administrators.
+        $this->reportExtensionCompatibility(type: $type);
+
         return true;
+    }
+
+    /**
+     * Name the installed Alfa extensions not known to work with this version
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility}): those whose manifest declares a
+     * range of Alfa Commerce lines that excludes this one ("needs a compatible build") and those that declare none
+     * ("compatibility not stated"; nothing is inferred from their own version). One warning on this page, one line per
+     * extension in the maintenance log (com_alfa_maintenance.php), and one notification to the administrators, raised
+     * again by every installation; the setup checklist's row reads the same until each one is updated. A failure is
+     * said, never a failed installation.
+     *
+     * @param   string  $type  install or update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function reportExtensionCompatibility(string $type): void
+    {
+        $compatibility = \Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility::class;
+
+        try
+        {
+            $named = $compatibility::notify(alert: true);
+            $line  = $compatibility::coreLine();
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage('Alfa Commerce could not check which of its extensions are built for this version: '
+                . $e->getMessage(), 'warning');
+
+            return;
+        }
+
+        if ($named === [])
+        {
+            return;
+        }
+
+        $names = [$compatibility::NEEDS_BUILD => [], $compatibility::NOT_STATED => []];
+
+        foreach ($named as $entry)
+        {
+            $names[$entry['verdict']][] = $entry['name'];
+            self::maintenanceLog(
+                ($type === 'update' ? 'Update to ' : 'Installation of ') . $this->packageVersion . ': ' . $entry['key'] . ' (' . $entry['name'] . ') '
+                    . ($entry['verdict'] === $compatibility::NEEDS_BUILD ? 'needs a compatible build' : 'compatibility not stated') . ': ' . $entry['why'] . '.',
+                \Joomla\CMS\Log\Log::WARNING,
+            );
+        }
+
+        $sentences = [];
+
+        if ($names[$compatibility::NEEDS_BUILD] !== [])
+        {
+            $sentences[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_EXTENSIONS_NEED_BUILD',
+                fallback: 'These need a compatible build: %s.',
+                values:   [implode(', ', $names[$compatibility::NEEDS_BUILD])],
+            );
+        }
+
+        if ($names[$compatibility::NOT_STATED] !== [])
+        {
+            $sentences[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_EXTENSIONS_NOT_STATED',
+                fallback: 'These do not say which versions of Alfa Commerce they work with (compatibility not stated): %s.',
+                values:   [implode(', ', $names[$compatibility::NOT_STATED])],
+            );
+        }
+
+        Factory::getApplication()->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_EXTENSIONS_COMPATIBILITY',
+            fallback: 'Alfa Commerce %1$s: some of the Alfa Commerce extensions installed here are not known to work with it. %2$s'
+                . ' Update each one to its build for Alfa Commerce %3$s, together with core, or ask its developer which build'
+                . ' works with it: with a build for an older version an extension can lose its dashboard cards, setup checks,'
+                . ' tools, document types and panels, and Tools > Extensions can answer its Clear Data "not supported". The'
+                . ' setup checklist keeps a row until each one named says it is built for this version.',
+            values:   [$this->packageVersion, implode(' ', $sentences), $line],
+        ), 'warning');
+    }
+
+    /**
+     * From 2.2.1 a discount or a tax scoped to a place reaches every place inside it, and when several match, those of
+     * the nearer place apply first among the rules scoped to a place (rules with no place keep their order). The price
+     * index of the version before was written with the place alone, so every product is marked owed a rebuild and the
+     * catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may sort and filter a buyer below a
+     * ruled place by the earlier price while the product page and the cart show the new one; the message says so, and
+     * names the published rules (not ended, an empty end being open as pricing reads it) scoped to a published place
+     * that has a published place inside it: the rules that now reach further, since a place under an unpublished one
+     * prices no buyer. A shop whose places are all countries has
+     * none; a shop that kept the seeded Larisa under Greece has its Greece-scoped rules named. A failure is said, never
+     * a failed update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function owePlaceRulesRebuild(): void
+    {
+        $app = Factory::getApplication();
+
+        try
+        {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            // A published rule that has not ended (by the pricing's own reading of its end: an empty end is open),
+            // scoped to a published place with a published place inside it.
+            $notEnded = (new \Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition())->getNotEndedCondition(endField: 'x.publish_down');
+            $reaching = static fn (string $table, string $rule, string $rules): array => array_map('intval', $db->setQuery(
+                'SELECT DISTINCT r.' . $db->quoteName($rule) . ' FROM ' . $db->quoteName($table, 'r')
+                . ' INNER JOIN ' . $db->quoteName($rules, 'x') . ' ON x.' . $db->quoteName('id') . ' = r.' . $db->quoteName($rule)
+                . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'p') . ' ON p.' . $db->quoteName('id') . ' = r.' . $db->quoteName('place_id')
+                . ' INNER JOIN ' . $db->quoteName('#__alfa_places', 'c') . ' ON c.' . $db->quoteName('parent_id') . ' = r.' . $db->quoteName('place_id')
+                . ' WHERE r.' . $db->quoteName('place_id') . ' > 0 AND p.' . $db->quoteName('state') . ' = 1 AND c.' . $db->quoteName('state') . ' = 1'
+                . ' AND x.' . $db->quoteName('state') . ' = 1 AND ' . $notEnded . ' ORDER BY 1'
+            )->loadColumn() ?: []);
+            $discounts = $reaching('#__alfa_discount_places', 'discount_id', '#__alfa_discounts');
+            $taxes     = $reaching('#__alfa_tax_places', 'tax_id', '#__alfa_taxes');
+
+            \Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager::markAllForRebuild();
+            \Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob::enqueue();
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACE_RULES_REBUILD_FAILED',
+                fallback: 'Alfa Commerce %1$s could not start the rebuild of the product list\'s prices: %2$s Run Rebuild catalogue projections in Tools, so the product list follows the discounts and taxes that now reach the places inside theirs.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+
+            return;
+        }
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_PLACE_RULES_REBUILD',
+            fallback: 'Alfa Commerce %1$s: a discount or a tax scoped to a place now reaches every place inside it, as the shipping taxes already did; the shipping taxes now follow the goods\' order. The product list\'s prices are being rebuilt in the background (Tools > Tasks). Until that ends, for a customer whose place is inside a place with its own discounts or taxes, the product list may sort and filter by the earlier prices, while the product pages and the cart already show the new ones.',
+            values:   [$this->packageVersion],
+        ));
+
+        if ($discounts !== [] || $taxes !== [])
+        {
+            $none = $this->installerText(key: 'COM_ALFA_INSTALL_PLACE_RULES_REACH_NONE', fallback: 'none', values: []);
+
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACE_RULES_REACH',
+                fallback: 'These published rules are scoped to a place that has published places inside it, and now reach those places too: discounts %1$s; taxes %2$s.',
+                values:   [
+                    $discounts === [] ? $none : '#' . implode(', #', $discounts),
+                    $taxes === [] ? $none : '#' . implode(', #', $taxes),
+                ],
+            ), 'warning');
+        }
+    }
+
+    /**
+     * Bring the shop's countries to ISO 3166-1 (2.2.1,
+     * {@see \Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed::correctOnUpdate()}): the country rows still
+     * exactly as the seed up to 2.2.0 shipped them are corrected in place, keeping their ids, and the ISO countries the
+     * shop has no country for are added, unpublished. Nothing the shop changed is changed: one message says what was
+     * corrected and added and how to add the places below Greece and Spain, and a warning names what was left as it is
+     * (the rows the shop changed, the rows that are not ISO countries, the development row Larisa, and the countries
+     * whose default currency is withdrawn or none). The maintenance log keeps the counts and the time taken. A failure is
+     * said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function correctPlacesSeed(): void
+    {
+        $app = Factory::getApplication();
+        $started = hrtime(true);
+
+        try
+        {
+            $result = \Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed::correctOnUpdate(db: Factory::getContainer()->get('DatabaseDriver'));
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_FAILED',
+                fallback: 'Alfa Commerce %1$s could not bring the countries up to ISO 3166-1: %2$s The places are as they were.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+
+            return;
+        }
+
+        $milliseconds = (int) round((hrtime(true) - $started) / 1e6);
+        $none = $this->installerText(key: 'COM_ALFA_INSTALL_PLACES_SEED_NONE', fallback: 'none', values: []);
+        $named = static fn (array $names): string => $names === [] ? $none : implode(', ', $names);
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_PLACES_SEED',
+            fallback: 'Alfa Commerce %1$s brought the countries up to ISO 3166-1. Corrected where the shop had not changed them, each keeping its number: %2$s. Added, unpublished: %3$s. The places inside Greece (its 13 regions and Mount Athos) and inside Spain (the Canary Islands, Ceuta and Melilla) are not added by the update: in Countries/States, select Greece or Spain and press Add subdivisions to add them, unpublished.',
+            values:   [
+                $this->packageVersion,
+                $named(array_merge(
+                    array_map(static fn (int $id, string $name): string => '#' . $id . ' ' . $name, array_keys($result['corrected']), $result['corrected']),
+                    array_map(fn (int $id, array $country): string => $this->installerText(
+                        key:      'COM_ALFA_INSTALL_PLACES_SEED_CURRENCY_SET',
+                        fallback: '#%1$s %2$s (default currency %3$s)',
+                        values:   [(string) $id, $country[0], $country[1]],
+                    ), array_keys($result['currencyCorrected']), $result['currencyCorrected']),
+                )),
+                $named(array_values($result['added'])),
+            ],
+        ));
+
+        $left = [];
+
+        if ($result['kept'] !== [] || $result['currencyKept'] !== [])
+        {
+            $left[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT',
+                fallback: 'These countries were left as the shop changed them: %s.',
+                values:   [implode('; ', array_merge(
+                    array_map(
+                        fn (int $id, array $names): string => '#' . $id . ' ' . $names[0] . ' ' . $this->installerText(
+                            key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT_SHIPS',
+                            fallback: '(2.2.1 ships %s)',
+                            values:   [$names[1]],
+                        ),
+                        array_keys($result['kept']),
+                        $result['kept'],
+                    ),
+                    array_map(
+                        fn (int $id, array $country): string => $this->installerText(
+                            key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT_CURRENCY',
+                            fallback: '#%1$s %2$s (2.2.1 gives it the default currency %3$s)',
+                            values:   [(string) $id, $country[0], $country[1]],
+                        ),
+                        array_keys($result['currencyKept']),
+                        $result['currencyKept'],
+                    ),
+                ))],
+            );
+        }
+
+        $larisa = \Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed::LARISA;
+        $invented = array_diff_key($result['noSuccessor'], [$larisa => true]);
+
+        if ($invented !== [])
+        {
+            $left[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_NOT_ISO',
+                fallback: 'These rows are not ISO 3166-1 countries and were kept, since addresses, prices and rules may name them: %s. The Netherlands Antilles were dissolved in 2010 (now Bonaire, Sint Eustatius and Saba, Curaçao and Sint Maarten), the second East Timor is Timor-Leste, St. Eustatius is part of Bonaire, Sint Eustatius and Saba, and the Canary Islands are a part of Spain: move what names them to the country it belongs to (the Canary Islands to the place of that name inside Spain, once added), then unpublish them.',
+                values:   [implode(', ', array_map(static fn (int $id, string $name): string => '#' . $id . ' ' . $name, array_keys($invented), $invented))],
+            );
+        }
+
+        if (isset($result['noSuccessor'][$larisa]))
+        {
+            $left[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_LARISA',
+                fallback: 'The place #%1$d %2$s, inside Greece, came from Alfa Commerce\'s own test data up to 2.2.0 and is no longer shipped. It was kept, since addresses, prices and rules may name it. Once Greece\'s regions are added, publish Thessaly and then move it under Thessaly, or unpublish it if the shop does not use it.',
+                values:   [(string) $larisa, $result['noSuccessor'][$larisa]],
+            );
+        }
+
+        if ($result['currencies'] !== [])
+        {
+            $left[] = $this->installerText(
+                key:      'COM_ALFA_INSTALL_PLACES_SEED_CURRENCIES',
+                fallback: 'The default currency of these countries was left as it is, though the one shipped was withdrawn or missing; set it in Countries/States if the shop sells there: %s.',
+                values:   [implode(', ', array_map(static fn (array $country): string => $country[0] . ' (' . $country[1] . ')', $result['currencies']))],
+            );
+        }
+
+        if ($left !== [])
+        {
+            $app->enqueueMessage(implode(' ', $left), 'warning');
+        }
+
+        self::maintenanceLog(
+            line:     'Update to ' . $this->packageVersion . ': the countries brought up to ISO 3166-1: ' . (\count($result['corrected']) + \count($result['currencyCorrected'])) . ' corrected, '
+                . \count($result['added']) . ' added, ' . (\count($result['kept']) + \count($result['currencyKept'])) . ' left as the shop changed them, '
+                . \count($result['noSuccessor']) . ' rows that are not countries kept, ' . \count($result['currencies'])
+                . ' default currencies left (' . $milliseconds . ' ms).',
+            priority: \Joomla\CMS\Log\Log::INFO,
+        );
+    }
+
+    /**
+     * Say which files a thumbnail copy may have left that are not images
+     * ({@see \Alfa\Component\Alfa\Administrator\Helper\MediaHelper::nonImageFiles()}): up to 2.2.0 a member of
+     * staff or an API client could name any file the site could read as a thumbnail, and a copy of it was published in
+     * the save folder. One warning names every file with the media rows that name it, and the media log
+     * (com_alfa_media.php) keeps one line per file. Nothing is changed or deleted: staff look at each file and remove
+     * it by hand. A failure is said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function listNonImageFiles(): void
+    {
+        try
+        {
+            $files = \Alfa\Component\Alfa\Administrator\Helper\MediaHelper::nonImageFiles();
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage('The image folder of Alfa Commerce was not checked for thumbnails that are not images: '
+                . $e->getMessage(), 'warning');
+
+            return;
+        }
+
+        if ($files === [])
+        {
+            return;
+        }
+
+        $named = [];
+
+        foreach ($files as $file => $rows)
+        {
+            $named[] = $file . ($rows === [] ? '' : ' (media rows ' . implode(', ', $rows) . ')');
+        }
+
+        Factory::getApplication()->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_THUMBNAILS_NOT_IMAGES',
+            fallback: 'Alfa Commerce %1$s found files among the product images that are not images: %2$s. Up to 2.2.0 a'
+                . ' thumbnail could be a copy of any file of the site, published for anyone to download. Nothing was'
+                . ' deleted: look at each file and, if it is not yours to publish, delete it by hand and choose a new'
+                . ' thumbnail for the rows named.',
+            values:   [$this->packageVersion, implode('; ', $named)],
+        ), 'warning');
+
+        try
+        {
+            \Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog::register();
+
+            foreach ($named as $line)
+            {
+                \Joomla\CMS\Log\Log::add('Update to ' . $this->packageVersion . ': not an image, left for staff to remove: ' . $line,
+                    \Joomla\CMS\Log\Log::WARNING, 'com_alfa.media');
+            }
+        }
+        catch (\Throwable)
+        {
+            // The installation page says it; the log is the second copy.
+        }
+    }
+
+    /**
+     * Name the e-mail layout overrides kept in a site template (2.2.1). Since 2.2.1 every e-mail reads its layouts
+     * from the default administrator template (then the template it inherits from) and the component
+     * ({@see \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts}), whatever sends it, so a file under a site
+     * template's html/layouts/com_alfa/emails, where the 2.2.0 Manual advised a copy for the e-mails the storefront
+     * sends, is no longer read. One warning names every such file, and the maintenance log (com_alfa_maintenance.php)
+     * keeps one line per file. Nothing is moved or deleted: staff copy each file they want to keep into the
+     * administrator template. A failure is said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function listSiteTemplateEmailLayouts(): void
+    {
+        try
+        {
+            $files = self::siteTemplateEmailLayouts(templates: JPATH_SITE . '/templates');
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage('The site templates were not checked for e-mail layout overrides: '
+                . $e->getMessage(), 'warning');
+
+            return;
+        }
+
+        if ($files === [])
+        {
+            return;
+        }
+
+        Factory::getApplication()->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_EMAIL_LAYOUTS_SITE_TEMPLATE',
+            fallback: 'Alfa Commerce %1$s reads the e-mail layout overrides from the default administrator template'
+                . ' only. These files in a site template are no longer read: %2$s. Copy each one you want to keep into'
+                . ' the same subfolder (order or partials) under %3$s. Nothing was moved or deleted.',
+            values:   [$this->packageVersion, implode('; ', array_map(
+                static fn (string $file): string => htmlspecialchars($file, ENT_QUOTES, 'UTF-8'),
+                $files,
+            )), htmlspecialchars(self::administratorEmailLayoutFolder(), ENT_QUOTES, 'UTF-8')],
+        ), 'warning');
+
+        foreach ($files as $file)
+        {
+            self::maintenanceLog('Update to ' . $this->packageVersion . ': an e-mail layout override in a site template,'
+                . ' no longer read; move it to the administrator template: ' . $file, \Joomla\CMS\Log\Log::WARNING);
+        }
+    }
+
+    /**
+     * Where an e-mail layout override is read from since 2.2.1, relative to the site root: the default administrator
+     * template's html/layouts/com_alfa/emails ({@see \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts}),
+     * named by that template's own folder. When no default administrator template style can be read, the folder is
+     * described in words instead, so the warning still says where to copy.
+     *
+     * @return  string
+     * @since   2.2.1
+     */
+    private static function administratorEmailLayoutFolder(): string
+    {
+        try
+        {
+            $paths = \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts::includePaths();
+            $first = (string) ($paths[0] ?? '');
+
+            if (\count($paths) > 1 && str_starts_with($first, JPATH_ADMINISTRATOR . '/templates/'))
+            {
+                return ltrim(substr($first, \strlen(JPATH_ROOT)), '/') . '/emails';
+            }
+        }
+        catch (\Throwable)
+        {
+            // Described in words below.
+        }
+
+        return 'html/layouts/com_alfa/emails of the default administrator template';
+    }
+
+    /**
+     * The e-mail layout files under every site template's html/layouts/com_alfa/emails, relative to the site root,
+     * sorted. A template without that folder adds nothing.
+     *
+     * @param   string  $templates  The site templates' folder.
+     *
+     * @return  string[]
+     * @since   2.2.1
+     */
+    private static function siteTemplateEmailLayouts(string $templates): array
+    {
+        $files = [];
+
+        foreach (glob($templates . '/*/html/layouts/com_alfa/emails', GLOB_ONLYDIR) ?: [] as $folder)
+        {
+            $walk = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($folder, \FilesystemIterator::SKIP_DOTS));
+
+            foreach ($walk as $file)
+            {
+                if ($file->isFile() && strtolower($file->getExtension()) === 'php')
+                {
+                    $files[] = ltrim(substr($file->getPathname(), \strlen(JPATH_ROOT)), '/');
+                }
+            }
+        }
+
+        sort($files);
+
+        return $files;
     }
 
     /**
@@ -3102,8 +3842,11 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * Delete Joomla's cached PSR-4 namespace map so it is regenerated on the
-     * next request. Required after any library install/update/uninstall
-     * because Joomla core does not invalidate this cache automatically.
+     * next request. Joomla's own Extension - Namespace Updater plugin
+     * (plg_extension_namespacemap, protected and locked) rebuilds this map after
+     * every install, update and uninstall made through its installer; deleting
+     * it here after the bundled libraries are installed, updated or uninstalled
+     * is a second guard, should that plugin not have run.
      *
      * @return  void
      * @since  1.0.0
@@ -3120,7 +3863,20 @@ class com_alfaInstallerScript extends InstallerScript
 
     // Plugin helpers
 
-    private function installPlugins($parent): void
+    /**
+     * Install or update every plugin the package manifest lists, through Joomla's installer. A plugin the site did not
+     * have before this run is enabled once its install succeeded; a plugin the site already had keeps the state it had,
+     * so one staff disabled stays disabled (2.2.1: up to 2.2.0 every update enabled each bundled plugin again).
+     * A plugin whose installer failed is never enabled. On an update, the bundled plugins kept disabled are named once
+     * on the installation page and in the maintenance log.
+     *
+     * @param   object  $parent  The installer adapter providing the package manifest
+     * @param   string  $route   'install' or 'update'
+     *
+     * @return  void
+     * @since  1.0.0
+     */
+    private function installPlugins($parent, string $route): void
     {
         $installationFolder = $parent->getParent()->getPath('source');
         $app                = Factory::getApplication();
@@ -3134,14 +3890,17 @@ class com_alfaInstallerScript extends InstallerScript
             return;
         }
 
-        $db    = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
+        $db   = Factory::getContainer()->get('DatabaseDriver');
+        $kept = [];
 
         foreach ($plugins->children() as $plugin)
         {
             $pluginName  = (string) $plugin['plugin'];
             $pluginGroup = (string) $plugin['group'];
             $path        = $installationFolder . '/plugins/' . $pluginGroup . '/' . $pluginName;
+
+            // Whether the site had the plugin before this run, and its state then: null when it had none.
+            $stored = $this->storedPluginState($pluginGroup, $pluginName);
 
             $installer = new Installer();
             $installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
@@ -3157,19 +3916,72 @@ class com_alfaInstallerScript extends InstallerScript
                 $result ? 'message' : 'error'
             );
 
-            $query
-                ->clear()
-                ->update($db->quoteName('#__extensions'))
-                ->set('enabled = 1')
-                ->where([
-                    'type LIKE '    . $db->quote('plugin'),
-                    'element LIKE ' . $db->quote($pluginName),
-                    'folder LIKE '  . $db->quote($pluginGroup),
-                ]);
+            if (!$result)
+            {
+                continue;
+            }
 
-            $db->setQuery($query);
-            $db->execute();
+            if ($stored === null)
+            {
+                $query = $db->getQuery(true)
+                    ->update($db->quoteName('#__extensions'))
+                    ->set($db->quoteName('enabled') . ' = 1')
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                    ->where($db->quoteName('element') . ' = :element')
+                    ->where($db->quoteName('folder') . ' = :folder')
+                    ->bind(':element', $pluginName)
+                    ->bind(':folder', $pluginGroup);
+
+                $db->setQuery($query)->execute();
+            }
+            elseif ($stored === 0)
+            {
+                $kept[] = $pluginGroup . '/' . $pluginName;
+            }
         }
+
+        if ($route !== 'update' || $kept === [])
+        {
+            return;
+        }
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_PLUGINS_KEPT_DISABLED',
+            fallback: 'Alfa Commerce %1$s kept these plugins of its package disabled, as they were before the update: %2$s.'
+                . ' Up to 2.2.0 an update enabled them again. Enable one in System > Manage > Plugins if the shop needs it.',
+            values:   [$this->packageVersion, implode(', ', $kept)],
+        ), 'notice');
+        self::maintenanceLog(
+            line:     sprintf('Update to %s: plugins of the package kept disabled, as they were: %s.', $this->packageVersion, implode(', ', $kept)),
+            priority: \Joomla\CMS\Log\Log::INFO,
+        );
+    }
+
+    /**
+     * The state the site holds for a plugin before the installer runs: 1 enabled, 0 disabled, null when the site has
+     * no such plugin.
+     *
+     * @param   string  $group    The plugin group.
+     * @param   string  $element  The plugin element.
+     *
+     * @return  int|null
+     * @since  2.2.1
+     */
+    private function storedPluginState(string $group, string $element): ?int
+    {
+        $db    = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select($db->quoteName('enabled'))
+            ->from($db->quoteName('#__extensions'))
+            ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+            ->where($db->quoteName('element') . ' = :element')
+            ->where($db->quoteName('folder') . ' = :folder')
+            ->bind(':element', $element)
+            ->bind(':folder', $group);
+
+        $state = $db->setQuery($query)->loadResult();
+
+        return $state === null ? null : (int) $state;
     }
 
     /**

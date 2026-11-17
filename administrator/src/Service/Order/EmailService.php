@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\EmailLayouts;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
@@ -23,7 +24,6 @@ use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Mail\Mail;
 use Joomla\CMS\Mail\MailerFactoryInterface;
@@ -110,8 +110,9 @@ class EmailService
      * Default layout id for the order-email wrapper. Order-email layouts
      * live under layouts/emails/order/<name>.php (id emails.order.<name>);
      * 'default' is the shipped one. Override via
-     *   templates/<template>/html/layouts/com_alfa/emails/order/default.php
-     * when a site needs custom branding.
+     *   administrator/templates/<the default administrator template>/html/layouts/com_alfa/emails/order/default.php
+     * when a site needs custom branding: the one template every mail reads, whatever application sends it
+     * ({@see EmailLayouts}, 2.2.1).
      */
     private const LAYOUT_ID = 'emails.order.default';
 
@@ -146,8 +147,8 @@ class EmailService
     /**
      * Discover the body positions an email layout asks for.
      *
-     * Renders the layout via LayoutHelper (so template overrides are
-     * picked up) with COLLECTOR closures in place of the real helper API:
+     * Renders the layout through EmailLayouts (so the administrator
+     * template's overrides are picked up) with COLLECTOR closures in place of the real helper API:
      * every `$position($name)` / `$hasPosition($name)` call records the
      * name. `$hasPosition` returns true during discovery so positions
      * guarded by `if ($hasPosition(...))` are still reached; `$render` is
@@ -238,7 +239,7 @@ class EmailService
         };
 
         try {
-            LayoutHelper::render(
+            EmailLayouts::render(
                 $layoutId,
                 array_merge(self::displayDataSkeleton(), [
                     // One stub row per list so the layout's `if (!empty(...))`
@@ -262,8 +263,6 @@ class EmailService
                         return '';
                     },
                 ]),
-                null,
-                ['component' => 'com_alfa', 'client' => 1],
             );
         } catch (Throwable $e) {
             Log::add(
@@ -279,9 +278,11 @@ class EmailService
     }
 
     /**
-     * The number an order is known by to its customer: its invoice number when it has one, else its id.
+     * The number an order is known by to its customer: its id.
      *
-     * The confirmation e-mail's {order_number} and the order-complete page both show it.
+     * The confirmation e-mail's {order_number}, the fallback subject of the status e-mails, the order-complete page and
+     * the order picker of the test e-mail all show it. Up to 2.2.0 an invoice number was preferred; nothing wrote one,
+     * and 2.2.1 drops the column.
      *
      * @param object $order The order row.
      *
@@ -291,9 +292,7 @@ class EmailService
      */
     public static function orderNumber(object $order): string
     {
-        $invoiceNo = (int) ($order->invoice_number ?? 0);
-
-        return $invoiceNo > 0 ? (string) $invoiceNo : (string) (int) ($order->id ?? 0);
+        return (string) (int) ($order->id ?? 0);
     }
 
     /**
@@ -630,7 +629,7 @@ class EmailService
         if ($subject === '') {
             $subject = Text::sprintf(
                 'COM_ALFA_ORDEREMAIL_SUBJECT_FALLBACK',
-                (int) ($order->id ?? 0),
+                self::orderNumber(order: $order),
                 (string) ($tokens['{status_customer}'] ?? ''),
             );
         }
@@ -717,7 +716,7 @@ class EmailService
      * exist yet.
      *
      * Matches the column shape EmailService reads, minimum
-     * viable: id, invoice_number, created, id_user, id_address_delivery,
+     * viable: id, created, id_user, id_address_delivery,
      * id_language. Token values resolve to placeholder strings. It names no
      * order, so it carries the currency a new order would take.
      *
@@ -729,7 +728,6 @@ class EmailService
         return (object) [
             'id' => 999,
             'currency' => OrderCurrency::forNewOrder(),
-            'invoice_number' => 0,
             'created' => Factory::getDate()->toSql(),
             'id_user' => 0,
             'id_address_delivery' => 0,
@@ -805,10 +803,12 @@ class EmailService
      * work (2.2.0).
      *
      * @param int $statusId The status entered.
+     * @param bool $customer Whether the customer may be told; false for a change made silent for the customer (2.2.1),
+     *                       when only the administrator recipients count.
      *
      * @since  2.2.0
      */
-    public static function notifiesForStatus(int $statusId): bool
+    public static function notifiesForStatus(int $statusId, bool $customer = true): bool
     {
         if ($statusId <= 0) {
             return false;
@@ -830,7 +830,7 @@ class EmailService
             ->bind(':statusId', $statusId, ParameterType::INTEGER);
         $row = $db->setQuery($query)->loadObject();
 
-        return $row !== null && ((int) ($row->notify_customer ?? 0) === 1 || (int) ($row->admins ?? 0) === 1);
+        return $row !== null && (($customer && (int) ($row->notify_customer ?? 0) === 1) || (int) ($row->admins ?? 0) === 1);
     }
 
     /**
@@ -848,12 +848,14 @@ class EmailService
      * @param int $statusId The status the e-mail is about.
      * @param callable(string): bool $attempt Whether to send to a recipient, by unit.
      * @param callable(string, string, string): void $outcome A recipient's unit, outcome and error.
+     * @param bool $customer Whether the customer is told when the status says so; false for a change made silent for the
+     *                       customer (2.2.1), whose e-mail goes to the administrator recipients alone.
      *
      * @throws Throwable When the order or its data cannot be read (nothing was sent).
      *
      * @since  2.1.4
      */
-    public static function deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome): void
+    public static function deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome, bool $customer = true): void
     {
         if ($orderId <= 0 || $statusId <= 0) {
             return;
@@ -885,7 +887,7 @@ class EmailService
             return;
         }
 
-        $notifyCustomer = (int) ($status->notify_customer ?? 0) === 1;
+        $notifyCustomer = $customer && (int) ($status->notify_customer ?? 0) === 1;
         $adminRecipients = self::resolveAdminRecipientEmails(statusId: $statusId);
 
         if (!$notifyCustomer && empty($adminRecipients)) {
@@ -929,6 +931,7 @@ class EmailService
                     positions:   self::decodePositions(json: $status->email_positions_customer ?? ''),
                     tokens:      $tokens,
                     orderId:     $orderId,
+                    orderNumber: self::orderNumber(order: $order),
                     statusId:    $statusId,
                     layoutId:    (string) ($status->email_layout_customer ?? self::LAYOUT_ID),
                     context:     self::buildLayoutContext(order: $order, status: $status, recipient: 'customer', langTag: $langTag, withDownloadLinks: true),
@@ -960,13 +963,14 @@ class EmailService
                 }
 
                 $result = self::dispatch(
-                    recipient: $adminEmail,
-                    positions: $adminPositions,
-                    tokens:    $tokens,
-                    orderId:   $orderId,
-                    statusId:  $statusId,
-                    layoutId:  $adminLayout,
-                    context:   $adminContext,
+                    recipient:   $adminEmail,
+                    positions:   $adminPositions,
+                    tokens:      $tokens,
+                    orderId:     $orderId,
+                    orderNumber: self::orderNumber(order: $order),
+                    statusId:    $statusId,
+                    layoutId:    $adminLayout,
+                    context:     $adminContext,
                 );
 
                 if ($result !== null) {
@@ -1031,7 +1035,8 @@ class EmailService
      * @param array<string, string> $positions Decoded positions for this
      *                                         recipient (subject + body).
      * @param array<string, string> $tokens Map of {token} -> value.
-     * @param int $orderId Used for fallback subject.
+     * @param int $orderId Used for log context.
+     * @param string $orderNumber The order's number ({@see self::orderNumber()}), for the fallback subject.
      * @param int $statusId Used for log context.
      * @param string $layoutId Wrapper layout id for this
      *                         recipient's email.
@@ -1050,6 +1055,7 @@ class EmailService
         array $positions,
         array $tokens,
         int $orderId,
+        string $orderNumber,
         int $statusId,
         string $layoutId = self::LAYOUT_ID,
         array $context = [],
@@ -1084,7 +1090,7 @@ class EmailService
                 // but left subject blank.
                 $subject = Text::sprintf(
                     'COM_ALFA_ORDEREMAIL_SUBJECT_FALLBACK',
-                    $orderId,
+                    $orderNumber,
                     $tokens['{status_customer}'] ?? '',
                 );
             }
@@ -1309,12 +1315,7 @@ class EmailService
             self::layoutHelperApi(positions: $positions, dataContext: $dataContext),
         );
 
-        $rendered = LayoutHelper::render(
-            $layoutId !== '' ? $layoutId : self::LAYOUT_ID,
-            $displayData,
-            null,
-            ['component' => 'com_alfa', 'client' => 1],
-        );
+        $rendered = EmailLayouts::render($layoutId !== '' ? $layoutId : self::LAYOUT_ID, $displayData);
 
         // Single, central variable pass over the WHOLE composed email:
         // covers admin content, rendered partials, and the layout's own
@@ -1415,12 +1416,7 @@ class EmailService
                     return '';
                 }
 
-                return (string) LayoutHelper::render(
-                    $layoutId,
-                    $data ?? $dataContext,
-                    null,
-                    ['component' => 'com_alfa', 'client' => 1],
-                );
+                return EmailLayouts::render($layoutId, $data ?? $dataContext);
             },
         ];
     }

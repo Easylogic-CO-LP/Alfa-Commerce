@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\Language\Text;
@@ -60,7 +61,7 @@ class CreditDocumentField extends ListField
         $orderId = (int) ($this->form->getValue('id_order') ?: 0);
 
         if ($orderId <= 0) {
-            $orderId = (int) Factory::getApplication()->getInput()->getInt('id', 0);
+            $orderId = (int) RequestScalar::int(Factory::getApplication()->getInput(), 'id');
         }
 
         if ($orderId <= 0) {

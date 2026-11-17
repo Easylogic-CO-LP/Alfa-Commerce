@@ -26,10 +26,12 @@ use LogicException;
  * WHERE a plugin is, WHAT it may read, and the ONE thing it may write: the single argument
  * every onAlfaAdmin* event carries.
  *
- * Handed to plugins of the `alfa` PLATFORM group, the layer that owns SHARED backend surfaces.
- * Capability plugins (alfa-payments, alfa-shipments, ...) own their own domain screens and layouts,
- * but stay lazy and never receive these; one that wants to reach into a screen it does not own
- * ships a second plugin in the `alfa` group.
+ * Raised on the shared dispatcher once the `alfa` PLATFORM group (the layer that owns SHARED
+ * backend surfaces) is imported, so every listener already loaded hears it, a plugin of another
+ * group included (2.2.0). Capability plugins (alfa-payments, alfa-shipments, ...) own their own
+ * domain screens and layouts and are not imported for these: one that wants to reach into a
+ * screen it does not own ships a second plugin in the `alfa` group. Entity names are the
+ * component's own (`item` for a product).
  *
  * The admin contract puts the PHASE in the event NAME (finite, IDE-discoverable, cheap to
  * dispatch) and everything else in this object, so one plugin body can serve any entity:
@@ -542,8 +544,9 @@ final class AlfaAdminContext
 
     /**
      * Veto the operation with a reason. Veto is DATA, never an exception: the model collects
-     * every handler's objection, aborts cleanly and redisplays with all of them shown, instead
-     * of dying on the first one.
+     * every handler's objection and refuses cleanly, instead of dying on the first one. How many
+     * staff read is Joomla's controller's: a form's validation shows up to three, while a refused
+     * save or delete shows the last one (getError()), so word each objection to stand on its own.
      *
      * @param string $message The reason, already translated.
      *

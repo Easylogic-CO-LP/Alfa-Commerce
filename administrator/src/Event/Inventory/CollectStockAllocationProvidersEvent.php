@@ -47,6 +47,10 @@ class CollectStockAllocationProvidersEvent extends AbstractEvent
     /**
      * Contribute a provider, owned by the plugin that names itself.
      *
+     * A registry's entry names its plugin second, after the object it registers: the four registries (addProjection(),
+     * addEngine(), and addProvider() of the document types and of the stock allocation) share that shape, while a
+     * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
+     *
      * @param StockAllocationProviderInterface $provider The provider instance.
      * @param string $contributor The contributing plugin, group.element (2.2.0; in place of the extension name; attribution,
      *                            never an authorisation).

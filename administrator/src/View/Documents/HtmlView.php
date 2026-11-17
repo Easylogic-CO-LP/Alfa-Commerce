@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
 use Exception;
@@ -90,7 +91,7 @@ class HtmlView extends BaseHtmlView
         // popups. It loads no list: the only thing it needs is the document
         // it is about to void.
         if ($this->getLayout() === 'void' || $this->getLayout() === 'void_return') {
-            $documentId = (int) Factory::getApplication()->getInput()->getInt('id', 0);
+            $documentId = (int) RequestScalar::int(Factory::getApplication()->getInput(), 'id');
 
             // Voiding changes a document's STATUS, never its content: the
             // same permission the task itself demands. Refused here before a
@@ -116,7 +117,7 @@ class HtmlView extends BaseHtmlView
                 $app = Factory::getApplication();
                 $stateKey = 'com_alfa.edit.documents.void.' . $documentId;
 
-                if ($app->getInput()->getInt('kept', 0) !== 1) {
+                if (RequestScalar::int($app->getInput(), 'kept') !== 1) {
                     $app->setUserState($stateKey, null);
                 }
 

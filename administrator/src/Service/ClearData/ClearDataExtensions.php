@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\SchemaRecreator;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
+use Joomla\CMS\Extension\ExtensionHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\User\CurrentUserInterface;
@@ -40,7 +41,8 @@ use Throwable;
  * WHICH EXTENSIONS. One query of Joomla's extensions table ({@see self::installed()}, the list Options > About shows
  * too): Alfa Commerce, packages `pkg_alfa...`, plugins of a group `alfa...` or of an `Alfa\` namespace (the task
  * plugins), modules `mod_alfa...`. Tools > Extensions and Clear everything leave out Alfa Commerce and the extensions
- * its manifest bundles.
+ * its manifest bundles, and add every plugin of another group, whatever its namespace, that declares onClearData
+ * ({@see self::declaredElsewhere()}, 2.2.1): the contract invites a system, task, user or content plugin to declare it.
  *
  * WHO SUPPORTS CLEAR DATA. A plugin that declares onClearData(ClearDataEvent $event): void as a targeted handler (its
  * declaration as the plugin helper reads it: TargetedHandlersInterface, its family's constant, or, for a plugin of a
@@ -135,6 +137,14 @@ final class ClearDataExtensions
     private DatabaseInterface $db;
 
     /**
+     * Whether THE lock was held by another request when this listing asked for it, so what needs it was left out or
+     * shown busy ({@see self::busy()}).
+     *
+     * @since  2.2.1
+     */
+    private bool $busy = false;
+
+    /**
      * @param DatabaseInterface|null $db The site's connection; the container's by default.
      *
      * @since  2.1.0
@@ -145,22 +155,32 @@ final class ClearDataExtensions
     }
 
     /**
-     * Every installed Alfa extension, Alfa Commerce and what it bundles included, in the order of Options > About.
+     * Every installed Alfa extension, Alfa Commerce and what it bundles included, in the order of Options > About; or,
+     * when ids are given, those of them that are installed Alfa extensions: the one answer to whether an extension is
+     * Alfa's.
      *
      * @param DatabaseInterface|null $db The connection; the container's by default.
+     * @param list<int> $ids Only these extensions (2.2.1); none: every one.
      *
      * @return list<array{key: string, extension_id: int, package_id: int, type: string, element: string, folder: string, client_id: int, enabled: bool, locked: bool, name: string, version: string}>
      *
      * @since  2.1.0
      */
-    public static function installed(?DatabaseInterface $db = null): array
+    public static function installed(?DatabaseInterface $db = null, array $ids = []): array
     {
         $db ??= Factory::getContainer()->get(DatabaseInterface::class);
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+        $query = $db->createQuery()
+            ->select($db->quoteName(['extension_id', 'package_id', 'type', 'element', 'folder', 'client_id', 'enabled', 'locked', 'name', 'manifest_cache']))
+            ->from($db->quoteName('#__extensions'))
+            ->where($db->quoteName('state') . ' = 0');
+
+        if ($ids !== []) {
+            $query->whereIn($db->quoteName('extension_id'), $ids);
+        }
+
         $rows = $db->setQuery(
-            $db->createQuery()
-                ->select($db->quoteName(['extension_id', 'package_id', 'type', 'element', 'folder', 'client_id', 'enabled', 'locked', 'name', 'manifest_cache']))
-                ->from($db->quoteName('#__extensions'))
-                ->where($db->quoteName('state') . ' = 0')
+            $query
                 ->extendWhere('AND', [
                     '(' . $db->quoteName('type') . ' = ' . $db->quote('component') . ' AND ' . $db->quoteName('element') . ' = ' . $db->quote('com_alfa') . ')',
                     '(' . $db->quoteName('type') . ' = ' . $db->quote('plugin') . ' AND ' . $db->quoteName('folder') . ' LIKE ' . $db->quote('alfa%') . ')',
@@ -183,19 +203,7 @@ final class ClearDataExtensions
                 continue;
             }
 
-            $installed[] = [
-                'key' => AlfaInstallerGate::key(type: $type, element: (string) $row->element, folder: $folder),
-                'extension_id' => (int) $row->extension_id,
-                'package_id' => (int) $row->package_id,
-                'type' => $type,
-                'element' => (string) $row->element,
-                'folder' => $folder,
-                'client_id' => (int) $row->client_id,
-                'enabled' => (int) $row->enabled === 1,
-                'locked' => (int) $row->locked === 1,
-                'name' => (string) $row->name,
-                'version' => trim((string) ($cache['version'] ?? '')),
-            ];
+            $installed[] = self::entryOf(row: $row, cache: $cache);
         }
 
         usort($installed, static fn (array $a, array $b): int => [self::ABOUT_ORDER[$a['type']] ?? 9, self::aboutId(entry: $a)]
@@ -205,8 +213,9 @@ final class ClearDataExtensions
     }
 
     /**
-     * The rows of Tools > Extensions: every installed Alfa extension but Alfa Commerce and what it bundles. A package
-     * is one row, with its extensions in `children`; the others have none.
+     * The rows of Tools > Extensions: every installed Alfa extension but Alfa Commerce and what it bundles, and every
+     * plugin of another group that declares onClearData ({@see self::declaredElsewhere()}). A package is one row, with
+     * its extensions in `children`; the others have none.
      *
      * @return list<array<string, mixed>>
      *
@@ -214,7 +223,7 @@ final class ClearDataExtensions
      */
     public function rows(): array
     {
-        $listed = $this->separate();
+        $listed = $this->separate(elsewhere: true);
         $rows = [];
 
         foreach ($listed as $id => $entry) {
@@ -248,8 +257,9 @@ final class ClearDataExtensions
     }
 
     /**
-     * The units of Clear everything: every listed Alfa plugin, packaged or not, in the order (group, element). Modules
-     * and packages are not called: a package's plugins are.
+     * The units of Clear everything: every listed Alfa plugin, packaged or not, and every plugin of another group that
+     * declares onClearData ({@see self::declaredElsewhere()}), in the order (group, element). Modules and packages are
+     * not called: a package's plugins are. A plugin of another group whose code could not be read is never one.
      *
      * @return list<array<string, mixed>>
      *
@@ -257,7 +267,10 @@ final class ClearDataExtensions
      */
     public function plugins(): array
     {
-        $plugins = array_values(array_filter($this->separate(), static fn (array $entry): bool => $entry['type'] === 'plugin'));
+        $plugins = array_values(array_filter(
+            $this->separate(elsewhere: true),
+            static fn (array $entry): bool => $entry['type'] === 'plugin' && ($entry['elsewhere'] ?? '') !== 'unread',
+        ));
         usort($plugins, [self::class, 'byRowOrder']);
 
         return $plugins;
@@ -267,7 +280,8 @@ final class ClearDataExtensions
      * What a row allows, before any click: `supported` (Clear Data, Remove extension only, Remove extension and its
      * data), `unsupported` (Automatic Clear Data not supported: Remove extension only), `failed` (its code could not be
      * loaded: Remove extension only; `stale` when an earlier request died while loading it, and it is not booted
-     * again), `remove_only` (a module, or a package without plugins). The caller holds THE lock: the plugin is marked
+     * again), `unread` (a plugin of another group whose code could not be read: Remove extension only; `stale` as
+     * above; since 2.2.1), `remove_only` (a module, or a package without plugins). The caller holds THE lock: the plugin is marked
      * `loading` before it is booted and the mark taken away after, so a request that dies while loading it leaves the
      * mark. Booting changes nothing.
      *
@@ -305,6 +319,11 @@ final class ClearDataExtensions
             return ['status' => 'remove_only', 'message' => ''];
         }
 
+        // A plugin of another group whose code could not be read: whether it declares onClearData is not known.
+        if (($entry['elsewhere'] ?? '') === 'unread') {
+            return ['status' => 'unread', 'message' => Text::_('COM_ALFA_EXTENSIONS_NOT_READ_DESC')] + (empty($entry['stale']) ? [] : ['stale' => true]);
+        }
+
         if (!MaintenanceState::holdsLock(db: $this->db)) {
             throw new LogicException('An Alfa plugin is booted for Clear Data only under the lock of Clear everything.');
         }
@@ -340,18 +359,21 @@ final class ClearDataExtensions
 
     /**
      * Every entry with its name, its description and what it allows, for a page (Tools > Extensions, the Clear
-     * everything confirmation), a package's extensions in `children` the same way. Takes THE lock, waiting a few
-     * seconds for a clear at work; when it cannot, nothing is booted and each plugin answers `busy`.
+     * everything confirmation), a package's extensions in `children` the same way. Takes THE lock, waiting for a
+     * clear at work as long as the caller says (Tools > Extensions does not wait, since 2.2.1); when it cannot, nothing
+     * is booted, each plugin answers `busy` and {@see self::busy()} says so.
      *
      * @param list<array<string, mixed>> $entries Rows of {@see self::rows()} or plugins of {@see self::plugins()}.
+     * @param int $wait Seconds to wait for THE lock (since 2.2.1); 10 by default.
      *
      * @return list<array<string, mixed>> Each entry + label, description, support.
      *
      * @since  2.1.0
      */
-    public function inspect(array $entries): array
+    public function inspect(array $entries, int $wait = 10): array
     {
-        $locked = MaintenanceState::lock(db: $this->db, wait: 10);
+        $locked = MaintenanceState::lock(db: $this->db, wait: $wait);
+        $this->busy = $this->busy || !$locked;
 
         try {
             $describe = function (array $entry) use ($locked): array {
@@ -863,6 +885,7 @@ final class ClearDataExtensions
             'remove_only' => Text::sprintf('COM_ALFA_EXTENSIONS_REFUSED_MODULE', $name),
             'unsupported' => Text::sprintf('COM_ALFA_EXTENSIONS_REFUSED_UNSUPPORTED', $name),
             'failed' => Text::sprintf('COM_ALFA_EXTENSIONS_REFUSED_NOT_LOADED', $name, $support['message']),
+            'unread' => Text::sprintf('COM_ALFA_EXTENSIONS_REFUSED_NOT_READ', $name),
             default => null,
         };
 
@@ -973,11 +996,14 @@ final class ClearDataExtensions
     /**
      * The installed Alfa extensions but Alfa Commerce and what it bundles, by id.
      *
+     * @param bool $elsewhere With the plugins of other groups that declare onClearData (Tools > Extensions and Clear
+     *                        everything; {@see self::declaredElsewhere()}), since 2.2.1.
+     *
      * @return array<int, array<string, mixed>>
      *
      * @since  2.1.0
      */
-    private function separate(): array
+    private function separate(bool $elsewhere = false): array
     {
         $bundled = [];
 
@@ -995,7 +1021,151 @@ final class ClearDataExtensions
             $listed[$entry['extension_id']] = $entry;
         }
 
+        if ($elsewhere) {
+            foreach ($this->declaredElsewhere() as $entry) {
+                $listed[$entry['extension_id']] = $entry;
+            }
+        }
+
         return $listed;
+    }
+
+    /**
+     * The plugins of a group Joomla loads itself (system, task, user, content and the others), whatever their
+     * namespace, that declare onClearData as a targeted handler, the way the plugin helper's TargetedHandlersInterface
+     * invites them to: Tools > Extensions lists them and Clear everything calls them, as it does the Alfa plugins.
+     * Options > About and the uninstall warning keep to the Alfa extensions ({@see self::installed()}). Joomla's own
+     * plugins never declare it and are not asked. Each other plugin, enabled or not, is asked its declaration booted
+     * through the plugin helper's maintenance boot under THE lock, marked `loading` while it loads, as
+     * {@see self::support()} asks, every Throwable of its boot and of its declaration caught. A plugin whose code could
+     * not be read (it threw now, and the maintenance log says why; or a request died while loading it, its mark left)
+     * is listed with `elsewhere` `unread` (`stale` with the mark, for Try loading again): shown as could not be read,
+     * never a unit of Clear Data or Clear everything. A plugin with no code to run (its files are gone) is not listed:
+     * nothing of it can declare anything. One that declares it has `elsewhere` `declares`. THE lock is
+     * never waited for: while another request holds it (Clear everything or a Clear Data at work) none is asked and
+     * none is listed, and {@see self::busy()} says so for the page.
+     *
+     * @return list<array<string, mixed>> Listing entries, as {@see self::installed()} gives them, with `elsewhere`.
+     *
+     * @since  2.2.1
+     */
+    private function declaredElsewhere(): array
+    {
+        $db = $this->db;
+        $rows = $db->setQuery(
+            $db->createQuery()
+                ->select($db->quoteName(['extension_id', 'package_id', 'type', 'element', 'folder', 'client_id', 'enabled', 'locked', 'name', 'manifest_cache']))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('state') . ' = 0')
+                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                ->where($db->quoteName('folder') . ' NOT LIKE ' . $db->quote('alfa%')),
+        )->loadObjectList() ?: [];
+        $candidates = [];
+
+        foreach ($rows as $row) {
+            $cache = json_decode((string) $row->manifest_cache, true);
+            $cache = \is_array($cache) ? $cache : [];
+
+            // An Alfa namespace is listed already; Joomla's own plugins never declare Alfa's events.
+            if (
+                str_starts_with(ltrim((string) ($cache['namespace'] ?? ''), '\\'), 'Alfa\\')
+                || ExtensionHelper::checkIfCoreExtension('plugin', (string) $row->element, 0, (string) $row->folder)
+            ) {
+                continue;
+            }
+
+            $candidates[] = self::entryOf(row: $row, cache: $cache);
+        }
+
+        if ($candidates === []) {
+            return [];
+        }
+
+        $held = MaintenanceState::holdsLock(db: $db);
+
+        if (!$held && !MaintenanceState::lock(db: $db)) {
+            $this->busy = true;
+
+            return [];
+        }
+
+        $listed = [];
+
+        try {
+            foreach ($candidates as $entry) {
+                $key = (string) $entry['key'];
+
+                // A mark found under the lock was left by a request that died while it loaded this plugin.
+                if (isset((ClearDataStatus::get($key) ?? [])['loading'])) {
+                    $listed[] = $entry + ['elsewhere' => 'unread', 'stale' => true];
+
+                    continue;
+                }
+
+                ClearDataStatus::loading(key: $key, loading: true);
+
+                try {
+                    if (AlfaPluginHelper::get()->declares($this->boot(entry: $entry), 'onClearData')) {
+                        $listed[] = $entry + ['elsewhere' => 'declares'];
+                    }
+                } catch (PluginUnavailable) {
+                    // No code of it to run (its files are gone): nothing of it can declare anything; Joomla lists it.
+                } catch (Throwable $e) {
+                    $this->logFailure(run: 'clear-data', entry: $entry, error: $e);
+                    $listed[] = $entry + ['elsewhere' => 'unread'];
+                } finally {
+                    ClearDataStatus::loading(key: $key, loading: false);
+                }
+            }
+        } finally {
+            if (!$held) {
+                MaintenanceState::unlock(db: $db);
+            }
+        }
+
+        return $listed;
+    }
+
+    /**
+     * Whether a listing of this instance found THE lock held by another request (Clear everything or a Clear Data at
+     * work): the plugins of other groups were then not asked and not listed, and inspect() shows the rows it could not
+     * check as busy.
+     *
+     * @since  2.2.1
+     */
+    public function busy(): bool
+    {
+        return $this->busy;
+    }
+
+    /**
+     * One listing entry from a row of Joomla's extensions table.
+     *
+     * @param object $row The row: extension_id, package_id, type, element, folder, client_id, enabled, locked, name.
+     * @param array<string, mixed> $cache Its manifest cache, decoded.
+     *
+     * @return array{key: string, extension_id: int, package_id: int, type: string, element: string, folder: string, client_id: int, enabled: bool, locked: bool, name: string, version: string}
+     *
+     * @since  2.2.1
+     */
+    private static function entryOf(object $row, array $cache): array
+    {
+        $type = (string) $row->type;
+        $folder = $type === 'plugin' ? (string) $row->folder : '';
+
+        return [
+            'key' => AlfaInstallerGate::key(type: $type, element: (string) $row->element, folder: $folder),
+            'extension_id' => (int) $row->extension_id,
+            'package_id' => (int) $row->package_id,
+            'type' => $type,
+            'element' => (string) $row->element,
+            'folder' => $folder,
+            'client_id' => (int) $row->client_id,
+            'enabled' => (int) $row->enabled === 1,
+            'locked' => (int) $row->locked === 1,
+            'name' => (string) $row->name,
+            'version' => trim((string) ($cache['version'] ?? '')),
+        ];
     }
 
     /**

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="library" method="upgrade">
+	<name>lib_php_svg_lib</name>
+	<libraryname>php-svg-lib</libraryname>
+	<author>The SvgLib Community (packaged for Joomla)</author>
+	<authorUrl>https://github.com/dompdf/php-svg-lib</authorUrl>
+	<creationDate>2026-11-13</creationDate>
+	<license>LGPL-3.0-or-later</license>
+	<version>1.0.2</version>
+	<description>php-svg-lib: draws the SVG images of a page dompdf turns into a PDF. Registers the Svg\ namespace through Joomla's autoloader. Requires sabberworm/php-css-parser.</description>
+	<namespace path="src/Svg">Svg</namespace>
+	<files>
+		<folder>src</folder>
+		<filename>LICENSE</filename>
+	</files>
+</extension>

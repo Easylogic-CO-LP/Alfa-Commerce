@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
@@ -35,7 +36,7 @@ class CleardataController extends BaseController
      */
     public function run(): void
     {
-        $this->carry(call: fn (): array => (new FactoryReset())->run(user: $this->app->getIdentity(), phrase: $this->input->post->getString('phrase', '')));
+        $this->carry(call: fn (): array => (new FactoryReset())->run(user: $this->app->getIdentity(), phrase: RequestScalar::string($this->input->post, 'phrase')));
     }
 
     /**

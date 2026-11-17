@@ -11,11 +11,11 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\EmailLayouts;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\Database\ParameterType;
 
 /**
  * OrderStatusEmailLayoutField
@@ -24,16 +24,18 @@ use Joomla\Database\ParameterType;
  * notification. Order-email wrappers live in the per-type subfolder
  * emails/order/ (siblings like emails/invoice/ belong to other email
  * types). Lists every wrapper LayoutHelper can resolve for the
- * administrator client (emails render with client = 1):
+ * administrator client (emails render with client = 1), from the folders
+ * every mail renders through ({@see EmailLayouts}, 2.2.1):
  *
+ *   - administrator/templates/<the default administrator template>/html/layouts/com_alfa/emails/order/*.php
+ *     (overrides / additions; then the template it inherits from)
  *   - administrator/components/com_alfa/layouts/emails/order/*.php   (component defaults)
- *   - administrator/templates/<tpl>/html/layouts/com_alfa/emails/order/*.php   (overrides / additions)
  *
  * The stored value is the LayoutHelper id in dot notation
  * (e.g. "emails.order.default"). Unlike FieldLayoutField, no
- * "template:layout" split is needed: EmailService renders through
- * LayoutHelper, which already resolves a template override of the same
- * id transparently. A template only needs to add a *new* file; that
+ * "template:layout" split is needed: EmailService renders through the
+ * same folders, which resolve a template override of the same id
+ * transparently. A template only needs to add a *new* file; that
  * surfaces here as another "emails.order.<name>" option.
  *
  * `_`-prefixed files are skipped (private partials).
@@ -66,14 +68,10 @@ class OrderStatusEmailLayoutField extends FormField
     {
         $layouts = [];
 
-        // Component defaults.
-        foreach ($this->scanFolder(JPATH_ADMINISTRATOR . '/components/com_alfa/layouts/emails/order') as $name) {
-            $layouts['emails.order.' . $name] ??= $this->layoutLabel(name: $name);
-        }
-
-        // Additions from every enabled admin template (client_id = 1).
-        foreach ($this->getEnabledAdminTemplates() as $template) {
-            foreach ($this->scanFolder(JPATH_ADMINISTRATOR . '/templates/' . $template . '/html/layouts/com_alfa/emails/order') as $name) {
+        // The default administrator template's additions, its parent's, then the component's defaults: the folders
+        // every mail renders through, whatever application sends it (2.2.1).
+        foreach (EmailLayouts::includePaths() as $folder) {
+            foreach ($this->scanFolder($folder . '/emails/order') as $name) {
                 $layouts['emails.order.' . $name] ??= $this->layoutLabel(name: $name);
             }
         }
@@ -163,32 +161,5 @@ class OrderStatusEmailLayoutField extends FormField
         }
 
         return $label;
-    }
-
-    /**
-     * Element names of enabled administrator templates (client_id = 1).
-     *
-     * @return string[]
-     *
-     * @since  1.0.0
-     */
-    private function getEnabledAdminTemplates(): array
-    {
-        $db = $this->getDatabase();
-        $clientId = 1;
-        $type = 'template';
-
-        $query = $db->createQuery()
-            ->select($db->quoteName('element'))
-            ->from($db->quoteName('#__extensions'))
-            ->where($db->quoteName('client_id') . ' = :clientId')
-            ->where($db->quoteName('type') . ' = :type')
-            ->where($db->quoteName('enabled') . ' = 1')
-            ->bind(':clientId', $clientId, ParameterType::INTEGER)
-            ->bind(':type', $type, ParameterType::STRING);
-
-        $db->setQuery($query);
-
-        return $db->loadColumn() ?: [];
     }
 }

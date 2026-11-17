@@ -628,12 +628,13 @@ final class Standard extends ShipmentsPlugin
     //  TWO KINDS OF HOOK, AND ONLY ONE NEEDS DECLARING.
     //
     //  1. The carrier hooks (onCartViewAssets(), onOrderAfterPlace(),
-    //     onGetActions(), onExecuteAction(), onShipmentWebhook()) are called
-    //     DIRECTLY by the component, which boots this plugin by element and
-    //     checks method_exists(). Writing the method IS the subscription;
-    //     declaring it changes nothing. The base class subscribes
-    //     onItemView/onCartView/onCartViewAssets for you and nothing else is
-    //     needed.
+    //     onGetActions(), onExecuteAction(), onShipmentWebhook() and the rest
+    //     of ShipmentsPlugin::TARGETED_EVENTS) are addressed to this plugin
+    //     alone by Alfa's targeted dispatch (2.2.0): the base class's
+    //     getTargetedHandlers() declares each of those events this class has a
+    //     method of the same name for, and the component asks only the method
+    //     it is about. Writing the method IS the subscription; nothing is put
+    //     on Joomla's dispatcher for it (getSubscribedEvents() answers none).
     //
     //  2. Anything that travels through Joomla's DISPATCHER (a system event
     //     like onBeforeCompileHead or onAfterRender, or com_ajax) reaches this

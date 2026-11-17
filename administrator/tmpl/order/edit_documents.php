@@ -225,7 +225,9 @@ $escape = fn ($value): string => $this->escape((string) $value);
 <?php if (empty($documents)) : ?>
     <div class="alert alert-info"><?php echo Text::_('COM_ALFA_DOCUMENTS_NONE_YET'); ?></div>
 <?php else : ?>
-    <table class="table table-striped table-bordered">
+    <?php // Below 480 px a row folds (alfa-fold, 2.2.1 A4): its cells wrap, each named by its column, the actions on a
+          // line of their own. ?>
+    <table class="table table-striped table-bordered alfa-fold">
 
         <!-- Table header -->
         <!-- Auto-generated from order_documents.xml.               -->
@@ -277,7 +279,7 @@ $escape = fn ($value): string => $this->escape((string) $value);
                             : $escape($value);
                     };
                     ?>
-                    <td>
+                    <td data-alfa-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
                         <?php echo $render($fieldName); ?>
                         <?php // Merged children render inside the parent's cell ?>
                         <?php foreach ($mergeMap[$fieldName] ?? [] as $child) : ?>
@@ -290,7 +292,7 @@ $escape = fn ($value): string => $this->escape((string) $value);
                 <?php endforeach; ?>
 
                 <!-- Actions cell -->
-                <td class="text-center">
+                <td class="text-center alfa-fold-line">
                     <?php if ($canRead) : ?>
                         <div class="btn-group me-1" role="group">
                             <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"

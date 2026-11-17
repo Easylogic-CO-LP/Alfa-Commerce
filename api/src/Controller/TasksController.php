@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskAccess;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskDocument;
@@ -119,7 +120,7 @@ class TasksController extends ApiController
      */
     public function displayItem($id = null)
     {
-        $id ??= $this->input->getInt('id', 0);
+        $id ??= RequestScalar::int($this->input, 'id', 0);
         $this->readable(id: (int) $id);
         // The item's model, chosen here and never by the caller (the guards clear any ?model=): one named after the type
         // would share the state's "task" with this controller's own task, and never find its id.
@@ -148,7 +149,7 @@ class TasksController extends ApiController
     public function process()
     {
         // On a POST the router puts the route's variables in the post bag, as for the order verbs.
-        $id = $this->input->post->getInt('id', 0);
+        $id = RequestScalar::int($this->input->post, 'id', 0);
         $row = $this->readable(id: $id);
 
         if (!TaskAccess::canUseTools(user: $this->identity())) {

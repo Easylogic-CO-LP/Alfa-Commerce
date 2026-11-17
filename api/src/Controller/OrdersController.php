@@ -12,10 +12,10 @@ namespace Alfa\Component\Alfa\Api\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
@@ -32,11 +32,37 @@ use Throwable;
  */
 class OrdersController extends ApiController
 {
-    // The trait's delete() is reached through an alias: this class overrides delete(), and its
-    // parent::delete() would be ApiController's, which asks core.delete.
+    // The trait's delete() and edit() are reached through aliases: this class overrides both, and its
+    // parent::delete() would be ApiController's, which asks core.delete, and its parent::edit() ApiController's, which
+    // does not refuse the keys an order's update does not write.
     use HasApiGuards {
         HasApiGuards::delete as protected guardedDelete;
+        HasApiGuards::edit as protected guardedEdit;
     }
+
+    /**
+     * The published attributes of an order that its update (PATCH) does not write (2.2.1): the order form
+     * declares none of them, or drops them on an update (id_user, id_currency), so a PATCH of one answered 200 and the
+     * order stayed as it was. They are worked out from the order's lines, payments and shipments, fixed when the order
+     * is placed, or written by the order operations. id_order_status and state have refusals of their own (edit()).
+     *
+     * Two the order form would write as sent are refused too: id_address_delivery (a hidden field: the posted id would
+     * point the order at any address record, and a guest order's name and e-mail are copied from the record it names)
+     * and created (the time the order was placed). The delivery details are written through alfa_form_fields, and a
+     * PATCH that leaves either out keeps it as stored.
+     *
+     * @var string[]
+     * @since  2.2.1
+     */
+    private const NOT_UPDATED = [
+        'reference', 'id_user', 'customer_name', 'customer_email', 'id_currency', 'currency', 'conversion_rate',
+        'delivery_date', 'id_address_delivery', 'id_address_invoice', 'id_payment_method',
+        'payment_method_name', 'id_shipment_method', 'shipment_method_name', 'status_name', 'payment_status',
+        'fulfillment_status', 'fulfillment_percentage', 'payment_percentage', 'balance', 'overpaid', 'excess', 'still_held',
+        'order_total', 'order_total_tax_excl', 'items_total', 'shipping_total', 'discount_total', 'contributions_total',
+        'total_paid_real', 'total_refunded_real', 'source', 'created', 'modified', 'lines', 'payments', 'shipments',
+        'contributions', 'history', 'delivery_address', 'invoice_address',
+    ];
 
     /**
      * The content type of the item.
@@ -57,6 +83,11 @@ class OrdersController extends ApiController
     /**
      * Orders list view amended to add filtering of data
      *
+     * Each filter goes onto the model state under the name the orders screen's filter form gives it, and the list
+     * model applies it as it does for the screen (2.2.1: payment, fulfilment, waiting, reconciliation, overpaid, the
+     * order date window and item_id; and the customer, by account or by the order's e-mail). The date window's bounds
+     * are shop-local times, as the screen's calendars hold them; the screen's date presets are not read here.
+     *
      * @return static A BaseController object to support chaining.
      *
      * @since  2.0.0
@@ -64,36 +95,76 @@ class OrdersController extends ApiController
     public function displayList()
     {
         $apiFilterInfo = $this->input->get('filter', [], 'array');
-        $filter = InputFilter::getInstance();
 
         if (\array_key_exists('search', $apiFilterInfo)) {
-            $this->modelState->set('filter.search', $filter->clean($apiFilterInfo['search'], 'STRING'));
+            $this->modelState->set('filter.search', RequestScalar::member($apiFilterInfo, 'search', 'STRING', 'filter'));
         }
 
         if (\array_key_exists('id_order_status', $apiFilterInfo)) {
-            $this->modelState->set('filter.id_order_status', $filter->clean($apiFilterInfo['id_order_status'], 'INT'));
+            $this->modelState->set('filter.id_order_status', RequestScalar::member($apiFilterInfo, 'id_order_status', 'INT', 'filter'));
         }
 
         if (\array_key_exists('id_payment_method', $apiFilterInfo)) {
-            $this->modelState->set('filter.id_payment_method', $filter->clean($apiFilterInfo['id_payment_method'], 'INT'));
+            $this->modelState->set('filter.id_payment_method', RequestScalar::member($apiFilterInfo, 'id_payment_method', 'INT', 'filter'));
         }
 
         if (\array_key_exists('id_shipment_method', $apiFilterInfo)) {
-            $this->modelState->set('filter.id_shipment_method', $filter->clean($apiFilterInfo['id_shipment_method'], 'INT'));
+            $this->modelState->set('filter.id_shipment_method', RequestScalar::member($apiFilterInfo, 'id_shipment_method', 'INT', 'filter'));
         }
 
         if (\array_key_exists('show_trashed', $apiFilterInfo)) {
-            $this->modelState->set('filter.show_trashed', $filter->clean($apiFilterInfo['show_trashed'], 'INT'));
+            $this->modelState->set('filter.show_trashed', RequestScalar::member($apiFilterInfo, 'show_trashed', 'INT', 'filter'));
+        }
+
+        if (\array_key_exists('payment', $apiFilterInfo)) {
+            $this->modelState->set('filter.payment', RequestScalar::member($apiFilterInfo, 'payment', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('fulfilment', $apiFilterInfo)) {
+            $this->modelState->set('filter.fulfilment', RequestScalar::member($apiFilterInfo, 'fulfilment', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('waiting', $apiFilterInfo)) {
+            $this->modelState->set('filter.waiting', RequestScalar::member($apiFilterInfo, 'waiting', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('reconciliation', $apiFilterInfo)) {
+            $this->modelState->set('filter.reconciliation', RequestScalar::member($apiFilterInfo, 'reconciliation', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('overpaid', $apiFilterInfo)) {
+            $this->modelState->set('filter.overpaid', RequestScalar::member($apiFilterInfo, 'overpaid', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('date_start', $apiFilterInfo)) {
+            $this->modelState->set('filter.date_start', RequestScalar::member($apiFilterInfo, 'date_start', 'STRING', 'filter'));
+        }
+
+        if (\array_key_exists('date_end', $apiFilterInfo)) {
+            $this->modelState->set('filter.date_end', RequestScalar::member($apiFilterInfo, 'date_end', 'STRING', 'filter'));
+        }
+
+        if (\array_key_exists('item_id', $apiFilterInfo)) {
+            $this->modelState->set('filter.item_id', RequestScalar::member($apiFilterInfo, 'item_id', 'INT', 'filter'));
+        }
+
+        if (\array_key_exists('id_user', $apiFilterInfo)) {
+            // CMD, not INT: an empty value stays empty (no filter), where INT would make it 0 (the guests' orders).
+            $this->modelState->set('filter.id_user', RequestScalar::member($apiFilterInfo, 'id_user', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('email', $apiFilterInfo)) {
+            $this->modelState->set('filter.email', RequestScalar::member($apiFilterInfo, 'email', 'STRING', 'filter'));
         }
 
         $apiListInfo = $this->input->get('list', [], 'array');
 
         if (\array_key_exists('ordering', $apiListInfo)) {
-            $this->modelState->set('list.ordering', $filter->clean($apiListInfo['ordering'], 'STRING'));
+            $this->modelState->set('list.ordering', RequestScalar::member($apiListInfo, 'ordering', 'STRING', 'list'));
         }
 
         if (\array_key_exists('direction', $apiListInfo)) {
-            $this->modelState->set('list.direction', $filter->clean($apiListInfo['direction'], 'STRING'));
+            $this->modelState->set('list.direction', RequestScalar::member($apiListInfo, 'direction', 'STRING', 'list'));
         }
 
         return parent::displayList();
@@ -137,16 +208,50 @@ class OrdersController extends ApiController
             throw new Save('id_order_status cannot be changed via PATCH; use POST v1/alfa/orders/:id/status.', 422);
         }
 
-        $orderId = (int) ($id ?? $this->input->getInt('id'));
+        // The resource publishes state, the order row's trash flag. Only the administrator's Orders list moves an order
+        // to the trash; over the API an order has no trash step and is deleted in one call, and the order form has no
+        // such field, so a PATCH of it was answered 200 and not written (2.2.1). Refused, as the status is.
+        if (array_key_exists('state', $rawBody) || array_key_exists('state', $bodyData)) {
+            throw new Save('state cannot be changed via PATCH: over the API an order has no trash step and is deleted in one call (DELETE v1/alfa/orders/:id); its status changes through POST v1/alfa/orders/:id/status.', 422);
+        }
+
+        $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
-        $result = parent::edit($id);
+        // The guards' edit: the published attributes the update does not write are refused first (2.2.1).
+        $result = $this->guardedEdit();
 
         if ($restore !== null) {
             $this->restoreInvoiceAddress($orderId, $restore);
         }
 
         return $result;
+    }
+
+    /**
+     * The published attributes an order's update does not write ({@see self::NOT_UPDATED}); a create (POST) takes its
+     * own keys and is not changed here.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenOnUpdate(): array
+    {
+        return self::NOT_UPDATED;
+    }
+
+    /**
+     * Where an order is written instead.
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenReason(): string
+    {
+        return 'an order\'s update writes its customer_note and its delivery and invoice details (alfa_form_fields, and'
+            . ' alfa_form_fields_billing with invoice_differs); its status changes through POST v1/alfa/orders/:id/status, its'
+            . ' lines, payments and shipments through the order operations, and the other fields are worked out from them or'
+            . ' fixed when the order is placed. Nothing was saved.';
     }
 
     /**
@@ -171,7 +276,7 @@ class OrdersController extends ApiController
      */
     public function delete($id = null)
     {
-        $orderId = (int) ($id ?? $this->input->getInt('id'));
+        $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $model = $this->getModel('order', '', ['ignore_request' => true]);
 
         if ($model && $orderId > 0) {

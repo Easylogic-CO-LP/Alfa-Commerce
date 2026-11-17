@@ -47,6 +47,12 @@
  *    $mine    = $this->claimPendingAttempt(paymentId: $paymentId, reference: $sessionId); // one wins, the other is told false
  *    $first   = $this->firstMethodRow(methodId: $methodId, kind: self::FIRST_PAID); // a method's first settled payment
  *
+ *  SINCE 2.2.1:
+ *    $ceiling = $this->bookedRefundable(orderId: $orderId);                     // Money: collected less returned
+ *    $methods = $this->ownMethods();                                             // this plugin's published methods, by id
+ *    $retry   = $this->failRefundAttempt($reservationId, $failedRefundId, $why); // keep the reservation for the retry
+ *    $this->recordActionLog('PLG_ALFA_PAYMENTS_<YOU>_LOG_REFUND_STARTED', ['title' => '#12'], $orderId); // User Actions Log
+ *
  *  THE RULE: this class is the supported payment API. A gateway never calls
  *  PaymentLedger and never reads or writes #__alfa_order_payments itself;
  *  what it needs is a method here. A need this class does not cover is a
@@ -74,27 +80,34 @@
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
 use Alfa\Component\Alfa\Administrator\Helper\PaymentToken;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasActionLogTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasOrderContextTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasTransportUrlsTrait;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
+use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Order\Payment;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use InvalidArgumentException;
+use Joomla\CMS\Application\SiteApplication;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
 use Joomla\Database\QueryInterface;
 use Joomla\Event\SubscriberInterface;
 use RuntimeException;
+use Throwable;
 
 defined('_JEXEC') or die;
 
 abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, TargetedHandlersInterface
 {
+    use HasActionLogTrait;
     use HasOrderContextTrait;
     use HasTransportUrlsTrait;
 
@@ -204,6 +217,15 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      */
     public const REPORT_REQUEST_PREFIX = PaymentLedger::REPORT_REQUEST_PREFIX;
 
+    /**
+     * @var string The prefix of the core's own reference for a refund the provider gave no refund id for, under one of
+     *             this site's refund requests, that is not the request's reservation itself ('beyond:' and the key).
+     *             Like REPORT_REQUEST_PREFIX it is never a provider refund id and never the prefix of a listed report.
+     *
+     * @since  2.2.1
+     */
+    public const REFUND_BEYOND_PREFIX = PaymentLedger::REFUND_BEYOND_PREFIX;
+
     // recordReversal() / recordChargeback() outcomes (with DUPLICATE,
     //    NOTHING_LEFT and FAILED above)
 
@@ -250,7 +272,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * @since  2.0.0
      */
-    protected function transportTask(): string
+    protected static function transportTask(): string
     {
         return 'payment';
     }
@@ -730,6 +752,22 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * payment recorded as this plugin's, and move it only to another method of this plugin; anything else is refused
      * and nothing is written (2.2.0).
      *
+     * THE PAYMENT'S PLUGIN DATA. A payment reads its own payload, and a write goes back through this builder, which
+     * merges:
+     *
+     *     $payment = $order->payments()[0];
+     *     $payment->pluginData()->getString(key: 'wallet', default: '');
+     *     $payment->pluginData()->has('wallet');
+     *
+     *     $this->paymentUpdate($id)->pluginData(['wallet' => $v])->save();
+     *     $this->paymentUpdate($id)->removePluginData(['wallet'])->save();
+     *
+     * Pass PHP arrays, never JSON: encoding belongs to the ledger. Only the keys you name change, and the merge happens
+     * with the row held, so a webhook writing one key and an admin action writing another cannot erase each other.
+     * Storing null KEEPS the key (has() stays true, a typed getter answers with its default); removing takes it away.
+     * The merge is one level deep: a key you write replaces what was under it, wholesale. Core never looks inside any
+     * of it.
+     *
      * @param int $paymentId Existing payment row PK
      *
      * @return PaymentLedger Builder: chain setters, finish with ->save()
@@ -1084,6 +1122,37 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected function releaseRefund(int $reservationId, string $reason, array $options = []): array
     {
         return PaymentLedger::releaseRefund(reservationId: $reservationId, reason: $reason, options: ['plugin' => $this->_name] + $options);
+    }
+
+    /**
+     * One attempt of a reserved refund failed at the provider and the request stands: keep the reservation for the
+     * retry ({@see PaymentLedger::failRefundAttempt()}, since 2.2.1).
+     *
+     * For your provider's definite failure of the refund it held under $providerRefundId, when you will try again for
+     * the same request. The reservation keeps its amount and is given a new key; send the retry with the answer's
+     * 'key' and exactly its 'amount', then report the retry's outcome on the same reservation (holdRefund(),
+     * settleRefund(), releaseRefund()). No figure moves: refundableNow(), refundFormMaximum() and bookedRefundable()
+     * read the same before and after, so the retry is never reserved a second time beside it. The same failure sent
+     * again answers self::OUTCOME_DUPLICATE and writes nothing. To give the request up instead, releaseRefund(). Sent
+     * outside any transaction of yours, as settleRefund() is.
+     *
+     * Usage:
+     *   $r = $this->failRefundAttempt($reservationId, $failedRefundId, $why);
+     *   if ($r['outcome'] === self::OUTCOME_RESERVED) { ...retry: $r['amount'], idempotency key $r['key']... }
+     *
+     * @param int $reservationId The reservation.
+     * @param string $providerRefundId The provider's id of the refund that failed, exactly as given.
+     * @param string $reason Why, plain text.
+     * @param array $options 'gateway_response' (string); 'plugin' is set to this plugin (a gateway acts on its own
+     *                       payments only: another plugin's payment is refused).
+     *
+     * @return array{outcome: string, reservation: int, key: string, amount: ?Money, reason: string}
+     *
+     * @since  2.2.1
+     */
+    protected function failRefundAttempt(int $reservationId, string $providerRefundId, string $reason, array $options = []): array
+    {
+        return PaymentLedger::failRefundAttempt(reservationId: $reservationId, providerRefundId: $providerRefundId, reason: $reason, options: ['plugin' => $this->_name] + $options);
     }
 
     /**
@@ -1573,6 +1642,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * @return array Rows, newest first ([] when none).
      *
+     * @throws OrderCurrencyException When rows are found and their order does not exist or names no currency: a payment
+     *                                row whose order cannot be read is an integrity fault, never an answer of no row.
+     *
      * @since  2.0.0
      */
     protected function gatewayPayments(int $orderId, int|array $methodId = 0): array
@@ -1591,50 +1663,6 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         return PaymentLedger::hydrateAll($db->loadObjectList() ?: [], $orderId);
     }
 
-    /**
-     * THE ROW READS ITS OWN PAYLOAD. `$this->pluginData($payment)` used to live
-     * here and was a second way to ask what the gateway itself now answers:
-     *
-     *     $payment = $event->payments()[0];
-     *     $payment->pluginData()->getString(key: 'wallet', default: '');
-     *     $payment->pluginData()->has('wallet');
-     *
-     * WRITE IT BACK THROUGH THE LEDGER, WHICH MERGES:
-     *
-     *     $this->paymentUpdate($id)->pluginData(['wallet' => $v])->save();
-     *     $this->paymentUpdate($id)->removePluginData(['wallet'])->save();
-     *
-     * Pass PHP arrays, never JSON: encoding belongs to the ledger. Only the
-     * keys you name change, and the merge happens with the row held, so a
-     * webhook writing one key and an admin action writing another cannot erase
-     * each other. Storing null KEEPS the key (has() stays true, a typed getter
-     * answers with its default); removing takes it away. The merge is one level
-     * deep: a key you write replaces what was under it, wholesale.
-     *
-     * The core never looks inside any of it.
-     */
-
-    /**
-     * This gateway's newest attempt on the order that is still pending.
-     *
-     * Every gateway needs this and two had written it privately, with the same
-     * body and INCOMPATIBLE empty answers: one returned null, the other
-     * returned `new stdClass()`. That is why the second one's callers carried shape
-     * checks, and why one of them was dead: `empty()` is never true for an
-     * object, so `empty($payment) || empty($payment->id)` only ever tested the
-     * second half. NULL is the honest answer to "there isn't one".
-     *
-     * Scoped through gatewayPayments(), so it can only ever return a row of
-     * THIS plugin's type: the unscoped list holds every gateway's rows, and on
-     * an order that also carries another gateway's pending row the naive
-     * version handed back somebody else's payment. Rows arrive newest first,
-     * so the first pending one genuinely is the latest.
-     *
-     *
-     * @return object|null The pending attempt, or NULL when there is none.
-     *
-     * @since  2.0.0
-     */
     /**
      * The order a browser-return link names, IF it proves it may see it.
      *
@@ -1663,8 +1691,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected function orderFromReturnLink(): ?Order
     {
         $input = Factory::getApplication()->getInput();
-        $orderId = (int) $input->getInt('id_order', 0);
-        $token = (string) $input->getString('token', '');
+        $orderId = (int) RequestScalar::int($input, 'id_order');
+        $token = (string) RequestScalar::string($input, 'token');
 
         if ($orderId <= 0 || $token === '') {
             return null;
@@ -1695,6 +1723,88 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         return $this->getOrder($orderId);
     }
 
+    /**
+     * Point the visitor's session at an order whose browser return this gateway has authenticated (2.2.1).
+     *
+     * The process page and the completed page's arrival show the session's order only when this session placed it
+     * or a gateway said, through this method, that it authenticated a return for it. A browser return is a request
+     * anyone can send: an order id it named alone would let the process page ask that order's gateway for a payment
+     * page, and the arrival open that order's page to whoever sent it.
+     *
+     * Call it from onPaymentResponse once the return is authenticated for this order (the provider's signature or
+     * digest, or the provider's own answer naming the attempt), never before, and in whatever session the return
+     * arrives: a fresh one is the normal case (a hosted payment page outlives the PHP session, a cross-site POST
+     * return carries no session cookie, a buyer may finish on another device). Call it for every authentic return,
+     * whatever the payment's result (paid, failed, or cancelled by the buyer): the buyer must land on their own
+     * order's page, where a failed attempt is tried again from the process page. Do not write com_alfa.order_id
+     * yourself: an order id without its mark is refused, and the visitor is sent to the cart.
+     *
+     * Send a failed or cancelled return to the process page (getProcessPageUrl(), with a flag of your own), which
+     * asks your plugin again and offers the retry; the completed page's arrival clears the session's order, and the
+     * order's keyed page offers no retry. A valid signed return link (orderFromReturnLink()) grants exactly the right
+     * this mark grants, that this browser may look at this order, so a return it authenticates may be marked; a
+     * return address that carries the link is then as strong as the order's keyed address, and travels the same way.
+     *
+     * Idempotent: the same order again changes nothing; another order replaces the session's order and its mark.
+     * It reads no table. Outside a storefront request there is no visitor's session, and nothing is set.
+     *
+     * @param int $orderId The order the authenticated return is for.
+     *
+     * @throws InvalidArgumentException When the id is below 1.
+     *
+     * @since  2.2.1
+     */
+    final public function authenticatedReturnFor(int $orderId): void
+    {
+        if ($orderId < 1) {
+            throw new InvalidArgumentException('authenticatedReturnFor() names an order: an id of 1 or more, not ' . $orderId . '.');
+        }
+
+        // NEVER THROWS OTHERWISE: the gateway's handler goes on to its redirect whatever happens here, and a session
+        // that could not be written leaves the order unmarked, so the pages refuse it and say where to look.
+        try {
+            $app = Factory::getApplication();
+
+            if (!$app instanceof SiteApplication) {
+                AlfaLog::register();
+                Log::add('authenticatedReturnFor(' . $orderId . ') was called outside a storefront request; nothing was set.', Log::WARNING, 'com_alfa.payments');
+
+                return;
+            }
+
+            SessionOrder::authenticatedReturn($app, $orderId);
+        } catch (Throwable $e) {
+            AlfaLog::register();
+            Log::add('authenticatedReturnFor(' . $orderId . ') could not write the session (' . $e::class . ': ' . $e->getMessage() . '); the order pages will refuse it.', Log::ERROR, 'com_alfa.payments');
+        }
+    }
+
+    /**
+     * This gateway's newest attempt on the order that is still pending.
+     *
+     * Every gateway needs this and two had written it privately, with the same
+     * body and INCOMPATIBLE empty answers: one returned null, the other
+     * returned `new stdClass()`. That is why the second one's callers carried shape
+     * checks, and why one of them was dead: `empty()` is never true for an
+     * object, so `empty($payment) || empty($payment->id)` only ever tested the
+     * second half. NULL is the honest answer to "there isn't one".
+     *
+     * Scoped through gatewayPayments(), so it can only ever return a row of
+     * THIS plugin's type: the unscoped list holds every gateway's rows, and on
+     * an order that also carries another gateway's pending row the naive
+     * version handed back somebody else's payment. Rows arrive newest first,
+     * so the first pending one genuinely is the latest.
+     *
+     * @param int $orderId Order PK.
+     * @param int $methodId Narrow to one method (0 = any of this gateway's).
+     *
+     * @return object|null The pending attempt, or NULL when there is none.
+     *
+     * @throws OrderCurrencyException When rows are found and their order does not exist or names no currency: a payment
+     *                                row whose order cannot be read is an integrity fault, never an answer of no row.
+     *
+     * @since  2.0.0
+     */
     protected function latestPendingPayment(int $orderId, int $methodId = 0): ?object
     {
         foreach ($this->gatewayPayments($orderId, $methodId) as $row) {
@@ -1729,6 +1839,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * @param int|array $methodId Method scope, as above.
      *
      * @return object|null NULL when nothing matches; settle nothing on a guess.
+     *
+     * @throws OrderCurrencyException When the row is found and its order does not exist or names no currency: a payment
+     *                                row whose order cannot be read is an integrity fault, never an answer of no row.
      *
      * @since  2.0.0
      */
@@ -1813,6 +1926,19 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         return $query;
     }
 
+    /**
+     * One payment row by its id, with its payment method's record attached ({@see PaymentLedger::get()}). Not scoped
+     * to this plugin: the row may be another gateway's.
+     *
+     * @param int $id The payment row's id.
+     *
+     * @return object|null The row, its amount as Money; NULL when the id names no row.
+     *
+     * @throws OrderCurrencyException When the row is found and its order does not exist or names no currency: a payment
+     *                                row whose order cannot be read is an integrity fault, never an answer of no row.
+     *
+     * @since  1.0.0
+     */
     protected function getPayment(int $id): ?object
     {
         return PaymentLedger::get($id);
@@ -1883,6 +2009,76 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         }
 
         return PaymentLedger::balance(orderId: $orderId);
+    }
+
+    /**
+     * What the books still allow to be refunded on this order, ignoring what is reserved
+     * ({@see PaymentLedger::bookedRefundable()}): the money ever collected less everything already returned, by
+     * every route. A pure read: nothing is written or locked.
+     *
+     * The ceiling money a provider has already moved is booked against. It never decides whether a new refund may
+     * start (refundableNow(), and reserveRefund() under the order's lock, decide that), nor the maximum of a form
+     * (refundFormMaximum()).
+     *
+     * Usage:
+     *   $ceiling = $this->bookedRefundable(orderId: (int) $order->id());
+     *
+     * @param int $orderId The order, above zero.
+     *
+     * @return Money In the order's currency and scale, never negative.
+     *
+     * @since  2.2.1
+     */
+    protected function bookedRefundable(int $orderId): Money
+    {
+        return PaymentLedger::bookedRefundable(orderId: $orderId);
+    }
+
+    /**
+     * This plugin's own payment methods: the methods of Alfa Commerce whose type is this plugin's element, each the
+     * record {@see self::getPaymentMethod()} answers (the method's settings, `params` decoded to an array).
+     *
+     * For what concerns every method of the plugin rather than one order's (the handshake key of a notification
+     * address registered once per account, for instance). Never another plugin's method. Which methods are this
+     * plugin's is read on each call; each record comes from the model getPaymentMethod() reads with.
+     *
+     * Usage:
+     *   foreach ($this->ownMethods() as $methodId => $method) {
+     *       $key = (string) ($method->params['webhook_key'] ?? '');
+     *   }
+     *
+     * @param bool $publishedOnly True: the published methods only; false: every method of this plugin, whatever its
+     *                            state.
+     *
+     * @return array<int, object> The methods, keyed by their id in ascending order; [] when there are none.
+     *
+     * @since  2.2.1
+     */
+    protected function ownMethods(bool $publishedOnly = true): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select($db->quoteName('id'))
+            ->from($db->quoteName('#__alfa_payments'))
+            ->where($db->quoteName('type') . ' = :element')
+            ->bind(':element', $this->_name)
+            ->order($db->quoteName('id') . ' ASC');
+
+        if ($publishedOnly) {
+            $query->where($db->quoteName('state') . ' = 1');
+        }
+
+        $methods = [];
+
+        foreach (array_map('intval', $db->setQuery($query)->loadColumn() ?: []) as $methodId) {
+            $method = $this->loadPaymentMethod($methodId);
+
+            if ($method !== null) {
+                $methods[$methodId] = $method;
+            }
+        }
+
+        return $methods;
     }
 
     /**

@@ -853,13 +853,15 @@ final class Standard extends PaymentsPlugin
     //
     //  1. The gateway hooks (onCartViewAssets(), onOrderAfterPlace(),
     //     onPaymentResponse(), onPaymentWebhook(), onGetActions(),
-    //     onExecuteAction(), onPaymentCheckup()) are called DIRECTLY by the
-    //     component, which boots this plugin by element and checks
-    //     method_exists(). Writing the method IS the subscription; declaring
-    //     it changes nothing. The base class subscribes
-    //     onItemView/onCartView/onCartViewAssets for you and nothing else is
-    //     needed. The flip side: a method written only as an example is a
-    //     live endpoint, which is why Standard has no onPaymentWebhook().
+    //     onExecuteAction(), onPaymentCheckup() and the rest of
+    //     PaymentsPlugin::TARGETED_EVENTS) are addressed to this plugin alone by
+    //     Alfa's targeted dispatch (2.2.0): the base class's
+    //     getTargetedHandlers() declares each of those events this class has a
+    //     method of the same name for, and the component asks only the method
+    //     it is about. Writing the method IS the subscription; nothing is put
+    //     on Joomla's dispatcher for it (getSubscribedEvents() answers none).
+    //     The flip side: a method written only as an example is a live
+    //     endpoint, which is why Standard has no onPaymentWebhook().
     //
     //  2. Anything that travels through Joomla's DISPATCHER (a system event
     //     like onBeforeCompileHead or onAfterRender, or com_ajax) reaches this
@@ -934,10 +936,13 @@ final class Standard extends PaymentsPlugin
     //    index.php?option=com_alfa&task=payment.webhook&method=<element>
     //
     //  and nothing more: the address names no order and carries no secret.
-    //  Give the provider the exact form your setup checkup prints (the
-    //  {webhook} token in the checkup help, PaymentCheckupEvent::webhookUrl()):
-    //  on a multilingual SEF site the plain index.php form is redirected and
-    //  the notification is lost.
+    //  Give the provider the exact address your plugin builds with
+    //  $this->webhookUrl() (the {webhook} token of the checkup help prints the
+    //  same, PaymentCheckupEvent::webhookUrl()): the site root and index.php,
+    //  TLS forced, with no language and no SEF path, so it is the same in
+    //  every language of the site. A POST to it always reaches the controller;
+    //  a GET does, not a redirect, while System - Alfa Commerce Sync is
+    //  enabled with Access Public.
     //
     //  THE EVENT. PaymentWebhookEvent arrives with subject = NULL, always:
     //  $event->getOrder() is null until YOU have found the order. It carries
@@ -1750,7 +1755,10 @@ final class Standard extends PaymentsPlugin
     private function handleRefundPartialForm($event): void
     {
         $payment = $event->getPayment();
-        $max = $this->refundableRemainder(paymentId: (int) $payment->id);
+        // The form's maximum is the base class's one figure for it (2.2.1): what the payment may still refund AND what
+        // the order may still give back, so a payment whose order settled a credit note to the customer's wallet offers
+        // no figure the ledger's pool cap then refuses.
+        $max = $this->refundFormMaximum(paymentId: (int) $payment->id);
 
         // Below the form's step (one minor unit), nothing is submittable, so
         // answer the notice instead of a dead form. The action stays REGISTERED when

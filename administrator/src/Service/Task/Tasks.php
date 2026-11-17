@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocumentStock;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
@@ -48,7 +49,8 @@ use WeakMap;
 
 /**
  * The tasks of Alfa Commerce (#__alfa_tasks): what a change owes after its commit (a single) and, from 2.2.0, long
- * work with steps (a job). This class writes and runs singles; nothing in 2.1.4 writes or claims a job.
+ * work with steps (a job). This class writes and runs singles; jobs are written and claimed by the job runner
+ * ({@see Runner}, 2.2.0).
  *
  * A SINGLE is written inside the business change's own transaction ({@see self::single()}), so a rollback removes it
  * with the change and a commit keeps it: the row is the proof that the change committed and the record of what it
@@ -73,33 +75,33 @@ final class Tasks
      *
      * @since  2.1.4
      */
-    public const TABLE = '#__alfa_tasks';
+    public const TABLE = DueRead::TABLE;
 
     /**
      * One thing a change owes after its commit, born in that transaction.
      *
      * @since  2.1.4
      */
-    public const TYPE_SINGLE = 'single';
+    public const TYPE_SINGLE = DueRead::TYPE_SINGLE;
 
     /**
      * Long work with steps and a checkpoint (2.2.0).
      *
      * @since  2.1.4
      */
-    public const TYPE_JOB = 'job';
+    public const TYPE_JOB = DueRead::TYPE_JOB;
 
     /** @since  2.1.4 */
-    public const STATE_PENDING = 'pending';
+    public const STATE_PENDING = DueRead::STATE_PENDING;
 
     /** @since  2.1.4 */
-    public const STATE_RUNNING = 'running';
+    public const STATE_RUNNING = DueRead::STATE_RUNNING;
 
     /** @since  2.1.4 */
     public const STATE_DONE = 'done';
 
     /** @since  2.1.4 */
-    public const STATE_FAILED = 'failed';
+    public const STATE_FAILED = DueRead::STATE_FAILED;
 
     /** @since  2.1.4 */
     public const STATE_HELD = 'held';
@@ -108,7 +110,8 @@ final class Tasks
     public const STATE_RESOLVED = 'resolved';
 
     /**
-     * A job stopped for good by staff; no action cancels one in 2.2.0, and the retention rules keep it KEEP_DAYS.
+     * A reserved state: core never sets it; an extension may. The retention rules keep a row in it KEEP_DAYS after it
+     * finished, as a resolved one, and the Tasks list offers it as a filter state.
      *
      * @since  2.2.0
      */
@@ -126,7 +129,7 @@ final class Tasks
      *
      * @since  2.1.4
      */
-    public const GRACE_SECONDS = 120;
+    public const GRACE_SECONDS = DueRead::GRACE_SECONDS;
 
     /**
      * The wait before each automatic retry of a known failure: 1 min, 5 min, 30 min, 2 h, 6 h, 24 h.
@@ -600,7 +603,7 @@ final class Tasks
         if ($from === null) {
             $query->where($db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING))
                 ->where($db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)')
-                ->where(self::unreserved(db: $db));
+                ->where(DueRead::unreserved(db: $db));
         } elseif ($from === '') {
             $query->where('(' . $db->quoteName('state') . ' = ' . $db->quote(self::STATE_RUNNING) . ' OR (' . $db->quoteName('state') . ' = '
                 . $db->quote(self::STATE_PENDING) . ' AND ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)))');
@@ -1059,7 +1062,7 @@ final class Tasks
                 $lease = bin2hex(random_bytes(16));
                 $batch = (string) $candidate['batch'];
 
-                if (self::reserve(db: $db, batch: $batch, lease: $lease, due: self::dueCondition(db: $db)) > 0) {
+                if (self::reserve(db: $db, batch: $batch, lease: $lease, due: DueRead::singleDue(db: $db)) > 0) {
                     $progress = self::runReserved(db: $db, batch: $batch, lease: $lease, trigger: $trigger, userId: $userId, counts: $counts, deadline: $deadline) || $progress;
                 }
             }
@@ -1231,6 +1234,56 @@ final class Tasks
     }
 
     /**
+     * The single of a work that waits for staff (failed or held), told that the work failed again, in place of a second
+     * single of the same work (2.2.1): its failure line becomes the new one and its history records the failure, so
+     * staff read the latest cause where they act. Nothing when it no longer waits.
+     *
+     * @param int $id The single.
+     * @param string $error The failure line, as stored ({@see self::errorKey()} for a failure of the work's own).
+     * @param string $trigger What met the failure again.
+     *
+     * @return bool Whether it still waited and was told.
+     *
+     * @since  2.2.1
+     */
+    public static function failedAgain(int $id, string $error, string $trigger): bool
+    {
+        $db = self::db();
+        $type = self::TYPE_SINGLE;
+        $waiting = [self::STATE_FAILED, self::STATE_HELD];
+        $stored = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('history'))
+                ->from($db->quoteName(self::TABLE))
+                ->where($db->quoteName('id') . ' = :id')
+                ->where($db->quoteName('type') . ' = :type')
+                ->whereIn($db->quoteName('state'), $waiting, ParameterType::STRING)
+                ->bind(':id', $id, ParameterType::INTEGER)
+                ->bind(':type', $type),
+        )->loadRow();
+
+        if ($stored === null) {
+            return false;
+        }
+
+        $history = self::encodeHistory([...self::decodeHistory($stored[0]), self::entry(trigger: $trigger, userId: 0, outcome: self::STATE_FAILED, error: $error)]);
+        $db->setQuery(
+            $db->getQuery(true)
+                ->update($db->quoteName(self::TABLE))
+                ->set($db->quoteName('last_error') . ' = :error')
+                ->set($db->quoteName('history') . ' = :history')
+                ->set($db->quoteName('updated_at') . ' = UTC_TIMESTAMP(3)')
+                ->where($db->quoteName('id') . ' = :id')
+                ->whereIn($db->quoteName('state'), $waiting, ParameterType::STRING)
+                ->bind(':error', $error)
+                ->bind(':history', $history)
+                ->bind(':id', $id, ParameterType::INTEGER),
+        )->execute();
+
+        return $db->getAffectedRows() === 1;
+    }
+
+    /**
      * The handler of a name, or null when there is none.
      *
      * @param string $name The handler's name.
@@ -1264,6 +1317,7 @@ final class Tasks
         return [
             NoticeTask::NAME => NoticeTask::class,
             OrderStock::NAME => OrderStock::class,
+            OrderDocumentStock::NAME => OrderDocumentStock::class,
             OrderEntitlements::NAME => OrderEntitlements::class,
             OrderDocuments::NAME => OrderDocuments::class,
             OrderStatusEmail::NAME => OrderStatusEmail::class,
@@ -1654,7 +1708,7 @@ final class Tasks
             ->where($db->quoteName('type') . ' = ' . $db->quote(self::TYPE_SINGLE))
             ->where($db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING))
             ->where($due)
-            ->where(self::unreserved(db: $db))
+            ->where(DueRead::unreserved(db: $db))
             ->bind(':lease', $lease)
             ->bind(':batch', $batch);
         self::onlyRunnable(db: $db, query: $query);
@@ -2195,18 +2249,6 @@ final class Tasks
     }
 
     /**
-     * A pending single no run holds: never reserved, or its reservation lapsed (the run that made it stopped).
-     *
-     * @param DatabaseDriver $db The connection.
-     *
-     * @since  2.1.4
-     */
-    private static function unreserved(DatabaseDriver $db): string
-    {
-        return '(' . $db->quoteName('lease_owner') . ' IS NULL OR ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3))';
-    }
-
-    /**
      * The row a claim owns.
      *
      * @param DatabaseDriver $db The connection.
@@ -2513,7 +2555,7 @@ final class Tasks
         $policy = self::handler(name: (string) $candidate['handler'])?->policy();
         $again = $policy !== null && $policy->idempotent;
 
-        if ($again && $policy->needsApplication && !self::hasApplication()) {
+        if ($again && $policy->needsApplication && !DueRead::hasApplication()) {
             return false;
         }
 
@@ -2568,7 +2610,7 @@ final class Tasks
 
         // The rest of its batch waits for it: reserved under the same claim, run after it in id order.
         $batch = (string) $candidate['batch'];
-        self::reserve(db: $db, batch: $batch, lease: $lease, due: self::dueCondition(db: $db));
+        self::reserve(db: $db, batch: $batch, lease: $lease, due: DueRead::singleDue(db: $db));
         $counts['claimed']++;
 
         try {
@@ -2629,7 +2671,7 @@ final class Tasks
 
         $lease = bin2hex(random_bytes(16));
 
-        if (self::reserve(db: $db, batch: $batch, lease: $lease, due: self::dueCondition(db: $db)) > 0) {
+        if (self::reserve(db: $db, batch: $batch, lease: $lease, due: DueRead::singleDue(db: $db)) > 0) {
             self::runReserved(db: $db, batch: $batch, lease: $lease, trigger: $trigger, userId: $userId, counts: $counts, deadline: $deadline);
         }
 
@@ -2681,8 +2723,8 @@ final class Tasks
             ->from($db->quoteName(self::TABLE))
             ->where($db->quoteName('type') . ' = ' . $db->quote(self::TYPE_SINGLE))
             ->where($db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING))
-            ->where(self::dueCondition(db: $db))
-            ->where(self::unreserved(db: $db));
+            ->where(DueRead::singleDue(db: $db))
+            ->where(DueRead::unreserved(db: $db));
         self::onlyRunnable(db: $db, query: $pending);
 
         $running = $db->getQuery(true)
@@ -2696,51 +2738,24 @@ final class Tasks
     }
 
     /**
-     * The two single probes of due() as SQL with no bound value, each selecting 1 (2.2.0: the triggers' due read joins
-     * them with the jobs' probes in one statement, Runner::due()).
-     *
-     * @param DatabaseDriver $db The connection.
+     * The handlers whose work needs an application (their policy says so): a process with none leaves their singles
+     * pending, unclaimed (the due read, DueRead::singleProbes(), and the claims).
      *
      * @return list<string>
      *
-     * @since  2.2.0
+     * @since  2.2.1
      */
-    public static function dueProbes(DatabaseDriver $db): array
+    public static function handlersNeedingApplication(): array
     {
-        $single = $db->quoteName('type') . ' = ' . $db->quote(self::TYPE_SINGLE);
-        $pending = 'SELECT 1 FROM ' . $db->quoteName(self::TABLE) . ' WHERE ' . $single . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING)
-            . ' AND ' . self::dueCondition(db: $db) . ' AND ' . self::unreserved(db: $db);
+        $needing = [];
 
-        if (!self::hasApplication()) {
-            $needing = array_filter(
-                array_unique([...array_keys(self::coreHandlers()), ...array_keys(self::$handlers)]),
-                static fn (string $name): bool => (bool) self::handler(name: $name)?->policy()->needsApplication,
-            );
-
-            if ($needing !== []) {
-                $pending .= ' AND ' . $db->quoteName('handler') . ' NOT IN (' . implode(', ', array_map([$db, 'quote'], $needing)) . ')';
+        foreach (array_unique([...array_keys(self::coreHandlers()), ...array_keys(self::$handlers)]) as $name) {
+            if (self::handler(name: $name)?->policy()->needsApplication) {
+                $needing[] = $name;
             }
         }
 
-        return [
-            $pending,
-            'SELECT 1 FROM ' . $db->quoteName(self::TABLE) . ' WHERE ' . $single . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(self::STATE_RUNNING)
-                . ' AND ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3)',
-        ];
-    }
-
-    /**
-     * When a pending single is due for recovery: a retry once its time has come; one that never ran once it is older
-     * than the grace, so its own request runs it first.
-     *
-     * @param DatabaseDriver $db The connection.
-     *
-     * @since  2.1.4
-     */
-    private static function dueCondition(DatabaseDriver $db): string
-    {
-        return $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3) AND (' . $db->quoteName('failures') . ' > 0 OR '
-            . $db->quoteName('run_after') . ' <= DATE_SUB(UTC_TIMESTAMP(3), INTERVAL ' . self::GRACE_SECONDS . ' SECOND))';
+        return $needing;
     }
 
     /**
@@ -2753,17 +2768,11 @@ final class Tasks
      */
     private static function onlyRunnable(DatabaseDriver $db, $query): void
     {
-        if (self::hasApplication()) {
+        if (DueRead::hasApplication()) {
             return;
         }
 
-        $needing = [];
-
-        foreach (array_unique([...array_keys(self::coreHandlers()), ...array_keys(self::$handlers)]) as $name) {
-            if (self::handler(name: $name)?->policy()->needsApplication) {
-                $needing[] = $name;
-            }
-        }
+        $needing = self::handlersNeedingApplication();
 
         if ($needing !== []) {
             $query->whereNotIn($db->quoteName('handler'), $needing, ParameterType::STRING);
@@ -2859,22 +2868,6 @@ final class Tasks
         }
 
         return 'cli';
-    }
-
-    /**
-     * Whether an application runs this process (the web, the Joomla console).
-     *
-     * @since  2.1.4
-     */
-    private static function hasApplication(): bool
-    {
-        try {
-            Factory::getApplication();
-
-            return true;
-        } catch (Throwable) {
-            return false;
-        }
     }
 
     /**

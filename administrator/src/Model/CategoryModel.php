@@ -17,6 +17,8 @@ use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
@@ -223,7 +225,7 @@ class CategoryModel extends AlfaAdminModel
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = $input->post->get('jform', [], 'raw');
+        $rawData = $input->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
         $table = $this->getTable();
@@ -257,6 +259,17 @@ class CategoryModel extends AlfaAdminModel
             }
         }
 
+        // A thumbnail the gallery names must be an image file of the media folders (2.2.1, MediaHelper::thumbnailRefusals()):
+        // a save naming any other is refused before anything is written, from the form and the API alike, so the
+        // gallery keeps the thumbnails it stores.
+        $thumbnailRefusals = MediaHelper::thumbnailRefusals(mediaData: (array) ($data['media'] ?? []));
+
+        if ($thumbnailRefusals !== []) {
+            $this->setError(implode(' ', $thumbnailRefusals));
+
+            return false;
+        }
+
         // Always. The cached category data, path and tree are now filtered by the
         // visitor's allowlist, so editing ONLY "allowed users / user groups" (which
         // changes neither the parent nor newness) must still invalidate them, or a
@@ -273,12 +286,12 @@ class CategoryModel extends AlfaAdminModel
         // URL ALIASES, judged before anything is written: a save that would put this category
         // on another one's address in any language is refused; an address it already shared
         // is kept and said after the save. A copy takes its own aliases, generated.
-        if ($input->get('task') === 'save2copy') {
+        if (RequestScalar::cmd($input, 'task') === 'save2copy') {
             $data = MultilingualHelper::releaseCopiedAliases(
                 data:              $data,
                 tableName:         '#__alfa_categories',
                 primaryColumnName: 'id_category',
-                originalId:        $input->getInt('id'),
+                originalId:        RequestScalar::int($input, 'id'),
                 aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_categories'],
             );
         }
@@ -353,11 +366,6 @@ class CategoryModel extends AlfaAdminModel
         AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_categories_users', 'category_id', 'user_id');
         AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_categories_usergroups', 'category_id', 'usergroup_id');
 
-        // The dangerous one: under inherit-from-default-category this changes the
-        // EFFECTIVE audience of every product whose default category this is. The
-        // event resolves that fan-out; core does not schedule it.
-        VisibilityNotifier::changed(categoryIds: [$currentId]);
-
         // Clear cache if needed
         if ($needsCacheClearing) {
             $this->clearRelatedCache($currentId, $oldParentId, $parentId);
@@ -365,10 +373,18 @@ class CategoryModel extends AlfaAdminModel
 
         $this->resyncAssignedItems($currentId);
 
-        // AFTER the per-language rows are written (saveMultilingualData above): a
-        // listener materialising this category re-reads names/descriptions, so the
-        // signal must not race the data it points at.
-        EntityChangeNotifier::changed(entity: 'category', ids: [$currentId]);
+        // AFTER the per-language rows are written (saveMultilingualData above) and the
+        // items' documents are rebuilt (resyncAssignedItems()), and after the commit of
+        // any transaction the save runs in (2.2.1): a listener materialising this
+        // category re-reads names and descriptions, and one reading its items'
+        // projection reads the audience the event describes. The visibility event is
+        // the dangerous one: under inherit-from-default-category this changes the
+        // EFFECTIVE audience of every product whose default category this is; the
+        // event resolves that fan-out, core does not schedule it.
+        PostCommit::defer(db: $this->alfaDriver(), label: 'the category save\'s catalogue events', work: static function () use ($currentId): void {
+            VisibilityNotifier::changed(categoryIds: [$currentId]);
+            EntityChangeNotifier::changed(entity: 'category', ids: [$currentId]);
+        });
 
         return true;
     }

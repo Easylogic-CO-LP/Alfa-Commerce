@@ -1,0 +1,61 @@
+/**
+ * Alfa Commerce: the action page (view=action), the plugin action's own screen inside the action frame.
+ *
+ * The buttons a plugin declares (layouts/action/buttons.php) sit in a footer pinned to the bottom of the frame, always
+ * in view while a long layout above them scrolls, as a dialog's footer is. The result screen (tmpl/action/notice.php)
+ * has no layout to scroll past, only its message: there the buttons follow the message, so on a short frame (a phone,
+ * or messages of the site above it) they are never drawn over the message's first lines (2.2.1, DESIGN-2.2.1 A4).
+ */
+
+.alfa-action-buttons {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.9rem 1rem;
+    border-top: 1px solid var(--border-color, #e1e5ea);
+    background: var(--card-bg, #fff);
+}
+
+.alfa-action-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 10rem;
+    padding: 1.5rem 1.5rem 0.5rem;
+}
+
+.alfa-action-notice__card {
+    text-align: center;
+    max-width: 24rem;
+}
+
+.alfa-action-notice__icon {
+    font-size: 2.6rem;
+    line-height: 1;
+    display: inline-block;
+    margin-bottom: 0.6rem;
+}
+
+.alfa-action-notice__card--ok .alfa-action-notice__icon {
+    color: var(--success-text-emphasis, #2a8a3e);
+}
+
+.alfa-action-notice__card--error .alfa-action-notice__icon {
+    color: var(--danger-text-emphasis, #c5391b);
+}
+
+.alfa-action-notice__msg {
+    font-size: 0.95rem;
+    color: var(--body-color, #1f2327);
+    margin: 0;
+}
+
+/* The result's buttons: centred under its message, in the page's flow. */
+.alfa-action-notice + .alfa-action-buttons {
+    position: static;
+    justify-content: center;
+    border-top: 0;
+}

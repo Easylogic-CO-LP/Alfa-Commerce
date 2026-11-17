@@ -22,7 +22,7 @@ use Joomla\CMS\Layout\FileLayout;
  *   - array  $rows        Existing price rows
  *   - bool   $showModify  Offer the price/adjust mode (combination context)
  *   - array  $options     Select option lists (currencies/places/usergroups/users; placeNotes, the held places
- *                that are not published, for the rows' note)
+ *                that are not published or were deleted, each with the language key of its rows' note)
  *   - array|null $storedMemberships The item editor of a saved item: the categories and manufacturers it has
  *                stored (ids ascending, comma-separated), which prices.js compares with its form's (2.1.0)
  */

@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasToolsAjaxTrait;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\ToolRegistry;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Throwable;
@@ -54,9 +55,9 @@ class ToolactionController extends BaseController
 
         try {
             $event = ToolRegistry::execute(
-                actionId:  $this->input->getCmd('action', ''),
+                actionId:  RequestScalar::cmd($this->input, 'action'),
                 data:      (array) $this->input->get('data', [], 'array'),
-                ownerHint: $this->input->getString('owner', ''),
+                ownerHint: RequestScalar::string($this->input, 'owner'),
             );
         } catch (Throwable $e) {
             $this->ajaxRespond([], false, $e->getMessage());
@@ -98,14 +99,14 @@ class ToolactionController extends BaseController
             return;
         }
 
-        $action = $this->input->getCmd('action', '');
+        $action = RequestScalar::cmd($this->input, 'action');
 
         try {
             $event = ToolRegistry::execute(
                 actionId:  $action,
                 planning:  true,
                 data:      (array) $this->input->get('data', [], 'array'),
-                ownerHint: $this->input->getString('owner', ''),
+                ownerHint: RequestScalar::string($this->input, 'owner'),
             );
         } catch (Throwable $e) {
             $this->ajaxRespond([], false, $e->getMessage());
@@ -150,14 +151,14 @@ class ToolactionController extends BaseController
             return;
         }
 
-        $offset = $this->input->getInt('offset', 0);
+        $offset = RequestScalar::int($this->input, 'offset');
 
         try {
             $event = ToolRegistry::execute(
-                actionId:  $this->input->getCmd('action', ''),
+                actionId:  RequestScalar::cmd($this->input, 'action'),
                 offset:    $offset,
                 data:      (array) $this->input->get('data', [], 'array'),
-                ownerHint: $this->input->getString('owner', ''),
+                ownerHint: RequestScalar::string($this->input, 'owner'),
             );
         } catch (Throwable $e) {
             $this->ajaxRespond([], false, $e->getMessage());
@@ -211,8 +212,8 @@ class ToolactionController extends BaseController
     {
         $refusal = ActionRegistry::refuseUnsafeRequest(
             mutating: ToolRegistry::mutates(
-                actionId: $this->input->getCmd('action', ''),
-                ownerHint: $this->input->getString('owner', ''),
+                actionId: RequestScalar::cmd($this->input, 'action'),
+                ownerHint: RequestScalar::string($this->input, 'owner'),
             ),
             input: $this->input,
         );

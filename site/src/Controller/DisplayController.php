@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 
@@ -50,7 +51,7 @@ class DisplayController extends \Joomla\CMS\MVC\Controller\BaseController
      */
     public function display($cachable = false, $urlparams = false)
     {
-        $view = $this->input->getCmd('view', 'manufacturers');
+        $view = RequestScalar::cmd($this->input, 'view', 'manufacturers');
         $view = $view == 'featured' ? 'manufacturers' : $view;
         $this->input->set('view', $view);
 

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\FormController;
@@ -85,8 +86,8 @@ class ItemsController extends FormController
      */
     public function display($cachable = false, $urlparams = [])
     {
-        $viewType = $this->input->get('format', 'html');
-        $view = $this->input->get('view', 'items');
+        $viewType = RequestScalar::cmd($this->input, 'format', 'html');
+        $view = RequestScalar::cmd($this->input, 'view', 'items');
 
         $this->input->set('format', $viewType); // Force JSON format
         parent::display($cachable, $urlparams);

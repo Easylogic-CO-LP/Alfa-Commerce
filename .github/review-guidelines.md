@@ -1,6 +1,6 @@
 # Alfa Commerce — PR Review
 
-Review PRs for **com_alfa**, a Joomla 6/7 eCommerce component (PHP, no Composer deps), as a Joomla + com_alfa specialist.
+Review PRs for **com_alfa**, a Joomla 6 eCommerce component (Joomla 7 is refused at install) (PHP, no Composer deps), as a Joomla + com_alfa specialist.
 
 **How to review** — inline, concise, severity-first: 🔴 breaks installs/data/security · 🟡 likely bug or convention · 🔵 minor. Never flag style (CS Fixer) or PHPStan findings. Raise only what you're sure of; acknowledge good work; if it's clean, say so.
 
@@ -26,7 +26,6 @@ Alfa-Commerce/
 │   ├── tmpl/                   # Admin HTML templates
 │   ├── sql/                    # Database schemas & migrations
 │   │   ├── install.mysql.utf8.sql
-│   │   ├── uninstall.mysql.utf8.sql
 │   │   └── updates/mysql/      # Version migration scripts (e.g. 1.0.9.sql)
 │   ├── services/               # DI container (provider.php)
 │   ├── layouts/                # Reusable template layouts
@@ -62,13 +61,20 @@ Alfa-Commerce/
 │   │   ├── text/
 │   │   ├── textarea/
 │   │   ├── tel/
-│   │   └── choice/
+│   │   ├── choice/
+│   │   └── country/
+│   ├── alfa-item-fields/
+│   │   └── choice/             # Item field type plugin
 │   ├── webservices/alfa/       # API route registration
+│   ├── console/alfa/           # Console commands (alfa:tasks:run, alfa:tasks:prune, alfa:inventory:audit)
 │   └── system/alfasync/        # Post-install integrity & per-language schema sync
 │
 ├── modules/
 │   ├── mod_alfa_cart/           # Shopping cart widget module
-│   └── mod_alfa_search/         # Product search module
+│   ├── mod_alfa_search/         # Product search module
+│   ├── mod_alfa_filters/        # Catalogue filters module
+│   ├── mod_alfa_items/          # Product lists module (latest, on sale, best sellers, recently viewed)
+│   └── mod_easy_articles/       # Article lists module
 │
 ├── media/com_alfa/              # Static assets
 │   ├── css/                     # Stylesheets (admin + site)
@@ -123,7 +129,7 @@ Alfa-Commerce/
 
 ## Release & migrations
 - 🔴 Any shipped-code change needs an `alfa.xml` `<version>` bump + a `changelog.xml` entry. Never re-touch a published version (changes the sha256, breaks signed integrity).
-- 🔴 A schema change needs **all three**: `sql/updates/mysql/<ver>.sql` (that delta) + the same folded into `sql/install.mysql.utf8.sql` + the version bump. Removed files → `files/removed/<ver>.json`.
+- 🔴 A schema change needs **all three**: `sql/updates/mysql/<ver>.sql` (that delta) + the same folded into `sql/install.mysql.utf8.sql` + the version bump. Removed files → the lists in `script.php` (`removeObsoleteFiles()`).
 - 🔴 One column per `ALTER` (Joomla's parser reads only the first); idempotent (`IF [NOT] EXISTS`); new tables use `#__` + utf8mb4 + indexes; no duplicate `CREATE TABLE` in the install schema.
 - 🟡 Flag files at an **installed** path (`administrator/components/com_alfa/…`) — the repo uses the source layout above; installed paths double-nest or won't package. Flag new top-level files not covered by any `alfa.xml` `<files>/<media>/<administration>` (they silently won't ship).
 

@@ -17,6 +17,7 @@ use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Router\Route;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 
 /**
  * The Combination Studio as an INDEPENDENT popup (order-edit pattern):
@@ -43,8 +44,8 @@ $wa->useStyle('com_alfa.combinations')
 $combination = $this->studioCombination ?? null;
 $input = Factory::getApplication()->getInput();
 $itemId = (int) ($this->item->id ?? 0);
-$alfaSaved = $input->getInt('alfasaved', -1);
-$closeAfter = $input->getInt('close_after', 0);
+$alfaSaved = RequestScalar::int($input, 'alfasaved', -1);
+$closeAfter = RequestScalar::int($input, 'close_after');
 
 if (!$combination) : ?>
     <div class="alert alert-warning m-3"><?php echo Text::_('COM_ALFA_COMBINATION_NOT_FOUND'); ?></div>

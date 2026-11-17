@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
@@ -893,11 +894,11 @@ class OrderopsController extends OrdersController
             $transition->note((string) $body['note']);
         }
 
-        // Suppresses the customer status email ONLY. Stock, entitlements,
-        // document issuance, both activity rows and the plugin event all
-        // still fire.
+        // Suppresses the customer status email ONLY: the staff the status
+        // tells are still sent theirs (2.2.1; it skipped both before). Stock, entitlements, document issuance, both activity
+        // rows and the plugin event all still fire.
         if (!empty($body['silent'])) {
-            $transition->silent();
+            $transition->silentCustomer();
         }
 
         if ($forced) {
@@ -1326,6 +1327,6 @@ class OrderopsController extends OrdersController
             ? $this->input->post
             : $this->input;
 
-        return (int) $bag->getInt($name, 0);
+        return RequestScalar::int($bag, $name, 0);
     }
 }

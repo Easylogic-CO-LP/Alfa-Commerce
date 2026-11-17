@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Site\Service\Facet\FilterKeyWhitelist;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageHelper;
@@ -71,8 +72,8 @@ class AssociationHelper
         }
 
         $input = Factory::getApplication()->getInput();
-        $view = $view ?: $input->get('view');
-        $id = $id ?: $input->getInt('id');
+        $view = $view ?: RequestScalar::read($input, 'view', null, 'cmd');
+        $id = $id ?: RequestScalar::read($input, 'id', null, 'int');
 
         switch ($view) {
             case 'item':
@@ -82,7 +83,7 @@ class AssociationHelper
                 // The id (and its category) are shared across languages; only the
                 // emitted slug differs, which the Router handles via &lang.
                 $base = 'index.php?option=com_alfa&view=item&id=' . $id;
-                $catId = $input->getInt('category_id');
+                $catId = RequestScalar::read($input, 'category_id', null, 'int');
                 $base .= $catId ? '&category_id=' . $catId : '';
                 break;
 
@@ -95,7 +96,7 @@ class AssociationHelper
 
             case 'items':
                 // Category product listing (id lives in category_id, not id).
-                $catId = $input->getInt('category_id');
+                $catId = RequestScalar::read($input, 'category_id', null, 'int');
                 $base = 'index.php?option=com_alfa&view=items' . ($catId ? '&category_id=' . $catId : '');
                 break;
 
@@ -121,9 +122,8 @@ class AssociationHelper
         // which would record a search event whose keyword belongs to the language the visitor
         // just left, manufacturing zero-result rows nobody typed and corrupting the one report
         // the analytics subsystem exists to produce. Losing a keyword costs one retype; a
-        // dishonest zero-result report costs the merchant a decision. See
-        // {@see \Alfa\Plugin\AlfaSearch\Enterprise\Analytics\EventRecorder} for the same
-        // reasoning applied to type-ahead probes.
+        // dishonest zero-result report costs the merchant a decision. A search engine that
+        // records search events applies the same reasoning to type-ahead probes.
         $base .= self::carriedState((string) $view);
 
         $associations = [];
@@ -250,7 +250,7 @@ class AssociationHelper
         }
 
         // The page the visitor is on is part of "where I was", so it travels too.
-        $limitstart = $input->getInt('limitstart', 0);
+        $limitstart = RequestScalar::int($input, 'limitstart', 0);
 
         if ($limitstart > 0) {
             $carry['limitstart'] = $limitstart;

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\ResetToDefault;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
@@ -46,7 +47,7 @@ class ResetdefaultsController extends BaseController
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        if ($this->input->post->getInt('confirm', 0) !== 1) {
+        if (RequestScalar::int($this->input->post, 'confirm') !== 1) {
             $this->setRedirect($page, Text::_('COM_ALFA_RESET_ERROR_CONFIRM'), 'error');
 
             return;

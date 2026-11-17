@@ -396,6 +396,44 @@ abstract class AlfaAdminModel extends AdminModel
     }
 
     /**
+     * A new record's data with the declared default of each named field it leaves out (2.2.1).
+     *
+     * The edit screen always posts these fields, at the values its form offers; a REST create may leave one out, and
+     * then stores the value the edit screen would have offered instead of failing on a column that has no default of
+     * its own. The defaults are the form's: nothing here states a value. An existing record is left as it is: an
+     * update keeps what is stored.
+     *
+     * @param array $data The data about to be saved.
+     * @param string[] $fields The fields that take their form's default when left out.
+     *
+     * @return array The data.
+     *
+     * @throws RuntimeException When the record's form cannot be loaded.
+     *
+     * @since  2.2.1
+     */
+    protected function withFormDefaults(array $data, array $fields): array
+    {
+        if (!$this->alfaIsNew($data)) {
+            return $data;
+        }
+
+        $form = $this->getForm($data, false);
+
+        if (!$form instanceof Form) {
+            throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_FORM_CREATE'));
+        }
+
+        foreach ($fields as $field) {
+            if (!isset($data[$field])) {
+                $data[$field] = (string) $form->getFieldAttribute($field, 'default');
+            }
+        }
+
+        return $data;
+    }
+
+    /**
      * Save a record, letting plugins adjust it first and attach to it after.
      *
      * @param array $data The form data.

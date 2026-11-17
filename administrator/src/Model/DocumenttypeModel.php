@@ -148,7 +148,7 @@ class DocumenttypeModel extends AlfaAdminModel
     {
         // Recover the per-language flat keys (name_en_gb, ...) the form
         // filter drops.
-        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
+        $rawData = Factory::getApplication()->getInput()->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, (array) $rawData, $this->getForm($data, false) ?: null);
 
         // The registry owns the semantics: a form POST may never carry them.

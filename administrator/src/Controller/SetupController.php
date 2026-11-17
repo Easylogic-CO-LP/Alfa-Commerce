@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Filter\InputFilter;
@@ -65,7 +66,7 @@ class SetupController extends BaseController
     {
         $this->checkToken();
 
-        SetupHelper::setCardState($this->input->getCmd('state', 'open'));
+        SetupHelper::setCardState(RequestScalar::cmd($this->input, 'state', 'open'));
 
         $this->app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $this->app->sendHeaders();
@@ -95,7 +96,7 @@ class SetupController extends BaseController
             $answers[(string) $name] = (string) InputFilter::getInstance()->clean((string) $value, 'CMD');
         }
 
-        $result = SetupHelper::provision($this->input->getCmd('check', ''), $answers);
+        $result = SetupHelper::provision(RequestScalar::cmd($this->input, 'check'), $answers);
 
         if (!$result['ok']) {
             $this->app->setHeader('status', '409 Conflict', true);

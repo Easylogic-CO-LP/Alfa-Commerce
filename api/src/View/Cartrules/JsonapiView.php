@@ -92,14 +92,20 @@ class JsonApiView extends BaseApiView
      * currency at its scale, a percentage (and a plugin action's value) as its
      * own digits.
      *
-     * @param object $item The rule.
+     * @param object|false $item The rule, or false when there is none.
      *
-     * @return object
+     * @return object|false
      *
      * @since  2.0.0
      */
     protected function prepareItem($item)
     {
+        // A record that does not exist reaches here as the model's false: it is handed back untouched, so Joomla's
+        // own check answers 404 "Item does not exist" (2.2.1).
+        if (!\is_object($item)) {
+            return $item;
+        }
+
         $scale = self::defaultScale();
 
         if (property_exists($item, 'action_value')) {

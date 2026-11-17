@@ -9,8 +9,10 @@
 
 namespace Easy\Module\EasyArticles\Site\Helper;
 
+use Closure;
 use Joomla\CMS\Categories\Categories;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Event\PageCache\IsExcludedEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -23,6 +25,7 @@ use Joomla\Component\Content\Site\Helper\RouteHelper;
 use Joomla\Component\Content\Site\Model\ArticlesModel;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use Joomla\Input\Input;
 use Joomla\Registry\Registry;
 use stdClass;
 use Throwable;
@@ -68,6 +71,13 @@ final class EasyArticlesHelper
      * @since  1.0.0
      */
     public const READ_SESSION_KEY = 'easy.recently_read';
+
+    /**
+     * The one answer the page cache is given while a visitor's own list is shown ({@see self::keepPageOutOfPageCache()}).
+     *
+     * @since  2.2.1
+     */
+    private static ?Closure $keepOut = null;
 
     /**
      * Orderings the module may hand the model, keyed by the parameter value.
@@ -362,7 +372,9 @@ final class EasyArticlesHelper
      * core articles module reads its list: the Advanced tab's Caching and Cache
      * Time decide, Global Configuration must have caching on, and a logged-in
      * visitor always reads fresh. What belongs to one visitor's session (recently
-     * read) and a random order are never cached.
+     * read) and a random order are never cached. A page that shows a visitor's
+     * own recently read articles is never stored by Joomla's page cache either:
+     * the next visitor would be shown them (2.2.1).
      *
      * @param int $moduleId Module instance id.
      * @param Registry $params Module parameters (owncache, cache_time).
@@ -377,8 +389,16 @@ final class EasyArticlesHelper
      */
     public static function cachedItems(int $moduleId, Registry $params, array $categoryIds, string $source, int $limit, string $ordering): array
     {
-        if (self::source($source) === self::SOURCE_RECENTLY_READ || $ordering === 'random') {
-            return self::getItems(categoryIds: $categoryIds, source: $source, limit: $limit, ordering: $ordering);
+        $recentlyRead = self::source($source) === self::SOURCE_RECENTLY_READ;
+
+        if ($recentlyRead || $ordering === 'random') {
+            $items = self::getItems(categoryIds: $categoryIds, source: $source, limit: $limit, ordering: $ordering);
+
+            if ($items !== [] && $recentlyRead) {
+                self::keepPageOutOfPageCache();
+            }
+
+            return $items;
         }
 
         $cache = new stdClass();
@@ -392,6 +412,25 @@ final class EasyArticlesHelper
         $items = ModuleHelper::moduleCache((object) ['id' => $moduleId, 'module' => 'mod_easy_articles'], $params, $cache);
 
         return \is_array($items) ? $items : [];
+    }
+
+    /**
+     * This request's page is never stored in Joomla's System - Page Cache: the module answers the page cache's own
+     * question, onPageCacheIsExcluded (asked after the page is drawn, before anything is stored), on the application's
+     * dispatcher, with Joomla's classes alone, so it works wherever the module is installed. One answer per request,
+     * however many lists ask. It keeps the page from being stored, never a page stored earlier from being served.
+     *
+     * @since  2.2.1
+     */
+    private static function keepPageOutOfPageCache(): void
+    {
+        $dispatcher = Factory::getApplication()->getDispatcher();
+        $answer = self::$keepOut ??= static function (IsExcludedEvent $event): void {
+            $event->addResult(true);
+        };
+
+        $dispatcher->removeListener('onPageCacheIsExcluded', $answer);
+        $dispatcher->addListener('onPageCacheIsExcluded', $answer);
     }
 
     /**
@@ -883,9 +922,16 @@ final class EasyArticlesHelper
 
         $app->getLanguage()->load('mod_easy_articles', JPATH_SITE);
 
-        $moduleId = $input->getInt('module_id', 0);
-        $key = $input->getCmd('tab', '');
-        $module = self::loadModule($moduleId);
+        $moduleId = self::requestValue(input: $input, name: 'module_id', filter: 'int', default: 0);
+        $key = self::requestValue(input: $input, name: 'tab', filter: 'cmd', default: '');
+
+        if ($moduleId === null || $key === null) {
+            self::refuseRequestValue();
+
+            return;
+        }
+
+        $module = self::loadModule((int) $moduleId);
 
         if (!$module || $key === '') {
             echo new JsonResponse(null, Text::_('MOD_EASY_ARTICLES_ERROR_NOT_FOUND'), true);
@@ -1024,5 +1070,40 @@ final class EasyArticlesHelper
     private static function bounded(mixed $value, int $min, int $max): int
     {
         return max($min, min($max, (int) $value));
+    }
+
+    /**
+     * One value of the request, through Joomla's filter, or null when the request sends a list in its place (2.2.1): a
+     * list handed on to a typed parameter fails with an error page that names a file of the site, so it is refused
+     * before any use.
+     *
+     * @param Input $input The request.
+     * @param string $name The value's name.
+     * @param string $filter Joomla's filter: int, cmd or string.
+     * @param int|string $default The value when the request carries none.
+     *
+     * @since  2.2.1
+     */
+    private static function requestValue(Input $input, string $name, string $filter, int|string $default): mixed
+    {
+        if (\is_array($input->get($name, null, 'raw'))) {
+            return null;
+        }
+
+        return $input->get($name, $default, $filter);
+    }
+
+    /**
+     * Answer a request that sent a list where one value is expected: 400, with this module's sentence and no file of the
+     * site named (2.2.1).
+     *
+     * @since  2.2.1
+     */
+    private static function refuseRequestValue(): void
+    {
+        http_response_code(400);
+        header('Content-Type: application/json; charset=utf-8');
+        echo new JsonResponse(null, Text::_('MOD_EASY_ARTICLES_ERROR_REQUEST_VALUE'), true);
+        Factory::getApplication()->close();
     }
 }

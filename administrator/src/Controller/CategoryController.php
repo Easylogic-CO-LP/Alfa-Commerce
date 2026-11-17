@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasInlineEditTrait;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\CategoryModel;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\FormController;
@@ -100,8 +101,8 @@ class CategoryController extends FormController
         try {
             $this->assertInlineAuthorised();
 
-            $id = $this->input->getInt('id', 0);
-            $field = $this->input->getCmd('element', '');
+            $id = RequestScalar::int($this->input, 'id');
+            $field = RequestScalar::cmd($this->input, 'element');
 
             if ($id <= 0 || !\in_array($field, self::INLINE_FIELDS, true)) {
                 throw new RuntimeException(Text::_('COM_ALFA_INLINE_UNSUPPORTED_FIELD'));

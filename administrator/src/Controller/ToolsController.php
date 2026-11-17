@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
@@ -74,7 +75,7 @@ class ToolsController extends BaseController
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        $return = base64_decode($this->input->getBase64('return', ''), true);
+        $return = base64_decode(RequestScalar::read($this->input, 'return', '', 'base64'), true);
         $redirect = \is_string($return) && $return !== '' && Uri::isInternal($return)
             ? $return
             : Route::_('index.php?option=com_alfa&view=dashboard', false);
@@ -123,7 +124,7 @@ class ToolsController extends BaseController
             return;
         }
 
-        $changed = (int) $this->input->getInt('changed', 0);
+        $changed = (int) RequestScalar::int($this->input, 'changed');
         $onlyRelPaths = null;
 
         if ($changed === 1) {

@@ -13,7 +13,10 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
+use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Joomla\CMS\Form\Form;
+use LogicException;
 use SimpleXMLElement;
 
 /**
@@ -193,7 +196,7 @@ class UsergroupModel extends AlfaAdminModel
                     continue;
                 }
 
-                $xmlStr .= $spacer . $this->buildFieldXml($field);
+                $xmlStr .= $spacer . $this->buildFieldXml($field, inherits: true);
                 $spacer = '';
             }
 
@@ -208,19 +211,26 @@ class UsergroupModel extends AlfaAdminModel
      *
      * - Preserves all original attributes except those that would break
      *   rendering in a different form context.
-     * - Strips `showon` because field names are now namespaced under a group
-     *   (e.g. price_settings[base_price_show]) and bare-name references inside
-     *   showon conditions would silently fail to resolve.
+     * - Keeps `showon`: a label setting shows only while its price is shown,
+     *   and the references resolve inside the group's own fields.
      * - Preserves <option> children for list/radio fields.
+     * - A setting the group may inherit (2.2.1) is a list offering Joomla's "Use Global (value)" choice, the shop's
+     *   own setting named, and has no default of its own: a setting the group does not hold shows that choice, and a
+     *   Save keeps it inherited (an empty value, which save() does not store) instead of storing config.xml's default
+     *   as the group's own. A list, not config.xml's radio buttons: Joomla's showon reads the shop's value behind a
+     *   "Use Global" choice only from a list (its data-global-value), so a label setting shows while the inherited
+     *   price is shown.
      *
+     * @param SimpleXMLElement $field The config.xml field.
+     * @param bool $inherits Whether the group may leave the setting to the shop.
      *
      * @return string Valid XML fragment for a single <field>.
      * @since  1.0.0
      */
-    protected function buildFieldXml(SimpleXMLElement $field): string
+    protected function buildFieldXml(SimpleXMLElement $field, bool $inherits = false): string
     {
         /** Attributes that must be removed when re-using a config field in a sub-form context. */
-        $stripAttributes = [];
+        $stripAttributes = $inherits ? ['default', 'useglobal', 'type', 'class', 'layout'] : [];
 
         $xml = '<field';
 
@@ -230,6 +240,10 @@ class UsergroupModel extends AlfaAdminModel
             }
 
             $xml .= ' ' . $attrName . '="' . $this->esc((string) $attrValue) . '"';
+        }
+
+        if ($inherits) {
+            $xml .= ' type="list" default="" useglobal="true"';
         }
 
         // Rebuild child <option> elements if present (list / radio fields).
@@ -333,11 +347,50 @@ class UsergroupModel extends AlfaAdminModel
     }
 
     /**
+     * Validate the form data, keeping each overridable group the data sends.
+     *
+     * The form's filter keeps only the fields the data names, so a group sent
+     * with none left in it (a REST PATCH that removes the last setting the
+     * group stored, 2.2.1) would leave the validated data, and save() would
+     * keep what is stored. Sent empty, it stays empty: save() stores no setting
+     * of the group's own, and the shop's settings apply.
+     *
+     * @param Form $form The form to validate against.
+     * @param array $data The data to validate.
+     * @param string $group The name of the field group to validate.
+     *
+     * @return array|bool The filtered data on success, false when the data was refused.
+     *
+     * @since  2.2.1
+     */
+    public function validate($form, $data, $group = null)
+    {
+        $validated = parent::validate($form, $data, $group);
+
+        if (!\is_array($validated)) {
+            return $validated;
+        }
+
+        foreach (self::OVERRIDE_FIELDSETS as $groupName) {
+            if (($data[$groupName] ?? null) === [] && !\array_key_exists($groupName, $validated)) {
+                $validated[$groupName] = [];
+            }
+        }
+
+        return $validated;
+    }
+
+    /**
      * Method to save the form data.
      *
      * Encodes each overridable group array as a JSON string before persistence.
-     * Empty values are stripped so that null is stored instead of an empty object,
-     * allowing downstream code to cleanly fall back to global component settings.
+     * Empty values are stripped, and a group left with none stores an empty map
+     * ({}), never null, which the NOT NULL column refuses (2.2.1): every setting
+     * the map lacks is read from the component's settings.
+     *
+     * A save that leaves a group out (a REST write; the edit form always posts
+     * it) keeps what an existing customer group has, and gives a new one what
+     * Alfa Sync gives every new customer group (2.2.1).
      *
      * @param array $data The form data.
      *
@@ -346,21 +399,48 @@ class UsergroupModel extends AlfaAdminModel
      */
     public function save($data)
     {
-        foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName) {
-            if (!empty($data[$groupName]) && is_array($data[$groupName])) {
-                $filtered = array_filter(
-                    $data[$groupName],
-                    static fn ($value) => $value !== '' && $value !== null,
-                );
+        $isNew = (int) (!empty($data['id']) ? $data['id'] : $this->getState($this->getName() . '.id')) <= 0;
 
-                $data[$groupName] = !empty($filtered)
-                    ? json_encode($filtered, JSON_UNESCAPED_UNICODE)
-                    : null;
-            } else {
-                $data[$groupName] = null;
+        foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName) {
+            if (!\array_key_exists($groupName, $data) || !is_array($data[$groupName])) {
+                if ($isNew) {
+                    $data[$groupName] = self::newGroupValue(groupName: $groupName);
+                } else {
+                    unset($data[$groupName]);
+                }
+
+                continue;
             }
+
+            $filtered = array_filter(
+                $data[$groupName],
+                static fn ($value) => $value !== '' && $value !== null,
+            );
+
+            $data[$groupName] = json_encode((object) $filtered, JSON_UNESCAPED_UNICODE);
         }
 
         return parent::save($data);
+    }
+
+    /**
+     * What a new customer group stores for an overridable group its save left out: the value Alfa Sync writes for
+     * every new Joomla user group, so a group made through the API and one made in Users answer alike.
+     *
+     * @param string $groupName The group's column.
+     *
+     * @return string The column's JSON.
+     *
+     * @throws LogicException For a group whose new-group value is not stated.
+     *
+     * @since  2.2.1
+     */
+    private static function newGroupValue(string $groupName): string
+    {
+        return match ($groupName) {
+            'prices_display' => SyncHelper::buildDefaultPricesDisplay(),
+            // A group added to OVERRIDE_FIELDSETS states its new-group value here.
+            default => throw new LogicException('A new customer group has no stated value for ' . $groupName . '.'),
+        };
     }
 }

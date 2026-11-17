@@ -72,7 +72,7 @@ use Throwable;
  * already works this way in this very component: one service owns stock mutation,
  * nothing writes the tables directly, and it emits a before/after vocabulary
  * (`onInventoryReserved`, `onInventoryReleased`, `onInventoryCommitted`,
- * `onInventoryTransferred`, `onInventoryAdjusted`). The catalogue is simply behind
+ * `onInventoryTransferred`, `onInventoryAdjusted`, `onInventoryRestored`). The catalogue is simply behind
  * it. Follow that shape rather than inventing a second one.
  *
  * @since  2.0.0

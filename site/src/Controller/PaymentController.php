@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentResponseEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentWebhookEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -32,9 +33,11 @@ class PaymentController extends BaseController
     use ProviderCallbacks;
 
     /**
-     * Handle the payment gateway return: load the order stored in the session, dispatch the
-     * onPaymentResponse event to the order's payment plugin, and follow any redirect it requests.
-     * Redirects to the home page when the order id is missing or the order cannot be loaded.
+     * Handle the payment gateway return: boot the payment plugin the address names (&method=<element>), dispatch
+     * onPaymentResponse to it, and follow the redirect it sets. No order is loaded here: the plugin resolves and
+     * authenticates its own message. A plugin that is disabled, missing or cannot be loaded sends the shopper to the
+     * home page with the payment method missing; a handler that sets no redirect sends the shopper to the cart with a
+     * neutral message (2.2.1), never to an empty page.
      *
      * @return void
      *
@@ -48,7 +51,7 @@ class PaymentController extends BaseController
         // gateway was handed carries &method=<element>, exactly as the webhook
         // route does, so routing costs no database read and does not depend on
         // an order this controller has no business loading.
-        $paymentType = $this->input->getCmd('method', '');
+        $paymentType = RequestScalar::cmd($this->input, 'method', '');
 
         // The plugin the address names, booted through the plugin helper (2.2.0): never another one. A plugin that
         // is disabled, missing or cannot be loaded is refused with a neutral message.
@@ -57,7 +60,7 @@ class PaymentController extends BaseController
         try {
             $paymentPlugin = $plugins->bootSingle(PluginId::from('alfa-payments', $paymentType));
         } catch (PluginUnavailable|InvalidArgumentException) {
-            $app->enqueueMessage(Text::_('COM_ALFA_PAYMENT_ORDER_ID_MISSING'), 'error');
+            $app->enqueueMessage(Text::_('COM_ALFA_PAYMENT_METHOD_MISSING'), 'error');
             // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
             $app->redirect(Uri::root());
 
@@ -87,7 +90,14 @@ class PaymentController extends BaseController
 
         if ($paymentEvent->hasRedirect()) {
             $app->redirect($paymentEvent->getRedirectUrl());
+
+            return;
         }
+
+        // A handler that names no page leaves the shopper somewhere defined: the cart, told that the result could
+        // not be confirmed here (2.2.1). This controller holds no order, so the order's own page is the plugin's to name.
+        $app->enqueueMessage(Text::_('COM_ALFA_PAYMENT_RETURN_UNCONFIRMED'), 'warning');
+        $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
     }
 
     /**
@@ -107,7 +117,7 @@ class PaymentController extends BaseController
         // cannot carry a Joomla session token. Authenticity is the plugin's duty
         // (gateway signature / shared secret / verification API call).
 
-        $paymentType = $this->input->getCmd('method', '');
+        $paymentType = RequestScalar::cmd($this->input, 'method', '');
 
         $onWebhookPaymentEventName = 'onPaymentWebhook';
 

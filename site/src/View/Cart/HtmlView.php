@@ -14,13 +14,16 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent as PaymentsOrderCompleteViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent as PaymentsOrderProcessViewEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
+use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
@@ -157,6 +160,12 @@ class HtmlView extends BaseHtmlView
         $this->state = $model->getState();
         $this->params = $app->getParams('com_alfa');
 
+        // EVERY PAGE OF THIS VIEW IS ONE VISITOR'S OWN (2.2.1): the cart, the checkout details typed, the coupon and the
+        // methods chosen, the order of the session, at addresses every visitor shares. None is ever stored in Joomla's
+        // page cache, whatever plugin is enabled. The empty cart too: a stored copy would be served to the next shopper
+        // whose cart holds products, before this view runs, wherever System - Alfa Commerce Sync does not run.
+        PageCache::excludeResponse();
+
         // THE ORDER-COMPLETED PAGE (2.2.0, design 2.17): an order read by the site read service, never the cart, its
         // form or the checkout's state.
         if ($this->_layout == 'default_order_completed') {
@@ -236,12 +245,22 @@ class HtmlView extends BaseHtmlView
         }
 
         if ($this->_layout == 'default_order_process') {
-            $orderId = $app->getUserState('com_alfa.order_id');
+            $orderId = SessionOrder::id($app);
 
-            if ($orderId == null) {
+            if ($orderId <= 0) {
                 $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_ENDED'), 'message');
                 // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
                 $app->redirect(Uri::root());
+            }
+
+            // ONLY AN ORDER THIS SESSION MAY SHOW (2.2.1): placed here, or a return a gateway authenticated. Any other
+            // id is one a request named, and the page would ask that order's gateway for a payment page; refused
+            // before the order is read, with nothing of it shown.
+            if (!SessionOrder::isEntitled($app, $orderId)) {
+                SessionOrder::refuse($app, $orderId, 'process');
+                $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
+
+                return;
             }
 
             $ordersModel = Factory::getApplication()->bootComponent('com_alfa')
@@ -386,14 +405,10 @@ class HtmlView extends BaseHtmlView
         // answer is never stored by a browser or a proxy, never indexed, and the address never leaves the site in a
         // Referer. An uncachable response is answered by Joomla with its own Cache-Control (no-store, no-cache,
         // must-revalidate), sent last whatever a view sets. Joomla's page cache stores a guest's GET by its address and
-        // reads no header, so this request answers its exclusion event itself (asked after the render, before anything
-        // is stored).
+        // reads no header: display() keeps every response of this view out of it.
         $app->allowCache(false);
         $app->setHeader('X-Robots-Tag', 'noindex, nofollow', true);
         $app->setHeader('Referrer-Policy', 'same-origin', true);
-        AlfaPluginHelper::get()->listen('onPageCacheIsExcluded', static function ($event): void {
-            $event->addResult(true);
-        });
 
         if (!$input->exists('id') && !$input->exists('key')) {
             $this->arriveAtCompletedOrder($tpl);
@@ -459,7 +474,7 @@ class HtmlView extends BaseHtmlView
         // PRINT, JOOMLA'S WAY (2.2.0, UX-81): the same keyed address with tmpl=component and print=1 is the print view,
         // which shows the order alone; the page's script opens it from the address it was asked by, so the key is
         // never written into the page.
-        $this->print = $input->getBool('print', false);
+        $this->print = RequestScalar::bool($input, 'print', false);
 
         $this->getDocument()->setMetaData('robots', 'noindex, nofollow');
         $this->_prepareDocument();
@@ -482,7 +497,9 @@ class HtmlView extends BaseHtmlView
 
     /**
      * The arrival address: the session's order, cleared once, then 303 to its keyed address. The query a gateway added
-     * to the arrival address (a result flag its completion view reads) goes along, so no gateway changes.
+     * to the arrival address (a result flag its completion view reads) goes along, so no gateway changes. The order
+     * must be one this session placed or a gateway authenticated a return for (2.2.1): any other is refused, and the
+     * visitor goes to the cart with the neutral message.
      *
      * @param string|null $tpl Template name.
      *
@@ -492,7 +509,7 @@ class HtmlView extends BaseHtmlView
     private function arriveAtCompletedOrder(?string $tpl): void
     {
         $app = $this->app;
-        $orderId = (int) $app->getUserState('com_alfa.order_id');
+        $orderId = SessionOrder::id($app);
 
         if ($orderId <= 0) {
             $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_ENDED'), 'message');
@@ -502,10 +519,19 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
+        // ONLY AN ORDER THIS SESSION MAY SHOW (2.2.1): placed here, or a return a gateway authenticated. Any other id
+        // is one a request named, and its keyed address would open that order's page to whoever sent it.
+        if (!SessionOrder::isEntitled($app, $orderId)) {
+            SessionOrder::refuse($app, $orderId, 'completed');
+            $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
+
+            return;
+        }
+
         // Every reader of the session's order id has run by now (the gateway's return through PaymentController,
         // another gateway from its own payload, retry links carrying the id in their address). Cleared here, once,
-        // so a stale id never re-enters the process page.
-        $app->setUserState('com_alfa.order_id', null);
+        // with its mark, so a stale id never re-enters the process page.
+        SessionOrder::clear($app);
 
         $key = $this->getModel()->getCompletedOrderKey(id: $orderId);
 

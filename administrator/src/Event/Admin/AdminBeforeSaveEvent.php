@@ -22,7 +22,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *
  *     public function onAlfaAdminBeforeSave(AdminBeforeSaveEvent $event): void
  *     {
- *         if (!$event->targets('product')) {
+ *         if (!$event->targets('item')) {
  *             return;
  *         }
  *

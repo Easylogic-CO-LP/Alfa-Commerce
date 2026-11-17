@@ -124,6 +124,18 @@ class ShipmentLedger
     /** @var int The write itself failed. */
     public const WRITE_FAILED = -1;
 
+    /**
+     * The plugin_data key of a parcel core recorded itself at placement (2.2.1): true on the parcel core writes when
+     * the order's carrier recorded none in onOrderAfterPlace, so the order keeps the shipping charge the customer
+     * accepted. A carrier that looks for its own parcel afterwards finds core's by this key; core writes it and reads
+     * no other key of plugin_data.
+     *
+     * @var string
+     *
+     * @since  2.2.1
+     */
+    public const CORE_MADE = 'core_made';
+
     //  CONSTANTS: Table Configuration
 
     /** @var string Database table for shipments */
@@ -145,7 +157,7 @@ class ShipmentLedger
      * Nullable integer columns: form sends '', MySQL rejects for int.
      * Sanitized to null in saveToTable().
      */
-    private const NULLABLE_INT_COLUMNS = ['id_order_invoice', 'id_employee'];
+    private const NULLABLE_INT_COLUMNS = ['id_employee'];
 
     /**
      * Nullable datetime columns: empty/zero -> null in saveToTable().
@@ -1321,6 +1333,22 @@ class ShipmentLedger
     }
 
     /**
+     * A parcel's stored tax chain as its entries, in the order they apply: each the rate as exact decimal text and the
+     * name of the tax rule that applied it ('' for a chain frozen before 2.2.0, which holds the rates alone). What the
+     * REST order resource publishes of a parcel (2.2.1).
+     *
+     * @param string $stored The parcel's shipping_tax_chain as stored.
+     *
+     * @return array<int, array{rate: string, name: string}>|null Null when the stored text is not a chain.
+     *
+     * @since  2.2.1
+     */
+    public static function chainEntries(string $stored): ?array
+    {
+        return self::chainOf(value: $stored);
+    }
+
+    /**
      * The tax name a document line freezes for a parcel's charge: the names of
      * the rules its chain was calculated with, in the order they apply, joined
      * as the pricing engine joins combined rules. Empty when the chain names
@@ -2215,6 +2243,9 @@ class ShipmentLedger
     /**
      * Load a single shipment with method params.
      *
+     * ->params is the shipment method's record, or null when the shipment names no method, the method's row is gone,
+     * or it cannot be read (logged) (2.2.1): never Joomla's blank new record for id 0, and never the model's false.
+     *
      * @param int $id Shipment row PK
      *
      * @return object|null Shipment with ->params, or null
@@ -2240,11 +2271,20 @@ class ShipmentLedger
             return null;
         }
 
-        try {
-            $model = self::getRelatedModel('Shipment');
-            $shipment->params = $model->getItem($shipment->id_shipment_method);
-        } catch (Exception $e) {
-            $shipment->params = null;
+        $shipment->params = null;
+        $methodId = (int) $shipment->id_shipment_method;
+
+        if ($methodId > 0) {
+            try {
+                $method = self::getRelatedModel('Shipment')->getItem($methodId);
+                $shipment->params = \is_object($method) && (int) ($method->id ?? 0) === $methodId ? $method : null;
+            } catch (Throwable $e) {
+                Log::add(
+                    entry:    'Shipment #' . $id . ': its shipment method #' . $methodId . ' could not be read: ' . $e->getMessage(),
+                    priority: Log::WARNING,
+                    category: 'com_alfa.orders',
+                );
+            }
         }
 
         return $shipment;

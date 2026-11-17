@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Event\Panel\PanelDeleteEvent;
 use Alfa\Component\Alfa\Administrator\Event\Panel\PanelResultEvent;
 use Alfa\Component\Alfa\Administrator\Event\Panel\PanelSaveEvent;
 use Alfa\Component\Alfa\Administrator\Event\Panel\PanelTaskEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Menu\MenuBuilder;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Panel\PanelIdentity;
@@ -128,7 +129,7 @@ class PanelController extends BaseController
         } catch (Throwable $e) {
             // A save that threw is never a silent no-op: tell the user, keep the submission so
             // it is not lost, and re-show the edit screen.
-            $this->failed($identity, $identity->editUrl($this->input->getInt('id', 0)), true, $e);
+            $this->failed($identity, $identity->editUrl(RequestScalar::int($this->input, 'id')), true, $e);
 
             return;
         }

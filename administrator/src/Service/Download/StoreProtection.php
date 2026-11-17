@@ -11,9 +11,12 @@ namespace Alfa\Component\Alfa\Administrator\Service\Download;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Uri\Uri;
 use RuntimeException;
@@ -37,13 +40,20 @@ use Throwable;
  *
  * The canary's name is random and is no storage key, so it can never be served or sold, and it
  * is deleted as soon as the answer is in. The result is recorded as `downloads_protection` in
- * `#__alfa_meta` (state, when, which URL, which store). The probe runs on four occasions only:
- * install, update, a change of the store's path, and "Check again".
+ * `#__alfa_meta` (state, when, which URL, which store). The probe runs on these occasions only:
+ * install, update, a change of the store's path, the first file written into a store that had
+ * nothing to protect, and "Check again".
  * A path change is seen by the first administrator page that resolves the store
  * ({@see self::current()}); nothing probes on a schedule or on other page loads, and never on a
  * storefront request. A result that is not verified stays a security warning on every Alfa
  * administrator page, the dashboard, the product's Downloads panel and the Options until a
- * later check verifies the store or its path moves outside the public web root. A result that
+ * later check verifies the store or its path moves outside the public web root.
+ *
+ * The check can be switched off in Options > Downloads ({@see self::isOn()}): then only "Check
+ * again" probes, and nothing is said anywhere but in the Options, which show the last recorded
+ * result. While the store has nothing to protect (no file of a product, none an order hands out,
+ * no other file in its folder: {@see self::hasFiles()}) nothing probes either and nothing is said;
+ * the first file written into the store is checked at once ({@see self::fileAdded()}). A result that
  * cannot be saved is never verified: it is kept for the request and said, and the next page,
  * finding nothing recorded, says the store is unchecked instead of probing again. The raw
  * reason of any failure goes to the downloads log, never into the message.
@@ -63,6 +73,13 @@ class StoreProtection
     public const META_RESULT = 'downloads_protection';
 
     /**
+     * The Option that switches the check (Options > Downloads): 1, the default, probes on the
+     * occasions above and says a result that is not verified; 0 leaves the probe to Check again
+     * and says nothing outside the Options.
+     */
+    public const OPTION_CHECK = 'downloads_protection_check';
+
+    /**
      * Seconds a probe request may take.
      */
     public const TIMEOUT = 5;
@@ -71,6 +88,12 @@ class StoreProtection
      * The control: a file the package ships to the public media folder, compared byte for byte.
      */
     public const CONTROL_FILE = 'media/com_alfa/images/placeholders/no-image.webp';
+
+    /**
+     * The canary's name: this prefix and 32 random hex characters. One a stopped probe left behind
+     * is no file of the store.
+     */
+    private const PROBE_PREFIX = 'probe-';
 
     public const STATE_VERIFIED = 'verified';
 
@@ -88,6 +111,11 @@ class StoreProtection
     private static array $answers = [];
 
     /**
+     * Whether the store has anything to protect, as this request found it; null until asked.
+     */
+    private static ?bool $hasFiles = null;
+
+    /**
      * @param string|null $knownRoot The store root when the caller has settled it already (the
      *                               installer, before the Options are readable); null resolves it.
      *
@@ -95,6 +123,132 @@ class StoreProtection
      */
     public function __construct(private readonly ?string $knownRoot = null)
     {
+    }
+
+    /**
+     * Whether the check is on: the one reader of the switch in Options > Downloads, for the
+     * administrator pages, the layout of the protection and the installation steps. On unless the
+     * shop turned it off; an Option not stored yet reads as installed ({@see ComponentOptions::DEFAULTS}).
+     *
+     * @since  2.2.1
+     */
+    public static function isOn(): bool
+    {
+        return (int) ComponentHelper::getParams('com_alfa')->get(self::OPTION_CHECK, ComponentOptions::DEFAULTS[self::OPTION_CHECK]) === 1;
+    }
+
+    /**
+     * Whether the store has anything to protect: a file of a product, a file an order still hands
+     * out, or any other file in the store's folder (one a removed product file left there, one put
+     * there by hand), since a web server that ignores the deny files hands out any of them. The two
+     * download tables answer first, in one query; only when they name nothing is the folder read,
+     * up to its first file. The answer is kept for the rest of the request.
+     *
+     * @since  2.2.1
+     */
+    public static function hasFiles(): bool
+    {
+        return self::$hasFiles ??= self::findFiles(except: null);
+    }
+
+    /**
+     * An object was written into the store ({@see Storage::put()}, the store's one writer). The
+     * first one, into a store that had nothing to protect, is the moment the protection starts to
+     * matter: with the check on, the store is checked now, once. From then on the store has
+     * something to protect. Never fails the write: the reason of a failure goes to the downloads
+     * log, and the store stays unchecked until Check again.
+     *
+     * @param string $object The absolute path of the object just written, which is not counted.
+     *
+     * @since  2.2.1
+     */
+    public static function fileAdded(string $object): void
+    {
+        try {
+            $first = !(self::$hasFiles ?? self::findFiles(except: $object));
+            self::$hasFiles = true;
+
+            if ($first && self::isOn()) {
+                (new self())->check();
+            }
+        } catch (Throwable $e) {
+            Log::add(entry: 'Download store protection: the check of the first file failed: ' . $e->getMessage(), priority: Log::WARNING, category: 'com_alfa.downloads');
+        }
+    }
+
+    /**
+     * The answer of {@see self::hasFiles()}, worked out.
+     *
+     * @param string|null $except An absolute path in the store not to count, or null.
+     *
+     * @since  2.2.1
+     */
+    private static function findFiles(?string $except): bool
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $any = static fn (string $table): string => (string) $db->createQuery()->select('1')->from($db->quoteName($table));
+
+        $named = (bool) $db->setQuery(
+            $db->createQuery()
+                ->select('EXISTS (' . $any('#__alfa_item_downloads') . ') OR EXISTS (' . $any('#__alfa_order_downloads') . ')'),
+        )->loadResult();
+
+        return $named || self::holdsFile(folder: Storage::currentRoot(), except: $except);
+    }
+
+    /**
+     * Whether a store's folder holds a file, read folder by folder until the first one: the deny
+     * files of its root and a canary a stopped probe left there do not count, nor do empty
+     * folders; a symbolic link counts (a web server may follow it) and is not followed here. A
+     * folder that cannot be read may hold files, so it counts.
+     *
+     * @param string|null $folder The store's root, or null when no store was ever set up.
+     * @param string|null $except An absolute path not to count, or null.
+     *
+     * @since  2.2.1
+     */
+    private static function holdsFile(?string $folder, ?string $except): bool
+    {
+        if ($folder === null || !is_dir($folder)) {
+            return false;
+        }
+
+        $pending = [$folder];
+
+        while ($pending !== []) {
+            $dir = array_pop($pending);
+            $handle = @opendir($dir);
+
+            if ($handle === false) {
+                return true;
+            }
+
+            try {
+                while (($entry = readdir($handle)) !== false) {
+                    $path = $dir . '/' . $entry;
+
+                    if ($entry === '.' || $entry === '..' || $path === $except) {
+                        continue;
+                    }
+
+                    if (!is_link($path) && is_dir($path)) {
+                        $pending[] = $path;
+
+                        continue;
+                    }
+
+                    if ($dir === $folder && (\in_array($entry, Storage::GUARD_FILES, true) || preg_match('/^' . self::PROBE_PREFIX . '[0-9a-f]{32}$/', $entry))) {
+                        continue;
+                    }
+
+                    return true;
+                }
+            } finally {
+                closedir($handle);
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -221,7 +375,7 @@ class StoreProtection
             return;
         }
 
-        $name = 'probe-' . bin2hex(random_bytes(16));
+        $name = self::PROBE_PREFIX . bin2hex(random_bytes(16));
         $canary = 'alfa-download-store-probe ' . bin2hex(random_bytes(32));
         $path = $result->root . '/' . $name;
         $result->url = $site . $this->urlPath(relative: $relative . '/' . $name);
@@ -288,7 +442,10 @@ class StoreProtection
     }
 
     /**
-     * The security warning for a result, or null when it needs none.
+     * The security warning for a result, or null when it needs none: the plain words of the
+     * result, the nginx rule behind a "Server rule" line and the links to the Options' Downloads
+     * tab, as the layout downloads.warning renders them (the administrator pages enqueue it as it
+     * is; the dashboard, the product's Downloads panel and the Options show it with Check again).
      *
      * @param object $result A result of {@see self::check()}.
      *
@@ -297,17 +454,20 @@ class StoreProtection
     public function warning(object $result): ?string
     {
         $e = static fn (string $text): string => htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-        $location = $this->locationRule(root: (string) $result->root);
 
         if ($result->state === self::STATE_EXPOSED) {
-            return Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_EXPOSED', $e((string) $result->root), $e((string) $result->url), $e($result->checked_at . ' UTC'), $e($location));
+            $text = Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_EXPOSED', $e((string) $result->root), $e((string) $result->url), $e($result->checked_at . ' UTC'));
+        } elseif ($result->state === self::STATE_UNVERIFIED) {
+            $text = Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_UNVERIFIED', $e((string) $result->root), $e((string) $result->detail), $e($result->checked_at . ' UTC'));
+        } else {
+            return null;
         }
 
-        if ($result->state === self::STATE_UNVERIFIED) {
-            return Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_UNVERIFIED', $e((string) $result->root), $e((string) $result->detail), $e($result->checked_at . ' UTC'), $e($location));
-        }
-
-        return null;
+        return LayoutHelper::render(
+            layoutFile: 'downloads.warning',
+            displayData: ['text' => $text, 'rule' => $this->locationRule(root: (string) $result->root), 'offerOff' => self::isOn()],
+            basePath: JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+        );
     }
 
     /**

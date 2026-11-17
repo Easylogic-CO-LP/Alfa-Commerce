@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Shipment;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -60,7 +61,7 @@ class HtmlView extends FormView
         // Add form control fields
         $this->form
             ->addControlField('task', '')
-            ->addControlField('return', $input->getBase64('return', ''));
+            ->addControlField('return', RequestScalar::read($input, 'return', '', 'base64'));
     }
 
     /**

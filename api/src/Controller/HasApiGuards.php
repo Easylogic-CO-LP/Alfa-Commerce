@@ -11,18 +11,22 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Doctrine\Inflector\InflectorFactory;
 use Joomla\CMS\Access\Exception\NotAllowed;
+use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Response\JsonResponse;
+use Joomla\CMS\Uri\Uri;
 use Joomla\String\StringHelper;
 use RuntimeException;
 
@@ -44,6 +48,9 @@ use RuntimeException;
  *      $data['categories'] ?? [] and setAssocsToDb() DELETEs every row before
  *      re-inserting. An omitted key therefore reads as "remove them all".
  *      Same idea as com_content re-loading tags in preprocessSaveData().
+ *      A PATCH also keeps the stored keys of a map it names only in part, and
+ *      the stored translations of a required multilingual field it leaves out
+ *      (2.2.1).
  *
  * @since  2.0.0
  */
@@ -63,6 +70,74 @@ trait HasApiGuards
     protected function preserveOnPatch(): array
     {
         return [];
+    }
+
+    /**
+     * Keyed maps a PATCH merges into the stored map (2.2.1): a key the body
+     * sends replaces that key, a key the body sends empty ('' or null) is
+     * removed, and a key the body leaves out keeps its stored value. Each must
+     * be readable back off getItem() under the same name, as an array.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function mergeOnPatch(): array
+    {
+        return [];
+    }
+
+    /**
+     * Body keys this resource's write does not take (2.2.1). The admin models read more than their forms declare:
+     * the jform bridge of {@see self::preprocessSaveData()} hands them the whole body, and
+     * MultilingualHelper::mergeValidatedFormData() keeps every undeclared key, so a key the edit form's grids post
+     * reaches the writer behind it from the API too. A POST or PATCH that carries one of these keys is refused with
+     * 422, naming them, before anything is saved and before core's edit() checks the record out.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenKeys(): array
+    {
+        return [];
+    }
+
+    /**
+     * What the refusal of {@see self::unwrittenKeys()} says after their names: where they are written instead.
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenReason(): string
+    {
+        return '';
+    }
+
+    /**
+     * Body keys this resource's update (PATCH) does not take, beyond {@see self::unwrittenKeys()} (2.2.1): where the
+     * create and the update write different keys, the ones only the update leaves unwritten. A PATCH that carries one
+     * is refused with 422 naming them, before anything is saved and before core's edit() checks the record out.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenOnUpdate(): array
+    {
+        return [];
+    }
+
+    /**
+     * Whether a record of this resource is deleted from the trash only (2.2.1): true where the
+     * administrator's list moves a record to the trash before it deletes it, its Delete being the trashed view's Empty
+     * trash. A DELETE of a record in any other state then answers 409 and deletes nothing; a PATCH of state -2 trashes
+     * it first. Resources the administrator deletes without a trash step, and orders, keep their one-call delete.
+     *
+     * @since  2.2.1
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return false;
     }
 
     /**
@@ -185,31 +260,117 @@ trait HasApiGuards
     }
 
     /**
+     * Create an item: core's create, answered 201 Created with the new record's address in Location (2.2.1).
+     *
+     * Core answers a create with 200 and the record. The record in the body is the same; the status says that it
+     * was created and the Location header where it now is (the collection's address and the new id).
+     *
+     * @return void
+     *
+     * @throws NotAllowed When the identity may not create the resource.
+     *
+     * @since  2.2.1
+     */
+    public function add()
+    {
+        if (!$this->allowAdd()) {
+            throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
+        }
+
+        $this->refuseUnwrittenKeys(update: false);
+
+        $recordId = (int) $this->save();
+
+        $this->displayItem($recordId);
+
+        $this->app->setHeader('status', '201', true);
+        $this->app->setHeader('Location', rtrim(Uri::current(), '/') . '/' . $recordId, true);
+    }
+
+    /**
+     * Update a record: core's edit, refused first when the body carries a key the resource's update does not take
+     * ({@see self::unwrittenKeys()}, {@see self::unwrittenOnUpdate()}), before core looks the record up and checks it
+     * out, so a refused PATCH leaves it as it was (2.2.1).
+     *
+     * @return static
+     *
+     * @throws Save When the body carries an unwritten key (422).
+     *
+     * @since  2.2.1
+     */
+    public function edit()
+    {
+        $this->refuseUnwrittenKeys(update: true);
+
+        return parent::edit();
+    }
+
+    /**
+     * Answer 422, naming them, when the body carries keys of {@see self::unwrittenKeys()}, or on an update of
+     * {@see self::unwrittenOnUpdate()}.
+     *
+     * @param bool $update Whether the write is an update (PATCH) rather than a create (POST).
+     *
+     * @throws Save When it does.
+     *
+     * @since  2.2.1
+     */
+    protected function refuseUnwrittenKeys(bool $update): void
+    {
+        $unwritten = $update ? array_merge($this->unwrittenKeys(), $this->unwrittenOnUpdate()) : $this->unwrittenKeys();
+        $carried = array_values(array_intersect($unwritten, array_keys($this->requestBody())));
+
+        if ($carried !== []) {
+            throw new Save(implode(', ', $carried) . ' cannot be written through the API: ' . $this->unwrittenReason(), 422);
+        }
+    }
+
+    /**
+     * The request body exactly as core's save() reads it.
+     *
+     * @since  2.0.0
+     */
+    protected function requestBody(): array
+    {
+        $body = $this->input->get(
+            name: 'data',
+            default: json_decode((string) $this->input->json->getRaw(), true),
+            filter: 'array',
+        );
+
+        return \is_array($body) ? $body : [];
+    }
+
+    /**
      * Remove an item: core's delete, without its hard-coded core.delete check.
      *
      * The resource's own delete permission was already required by {@see self::execute()} and is
      * required again by the model's canDelete(); core's check would add a Global Configuration
-     * right on top of both. Everything after that check is core's, except one answer: a
-     * delete the model refused by its own rule (a category that still has children or is a
-     * product's default, an entity whose delete would widen a discount, tax or cart rule)
-     * answers 409 with the refusal's sentence as text.
+     * right on top of both. Everything after that check is core's, except two answers: a
+     * record of a resource deleted from the trash only that is not in the trash answers 409
+     * (2.2.1, {@see self::deletesFromTrash()}), and a delete the model refused by its own rule
+     * (a category that still has children or is a product's default, an entity whose delete
+     * would widen a discount, tax or cart rule) answers 409 with the refusal's sentence as text.
+     * A delete the model reports done while it kept the record is answered with the record
+     * ({@see self::answerKept()}), never 204 (2.2.1).
      *
      * @param int $id The primary key to delete item.
      *
      * @return void
      *
-     * @throws Save When the model refused the delete by its own rule; nothing was deleted.
+     * @throws Save When the record is not in the trash, or the model refused the delete by its own rule; nothing was
+     *              deleted.
      *
      * @since  2.0.0
      */
     public function delete($id = null)
     {
         if ($id === null) {
-            $id = $this->input->get('id', 0, 'int');
+            $id = RequestScalar::read($this->input, 'id', 0, 'int');
         }
 
         $inflector = InflectorFactory::create()->build();
-        $modelName = $this->input->get('model', $inflector->singularize($this->contentType));
+        $modelName = RequestScalar::cmd($this->input, 'model', $inflector->singularize($this->contentType));
 
         /** @var \Joomla\CMS\MVC\Model\AdminModel $model */
         $model = $this->getModel($modelName, '', ['ignore_request' => true]);
@@ -218,7 +379,12 @@ trait HasApiGuards
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_MODEL_CREATE'));
         }
 
-        if (!$model->delete($id)) {
+        $this->refuseUntrashed(model: $model, id: (int) $id);
+
+        // The ids the model reports deleted come back in $pks.
+        $pks = [(int) $id];
+
+        if (!$model->delete($pks)) {
             // Core's fallback handler would answer a bare 500 and hide the sentence.
             $refusal = $model->getError(null, false);
 
@@ -257,11 +423,90 @@ trait HasApiGuards
             $this->app->close();
         }
 
+        // Done, and the record is not among the ids the model deleted: it kept it. The items model archives a product
+        // that order lines were sold as instead of deleting it (2.2.1).
+        if ((int) $id > 0 && !\in_array((int) $id, array_map('intval', (array) $pks), true)) {
+            $this->answerKept(id: (int) $id);
+
+            return;
+        }
+
         $this->app->setHeader('status', '204');
     }
 
     /**
-     * Preserve omitted relations, then bridge the body to the jform POST var.
+     * What meta.note says of a record a delete kept ({@see self::answerKept()}); '' for no note.
+     *
+     * @param int $id The record.
+     *
+     * @since  2.2.1
+     */
+    protected function keptNote(int $id): string
+    {
+        return '';
+    }
+
+    /**
+     * Answer a delete that kept its record: 200 with the record as it now stands and meta.note saying why
+     * ({@see self::keptNote()}), where a 204 would say it is gone (2.2.1).
+     *
+     * @param int $id The record.
+     *
+     * @since  2.2.1
+     */
+    private function answerKept(int $id): void
+    {
+        $note = $this->keptNote(id: $id);
+
+        if ($note !== '') {
+            $this->app->getDocument()->addMeta('note', $note);
+        }
+
+        $this->displayItem($id);
+        $this->app->setHeader('status', '200', true);
+    }
+
+    /**
+     * Answer 409 when this resource is deleted from the trash only ({@see self::deletesFromTrash()}) and the record is
+     * not in the trash, before the model is asked: nothing is deleted, archived or checked. A record that does not
+     * exist is left to the delete, which answers 404.
+     *
+     * @param AdminModel $model The resource's model.
+     * @param int $id The record.
+     *
+     * @throws Save When the record exists and is not in the trash (409).
+     *
+     * @since  2.2.1
+     */
+    private function refuseUntrashed(AdminModel $model, int $id): void
+    {
+        if (!$this->deletesFromTrash() || $id <= 0) {
+            return;
+        }
+
+        $table = $model->getTable();
+
+        if (!$table->load($id)) {
+            return;
+        }
+
+        $state = $table->getColumnAlias('published');
+
+        if ((int) $table->{$state} === AlfaComponent::CONDITION_TRASHED) {
+            return;
+        }
+
+        throw new Save(
+            'Only a record in the trash is deleted, as in the administrator: move it to the trash first (PATCH v1/alfa/'
+            . $this->contentType . '/' . $id . ' with state -2), then delete it. Nothing was deleted.',
+            409,
+        );
+    }
+
+    /**
+     * Preserve omitted relations, merge partly named maps and keep the stored
+     * translations of an omitted required field, then bridge the body to the
+     * jform POST var.
      *
      * The bridge is what makes multilingual writes work at all: the admin
      * models recover per-language keys (name_el_gr, ...) from
@@ -275,7 +520,9 @@ trait HasApiGuards
     protected function preprocessSaveData(array $data): array
     {
         $data = $this->preserveAbsentRelations($data);
+        $data = $this->mergePatchedMaps($data);
         $data = $this->flattenTranslations($data);
+        $data = $this->keepStoredRequiredTranslations($data);
         $data = $this->normaliseMediaPayload($data);
 
         $this->input->post->set('jform', $data);
@@ -468,38 +715,13 @@ trait HasApiGuards
      */
     protected function preserveAbsentRelations(array $data): array
     {
-        $preserve = $this->preserveOnPatch();
-
-        if ($preserve === [] || strtoupper((string) $this->input->getMethod()) !== 'PATCH') {
-            return $data;
-        }
-
-        $recordId = (int) ($data['id'] ?? 0);
-
-        if ($recordId <= 0) {
-            return $data;
-        }
-
         $missing = array_filter(
-            $preserve,
+            $this->preserveOnPatch(),
             static fn (string $key): bool => !\array_key_exists($key, $data),
         );
+        $current = $missing === [] ? null : $this->patchedRecord($data);
 
-        if ($missing === []) {
-            return $data;
-        }
-
-        $inflector = InflectorFactory::create()->build();
-        $model = $this->getModel($inflector->singularize($this->contentType));
-
-        // Only an edit model reads the stored record (every model this path reaches is one).
-        if (!$model instanceof AdminModel) {
-            return $data;
-        }
-
-        $current = $model->getItem($recordId);
-
-        if (!$current) {
+        if ($current === null) {
             return $data;
         }
 
@@ -510,5 +732,146 @@ trait HasApiGuards
         }
 
         return $data;
+    }
+
+    /**
+     * Lay the keys of each map the body sends over the stored map (2.2.1).
+     *
+     * PATCH only, for the maps mergeOnPatch() names: a body that names one
+     * key of the map changes that key and keeps the others, and a key it sends
+     * empty ('' or null) leaves the map, so the record takes the shop's setting
+     * for it. It leaves here, before the form's filter, which gives an empty
+     * value the field's default when the field has one. The edit form posts the
+     * whole map and does not come this way; on a create there is nothing stored
+     * to merge into.
+     *
+     * @param array $data The incoming save data.
+     *
+     *
+     * @since  2.2.1
+     */
+    protected function mergePatchedMaps(array $data): array
+    {
+        // Core backfills a column the body leaves out with its stored text, never an array: an array is what the
+        // body sent.
+        $sent = array_filter(
+            $this->mergeOnPatch(),
+            static fn (string $key): bool => \is_array($data[$key] ?? null),
+        );
+        $current = $sent === [] ? null : $this->patchedRecord($data);
+
+        if ($current === null) {
+            return $data;
+        }
+
+        foreach ($sent as $key) {
+            $stored = $current->$key ?? [];
+            $data[$key] = array_filter(
+                array_replace(\is_array($stored) ? $stored : [], $data[$key]),
+                static fn (mixed $value): bool => $value !== '' && $value !== null,
+            );
+        }
+
+        return $data;
+    }
+
+    /**
+     * Keep the stored translations of every required multilingual field a
+     * PATCH leaves out (2.2.1).
+     *
+     * The form's required rule reads the default language's value, which a
+     * PATCH that changes only, say, the state does not send, so such a PATCH
+     * was refused with "Field required". A field the body names, in any
+     * language or empty, is left to the rule, and a create is never helped:
+     * the required rule still applies to both. The translations are read from
+     * the field's own language tables and written back as they are.
+     *
+     * @param array $data The incoming save data, its translations flattened.
+     *
+     *
+     * @since  2.2.1
+     */
+    protected function keepStoredRequiredTranslations(array $data): array
+    {
+        $recordId = (int) ($data['id'] ?? 0);
+
+        if ($recordId <= 0 || strtoupper((string) $this->input->getMethod()) !== 'PATCH') {
+            return $data;
+        }
+
+        $model = $this->getModel(InflectorFactory::create()->build()->singularize($this->contentType));
+
+        if (!$model instanceof AdminModel) {
+            return $data;
+        }
+
+        // Core adds the component's form path after this step (ApiController::save()); the form is read here first.
+        Form::addFormPath(JPATH_ADMINISTRATOR . '/components/' . $this->option . '/forms');
+        $form = $model->getForm([], false);
+
+        if (!$form) {
+            return $data;
+        }
+
+        $languages = MultilingualHelper::getLanguageTags();
+
+        // The fields stored in language tables of their own, read off the form's definition: no field is set up here.
+        foreach ($form->getXml()->xpath('//field[@multilingual_table and @multilingual_pk]') ?: [] as $element) {
+            if (!\in_array((string) $element['required'], ['true', 'required', '1'], true)) {
+                continue;
+            }
+
+            $name = (string) $element['name'];
+            $keys = array_map(
+                static fn (string $language): string => MultilingualHelper::buildLangFieldKey(field: $name, tag: $language),
+                $languages,
+            );
+
+            // A field the body names, in any language or empty: the rule decides.
+            if (\array_key_exists($name, $data) || array_intersect_key($data, array_flip($keys)) !== []) {
+                continue;
+            }
+
+            $stored = MultilingualHelper::getMultilingualDataFlat(
+                currentId:         $recordId,
+                primaryColumnName: (string) $element['multilingual_pk'],
+                tableName:         (string) $element['multilingual_table'],
+            );
+
+            foreach ($keys as $key) {
+                if (\array_key_exists($key, $stored)) {
+                    $data[$key] = $stored[$key];
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * The stored record a PATCH changes, read through the resource's edit
+     * model (2.2.1: shared by the steps that keep what the body leaves out).
+     *
+     * @param array $data The incoming save data.
+     *
+     * @return object|null Null on a create, for a resource without an edit
+     *                     model, or when the record does not exist.
+     *
+     * @since  2.2.1
+     */
+    private function patchedRecord(array $data): ?object
+    {
+        $recordId = (int) ($data['id'] ?? 0);
+
+        if ($recordId <= 0 || strtoupper((string) $this->input->getMethod()) !== 'PATCH') {
+            return null;
+        }
+
+        $model = $this->getModel(InflectorFactory::create()->build()->singularize($this->contentType));
+
+        // Only an edit model reads the stored record (every model this path reaches is one).
+        $current = $model instanceof AdminModel ? $model->getItem($recordId) : false;
+
+        return \is_object($current) ? $current : null;
     }
 }

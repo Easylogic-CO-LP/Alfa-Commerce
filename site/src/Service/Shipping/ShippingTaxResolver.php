@@ -14,6 +14,8 @@ use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedTax;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
+use Alfa\Component\Alfa\Site\Service\Pricing\RulePrecedence;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -38,9 +40,10 @@ defined('_JEXEC') or die;
  * a place inside one: PlaceTree::eligible()) is the unknown destination here,
  * as the same buyer's place is for the goods (PriceContext, 2.2.0); the
  * shipping zones keep the raw destination. Category and manufacturer scopes
- * describe goods; a shipping charge has neither, so they are not read. How
- * several rules combine (only this, combined, one after another) is the
- * pricing engine's own reading.
+ * describe goods; a shipping charge has neither, so they are not read. The
+ * rules that match are put in the one order the goods' taxes of the same buyer
+ * are put in (RulePrecedence, 2.2.1), and how they combine (only this,
+ * combined, one after another) is the pricing engine's own reading.
  *
  * @since  2.0.0
  */
@@ -77,21 +80,18 @@ final class ShippingTaxResolver
         $groups = $audience->getUserGroupsSql();
 
         $query = $db->getQuery(true)
-            ->select('DISTINCT t.id, t.ordering, t.value, t.behavior')
+            // The place of the scope row that matched, for the order (RulePrecedence), as the goods' taxes carry it.
+            ->select('DISTINCT t.id, t.ordering, t.value, t.behavior, tp.place_id AS matched_place')
             ->from($db->quoteName('#__alfa_taxes', 't'))
             ->join('LEFT', $db->quoteName('#__alfa_tax_places', 'tp') . ' ON tp.tax_id = t.id')
             ->join('LEFT', $db->quoteName('#__alfa_tax_usergroups', 'tu') . ' ON tu.tax_id = t.id')
             ->join('LEFT', $db->quoteName('#__alfa_tax_users', 'tgu') . ' ON tgu.tax_id = t.id')
             ->whereIn($db->quoteName('t.id'), $ids)
-            ->where($places === []
-                ? '(tp.tax_id IS NULL OR tp.place_id = 0)'
-                : '(tp.tax_id IS NULL OR tp.place_id = 0 OR tp.place_id IN (' . implode(',', $places) . '))')
+            ->where(PriceDataLoader::placeMatch(alias: 'tp', foreignKey: 'tax_id', chain: $places))
             ->where('(tu.tax_id IS NULL OR tu.usergroup_id = 0 OR tu.usergroup_id IN (' . ($groups !== '' ? $groups : '0') . '))')
             ->where('(tgu.tax_id IS NULL OR tgu.user_id = 0 OR tgu.user_id = ' . (int) ($audience->getUserId() ?? 0) . ')')
             ->where((new ActiveDateCondition())->getActiveCondition('t.publish_up', 't.publish_down', $audience->getReferenceDate()))
             ->where('t.state = 1')
-            // The order decides which "only this" rule wins and the order
-            // sequential rates apply in, as it does for goods.
             ->order('t.ordering ASC, t.id ASC');
 
         MultilingualHelper::addMultilingualJoinToQuery(
@@ -103,8 +103,10 @@ final class ShippingTaxResolver
             fields:            ['name'],
         );
 
+        // The order decides which "only this" rule wins and the order sequential rates apply in: the goods' order,
+        // over the same chain.
         return PriceComputationEngine::chainOf(
-            taxes:    $db->setQuery($query)->loadObjectList() ?: [],
+            taxes:    RulePrecedence::order(rows: $db->setQuery($query)->loadObjectList() ?: [], chain: $places),
             currency: $context->currency,
         );
     }

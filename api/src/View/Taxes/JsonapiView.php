@@ -69,14 +69,20 @@ class JsonApiView extends BaseApiView
     /**
      * A tax's rate as exact decimal text ("24.000" is "24").
      *
-     * @param object $item The tax.
+     * @param object|false $item The tax, or false when there is none.
      *
-     * @return object
+     * @return object|false
      *
      * @since  2.0.0
      */
     protected function prepareItem($item)
     {
+        // A record that does not exist reaches here as the model's false: it is handed back untouched, so Joomla's
+        // own check answers 404 "Item does not exist" (2.2.1).
+        if (!\is_object($item)) {
+            return $item;
+        }
+
         if (property_exists($item, 'value')) {
             $item->value = self::storedRate(value: $item->value);
         }

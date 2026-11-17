@@ -187,6 +187,36 @@
             />
 
             <field
+                    name="card_images"
+                    type="subtemplate"
+                    view="items"
+                    slot="card_images"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEMS_CARD_IMAGES_LABEL"
+            />
+
+            <field
+                    name="card_images_count"
+                    type="list"
+                    label="COM_ALFA_LAYOUT_CARD_IMAGES_COUNT_LABEL"
+                    description="COM_ALFA_LAYOUT_CARD_IMAGES_COUNT_DESC"
+                    validate="options"
+            >
+                <option value="">COM_ALFA_LAYOUT_INHERIT</option>
+                <option value="0">JALL</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+            </field>
+
+            <field
                     name="list_categories"
                     type="subtemplate"
                     view="items"
@@ -211,6 +241,19 @@
                     inheritlabel="COM_ALFA_LAYOUT_INHERIT"
                     label="COM_ALFA_LAYOUT_ITEM_IMAGES_LABEL"
             />
+
+            <field
+                    name="images_grid_columns"
+                    type="list"
+                    label="COM_ALFA_LAYOUT_IMAGES_GRID_COLUMNS_LABEL"
+                    description="COM_ALFA_LAYOUT_IMAGES_GRID_COLUMNS_DESC"
+                    validate="options"
+            >
+                <option value="">COM_ALFA_LAYOUT_INHERIT</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+            </field>
 
             <field
                     name="manufacturers"

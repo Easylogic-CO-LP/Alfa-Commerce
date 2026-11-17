@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Menu;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Menu\BuildMenuEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Joomla\CMS\User\User;
 use Joomla\Input\Input;
@@ -304,7 +305,7 @@ final class MenuBuilder
         }
 
         foreach ($item->activeWhen as $key => $value) {
-            if ($input->getCmd($key, '') !== (string) $value) {
+            if (RequestScalar::cmd($input, $key) !== (string) $value) {
                 return false;
             }
         }

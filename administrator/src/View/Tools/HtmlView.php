@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
@@ -184,7 +185,7 @@ class HtmlView extends BaseHtmlView
         $this->tasks = $this->tasks();
         $this->jobs = $this->jobs();
         $this->runner = $this->runner();
-        $jobId = Factory::getApplication()->getInput()->getInt('job', 0);
+        $jobId = RequestScalar::int(Factory::getApplication()->getInput(), 'job');
 
         if ($jobId > 0) {
             try {
@@ -256,7 +257,7 @@ class HtmlView extends BaseHtmlView
      */
     private function jobs(): array
     {
-        return TaskStaff::jobsCard(followedJob: Factory::getApplication()->getInput()->getInt('job', 0));
+        return TaskStaff::jobsCard(followedJob: RequestScalar::int(Factory::getApplication()->getInput(), 'job'));
     }
 
     /**

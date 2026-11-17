@@ -24,13 +24,32 @@ use RuntimeException;
  *
  * The pipeline is the ONE rendering definition: the same HTML
  * DocumentRenderer produces for the print view is fed to the dompdf
- * library (lib_dompdf, libraries/dompdf). The only disk usage is dompdf's
- * own font cache under Joomla's tmp directory.
+ * library (lib_dompdf), which ships with Alfa Commerce as a Joomla library
+ * with the four libraries it needs ({@see self::LIBRARIES}); Joomla's
+ * autoloader loads their classes. The only disk usage is dompdf's own font
+ * cache under Joomla's tmp directory.
  *
  * @since  2.0.0
  */
 final class PdfRenderer
 {
+    /**
+     * The Joomla libraries a PDF needs, each by its library name with one class of it: dompdf and the four
+     * libraries it builds on, installed with Alfa Commerce (alfa.xml). The setup checklist's row and the renderer
+     * ask for each of these classes, so a library someone removed is named before anything is rendered.
+     *
+     * @var array<string, string>
+     *
+     * @since  2.2.1
+     */
+    public const LIBRARIES = [
+        'dompdf' => \Dompdf\Dompdf::class,
+        'php-font-lib' => \FontLib\Font::class,
+        'php-svg-lib' => \Svg\Document::class,
+        'masterminds/html5' => \Masterminds\HTML5::class,
+        'sabberworm/php-css-parser' => \Sabberworm\CSS\Parser::class,
+    ];
+
     /**
      * Render a document to PDF bytes.
      *
@@ -39,16 +58,19 @@ final class PdfRenderer
      *
      * @return string Raw PDF bytes.
      *
-     * @throws RuntimeException When the document is missing, lib_dompdf is
-     *                          not installed, or rendering fails.
+     * @throws PdfLibraryMissingException When lib_dompdf, or a library it needs, is not installed, asked first:
+     *                                    nothing is rendered for a PDF that cannot be made.
+     * @throws RuntimeException When the document is missing or rendering fails.
      *
      * @since  2.0.0
      */
     public static function pdfBytes(int $documentId): string
     {
-        $html = DocumentRenderer::render(documentId: $documentId);
+        if (!self::libraryInstalled()) {
+            throw new PdfLibraryMissingException();
+        }
 
-        self::loadDompdf();
+        $html = DocumentRenderer::render(documentId: $documentId);
 
         $tmpDir = self::tmpDir();
 
@@ -58,6 +80,9 @@ final class PdfRenderer
         $options->setIsRemoteEnabled(false);
         $options->setTempDir($tmpDir);
         $options->setFontCache($tmpDir);
+        // A font a page declares (@font-face) is written here too, never into the library's own fonts folder, which
+        // the file-integrity check covers; dompdf's bundled fonts are still read from the library.
+        $options->setFontDir($tmpDir);
         $options->setChroot([JPATH_ROOT]);
 
         $dompdf = new \Dompdf\Dompdf($options);
@@ -92,8 +117,8 @@ final class PdfRenderer
     }
 
     /**
-     * Writable scratch directory for dompdf's font cache (runtime cache
-     * only, never document data).
+     * Writable scratch directory for dompdf's temporary files, its font cache
+     * and the fonts a page declares (runtime files only, never document data).
      *
      * @return string Absolute directory path.
      *
@@ -112,25 +137,19 @@ final class PdfRenderer
     }
 
     /**
-     * Load dompdf from the lib_dompdf Joomla library (libraries/dompdf).
+     * Whether a PDF can be made here: every library of {@see self::LIBRARIES} is installed, each asked for its
+     * class through Joomla's autoloader. The setup checklist asks the same question.
      *
-     * The library's own autoload.inc.php registers Dompdf plus every
-     * bundled dependency namespace: no namespace-map entry needed.
-     *
-     * @since  2.0.0
+     * @since  2.2.1
      */
-    private static function loadDompdf(): void
+    public static function libraryInstalled(): bool
     {
-        if (class_exists(\Dompdf\Dompdf::class)) {
-            return;
+        foreach (self::LIBRARIES as $class) {
+            if (!class_exists($class)) {
+                return false;
+            }
         }
 
-        $autoload = JPATH_LIBRARIES . '/dompdf/autoload.inc.php';
-
-        if (!is_file($autoload)) {
-            throw new RuntimeException('PdfRenderer: the dompdf library is not installed (install lib_dompdf).');
-        }
-
-        require_once $autoload;
+        return true;
     }
 }

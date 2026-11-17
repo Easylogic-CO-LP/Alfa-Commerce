@@ -17,6 +17,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
@@ -46,7 +47,7 @@ class ManufacturerModel extends BaseItemModel
     {
         $app = Factory::getApplication();
 
-        $id = $app->input->getInt('id', 0);
+        $id = RequestScalar::int($app->input, 'id', 0);
         $this->setState('manufacturer.id', $id);
 
         parent::populateState();

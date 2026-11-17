@@ -23,7 +23,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *
  *     public function onAlfaAdminPrepareData(AdminPrepareDataEvent $event): void
  *     {
- *         if (!$event->isEditScreen() || !$event->targets('product')) {
+ *         if (!$event->isEditScreen() || !$event->targets('item')) {
  *             return;
  *         }
  *

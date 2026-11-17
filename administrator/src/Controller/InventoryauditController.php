@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\InventoryauditModel;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
@@ -93,7 +94,7 @@ class InventoryauditController extends BaseController
     public function reconcile(): void
     {
         $operator = $this->operator();
-        $itemId = $this->input->post->getInt('id', 0);
+        $itemId = RequestScalar::int($this->input->post, 'id');
 
         $this->setRedirect(url: Route::_(url: self::AUDIT_PAGE, xhtml: false));
 
@@ -150,9 +151,9 @@ class InventoryauditController extends BaseController
     public function writeOff(): void
     {
         $operator = $this->operator();
-        $itemId = $this->input->post->getInt('id', 0);
-        $combinationId = $this->input->post->getInt('combination_id', 0);
-        $reason = trim((string) $this->input->post->get(name: 'reason', default: '', filter: 'raw'));
+        $itemId = RequestScalar::int($this->input->post, 'id');
+        $combinationId = RequestScalar::int($this->input->post, 'combination_id');
+        $reason = trim((string) RequestScalar::read($this->input->post, 'reason', '', 'raw'));
 
         $this->setRedirect(url: Route::_(url: self::AUDIT_PAGE, xhtml: false));
 
@@ -290,17 +291,17 @@ class InventoryauditController extends BaseController
     public function resolveLine(): void
     {
         $operator = $this->operator();
-        $lineId = (int) $this->input->post->get(name: 'line_id', default: 0, filter: 'int');
-        $action = (string) $this->input->post->get(name: 'action', default: '', filter: 'cmd');
-        $reason = trim((string) $this->input->post->get(name: 'reason', default: '', filter: 'raw'));
+        $lineId = (int) RequestScalar::int($this->input->post, 'line_id');
+        $action = (string) RequestScalar::cmd($this->input->post, 'action');
+        $reason = trim((string) RequestScalar::read($this->input->post, 'reason', '', 'raw'));
 
         // The effective resolution a correction takes the place of; none for a first resolution.
-        $supersedes = (int) $this->input->post->get(name: 'supersedes', default: 0, filter: 'int');
+        $supersedes = (int) RequestScalar::int($this->input->post, 'supersedes');
         $supersedes = $supersedes > 0 ? $supersedes : null;
 
         // A combination is chosen only when binding to a stock unit.
         $combinationId = $action === InventoryService::RESOLVE_BIND_UNIT
-            ? (int) $this->input->post->get(name: 'combination_id', default: 0, filter: 'int')
+            ? (int) RequestScalar::int($this->input->post, 'combination_id')
             : 0;
 
         $this->setRedirect(url: Route::_(url: self::AUDIT_PAGE, xhtml: false));
@@ -430,8 +431,8 @@ class InventoryauditController extends BaseController
     public function prioritise(): void
     {
         $operator = $this->operator();
-        $orderId = (int) $this->input->post->get(name: 'order_id', default: 0, filter: 'int');
-        $reason = trim(string: (string) $this->input->post->get(name: 'reason', default: '', filter: 'raw'));
+        $orderId = (int) RequestScalar::int($this->input->post, 'order_id');
+        $reason = trim(string: (string) RequestScalar::read($this->input->post, 'reason', '', 'raw'));
 
         $this->setRedirect(url: Route::_(url: self::AUDIT_PAGE, xhtml: false));
 

@@ -25,7 +25,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *
  *     public function onAlfaAdminBeforeDelete(AdminBeforeDeleteEvent $event): void
  *     {
- *         if (!$event->targets('product')) {
+ *         if (!$event->targets('item')) {
  *             return;
  *         }
  *
@@ -36,8 +36,10 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *         }
  *     }
  *
- * VETO IS DATA, NOT AN EXCEPTION: a non-empty errors list aborts cleanly and shows every
- * objection; throwing would hide the rest behind the first one.
+ * VETO IS DATA, NOT AN EXCEPTION: a non-empty errors list refuses the delete cleanly, before
+ * anything is touched, with every handler heard; throwing stops at the first one. The model
+ * holds every objection, and the list's Delete (Joomla's AdminController::delete()) shows staff
+ * the last one only, so word each objection to stand on its own.
  *
  * This is also the last moment the records still exist, so a handler that needs to READ them
  * before they go (to archive, to log what was there) must do it here. Cleaning up the plugin's

@@ -37,6 +37,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderDeleteEvent as PaymentBeforeDeleteEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderDeleteEvent as ShipmentBeforeDeleteEvent;
@@ -52,6 +53,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
@@ -183,8 +185,8 @@ class OrderModel extends AlfaAdminModel
         }
 
         $app = Factory::getApplication();
-        $idFromInput = $app->getInput()->getInt('id', 0);
-        $orderIdFromInput = $app->getInput()->getInt('id_order', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
+        $orderIdFromInput = RequestScalar::int($app->getInput(), 'id_order');
 
         $id = (int) $this->getState('order_shipments.id', $idFromInput);
         $orderId = (int) $this->getState('order.id', $orderIdFromInput);
@@ -257,8 +259,8 @@ class OrderModel extends AlfaAdminModel
         }
 
         $app = Factory::getApplication();
-        $idFromInput = $app->getInput()->getInt('id', 0);
-        $orderIdFromInput = $app->getInput()->getInt('id_order', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
+        $orderIdFromInput = RequestScalar::int($app->getInput(), 'id_order');
 
         $id = (int) $this->getState('order_payments.id', $idFromInput);
         $orderId = (int) $this->getState('order.id', $orderIdFromInput);
@@ -404,7 +406,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         $orderId = (int) ($this->getState('order.id', 0)
-            ?: Factory::getApplication()->getInput()->getInt('id_order', 0));
+            ?: RequestScalar::int(Factory::getApplication()->getInput(), 'id_order'));
 
         // Type picker, and the alias lists every showon below is built from
         $types = DocumentHelper::types();
@@ -649,7 +651,7 @@ class OrderModel extends AlfaAdminModel
             return false;
         }
 
-        $idFromInput = $app->getInput()->getInt('id', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
         $id = (int) $this->getState($this->formName . '.id', $idFromInput);
         $this->item = $this->getItem($id);
 
@@ -694,6 +696,10 @@ class OrderModel extends AlfaAdminModel
             // authority is OrderTable::store(), which refuses a change or a
             // clear whatever route it arrives by, including REST.
             $form->setFieldAttribute('id_currency', 'filter', 'unset');
+
+            // The delivery record is the order's own, read from the stored order by save(): the hidden field is
+            // dropped from the save like id_user, so an id posted in its place is never read.
+            $form->setFieldAttribute('id_address_delivery', 'filter', 'unset');
         }
 
         // Two buckets, same field names, identical to the storefront checkout:
@@ -2063,7 +2069,7 @@ class OrderModel extends AlfaAdminModel
      */
     private static function drawnAsSold(object $item): object
     {
-        $item->surfaces = [];
+        $item->surfaces = new SurfaceMap();
 
         return $item;
     }
@@ -2186,7 +2192,9 @@ class OrderModel extends AlfaAdminModel
      */
     protected function dispatchItemConfigSurfaces(object $item, array $seed): void
     {
-        $item->surfaces = [];
+        // Collected here and handed to the item as a read-only map after each field (2.2.1), as the storefront does.
+        $slots = [];
+        $item->surfaces = new SurfaceMap();
 
         // Conditional visibility: the SAME showon rules + initial-state painting
         // as the storefront, so a field hidden for the customer's selection is
@@ -2217,10 +2225,14 @@ class OrderModel extends AlfaAdminModel
                 ],
             ]);
 
-            $plugins->dispatchTo($plugin, $event);
+            // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
+            // order's item window renders without it.
+            if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') in the order\'s item window')) {
+                continue;
+            }
 
             Surfaces::appendTo(
-                $item->surfaces,
+                $slots,
                 $event,
                 'alfa-item-fields',
                 (string) $field->type,
@@ -2228,7 +2240,12 @@ class OrderModel extends AlfaAdminModel
                 Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                 field: $field,
             );
+            $item->surfaces = new SurfaceMap($slots);
         }
+
+        // Handed once more after the last field (2.2.1): a plugin that changed the item's surfaces and then failed has
+        // its field skipped above, and its change must not outlive it.
+        $item->surfaces = new SurfaceMap($slots);
     }
 
     /**
@@ -2361,8 +2378,8 @@ class OrderModel extends AlfaAdminModel
         }
 
         $app = Factory::getApplication();
-        $idFromInput = $app->getInput()->getInt('id', 0);
-        $orderIdFromInput = $app->getInput()->getInt('id_order', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
+        $orderIdFromInput = RequestScalar::int($app->getInput(), 'id_order');
 
         $id = (int) $this->getState('order_items.id', $idFromInput);
         $orderId = (int) $this->getState('order.id', $orderIdFromInput);
@@ -3577,7 +3594,6 @@ class OrderModel extends AlfaAdminModel
         try {
             if ($isNew) {
                 $line = (object) ($plan['columns'] + [
-                    'id_order_invoice' => null,
                     'id_shipment_method' => 0,
                     'quantity_refunded' => 0,
                     'quantity_returned' => 0,
@@ -4086,7 +4102,6 @@ class OrderModel extends AlfaAdminModel
             'id_address_delivery', 'id_address_invoice',
             'id_payment_method', 'id_shipment_method', 'id_order_status',
             'id_payment_currency', 'id_language',
-            'id_coupon', 'code_coupon',
             'modified_by', 'created_by',
         ];
 
@@ -4097,7 +4112,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         // Nullable datetime columns
-        $nullableDateColumns = ['checked_out_time', 'invoice_date', 'delivery_date'];
+        $nullableDateColumns = ['checked_out_time', 'delivery_date'];
 
         foreach ($nullableDateColumns as $col) {
             if (property_exists($table, $col) && empty($table->{$col})) {
@@ -4361,6 +4376,13 @@ class OrderModel extends AlfaAdminModel
         $db = $this->getDatabase();
         $orderId = $pk;
 
+        // THE DELIVERY RECORD IS THE STORED ORDER'S, whatever the submission carries. The edit form posts its id as a
+        // hidden field, and an id sent in its place pointed the order at another customer's record: a guest order then
+        // took that record's name and e-mail (refreshGuestSnapshot()), so its status e-mails went to that person, and
+        // deleting the order deleted that record when it was a guest's. The details typed into the form are written to this record, or to a
+        // new one when the order has none.
+        $data['id_address_delivery'] = isset($prevOrder->id_address_delivery) ? (int) $prevOrder->id_address_delivery : null;
+
         $oldStatusId = (int) ($prevOrder->id_order_status ?? 0);
         $targetStatusId = (int) ($data['id_order_status'] ?? $oldStatusId);
 
@@ -4406,9 +4428,9 @@ class OrderModel extends AlfaAdminModel
 
             $orderId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id');
 
-            // The customer's details become the order's delivery record.
-            if (!empty($userInfoData) && !empty($data['id_address_delivery'])) {
-                $currentId = (int) $data['id_address_delivery'];
+            // The customer's details become the order's delivery record (a new one for an order that has none).
+            if (!empty($userInfoData)) {
+                $currentId = (int) ($data['id_address_delivery'] ?? 0);
                 $newId = UserInfoHelper::insertData(
                     // id_user is filter="unset" on edit, so $data never carries it there;
                     // read the customer from the authoritative record, not the form; else
@@ -4873,7 +4895,7 @@ class OrderModel extends AlfaAdminModel
             'id_address_delivery', 'id_address_invoice',
             'id_payment_method', 'id_shipment_method',
             'customer_note', 'note', 'secure_key',
-            'invoice_number', 'invoice_date', 'delivery_date',
+            'delivery_date',
         ];
 
         foreach ($orderFields as $field) {
@@ -6128,16 +6150,6 @@ class OrderModel extends AlfaAdminModel
     // when an event happened.
 
     /**
-     * Log an event to the unified order activity log
-     *
-     * @param int $orderId Order ID
-     * @param string $event Dot-notation event: 'order.edited', 'item.added', etc.
-     * @param string $summary Human-readable summary
-     * @param array|null $context Structured data (changes, metadata, gateway info)
-     * @param int|null $entityId Related entity PK (order_items.id, order_payments.id, etc.)
-     * @since  1.0.0
-     */
-    /**
      * Record an activity entry, or fail loudly.
      *
      * The strict sibling of {@see logOrderActivity}: it lets a write failure
@@ -6456,7 +6468,7 @@ class OrderModel extends AlfaAdminModel
         parent::populateState();
 
         $input = Factory::getApplication()->getInput();
-        $id_order = $input->get('id_order', null, 'STRING');
+        $id_order = RequestScalar::read($input, 'id_order', null, 'string');
 
         if ($id_order !== null) {
             $this->setState($this->getName() . '.id', $id_order);

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Component\ComponentHelper;
@@ -103,7 +104,7 @@ class CategoriesField extends ListField
         $scopeToCurrent = ((string) ($this->element['scopeToCurrentCategory'] ?? '')) === 'true';
         $scopeCategoryId = ($scopeToCurrent
             && (int) ComponentHelper::getParams('com_alfa')->get('category_filter_subtree', 0) === 1)
-            ? (int) Factory::getApplication()->getInput()->getInt('category_id', 0)
+            ? (int) RequestScalar::int(Factory::getApplication()->getInput(), 'category_id')
             : 0;
 
         $scopeMode = false;

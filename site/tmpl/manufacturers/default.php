@@ -16,6 +16,9 @@ use Alfa\Component\Alfa\Site\Helper\Layout;
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list');
 ?>
+<?php // The listing's root, as every storefront page has one (com-alfa): a template's own rules for Alfa Commerce's
+      // pages reach the listing through it. ?>
+<div class="com-alfa manufacturers-list-page">
 
 <?php if ($this->showFilters): ?>
 <?php echo Layout::render('list.filter_form', ['view' => $this]); ?>
@@ -53,3 +56,5 @@ $wa->useStyle('com_alfa.list');
 		<?php endforeach; ?>
     </div>
 </section>
+
+</div>

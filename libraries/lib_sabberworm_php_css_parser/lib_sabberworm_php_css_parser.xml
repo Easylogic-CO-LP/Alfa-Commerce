@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="library" method="upgrade">
+	<name>lib_sabberworm_php_css_parser</name>
+	<libraryname>sabberworm/php-css-parser</libraryname>
+	<author>Raphael Schweikert and contributors (packaged for Joomla)</author>
+	<authorUrl>https://github.com/MyIntervals/PHP-CSS-Parser</authorUrl>
+	<creationDate>2026-11-13</creationDate>
+	<license>MIT</license>
+	<version>8.9.0</version>
+	<description>sabberworm/php-css-parser: the CSS parser php-svg-lib reads an SVG image's styles with. Registers the Sabberworm\CSS\ namespace through Joomla's autoloader.</description>
+	<namespace path="src">Sabberworm\CSS</namespace>
+	<files>
+		<folder>src</folder>
+		<filename>LICENSE</filename>
+	</files>
+</extension>

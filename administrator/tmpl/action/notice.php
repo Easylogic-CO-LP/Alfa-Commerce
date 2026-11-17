@@ -10,6 +10,7 @@
 // No direct access
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 
@@ -44,6 +45,9 @@ if (!$buttons) {
 }
 
 $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+
+// The action page's stylesheet: the result's buttons follow its message, never over it.
+Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_alfa.action-page');
 ?>
 <div class="alfa-action-notice">
     <div class="alfa-action-notice__card alfa-action-notice__card--<?php echo $isError ? 'error' : 'ok'; ?>">
@@ -54,14 +58,3 @@ $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
     </div>
 </div>
 <?php echo LayoutHelper::render('action.buttons', ['buttons' => $buttons], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-
-<style>
-    .alfa-action-notice { display: flex; align-items: center; justify-content: center; min-height: 10rem; padding: 1.5rem 1.5rem 0.5rem; }
-    .alfa-action-notice__card { text-align: center; max-width: 24rem; }
-    .alfa-action-notice__icon { font-size: 2.6rem; line-height: 1; display: inline-block; margin-bottom: 0.6rem; }
-    .alfa-action-notice__card--ok .alfa-action-notice__icon { color: var(--success-text-emphasis, #2a8a3e); }
-    .alfa-action-notice__card--error .alfa-action-notice__icon { color: var(--danger-text-emphasis, #c5391b); }
-    .alfa-action-notice__msg { font-size: 0.95rem; color: var(--body-color, #1f2327); margin: 0; }
-    /* The notice's buttons centre rather than the default right-align. */
-    .alfa-action-notice + .alfa-action-buttons { justify-content: center; border-top: 0; }
-</style>

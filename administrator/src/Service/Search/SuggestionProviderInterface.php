@@ -28,7 +28,7 @@ defined('_JEXEC') or die;
  * store (the term dictionary, not the postings), returned as text the shopper reads
  * and picks, not ids. The database baseline and the flat Indexed engine match without
  * a vocabulary to suggest from; only an engine that keeps a term dictionary can offer
- * this, which is exactly why it is the Enterprise tier's to implement.
+ * this, which is exactly why it is such an engine's to implement.
  *
  * THE SUGGESTION IS THE BRIDGE, NOT A QUERY REWRITE. The engine never transforms the
  * shopper's query for them: that would make the same query mean different things per

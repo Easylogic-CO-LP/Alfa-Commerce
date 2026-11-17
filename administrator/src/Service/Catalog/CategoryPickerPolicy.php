@@ -97,6 +97,8 @@ final class CategoryPickerPolicy
     private const PLACE_MARKS = [
         self::UNPUBLISHED => 'COM_ALFA_PLACE_MARK_UNPUBLISHED',
         self::TRASHED => 'COM_ALFA_PLACE_MARK_TRASHED',
+        // A place deleted while a record (a price row) still names it (2.2.1).
+        self::MISSING => 'COM_ALFA_PLACE_MARK_DELETED',
     ];
 
     /**

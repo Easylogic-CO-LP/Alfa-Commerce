@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Menu;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\FileLayout;
@@ -50,7 +51,7 @@ final class MenuInjector
 
             $input = $app->getInput();
 
-            if ($input->getCmd('option') !== 'com_alfa' || $input->getBool('hidemainmenu')) {
+            if (RequestScalar::cmd($input, 'option') !== 'com_alfa' || RequestScalar::bool($input, 'hidemainmenu')) {
                 return;
             }
 

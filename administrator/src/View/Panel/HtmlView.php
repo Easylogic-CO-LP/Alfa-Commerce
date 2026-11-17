@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Panel;
 
 use Alfa\Component\Alfa\Administrator\Event\Panel\PanelToolbarEvent;
 use Alfa\Component\Alfa\Administrator\Event\Panel\PanelViewEvent;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Menu\MenuBuilder;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Panel\PanelForm;
@@ -119,7 +120,7 @@ class HtmlView extends BaseHtmlView
         // The screen is an OPEN string the plugin interprets; 'list' and 'edit' are only
         // conventions. A plugin adds 'import', 'wizard', 'preview', ... and simply ignores
         // (sets no layout on) the screens it does not own.
-        $this->screen = $input->getCmd('screen', 'list');
+        $this->screen = RequestScalar::cmd($input, 'screen', 'list');
 
         // The list model's state rides on the toolbar event so a handler can shape its
         // buttons by the active filters; populateState is idempotent, so reading it here
@@ -196,6 +197,13 @@ class HtmlView extends BaseHtmlView
             $this->activeFilters = $model->getActiveFilters();
 
             $data['items'] = $model->getItems();
+
+            // A list that could not be read is said to staff in plain words; the database's message is in the log
+            // (2.2.1).
+            if ($model->listFailed()) {
+                Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_PANEL_LIST_FAILED'), 'error');
+            }
+
             $data['pagination'] = $model->getPagination();
             $data['state'] = $model->getState();
             $data['filterForm'] = $this->filterForm;
@@ -207,7 +215,7 @@ class HtmlView extends BaseHtmlView
         }
 
         $app = Factory::getApplication();
-        $data['id'] = $app->getInput()->getInt('id', 0);
+        $data['id'] = RequestScalar::int($app->getInput(), 'id');
 
         // Restore any submission kept across a failed save, then clear it.
         if (method_exists($app, 'getUserState')) {

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasToolsAjaxTrait;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Card\CoreCardProvider;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerCronKey;
@@ -82,7 +83,7 @@ class TasksController extends BaseController
      */
     public function resolve(): void
     {
-        $reason = $this->input->post->getString('reason', '');
+        $reason = RequestScalar::string($this->input->post, 'reason');
         $this->act(call: static function (int $id, int $userId) use ($reason): string {
             TaskStaff::resolve(id: $id, userId: $userId, reason: $reason);
 
@@ -125,7 +126,7 @@ class TasksController extends BaseController
             return;
         }
 
-        $id = $this->input->post->getInt('id', 0);
+        $id = RequestScalar::int($this->input->post, 'id');
         $job = TaskStaff::job(id: $id);
         $tick = null;
 
@@ -180,7 +181,7 @@ class TasksController extends BaseController
         }
 
         $this->ajaxRespond([
-            'html' => LayoutHelper::render('tasks.jobs', TaskStaff::jobsCard(followedJob: $this->input->post->getInt('id', 0)), JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'),
+            'html' => LayoutHelper::render('tasks.jobs', TaskStaff::jobsCard(followedJob: RequestScalar::int($this->input->post, 'id')), JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'),
         ]);
     }
 
@@ -291,7 +292,7 @@ class TasksController extends BaseController
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        $id = $this->input->post->getInt('id', 0);
+        $id = RequestScalar::int($this->input->post, 'id');
 
         try {
             $this->setRedirect($page, $call($id, (int) $user->id), 'success');

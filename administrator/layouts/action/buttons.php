@@ -10,6 +10,7 @@
 // No direct access
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 
 /**
@@ -28,6 +29,9 @@ if (!$buttons) {
 }
 
 $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+
+// The footer's own stylesheet (media/css/admin/action-page.css): pinned at the bottom of the popup.
+Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_alfa.action-page');
 ?>
 <div class="alfa-action-buttons">
     <?php foreach ($buttons as $btn) : ?>
@@ -50,9 +54,3 @@ $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
         </button>
     <?php endforeach; ?>
 </div>
-
-<style>
-    /* Pinned footer at the bottom of the popup, always visible even when the
-       layout above scrolls (standard dialog footer position). */
-    .alfa-action-buttons { position: sticky; bottom: 0; z-index: 2; display: flex; justify-content: flex-end; gap: 0.5rem; padding: 0.9rem 1rem; border-top: 1px solid var(--border-color, #e1e5ea); background: var(--card-bg, #fff); }
-</style>

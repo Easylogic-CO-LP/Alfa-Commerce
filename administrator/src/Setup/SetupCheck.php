@@ -111,6 +111,19 @@ final class SetupCheck
     private $probe = null;
 
     /**
+     * @var callable|null What the reason names, as plain text: fn(): list<string>, the values of its placeholders
+     *                    (2.2.1). Asked only for a row that is not complete.
+     * @since  2.2.1
+     */
+    private $reasonArguments = null;
+
+    /**
+     * @var string The reason's key without placeholders, said when the values it names cannot be read (2.2.1).
+     * @since  2.2.1
+     */
+    private string $reasonUnnamed = '';
+
+    /**
      * @var callable|null One-click auto-fix (cascade provisioning). Wired by the wizard
      *                    surface; the engine only carries it.
      * @since  2.0.0
@@ -162,6 +175,56 @@ final class SetupCheck
         $this->reason = $key;
 
         return $this;
+    }
+
+    /**
+     * Name what the reason is about: its language string takes these values in its placeholders (2.2.1).
+     *
+     * @param callable $arguments fn(): list<string>, plain text; the checklist escapes them.
+     * @param string $unnamed The reason's key without placeholders, said when the values cannot be read (the probe
+     *                        that reads them failed): a sentence, never a placeholder left unfilled.
+     *
+     * @since  2.2.1
+     */
+    public function reasonArguments(callable $arguments, string $unnamed): static
+    {
+        $this->reasonArguments = $arguments;
+        $this->reasonUnnamed = $unnamed;
+
+        return $this;
+    }
+
+    /**
+     * The reason's key for the values read now: the reason, or its sentence without placeholders when it names values
+     * and none could be read (2.2.1).
+     *
+     * @param list<string> $arguments What {@see self::reasonArgumentsNow()} answered.
+     *
+     * @since  2.2.1
+     */
+    public function reasonFor(array $arguments): string
+    {
+        return $this->reasonArguments !== null && $arguments === [] ? $this->reasonUnnamed : $this->reason;
+    }
+
+    /**
+     * The values the reason names now; none when it names none or they cannot be read.
+     *
+     * @return list<string>
+     *
+     * @since  2.2.1
+     */
+    public function reasonArgumentsNow(): array
+    {
+        if ($this->reasonArguments === null) {
+            return [];
+        }
+
+        try {
+            return array_values(array_map('strval', (array) ($this->reasonArguments)()));
+        } catch (Throwable) {
+            return [];
+        }
     }
 
     /**

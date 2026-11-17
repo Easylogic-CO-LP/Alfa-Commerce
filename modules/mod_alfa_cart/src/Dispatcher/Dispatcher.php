@@ -10,6 +10,7 @@
 namespace Alfa\Module\AlfaCart\Site\Dispatcher;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartResolution;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Module\AlfaCart\Site\Helper\AlfaCartHelper;
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
@@ -46,8 +47,17 @@ class Dispatcher extends AbstractModuleDispatcher
             $app->getLanguage()->load('com_alfa');
         }
 
-        // The module reads; it hands the layout a reading, not the cart.
-        $data['snapshot'] = CartService::ambient()->read(CartResolution::Current);
+        // The module reads; it hands the layout a reading, not the cart. A visitor who cannot have a cart yet (no
+        // account and no key of this browser) is handed none, and the layout draws the empty drawer: nothing is read
+        // for them, no query on any page (2.2.1).
+        $data['snapshot'] = CartService::ambient()->canHaveCart() ? CartService::ambient()->read(CartResolution::Current) : null;
+
+        // A cart that holds products is this visitor's own, on a page every visitor shares: that page is never stored
+        // in Joomla's page cache, whatever plugin is enabled (2.2.1). An empty cart shows nothing of the visitor, and
+        // the page stays cacheable.
+        if ($data['snapshot'] !== null && !$data['snapshot']->isEmpty()) {
+            PageCache::excludeResponse();
+        }
 
         $wa = $this->app->getDocument()->getWebAssetManager();
         $wa->getRegistry()->addExtensionRegistryFile('com_alfa');
@@ -140,10 +150,10 @@ class Dispatcher extends AbstractModuleDispatcher
         // prints it on the toggler, where the module's script reads it after a re-read.
         $data['togglerCounterMode'] = (int) $togglerCounterValue === 1 ? 'items' : 'quantity';
 
-        // The counter as the page loads.
-        $data['togglerCounter'] = $data['togglerCounterMode'] === 'items'
+        // The counter as the page loads: 0 for a visitor with no cart.
+        $data['togglerCounter'] = $data['snapshot'] === null ? 0 : ($data['togglerCounterMode'] === 'items'
             ? $data['snapshot']->itemCount
-            : $data['snapshot']->quantity;
+            : $data['snapshot']->quantity);
 
         $data['priceSettings'] = AlfaCartHelper::buildPriceSettings($params);
 

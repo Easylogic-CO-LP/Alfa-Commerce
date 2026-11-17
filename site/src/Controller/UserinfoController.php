@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\FormErrors;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Joomla\CMS\Language\Text;
@@ -67,7 +68,7 @@ class UserinfoController extends BaseController
         }
 
         $jform = $this->input->post->get('jform', [], 'array');
-        $sourceId = $this->input->getInt('source_id', 0);
+        $sourceId = RequestScalar::int($this->input, 'source_id', 0);
 
         // Server-side validation (the client class is a convenience, not a
         // gate): required/format/showon rules are enforced here just as
@@ -122,7 +123,7 @@ class UserinfoController extends BaseController
             return;
         }
 
-        $id = $this->input->getInt('id', 0);
+        $id = RequestScalar::int($this->input, 'id', 0);
 
         if (UserInfoHelper::deleteRow(userId: (int) $user->id, id: $id)) {
             $this->app->enqueueMessage(Text::_('COM_ALFA_USERINFO_DELETED'), 'message');

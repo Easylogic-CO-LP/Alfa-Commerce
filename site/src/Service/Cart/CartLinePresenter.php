@@ -11,12 +11,13 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\CartItemDisplayEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use Alfa\Component\Alfa\Site\Service\Data\PluginPayload;
-use Joomla\CMS\User\User;
 use Joomla\Registry\Registry;
 use Throwable;
 
@@ -39,12 +40,14 @@ defined('_JEXEC') or die;
 final class CartLinePresenter
 {
     /**
-     * @param User $customer Whose context decides which commercial plugins take part (2.2.0: the plugins are booted
-     *                       through the plugin helper, so no application is handed in).
+     * @param CartSubject $subject The cart's subject: its customer's context decides which commercial plugins take
+     *                             part (2.2.0: the plugins are booted through the plugin helper, so no application is
+     *                             handed in), and who operates it whether one Joomla does not load for them is booted
+     *                             for the customer (2.2.1).
      *
      * @since  2.0.0
      */
-    public function __construct(private readonly User $customer)
+    public function __construct(private readonly CartSubject $subject)
     {
     }
 
@@ -65,7 +68,10 @@ final class CartLinePresenter
             $fieldsById[(int) $f->id] = $f;
         }
 
-        $cartItem->surfaces = [];
+        // The line's surfaces are collected here and handed to the line as a read-only map after each field (2.2.1): a
+        // plugin holding the line reads what the others contributed and cannot change it.
+        $slots = [];
+        $cartItem->surfaces = new SurfaceMap();
 
         foreach ($cartItem->fields as $summary) {
             $fieldId = (int) $summary->field_id;
@@ -103,9 +109,11 @@ final class CartLinePresenter
                         'config' => $field->config ?? new Registry($field->params_decoded ?? []),
                     ]);
 
-                    $plugins->dispatchTo($plugin, $event);
-
-                    $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
+                    // Isolated (2.2.1): a plugin whose handler throws leaves the line its plain summary below,
+                    // logged once, and the cart renders.
+                    if ($plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . $fieldId . ') on a cart line')) {
+                        $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
+                    }
                 }
             }
 
@@ -128,8 +136,10 @@ final class CartLinePresenter
                 $descriptor['showon'] = '';
                 $descriptor['fieldId'] = $fieldId;
                 $descriptor['fieldName'] = $field !== null ? (string) ($field->field_name ?? '') : null;
-                $cartItem->surfaces[$slot][] = $descriptor;
+                $slots[$slot][] = $descriptor;
             }
+
+            $cartItem->surfaces = new SurfaceMap($slots);
         }
 
         // Feature plugins (onCartItemDisplay, 2.2.0): one event for the line, each
@@ -140,7 +150,8 @@ final class CartLinePresenter
             'line' => $cartItem,
             'item' => $item,
         ]);
-        $plugins->dispatchToEachIsolated($plugins->admitted($this->customer, 'alfa'), $displayEvent);
-        $displayEvent->harvestInto($cartItem->surfaces);
+        $plugins->dispatchToEachIsolatedFor($this->subject, $plugins->admitted($this->subject->customer(), 'alfa'), $displayEvent);
+        $displayEvent->harvestInto($slots);
+        $cartItem->surfaces = new SurfaceMap($slots);
     }
 }

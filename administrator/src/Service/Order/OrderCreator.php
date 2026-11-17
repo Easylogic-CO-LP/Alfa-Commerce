@@ -80,7 +80,10 @@ final class OrderCreator
      *   id_shipment_method    int    0 = none (virtual orders).
      *   payment_method_name   string Frozen label ('' = none).
      *   shipment_method_name  string Frozen label ('' = none).
-     *   id_address_delivery   int    Existing #__alfa_user_info id (required).
+     *   id_address_delivery   int    Existing #__alfa_user_info id: required when
+     *                                the draft names a shipping method (refused
+     *                                otherwise, 2.2.1); 0 = none for an order with
+     *                                no shipping method (a virtual order).
      *   id_address_invoice    int    Existing #__alfa_user_info id (0 = none).
      *   id_order_status       int    0/absent = the is_initial status.
      *   id_language           int    Default 1.
@@ -103,7 +106,9 @@ final class OrderCreator
      *     catalog via ItemFieldsSnapshot::freezeItemName),
      *     sku/gtin/mpn, weight,
      *     unit_price_tax_excl / unit_price_tax_incl (required),
-     *     total_price_tax_excl / total_price_tax_incl (absent = unit x qty),
+     *     total_price_tax_excl / total_price_tax_incl (required: the line's
+     *     whole amounts as charged; a line is never priced as its unit times
+     *     its quantity, 2.2.1),
      *     original_product_price (absent = unit_price_tax_excl),
      *     tax_rate, tax_name, discount_percent,
      *     discount_amount_tax_excl / _incl, id_shipment_method.
@@ -156,9 +161,37 @@ final class OrderCreator
             if (!isset($line['unit_price_tax_excl'], $line['unit_price_tax_incl'])) {
                 throw new RuntimeException("OrderCreator: line {$i} needs explicit unit prices (the service never re-prices).");
             }
+
+            // A line states what was charged for it, whole (2.2.1): a rounded unit times the quantity can differ by cents
+            // from it, so a line without its totals is refused, never priced from its unit.
+            $missing = array_values(array_filter(
+                ['total_price_tax_excl', 'total_price_tax_incl'],
+                static fn (string $total): bool => !isset($line[$total]),
+            ));
+
+            if ($missing !== []) {
+                throw new RuntimeException("OrderCreator: line {$i} needs its totals, " . implode(' and ', $missing) . ' (a line is never priced as its unit times its quantity).');
+            }
         }
 
         $db = Factory::getContainer()->get('DatabaseDriver');
+
+        // An order that is shipped is shipped somewhere (2.2.1): a draft that names a shipping method names an existing
+        // delivery record, or it is refused before anything is written; a virtual order (no shipping method) needs
+        // none. 2.2.0 wrote such an order with no delivery record at all.
+        if ((int) ($draft['id_shipment_method'] ?? 0) > 0) {
+            $deliveryId = (int) ($draft['id_address_delivery'] ?? 0);
+            $delivery = $deliveryId > 0 ? (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_user_info'))
+                    ->where($db->quoteName('id') . ' = ' . $deliveryId),
+            )->loadResult() : 0;
+
+            if ($delivery === 0) {
+                throw new RuntimeException('OrderCreator: id_address_delivery must name an existing delivery record (#__alfa_user_info) when the draft names a shipping method.');
+            }
+        }
 
         $statusId = (int) ($draft['id_order_status'] ?? 0);
 
@@ -474,8 +507,6 @@ final class OrderCreator
         $order->shipment_method_type = (string) ($draft['shipment_method_type'] ?? '');
         $order->id_payment_currency = $currencyId;
         $order->id_language = (int) ($draft['id_language'] ?? 1);
-        $order->id_coupon = null;
-        $order->code_coupon = null;
 
         // Guest order-tracking key: same contract as checkout placement.
         $order->secure_key = bin2hex(random_bytes(16));
@@ -552,22 +583,9 @@ final class OrderCreator
         $row->unit_price_tax_excl = $unit($unitExcl);
         $row->unit_price_tax_incl = $unit($unitIncl);
 
-        // THE FALLBACK SURVIVES HERE, AND ONLY HERE, AND IT IS NOT THE
-        // AUTHORITY (Item 3).
-        //
-        // A caller that carries a PriceResult now states the whole line
-        // explicitly, and the authority columns below record that it did. A
-        // caller that carries NO PriceResult (a subscription renewal drafted
-        // from stored columns, a fixture stating a unit price and a quantity)
-        // is stating "this many, at this price", and unit x quantity is what
-        // that means. Writing 0 instead would not be more truthful, it would be
-        // a different falsehood, and it would empty every such order.
-        //
-        // What makes this safe is that such a row gets NULL authority below.
-        // A rounded unit must never REBUILD an amount that already
-        // exists; here no whole-line amount exists, and the row says so.
-        $row->total_price_tax_excl = $money($line['total_price_tax_excl'] ?? ExactAmount::ofNumber($unitExcl)->times($quantity)->text());
-        $row->total_price_tax_incl = $money($line['total_price_tax_incl'] ?? ExactAmount::ofNumber($unitIncl)->times($quantity)->text());
+        // The line's whole amounts as the caller stated them (create() refuses a line without them, 2.2.1).
+        $row->total_price_tax_excl = $money($line['total_price_tax_excl']);
+        $row->total_price_tax_incl = $money($line['total_price_tax_incl']);
         $row->original_product_price = $unit($line['original_product_price'] ?? $unitExcl);
 
         // THE AUTHORITATIVE WHOLE-LINE FACTS. NULL when the caller carries no

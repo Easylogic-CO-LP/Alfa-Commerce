@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use InvalidArgumentException;
@@ -178,7 +179,7 @@ class Layout
     {
         $app = Factory::getApplication();
         $input = $app->input;
-        $view = $input->get('view', $input->get('controller', ''));
+        $view = RequestScalar::cmd($input, 'view', RequestScalar::cmd($input, 'controller', ''));
 
         $layoutFile = '';
 

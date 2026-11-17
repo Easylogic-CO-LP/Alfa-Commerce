@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use DOMDocument;
 use DOMElement;
 use InvalidArgumentException;
@@ -23,9 +24,11 @@ use Joomla\CMS\Access\Access;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\Form\FormHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use Throwable;
 
@@ -53,6 +56,15 @@ class FieldsHelper
      * Mirrors the table name #__alfa_form_fields for predictability.
      */
     public const FIELDS_KEY = 'alfa_form_fields';
+
+    /**
+     * The key of a form field's params that holds its Layout setting, the layout its stored value is shown with
+     * ({@see self::render()}); the field form saves it there with the plugin's own params (2.2.1). Never `layout`:
+     * the checkout form gives that param to Joomla's field as the layout of its input.
+     *
+     * @since  2.2.1
+     */
+    public const DISPLAY_LAYOUT = 'display_layout';
 
     /**
      * Bucket for the billing (invoice) copy of the checkout fields. Same
@@ -113,6 +125,16 @@ class FieldsHelper
 
     /** @var array<string, array> */
     private static array $fieldsCache = [];
+
+    /**
+     * The unavailable fields already logged in the request: a required field by type, name and context, an optional
+     * one by type.
+     *
+     * @var array<string, true>
+     *
+     * @since  2.2.1
+     */
+    private static array $unavailableLogged = [];
 
     /**
      * Context -> section columns on #__alfa_form_fields. Each column is a
@@ -269,30 +291,17 @@ class FieldsHelper
             }
 
             foreach ($groupFields as $field) {
-                // Reset per field: a plugin that fails to start must not be logged under the previous field's plugin.
-                $plugin = null;
-
+                // A field whose plugin cannot be used in this request is never a silent no-op: a required one refuses
+                // the form, an optional one is left out and logged (2.2.1).
                 try {
                     $plugin = self::boot($field->type ?? '');
+                } catch (Throwable $unavailable) {
+                    self::unavailable(field: $field, fieldset: $fieldset, context: $context, customerId: $customerId, reason: $unavailable->getMessage());
 
-                    if ($plugin === null) {
-                        // A system field with nothing to render it is a hole in
-                        // the identity capture (a guest order with no email),
-                        // never a silent no-op.
-                        if ((int) ($field->is_system ?? 0) === 1) {
-                            $message = 'The "' . $field->type . '" form-field plugin is missing or disabled; the system field "'
-                                . $field->field_name . '" cannot be rendered.';
-                            Log::add($message, Log::ERROR, 'com_alfa');
+                    continue;
+                }
 
-                            // Extension and column names are for the operator, not the visitor.
-                            if (Factory::getApplication()->isClient('administrator')) {
-                                Factory::getApplication()->enqueueMessage($message, 'error');
-                            }
-                        }
-
-                        continue;
-                    }
-
+                try {
                     AlfaPluginHelper::get()->invoke($plugin, 'prepareDom', new PrepareDomEvent('onAlfaFormFieldsPrepareDom', [
                         'subject' => $field,
                         'fieldset' => $fieldset,
@@ -310,14 +319,17 @@ class FieldsHelper
                     // which is what the catch already meant to allow.
                     AlfaLog::register();
                     Log::add(
-                        ($plugin instanceof LoadedPlugin
-                            ? 'onAlfaFormFieldsPrepareDom threw in plugin "' . $plugin->id
-                            : 'The form-field plugin could not start: "' . ($field->type ?? ''))
+                        'onAlfaFormFieldsPrepareDom threw in plugin "' . $plugin->id
                         . '" for field #' . (int) ($field->id ?? 0) . ' in context "' . $context . '": '
                         . $e->getMessage(),
                         Log::ERROR,
                         'com_alfa.cart',
                     );
+
+                    // A plugin that threw before it added its field left the field out: the plugin cannot be used.
+                    if (!self::holdsField(fieldset: $fieldset, name: (string) ($field->field_name ?? ''))) {
+                        self::unavailable(field: $field, fieldset: $fieldset, context: $context, customerId: $customerId, reason: 'its onAlfaFormFieldsPrepareDom threw');
+                    }
                 }
             }
 
@@ -414,6 +426,27 @@ class FieldsHelper
     }
 
     /**
+     * The condition under which a field's group serves it: a disabled group hides its fields, except a system field,
+     * which prepareForm() then renders ungrouped (the identity is always asked). The one rule for every reader of the
+     * fields a form serves.
+     *
+     * @param DatabaseInterface $db The driver the query is built on.
+     * @param string $field The alias of #__alfa_form_fields in the query.
+     * @param string $group The alias of #__alfa_form_field_groups, left-joined on the field's group_id.
+     *
+     * @return string The SQL condition.
+     *
+     * @since  2.2.1
+     */
+    public static function servedByGroup(DatabaseInterface $db, string $field, string $group): string
+    {
+        return '(' . $db->quoteName($field . '.group_id') . ' = 0'
+            . ' OR ' . $db->quoteName($group . '.state') . ' IS NULL'
+            . ' OR ' . $db->quoteName($group . '.state') . ' = 1'
+            . ' OR ' . $db->quoteName($field . '.is_system') . ' = 1)';
+    }
+
+    /**
      * Load fields visible to $userId in $context. Ordered by group.ordering, field.ordering.
      * @since  1.0.0
      */
@@ -439,9 +472,7 @@ class FieldsHelper
             ->from($db->quoteName('#__alfa_form_fields', 'a'))
             ->leftJoin($db->quoteName('#__alfa_form_field_groups', 'g') . ' ON g.id = a.group_id')
             ->where('a.state = 1')
-            // A disabled group hides its fields, except a system field, which
-            // prepareForm() then renders ungrouped (the identity is always asked).
-            ->where('(a.group_id = 0 OR g.state IS NULL OR g.state = 1 OR a.is_system = 1)');
+            ->where(self::servedByGroup(db: $db, field: 'a', group: 'g'));
 
         // MULTILINGUAL: resolve the field's translatable text in the active
         // language: field_label / field_description are shown to the customer.
@@ -510,7 +541,7 @@ class FieldsHelper
      * Tmpls start with `extract($displayData);` and see $context, $field,
      * $fieldParams, $item, plus anything else the caller passed in.
      *
-     * Layout resolution (from $field->layout):
+     * Layout resolution (from the field's Layout setting, its params' {@see self::DISPLAY_LAYOUT}):
      *   ""              -> active-template override then plugin's default.php
      *   "_:name"        -> plugin's tmpl/name.php only
      *   "tpl:name"      -> templates/tpl/html/plg_alfa-form-fields_<type>/name.php
@@ -525,11 +556,6 @@ class FieldsHelper
             return '';
         }
 
-        $path = self::resolveLayoutPath($field, $type);
-        if ($path === null) {
-            return '';
-        }
-
         // Resolve inline {lang: value} maps (value/JSON-mode MultilingualText,
         // e.g. choice option labels) to the current language for display.
         $resolvedParams = MultilingualHelper::collapseToCurrent(
@@ -537,6 +563,11 @@ class FieldsHelper
                 ? (json_decode((string) $field->params, true) ?: [])
                 : (array) ($field->params ?? []),
         );
+
+        $path = self::resolveLayoutPath((string) ($resolvedParams[self::DISPLAY_LAYOUT] ?? ''), $type);
+        if ($path === null) {
+            return '';
+        }
 
         $fieldParams = new \Joomla\Registry\Registry();
         $fieldParams->loadArray(is_array($resolvedParams) ? $resolvedParams : []);
@@ -555,11 +586,14 @@ class FieldsHelper
     /**
      * Resolve the filesystem path for a field's chosen layout.
      * Returns null if neither the chosen file nor the plugin default exists.
+     *
+     * @param string $layoutValue The field's Layout setting ({@see self::DISPLAY_LAYOUT}): "", "_:name" or "tpl:name".
+     * @param string $type The field's type, its plugin's element.
+     *
      * @since  1.0.0
      */
-    private static function resolveLayoutPath($field, string $type): ?string
+    private static function resolveLayoutPath(string $layoutValue, string $type): ?string
     {
-        $layoutValue = (string) ($field->layout ?? '');
         $template = null;
         $name = 'default';
 
@@ -658,6 +692,9 @@ class FieldsHelper
      * national number is uninterpretable without one) and it is emphatically
      * NOT a destination. Nothing about shipping or tax reads this.
      *
+     * The default place may be a region or a town: the code is its country's
+     * (PlaceTree::countryOf(), 2.2.1).
+     *
      * @return string The alpha-2 code, or '' when the shop has not said.
      *
      * @since  2.0.0
@@ -678,16 +715,8 @@ class FieldsHelper
             return '';
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
-        $code = (string) $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('code2'))
-                ->from($db->quoteName('#__alfa_places'))
-                ->where($db->quoteName('id') . ' = ' . $placeId),
-        )->loadResult();
-
-        return strtoupper(trim($code));
+        // The country of the default place: a region or a town carries no country code of its own (2.2.1).
+        return PlaceTree::countryOf(placeId: $placeId)['code2'] ?? '';
     }
 
     /**
@@ -966,26 +995,103 @@ class FieldsHelper
     /**
      * Boot the alfa-form-fields plugin for this field type through the plugin helper (2.2.0, mode B), its ambient
      * subscriptions (the Choice field's onBeforeCompileHead) engaged once through Joomla's own import in place of a
-     * second registration by hand. Null when the plugin is missing, disabled, cannot be loaded or is not a
-     * FormFieldsPlugin.
+     * second registration by hand.
      *
      * @param string $type The field type (the plugin element).
      *
+     * @throws PluginUnavailable When the plugin is missing, disabled, not loaded for the request's user, cannot be
+     *                           loaded or is not a {@see FormFieldsPlugin}; its message names the plugin and the
+     *                           reason.
+     * @throws InvalidArgumentException When the type names no plugin.
+     *
      * @since  1.0.0
      */
-    private static function boot(string $type): ?LoadedPlugin
+    private static function boot(string $type): LoadedPlugin
     {
         $plugins = AlfaPluginHelper::get();
-
-        try {
-            $id = PluginId::from('alfa-form-fields', $type);
-            $plugin = $plugins->bootSingle($id);
-        } catch (PluginUnavailable|InvalidArgumentException) {
-            return null;
-        }
-
+        $id = PluginId::from('alfa-form-fields', $type);
+        $plugin = $plugins->bootSingle($id);
         $plugins->importSingle($id);
 
         return $plugin;
+    }
+
+    /**
+     * Whether a fieldset being built holds a field of this name.
+     *
+     * @param DOMElement $fieldset The fieldset.
+     * @param string $name The field's name.
+     *
+     * @since  2.2.1
+     */
+    private static function holdsField(DOMElement $fieldset, string $name): bool
+    {
+        foreach ($fieldset->childNodes as $node) {
+            if ($node instanceof DOMElement && $node->tagName === 'field' && $node->getAttribute('name') === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * A field whose form-field plugin cannot be used in this request: missing, disabled, not loaded for the request's
+     * user (its Access is a view level the user does not hold) or failing to start.
+     *
+     * A field the form must demand (required in the context and shown to this customer) is not left out: it is added
+     * as a hidden field that refuses every submission, naming the field ({@see UnavailableRule}), so the form fails
+     * closed instead of storing the record without it (2.2.1). Staff read the plugin and the reason in the log,
+     * and on an administrator screen; the visitor reads only that the field cannot be filled in now. An optional field
+     * is left out, logged once per field type in the request.
+     *
+     * @param object $field The `#__alfa_form_fields` row.
+     * @param DOMElement $fieldset The fieldset being built.
+     * @param string $context The FieldsHelper context.
+     * @param int $customerId Whose details the form holds.
+     * @param string $reason Why the plugin cannot be used, as the plugin helper words it.
+     *
+     * @since  2.2.1
+     */
+    private static function unavailable(object $field, DOMElement $fieldset, string $context, int $customerId, string $reason): void
+    {
+        $type = (string) ($field->type ?? '');
+        $name = (string) ($field->field_name ?? '');
+        $required = $context !== '' && self::fieldRequired($field, $context) && self::displayFieldOnForm($field, $context, $customerId);
+        $logged = $required ? $type . '|' . $name . '|' . $context : $type;
+
+        if ($required) {
+            $label = trim((string) ($field->field_label ?? ''));
+
+            if ($label === '' && RoleRegistry::isRole($field->role ?? null)) {
+                $label = RoleRegistry::labelFallback((string) $field->role);
+            }
+
+            FormHelper::addRulePrefix('Alfa\\Component\\Alfa\\Administrator\\Rule');
+            $node = $fieldset->appendChild(new DOMElement('field'));
+            $node->setAttribute('name', $name);
+            $node->setAttribute('type', 'hidden');
+            $node->setAttribute('label', $label !== '' ? $label : $name);
+            $node->setAttribute('validate', 'unavailable');
+        }
+
+        if (isset(self::$unavailableLogged[$logged])) {
+            return;
+        }
+
+        self::$unavailableLogged[$logged] = true;
+        $message = $required
+            ? 'The "' . $type . '" form-field plugin cannot be used (' . $reason . '); the required field "' . $name
+                . '" refuses the form in context "' . $context . '" until it can.'
+            : 'The "' . $type . '" form-field plugin cannot be used (' . $reason . '); its optional fields are left out of the forms, first "'
+                . $name . '" in context "' . $context . '".';
+
+        AlfaLog::register();
+        Log::add($message, $required ? Log::ERROR : Log::WARNING, 'com_alfa');
+
+        // Extension and column names are for the operator, not the visitor.
+        if ($required && Factory::getApplication()->isClient('administrator')) {
+            Factory::getApplication()->enqueueMessage($message, 'error');
+        }
     }
 }

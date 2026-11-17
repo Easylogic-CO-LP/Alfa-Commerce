@@ -373,7 +373,7 @@ class MultilingualHelper
 
         if (empty($data)) {
             // Safety-net fallback: callers should always pass $data explicitly.
-            $data = $app->input->get('jform', [], 'raw');
+            $data = $app->input->get('jform', [], 'array');
         }
 
         if (empty($data)) {

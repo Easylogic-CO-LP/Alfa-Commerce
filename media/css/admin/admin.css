@@ -571,10 +571,47 @@ tr.alfa-row-refund > * {
     list-style: none;
 }
 
-/* A date on one line from md up, free to wrap on a phone: Tools > Tasks' jobs list, where a "Next try after" date
-   kept on one line widened the State column past the card at 360 px. */
-@media (min-width: 768px) {
-    .alfa-nowrap-md {
-        white-space: nowrap;
+/* A value read as one, never broken inside itself (a date and its time): Tools > Tasks' "Next try after" date. */
+.alfa-nowrap {
+    white-space: nowrap;
+}
+
+/* A table that folds on a phone (2.2.1, DESIGN-2.2.1 A4): Tools > Tasks' jobs, the orders list and the order's
+   payments, shipments, items, documents and reconciliation. Below 480 px a row's cells wrap onto as many lines as the screen needs, in their
+   order, instead of widening the page; the cell that holds the row's actions (alfa-fold-line) takes a line of its own
+   under the row. The headings give way, but a heading kept on purpose (alfa-fold-keep, the select-all box); each cell
+   that needs its heading says it above its value (data-alfa-label). From 480 px up the table is as it was. */
+@media (max-width: 479.98px) {
+    .alfa-fold > thead > tr > :not(.alfa-fold-keep) {
+        display: none;
+    }
+
+    .alfa-fold > thead > tr,
+    .alfa-fold > tbody > tr {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .alfa-fold > tbody > tr > td {
+        display: block;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-wrap: break-word;
+    }
+
+    .alfa-fold > tbody > tr > .alfa-fold-line {
+        flex-basis: 100%;
+    }
+
+    /* A row's buttons wrap inside their line rather than run past the screen. */
+    .alfa-fold .alfa-fold-line .btn-group {
+        flex-wrap: wrap;
+    }
+
+    .alfa-fold [data-alfa-label]::before {
+        content: attr(data-alfa-label);
+        display: block;
+        font-size: 0.75rem;
+        color: var(--secondary-color, #6c757d);
     }
 }

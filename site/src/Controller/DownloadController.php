@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
 use Joomla\CMS\Factory;
@@ -59,8 +60,8 @@ class DownloadController extends BaseController
         $app = $this->app;
         $input = $app->getInput();
 
-        $token = (string) $input->get('token', '', 'alnum');
-        $secureKey = (string) $input->get('sk', '', 'alnum');
+        $token = (string) RequestScalar::read($input, 'token', '', 'alnum');
+        $secureKey = (string) RequestScalar::read($input, 'sk', '', 'alnum');
 
         $entitlement = Entitlements::findByToken(rawToken: $token);
 

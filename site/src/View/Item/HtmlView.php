@@ -13,15 +13,18 @@ namespace Alfa\Component\Alfa\Site\View\Item;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\RecentlyViewed;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
@@ -56,6 +59,12 @@ class HtmlView extends BaseHtmlView
     /** @var string Resolved sub-template for the "images" slot */
     protected $imagesTpl = 'images';
 
+    /**
+     * @var int How many columns the images grid (default_images-grid.php) has on a wide screen, 2 to 4 (2.2.1): the
+     *          item's, else its default category's, else the menu item's or the Options'
+     */
+    protected int $imagesGridColumns = 2;
+
     /** @var string Resolved sub-template for the "manufacturers" slot */
     protected $manufacturersTpl = 'manufacturers';
 
@@ -79,9 +88,17 @@ class HtmlView extends BaseHtmlView
         $user = $app->getIdentity();
         $model = $this->getModel();
 
+        // A PRODUCT PAGE OPENED TO CHANGE A CART LINE (edit_line, linked from every line of the cart) draws that line's
+        // choices and the visitor's Update form at an address every visitor can ask: never stored in Joomla's page cache,
+        // whatever plugin is enabled (2.2.1). Any edit_line, the visitor's own or not: a plain copy stored at that
+        // address would be served to the line's owner, before this view runs, in place of the edit form.
+        if (RequestScalar::int($input, 'edit_line', 0) > 0) {
+            PageCache::excludeResponse();
+        }
+
         $this->params = $app->getParams('com_alfa');
 
-        $this->category_id = $input->getInt('category_id', 0);
+        $this->category_id = RequestScalar::int($input, 'category_id', 0);
 
         $this->state = $model->getState();
 
@@ -89,7 +106,7 @@ class HtmlView extends BaseHtmlView
 
         // A document request is a product view; the buy-form reload (tmpl=component)
         // re-renders the same page and must not count again.
-        if ($input->getCmd('tmpl', '') === '' && !empty($this->item->id)) {
+        if (RequestScalar::cmd($input, 'tmpl', '') === '' && !empty($this->item->id)) {
             RecentlyViewed::record(itemId: (int) $this->item->id);
         }
 
@@ -113,6 +130,8 @@ class HtmlView extends BaseHtmlView
             slot: 'images',
             layout: $this->getLayout(),
         );
+        // The grid's columns (2.2.1), through the same chain; the grid draws them as a class, 2 to 4.
+        $this->imagesGridColumns = min(4, max(2, (int) (($own['images_grid_columns'] ?? '') ?: ($cat['images_grid_columns'] ?? '') ?: $this->params->get('item_images_grid_columns', 2))));
         $this->manufacturersTpl = SlotResolver::resolve(
             value: ($own['manufacturers'] ?? '') ?: ($cat['manufacturers'] ?? '') ?: (string) $this->params->get('item_manufacturers_layout', ''),
             view: 'item',
@@ -138,7 +157,9 @@ class HtmlView extends BaseHtmlView
         // (their hooks can issue a redirect, so they stay in the view layer). What
         // they produce is aggregated into the SAME $item->surfaces container as the
         // item fields: one source-agnostic render model, insertion order preserved.
-        $this->item->surfaces ??= [];
+        // Collected here and handed to the item as a read-only map after each method
+        // (2.2.1), as the model hands the fields' surfaces.
+        $slots = (array) ($this->item->surfaces ?? []);
 
         foreach ($this->item->payment_methods as &$payment_method) {
             if (!$payment_method->show_on_product) {
@@ -164,12 +185,13 @@ class HtmlView extends BaseHtmlView
             }
 
             Surfaces::appendTo(
-                target: $this->item->surfaces,
+                target: $slots,
                 event: $paymentEvent,
                 ownerGroup: 'alfa-payments',
                 ownerName: $payment_method->type,
                 defaultSlot: ItemSurface::PaymentMethods->value,
             );
+            $this->item->surfaces = new SurfaceMap($slots);
         }
 
         foreach ($this->item->shipment_methods as &$shipment_method) {
@@ -195,12 +217,13 @@ class HtmlView extends BaseHtmlView
             }
 
             Surfaces::appendTo(
-                target: $this->item->surfaces,
+                target: $slots,
                 event: $shipment_event,
                 ownerGroup: 'alfa-shipments',
                 ownerName: $shipment_method->type,
                 defaultSlot: ItemSurface::ShipmentMethods->value,
             );
+            $this->item->surfaces = new SurfaceMap($slots);
         }
 
         // ITEM FIELDS selectors + cart slot are harvested by the model

@@ -15,9 +15,11 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\Traits\LocksMethodTypeTrait;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Table\Table;
@@ -43,9 +45,9 @@ class PaymentModel extends AlfaAdminModel
      * The admin-contract entity of this screen.
      *
      * CONTRACT COVERAGE NOTES (decided at migration):
-     * - save(): parent::save() runs mid-method, so the onAlfaAdminValidate/BeforeSave/
-     *   AfterSave bracket fires BEFORE the per-language translations and the five scope
-     *   pivots are persisted; AfterSave observers see the base row only.
+     * - save(): the row, the per-language translations and the six scope pivots are one
+     *   transaction, and the AfterSave bracket is announced at its commit, so observers see
+     *   the method as saved (2.2.1; before, the base row only).
      * - delete(): a batch blocked by stored payment references (mandates / recurring
      *   tokens) returns before parent::delete(), so the contract's delete bracket fires
      *   only when something actually reaches the table.
@@ -91,7 +93,7 @@ class PaymentModel extends AlfaAdminModel
         );
 
         // Get ID of the article from input
-        $idFromInput = $app->getInput()->getInt('id', 0);
+        $idFromInput = RequestScalar::int($app->getInput(), 'id');
 
         // On edit order, we get ID of order from order.id state, but on save, we use data from input
         $id = (int) $this->getState($this->formName . '.id', $idFromInput);
@@ -225,8 +227,12 @@ class PaymentModel extends AlfaAdminModel
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = $input->post->get('jform', [], 'raw');
+        $rawData = $input->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
+
+        // A new method that leaves a colour out takes the one its form offers (2.2.1): the edit form always posts
+        // both, a REST create need not, and neither column has a default of its own.
+        $data = $this->withFormDefaults(data: $data, fields: ['color', 'bg_color']);
 
         // The plugin of an order's method cannot change (2.2.0, design 2.15.5).
         if (!$this->methodTypeChangeAllowed(data: $data)) {
@@ -261,15 +267,13 @@ class PaymentModel extends AlfaAdminModel
             return false;
         }
 
-        if (!parent::save($data)) {
-            return false;
-        }
+        // Alfa's before-save is asked before the transaction (2.1.4, design 0.2). Joomla's onContentBeforeSave runs
+        // inside it (parent::save()), so a write its listener makes is rolled back with a failed save;
+        // onContentAfterSave and onAlfaAdminAfterSave wait for its commit.
+        $asked = $this->alfaAskSave(data: $data);
 
-        $currentId = 0;
-        if ($data['id'] > 0) { //not a new
-            $currentId = intval($data['id']);
-        } else { // is new
-            $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
+        if ($asked === null) {
+            return false;
         }
 
         // Translations + the six scope pivots must be atomic: each setAssocsToDb
@@ -281,10 +285,23 @@ class PaymentModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_payments', primaryColumnName: 'id_payment', data: $data);
 
-        $db = $this->getDatabase();
+        // ONE TRANSACTION for the method's row as well (2.2.1): onAlfaAdminAfterSave and onContentAfterSave
+        // wait for its commit, so a listener reads the payment method as saved, translations and scope included, and a
+        // failure anywhere leaves nothing of the save.
+        $db = $this->alfaDriver();
         $db->transactionStart(true);
 
         try {
+            $this->alfaSaveAsked = $asked;
+
+            if (!parent::save($data)) {
+                TransactionState::rollBackLevel(db: $db);
+
+                return false;
+            }
+
+            $currentId = (int) ($data['id'] ?? 0) > 0 ? (int) $data['id'] : (int) $this->getState($this->getName() . '.id');
+
             // MULTILINGUAL: persist per-language translations (name, description).
             // Payments are not URL-routed, so there is no alias slug.
             MultilingualHelper::saveMultilingualData(
@@ -305,7 +322,7 @@ class PaymentModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_payment_usergroups', 'payment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['shipments'] ?? [], '#__alfa_payment_shipments', 'payment_id', 'shipment_id', $assignZeroIdIfDataEmpty);
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             throw $e;
@@ -349,10 +366,9 @@ class PaymentModel extends AlfaAdminModel
             )->loadResult();
 
             if ($references > 0) {
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf('COM_ALFA_PAYMENT_DELETE_HAS_REFERENCES', $pk, $references),
-                    'error',
-                );
+                // A model error, not a queued message: the back office prints it, and the REST delete answers
+                // 409 with the sentence instead of 204 for a method that is still there (2.2.1).
+                $this->setError(new DeleteRefusedException(Text::sprintf('COM_ALFA_PAYMENT_DELETE_HAS_REFERENCES', $pk, $references)));
 
                 return false;
             }
@@ -380,10 +396,9 @@ class PaymentModel extends AlfaAdminModel
             )->loadResult();
 
             if ($orders > 0 || $payments > 0) {
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf('COM_ALFA_PAYMENT_DELETE_HAS_ORDERS', $pk, $orders, $payments),
-                    'error',
-                );
+                // A model error, not a queued message: the back office prints it, and the REST delete answers
+                // 409 with the sentence instead of 204 for a method that is still there (2.2.1).
+                $this->setError(new DeleteRefusedException(Text::sprintf('COM_ALFA_PAYMENT_DELETE_HAS_ORDERS', $pk, $orders, $payments)));
 
                 return false;
             }

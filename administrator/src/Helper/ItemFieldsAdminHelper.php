@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
@@ -5172,10 +5173,13 @@ class ItemFieldsAdminHelper
      * Once per request: the probe costs an information_schema query per content
      * language, and the grid save reaches the writer once per variant row.
      *
+     * DDL commits implicitly, so it runs before any transaction: the variant
+     * saves call it before they open theirs, and the item save before it opens
+     * the one its grid edits run in (2.2.1).
      *
      * @since  2.0.0
      */
-    private static function ensureCombinationLangSchema(): void
+    public static function ensureCombinationLangSchema(): void
     {
         static $ensured = false;
 
@@ -5252,6 +5256,13 @@ class ItemFieldsAdminHelper
      */
     protected static function syncCombinationPrices(int $itemId, int $combinationId, array $rows): void
     {
+        // A price row of a deleted place is never widened to every place (2.2.1): the grid edits are refused.
+        $widened = PriceRowPlaces::widenedFromDeleted(itemId: $itemId, combinationId: $combinationId, rows: $rows);
+
+        if ($widened !== []) {
+            throw new RuntimeException(PriceRowPlaces::refusal(widened: $widened));
+        }
+
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         $db->setQuery(

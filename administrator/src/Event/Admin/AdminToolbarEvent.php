@@ -34,9 +34,10 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  *             ->listCheck(true);
  *     }
  *
- * Fires LAST, so the component's buttons are already in place and a contribution lands after
- * them. The core buttons are the component's; a plugin adds, it does not remove: taking away
- * Save or Delete leaves the screen with no way to do its job.
+ * Fires once the component has drawn its own buttons, so they are already in place and a
+ * contribution lands after them; on a list it comes before the columns, the row data and the
+ * actions are collected. The core buttons are the component's; a plugin adds, it does not
+ * remove: taking away Save or Delete leaves the screen with no way to do its job.
  *
  * @since  2.0.0
  */

@@ -462,8 +462,50 @@ final class AutoIssuePolicy
                 orderId: $orderId,
                 key:     self::KEY_PREFIX . $orderId . '.failed.' . $docType,
                 title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_TYPE_TITLE', $orderId, DocumentHelper::typeText($docType)),
+                message: NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_MSG', self::reason(failure: $e)),
             );
         }
+    }
+
+    /**
+     * Why an issue failed, for the notice (2.2.1). A refusal that carries staff's sentence
+     * ({@see DocumentRefusedException}, anywhere in the chain: the issuer wraps what it refuses in its own "issue
+     * failed" exception) is said in that sentence, translated where the notice is read; a database failure is said as
+     * one, so no table, column or statement reaches the notice; any other failure by the first line of the failure
+     * the chain began with (the issuer's wrapper names nothing more), markup stripped, at most 200 characters, ended
+     * as a sentence; one with no words by a neutral sentence. The full message and trace stay in the documents log.
+     *
+     * @param Throwable $failure What the issue threw.
+     *
+     * @return string|array The line, or a sentence's language key and values ({@see NotificationText::key()}).
+     *
+     * @since  2.2.1
+     */
+    private static function reason(Throwable $failure): string|array
+    {
+        $refused = DocumentRefusedException::in($failure);
+
+        if ($refused !== null) {
+            return NotificationText::key($refused->key(), ...$refused->values());
+        }
+
+        $first = $failure;
+
+        for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
+            if (MysqlError::number($cause) > 0) {
+                return NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_DATABASE');
+            }
+
+            $first = $cause;
+        }
+
+        $line = mb_substr(trim((string) strtok(strip_tags($first->getMessage()), "\r\n")), 0, 200);
+
+        if ($line === '') {
+            return NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_UNKNOWN');
+        }
+
+        return preg_match('/[.!?]$/u', $line) === 1 ? $line : $line . '.';
     }
 
     /**
@@ -513,7 +555,8 @@ final class AutoIssuePolicy
             // money in the ORDER'S currency: 0.01 was one unit at two decimals
             // and a million at eight. Resolve the currency the way OrderFacts
             // does and let Money answer: here and in the figure the merchant
-            // is shown.
+            // is shown, in the currency's own format with its sign, as the
+            // other notifications state money.
             $currency = OrderItemLines::orderCurrency(orderId: $orderId);
             $strandedMoney = Money::of($stranded, $currency);
 
@@ -524,7 +567,7 @@ final class AutoIssuePolicy
                     title:   NotificationText::of(
                         'COM_ALFA_NOTIFY_AUTOISSUE_CHARGES_TITLE',
                         $orderId,
-                        number_format($strandedMoney->getAmount(), $currency->getDecimalPlaces()),
+                        $strandedMoney->format(),
                     ),
                 );
             }
@@ -581,7 +624,76 @@ final class AutoIssuePolicy
             $draft['movement_purpose'] = '1';
         }
 
-        DocumentIssuer::issue($draft);
+        // The shop's own policy issues it, whoever triggered the status change: no staff permission is asked.
+        DocumentIssuer::issue(draft: $draft, actor: new SystemActor(policy: 'automatic issue on a status change'));
+
+        if (DocumentHelper::poolOf($docType) === DocumentHelper::POOL_SALES) {
+            try {
+                self::reportUnclaimable(orderId: $orderId);
+            } catch (Throwable $noticeError) {
+                // The document is issued: the notice is advisory, so its failure is a line of the documents log,
+                // never "could not be issued" nor a retry of an issue that stands. A failure that ended a caller's
+                // transaction reaches the caller: the document went with it.
+                if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $noticeError)) {
+                    throw $noticeError;
+                }
+
+                Log::add(
+                    entry:    "AutoIssuePolicy: order {$orderId}: {$docType} was issued, but the notice of discount no invoice can claim could not be raised: "
+                              . $noticeError->getMessage(),
+                    priority: Log::WARNING,
+                    category: 'com_alfa.documents',
+                );
+            }
+        }
+    }
+
+    /**
+     * Say when the order holds discount no invoice can claim any more.
+     *
+     * A discount follows the goods, so a balance larger than the goods still
+     * to invoice stays unclaimed (an invoice issued before 2.2.1 without its
+     * share leaves one, OrderChargeLines::unclaimableDiscounts()). An
+     * automatic issue then issues the order's invoices without it, and they
+     * total more than the order: the documents log and the order's
+     * notification name the amount, as the order's document screen does,
+     * in the currency's own format with its sign, as the other
+     * notifications state money. Advisory: the caller logs its failure and
+     * the document issued stands.
+     *
+     * @param int $orderId The order whose sales document was just issued.
+     *
+     * @since  2.2.1
+     */
+    private static function reportUnclaimable(int $orderId): void
+    {
+        $unclaimable = OrderChargeLines::unclaimableDiscounts(orderId: $orderId);
+
+        if ($unclaimable === []) {
+            return;
+        }
+
+        $currency = OrderItemLines::orderCurrency(orderId: $orderId);
+        $total = Money::zero($currency);
+
+        foreach ($unclaimable as $amount) {
+            $total = $total->add($amount);
+        }
+
+        $figure = $total->format();
+
+        Log::add(
+            entry:    "AutoIssuePolicy: order {$orderId}: {$figure} of its discounts can no longer be claimed by an invoice; its invoices total that much more than the order.",
+            priority: Log::WARNING,
+            category: 'com_alfa.documents',
+        );
+
+        self::notify(
+            orderId: $orderId,
+            key:     self::KEY_PREFIX . $orderId . '.unclaimable',
+            title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_UNCLAIMABLE_TITLE', $orderId, $figure),
+            message: NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_UNCLAIMABLE_MSG'),
+        );
     }
 
     /**
@@ -640,6 +752,11 @@ final class AutoIssuePolicy
         }
 
         try {
+            // A credit note that gives the unclaimable discount back answers its notice.
+            if (\in_array($docType, DocumentHelper::creditTypes(), true) && OrderChargeLines::unclaimableDiscounts(orderId: $orderId) === []) {
+                $answered[] = $prefix . 'unclaimable';
+            }
+
             if ($docType !== '' && DocumentHelper::requiresBuyerVat($docType)) {
                 $answered[] = $prefix . 'vat';
             }
@@ -660,15 +777,17 @@ final class AutoIssuePolicy
      * @param int $orderId The order id.
      * @param string $key Dedup key.
      * @param NotificationText $title Notification title.
+     * @param NotificationText|null $message Its body: why it was raised when the caller knows (2.2.1: a failed
+     *                                       issue's reason), else the general one.
      *
      * @since  2.0.0
      */
-    private static function notify(int $orderId, string $key, NotificationText $title): void
+    private static function notify(int $orderId, string $key, NotificationText $title, ?NotificationText $message = null): void
     {
         NotificationHelper::push($key, $title, [
             'severity' => 'warning',
             'group' => NotificationHelper::GROUP_DOCUMENTS,
-            'message' => NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_MSG'),
+            'message' => $message ?? NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_MSG'),
             'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
             'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
             'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],

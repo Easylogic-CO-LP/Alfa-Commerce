@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Order;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\View\HasAdminEvents;
 use Exception;
@@ -114,8 +115,8 @@ class HtmlView extends BaseHtmlView
         $input = $app->getInput();
 
         if ($this->_layout == 'edit_shipment' || $this->_layout == 'edit_shipment_return') {
-            $shipmentId = $input->getInt('id', 0);
-            $orderId = $input->getInt('id_order', 0);
+            $shipmentId = RequestScalar::int($input, 'id');
+            $orderId = RequestScalar::int($input, 'id_order');
 
             $this->shipment = null;
             $this->order = null;
@@ -143,8 +144,8 @@ class HtmlView extends BaseHtmlView
             $this->form->bind($this->keptModalDraft('com_alfa.edit.order.shipment.' . $orderId . '.' . $shipmentId));
             self::addShipmentToolbar();
         } elseif ($this->_layout == 'edit_payment' || $this->_layout == 'edit_payment_return') {
-            $paymentId = $input->getInt('id', 0);
-            $orderId = $input->getInt('id_order', 0);
+            $paymentId = RequestScalar::int($input, 'id');
+            $orderId = RequestScalar::int($input, 'id_order');
 
             $this->payment = null;
             $this->order = null;
@@ -175,8 +176,8 @@ class HtmlView extends BaseHtmlView
             // Void & Replace, previewed. Its own request, in an iframe, like
             // every other order popup, and refused outright to anyone
             // without the Void & Replace capability, before anything is built.
-            $orderId = $input->getInt('id_order', 0);
-            $sourceId = $input->getInt('id_source', 0);
+            $orderId = RequestScalar::int($input, 'id_order');
+            $sourceId = RequestScalar::int($input, 'id_source');
             $user = $this->getCurrentUser();
 
             if (!AlfaHelper::can(
@@ -214,7 +215,7 @@ class HtmlView extends BaseHtmlView
             // and forgets an abandoned edit.
             $stateKey = 'com_alfa.edit.order.replacement.' . $sourceId;
 
-            if ($input->getInt('kept', 0) !== 1) {
+            if (RequestScalar::int($input, 'kept') !== 1) {
                 $app->setUserState($stateKey, null);
             }
 
@@ -265,7 +266,7 @@ class HtmlView extends BaseHtmlView
         } elseif ($this->_layout == 'edit_correction') {
             // The proposed incremental correction, previewed. Its own request,
             // in an iframe, like every other order popup.
-            $orderId = $input->getInt('id_order', 0);
+            $orderId = RequestScalar::int($input, 'id_order');
 
             if ($orderId <= 0) {
                 throw new Exception('Order ID is required to propose a correction', 400);
@@ -288,7 +289,7 @@ class HtmlView extends BaseHtmlView
 
             // Proposed HERE, not in the template: the panel and its layouts
             // stay presentation only, and the proposal is one derivation.
-            $this->sourceDocumentId = $input->getInt('id_source', 0);
+            $this->sourceDocumentId = RequestScalar::int($input, 'id_source');
             $this->proposal = \Alfa\Component\Alfa\Administrator\Service\Document\IncrementalCorrection::propose(
                 $orderId,
                 $this->sourceDocumentId,
@@ -340,7 +341,7 @@ class HtmlView extends BaseHtmlView
             // right of its own: the dispatcher already asked Orders: Edit for
             // this layout, and an operator who may only replace must be able
             // to close that modal (F-20). The issue form below keeps its 403.
-            $orderId = $input->getInt('id_order', 0);
+            $orderId = RequestScalar::int($input, 'id_order');
 
             if ($orderId <= 0) {
                 throw new Exception('Order ID is required to return to the order', 400);
@@ -354,7 +355,7 @@ class HtmlView extends BaseHtmlView
         } elseif ($this->_layout == 'edit_document') {
             // Issuing is a one-way act: there is no document id to edit, only
             // an order to issue against. The modal is always "new".
-            $orderId = $input->getInt('id_order', 0);
+            $orderId = RequestScalar::int($input, 'id_order');
 
             if ($orderId <= 0) {
                 throw new Exception('Order ID is required when issuing a document', 400);
@@ -388,7 +389,7 @@ class HtmlView extends BaseHtmlView
             // bare. The controller validated it; the fields escape it.
             $draftKey = 'com_alfa.edit.order.document.' . $orderId;
 
-            if ($input->getInt('kept', 0) !== 1) {
+            if (RequestScalar::int($input, 'kept') !== 1) {
                 $app->setUserState($draftKey, null);
             }
 
@@ -397,8 +398,8 @@ class HtmlView extends BaseHtmlView
 
             self::addDocumentToolbar();
         } elseif ($this->_layout == 'edit_order_item' || $this->_layout == 'edit_order_item_return') {
-            $itemId = $input->getInt('id', 0);
-            $orderId = $input->getInt('id_order', 0);
+            $itemId = RequestScalar::int($input, 'id');
+            $orderId = RequestScalar::int($input, 'id_order');
 
             $this->orderItem = null;
             $this->order = null;
@@ -441,7 +442,7 @@ class HtmlView extends BaseHtmlView
             // pricing) before the line exists; one save creates it all. A
             // refused new line comes back with the product it was saved with.
             $this->newItemId = 0;
-            $newItemId = (int) ($this->keptPost['jform']['id_item'] ?? 0) ?: $input->getInt('id_item', 0);
+            $newItemId = (int) ($this->keptPost['jform']['id_item'] ?? 0) ?: RequestScalar::int($input, 'id_item');
 
             if (!$this->orderItem && $newItemId > 0) {
                 $this->configItem = $model->getNewItemConfig(itemId: $newItemId, keptConfiguration: $keptConfiguration);
@@ -465,7 +466,7 @@ class HtmlView extends BaseHtmlView
             // open (the notification bell, a dashboard card, a bookmark) forgets
             // it, or unsaved values gone stale would refill the form and Save
             // would write them (F-19).
-            if ($input->getInt('kept', 0) !== 1) {
+            if (RequestScalar::int($input, 'kept') !== 1) {
                 $app->setUserState('com_alfa.edit.order.data', null);
             }
 
@@ -618,7 +619,7 @@ class HtmlView extends BaseHtmlView
     {
         Factory::getApplication()->getInput()->set('hidemainmenu', true);
 
-        $paymentId = Factory::getApplication()->getInput()->getInt('id', 0);
+        $paymentId = RequestScalar::int(Factory::getApplication()->getInput(), 'id');
         $isNew = ($paymentId == 0);
         $toolbar = $this->getDocument()->getToolbar();
 
@@ -654,7 +655,7 @@ class HtmlView extends BaseHtmlView
     {
         Factory::getApplication()->getInput()->set('hidemainmenu', true);
 
-        $shipmentId = Factory::getApplication()->getInput()->getInt('id', 0);
+        $shipmentId = RequestScalar::int(Factory::getApplication()->getInput(), 'id');
         $isNew = ($shipmentId == 0);
         $toolbar = $this->getDocument()->getToolbar();
 
@@ -799,7 +800,7 @@ class HtmlView extends BaseHtmlView
     {
         Factory::getApplication()->getInput()->set('hidemainmenu', true);
 
-        $itemId = Factory::getApplication()->getInput()->getInt('id', 0);
+        $itemId = RequestScalar::int(Factory::getApplication()->getInput(), 'id');
         $isNew = ($itemId == 0);
         $toolbar = $this->getDocument()->getToolbar();
 
@@ -846,7 +847,7 @@ class HtmlView extends BaseHtmlView
     {
         $app = Factory::getApplication();
 
-        if ($app->getInput()->getInt('kept', 0) !== 1) {
+        if (RequestScalar::int($app->getInput(), 'kept') !== 1) {
             $app->setUserState($modalKey, null);
 
             return [];

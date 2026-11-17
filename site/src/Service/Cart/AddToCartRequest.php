@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Cart\AddToCartCommand;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Joomla\Input\Input;
@@ -44,7 +45,7 @@ final class AddToCartRequest
             selection:    VariantHelper::requestSelection(),
             fullPayloads: (array) ($jform['itemfields_payload'] ?? []),
             files:        is_array($files) ? $files : [],
-            editLineId:   (int) $input->getInt('edit_line', 0),
+            editLineId:   RequestScalar::int($input, 'edit_line', 0),
         );
     }
 }

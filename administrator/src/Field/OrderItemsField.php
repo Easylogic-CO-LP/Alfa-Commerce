@@ -56,6 +56,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
@@ -119,8 +120,8 @@ class OrderItemsField extends ListField
         $showQuantity = $this->getAttribute('show_quantity', 'true') === 'true';
         $showSku = $this->getAttribute('show_sku', 'false') === 'true';
 
-        $orderId = $input->getInt($orderIdParam, 0);
-        $entityId = $input->getInt($entityIdParam, 0);
+        $orderId = RequestScalar::int($input, $orderIdParam);
+        $entityId = RequestScalar::int($input, $entityIdParam);
 
         if ($orderId <= 0) {
             return $options;

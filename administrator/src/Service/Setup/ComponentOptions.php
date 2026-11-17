@@ -101,6 +101,9 @@ final class ComponentOptions
         // Documents
         'documents_issuer' => 'com_alfa',
 
+        // Downloads: the download store's direct-download protection check, on (2.2.1).
+        'downloads_protection_check' => 1,
+
         // Price display. SyncHelper::PRICES_DISPLAY_KEYS builds the price display
         // of each customer group from these keys.
         'base_price_show' => 0,

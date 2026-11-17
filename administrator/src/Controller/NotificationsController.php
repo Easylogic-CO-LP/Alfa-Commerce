@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Setup\CollationCheck;
@@ -90,7 +91,7 @@ class NotificationsController extends BaseController
         $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
         $this->app->sendHeaders();
 
-        echo NotificationHelper::renderBadge((bool) $this->input->getInt('open', 0));
+        echo NotificationHelper::renderBadge((bool) RequestScalar::int($this->input, 'open'));
 
         // Then, when work is due, the bell's tick (2.2.0, design 2.7): the request every Alfa Commerce page already
         // makes, so the background work keeps running while Alfa Sync is disabled. The badge is answered first and the
@@ -112,7 +113,7 @@ class NotificationsController extends BaseController
     {
         $this->checkToken();
 
-        $row = NotificationHelper::find(id: (int) $this->input->getInt('id', 0));
+        $row = NotificationHelper::find(id: (int) RequestScalar::int($this->input, 'id'));
 
         $this->assertCanChange(row: $row);
 
@@ -134,7 +135,7 @@ class NotificationsController extends BaseController
         // 'request' so both the badge POST and the history-view GET link work (token still required).
         $this->checkToken('request');
 
-        $row = NotificationHelper::find(id: (int) $this->input->getInt('id', 0));
+        $row = NotificationHelper::find(id: (int) RequestScalar::int($this->input, 'id'));
 
         $this->assertCanChange(row: $row);
 
@@ -161,7 +162,7 @@ class NotificationsController extends BaseController
      */
     private function wantsJson(): bool
     {
-        if (\in_array($this->input->getWord('format', ''), ['json', 'raw'], true)) {
+        if (\in_array(RequestScalar::read($this->input, 'format', '', 'word'), ['json', 'raw'], true)) {
             return true;
         }
 

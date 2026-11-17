@@ -74,14 +74,20 @@ class JsonApiView extends BaseApiView
      * A discount's value as exact decimal text: an amount in the shop's default
      * currency at its scale, a percentage as its own digits.
      *
-     * @param object $item The discount.
+     * @param object|false $item The discount, or false when there is none.
      *
-     * @return object
+     * @return object|false
      *
      * @since  2.0.0
      */
     protected function prepareItem($item)
     {
+        // A record that does not exist reaches here as the model's false: it is handed back untouched, so Joomla's
+        // own check answers 404 "Item does not exist" (2.2.1).
+        if (!\is_object($item)) {
+            return $item;
+        }
+
         if (property_exists($item, 'value')) {
             $item->value = (int) ($item->is_amount ?? 0) === 1
                 ? self::storedAmount(value: $item->value, scale: self::defaultScale())

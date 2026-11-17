@@ -46,6 +46,16 @@ class MediaHelper
     private const MEDIA_GROUP = 'alfa-media';
 
     /**
+     * What getMediaData() has read in this request, by origin, items and options. Emptied by every write of media
+     * rows (2.2.1): a request that reads an item's media, saves them and reads them again (a REST PATCH, which answers
+     * with the saved record) is answered with what is stored, not with what was read before the save.
+     *
+     * @var array<string, array>
+     * @since  2.2.1
+     */
+    private static array $mediaRead = [];
+
+    /**
      * The longest image description (alt) a media row holds: its column is varchar(75). The tile's input, saveMedia
      * and the API's media rows all hold to it, so a longer one never fails a gallery save (2.2.0).
      *
@@ -121,6 +131,15 @@ class MediaHelper
         'image/webp' => 'webp',
         'image/avif' => 'avif',
     ];
+
+    /**
+     * The media manager's image extensions while com_media stores none: the default of its Legal Image Extensions, as
+     * Joomla's media manager reads it.
+     *
+     * @var string
+     * @since  2.2.1
+     */
+    private const MEDIA_IMAGE_EXTENSIONS = 'bmp,gif,jpg,jpeg,png,webp,avif';
 
     /**
      * Resolve the effective allowed image MIME types.
@@ -333,6 +352,10 @@ class MediaHelper
      * delete in saveMedia). Call from an entity's delete() so removing a
      * manufacturer / item / category doesn't leave orphaned media rows + files.
      *
+     * The rows go in the caller's transaction, when one is open; once it has committed, the plugins hear
+     * onAlfaMediaBeforeDelete with the rows and then the files go (2.2.1: before, this path told no plugin and
+     * took the files at once, so a delete rolled back had lost them). With no transaction open, both follow at once.
+     *
      * @param int[] $itemIds Entity ids whose media should be removed.
      * @param string $origin Media origin ('item' | 'category' | 'manufacturer').
      *
@@ -352,19 +375,16 @@ class MediaHelper
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
-        // The single "Complete Media Deletion" setting (media_full_deletion) governs
-        // whether removing media also deletes the file from disk: both here (whole
-        // entity deleted) and in saveMedia (a single image removed). On by default.
-        if ((bool) ComponentHelper::getParams('com_alfa')->get('media_full_deletion', 1)) {
-            $rows = $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName(['id', 'path', 'thumbnail']))
-                    ->from($db->quoteName('#__alfa_media'))
-                    ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
-                    ->whereIn($db->quoteName('item_id'), $itemIds),
-            )->loadObjectList();
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'path', 'thumbnail']))
+                ->from($db->quoteName('#__alfa_media'))
+                ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
+                ->whereIn($db->quoteName('item_id'), $itemIds),
+        )->loadObjectList();
 
-            self::deleteFilesOfRows(rows: $rows);
+        if ($rows === []) {
+            return;
         }
 
         $db->setQuery(
@@ -373,6 +393,25 @@ class MediaHelper
                 ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
                 ->whereIn($db->quoteName('item_id'), $itemIds),
         )->execute();
+
+        self::$mediaRead = [];
+
+        // The single "Complete Media Deletion" setting (media_full_deletion) governs
+        // whether removing media also deletes the file from disk: both here (whole
+        // entity deleted) and in saveMedia (a single image removed). On by default.
+        $withFiles = (bool) ComponentHelper::getParams('com_alfa')->get('media_full_deletion', 1);
+
+        PostCommit::defer(
+            db: $db,
+            label: 'the removal of the ' . $origin . ' media of ' . \count($itemIds) . ' entities',
+            work: static function () use ($rows, $withFiles): void {
+                self::dispatchBeforeDelete(rows: $rows);
+
+                if ($withFiles) {
+                    self::deleteFilesOfRows(rows: $rows);
+                }
+            },
+        );
     }
 
     /**
@@ -434,6 +473,8 @@ class MediaHelper
 
             $deleted += count($batch);
         }
+
+        self::$mediaRead = [];
 
         return $deleted;
     }
@@ -798,6 +839,26 @@ class MediaHelper
      */
     public static function saveMedia(array $mediaData, array $droppedMedia, int $itemId, string $mediaOrigin, string $customFileName = ''): true
     {
+        try {
+            return self::writeMedia($mediaData, $droppedMedia, $itemId, $mediaOrigin);
+        } finally {
+            self::$mediaRead = [];
+        }
+    }
+
+    /**
+     * The work of {@see self::saveMedia()}: the rows and files of one entity's media, as the request sends them.
+     *
+     * @param array $mediaData The array of media items from the request.
+     * @param array $droppedMedia The array for drag-and-dropped files.
+     * @param int $itemId The ID of the parent item these media belong to.
+     * @param string $mediaOrigin Identifier for the media origin based on model name (e.g., 'item', 'category').
+     *
+     * @throws Exception
+     * @since  2.2.1
+     */
+    private static function writeMedia(array $mediaData, array $droppedMedia, int $itemId, string $mediaOrigin): true
+    {
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         // configuration
@@ -844,9 +905,16 @@ class MediaHelper
             $isPicker = str_starts_with($media['source'], 'picker:');
             $isUrl = $media['type'] == 'url';
 
-            // Process thumbnail upfront for all non-blob sources.
-            // Blob thumbnails are handled later, after the main image is saved to disk.
-            if (!str_contains($media['thumbnail'], 'blob:')) {
+            // The tile's own thumbnail, for every non-blob source (a blob thumbnail is the dropped file's own, made below
+            // from the stored image). Made only once the image it belongs to stands (2.2.1): a new image after
+            // its own checks and its store, a URL after its scheme check, an existing row only when it is kept. Before,
+            // it was made first, so an image refused afterwards had already written a thumbnail no row names and had
+            // told onAlfaMediaThumbnail of it.
+            $tileThumbnail = static function () use (&$finalThumbnail, &$thumbnailOrigin, &$keepOrigin, $media, $isNew, $isPicker, $id, $stored, $urlDefaultThumbnail, $absolutePath, $params): void {
+                if (str_contains($media['thumbnail'], 'blob:')) {
+                    return;
+                }
+
                 $finalThumbnail = self::processThumbnail(
                     rawThumbnail:       $media['thumbnail'],
                     defaultThumbPath:   $urlDefaultThumbnail,
@@ -867,7 +935,7 @@ class MediaHelper
                         ? self::THUMBNAIL_FROM_IMAGE
                         : self::THUMBNAIL_CHOSEN;
                 }
-            }
+            };
 
             // New media
             if ($isNew) {
@@ -875,10 +943,14 @@ class MediaHelper
                 $nameForFile = '';
 
                 // FIND THE UNIQUE NAME FOR THE FILE
+                // The image's name as staff gave it, for a refusal (2.2.1).
+                $sourceName = '';
+
                 if ($isDrop) { // Dropped Media Handler
                     //dropped media and mediaData has the same ordering sequence
                     if (isset($droppedMedia[$dropIndex])) {
                         $file = $droppedMedia[$dropIndex];
+                        $sourceName = (string) $file['name'];
 
                         $noError = $file['error'] === 0;
 
@@ -910,6 +982,7 @@ class MediaHelper
                     $cleanPath = HTMLHelper::cleanImageURL($media['source']);
                     // The media field stores a URL: a file name with a space arrives as %20 (2.2.0).
                     $cleanPath = rawurldecode(str_replace('picker://', '', $cleanPath->url));
+                    $sourceName = basename($cleanPath);
 
                     // Containment: the resolved file must sit inside one of the
                     // media roots, not merely inside the web root: a picker path
@@ -917,32 +990,14 @@ class MediaHelper
                     // outside those roots is forged, and scoping this way stops an
                     // API caller referencing (and copying) images from
                     // administrator/ or any other non-media folder.
-                    // BOTH com_media roots count: file_path and image_path are
-                    // configured separately and are NOT interchangeable (this very
-                    // site runs file_path=files while its images live under
-                    // images/), plus com_alfa's own save folder.
+                    // The media folders are mediaRoots(), the one definition a
+                    // thumbnail's source is held to as well (2.2.1).
                     $realSrc = realpath(JPATH_ROOT . '/' . $cleanPath);
                     $withinRoot = false;
 
                     if ($realSrc !== false) {
-                        $mediaParams = ComponentHelper::getParams('com_media');
-
-                        foreach (
-                            [
-                                $mediaParams->get('file_path', 'images'),
-                                $mediaParams->get('image_path', 'images'),
-                                $saveFolder,
-                            ] as $candidate
-                        ) {
-                            $candidate = trim((string) $candidate, '/');
-
-                            if ($candidate === '') {
-                                continue;
-                            }
-
-                            $rootReal = realpath(JPATH_ROOT . '/' . $candidate);
-
-                            if ($rootReal !== false && str_starts_with($realSrc, $rootReal . \DIRECTORY_SEPARATOR)) {
+                        foreach (self::mediaRoots() as $rootReal) {
+                            if (str_starts_with($realSrc, $rootReal . \DIRECTORY_SEPARATOR)) {
                                 $withinRoot = true;
                                 break;
                             }
@@ -987,6 +1042,8 @@ class MediaHelper
                         $ordering++;
                         continue;
                     }
+
+                    $tileThumbnail();
 
                     $insertObject = (object) [
                         'item_id' => $itemId,
@@ -1046,12 +1103,25 @@ class MediaHelper
                             } catch (Throwable $e) {
                                 $storeOk = false;
                             }
+                        } elseif ($relativeDest === '' || !is_file(JPATH_ROOT . '/' . $relativeDest)) {
+                            // A plugin that claims the image and writes no file gets no row (2.2.1): the row
+                            // would name a file that is not there, a broken image on the storefront.
+                            Factory::getApplication()->enqueueMessage(
+                                Text::sprintf('COM_ALFA_MEDIA_ERROR_PROCESSED_NO_FILE', htmlspecialchars($sourceName, ENT_QUOTES, 'UTF-8')),
+                                'error',
+                            );
+                            $storeOk = false;
                         }
 
                         // CORE concern: the dominant colour is the image-load placeholder
                         // and must always be stored, plugin or not. Compute it from the
                         // FINAL file now that $dest is settled (optimised or copied as-is).
                         $color = $storeOk ? self::dominantColor($dest) : '';
+
+                        // The tile's own thumbnail, now that the image stands.
+                        if ($storeOk) {
+                            $tileThumbnail();
+                        }
 
                         // A new image with no thumbnail of its own gets one from its stored main
                         // image: a drop (its blob URL is browser-only and unreachable server-side)
@@ -1105,53 +1175,40 @@ class MediaHelper
                 $isFullDelete = (bool) $params->get('media_full_deletion', 1);
 
                 if ($toDelete) {
-                    // If full delete is enabled, remove files from the server first
-                    if ($isFullDelete) {
-                        // Fetch the main image path associated with this thumbnail before deleting
-                        $query = $db->getQuery(true)
-                            ->select($db->quoteName(['path', 'thumbnail']))
+                    // The row goes in the caller's transaction (2.2.1). Once that has committed, the plugins hear
+                    // onAlfaMediaBeforeDelete with the row (2.2.1: before, only Tools > Media raised it), then
+                    // its files go when the setting says so. A save rolled back keeps the row and its files, and tells
+                    // no plugin. A failure of the delete reaches the caller, whose transaction it may have ended.
+                    $removed = $db->setQuery(
+                        $db->getQuery(true)
+                            ->select($db->quoteName(['id', 'path', 'thumbnail']))
                             ->from($db->quoteName('#__alfa_media'))
-                            ->where($db->quoteName('id') . ' = ' . (int) $id);
+                            ->where($db->quoteName('id') . ' = ' . (int) $id),
+                    )->loadObject();
 
-                        $db->setQuery($query);
-                        $result = $db->loadObject();
+                    $db->setQuery(
+                        $db->getQuery(true)
+                            ->delete($db->quoteName('#__alfa_media'))
+                            ->where($db->quoteName('id') . ' = ' . (int) $id),
+                    )->execute();
 
-                        // Remove both thumbnail and main image, but only files that
-                        // actually resolve inside the media folder: a tampered path
-                        // column can never lead a delete outside it; and never a file
-                        // another row names (2.2.0).
-                        if ($result) {
-                            $mediaRoot = realpath($absolutePath);
-                            $namedElsewhere = self::filesNamedByOtherRows(files: [(string) $result->path, (string) $result->thumbnail], exceptIds: [(int) $id]);
+                    if ($removed) {
+                        $mediaId = (int) $id;
+                        PostCommit::defer(
+                            db: $db,
+                            label: 'the removal of media #' . $mediaId,
+                            work: static function () use ($removed, $mediaId, $absolutePath, $isFullDelete): void {
+                                self::dispatchBeforeDelete(rows: [$removed]);
 
-                            foreach ([$result->path, $result->thumbnail] as $path) {
-                                if (!$path || \in_array(ltrim((string) $path, '/'), $namedElsewhere, true)) {
-                                    continue;
+                                if ($isFullDelete) {
+                                    self::deleteRemovedFiles(files: [(string) $removed->path, (string) $removed->thumbnail], mediaId: $mediaId, absolutePath: $absolutePath);
                                 }
-
-                                $real = realpath(JPATH_ROOT . '/' . ltrim($path, '/'));
-
-                                if ($real !== false
-                                    && $mediaRoot !== false
-                                    && str_starts_with($real, $mediaRoot . \DIRECTORY_SEPARATOR)) {
-                                    File::delete($real);
-                                }
-                            }
-                        }
-                    }
-
-                    // Remove media record from database
-                    $query = $db->getQuery(true)
-                        ->delete($db->quoteName('#__alfa_media'))
-                        ->where($db->quoteName('id') . ' = ' . (int) $id);
-
-                    try {
-                        $db->setQuery($query)->execute();
-                    } catch (Exception $e) {
-                        Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
-                        return true;
+                            },
+                        );
                     }
                 } else {
+                    $tileThumbnail();
+
                     // Update ordering, alt text and thumbnail for existing records.
                     // The stored file path is immutable and is never taken from the
                     // client here; only an external URL may be re-pointed.
@@ -1185,13 +1242,46 @@ class MediaHelper
     }
 
     /**
+     * Delete the files of a media row removed by a save, once the save has committed: the main image and the
+     * thumbnail, but only files that actually resolve inside the media folder (a tampered path column can never lead a
+     * delete outside it) and never a file another row names (2.2.0).
+     *
+     * @param string[] $files The removed row's path and thumbnail.
+     * @param int $mediaId The removed row.
+     * @param string $absolutePath Absolute filesystem path to the media save directory.
+     *
+     * @since  2.2.1
+     */
+    private static function deleteRemovedFiles(array $files, int $mediaId, string $absolutePath): void
+    {
+        $mediaRoot = realpath($absolutePath);
+        $namedElsewhere = self::filesNamedByOtherRows(files: $files, exceptIds: [$mediaId]);
+
+        foreach ($files as $path) {
+            if ($path === '' || \in_array(ltrim($path, '/'), $namedElsewhere, true)) {
+                continue;
+            }
+
+            $real = realpath(JPATH_ROOT . '/' . ltrim($path, '/'));
+
+            if ($real !== false
+                && $mediaRoot !== false
+                && str_starts_with($real, $mediaRoot . \DIRECTORY_SEPARATOR)) {
+                File::delete($real);
+            }
+        }
+    }
+
+    /**
      * Processes and saves a thumbnail image.
      *
      * Returns an empty string if the thumbnail is missing or matches the default placeholder; returns the row's own
      * stored thumbnail when the tile still shows it (an existing row re-saved as it was: its stored thumbnail, or its
      * path where it stores none or stores its path), so a re-save writes no file; otherwise makes a new thumbnail of
      * the given image at the configured box. A file that merely lies inside the save folder is NOT kept as it is
-     * (2.2.0): it may be another row's image, and a new row then gets its own copy, never another row's file.
+     * (2.2.0): it may be another row's image, and a new row then gets its own copy, never another row's file. A source
+     * that is not an image file of the media folders (isThumbnailSource()) is refused with a message and gives none
+     * (2.2.1).
      *
      * @param string $rawThumbnail Raw (relative) thumbnail path, possibly URL-encoded and with a fragment.
      * @param string $defaultThumbPath Path of the default placeholder thumbnail to compare against.
@@ -1219,19 +1309,17 @@ class MediaHelper
             return (string) $stored->thumbnail;
         }
 
-        // Containment: the source is a client-supplied relative path, so it must
-        // resolve INSIDE the site root: a crafted "../.." must never let an
-        // arbitrary file be read and re-saved as a "thumbnail".
+        // The source is a client-supplied relative path: only an image file of the media folders may be one (2.2.1,
+        // isThumbnailSource()). The forms and the API refuse such a save before it writes (thumbnailRefusals()); a
+        // caller of saveMedia() that did not ask is told here, and nothing is read or copied.
         $sourcePath = JPATH_ROOT . '/' . $cleanThumb;
-        $sourceReal = realpath($sourcePath);
-        $rootReal = realpath(JPATH_ROOT);
 
-        if (
-            str_contains($cleanThumb, '..')
-            || $sourceReal === false
-            || $rootReal === false
-            || !str_starts_with($sourceReal, $rootReal . DIRECTORY_SEPARATOR)
-        ) {
+        if (!self::isThumbnailSource(file: $sourcePath)) {
+            Factory::getApplication()->enqueueMessage(
+                Text::sprintf('COM_ALFA_MEDIA_ERROR_THUMBNAIL_SOURCE', htmlspecialchars($cleanThumb, ENT_QUOTES, 'UTF-8')),
+                'error',
+            );
+
             return '';
         }
 
@@ -1297,7 +1385,9 @@ class MediaHelper
      * Write a thumbnail of an image at the configured box (2.2.0: the one writer, for a saved tile and for the Recreate
      * thumbnails job): the plugin layer first (onAlfaMediaThumbnail, which owns the format and the quality), else the
      * always-on baseline resize, else, only when GD cannot resize, a plain copy. An existing file at the destination is
-     * overwritten.
+     * overwritten. Only a source isThumbnailSource() accepts is used (2.2.1): any other file is not handed to a plugin,
+     * resized or copied, and none is written, so the plain copy is only ever of an image GD cannot read (an AVIF on a
+     * GD without AVIF).
      *
      * @param string $source Absolute path of the image.
      * @param string $dest Absolute path proposed for the thumbnail.
@@ -1309,6 +1399,10 @@ class MediaHelper
      */
     public static function makeThumbnail(string $source, string $dest, ?object $params = null): string
     {
+        if (!self::isThumbnailSource(file: $source)) {
+            return '';
+        }
+
         // Thumbnail SIZE is a component concern (a thumbnail must never be the
         // full image). FORMAT/QUALITY are plugin concerns, applied only when a
         // plugin handles the event; otherwise the always-on baseline resize runs.
@@ -1348,6 +1442,232 @@ class MediaHelper
         }
 
         return ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+    }
+
+    /**
+     * Whether a file may be the source of a thumbnail (2.2.1): the one rule the administrator saves, the API and the
+     * Recreate thumbnails job share. makeThumbnail() applies it before anything is handed to a plugin, resized or
+     * copied; thumbnailRefusals() asks it before a save writes anything, and processThumbnail() and ThumbnailRecreation
+     * ask it to say why no thumbnail was made.
+     *
+     * The file must (a) lie inside one of the media folders (mediaRoots(), the folders the media picker is held to as
+     * well) and (b) be an image of its own extension (isImageOfItsExtension()). Before, any file the site could read
+     * inside its root (a backup, a log, the configuration file) could be named as a thumbnail and was copied, its
+     * extension kept, into the save folder.
+     *
+     * @param string $file Absolute path of the file.
+     *
+     * @since  2.2.1
+     */
+    public static function isThumbnailSource(string $file): bool
+    {
+        $real = realpath($file);
+
+        if ($real === false || !is_file($real)) {
+            return false;
+        }
+
+        foreach (self::mediaRoots() as $root) {
+            if (str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+                return self::isImageOfItsExtension(file: $file);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether a file is an image of its own extension (2.2.1): it carries one of the media manager's image extensions
+     * (com_media's Legal Image Extensions), under its own name and the file it leads to alike, and the type
+     * getimagesize() reads from its header agrees with that extension.
+     *
+     * @param string $file Absolute path of the file.
+     *
+     * @since  2.2.1
+     */
+    private static function isImageOfItsExtension(string $file): bool
+    {
+        $real = realpath($file);
+
+        if ($real === false || !is_file($real)) {
+            return false;
+        }
+
+        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        $allowed = array_map(
+            static fn (string $one): string => strtolower(trim($one)),
+            explode(',', (string) ComponentHelper::getParams('com_media')->get('image_extensions', self::MEDIA_IMAGE_EXTENSIONS)),
+        );
+
+        if ($extension === '' || !\in_array($extension, $allowed, true) || strtolower(pathinfo($real, PATHINFO_EXTENSION)) !== $extension) {
+            return false;
+        }
+
+        $info = @getimagesize($real);
+        $type = $info === false ? null : (self::MIME_EXTENSION_MAP[strtolower($info['mime'])] ?? null);
+
+        return $type !== null && ($type === $extension || ($type === 'jpg' && $extension === 'jpeg'));
+    }
+
+    /**
+     * The media folders (2.2.1), as real absolute paths: the one definition the media picker's containment and a
+     * thumbnail's source share. Joomla's com_media names two (file_path and image_path, configured separately and not
+     * interchangeable), and the component adds its own save folder, where the images it stores are. A folder that
+     * does not exist is left out, and so is one that is the site root itself or holds it (an empty setting, a link to a
+     * parent, the filesystem root).
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    private static function mediaRoots(): array
+    {
+        $mediaParams = ComponentHelper::getParams('com_media');
+        $folders = [
+            $mediaParams->get('file_path', 'images'),
+            $mediaParams->get('image_path', 'images'),
+            ComponentHelper::getParams('com_alfa')->get('media_save_location', 'images/commerce'),
+        ];
+        $siteRoot = realpath(JPATH_ROOT);
+        $roots = [];
+
+        foreach ($folders as $folder) {
+            $folder = trim((string) $folder, '/');
+            $real = $folder === '' ? false : realpath(JPATH_ROOT . '/' . $folder);
+
+            // A folder that is the site root or holds it is never a root; the filesystem root itself ends with its
+            // separator, so the separator is trimmed before it is added.
+            $holdsSite = $siteRoot !== false && $real !== false
+                && ($real === $siteRoot || str_starts_with($siteRoot, rtrim($real, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR));
+
+            if ($real !== false && $siteRoot !== false && is_dir($real) && !$holdsSite) {
+                $roots[$real] = $real;
+            }
+        }
+
+        return array_values($roots);
+    }
+
+    /**
+     * The thumbnails of a gallery post the thumbnail rule refuses (2.2.1): one message for each tile whose thumbnail
+     * would be made from a file isThumbnailSource() does not accept, read as saveMedia() would read it (a drop's blob,
+     * no thumbnail, the placeholder and a tile left showing its own stored thumbnail make none; a tile marked for
+     * deletion makes none). The administrator saves and the API ask it before they write anything and refuse the whole
+     * save when it names one, so a refused thumbnail never clears or replaces what a row stores.
+     *
+     * @param array $mediaData The gallery as posted (jform[media]: tiles keyed by row id, or "new-..." for a new one).
+     *
+     * @return string[] The refusal messages; none when every thumbnail may be made.
+     *
+     * @since  2.2.1
+     */
+    public static function thumbnailRefusals(array $mediaData): array
+    {
+        $default = ltrim(trim((string) ComponentHelper::getParams('com_alfa')->get('media_url_thumbnail', '')), '/');
+        $tiles = [];
+
+        foreach ($mediaData as $id => $media) {
+            $media = (array) $media;
+            $raw = (string) ($media['thumbnail'] ?? '');
+            $clean = self::thumbnailSource(rawThumbnail: $raw);
+
+            if (str_contains($raw, 'blob:') || $clean === '' || $clean === $default || (int) ($media['delete'] ?? 0) === 1) {
+                continue;
+            }
+
+            $tiles[] = [str_contains((string) $id, 'new-') ? 0 : (int) $id, $clean];
+        }
+
+        $existing = array_values(array_filter(array_column($tiles, 0), static fn (int $id): bool => $id > 0));
+        $stored = [];
+
+        if ($existing !== []) {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $stored = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'path', 'thumbnail']))
+                    ->from($db->quoteName('#__alfa_media'))
+                    ->whereIn($db->quoteName('id'), $existing),
+            )->loadObjectList('id') ?: [];
+        }
+
+        $refusals = [];
+
+        foreach ($tiles as [$id, $clean]) {
+            if (isset($stored[$id]) && self::keepsStoredThumbnail(cleanThumb: $clean, stored: $stored[$id])) {
+                continue;
+            }
+
+            if (!self::isThumbnailSource(file: JPATH_ROOT . '/' . $clean)) {
+                $refusals[] = Text::sprintf('COM_ALFA_MEDIA_ERROR_THUMBNAIL_SOURCE', htmlspecialchars($clean, ENT_QUOTES, 'UTF-8'));
+            }
+        }
+
+        return array_values(array_unique($refusals));
+    }
+
+    /**
+     * The files a thumbnail copy may have left that are not images (2.2.1), for the update to list: every file of the
+     * save folder that is not an image of its own extension, and every file a media row names as its thumbnail that is
+     * not one, each with the rows that name it as their image or their thumbnail. Up to 2.2.0 a thumbnail could be a
+     * copy of any file the site could read, published in the save folder. Nothing is changed or deleted: staff remove
+     * them by hand. The save folder's index.html and its hidden files (a .htaccess) are never such a copy and are not
+     * listed.
+     *
+     * @return array<string, int[]> Site-relative file => the ids of the media rows that name it.
+     *
+     * @since  2.2.1
+     */
+    public static function nonImageFiles(): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $files = [];
+
+        foreach (glob(self::getUploadRoot() . '/*') ?: [] as $file) {
+            $name = basename($file);
+
+            if (is_file($file) && $name !== 'index.html' && !str_starts_with($name, '.') && !self::isImageOfItsExtension(file: $file)) {
+                $files[ltrim(str_replace(JPATH_ROOT . '/', '', $file), '/')] = true;
+            }
+        }
+
+        $named = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('thumbnail'))
+                ->from($db->quoteName('#__alfa_media'))
+                ->where($db->quoteName('type') . ' != ' . $db->quote('url'))
+                ->where($db->quoteName('thumbnail') . ' IS NOT NULL')
+                ->where($db->quoteName('thumbnail') . ' != ' . $db->quote('')),
+        )->loadColumn() ?: [];
+
+        foreach (array_unique($named) as $thumbnail) {
+            $relative = ltrim((string) $thumbnail, '/');
+
+            if (!str_contains($relative, '://') && is_file(JPATH_ROOT . '/' . $relative) && !self::isImageOfItsExtension(file: JPATH_ROOT . '/' . $relative)) {
+                $files[$relative] = true;
+            }
+        }
+
+        $listed = [];
+
+        foreach (array_keys($files) as $relative) {
+            $slashed = '/' . $relative;
+            $listed[$relative] = array_map('intval', $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('id'))
+                    ->from($db->quoteName('#__alfa_media'))
+                    ->where('(' . $db->quoteName('path') . ' IN (:a1, :b1) OR ' . $db->quoteName('thumbnail') . ' IN (:a2, :b2))')
+                    ->bind(':a1', $relative)
+                    ->bind(':b1', $slashed)
+                    ->bind(':a2', $relative)
+                    ->bind(':b2', $slashed)
+                    ->order($db->quoteName('id')),
+            )->loadColumn() ?: []);
+        }
+
+        ksort($listed);
+
+        return $listed;
     }
 
     /**
@@ -1486,8 +1806,6 @@ class MediaHelper
      */
     public static function getMediaData(string $origin, int|array|null $itemIDs, $usePlaceHolder = false): array
     {
-        static $cache = [];
-
         // 1. Normalize input
         $single = !is_array($itemIDs);
         $itemIDs = array_map('intval', (array) $itemIDs);
@@ -1497,12 +1815,12 @@ class MediaHelper
         }
 
         // 2. Request-level memo: the same (origin, items) is fetched several times
-        // per page (product render + cart + listing); media is read-only here.
+        // per page (product render + cart + listing); every write of media rows empties it.
         sort($itemIDs);
         $cacheKey = $origin . '|' . implode(',', $itemIDs) . '|' . (int) $usePlaceHolder . '|' . (int) $single;
 
-        if (isset($cache[$cacheKey])) {
-            return $cache[$cacheKey];
+        if (isset(self::$mediaRead[$cacheKey])) {
+            return self::$mediaRead[$cacheKey];
         }
 
         // 3. Config
@@ -1552,14 +1870,14 @@ class MediaHelper
         if ($single) {
             $firstGroup = reset($grouped) ?: [];
 
-            return $cache[$cacheKey] = !empty($firstGroup) ? $firstGroup : ($placeholder ? [$placeholder] : []);
+            return self::$mediaRead[$cacheKey] = !empty($firstGroup) ? $firstGroup : ($placeholder ? [$placeholder] : []);
         }
 
         if ($placeholder) {
             $grouped += array_fill_keys($itemIDs, [$placeholder]);
         }
 
-        return $cache[$cacheKey] = $grouped;
+        return self::$mediaRead[$cacheKey] = $grouped;
     }
 
     /**
@@ -1910,9 +2228,12 @@ class MediaHelper
 
     /**
      * Dispatch the pre-delete cleanup event so a plugin can purge derivatives
-     * before the component removes the media rows/files.
+     * before the component removes the media files: on every delete path
+     * (2.2.1), Tools > Media, an image removed in a save and an entity deleted
+     * with its gallery. A delete inside a transaction raises it once that has
+     * committed, the rows then already gone from the table.
      *
-     * @param object[] $rows Media rows about to be deleted (path, thumbnail, ...).
+     * @param object[] $rows Media rows being deleted (id, path, thumbnail).
      *
      *
      * @since  1.0.0
