@@ -24,7 +24,8 @@ $shipments = $snapshot->offers->shipments;
 	<?php endforeach; ?>
 
 	<?php if ($shipments === []) : ?>
-        <p class="cart-methods-empty"><?php echo Text::_('COM_ALFA_CART_NO_SHIPMENT_AVAILABLE'); ?></p>
+		<?php // What the checkout still needs, when a carrier waits for it (2.2.2). ?>
+        <p class="cart-methods-empty"><?php echo Text::_($snapshot->offers->needsKey() ?: 'COM_ALFA_CART_NO_SHIPMENT_AVAILABLE'); ?></p>
 	<?php endif; ?>
 
 	<?php

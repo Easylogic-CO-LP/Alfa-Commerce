@@ -76,6 +76,23 @@ final class CartMethods
     private array $notices = ['shipment' => [], 'payment' => []];
 
     /**
+     * The carriers the offer read took off the list, by id: each one's answer (2.2.2).
+     *
+     * @var array<int, ShippingQuote>
+     *
+     * @since  2.2.2
+     */
+    private array $withheld = [];
+
+    /**
+     * Whether the carriers are being asked right now: a question a carrier's answer puts back to this list gets the
+     * list before the carriers were asked, never a second round of questions.
+     *
+     * @since  2.2.2
+     */
+    private bool $asking = false;
+
+    /**
      * @param Closure $customer (): User - the customer the money follows. A method limited
      *                          to a customer group is offered by the groups that customer
      *                          is priced with (PriceContext::customerGroups()).
@@ -89,6 +106,9 @@ final class CartMethods
      * @param Closure $selectedShipmentId (): int - narrows which payments are compatible.
      * @param Closure $lineScopes (string $kind): array - per-line category/manufacturer scopes.
      * @param Closure $onForget (): void - told when the offered sets are dropped.
+     * @param Closure|null $carrierAnswer (int $methodId): ShippingQuote - what a carrier answers for this cart as the
+     *                                    checkout stands (2.2.2): asked of every carrier the storefront would offer, so
+     *                                    none is offered that would refuse the shopper's first click. Null asks none.
      *
      * @since  2.0.0
      */
@@ -100,6 +120,7 @@ final class CartMethods
         private Closure $selectedShipmentId,
         private Closure $lineScopes,
         private Closure $onForget,
+        private ?Closure $carrierAnswer = null,
     ) {
     }
 
@@ -181,7 +202,7 @@ final class CartMethods
         if ($this->shipments === null) {
             $user = ($this->customer)();
 
-            $this->shipments = AlfaHelper::getFilteredMethods(
+            $scoped = AlfaHelper::getFilteredMethods(
                 categories:    [],
                 manufacturers: [],
                 usergroups:    PriceContext::customerGroups(customer: $user),
@@ -190,9 +211,121 @@ final class CartMethods
                 placeIds:      $this->deliveryPlaces,
                 lines:         ($this->lineScopes)('shipment'),
             );
+
+            // A question a carrier's answer puts back to this list while the carriers are being asked.
+            if ($this->asking) {
+                return $scoped;
+            }
+
+            $this->shipments = $this->servable($scoped);
         }
 
         return $this->shipments;
+    }
+
+    /**
+     * The carriers of a scoped list that can carry the cart with what the checkout knows so far (2.2.2).
+     *
+     * A METHOD IS NEVER OFFERED AND THEN REFUSES THE FIRST CLICK. The storefront asks each carrier the question it is
+     * asked once chosen, before offering it: one that answers a price is offered; one that refuses, or answers nothing,
+     * is withheld with its answer. A carrier that refuses for a fact the checkout has not given yet (the delivery
+     * country, the postcode) comes back once the shopper gives it, as the field save already re-renders the lists. An
+     * operator placement keeps the scoped list: the operator sets the address in the back office, and the chosen
+     * carrier's own quote still answers there.
+     *
+     * @param array $scoped The methods the catalogue, place, group and line scopes leave, keyed by id.
+     *
+     * @return array The methods the storefront offers, keyed by id.
+     *
+     * @since  2.2.2
+     */
+    private function servable(array $scoped): array
+    {
+        $this->withheld = [];
+
+        if ($this->carrierAnswer === null || ($this->isOperatorPlacement)()) {
+            return $scoped;
+        }
+
+        $this->asking = true;
+
+        try {
+            foreach ($scoped as $id => $method) {
+                $answer = ($this->carrierAnswer)((int) $id);
+
+                if (!$answer->available) {
+                    $this->withheld[(int) $id] = $answer;
+                    unset($scoped[$id]);
+                }
+            }
+        } finally {
+            $this->asking = false;
+        }
+
+        return $scoped;
+    }
+
+    /**
+     * The answer of a carrier the offer read withheld, or null when it was not withheld by its own answer (2.2.2).
+     *
+     * @param int $id The method id.
+     *
+     * @since  2.2.2
+     */
+    public function withheld(int $id): ?ShippingQuote
+    {
+        $this->shipments();
+
+        return $this->withheld[$id] ?? null;
+    }
+
+    /**
+     * What the checkout has not given yet that a withheld carrier needs, in the order a shopper fills them (2.2.2):
+     * 'country' and 'postcode'. The delivery country is also named when the place scopes alone keep carriers off a cart
+     * with no destination, and the shop has a field the shopper can fill. Read by the lists only when nothing is left to
+     * choose; empty when nothing is waiting for the shopper.
+     *
+     * @return list<string> The facts, 'country' before 'postcode'.
+     *
+     * @since  2.2.2
+     */
+    public function shipmentNeeds(): array
+    {
+        if (($this->isVirtual)()) {
+            return [];
+        }
+
+        $this->shipments();
+        $needs = [];
+        $state = FieldsHelper::deliveryPlaceFieldState();
+        $countryAskable = $state === FieldsHelper::DESTINATION_CONFIGURED || $state === FieldsHelper::DESTINATION_INFERRED;
+
+        foreach ($this->withheld as $answer) {
+            if (str_ends_with($answer->reasonKey, '_NEEDS_PLACE') && $countryAskable) {
+                $needs['country'] = true;
+            } elseif (str_ends_with($answer->reasonKey, '_NEEDS_POSTCODE')) {
+                $needs['postcode'] = true;
+            }
+        }
+
+        if ($countryAskable && ($this->deliveryPlaces)() === [] && $this->restrictsByPlace('shipment')) {
+            $needs['country'] = true;
+        }
+
+        return array_values(array_filter(['country', 'postcode'], static fn (string $fact): bool => isset($needs[$fact])));
+    }
+
+    /**
+     * Whether a withheld carrier waits for a fact the checkout has not given yet (the country, the postcode), rather
+     * than refusing what it was given (2.2.2).
+     *
+     * @param ShippingQuote $answer The carrier's answer.
+     *
+     * @since  2.2.2
+     */
+    public static function waitsForFact(ShippingQuote $answer): bool
+    {
+        return str_ends_with($answer->reasonKey, '_NEEDS_PLACE') || str_ends_with($answer->reasonKey, '_NEEDS_POSTCODE');
     }
 
     /**
@@ -302,11 +435,10 @@ final class CartMethods
         $state = FieldsHelper::deliveryPlaceFieldState();
 
         if ($state === FieldsHelper::DESTINATION_CONFIGURED || $state === FieldsHelper::DESTINATION_INFERRED) {
-            // A distinct admin key: the builder loads the site catalogue after
-            // the admin one, so a shared key would come back in the shopper's words.
-            return Text::_(($this->isOperatorPlacement)()
-                ? 'COM_ALFA_CART_CHECKOUT_DESTINATION_NEEDED'
-                : 'COM_ALFA_CART_DESTINATION_NEEDED');
+            // The storefront's list says what it needs itself, and only when nothing is left to choose (2.2.2):
+            // shipmentNeeds(). The operator is told here; a distinct admin key, since the builder loads the site
+            // catalogue after the admin one and a shared key would come back in the shopper's words.
+            return ($this->isOperatorPlacement)() ? Text::_('COM_ALFA_CART_CHECKOUT_DESTINATION_NEEDED') : '';
         }
 
         // Not the shopper's to fix. Telling them to enter an address they may
@@ -498,6 +630,7 @@ final class CartMethods
     {
         $this->payments = null;
         $this->shipments = null;
+        $this->withheld = [];
 
         ($this->onForget)();
     }

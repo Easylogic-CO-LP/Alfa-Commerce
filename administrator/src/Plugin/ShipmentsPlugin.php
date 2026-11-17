@@ -694,7 +694,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * The nearest zone decides alone: a cart none of its rows fit is refused,
      * never priced by a farther zone or the catch-all (as the first matching
-     * zone decided alone before). The places are read in the order given,
+     * zone decided alone before).
+     *
+     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2). With no destination at all and no zone for it (no place, no
+     * catch-all), the refusal is NEEDS_PLACE; with no postcode and a zone whose every row that would fit has a postcode
+     * band, it is NEEDS_POSTCODE. The cart's offer read takes such a carrier off the list until the checkout has the
+     * fact, and names it, instead of offering a carrier that refuses the shopper's first click. The places are read in the order given,
      * nearest first, as AddressView::places() and PlaceTree::placesFor() give
      * them; a caller passing them in another order gets another zone. A place
      * of the chain is matched whether or not it is published, as before: only a
@@ -794,7 +799,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         // Not even the catch-all matched, so there is no configured price for
         // where this cart is going. Quoting 0 here shipped it free.
         if (empty($calculationData)) {
-            $this->refusal = $this->refusalKey('NO_ZONE_FOR_DESTINATION');
+            $this->refusal = $this->refusalKey($places === [] ? 'NEEDS_PLACE' : 'NO_ZONE_FOR_DESTINATION');
 
             return null;
         }
@@ -810,7 +815,11 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         // said, by omission, that they do not carry it. Until 1.10 this
         // returned 0 and the order shipped free.
         if ($cost === null) {
-            $this->refusal = $this->refusalKey('NO_BAND_FITS');
+            // No postcode given, and a row with a postcode band would fit the cart once one is: the fact is missing.
+            $unbanded = array_map(static fn (array $row): array => ['zip-start' => null, 'zip-end' => null] + $row, (array) $calculationData['costs']);
+            $postcodeMissing = trim((string) $postcode) === ''
+                && $this->cheapestMatchingCost($lines, $unbanded, null, $subtotal) !== null;
+            $this->refusal = $this->refusalKey($postcodeMissing ? 'NEEDS_POSTCODE' : 'NO_BAND_FITS');
         }
 
         return $cost;

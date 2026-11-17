@@ -94,6 +94,7 @@ final class CartSnapshotFactory
                 ],
                 paymentViews: $paymentViews,
                 shipmentViews: $shipmentViews,
+                shipmentNeeds: $methods->shipmentNeeds(),
             ),
             customer: $state->subject()->customer(),
             placeId: $computation->deliveryPlaceId(),

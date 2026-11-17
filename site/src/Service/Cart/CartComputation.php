@@ -135,6 +135,14 @@ final class CartComputation
             function (): void {
                 $this->totals()->forget();
             },
+            // Every carrier the storefront would offer is asked what it is asked once chosen, so none is offered that
+            // would refuse the shopper's first click (2.2.2). Its own answer, never the chosen carrier's memo.
+            fn (int $methodId): ShippingQuote => $this->plugins->shippingCost(
+                $methodId,
+                $this->state(),
+                fn (): float => (float) $this->totals()->total()->getAmount(),
+                fn (object $method): array => $this->placesForMethod($method),
+            ),
         );
     }
 

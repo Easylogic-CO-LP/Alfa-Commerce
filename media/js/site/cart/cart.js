@@ -219,8 +219,10 @@ document.addEventListener("DOMContentLoaded", () => {
             
         }
 
-        // DELIVERY PLACE CHANGED: the offered methods and shipping costs depend on it
-        if (event.target.matches('[data-alfa-delivery-place]')) {
+        // DELIVERY DETAILS CHANGED: the offered methods and shipping costs depend on them. A carrier is offered only
+        // once the checkout gives what it needs (the country, the postcode: 2.2.2), so any delivery field reads the
+        // methods again, as the delivery place always did.
+        if (event.target.matches('[data-alfa-delivery-place]') || event.target.closest('[data-cart-delivery-fields]')) {
             deliveryPlaceChanged(event.target);
         }
         // alert("Hey");
