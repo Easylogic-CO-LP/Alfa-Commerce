@@ -77,6 +77,7 @@
             <item>A list of an extension's own screen in the back office that cannot be read shows an empty list and says so in plain words, the reason in com_alfa_panel.php, instead of PHP warnings or an error.</item>
             <item>An installed search engine plugin that fails while giving its name or saying whether it is ready no longer stops the Options of Alfa Commerce from opening: it is listed as not ready, and the storefront searches the live catalogue.</item>
             <item>The cart module reads nothing for a visitor who cannot have a cart yet (no account and no cart key in the browser): no database query for it on any page, for first-time visitors and crawlers alike, where it ran fifteen.</item>
+            <item>A product field extension that changes the parts of a catalogue card or of the order's item window and then fails no longer leaves its change on them: the card and the window are handed their parts once more after the last field, as the product page and the cart line already were.</item>
         </fix>
 
         <addition>
