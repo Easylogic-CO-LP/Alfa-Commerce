@@ -457,12 +457,6 @@ parameters:
 			path: administrator/src/Model/AlfaListModel.php
 
 		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/CartruleModel.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 2
@@ -1085,12 +1079,6 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: administrator/src/Rule/TelephoneRule.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 7
-			path: administrator/src/Service/Cart/CartRepository.php
 
 		-
 			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Service\\Cart\\CartSubject\:\:\$actor on left side of \?\? is not nullable nor uninitialized\.$#'
