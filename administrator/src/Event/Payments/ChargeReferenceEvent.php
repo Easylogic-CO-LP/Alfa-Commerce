@@ -18,7 +18,9 @@
  *          -> the method's status_on_<phase> automation map drives the order.
  *
  * Input:  getOrder() (the order being paid, e.g. a renewal order),
- *         getAmount(), getCurrencyCode(), getReference(), getOperation()
+ *         getAmount(), getCurrencyCode(), getReference(), getOperation(),
+ *         getAttempt() (since 2.2.1: which attempt this is, from 1, for the
+ *         gateway's per-attempt idempotency key)
  * Output: exactly ONE of
  *         setSuccess($transactionId)       the provider confirmed the charge;
  *         setFailure($error)               the provider refused it, or it was
@@ -46,6 +48,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
+use InvalidArgumentException;
 
 class ChargeReferenceEvent extends AbstractImmutableEvent
 {
@@ -133,6 +136,47 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     public function getOperation(): string
     {
         return (string) ($this->arguments['operation'] ?? 'charge');
+    }
+
+    /**
+     * Which attempt to charge this cycle this is, counted from 1 (since 2.2.1).
+     *
+     * The dispatcher sets it (core never dispatches this event): 1 for the
+     * first attempt, one more for each new attempt after a failure, and the
+     * same number again when it dispatches the same attempt again. A gateway
+     * builds its idempotency key from it (with the order and the reference),
+     * so a new attempt is a new request at the provider and the same attempt
+     * sent again is recognised as the same one. A dispatcher that does not set
+     * it (the October Subscriptions engine) dispatches attempt 1.
+     *
+     * @return int The attempt's number, at least 1.
+     *
+     * @since  2.2.1
+     */
+    public function getAttempt(): int
+    {
+        return (int) ($this->arguments['attempt'] ?? 1);
+    }
+
+    /**
+     * The 'attempt' argument, checked when the event is built: an integer of
+     * at least 1. Anything else is refused, never read as 1.
+     *
+     * @param mixed $value The dispatcher's value.
+     *
+     * @return int The attempt's number.
+     *
+     * @throws InvalidArgumentException When it is not an integer of at least 1.
+     *
+     * @since  2.2.1
+     */
+    protected function onSetAttempt(mixed $value): int
+    {
+        if (!\is_int($value) || $value < 1) {
+            throw new InvalidArgumentException('ChargeReferenceEvent: the argument "attempt" is the attempt\'s number, an integer of at least 1; got ' . get_debug_type($value) . '.');
+        }
+
+        return $value;
     }
 
     /**
