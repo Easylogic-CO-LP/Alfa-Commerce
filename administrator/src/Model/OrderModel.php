@@ -7,30 +7,6 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-/**
- * Order Model: Admin CRUD for orders and related entities
- *
- * Handles orders, payments, shipments, and order items through
- * a unified architecture with shared helpers.
- *
- * Architecture:
- *   Reusable helpers   -> getRelatedModel(), toMoney(),
- *                         saveDataOnTable(), deleteTableEntry()
- *   Data loading       -> getItem(), getPaymentData(), getShipmentData(), getOrderItemData()
- *   Save / Delete      -> save(), saveOrderPayment(), saveOrderShipment(), saveOrderItem()
- *   Activity log       -> logOrderActivity(), getOrderActivityLog()
- *
- * Totals:
- *   grand_total = items + shipping - discounts
- *   Computed by getItem() via OrderTotalHelper::computeFromArrays().
- *   Single source of truth: same method used by OrdersModel list view.
- *   No total columns stored on #__alfa_orders; always computed.
- *
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- */
-
 namespace Alfa\Component\Alfa\Administrator\Model;
 
 defined('_JEXEC') or die;
@@ -109,6 +85,25 @@ use RuntimeException;
 use stdClass;
 use Throwable;
 
+/**
+ * Order Model: Admin CRUD for orders and related entities
+ *
+ * Handles orders, payments, shipments, and order items through
+ * a unified architecture with shared helpers.
+ *
+ * Architecture:
+ *   Reusable helpers   -> getRelatedModel(), toMoney(),
+ *                         saveDataOnTable(), deleteTableEntry()
+ *   Data loading       -> getItem(), getPaymentData(), getShipmentData(), getOrderItemData()
+ *   Save / Delete      -> save(), saveOrderPayment(), saveOrderShipment(), saveOrderItem()
+ *   Activity log       -> logOrderActivity(), getOrderActivityLog()
+ *
+ * Totals:
+ *   grand_total = items + shipping - discounts
+ *   Computed by getItem() via OrderTotalHelper::computeFromArrays().
+ *   Single source of truth: same method used by OrdersModel list view.
+ *   No total columns stored on #__alfa_orders; always computed.
+ */
 class OrderModel extends AlfaAdminModel
 {
     protected $text_prefix = 'COM_ALFA';
@@ -943,6 +938,18 @@ class OrderModel extends AlfaAdminModel
 
         $isNew = (int) ($data['id'] ?? 0) === 0;
 
+        // A new order's currency, when the submission names one, is a currency the shop publishes; the refusal names
+        // the field. Nothing is put in its place.
+        if ($isNew) {
+            try {
+                $this->sentCurrencyId(data: $data);
+            } catch (InvalidArgumentException $e) {
+                $this->setError($e->getMessage());
+
+                return false;
+            }
+        }
+
         // WHOSE FORM THIS IS. The buckets were built for the order's customer
         // (getForm), so visibility must be judged for that same customer here
         // - a field the customer has and the administrator does not would
@@ -971,17 +978,36 @@ class OrderModel extends AlfaAdminModel
             }
         }
 
-        $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
-            form: $form,
-            fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
-            values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
-            group: FieldsHelper::FIELDS_KEY,
-            extra: ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'],
-        );
+        // A WRITER WHOSE OMITTED KEYS MEAN "UNCHANGED" (the REST API): on an update, the details a submission sends are
+        // laid over the order's stored records, so a field it leaves out keeps its value and the record is not replaced
+        // by the part sent. The prune and the validation below then read the details whole. The order screen posts its
+        // sections whole (an emptied field, an unticked box and a field its rule hides each mean empty), so it is not.
+        if (!$isNew && $this->keepsOmittedDetails()) {
+            $data = $this->withStoredDetails(data: $data, orderId: (int) ($data['id'] ?? 0), visibilityId: $visibilityId);
+        }
+
+        // An update that leaves the delivery details out (a REST PATCH of the note alone) leaves them as they are, so
+        // they are not validated: a field the shop requires there is asked of a creation and of an update that sends
+        // the details, never of one that does not. The order screen always sends them.
+        if ($isNew || \array_key_exists(FieldsHelper::FIELDS_KEY, $data)) {
+            $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
+                form: $form,
+                fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
+                values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
+                group: FieldsHelper::FIELDS_KEY,
+                extra: ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'],
+            );
+        } else {
+            $form->removeGroup(FieldsHelper::FIELDS_KEY);
+        }
 
         if (empty($data['invoice_differs'])) {
             $form->removeGroup(FieldsHelper::BILLING_FIELDS_KEY);
             unset($data[FieldsHelper::BILLING_FIELDS_KEY]);
+        } elseif ($this->keepsStoredInvoice(data: $data, isNew: $isNew)) {
+            // invoice_differs 1 with no invoice details, on an update through the API: a section not sent keeps its
+            // stored value, so the order's own invoice details stay as they are and are not validated.
+            $form->removeGroup(FieldsHelper::BILLING_FIELDS_KEY);
         } else {
             $data[FieldsHelper::BILLING_FIELDS_KEY] = SubmitAuthority::prune(
                 form: $form,
@@ -991,7 +1017,163 @@ class OrderModel extends AlfaAdminModel
             );
         }
 
-        return parent::validate($form, $data, $group);
+        $valid = parent::validate($form, $data, $group);
+
+        // invoice_differs is not a field of the form, so the filter drops it; a submission that states it (the edit
+        // form's ticked box, or a REST PATCH) keeps it, as 1 or 0, for save() to read as its choice about the invoice.
+        if (\is_array($valid) && \array_key_exists('invoice_differs', $data)) {
+            $valid['invoice_differs'] = empty($data['invoice_differs']) ? 0 : 1;
+        }
+
+        return $valid;
+    }
+
+    /**
+     * Whether a submission keeps the order's stored invoice details whole: an update through the API (whose omitted
+     * sections mean "unchanged") that states invoice_differs 1 and sends no invoice details. The API refuses that request
+     * when the order has no invoice details of its own (OrdersController), so the details kept are the order's own.
+     *
+     * @param array $data The submission (raw or validated).
+     * @param bool $isNew Whether the order is being created.
+     *
+     * @since  2.2.2
+     */
+    private function keepsStoredInvoice(array $data, bool $isNew): bool
+    {
+        return !$isNew
+            && $this->keepsOmittedDetails()
+            && !empty($data['invoice_differs'])
+            && !\is_array($data[FieldsHelper::BILLING_FIELDS_KEY] ?? null);
+    }
+
+    /**
+     * Whether a submission's omitted detail fields mean "unchanged" (the REST API's PATCH) rather than "empty" (the order
+     * screen, which posts its sections whole).
+     *
+     * @return bool False here; the API's order model answers true.
+     *
+     * @since  2.2.2
+     */
+    protected function keepsOmittedDetails(): bool
+    {
+        return false;
+    }
+
+    /**
+     * The submission's detail sections laid over the order's stored records: for each section it sends (the delivery
+     * details, and the invoice details), every field of that section it leaves out takes the stored record's value.
+     * A section it does not send is left alone, and so is a field the stored record holds no value for.
+     *
+     * A choice field with several values is stored as a JSON list (UserInfoHelper::normalizeFieldValues()) and is
+     * handed back as the list a submission sends; every other stored value is handed back as stored.
+     *
+     * @param array $data The submission.
+     * @param int $orderId The order.
+     * @param int|null $visibilityId Whose fields the sections show.
+     *
+     * @return array The submission with its sections completed.
+     *
+     * @since  2.2.2
+     */
+    private function withStoredDetails(array $data, int $orderId, ?int $visibilityId): array
+    {
+        if ($orderId <= 0) {
+            return $data;
+        }
+
+        $db = $this->getDatabase();
+        $pointers = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id_address_delivery', 'id_address_invoice']))
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadAssoc() ?: [];
+
+        $sections = [
+            FieldsHelper::FIELDS_KEY => ['cart.shipping', (int) ($pointers['id_address_delivery'] ?? 0)],
+            FieldsHelper::BILLING_FIELDS_KEY => ['cart.billing', (int) ($pointers['id_address_invoice'] ?? 0)],
+        ];
+
+        foreach ($sections as $key => [$context, $recordId]) {
+            if ($recordId <= 0 || !\is_array($data[$key] ?? null)) {
+                continue;
+            }
+
+            $stored = $db->setQuery(
+                $db->getQuery(true)
+                    ->select('*')
+                    ->from($db->quoteName('#__alfa_user_info'))
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->bind(':id', $recordId, ParameterType::INTEGER),
+            )->loadAssoc() ?: [];
+
+            foreach (FieldsHelper::getFields($context, null, $visibilityId) as $field) {
+                $column = (string) ($field->field_name ?? '');
+
+                if ($column === '' || \array_key_exists($column, $data[$key]) || !isset($stored[$column]) || $stored[$column] === '') {
+                    continue;
+                }
+
+                $value = $stored[$column];
+
+                if ((string) ($field->type ?? '') === 'choice' && \is_string($value) && str_starts_with($value, '[')) {
+                    $list = json_decode($value, true);
+                    $value = \is_array($list) && array_is_list($list) ? $list : $value;
+                }
+
+                $data[$key][$column] = $value;
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * The currency a new order is placed in, as the submission names it.
+     *
+     * Null when it names none: the order is placed in the shop's default currency, as the checkout and the order
+     * screen place it. Otherwise the id of a currency the shop publishes, which the order is placed in.
+     *
+     * @param array $data The submission.
+     *
+     * @return int|null The currency id, or null when the submission names none.
+     *
+     * @throws InvalidArgumentException When it names anything else: a currency the shop does not publish, one that
+     *                                  does not exist, or a value that is not an id.
+     *
+     * @since  2.2.2
+     */
+    private function sentCurrencyId(array $data): ?int
+    {
+        $sent = $data['id_currency'] ?? null;
+
+        if ($sent === null || $sent === '') {
+            return null;
+        }
+
+        $id = \is_int($sent) || (\is_string($sent) && preg_match('/^[1-9][0-9]{0,9}$/', $sent) === 1) ? (int) $sent : 0;
+
+        if ($id > 0) {
+            $db = $this->getDatabase();
+            $published = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_currencies'))
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->where($db->quoteName('state') . ' = 1')
+                    ->bind(':id', $id, ParameterType::INTEGER),
+            )->loadResult();
+
+            if ($published === 1) {
+                return $id;
+            }
+        }
+
+        // Shown as sent when it is a plain value; anything else is not repeated back.
+        $shown = \is_scalar($sent) && preg_match('/^[A-Za-z0-9_.+-]{1,40}$/', (string) $sent) === 1 ? (string) $sent : '?';
+
+        throw new InvalidArgumentException(Text::sprintf('COM_ALFA_ORDER_ERROR_CURRENCY_NOT_PUBLISHED', $shown));
     }
 
     /**
@@ -4299,6 +4481,10 @@ class OrderModel extends AlfaAdminModel
                 // OrderCreator already takes `manageTransaction: false` for
                 // exactly this: a caller that owns the wider transaction. No
                 // new mechanism, just the seam it already offers.
+                //
+                // The currency the submission names, a published one, is read
+                // first: a refusal writes nothing.
+                $currencyId = $this->sentCurrencyId(data: $data);
                 $db = $this->getDatabase();
                 $db->transactionStart(true);
 
@@ -4320,7 +4506,7 @@ class OrderModel extends AlfaAdminModel
                         ? OrderIdentity::snapshotFromUser($customerId)
                         : OrderIdentity::snapshotFromDetails((array) ($data[FieldsHelper::FIELDS_KEY] ?? []));
 
-                    $created = OrderCreator::create(draft: [
+                    $draft = [
                         'id_user' => $customerId,
                         'customer_name' => $customer['customer_name'],
                         'customer_email' => $customer['customer_email'],
@@ -4333,7 +4519,16 @@ class OrderModel extends AlfaAdminModel
                         'actor_name' => (string) ($identity?->name ?? 'System'),
                         'allow_empty' => true,
                         'lines' => [],
-                    ], manageTransaction: false);
+                    ];
+
+                    // At the rate the checkout places every order at (1.0: each currency has prices of its own);
+                    // none named, the shop's default.
+                    if ($currencyId !== null) {
+                        $draft['id_currency'] = $currencyId;
+                        $draft['conversion_rate'] = 1.0;
+                    }
+
+                    $created = OrderCreator::create(draft: $draft, manageTransaction: false);
 
                     TransactionState::commitLevel($db);
                 } catch (Throwable $inner) {
@@ -4402,6 +4597,15 @@ class OrderModel extends AlfaAdminModel
         // row and post no section at all. Only a submission that carries the section
         // can say anything about the addresses; one that does not leaves them as they are.
         $hasAddressSection = \array_key_exists(FieldsHelper::FIELDS_KEY, $data);
+
+        // Whether it says anything about the invoice details: the edit form, whose unticked box is the "invoice to the
+        // delivery address" choice, or a submission that states invoice_differs (a REST PATCH may send the invoice
+        // details without the delivery details). Invoice details sent without invoice_differs are dropped by the
+        // validation, as the checkout drops them, and change nothing.
+        // invoice_differs 1 with no invoice details, on an update through the API, keeps the order's own invoice details
+        // whole: nothing is written for the invoice (keepsStoredInvoice()).
+        $hasInvoiceChoice = ($hasAddressSection || \array_key_exists('invoice_differs', $data))
+            && !$this->keepsStoredInvoice(data: $data, isNew: $isNew);
 
         // Rows this save re-points AWAY from. Collected rather than deleted on
         // the spot: the invoice pointer may still be on the delivery row at
@@ -4476,14 +4680,15 @@ class OrderModel extends AlfaAdminModel
             // address" choice: the same contract the checkout uses, and what
             // keeps a de-ticked order from keeping a stale invoice record.
             //
-            // A submission WITHOUT the section made no such choice. Reading its
-            // missing bucket as one re-pointed the invoice at the delivery record
-            // on every inline note or status change and, for a guest, discarded
-            // the separate invoice record for good. The API controller documents
-            // the same collapse and restores the pointer around its own saves.
+            // A submission that carries neither the section nor invoice_differs
+            // made no such choice. Reading its missing bucket as one re-pointed the
+            // invoice at the delivery record on every inline note or status change
+            // and, for a guest, discarded the separate invoice record for good. The
+            // API controller documents the same collapse and restores the pointer
+            // around its own saves.
             $previousInvoiceId = (int) ($prevOrder->id_address_invoice ?? 0);
 
-            if ($hasAddressSection) {
+            if ($hasInvoiceChoice) {
                 if (
                     !$this->saveInvoiceInfo(
                         orderId: $orderId,
@@ -5761,23 +5966,6 @@ class OrderModel extends AlfaAdminModel
     //   - For a status change we just need the orders row, not the universe
 
     /**
-     * Prefill order data for partial updates.
-     *
-     * Loads the FULL current row from the Table object (1 lightweight query),
-     * then overlays the provided $data on top. Fields in $data win;
-     * all other fields keep their current DB values.
-     *
-     * This ensures save() always receives a complete record, so all its
-     * logic fires correctly: prepareTable, stock transitions, activity log.
-     *
-     * @param int $recordKey Order PK
-     * @param array $data Partial data to overlay (changed fields only)
-     *
-     * @return array Complete data array safe for save()
-     *
-     * @since  1.0.0
-     */
-    /**
      * Columns the RAW/inline order-update paths may write.
      *
      * The inline list dropdown and any JSON body reach save() without the
@@ -6168,6 +6356,8 @@ class OrderModel extends AlfaAdminModel
      * whose side effects ran) use the best-effort method instead: undoing is
      * not on the table there, and throwing would only lose more.
      *
+     * @api DURABLE: writes the entry or throws, so a caller whose own write is still open rolls back with it.
+     *
      * @param int $orderId Order PK.
      * @param string $event Dot-notation event.
      * @param string $summary Human-readable summary.
@@ -6360,6 +6550,9 @@ class OrderModel extends AlfaAdminModel
      * Callers whose mutation is still open (inside a transaction) must use
      * {@see logOrderActivityStrict} instead, so the mutation rolls back with
      * its record.
+     *
+     * @api BEST EFFORT: answers the entry's id or null; a lost entry is logged CRITICAL and raised as a notification,
+     *      and only a failure that ended the caller's transaction is thrown.
      *
      * @param int $orderId Order PK.
      * @param string $event Dot-notation event.

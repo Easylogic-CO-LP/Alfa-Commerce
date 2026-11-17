@@ -231,6 +231,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
      * shared dispatcher, never in getSubscribedEvents().
      *
+     * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
+     *      answered through the event.
+     *
      * @since  2.2.0
      */
     public const TARGETED_EVENTS = [
@@ -330,6 +333,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *   $id = $this->shipment($order)->delivered()->withAllItems()->cost(0)->save();
      *   $id = $this->shipment($order)->pending()->withItems([101])->cost(8)->save();
      *
+     * @api ANSWERS: the ledger in builder mode with this plugin as the writer; its save() writes only on this plugin's
+     *      own methods.
+     *
      * @param object $order Full order object (->id, ->items, ->id_shipment_method)
      *
      * @return ShipmentLedger Builder: chain setters, finish with ->save()
@@ -363,6 +369,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * parcel recorded as this plugin's, move it only to another method of this plugin, and never name another plugin
      * for it; anything else is refused and nothing is written (2.2.0).
      *
+     * @api ANSWERS: the ledger in builder mode for one parcel, naming this plugin as the writer, so its save() refuses
+     *      another plugin's parcel; throws when the shipment is not found.
+     *
      * @param int $shipmentId Existing shipment row PK
      *
      * @return ShipmentLedger Builder: chain setters, finish with ->save()
@@ -388,6 +397,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * Usage:
      *   $collect = $this->amountToCollect($order);
      *   if ($collect->isPositive()) { $request->cashOnDelivery($collect); }
+     *
+     * @api READ ONLY: the amount still to collect on the order, as Money and never negative: what a cash-on-delivery
+     *      carrier asks the courier to collect.
      *
      * @param object $order The order: the reader a hook was handed, or a loaded row.
      *
@@ -423,6 +435,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     /**
      * Load a single shipment with method params attached.
      *
+     * Not scoped to this plugin: it answers any carrier's shipment, as
+     * PaymentsPlugin::getPayment() answers any gateway's payment, so check the
+     * row's carrier before acting on it.
+     *
+     * @api READ ONLY: one shipment by id with its method's record, any carrier's.
+     *
      * @param int $id Shipment row PK
      *
      * @return object|null Shipment record with ->params, or null
@@ -436,6 +454,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
     /**
      * Load all shipments for an order (lightweight, no params).
+     *
+     * Every carrier's shipments of the order, as PaymentsPlugin::getPaymentsByOrder()
+     * answers every gateway's payments: read to refuse or explain, never to pick
+     * a parcel to write.
+     *
+     * @api READ ONLY: every shipment of the order, any carrier's.
      *
      * @param int $orderId Order PK
      *
@@ -490,6 +514,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *   $verdict = $this->settleAttempt($write, $orderId, self::STATUS_SHIPPED);
      *
      *   if ($verdict === self::WRITE_RACED) { ... already delivered, answer 200 ... }
+     *
+     * @api ANSWERS: WRITE_OK, WRITE_RACED or WRITE_FAILED: the shipment moves to the new status exactly once, and a
+     *      redelivered notification races.
      *
      * @param ShipmentLedger $write Builder carrying the new status.
      * @param int $orderId Order PK.
@@ -580,6 +607,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * worded by whoever is refusing, so a shopper is told which carrier will
      * not take the parcel.
      *
+     * @api READ ONLY: the reason as a key of this carrier's language namespace.
+     *
      * @param string $reason The refusal, unqualified.
      *
      * @return string The language key.
@@ -594,14 +623,17 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     /**
      * The refusal the last pricing call recorded, for setUnavailable().
      *
-     * Public so a test can assert WHICH way a parcel failed: "too heavy" and
-     * "too large" send a shopper to do different things, and a suite that could
-     * only see `null` would pass while the carrier blamed the wrong dimension.
+     * Supported for carriers: a carrier passes it to setUnavailable() so the
+     * shopper is told WHICH way the parcel failed ("too heavy" and "too large"
+     * send a shopper to do different things). A test reads it the same way: a
+     * suite that could only see `null` would pass while the carrier blamed the
+     * wrong dimension.
      *
      * A key of this carrier's language namespace ({@see self::refusalKey()}), or one of core's two keys for a fact the
      * checkout has not given yet: {@see self::REFUSAL_NEEDS_PLACE} and {@see self::REFUSAL_NEEDS_POSTCODE} (2.2.2),
      * worded in core's language file, so a carrier needs no key of its own for them.
      *
+     * @api READ ONLY: the reason key the last pricing call recorded, for setUnavailable().
      *
      * @since  2.0.0
      */
@@ -926,6 +958,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * Depth:  max (deepest product determines box depth)
      * Weight: summed (all items x quantity)
      *
+     * @api READ ONLY: the parcel the products make.
+     *
      * @param CartLine[] $products What there is to carry.
      * @return array ['width' => float, 'height' => float, 'depth' => float, 'weight' => float]
      * @since  2.0.0
@@ -979,6 +1013,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * Default: no actions.
      *
+     * @api HOOK: the order screen's action buttons; none by default.
+     *
      * @param object $event GetShipmentActionsEvent
      * @since  1.0.0
      */
@@ -1000,6 +1036,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * Default: sets error "Unknown action".
      *
+     * @api HOOK: a click on one of this plugin's buttons; "Unknown action" by default.
+     *
      * @param object $event ExecuteShipmentActionEvent
      * @since  1.0.0
      */
@@ -1014,6 +1052,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * The default allows deletion. Override to block it via
      * $event->setResult(false), or to run carrier-side cleanup before the order
      * and its related rows are removed.
+     *
+     * @api HOOK: before an order is deleted in the admin; vetoes with $event->setResult(false); allows by default.
      *
      * @param object $event AdminOrderDeleteEvent
      *

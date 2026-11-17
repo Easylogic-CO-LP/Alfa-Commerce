@@ -52,6 +52,9 @@ final class TransactionState
      * or rollBackLevel() on what this returns. A few older places still narrow on their own. Every connection
      * Joomla's container hands out is a driver.
      *
+     * @api ANSWERS: the same connection as the driver whose levels this class keeps; a connection that is not one is
+     *      refused with a LogicException.
+     *
      * @param DatabaseInterface $db The connection.
      *
      * @return DatabaseDriver The same connection.
@@ -96,6 +99,9 @@ final class TransactionState
 
     /**
      * Whether the connection holds an open transaction or savepoint.
+     *
+     * @api READ ONLY: whether the driver counts an open transaction or savepoint; inside core's own transaction the
+     *      open level is core's.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -192,6 +198,10 @@ final class TransactionState
      *
      * A level that refuses, with nothing failed, is closed the same way
      * without a failure.
+     *
+     * @api ANSWERS: closes only the caller's own level (the whole transaction when the server ended it or the savepoint
+     *      is gone) and answers true when no transaction is left; called inside core's transaction, true means core's
+     *      work is gone too, and the caller rethrows its failure, never answering a refusal.
      *
      * @param DatabaseDriver $db The connection.
      * @param Throwable|null $failure What failed inside the level; null for a refusal.

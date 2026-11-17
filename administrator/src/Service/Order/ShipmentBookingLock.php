@@ -40,6 +40,9 @@ final class ShipmentBookingLock
      * never refuses itself. Work deferred while it is held runs after its
      * release.
      *
+     * @api ANSWERS: false when another request holds the lock and the work did not run; throws when the lock cannot be
+     *      taken; re-entrant for its connection.
+     *
      * @param int $shipmentId The shipment being booked.
      * @param callable $work Called with no arguments.
      *
@@ -65,6 +68,9 @@ final class ShipmentBookingLock
 
     /**
      * The lock's name for a shipment on this site.
+     *
+     * @api READ ONLY: the name of one shipment's booking lock on this site, to name or look the lock up; it is taken
+     *      and released only through run().
      *
      * @param DatabaseInterface $db The site's database.
      * @param int $shipmentId The shipment.
