@@ -137,8 +137,9 @@ final class PriceUnits
      * - A figure that IS a stored price (a price row's own value, a sale's own
      *   price; the PriceResult's provenance says which figure that is) prints
      *   its own digits at the fewest decimals, from the currency's scale, that
-     *   give its line back at the page's quantity under Auto: a stored
-     *   290.32258 is 290.32 for one piece and 290.323 beside three; 25.338 is
+     *   give its own extension back (the stored price times the page's
+     *   quantity, rounded once) under Auto: a stored 290.32258 is 290.32 for
+     *   one piece and 290.323 beside three; 25.338 is
      *   25.34 for one piece and 25.338 beside seven; a stored 0.004 is 0.004,
      *   never 0.00. The stored value itself is exact()'s.
      * - An agreed rate prints as agreed (0.125).
