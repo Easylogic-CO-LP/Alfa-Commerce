@@ -1045,9 +1045,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_field_values` (
 --
 -- Table structure for table `#__alfa_item_fields`
 --
--- Global product field definitions (behavior: 0=informational, 1=option,
--- 2=variant). Translatable label/description live in
--- #__alfa_item_fields_<langtag>.
+-- Global item field definitions. An informational field (`informational` = 1)
+-- is shown only: never selectable and never building variants. Translatable
+-- label/description live in #__alfa_item_fields_<langtag>.
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_item_fields` (

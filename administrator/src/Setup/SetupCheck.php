@@ -25,8 +25,9 @@ use Throwable;
  *
  * Checks are collected the way tool actions are ({@see \Alfa\Component\Alfa\Administrator\Helper\ToolRegistry}):
  * core registers through {@see \Alfa\Component\Alfa\Administrator\Service\Setup\CoreSetupProvider}
- * and platform plugins answer `onAlfaCollectSetupChecks`, with ownership attributed by
- * the collector, never self-declared.
+ * and platform plugins answer `onAlfaCollectSetupChecks`, each naming itself as the
+ * contributor (group.element) to CollectSetupChecksEvent::add(), which records it as
+ * the check's owner: attribution, never an authorisation.
  *
  * @since  2.0.0
  */
@@ -99,7 +100,7 @@ final class SetupCheck
     public int $priority = 0;
 
     /**
-     * @var array<string, mixed> Collector-stamped metadata (`owner_group`/`owner_name`).
+     * @var array<string, mixed> Metadata; `owner_group`/`owner_name` are written by CollectSetupChecksEvent::add().
      * @since  2.0.0
      */
     public array $metadata = [];
