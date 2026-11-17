@@ -58,24 +58,30 @@ final class DocumentMoney
      *
      * Every partial of a document layout takes its formatter from here, so a
      * document cannot print its lines at one scale and its totals at another.
+     * A printed document hands it the separators of its own language
+     * ({@see DocumentRenderer::separators()}); the back office's own screens
+     * of a document's money keep a comma for decimals and a point for
+     * thousands.
      *
      * @param object|null $document The document row; its `currency_scale` is the authority.
+     * @param string $decimalSeparator The decimal separator to print.
+     * @param string $thousandsSeparator The thousands separator to print.
      *
      * @return callable(float): string
      *
      * @since  2.0.0
      */
-    public static function formatter(?object $document): callable
+    public static function formatter(?object $document, string $decimalSeparator = ',', string $thousandsSeparator = '.'): callable
     {
         $scale = self::scaleOf($document);
 
-        return static fn (float $value): string => number_format($value, $scale, ',', '.');
+        return static fn (float $value): string => number_format($value, $scale, $decimalSeparator, $thousandsSeparator);
     }
 
     /**
      * A unit-price formatter for one document: the one unit rule
      * ({@see Currency::unitFigure()}) at the document's frozen scale, under the
-     * shop's unit display setting, in the same separators formatter() prints.
+     * shop's unit display setting, in the separators formatter() is handed.
      *
      * A unit is presentation and the line's total is the money, so a unit is
      * shown from the line's own quantity and total in the same tax space: 100.81
@@ -85,21 +91,23 @@ final class DocumentMoney
      * Totals keep formatter().
      *
      * @param object|null $document The document row; its `currency_scale` is the scale.
+     * @param string $decimalSeparator The decimal separator to print.
+     * @param string $thousandsSeparator The thousands separator to print.
      *
      * @return callable(float|int|string, float|int|string, float|int|string, float|int|string|null=): string
      *                                                                                                        (unit, lineTotal, quantity, rate)
      *
      * @since  2.0.0
      */
-    public static function unitFormatter(?object $document): callable
+    public static function unitFormatter(?object $document, string $decimalSeparator = ',', string $thousandsSeparator = '.'): callable
     {
         $scale = self::scaleOf(document: $document);
         $auto = Currency::unitPrecisionIsAuto();
 
         return static fn (float|int|string $unit, float|int|string $lineTotal, float|int|string $quantity, float|int|string|null $rate = null): string => Currency::groupFigure(
             figure: Currency::unitFigure(unit: $unit, lineTotal: $lineTotal, quantity: $quantity, scale: $scale, rate: $rate, auto: $auto)['figure'],
-            decimalSeparator: ',',
-            thousandSeparator: '.',
+            decimalSeparator: $decimalSeparator,
+            thousandSeparator: $thousandsSeparator,
         );
     }
 

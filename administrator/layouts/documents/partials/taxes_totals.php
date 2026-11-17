@@ -20,7 +20,9 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
+use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
 use Joomla\CMS\Language\Text;
 
 /** @var array $displayData */
@@ -36,8 +38,15 @@ $taxes = $displayData['taxes'] ?? [];
 // two-decimal. The document now carries the scale it was issued under and
 // rendering asks for it, so the accident becomes a rule and the rule is
 // right at every scale.
-$fmt = DocumentMoney::formatter($displayData['document'] ?? null);
+//
+// Every number on the document prints with the separators of the document's own language, whoever prints it:
+// 1,234.56 and 15.5% on an English document, 1.234,56 and 15,5% on a Greek one. Only how a number is written follows
+// the language; the stored figures and the totals do not change.
+$separators = DocumentRenderer::separators(document: $document);
+$fmt = DocumentMoney::formatter($displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
 $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF-8');
+// A tax rate prints as stored (2.2.2): every digit its column holds, its padding zeros dropped. The blank line after
+// the row's rate keeps the line break the rate printed before, so a row whose figure is unchanged prints as it did.
 ?>
 <table class="bottom-table">
     <tr>
@@ -56,7 +65,8 @@ $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF
                         <tr>
                             <td style="text-align: left;">
                                 <?php echo (($tax->tax_names ?? []) === [] ? '' : htmlspecialchars(implode(', ', $tax->tax_names), ENT_COMPAT, 'UTF-8') . ' ')
-                                    . rtrim(rtrim(number_format((float) $tax->tax_rate, 2, ',', ''), '0'), ','); ?>%
+                                    . htmlspecialchars(AlfaHelper::percentDisplay(value: $tax->tax_rate, decimalSeparator: $separators['decimal']), ENT_COMPAT, 'UTF-8'); ?>
+
                                 <?php if (!empty($tax->exemption_code)) : ?>
                                     (<?php echo htmlspecialchars((string) $tax->exemption_code, ENT_COMPAT, 'UTF-8'); ?>)
                                 <?php endif; ?>

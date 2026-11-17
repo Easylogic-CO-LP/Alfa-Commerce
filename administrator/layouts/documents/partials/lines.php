@@ -15,7 +15,9 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
+use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
 use Joomla\CMS\Language\Text;
 
 /** @var array $displayData */
@@ -31,11 +33,19 @@ $showPrices = $displayData['showPrices'] ?? true;
 // two-decimal. The document now carries the scale it was issued under and
 // rendering asks for it, so the accident becomes a rule and the rule is
 // right at every scale.
-$fmt = DocumentMoney::formatter($displayData['document'] ?? null);
+//
+// Every number on the document (its amounts, its quantities, its tax rates) prints with the separators of the
+// document's own language, whoever prints it: 1,234.56 on an English document, 1.234,56 on a Greek one. Only how a
+// number is written follows the language; the stored figures and the totals do not change.
+$separators = DocumentRenderer::separators(document: $displayData['document'] ?? null);
+$fmt = DocumentMoney::formatter($displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
 // The net unit by the one unit rule, at the same frozen scale, from the
 // line's own net total and quantity: a unit is presentation, the line total
 // is the money. Totals keep $fmt.
-$unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? null);
+$unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
+// A quantity to three places, its padding zeros dropped (2.5, 1,200).
+$quantity = static fn ($value): string => rtrim(rtrim(number_format((float) $value, 3, $separators['decimal'], $separators['thousands']), '0'), $separators['decimal']);
+// A tax rate prints as stored (2.2.2): every digit its column holds, its padding zeros dropped (15.5%, 8.875%).
 ?>
 <table class="lines-table">
     <thead>
@@ -66,7 +76,7 @@ $unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? nu
                 <?php endif; ?>
             </td>
             <td class="ctr">
-                <?php echo rtrim(rtrim(number_format((float) $line->quantity, 3, ',', '.'), '0'), ','); ?>
+                <?php echo $quantity($line->quantity); ?>
                 <?php if (!empty($line->unit)) : ?>
                     <?php echo htmlspecialchars((string) $line->unit, ENT_COMPAT, 'UTF-8'); ?>
                 <?php endif; ?>
@@ -74,7 +84,7 @@ $unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? nu
             <?php if ($showPrices) : ?>
                 <td class="num"><?php echo $unitFmt($line->unit_price_tax_excl, $line->total_tax_excl, $line->quantity); ?></td>
                 <td class="num"><?php echo (float) $line->discount_tax_excl > 0 ? $fmt((float) $line->discount_tax_excl) : '-'; ?></td>
-                <td class="num"><?php echo rtrim(rtrim(number_format((float) $line->tax_rate, 2, ',', ''), '0'), ','); ?>%</td>
+                <td class="num"><?php echo htmlspecialchars(AlfaHelper::percentDisplay(value: $line->tax_rate, decimalSeparator: $separators['decimal']), ENT_COMPAT, 'UTF-8'); ?></td>
                 <td class="num"><?php echo $fmt((float) $line->total_tax_excl); ?></td>
                 <td class="num"><strong><?php echo $fmt((float) $line->total_tax_incl); ?></strong></td>
             <?php endif; ?>
