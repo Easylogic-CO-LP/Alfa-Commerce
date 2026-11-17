@@ -110,7 +110,8 @@ final class Tasks
     public const STATE_RESOLVED = 'resolved';
 
     /**
-     * A job stopped for good by staff; no action cancels one in 2.2.0, and the retention rules keep it KEEP_DAYS.
+     * A reserved state: core never sets it; an extension may. The retention rules keep a row in it KEEP_DAYS after it
+     * finished, as a resolved one, and the Tasks list offers it as a filter state.
      *
      * @since  2.2.0
      */
