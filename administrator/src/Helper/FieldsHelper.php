@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use DOMDocument;
 use DOMElement;
 use InvalidArgumentException;
@@ -691,6 +692,9 @@ class FieldsHelper
      * national number is uninterpretable without one) and it is emphatically
      * NOT a destination. Nothing about shipping or tax reads this.
      *
+     * The default place may be a region or a town: the code is its country's
+     * (PlaceTree::countryOf(), 2.2.1).
+     *
      * @return string The alpha-2 code, or '' when the shop has not said.
      *
      * @since  2.0.0
@@ -711,16 +715,8 @@ class FieldsHelper
             return '';
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
-        $code = (string) $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('code2'))
-                ->from($db->quoteName('#__alfa_places'))
-                ->where($db->quoteName('id') . ' = ' . $placeId),
-        )->loadResult();
-
-        return strtoupper(trim($code));
+        // The country of the default place: a region or a town carries no country code of its own (2.2.1).
+        return PlaceTree::countryOf(placeId: $placeId)['code2'] ?? '';
     }
 
     /**
