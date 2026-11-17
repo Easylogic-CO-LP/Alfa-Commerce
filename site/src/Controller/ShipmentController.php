@@ -50,7 +50,9 @@ class ShipmentController extends BaseController
      *
      * A parcel-locker map, a pickup-point list, a delivery-slot chooser: the
      * buyer leaves the checkout, chooses on the carrier's page, and comes back
-     * here. The plugin decides what that means and where they go next.
+     * here. The plugin decides what that means and where they go next; a
+     * handler that sets no redirect sends the buyer to the cart with a neutral
+     * message (2.2.1), never to an empty page.
      *
      * @return void
      *
@@ -99,7 +101,14 @@ class ShipmentController extends BaseController
 
         if ($shipmentEvent->hasRedirect()) {
             $app->redirect($shipmentEvent->getRedirectUrl());
+
+            return;
         }
+
+        // A handler that names no page leaves the buyer somewhere defined: the cart, told that the choice could not
+        // be confirmed here (2.2.1).
+        $app->enqueueMessage(Text::_('COM_ALFA_SHIPMENT_RETURN_UNCONFIRMED'), 'warning');
+        $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
     }
 
     /**

@@ -52,6 +52,8 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Factory;
@@ -268,18 +270,22 @@ class OrderTotalHelper
      * Use only when no pre-loaded data exists (e.g. PaymentLedger).
      * For OrderModel/OrdersModel, call computeFromArrays() instead.
      *
+     * Money since 2.2.1 (a float before): the exact grand total of
+     * {@see self::getExactBreakdown()}, in the order's currency, rounded once
+     * at the scale the order froze.
+     *
      * @param int $orderId Order PK
      * @param object|null $order Optional loaded order with ->items
      *
-     * @return float Grand total (tax inclusive)
+     * @return Money Grand total (tax inclusive)
+     *
+     * @throws OrderCurrencyException When the order names no currency.
      *
      * @since  1.0.0
      */
-    public static function getOrderTotal(int $orderId, ?object $order = null): float
+    public static function getOrderTotal(int $orderId, ?object $order = null): Money
     {
-        $breakdown = self::getBreakdown($orderId, $order);
-
-        return $breakdown->grand_total_tax_incl;
+        return self::money(orderId: $orderId, amount: self::getExactBreakdown($orderId, $order)->grand_total_tax_incl);
     }
 
     /**
@@ -410,13 +416,19 @@ class OrderTotalHelper
     /**
      * Items total (tax inclusive).
      *
+     * Money since 2.2.1 (a float before): the exact sum of the lines, in the
+     * order's currency, rounded once at the scale the order froze.
+     *
      * @param int $orderId Order PK
      * @param object|null $order Optional loaded order with ->items
      *
+     * @return Money The lines' total, tax included.
+     *
+     * @throws OrderCurrencyException When the order names no currency.
      *
      * @since  1.0.0
      */
-    public static function getItemsTotal(int $orderId, ?object $order = null): float
+    public static function getItemsTotal(int $orderId, ?object $order = null): Money
     {
         if ($order && !empty($order->items)) {
             $total = ExactAmount::of('0');
@@ -425,7 +437,7 @@ class OrderTotalHelper
                 $total = $total->plus(self::exact($item->total_price_tax_incl ?? 0));
             }
 
-            return (float) $total->text();
+            return self::money(orderId: $orderId, amount: $total->text());
         }
 
         $db = self::db();
@@ -437,7 +449,7 @@ class OrderTotalHelper
         $db->setQuery($query);
 
         // The database sums the stored decimals exactly.
-        return (float) $db->loadResult();
+        return self::money(orderId: $orderId, amount: (string) $db->loadResult());
     }
 
     /**
@@ -446,27 +458,37 @@ class OrderTotalHelper
      *
      * One figure (2.2.1): before, this summed the parcels' charges alone, so an order with free or reduced
      * shipping through a cart rule read more shipping here than its total holds. The carriers' gross charge is the
-     * breakdown's shipping_gross_tax_incl ({@see self::getBreakdown()}).
+     * breakdown's shipping_gross_tax_incl ({@see self::getBreakdown()}). Money since 2.2.1 (a float before), in the
+     * order's currency, rounded once at the scale the order froze.
      *
      * @param int $orderId Order PK
      *
+     * @return Money The order's shipping, tax included.
+     *
+     * @throws OrderCurrencyException When the order names no currency.
      *
      * @since  1.0.0
      */
-    public static function getShippingTotal(int $orderId): float
+    public static function getShippingTotal(int $orderId): Money
     {
-        return (float) self::getExactBreakdown(orderId: $orderId)->shipping_tax_incl;
+        return self::money(orderId: $orderId, amount: self::getExactBreakdown(orderId: $orderId)->shipping_tax_incl);
     }
 
     /**
-     * Discount total (tax inclusive, approximated).
+     * Discount total (tax inclusive): the order discounts' own frozen inclusive figures.
+     *
+     * Money since 2.2.1 (a float before), in the order's currency, rounded once
+     * at the scale the order froze.
      *
      * @param int $orderId Order PK
      *
+     * @return Money The order's discounts, tax included.
+     *
+     * @throws OrderCurrencyException When the order names no currency.
      *
      * @since  1.0.0
      */
-    public static function getDiscountTotal(int $orderId): float
+    public static function getDiscountTotal(int $orderId): Money
     {
         $db = self::db();
 
@@ -488,18 +510,24 @@ class OrderTotalHelper
 
         $db->setQuery($query);
 
-        return (float) $db->loadResult();
+        return self::money(orderId: $orderId, amount: (string) $db->loadResult());
     }
 
     /**
      * Discount total (tax exclusive).
      *
+     * Money since 2.2.1 (a float before), in the order's currency, rounded once
+     * at the scale the order froze.
+     *
      * @param int $orderId Order PK
      *
+     * @return Money The order's discounts, tax excluded.
+     *
+     * @throws OrderCurrencyException When the order names no currency.
      *
      * @since  1.0.0
      */
-    public static function getDiscountTotalExcl(int $orderId): float
+    public static function getDiscountTotalExcl(int $orderId): Money
     {
         $db = self::db();
         $query = $db->getQuery(true)
@@ -511,10 +539,25 @@ class OrderTotalHelper
 
         $db->setQuery($query);
 
-        return (float) $db->loadResult();
+        return self::money(orderId: $orderId, amount: (string) $db->loadResult());
     }
 
     //  Internal utilities
+
+    /**
+     * An exact decimal text as Money in the order's currency, rounded once at the scale the order froze.
+     *
+     * @param int $orderId The order.
+     * @param string $amount A plain decimal text (an exact sum, or a column's sum as the database prints it).
+     *
+     * @throws OrderCurrencyException When the order names no currency.
+     *
+     * @since  2.2.1
+     */
+    private static function money(int $orderId, string $amount): Money
+    {
+        return Money::of($amount, OrderCurrency::of(orderId: $orderId));
+    }
 
     /**
      * A stored amount as the exact decimal it is: a Money as its minor units
