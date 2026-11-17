@@ -290,12 +290,17 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
     //  Shipment fluent builder wrappers
     //
-    //  These return an ShipmentLedger builder instance.
+    //  These return a ShipmentLedger builder instance.
     //  The builder validates, auto-fills, and delegates to
     //  static CRUD methods internally.
     //
-    //  For direct CRUD access (batch ops, admin form saves),
-    //  use ShipmentLedger::create/update/delete() directly.
+    //  A carrier writes its parcels through these wrappers only, with
+    //  deleteShipment() and assignShipmentItems() below: each names this
+    //  plugin as the writer, so a parcel is written only on a method of
+    //  this plugin and another plugin's parcel is refused. A direct
+    //  ShipmentLedger::create(), update(), delete() or assignItems() names
+    //  no writer and skips that check; it is core's own path, not a
+    //  plugin's.
 
     /**
      * Create a new shipment (returns fluent builder in CREATE mode).
@@ -448,11 +453,6 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
     //  FRONTEND HOOKS (abstract: plugin MUST implement)
 
-    /**
-     * Calculate shipping cost for the cart.
-     *
-     * @since  1.0.0
-     */
     /**
      * Move a shipment to a new status EXACTLY ONCE, and say what happened.
      *
@@ -926,6 +926,11 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         ];
     }
 
+    /**
+     * Calculate shipping cost for the cart.
+     *
+     * @since  1.0.0
+     */
     abstract public function onCalculateShippingCost(CalculateShippingCostEvent $event): void;
 
     //  ADMIN ACTION HOOKS (empty: plugin overrides as needed)

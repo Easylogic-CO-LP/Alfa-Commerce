@@ -165,18 +165,6 @@ class FieldsHelper
     public const LEVEL_REQUIRED = 2;
 
     /**
-     * Inject custom alfa-form-fields for $context into $form as one <fieldset> per
-     * group. Each generated fieldset is tagged with target="$targetFieldset"
-     * so views can pull only the groups meant for a specific UI slot via
-     * getTargetFieldsets() / renderTargetFieldsets().
-     *
-     * Joomla's native $form->renderFieldset('user_details') returns ONLY the
-     * static fields declared in the consumer's order/cart XML; the dynamic
-     * groups produced here are separate fieldsets and are rendered through
-     * FieldsHelper::renderTargetFieldsets() instead.
-     * @since  1.0.0
-     */
-    /**
      * Seed one bucket of a prepared form from a saved details row.
      *
      * The row's columns ARE the field names (that is the whole point of the
@@ -209,6 +197,18 @@ class FieldsHelper
         }
     }
 
+    /**
+     * Inject custom alfa-form-fields for $context into $form as one <fieldset> per
+     * group. Each generated fieldset is tagged with target="$targetFieldset"
+     * so views can pull only the groups meant for a specific UI slot via
+     * getTargetFieldsets() / renderFieldset().
+     *
+     * Joomla's native $form->renderFieldset('user_details') returns ONLY the
+     * static fields declared in the consumer's order/cart XML; the dynamic
+     * groups produced here are separate fieldsets and are rendered through
+     * FieldsHelper::renderFieldset() instead.
+     * @since  1.0.0
+     */
     public static function prepareForm(
         string $context,
         Form $form,

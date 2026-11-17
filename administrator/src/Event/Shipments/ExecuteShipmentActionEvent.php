@@ -190,9 +190,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     /**
      * Set a redirect URL. Overrides refresh.
      *
-     * Matches GeneralEvent::setRedirectUrl()
-     *
-     *
+     * The same signature as RedirectEvent::setRedirectUrl().
      *
      * @since  1.0.0
      */

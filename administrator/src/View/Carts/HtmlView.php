@@ -71,15 +71,6 @@ class HtmlView extends BaseHtmlView
     protected string $abandonedCutoff = '';
 
     /**
-     * Display the view.
-     *
-     * @param string $tpl Template name.
-     *
-     * @return void
-     *
-     * @since  2.0.0
-     */
-    /**
      * @var bool May this operator start a cart on a customer's behalf?
      * @since  2.0.0
      */
@@ -109,6 +100,15 @@ class HtmlView extends BaseHtmlView
      */
     protected $newCartForm = null;
 
+    /**
+     * Display the view.
+     *
+     * @param string $tpl Template name.
+     *
+     * @return void
+     *
+     * @since  2.0.0
+     */
     public function display($tpl = null)
     {
         $model = $this->getModel();

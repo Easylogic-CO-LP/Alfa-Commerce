@@ -54,7 +54,7 @@ class CategoryModel extends AlfaAdminModel
      */
     protected string $alfaEntity = 'category';
 
-    /**
+    /*
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - delete() guards (a child left behind, or a category still set as an item's
      *   DEFAULT category) return before parent::delete(), so the contract's delete

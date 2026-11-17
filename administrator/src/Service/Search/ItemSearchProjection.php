@@ -206,8 +206,8 @@ class ItemSearchProjection implements ProjectionInterface
     }
 
     /**
-     * Batch form of {@see self::deleteForItem()}, recognised by
-     * {@see ProjectionManager::supportsBatchDelete()}.
+     * Batch form of {@see self::deleteForItem()}: {@see ProjectionManager::deleteForItems()}
+     * calls it when a projection declares it.
      *
      * Unlike {@see self::syncItems()} (where chunking would be theatre, because a
      * document is written one at a time regardless), the coordinator's delete()

@@ -48,9 +48,9 @@ use Throwable;
  *   EmailService::sendForStatusChange(int $orderId, int $newStatusId): void
  *     every recipient at once, failures logged only.
  *
- * Hooked from OrderModel::save() right after the stock-transition
- * branch on `$oldStatusId !== $newStatusId`. Wrapped in its own
- * try/catch so a mail failure never blocks the order save.
+ * A status change queues the order.status_email task (2.1.4), which sends
+ * through deliverForStatus() once the change has committed; a mail failure is
+ * recorded on that task and never touches the order.
  *
  * Token catalogue (see availableTokens() for the live list shown in the
  * admin picker):
@@ -2238,27 +2238,6 @@ class EmailService
     }
 
     /**
-     * Compute the totals breakdown as DATA (not HTML).
-     *
-     * Returns the exact argument array `emails.partials.order_totals`
-     * expects: `items` + Money objects for subtotal / shipping /
-     * discount / tax / total (null when not computable, so the partial
-     * decides how to show a missing line). The layout renders it with
-     * `$render('emails.partials.order_totals', $totals)`; this helper
-     * never names a presentation layout.
-     *
-     * Numbers come from OrderTotalHelper::getBreakdown (the canonical
-     * formula the admin order view + invoices use).
-     *
-     * @param int $orderId Order PK.
-     *
-     * @return array<string, mixed> Keys: items, subtotal, shipping,
-     *                              shipping_gross, shipping_free, contributions,
-     *                              cart_rules, discount, tax, total.
-     *
-     * @since  1.0.0
-     */
-    /**
      * Memoized OrderTotalHelper::getBreakdown: one set of queries per order
      * per request, however many consumers ask ({order_total} token, totals
      * block, customer AND admin variants of the same send).
@@ -2284,6 +2263,27 @@ class EmailService
         return $cache[$orderId];
     }
 
+    /**
+     * Compute the totals breakdown as DATA (not HTML).
+     *
+     * Returns the exact argument array `emails.partials.order_totals`
+     * expects: `items` + Money objects for subtotal / shipping /
+     * discount / tax / total (null when not computable, so the partial
+     * decides how to show a missing line). The layout renders it with
+     * `$render('emails.partials.order_totals', $totals)`; this helper
+     * never names a presentation layout.
+     *
+     * Numbers come from OrderTotalHelper::getBreakdown (the canonical
+     * formula the admin order view + invoices use).
+     *
+     * @param int $orderId Order PK.
+     *
+     * @return array<string, mixed> Keys: items, subtotal, shipping,
+     *                              shipping_gross, shipping_free, contributions,
+     *                              cart_rules, discount, tax, total.
+     *
+     * @since  1.0.0
+     */
     private static function buildTotals(int $orderId, array $items, ?object $currency): array
     {
         $breakdown = self::orderBreakdown($orderId);
