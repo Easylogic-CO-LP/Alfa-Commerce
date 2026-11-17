@@ -170,6 +170,14 @@
       }
     },
     {
+      "name": "com_alfa.card.slider",
+      "type": "script",
+      "uri": "com_alfa/site/card-slider.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.item",
       "type": "style",
       "uri": "com_alfa/site/item.css"
