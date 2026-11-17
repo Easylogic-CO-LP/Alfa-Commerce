@@ -495,9 +495,25 @@ final class Standard extends ShipmentsPlugin
             // did not choose. Same rule the offer filter applied and placement
             // will re-check.
             places: $cart->delivery()->places(fieldId: $method->param('delivery_place_field')),
-            postcode: $cart->delivery()->field((int) $method->param('postcode_field'))->value(),
+            postcode: $this->postcodeOf($method, $cart),
             subtotal: (float) $cart->getSubtotal()->getAmount(),
         );
+    }
+
+    /**
+     * The postcode this carrier prices by: its field's value, '' while that field is unanswered, or null when the method
+     * names no postcode field (2.2.2), so an unanswered field is told apart from one the carrier never reads.
+     *
+     * @param Method $method The carrier being asked.
+     * @param Cart $cart The cart being quoted.
+     *
+     * @since  2.2.2
+     */
+    private function postcodeOf(Method $method, Cart $cart): ?string
+    {
+        $field = $cart->delivery()->field((int) $method->param('postcode_field'));
+
+        return $field->exists() ? (string) ($field->value() ?? '') : null;
     }
 
     //  Order placement hook

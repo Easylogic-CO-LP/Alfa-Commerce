@@ -192,6 +192,23 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     public const WRITE_FAILED = ShipmentLedger::WRITE_FAILED;
 
     /**
+     * @var string The refusal costFromZones() records when the delivery country is not given yet and no zone covers an
+     *             unknown destination: core's own reason, worded in core's language file, since the destination field
+     *             is core's. The checkout keeps such a carrier off its list and names the country instead.
+     *
+     * @since  2.2.2
+     */
+    public const REFUSAL_NEEDS_PLACE = 'COM_ALFA_SHIPMENT_NEEDS_PLACE';
+
+    /**
+     * @var string The refusal costFromZones() records when the carrier's postcode field is unanswered and a row with a
+     *             postcode band would fit: core's own reason, as {@see self::REFUSAL_NEEDS_PLACE}.
+     *
+     * @since  2.2.2
+     */
+    public const REFUSAL_NEEDS_POSTCODE = 'COM_ALFA_SHIPMENT_NEEDS_POSTCODE';
+
+    /**
      * @var string The plugin_data key of a parcel core recorded itself at placement because the order's carrier
      *             recorded none in onOrderAfterPlace (true on that parcel). A carrier that looks for its own parcel
      *             afterwards recognises core's by it: $shipment->pluginData()->getBool(key: self::CORE_MADE).
@@ -612,6 +629,10 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * suite that could only see `null` would pass while the carrier blamed the
      * wrong dimension.
      *
+     * A key of this carrier's language namespace ({@see self::refusalKey()}), or one of core's two keys for a fact the
+     * checkout has not given yet: {@see self::REFUSAL_NEEDS_PLACE} and {@see self::REFUSAL_NEEDS_POSTCODE} (2.2.2),
+     * worded in core's language file, so a carrier needs no key of its own for them.
+     *
      * @api READ ONLY: the reason key the last pricing call recorded, for setUnavailable().
      *
      * @since  2.0.0
@@ -726,9 +747,16 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * The nearest zone decides alone: a cart none of its rows fit is refused,
      * never priced by a farther zone or the catch-all (as the first matching
-     * zone decided alone before). The places are read in the order given,
-     * nearest first, as AddressView::places() and PlaceTree::placesFor() give
-     * them; a caller passing them in another order gets another zone. A place
+     * zone decided alone before).
+     *
+     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2), in core's words: with no destination at all and no zone for
+     * it (no place, no catch-all), the refusal is {@see self::REFUSAL_NEEDS_PLACE}; with the carrier's postcode field
+     * unanswered ('') and a zone whose every row that would fit has a postcode band, it is
+     * {@see self::REFUSAL_NEEDS_POSTCODE}. A carrier that reads no postcode field passes null, and is refused
+     * NO_BAND_FITS as before: no shopper could give it one. The cart's offer read takes such a carrier off the list
+     * until the checkout has the fact, and names it, instead of offering a carrier that refuses the shopper's first
+     * click. The places are read in the order given, nearest first, as AddressView::places() and PlaceTree::placesFor()
+     * give them; a caller passing them in another order gets another zone. A place
      * of the chain is matched whether or not it is published, as before: only a
      * stored address can hold an unpublished one (the address and zone pickers
      * offer published places), and the checkout asks for it again.
@@ -738,11 +766,16 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * rows, so they have said by omission that they do not carry it. Before
      * 1.10 all three were the float 0.00, and the third one shipped free.
      *
+     * @api READ ONLY: the price, or NULL when this carrier cannot carry the cart (the nearest zone decides alone), its
+     *      reason then read with refusal(): a key of this carrier's language namespace, or core's REFUSAL_NEEDS_PLACE
+     *      or REFUSAL_NEEDS_POSTCODE for a fact not yet given; pass the postcode as '' while the carrier's postcode
+     *      field is unanswered and NULL when it reads none.
+     *
      * @param array $zones The method's configured cost-per-place zones.
      * @param CartLine[] $lines What there is to carry.
      * @param int[] $places The destination and the places it belongs to, nearest first.
-     * @param string|null $postcode The delivery postcode, or NULL when the checkout
-     *                              has not supplied one. Never substituted.
+     * @param string|null $postcode The delivery postcode; '' when the carrier's postcode field is
+     *                              unanswered, NULL when the carrier reads no postcode field. Never substituted.
      * @param float $subtotal The settled merchandise total, for the amount band.
      * @param array $limits What this carrier can physically take, as
      *                      ['width' =>, 'height' =>, 'depth' =>, 'weight' =>].
@@ -826,7 +859,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         // Not even the catch-all matched, so there is no configured price for
         // where this cart is going. Quoting 0 here shipped it free.
         if (empty($calculationData)) {
-            $this->refusal = $this->refusalKey('NO_ZONE_FOR_DESTINATION');
+            $this->refusal = $places === [] ? self::REFUSAL_NEEDS_PLACE : $this->refusalKey('NO_ZONE_FOR_DESTINATION');
 
             return null;
         }
@@ -842,7 +875,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         // said, by omission, that they do not carry it. Until 1.10 this
         // returned 0 and the order shipped free.
         if ($cost === null) {
-            $this->refusal = $this->refusalKey('NO_BAND_FITS');
+            // The carrier reads a postcode field ('' is that field unanswered; null is no field to read), none is given
+            // yet, and a row with a postcode band would fit the cart once one is: the fact is missing.
+            $unbanded = array_map(static fn (array $row): array => ['zip-start' => null, 'zip-end' => null] + $row, (array) $calculationData['costs']);
+            $postcodeMissing = $postcode !== null && trim($postcode) === ''
+                && $this->cheapestMatchingCost($lines, $unbanded, null, $subtotal) !== null;
+            $this->refusal = $postcodeMissing ? self::REFUSAL_NEEDS_POSTCODE : $this->refusalKey('NO_BAND_FITS');
         }
 
         return $cost;
@@ -962,6 +1000,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
     /**
      * Calculate shipping cost for the cart.
+     *
+     * @api HOOK: asked for every method the checkout would list, many times a page (every listing, every change of a
+     *      delivery field) and at placement, and when the cart's totals are worked out with the method chosen;
+     *      $event->getMethod()->isSelected() is true only for the chosen one. Answer with setShippingCost(),
+     *      setShippingAmounts() or setUnavailable($reasonKey); free of side effects (no booking, no provider write, no
+     *      row written), quick and repeatable. Abstract: no default.
      *
      * @since  1.0.0
      */
