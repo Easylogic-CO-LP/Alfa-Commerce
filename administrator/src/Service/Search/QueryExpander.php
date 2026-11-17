@@ -26,14 +26,14 @@ use Joomla\CMS\Filter\OutputFilter;
  *    variants, AND across terms. EXPANSION, NEVER REPLACEMENT: replacing the
  *    typed form would make the same query mean different things per mode, which
  *    is the divergence the search architecture exists to prevent. Every mode (
- *    the database search, the Indexed engine, the Enterprise engine) consumes
+ *    the database search and every installed engine) consumes
  *    this rule identically; an engine may expand FURTHER (synonyms, typo
  *    variants), it may never redefine what core produced.
  *
  *  - STORED COPIES ({@see self::transliterateText()}) cover the reverse, "Latin
  *    query finds native-script prose": no stored alias column exists for
  *    descriptions and no reverse transliteration exists, so index-side writers
- *    (the Indexed projection, the Enterprise analyzer) store the transliterated
+ *    (an installed engine's projection or analyzer) store the transliterated
  *    spelling BESIDE the original at index time, through the same primitive the
  *    query side expands with. One primitive on both sides is what makes a
  *    stored copy provably matchable by an expanded query.

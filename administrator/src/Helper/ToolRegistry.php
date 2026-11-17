@@ -460,8 +460,8 @@ final class ToolRegistry
      * Nothing was lost in the narrowing. The index-rebuild card was never the engine's: it drives
      * the component's own RebuildRunner over the component's own catalogue, and now lives in
      * {@see CoreToolProvider}, which asks the configured engine only for its label and its owed
-     * state through Service\Search\RebuildableEngine. Enterprise Search's analytics purge, the one
-     * genuinely capability-owned tool, moved to plg_alfa_enterprise-search in this group. Both
+     * state through Service\Search\RebuildableEngine. A search engine's own tool, such as a purge
+     * of its analytics, belongs to its platform plugin in this group. Both
      * action ids are unchanged, so a stale Tools tab or a bookmarked toolaction URL still resolves.
      *
      * A constant, not a query: there is one platform group and discovering it would be theatre.

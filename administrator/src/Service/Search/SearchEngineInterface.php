@@ -23,7 +23,7 @@ defined('_JEXEC') or die;
  * the unit of configuration, so it must also be the unit of registration.
  *
  *     alfa.indexed    -> LIKE provider        + MySQL indexer
- *     alfa.enterprise -> inverted index       + its own indexer
+ *     vendor.inverted -> inverted index       + its own indexer
  *     vendor.example  -> ExampleProvider      + ExampleIndexer
  *
  * Core knows only this interface. It never learns an engine's name to decide

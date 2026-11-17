@@ -21,8 +21,8 @@ use Throwable;
  *
  * THE SIBLING OF {@see VisibilityNotifier}, upholding the same rule for a different
  * band of state: **no catalogue state may change without an event-producing path.**
- * A consumer materialising these rows (the Enterprise engine's entity documents are
- * the first) is only as correct as the signals it receives; a rename that stays
+ * A consumer materialising these rows (a search engine that indexes categories and
+ * manufacturers, for one) is only as correct as the signals it receives; a rename that stays
  * quiet does not fail, it produces an index that answers confidently with the OLD
  * name until the next full rebuild.
  *

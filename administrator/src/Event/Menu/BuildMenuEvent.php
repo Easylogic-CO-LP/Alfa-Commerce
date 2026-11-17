@@ -25,10 +25,10 @@ use Joomla\CMS\Event\AbstractEvent;
  * a plugin adds its own, under its identity, the same fluent way it would anywhere else in this
  * component:
  *
- *   $event->item('alfa-search.enterprise', 'synonyms')
+ *   $event->item('alfa-search.myengine', 'synonyms')
  *         ->section('COM_ALFA_MENU_SEARCH')
- *         ->title('PLG_ALFA_SEARCH_ENTERPRISE_SYNONYMS_TITLE')
- *         ->panel('alfa-search', 'enterprise', 'synonyms')
+ *         ->title('PLG_ALFA_SEARCH_MYENGINE_SYNONYMS_TITLE')
+ *         ->panel('alfa-search', 'myengine', 'synonyms')
  *         ->icon('tags')
  *         ->ordering(10)
  *         ->access('alfa.search.manage');

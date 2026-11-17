@@ -122,9 +122,8 @@ class AssociationHelper
         // which would record a search event whose keyword belongs to the language the visitor
         // just left, manufacturing zero-result rows nobody typed and corrupting the one report
         // the analytics subsystem exists to produce. Losing a keyword costs one retype; a
-        // dishonest zero-result report costs the merchant a decision. See
-        // {@see \Alfa\Plugin\AlfaSearch\Enterprise\Analytics\EventRecorder} for the same
-        // reasoning applied to type-ahead probes.
+        // dishonest zero-result report costs the merchant a decision. A search engine that
+        // records search events applies the same reasoning to type-ahead probes.
         $base .= self::carriedState((string) $view);
 
         $associations = [];
