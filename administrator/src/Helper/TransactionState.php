@@ -46,10 +46,11 @@ defined('_JEXEC') or die;
 final class TransactionState
 {
     /**
-     * The connection as the driver whose transaction levels this class keeps: the one narrowing of a connection to a
-     * DatabaseDriver for TransactionState and PostCommit (2.2.2). A class that opens levels narrows once, in its
-     * constructor, and closes every level it opens through commitLevel() or rollBackLevel() on what this returns.
-     * Every connection Joomla's container hands out is a driver.
+     * The connection as the driver whose transaction levels this class keeps (2.2.2): the narrowing of a connection to
+     * a DatabaseDriver for TransactionState and PostCommit that the cart, the price index, the item field projection
+     * and the inventory service use, each once, in its constructor, closing the levels it opens through commitLevel()
+     * or rollBackLevel() on what this returns. A few older places still narrow on their own (P3-376). Every connection
+     * Joomla's container hands out is a driver.
      *
      * @param DatabaseInterface $db The connection.
      *
@@ -63,8 +64,8 @@ final class TransactionState
     {
         if (!$db instanceof DatabaseDriver) {
             throw new LogicException(
-                'Every transaction level Alfa Commerce opens is closed through TransactionState, which keeps the levels of a '
-                . 'database driver; ' . get_debug_type($db) . ' is not one.',
+                'Alfa Commerce closes its transaction levels through TransactionState, which keeps the levels of a database '
+                . 'driver; ' . get_debug_type($db) . ' is not one.',
             );
         }
 

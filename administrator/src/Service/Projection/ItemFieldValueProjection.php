@@ -17,6 +17,7 @@ use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use LogicException;
 use Throwable;
 
 /**
@@ -55,6 +56,8 @@ class ItemFieldValueProjection implements ProjectionInterface
     /**
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      * @param ItemFieldValueCollector|null $collector Injected for testing; defaults to a new collector.
+     *
+     * @throws LogicException When the connection is not a database driver ({@see TransactionState::driver()}).
      *
      * @since  2.0.0
      */

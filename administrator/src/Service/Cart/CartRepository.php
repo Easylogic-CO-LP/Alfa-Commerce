@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
+use LogicException;
 use stdClass;
 use Throwable;
 
@@ -74,6 +75,8 @@ class CartRepository
 
     /**
      * @param DatabaseInterface|null $db The connection; the container's when omitted.
+     *
+     * @throws LogicException When the connection is not a database driver ({@see TransactionState::driver()}).
      *
      * @since  2.0.0
      */

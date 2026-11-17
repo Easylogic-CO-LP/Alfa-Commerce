@@ -1578,12 +1578,11 @@ class PriceIndexSyncService
             self::$announcement = null;
 
             if ($announcement->listening) {
-                $db = Factory::getContainer()->get('DatabaseDriver');
                 $deliver = static function () use ($announcement): void {
                     self::deliver(announcement: $announcement);
                 };
 
-                $db instanceof DatabaseDriver ? PostCommit::defer(db: $db, label: PricesChangedEvent::NAME, work: $deliver) : $deliver();
+                PostCommit::defer(db: TransactionState::driver(Factory::getContainer()->get('DatabaseDriver')), label: PricesChangedEvent::NAME, work: $deliver);
             }
         }
     }
