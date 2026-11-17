@@ -197,6 +197,13 @@ class HtmlView extends BaseHtmlView
             $this->activeFilters = $model->getActiveFilters();
 
             $data['items'] = $model->getItems();
+
+            // A list that could not be read is said to staff in plain words; the database's message is in the log
+            // (2.2.1).
+            if ($model->listFailed()) {
+                Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_PANEL_LIST_FAILED'), 'error');
+            }
+
             $data['pagination'] = $model->getPagination();
             $data['state'] = $model->getState();
             $data['filterForm'] = $this->filterForm;

@@ -90,7 +90,9 @@ class SearchProviderFactory
         // nothing.
         $engine = $this->registry->active();
 
-        $provider = $engine !== null && $engine->isReady()
+        // The readiness asked through the registry's guarded probe (2.2.1): an engine that throws while
+        // reporting its health is not ready, and the live tables answer.
+        $provider = $engine !== null && $this->registry->readyOrFalse($engine, $this->registry->configuredKey())
             ? $engine->provider()
             : new CatalogJoinProvider($this->db);
 
