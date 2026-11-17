@@ -1711,8 +1711,16 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Call it from onPaymentResponse once the return is authenticated for this order (the provider's signature or
      * digest, or the provider's own answer naming the attempt), never before, and in whatever session the return
      * arrives: a fresh one is the normal case (a hosted payment page outlives the PHP session, a cross-site POST
-     * return carries no session cookie, a buyer may finish on another device). Do not write com_alfa.order_id
+     * return carries no session cookie, a buyer may finish on another device). Call it for every authentic return,
+     * whatever the payment's result (paid, failed, or cancelled by the buyer): the buyer must land on their own
+     * order's page, where a failed attempt is tried again from the process page. Do not write com_alfa.order_id
      * yourself: an order id without its mark is refused, and the visitor is sent to the cart.
+     *
+     * Send a failed or cancelled return to the process page (getProcessPageUrl(), with a flag of your own), which
+     * asks your plugin again and offers the retry; the completed page's arrival clears the session's order, and the
+     * order's keyed page offers no retry. A valid signed return link (orderFromReturnLink()) grants exactly the right
+     * this mark grants, that this browser may look at this order, so a return it authenticates may be marked; a
+     * return address that carries the link is then as strong as the order's keyed address, and travels the same way.
      *
      * Idempotent: the same order again changes nothing; another order replaces the session's order and its mark.
      * It reads no table. Outside a storefront request there is no visitor's session, and nothing is set.
