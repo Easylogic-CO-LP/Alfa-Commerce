@@ -10,6 +10,8 @@
 namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use Joomla\Database\DatabaseDriver;
+use Joomla\Database\DatabaseInterface;
+use LogicException;
 use ReflectionProperty;
 use RuntimeException;
 use Throwable;
@@ -43,6 +45,32 @@ defined('_JEXEC') or die;
  */
 final class TransactionState
 {
+    /**
+     * The connection as the driver whose transaction levels this class keeps: the one narrowing of a connection to a
+     * DatabaseDriver for TransactionState and PostCommit (2.2.2). A class that opens levels narrows once, in its
+     * constructor, and closes every level it opens through commitLevel() or rollBackLevel() on what this returns.
+     * Every connection Joomla's container hands out is a driver.
+     *
+     * @param DatabaseInterface $db The connection.
+     *
+     * @return DatabaseDriver The same connection.
+     *
+     * @throws LogicException When the connection is not a database driver.
+     *
+     * @since  2.2.2
+     */
+    public static function driver(DatabaseInterface $db): DatabaseDriver
+    {
+        if (!$db instanceof DatabaseDriver) {
+            throw new LogicException(
+                'Every transaction level Alfa Commerce opens is closed through TransactionState, which keeps the levels of a '
+                . 'database driver; ' . get_debug_type($db) . ' is not one.',
+            );
+        }
+
+        return $db;
+    }
+
     /**
      * How many times each connection rolled a level back.
      *
