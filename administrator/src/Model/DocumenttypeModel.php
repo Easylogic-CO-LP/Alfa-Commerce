@@ -43,7 +43,7 @@ class DocumenttypeModel extends AlfaAdminModel
      */
     protected string $alfaEntity = 'documenttype';
 
-    /**
+    /*
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save() merges the raw per-language name keys and strips the registry-owned
      *   semantic columns BEFORE parent::save(), so onAlfaAdminBeforeSave sees the

@@ -26,10 +26,11 @@ use Throwable;
 
 /**
  * Developer tools controller: actions for the Tools view that don't belong to a
- * more specific tool controller (toolaction, media). Currently exposes the package
- * export; further developer utilities can be added here as new tasks.
+ * more specific tool controller (toolaction, media): the integrity check's Recheck
+ * (recheckIntegrity), the download store's Check again (checkDownloadStore) and the
+ * package export (exportPackage).
  *
- * The `export` task re-assembles the live com_alfa install back into a repo-layout
+ * The `exportPackage` task re-assembles the live com_alfa install back into a repo-layout
  * archive (via {@see PackageHelper}), streams it to the browser as an attachment,
  * then deletes the temporary file, so nothing is left on disk. Gated by the
  * `alfa.tools` permission and a CSRF token, matching the other Tools actions.

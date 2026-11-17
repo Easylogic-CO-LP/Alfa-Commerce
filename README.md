@@ -15,7 +15,7 @@ A full-featured eCommerce component for Joomla 6.1+, developed by [Easylogic](ht
 - **Users & Groups**: Customer management with user group pricing
 - **REST API**: JSON-API endpoints for third-party integrations
 - **SEO**: SEF URLs, metadata management
-- **Multilingual**: Full i18n support (en-GB, el-GR)
+- **Multilingual**: Full i18n support: English ships with the component, other languages (Greek among them) come as language packs
 
 ## Requirements
 

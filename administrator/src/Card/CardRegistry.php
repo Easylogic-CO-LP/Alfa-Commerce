@@ -33,9 +33,10 @@ use Throwable;
  * so adding, moving or removing one is a declaration, never an edit here.
  *
  * Collection follows the pattern the Tools registry paid for in bugs: core first
- * and through the same event, ownership stamped after each contributor (including
- * after one throws, so its half-registered cards cannot be inherited by the next),
- * broken contributors logged rather than silently dropped, and the result keyed by
+ * and through the same event, each card owned by the contributor it was added with
+ * (the first argument of CollectCardsEvent's top(), main() and its other ways in),
+ * so a broken contributor's half-made cards stay its own; broken contributors
+ * logged rather than silently dropped, and the result keyed by
  * **owner + id**: card ids are shared vocabulary (every analytics plugin will want
  * `sales.summary`), so the id alone is not an identity.
  *

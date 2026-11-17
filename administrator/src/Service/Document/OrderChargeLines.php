@@ -156,16 +156,6 @@ final class OrderChargeLines
     }
 
     /**
-     * The same question about a magnitude, for a pool that may be signed.
-     *
-     * @param float $amount The amount.
-     * @param Currency $currency The authoritative currency.
-     *
-     * @return bool
-     *
-     * @since  2.0.0
-     */
-    /**
      * An amount as the authoritative record's money, exactly.
      *
      * THE POOLS ARE NOW CARRIED AT THE SAME EXACTNESS THEY ARE DECIDED AT.
@@ -227,6 +217,14 @@ final class OrderChargeLines
         return Money::max($gross->subtract(Money::of($used, $currency)), Money::zero($currency));
     }
 
+    /**
+     * The same question about a magnitude, for a pool that may be signed.
+     *
+     * @param float $amount The amount.
+     * @param Currency $currency The authoritative currency.
+     *
+     * @since  2.0.0
+     */
     private static function hasMagnitude(float $amount, Currency $currency): bool
     {
         return Money::of(abs($amount), $currency)->isPositive();

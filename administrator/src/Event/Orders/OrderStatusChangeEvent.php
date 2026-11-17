@@ -18,8 +18,11 @@
  * arguments). To react, listeners do their own work (ledger entries,
  * documents, subscription state); they do not steer the transition itself.
  *
- * A listener exception NEVER blocks the transition: the dispatcher call site
- * catches Throwable and logs plugin/order/old->new/stack trace.
+ * A listener exception NEVER blocks the transition: the event is raised by the
+ * order.status_event task once the status change has committed (2.1.4), which
+ * calls each listener on its own, records a listener that throws with its error
+ * in the task's history, and still runs the others; staff run it again from
+ * Tools > Tasks.
  *
  * A listener never depends on the current user or the current application
  * (2.2.0): the event can be dispatched by the shop's background work, which

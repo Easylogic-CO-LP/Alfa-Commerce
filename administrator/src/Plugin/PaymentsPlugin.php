@@ -335,7 +335,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     /**
      * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
      * shared dispatcher, never in getSubscribedEvents(). onPaymentStoreReference and onPaymentChargeReference
-     * are addressed by the Subscriptions engine.
+     * are addressed by an extension's billing engine (a subscriptions extension); core dispatches neither.
      *
      * @since  2.2.0
      */
@@ -1507,8 +1507,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * gateway can do it at all (supportsRecurring()) and the method's saved
      * settings allow it (methodAllowsRenewals()).
      *
-     * The one answer the Subscriptions engine asks, both before it asks for a
-     * mandate and before it charges a stored one. A method of another gateway,
+     * The one answer a subscriptions extension's billing engine asks, both before
+     * it asks for a mandate and before it charges a stored one. A method of another gateway,
      * or none, is false.
      *
      * @param int $methodId #__alfa_payments.id.
@@ -1620,14 +1620,6 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         return PaymentLedger::delete($id, $orderId, writer: (string) $this->_name);
     }
 
-    /**
-     * Load a single payment with method params attached.
-     *
-     *
-     * @return object|null Payment record with ->params, or null
-     *
-     * @since  1.0.0
-     */
     /**
      * THIS gateway's payment METHOD for an order: its settings, credentials
      * included, `$method->params` already decoded to an array.

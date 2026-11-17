@@ -11,6 +11,15 @@
  * Abstract base for all Alfa commerce plugins (payments, shipments, etc.).
  * Provides the shared logging system, utility methods, and plugin lifecycle.
  *
+ *  Language
+ *
+ * A plugin carries its own strings, in its own language files
+ * (plg_<group>_<element>.ini and .sys.ini, keys named after the plugin, as
+ * PLG_ALFA_SHIPMENTS_STANDARD_ for the standard shipping plugin).
+ * The COM_ALFA_ keys are core's and not a plugin's to use: core keeps none
+ * for a plugin's screens, so a borrowed key can be gone in the next release
+ * and the screen then shows the key itself.
+ *
  *  Logging system
  *
  * Every plugin can maintain its own log table. The table schema is
@@ -1194,7 +1203,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
     //  Utility
 
-    /**
+    /*
      * WHO AN ORDER IS FOR IS THE ORDER'S OWN QUESTION, not this base class's.
      *
      * `customer($order)` and `recipient($order)` used to live here and were a

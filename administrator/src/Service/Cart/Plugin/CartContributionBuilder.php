@@ -19,7 +19,7 @@ defined('_JEXEC') or die;
  * plugin never imports or news the artifact class and cannot hold an invalid
  * charge:
  *
- *   $event->contribution('signup_fee')
+ *   $event->contribution('alfa.subscriptions', 'signup_fee')
  *       ->label(Text::_('PLG_..._SIGNUP_FEE_LABEL'))
  *       ->amount(1.00)      // OR ->percent(2.0) - typed, mutually exclusive
  *       ->taxRate(24.0);
