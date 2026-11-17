@@ -32,11 +32,37 @@ use Throwable;
  */
 class OrdersController extends ApiController
 {
-    // The trait's delete() is reached through an alias: this class overrides delete(), and its
-    // parent::delete() would be ApiController's, which asks core.delete.
+    // The trait's delete() and edit() are reached through aliases: this class overrides both, and its
+    // parent::delete() would be ApiController's, which asks core.delete, and its parent::edit() ApiController's, which
+    // does not refuse the keys an order's update does not write.
     use HasApiGuards {
         HasApiGuards::delete as protected guardedDelete;
+        HasApiGuards::edit as protected guardedEdit;
     }
+
+    /**
+     * The published attributes of an order that its update (PATCH) does not write (2.2.1): the order form
+     * declares none of them, or drops them on an update (id_user, id_currency), so a PATCH of one answered 200 and the
+     * order stayed as it was. They are worked out from the order's lines, payments and shipments, fixed when the order
+     * is placed, or written by the order operations. id_order_status and state have refusals of their own (edit()).
+     *
+     * Two the order form would write as sent are refused too: id_address_delivery (a hidden field: the posted id would
+     * point the order at any address record, and a guest order's name and e-mail are copied from the record it names)
+     * and created (the time the order was placed). The delivery details are written through alfa_form_fields, and a
+     * PATCH that leaves either out keeps it as stored.
+     *
+     * @var string[]
+     * @since  2.2.1
+     */
+    private const NOT_UPDATED = [
+        'reference', 'id_user', 'customer_name', 'customer_email', 'id_currency', 'currency', 'conversion_rate',
+        'delivery_date', 'id_address_delivery', 'id_address_invoice', 'id_payment_method',
+        'payment_method_name', 'id_shipment_method', 'shipment_method_name', 'status_name', 'payment_status',
+        'fulfillment_status', 'fulfillment_percentage', 'payment_percentage', 'balance', 'overpaid', 'excess', 'still_held',
+        'order_total', 'order_total_tax_excl', 'items_total', 'shipping_total', 'discount_total', 'contributions_total',
+        'total_paid_real', 'total_refunded_real', 'source', 'created', 'modified', 'lines', 'payments', 'shipments',
+        'contributions', 'history', 'delivery_address', 'invoice_address',
+    ];
 
     /**
      * The content type of the item.
@@ -182,23 +208,50 @@ class OrdersController extends ApiController
             throw new Save('id_order_status cannot be changed via PATCH; use POST v1/alfa/orders/:id/status.', 422);
         }
 
-        // The resource publishes state, the order row's trash flag, but no screen or request changes it: an order is
-        // never trashed, and the order form has no such field, so a PATCH of it was answered 200 and not written
-        // (2.2.1). Refused, as the status is.
+        // The resource publishes state, the order row's trash flag. Only the administrator's Orders list moves an order
+        // to the trash; over the API an order has no trash step and is deleted in one call, and the order form has no
+        // such field, so a PATCH of it was answered 200 and not written (2.2.1). Refused, as the status is.
         if (array_key_exists('state', $rawBody) || array_key_exists('state', $bodyData)) {
-            throw new Save('state cannot be changed via PATCH: an order is not trashed; its status changes through POST v1/alfa/orders/:id/status.', 422);
+            throw new Save('state cannot be changed via PATCH: over the API an order has no trash step and is deleted in one call (DELETE v1/alfa/orders/:id); its status changes through POST v1/alfa/orders/:id/status.', 422);
         }
 
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
-        $result = parent::edit($id);
+        // The guards' edit: the published attributes the update does not write are refused first (2.2.1).
+        $result = $this->guardedEdit();
 
         if ($restore !== null) {
             $this->restoreInvoiceAddress($orderId, $restore);
         }
 
         return $result;
+    }
+
+    /**
+     * The published attributes an order's update does not write ({@see self::NOT_UPDATED}); a create (POST) takes its
+     * own keys and is not changed here.
+     *
+     * @return string[]
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenOnUpdate(): array
+    {
+        return self::NOT_UPDATED;
+    }
+
+    /**
+     * Where an order is written instead.
+     *
+     * @since  2.2.1
+     */
+    protected function unwrittenReason(): string
+    {
+        return 'an order\'s update writes its customer_note and its delivery and invoice details (alfa_form_fields, and'
+            . ' alfa_form_fields_billing with invoice_differs); its status changes through POST v1/alfa/orders/:id/status, its'
+            . ' lines, payments and shipments through the order operations, and the other fields are worked out from them or'
+            . ' fixed when the order is placed. Nothing was saved.';
     }
 
     /**

@@ -818,6 +818,10 @@ final class InventoryService
      * otherwise the rows after it would be settled, and the caller would carry on,
      * outside the transaction the caller believes it holds.
      *
+     * THE CLOCK. The deadline is judged by the process's clock (Factory::getDate(), which keeps the time of its first
+     * call): called late in a long run (a task, a console command, a queue), the sweep leaves the reservations that
+     * fell due since the run began for a later process. Core has no caller of it.
+     *
      * @param int $limit Batch cap per run.
      * @param InventoryContext|null $context Audit context.
      *

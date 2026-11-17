@@ -168,7 +168,7 @@ final class SearchEngineRegistry
         //
         // Degrade to the source, never to another cache.
         if ($configured !== '') {
-            if (isset($engines[$configured]) && $this->isReady($engines[$configured], $configured)) {
+            if (isset($engines[$configured]) && $this->readyOrFalse($engines[$configured], $configured)) {
                 return $engines[$configured];
             }
 
@@ -331,6 +331,11 @@ final class SearchEngineRegistry
      * never been built. Gating on active() would remove the button that fixes the
      * problem it is reporting.
      *
+     * THE ONE READER of the option (2.2.1): the listing, its result
+     * attribution and the search input's layout event read the key here, so every
+     * reader says the same for the database search, the empty string the option
+     * stores for it (before, three storefront readers said 'database').
+     *
      * @return string Empty when the merchant has chosen the database search.
      *
      * @since  2.0.0
@@ -348,7 +353,9 @@ final class SearchEngineRegistry
      * Readiness check that treats a throwing engine as not ready.
      *
      * An engine that explodes while reporting its own health must not be able to
-     * take the caller down with it.
+     * take the caller down with it. PUBLISHED (2.2.1): the Options field and
+     * the provider factory ask an engine through it, never isReady() bare, so a
+     * throwing engine no longer breaks the Options screen.
      *
      * @param SearchEngineInterface $engine The engine to probe.
      * @param string $key Its key, for the log entry.
@@ -356,7 +363,7 @@ final class SearchEngineRegistry
      *
      * @since  2.0.0
      */
-    private function isReady(SearchEngineInterface $engine, string $key): bool
+    public function readyOrFalse(SearchEngineInterface $engine, string $key): bool
     {
         try {
             return $engine->isReady();

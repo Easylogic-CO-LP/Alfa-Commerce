@@ -299,7 +299,7 @@ final class CollationCheck
 
         $howto = self::say(
             key:      'COM_ALFA_COLLATION_HOWTO',
-            fallback: 'When the cause is corrected, install the Alfa Commerce package again (System -> Install -> Extensions):'
+            fallback: 'When the cause is corrected, install the Alfa Commerce package again (System > Install > Extensions):'
                 . ' the installation converts the tables that are left.',
         );
 

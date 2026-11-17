@@ -538,6 +538,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
   -- through RoleRegistry instead of guessing by field_name. One row per role.
   -- name | email = the customer's identity (system rows, always present);
   -- phone = the customer's phone (a default row the merchant may drop).
+  -- address | city | postcode = the delivery address a new shop ships (2.2.1;
+  -- default rows, not identity: RoleRegistry::identityRoles()).
   `role` varchar(32) DEFAULT NULL,
   -- SYSTEM ROW. The product owns the definition (type, column, role; never
   -- deleted, never unpublished); the merchant owns position, group, label and
@@ -570,13 +572,19 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
 -- account's address is used). `phone` and `country` are DEFAULT rows: shipped
 -- so a fresh store captures what couriers, gateways and shipping zones need,
 -- but the merchant may unpublish, regroup or delete them like any own field.
--- Their #__alfa_user_info columns are part of that table's CREATE below.
+-- `address`, `city` and `postcode` (2.2.1) are default rows too: what a courier
+-- and a sales document need, required in the delivery section, optional at
+-- registration and in the invoice section. A new shop only: an update adds no
+-- field. Their #__alfa_user_info columns are part of that table's CREATE below.
 INSERT INTO `#__alfa_form_fields` (`id`, `group_id`, `type`, `params`, `field_name`, `role`, `is_system`, `registration`, `billing`, `shipping`, `unique`, `ordering`, `created_by`, `state`)
 SELECT * FROM (
             SELECT 1 AS `id`, 0 AS `group_id`, 'text' AS `type`, '{"filter":"string","maxlength":"400","validation":"","sql_type":"varchar(400)"}' AS `params`, 'name' AS `field_name`, 'name' AS `role`, 1 AS `is_system`, 2 AS `registration`, 2 AS `billing`, 2 AS `shipping`, 0 AS `unique`, 1 AS `ordering`, 0 AS `created_by`, 1 AS `state`
   UNION ALL SELECT 2, 0, 'text', '{"filter":"string","maxlength":"254","validation":"email","sql_type":"varchar(254)"}', 'email', 'email', 1, 2, 0, 2, 0, 2, 0, 1
   UNION ALL SELECT 3, 0, 'tel', '{"allowed_regions":"","require_mobile":"0","sql_type":"varchar(20)"}', 'phone', 'phone', 0, 0, 1, 1, 0, 3, 0, 1
   UNION ALL SELECT 4, 0, 'country', '{"allowed_places":"","default_place":"","sql_type":"int(11)"}', 'country', 'country', 0, 0, 2, 2, 0, 4, 0, 1
+  UNION ALL SELECT 5, 0, 'text', '{"filter":"string","maxlength":"255","validation":"","sql_type":"varchar(255)"}', 'address', 'address', 0, 1, 1, 2, 0, 5, 0, 1
+  UNION ALL SELECT 6, 0, 'text', '{"filter":"string","maxlength":"100","validation":"","sql_type":"varchar(100)"}', 'city', 'city', 0, 1, 1, 2, 0, 6, 0, 1
+  UNION ALL SELECT 7, 0, 'text', '{"filter":"string","maxlength":"20","validation":"","sql_type":"varchar(20)"}', 'postcode', 'postcode', 0, 1, 1, 2, 0, 7, 0, 1
 ) AS `seed`
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_form_fields`);
 
@@ -601,6 +609,9 @@ SELECT * FROM (
   UNION ALL SELECT 2, 'Email', 'Email', NULL
   UNION ALL SELECT 3, 'Phone', 'Phone', NULL
   UNION ALL SELECT 4, 'Country', 'Country', NULL
+  UNION ALL SELECT 5, 'Address', 'Address', NULL
+  UNION ALL SELECT 6, 'City', 'City', NULL
+  UNION ALL SELECT 7, 'Postcode', 'Postcode', NULL
 ) AS `seed`
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_form_fields_en_gb`);
 
@@ -1427,7 +1438,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `id_currency` int(11) NOT NULL,
   `currency_scale` tinyint(1) UNSIGNED DEFAULT NULL COMMENT 'The monetary scale in force when this record was created, 0-8. WRITE-ONCE. Every amount on this record is interpreted, rounded and formatted at THIS scale, never at the current #__alfa_currencies.decimal_place - the currency table is configuration for NEW monetary facts, not authority over ones already made. NULL = a pre-v1 row with no scale authority; it is NOT a zero scale and there is deliberately no runtime fallback to the live row.',
   `conversion_rate` decimal(13,6) NOT NULL DEFAULT 1.000000 COMMENT 'Currency conversion rate at order time',
-  `invoice_number` int(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Sequential invoice number',
   `delivery_date` datetime DEFAULT NULL COMMENT 'When order was delivered',
   `id_address_delivery` int(11) DEFAULT NULL,
   `id_address_invoice` int(11) DEFAULT NULL,
@@ -1461,7 +1471,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   -- The orders of one customer by the e-mail on the order (the REST API's filter[email], 2.2.1), a guest's included.
   KEY `idx_customer_email` (`customer_email`),
   KEY `idx_date_add` (`created`),
-  KEY `idx_invoice_number` (`invoice_number`),
   -- "Waiting for you" counts every order still in the initial status, with no date
   -- bound; it is a queue, not a period. Without this it read the whole table on
   -- every dashboard load, and it is also what the attention signals' NOT IN (...) walk.
@@ -2090,6 +2099,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   `name` varchar(255) NOT NULL,
   `code2` varchar(2) NOT NULL,
   `code3` varchar(3) NOT NULL,
+  `subdivision_code` varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one',
   `currency_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'FK to #__alfa_currencies.id; 0 = none. The default currency this country uses.',
   `parent_id` int(11) DEFAULT 0,
   `state` tinyint(1) NOT NULL DEFAULT 1,
@@ -2109,257 +2119,281 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
 --
 -- Dumping data for table `#__alfa_places`
 --
+-- The countries of ISO 3166-1 (249, by their English short names; Greece published, the others unpublished) and,
+-- below Greece and Spain, the ISO 3166-2 places a shop may scope a tax or a carrier to: Greece's 13 regions and Mount
+-- Athos, and the Canary Islands, Ceuta and Melilla. They are unpublished, so they change nothing until the shop
+-- publishes them. A place below a country carries no country codes (code2 and code3 are empty): its country's codes
+-- are read through the place above it.
 
-INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `currency_id`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`)
-SELECT `seed`.`id`, `seed`.`name`, `seed`.`code2`, `seed`.`code3`, COALESCE(`c`.`id`, `seed`.`currency_id`), `seed`.`parent_id`, `seed`.`state`, `seed`.`ordering`, `seed`.`checked_out`, `seed`.`checked_out_time`, `seed`.`created_by`, `seed`.`modified_by`
+INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `subdivision_code`, `currency_id`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`)
+SELECT `seed`.`id`, `seed`.`name`, `seed`.`code2`, `seed`.`code3`, `seed`.`subdivision_code`, COALESCE(`c`.`id`, `seed`.`currency_id`), `seed`.`parent_id`, `seed`.`state`, `seed`.`ordering`, `seed`.`checked_out`, `seed`.`checked_out_time`, `seed`.`created_by`, `seed`.`modified_by`
 FROM (
-            SELECT 1 AS `id`, 'Afghanistan' AS `name`, 'AF' AS `code2`, 'AFG' AS `code3`, 0 AS `currency_id`, 0 AS `parent_id`, 0 AS `state`, 0 AS `ordering`, NULL AS `checked_out`, NULL AS `checked_out_time`, 42 AS `created_by`, 0 AS `modified_by`
-  UNION ALL SELECT 2, 'Albania', 'AL', 'ALB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 3, 'Algeria', 'DZ', 'DZA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 4, 'American Samoa', 'AS', 'ASM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 5, 'Andorra', 'AD', 'AND', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 6, 'Angola', 'AO', 'AGO', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 7, 'Anguilla', 'AI', 'AIA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 8, 'Antarctica', 'AQ', 'ATA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 9, 'Antigua and Barbuda', 'AG', 'ATG', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 10, 'Argentina', 'AR', 'ARG', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 11, 'Armenia', 'AM', 'ARM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 12, 'Aruba', 'AW', 'ABW', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 13, 'Australia', 'AU', 'AUS', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 14, 'Austria', 'AT', 'AUT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 15, 'Azerbaijan', 'AZ', 'AZE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 16, 'Bahamas', 'BS', 'BHS', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 17, 'Bahrain', 'BH', 'BHR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 18, 'Bangladesh', 'BD', 'BGD', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 19, 'Barbados', 'BB', 'BRB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 20, 'Belarus', 'BY', 'BLR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 21, 'Belgium', 'BE', 'BEL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 22, 'Belize', 'BZ', 'BLZ', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 23, 'Benin', 'BJ', 'BEN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 24, 'Bermuda', 'BM', 'BMU', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 25, 'Bhutan', 'BT', 'BTN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 26, 'Bolivia', 'BO', 'BOL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 27, 'Bosnia and Herzegowina', 'BA', 'BIH', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 28, 'Botswana', 'BW', 'BWA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 29, 'Bouvet Island', 'BV', 'BVT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 30, 'Brazil', 'BR', 'BRA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 31, 'British Indian Ocean Territory', 'IO', 'IOT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 32, 'Brunei Darussalam', 'BN', 'BRN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 33, 'Bulgaria', 'BG', 'BGR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 34, 'Burkina Faso', 'BF', 'BFA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 35, 'Burundi', 'BI', 'BDI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 36, 'Cambodia', 'KH', 'KHM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 37, 'Cameroon', 'CM', 'CMR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 38, 'Canada', 'CA', 'CAN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 39, 'Cape Verde', 'CV', 'CPV', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 40, 'Cayman Islands', 'KY', 'CYM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 41, 'Central African Republic', 'CF', 'CAF', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 42, 'Chad', 'TD', 'TCD', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 43, 'Chile', 'CL', 'CHL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 44, 'China', 'CN', 'CHN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 45, 'Christmas Island', 'CX', 'CXR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 46, 'Cocos (Keeling) Islands', 'CC', 'CCK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 47, 'Colombia', 'CO', 'COL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 48, 'Comoros', 'KM', 'COM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 49, 'Congo', 'CG', 'COG', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 50, 'Cook Islands', 'CK', 'COK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 51, 'Costa Rica', 'CR', 'CRI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 52, 'Cote D\'Ivoire', 'CI', 'CIV', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 53, 'Croatia', 'HR', 'HRV', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 54, 'Cuba', 'CU', 'CUB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 55, 'Cyprus', 'CY', 'CYP', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 56, 'Czech Republic', 'CZ', 'CZE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 57, 'Denmark', 'DK', 'DNK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 58, 'Djibouti', 'DJ', 'DJI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 59, 'Dominica', 'DM', 'DMA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 60, 'Dominican Republic', 'DO', 'DOM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 61, 'East Timor', 'TP', 'TMP', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 62, 'Ecuador', 'EC', 'ECU', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 63, 'Egypt', 'EG', 'EGY', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 64, 'El Salvador', 'SV', 'SLV', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 65, 'Equatorial Guinea', 'GQ', 'GNQ', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 66, 'Eritrea', 'ER', 'ERI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 67, 'Estonia', 'EE', 'EST', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 68, 'Ethiopia', 'ET', 'ETH', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 69, 'Falkland Islands (Malvinas)', 'FK', 'FLK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 70, 'Faroe Islands', 'FO', 'FRO', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 71, 'Fiji', 'FJ', 'FJI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 72, 'Finland', 'FI', 'FIN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 73, 'France', 'FR', 'FRA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 75, 'French Guiana', 'GF', 'GUF', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 76, 'French Polynesia', 'PF', 'PYF', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 77, 'French Southern Territories', 'TF', 'ATF', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 78, 'Gabon', 'GA', 'GAB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 79, 'Gambia', 'GM', 'GMB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 80, 'Georgia', 'GE', 'GEO', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 81, 'Germany', 'DE', 'DEU', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 82, 'Ghana', 'GH', 'GHA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 83, 'Gibraltar', 'GI', 'GIB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 84, 'Greece', 'GR', 'GRC', 0, 0, 1, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 85, 'Greenland', 'GL', 'GRL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 86, 'Grenada', 'GD', 'GRD', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 87, 'Guadeloupe', 'GP', 'GLP', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 88, 'Guam', 'GU', 'GUM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 89, 'Guatemala', 'GT', 'GTM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 90, 'Guinea', 'GN', 'GIN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 91, 'Guinea-bissau', 'GW', 'GNB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 92, 'Guyana', 'GY', 'GUY', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 93, 'Haiti', 'HT', 'HTI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 94, 'Heard and Mc Donald Islands', 'HM', 'HMD', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 95, 'Honduras', 'HN', 'HND', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 96, 'Hong Kong', 'HK', 'HKG', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 97, 'Hungary', 'HU', 'HUN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 98, 'Iceland', 'IS', 'ISL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 99, 'India', 'IN', 'IND', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 100, 'Indonesia', 'ID', 'IDN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 101, 'Iran (Islamic Republic of)', 'IR', 'IRN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 102, 'Iraq', 'IQ', 'IRQ', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 103, 'Ireland', 'IE', 'IRL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 104, 'Israel', 'IL', 'ISR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 105, 'Italy', 'IT', 'ITA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 106, 'Jamaica', 'JM', 'JAM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 107, 'Japan', 'JP', 'JPN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 108, 'Jordan', 'JO', 'JOR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 109, 'Kazakhstan', 'KZ', 'KAZ', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 110, 'Kenya', 'KE', 'KEN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 111, 'Kiribati', 'KI', 'KIR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 112, 'Korea, Democratic People\'s Republic of', 'KP', 'PRK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 113, 'Korea, Republic of', 'KR', 'KOR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 114, 'Kuwait', 'KW', 'KWT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 115, 'Kyrgyzstan', 'KG', 'KGZ', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 116, 'Lao People\'s Democratic Republic', 'LA', 'LAO', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 117, 'Latvia', 'LV', 'LVA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 118, 'Lebanon', 'LB', 'LBN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 119, 'Lesotho', 'LS', 'LSO', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 120, 'Liberia', 'LR', 'LBR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 121, 'Libya', 'LY', 'LBY', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 122, 'Liechtenstein', 'LI', 'LIE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 123, 'Lithuania', 'LT', 'LTU', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 124, 'Luxembourg', 'LU', 'LUX', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 125, 'Macau', 'MO', 'MAC', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 126, 'Macedonia, The Former Yugoslav Republic of', 'MK', 'MKD', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 127, 'Madagascar', 'MG', 'MDG', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 128, 'Malawi', 'MW', 'MWI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 129, 'Malaysia', 'MY', 'MYS', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 130, 'Maldives', 'MV', 'MDV', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 131, 'Mali', 'ML', 'MLI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 132, 'Malta', 'MT', 'MLT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 133, 'Marshall Islands', 'MH', 'MHL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 134, 'Martinique', 'MQ', 'MTQ', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 135, 'Mauritania', 'MR', 'MRT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 136, 'Mauritius', 'MU', 'MUS', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 137, 'Mayotte', 'YT', 'MYT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 138, 'Mexico', 'MX', 'MEX', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 139, 'Micronesia, Federated States of', 'FM', 'FSM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 140, 'Moldova, Republic of', 'MD', 'MDA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 141, 'Monaco', 'MC', 'MCO', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 142, 'Mongolia', 'MN', 'MNG', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 143, 'Montserrat', 'MS', 'MSR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 144, 'Morocco', 'MA', 'MAR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 145, 'Mozambique', 'MZ', 'MOZ', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 146, 'Myanmar', 'MM', 'MMR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 147, 'Namibia', 'NA', 'NAM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 148, 'Nauru', 'NR', 'NRU', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 149, 'Nepal', 'NP', 'NPL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 150, 'Netherlands', 'NL', 'NLD', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 151, 'Netherlands Antilles', 'AN', 'ANT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 152, 'New Caledonia', 'NC', 'NCL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 153, 'New Zealand', 'NZ', 'NZL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 154, 'Nicaragua', 'NI', 'NIC', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 155, 'Niger', 'NE', 'NER', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 156, 'Nigeria', 'NG', 'NGA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 157, 'Niue', 'NU', 'NIU', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 158, 'Norfolk Island', 'NF', 'NFK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 159, 'Northern Mariana Islands', 'MP', 'MNP', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 160, 'Norway', 'NO', 'NOR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 161, 'Oman', 'OM', 'OMN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 162, 'Pakistan', 'PK', 'PAK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 163, 'Palau', 'PW', 'PLW', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 164, 'Panama', 'PA', 'PAN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 165, 'Papua New Guinea', 'PG', 'PNG', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 166, 'Paraguay', 'PY', 'PRY', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 167, 'Peru', 'PE', 'PER', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 168, 'Philippines', 'PH', 'PHL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 169, 'Pitcairn', 'PN', 'PCN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 170, 'Poland', 'PL', 'POL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 171, 'Portugal', 'PT', 'PRT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 172, 'Puerto Rico', 'PR', 'PRI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 173, 'Qatar', 'QA', 'QAT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 174, 'Reunion', 'RE', 'REU', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 175, 'Romania', 'RO', 'ROM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 176, 'Russian Federation', 'RU', 'RUS', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 177, 'Rwanda', 'RW', 'RWA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 178, 'Saint Kitts and Nevis', 'KN', 'KNA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 179, 'Saint Lucia', 'LC', 'LCA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 180, 'Saint Vincent and the Grenadines', 'VC', 'VCT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 181, 'Samoa', 'WS', 'WSM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 182, 'San Marino', 'SM', 'SMR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 183, 'Sao Tome and Principe', 'ST', 'STP', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 184, 'Saudi Arabia', 'SA', 'SAU', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 185, 'Senegal', 'SN', 'SEN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 186, 'Seychelles', 'SC', 'SYC', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 187, 'Sierra Leone', 'SL', 'SLE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 188, 'Singapore', 'SG', 'SGP', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 189, 'Slovakia', 'SK', 'SVK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 190, 'Slovenia', 'SI', 'SVN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 191, 'Solomon Islands', 'SB', 'SLB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 192, 'Somalia', 'SO', 'SOM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 193, 'South Africa', 'ZA', 'ZAF', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 194, 'South Georgia and the South Sandwich Islands', 'GS', 'SGS', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 195, 'Spain', 'ES', 'ESP', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 196, 'Sri Lanka', 'LK', 'LKA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 197, 'St. Helena', 'SH', 'SHN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 198, 'St. Pierre and Miquelon', 'PM', 'SPM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 199, 'Sudan', 'SD', 'SDN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 200, 'Suriname', 'SR', 'SUR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 201, 'Svalbard and Jan Mayen Islands', 'SJ', 'SJM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 202, 'Swaziland', 'SZ', 'SWZ', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 203, 'Sweden', 'SE', 'SWE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 204, 'Switzerland', 'CH', 'CHE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 205, 'Syrian Arab Republic', 'SY', 'SYR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 206, 'Taiwan', 'TW', 'TWN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 207, 'Tajikistan', 'TJ', 'TJK', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 208, 'Tanzania, United Republic of', 'TZ', 'TZA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 209, 'Thailand', 'TH', 'THA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 210, 'Togo', 'TG', 'TGO', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 211, 'Tokelau', 'TK', 'TKL', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 212, 'Tonga', 'TO', 'TON', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 213, 'Trinidad and Tobago', 'TT', 'TTO', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 214, 'Tunisia', 'TN', 'TUN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 215, 'Turkey', 'TR', 'TUR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 216, 'Turkmenistan', 'TM', 'TKM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 217, 'Turks and Caicos Islands', 'TC', 'TCA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 218, 'Tuvalu', 'TV', 'TUV', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 219, 'Uganda', 'UG', 'UGA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 220, 'Ukraine', 'UA', 'UKR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 221, 'United Arab Emirates', 'AE', 'ARE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 222, 'United Kingdom', 'GB', 'GBR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 223, 'United States', 'US', 'USA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 224, 'United States Minor Outlying Islands', 'UM', 'UMI', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 225, 'Uruguay', 'UY', 'URY', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 226, 'Uzbekistan', 'UZ', 'UZB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 227, 'Vanuatu', 'VU', 'VUT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 228, 'Vatican City State (Holy See)', 'VA', 'VAT', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 229, 'Venezuela', 'VE', 'VEN', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 230, 'Viet Nam', 'VN', 'VNM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 231, 'Virgin Islands (British)', 'VG', 'VGB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 232, 'Virgin Islands (U.S.)', 'VI', 'VIR', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 233, 'Wallis and Futuna Islands', 'WF', 'WLF', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 234, 'Western Sahara', 'EH', 'ESH', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 235, 'Yemen', 'YE', 'YEM', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 237, 'The Democratic Republic of Congo', 'DC', 'DRC', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 238, 'Zambia', 'ZM', 'ZMB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 239, 'Zimbabwe', 'ZW', 'ZWE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 240, 'East Timor', 'XE', 'XET', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 241, 'Jersey', 'JE', 'JEY', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 242, 'St. Barthelemy', 'XB', 'XSB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 243, 'St. Eustatius', 'XU', 'XSE', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 244, 'Canary Islands', 'XC', 'XCA', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 245, 'Serbia', 'RS', 'SRB', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 246, 'Sint Maarten (French Antilles)', 'MF', 'MAF', 0, 0, 0, 0, NULL, NULL, 42, 0
-  UNION ALL SELECT 247, 'Sint Maarten (Netherlands Antilles)', 'SX', 'SXM', 0, 0, 0, 0, NULL, NULL, 42, 923
-  UNION ALL SELECT 248, 'Palestinian Territory, occupied', 'PS', 'PSE', 0, 0, 0, 0, NULL, NULL, 42, 923
-  UNION ALL SELECT 249, 'Larisa', 'ZZ', 'LAR', 0, 84, 1, 1, NULL, NULL, 923, 923
+            SELECT 1 AS `id`, 'Afghanistan' AS `name`, 'AF' AS `code2`, 'AFG' AS `code3`, NULL AS `subdivision_code`, 0 AS `currency_id`, 0 AS `parent_id`, 0 AS `state`, 0 AS `ordering`, NULL AS `checked_out`, NULL AS `checked_out_time`, 42 AS `created_by`, 0 AS `modified_by`
+  UNION ALL SELECT 2, 'Albania', 'AL', 'ALB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 3, 'Algeria', 'DZ', 'DZA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 4, 'American Samoa', 'AS', 'ASM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 5, 'Andorra', 'AD', 'AND', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 6, 'Angola', 'AO', 'AGO', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 7, 'Anguilla', 'AI', 'AIA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 8, 'Antarctica', 'AQ', 'ATA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 9, 'Antigua and Barbuda', 'AG', 'ATG', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 10, 'Argentina', 'AR', 'ARG', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 11, 'Armenia', 'AM', 'ARM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 12, 'Aruba', 'AW', 'ABW', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 13, 'Australia', 'AU', 'AUS', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 14, 'Austria', 'AT', 'AUT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 15, 'Azerbaijan', 'AZ', 'AZE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 16, 'Bahamas', 'BS', 'BHS', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 17, 'Bahrain', 'BH', 'BHR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 18, 'Bangladesh', 'BD', 'BGD', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 19, 'Barbados', 'BB', 'BRB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 20, 'Belarus', 'BY', 'BLR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 21, 'Belgium', 'BE', 'BEL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 22, 'Belize', 'BZ', 'BLZ', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 23, 'Benin', 'BJ', 'BEN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 24, 'Bermuda', 'BM', 'BMU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 25, 'Bhutan', 'BT', 'BTN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 26, 'Bolivia', 'BO', 'BOL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 27, 'Bosnia and Herzegovina', 'BA', 'BIH', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 28, 'Botswana', 'BW', 'BWA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 29, 'Bouvet Island', 'BV', 'BVT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 30, 'Brazil', 'BR', 'BRA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 31, 'British Indian Ocean Territory', 'IO', 'IOT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 32, 'Brunei Darussalam', 'BN', 'BRN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 33, 'Bulgaria', 'BG', 'BGR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 34, 'Burkina Faso', 'BF', 'BFA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 35, 'Burundi', 'BI', 'BDI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 36, 'Cambodia', 'KH', 'KHM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 37, 'Cameroon', 'CM', 'CMR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 38, 'Canada', 'CA', 'CAN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 39, 'Cabo Verde', 'CV', 'CPV', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 40, 'Cayman Islands', 'KY', 'CYM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 41, 'Central African Republic', 'CF', 'CAF', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 42, 'Chad', 'TD', 'TCD', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 43, 'Chile', 'CL', 'CHL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 44, 'China', 'CN', 'CHN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 45, 'Christmas Island', 'CX', 'CXR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 46, 'Cocos (Keeling) Islands', 'CC', 'CCK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 47, 'Colombia', 'CO', 'COL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 48, 'Comoros', 'KM', 'COM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 49, 'Congo', 'CG', 'COG', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 50, 'Cook Islands', 'CK', 'COK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 51, 'Costa Rica', 'CR', 'CRI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 52, 'Côte d\'Ivoire', 'CI', 'CIV', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 53, 'Croatia', 'HR', 'HRV', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 54, 'Cuba', 'CU', 'CUB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 55, 'Cyprus', 'CY', 'CYP', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 56, 'Czechia', 'CZ', 'CZE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 57, 'Denmark', 'DK', 'DNK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 58, 'Djibouti', 'DJ', 'DJI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 59, 'Dominica', 'DM', 'DMA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 60, 'Dominican Republic', 'DO', 'DOM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 61, 'Timor-Leste', 'TL', 'TLS', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 62, 'Ecuador', 'EC', 'ECU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 63, 'Egypt', 'EG', 'EGY', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 64, 'El Salvador', 'SV', 'SLV', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 65, 'Equatorial Guinea', 'GQ', 'GNQ', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 66, 'Eritrea', 'ER', 'ERI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 67, 'Estonia', 'EE', 'EST', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 68, 'Ethiopia', 'ET', 'ETH', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 69, 'Falkland Islands (Malvinas)', 'FK', 'FLK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 70, 'Faroe Islands', 'FO', 'FRO', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 71, 'Fiji', 'FJ', 'FJI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 72, 'Finland', 'FI', 'FIN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 73, 'France', 'FR', 'FRA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 75, 'French Guiana', 'GF', 'GUF', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 76, 'French Polynesia', 'PF', 'PYF', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 77, 'French Southern Territories', 'TF', 'ATF', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 78, 'Gabon', 'GA', 'GAB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 79, 'Gambia', 'GM', 'GMB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 80, 'Georgia', 'GE', 'GEO', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 81, 'Germany', 'DE', 'DEU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 82, 'Ghana', 'GH', 'GHA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 83, 'Gibraltar', 'GI', 'GIB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 84, 'Greece', 'GR', 'GRC', NULL, 0, 0, 1, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 85, 'Greenland', 'GL', 'GRL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 86, 'Grenada', 'GD', 'GRD', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 87, 'Guadeloupe', 'GP', 'GLP', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 88, 'Guam', 'GU', 'GUM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 89, 'Guatemala', 'GT', 'GTM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 90, 'Guinea', 'GN', 'GIN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 91, 'Guinea-Bissau', 'GW', 'GNB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 92, 'Guyana', 'GY', 'GUY', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 93, 'Haiti', 'HT', 'HTI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 94, 'Heard Island and McDonald Islands', 'HM', 'HMD', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 95, 'Honduras', 'HN', 'HND', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 96, 'Hong Kong', 'HK', 'HKG', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 97, 'Hungary', 'HU', 'HUN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 98, 'Iceland', 'IS', 'ISL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 99, 'India', 'IN', 'IND', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 100, 'Indonesia', 'ID', 'IDN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 101, 'Iran (Islamic Republic of)', 'IR', 'IRN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 102, 'Iraq', 'IQ', 'IRQ', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 103, 'Ireland', 'IE', 'IRL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 104, 'Israel', 'IL', 'ISR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 105, 'Italy', 'IT', 'ITA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 106, 'Jamaica', 'JM', 'JAM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 107, 'Japan', 'JP', 'JPN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 108, 'Jordan', 'JO', 'JOR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 109, 'Kazakhstan', 'KZ', 'KAZ', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 110, 'Kenya', 'KE', 'KEN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 111, 'Kiribati', 'KI', 'KIR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 112, 'Korea, Democratic People\'s Republic of', 'KP', 'PRK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 113, 'Korea, Republic of', 'KR', 'KOR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 114, 'Kuwait', 'KW', 'KWT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 115, 'Kyrgyzstan', 'KG', 'KGZ', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 116, 'Lao People\'s Democratic Republic', 'LA', 'LAO', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 117, 'Latvia', 'LV', 'LVA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 118, 'Lebanon', 'LB', 'LBN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 119, 'Lesotho', 'LS', 'LSO', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 120, 'Liberia', 'LR', 'LBR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 121, 'Libya', 'LY', 'LBY', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 122, 'Liechtenstein', 'LI', 'LIE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 123, 'Lithuania', 'LT', 'LTU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 124, 'Luxembourg', 'LU', 'LUX', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 125, 'Macao', 'MO', 'MAC', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 126, 'North Macedonia', 'MK', 'MKD', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 127, 'Madagascar', 'MG', 'MDG', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 128, 'Malawi', 'MW', 'MWI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 129, 'Malaysia', 'MY', 'MYS', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 130, 'Maldives', 'MV', 'MDV', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 131, 'Mali', 'ML', 'MLI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 132, 'Malta', 'MT', 'MLT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 133, 'Marshall Islands', 'MH', 'MHL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 134, 'Martinique', 'MQ', 'MTQ', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 135, 'Mauritania', 'MR', 'MRT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 136, 'Mauritius', 'MU', 'MUS', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 137, 'Mayotte', 'YT', 'MYT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 138, 'Mexico', 'MX', 'MEX', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 139, 'Micronesia, Federated States of', 'FM', 'FSM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 140, 'Moldova, Republic of', 'MD', 'MDA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 141, 'Monaco', 'MC', 'MCO', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 142, 'Mongolia', 'MN', 'MNG', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 143, 'Montserrat', 'MS', 'MSR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 144, 'Morocco', 'MA', 'MAR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 145, 'Mozambique', 'MZ', 'MOZ', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 146, 'Myanmar', 'MM', 'MMR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 147, 'Namibia', 'NA', 'NAM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 148, 'Nauru', 'NR', 'NRU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 149, 'Nepal', 'NP', 'NPL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 150, 'Netherlands', 'NL', 'NLD', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 152, 'New Caledonia', 'NC', 'NCL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 153, 'New Zealand', 'NZ', 'NZL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 154, 'Nicaragua', 'NI', 'NIC', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 155, 'Niger', 'NE', 'NER', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 156, 'Nigeria', 'NG', 'NGA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 157, 'Niue', 'NU', 'NIU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 158, 'Norfolk Island', 'NF', 'NFK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 159, 'Northern Mariana Islands', 'MP', 'MNP', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 160, 'Norway', 'NO', 'NOR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 161, 'Oman', 'OM', 'OMN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 162, 'Pakistan', 'PK', 'PAK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 163, 'Palau', 'PW', 'PLW', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 164, 'Panama', 'PA', 'PAN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 165, 'Papua New Guinea', 'PG', 'PNG', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 166, 'Paraguay', 'PY', 'PRY', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 167, 'Peru', 'PE', 'PER', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 168, 'Philippines', 'PH', 'PHL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 169, 'Pitcairn', 'PN', 'PCN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 170, 'Poland', 'PL', 'POL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 171, 'Portugal', 'PT', 'PRT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 172, 'Puerto Rico', 'PR', 'PRI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 173, 'Qatar', 'QA', 'QAT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 174, 'Réunion', 'RE', 'REU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 175, 'Romania', 'RO', 'ROU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 176, 'Russian Federation', 'RU', 'RUS', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 177, 'Rwanda', 'RW', 'RWA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 178, 'Saint Kitts and Nevis', 'KN', 'KNA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 179, 'Saint Lucia', 'LC', 'LCA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 180, 'Saint Vincent and the Grenadines', 'VC', 'VCT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 181, 'Samoa', 'WS', 'WSM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 182, 'San Marino', 'SM', 'SMR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 183, 'Sao Tome and Principe', 'ST', 'STP', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 184, 'Saudi Arabia', 'SA', 'SAU', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 185, 'Senegal', 'SN', 'SEN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 186, 'Seychelles', 'SC', 'SYC', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 187, 'Sierra Leone', 'SL', 'SLE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 188, 'Singapore', 'SG', 'SGP', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 189, 'Slovakia', 'SK', 'SVK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 190, 'Slovenia', 'SI', 'SVN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 191, 'Solomon Islands', 'SB', 'SLB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 192, 'Somalia', 'SO', 'SOM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 193, 'South Africa', 'ZA', 'ZAF', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 194, 'South Georgia and the South Sandwich Islands', 'GS', 'SGS', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 195, 'Spain', 'ES', 'ESP', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 196, 'Sri Lanka', 'LK', 'LKA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 197, 'Saint Helena, Ascension and Tristan da Cunha', 'SH', 'SHN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 198, 'Saint Pierre and Miquelon', 'PM', 'SPM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 199, 'Sudan', 'SD', 'SDN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 200, 'Suriname', 'SR', 'SUR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 201, 'Svalbard and Jan Mayen', 'SJ', 'SJM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 202, 'Eswatini', 'SZ', 'SWZ', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 203, 'Sweden', 'SE', 'SWE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 204, 'Switzerland', 'CH', 'CHE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 205, 'Syrian Arab Republic', 'SY', 'SYR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 206, 'Taiwan', 'TW', 'TWN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 207, 'Tajikistan', 'TJ', 'TJK', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 208, 'Tanzania, United Republic of', 'TZ', 'TZA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 209, 'Thailand', 'TH', 'THA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 210, 'Togo', 'TG', 'TGO', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 211, 'Tokelau', 'TK', 'TKL', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 212, 'Tonga', 'TO', 'TON', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 213, 'Trinidad and Tobago', 'TT', 'TTO', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 214, 'Tunisia', 'TN', 'TUN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 215, 'Türkiye', 'TR', 'TUR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 216, 'Turkmenistan', 'TM', 'TKM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 217, 'Turks and Caicos Islands', 'TC', 'TCA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 218, 'Tuvalu', 'TV', 'TUV', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 219, 'Uganda', 'UG', 'UGA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 220, 'Ukraine', 'UA', 'UKR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 221, 'United Arab Emirates', 'AE', 'ARE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 222, 'United Kingdom', 'GB', 'GBR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 223, 'United States', 'US', 'USA', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 224, 'United States Minor Outlying Islands', 'UM', 'UMI', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 225, 'Uruguay', 'UY', 'URY', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 226, 'Uzbekistan', 'UZ', 'UZB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 227, 'Vanuatu', 'VU', 'VUT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 228, 'Holy See', 'VA', 'VAT', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 229, 'Venezuela', 'VE', 'VEN', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 230, 'Viet Nam', 'VN', 'VNM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 231, 'Virgin Islands (British)', 'VG', 'VGB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 232, 'Virgin Islands (U.S.)', 'VI', 'VIR', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 233, 'Wallis and Futuna', 'WF', 'WLF', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 234, 'Western Sahara', 'EH', 'ESH', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 235, 'Yemen', 'YE', 'YEM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 237, 'Congo, Democratic Republic of the', 'CD', 'COD', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 238, 'Zambia', 'ZM', 'ZMB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 239, 'Zimbabwe', 'ZW', 'ZWE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 241, 'Jersey', 'JE', 'JEY', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 242, 'Saint Barthélemy', 'BL', 'BLM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 245, 'Serbia', 'RS', 'SRB', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 246, 'Saint Martin (French part)', 'MF', 'MAF', NULL, 0, 0, 0, 0, NULL, NULL, 42, 0
+  UNION ALL SELECT 247, 'Sint Maarten (Dutch part)', 'SX', 'SXM', NULL, 0, 0, 0, 0, NULL, NULL, 42, 923
+  UNION ALL SELECT 248, 'Palestine, State of', 'PS', 'PSE', NULL, 0, 0, 0, 0, NULL, NULL, 42, 923
+  UNION ALL SELECT 250, 'Åland Islands', 'AX', 'ALA', NULL, 0, 0, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 251, 'Bonaire, Sint Eustatius and Saba', 'BQ', 'BES', NULL, 0, 0, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 252, 'Curaçao', 'CW', 'CUW', NULL, 0, 0, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 253, 'Guernsey', 'GG', 'GGY', NULL, 0, 0, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 254, 'Isle of Man', 'IM', 'IMN', NULL, 0, 0, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 255, 'Montenegro', 'ME', 'MNE', NULL, 0, 0, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 256, 'South Sudan', 'SS', 'SSD', NULL, 0, 0, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 257, 'East Macedonia and Thrace', '', '', 'GR-A', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 258, 'Central Macedonia', '', '', 'GR-B', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 259, 'West Macedonia', '', '', 'GR-C', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 260, 'Epirus', '', '', 'GR-D', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 261, 'Thessaly', '', '', 'GR-E', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 262, 'Ionian Islands', '', '', 'GR-F', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 263, 'West Greece', '', '', 'GR-G', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 264, 'Central Greece', '', '', 'GR-H', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 265, 'Attica', '', '', 'GR-I', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 266, 'Peloponnese', '', '', 'GR-J', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 267, 'North Aegean', '', '', 'GR-K', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 268, 'South Aegean', '', '', 'GR-L', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 269, 'Crete', '', '', 'GR-M', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 270, 'Mount Athos', '', '', 'GR-69', 0, 84, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 271, 'Canary Islands', '', '', 'ES-CN', 0, 195, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 272, 'Ceuta', '', '', 'ES-CE', 0, 195, 0, 0, NULL, NULL, 0, 0
+  UNION ALL SELECT 273, 'Melilla', '', '', 'ES-ML', 0, 195, 0, 0, NULL, NULL, 0, 0
 ) AS `seed`
 -- Each country takes the default currency of its ISO code, joined on the
 -- currency code (id-agnostic). A country whose currency is not seeded keeps 0.
@@ -2371,34 +2405,37 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'AI' THEN 'XCD'
     WHEN 'AL' THEN 'ALL'
     WHEN 'AM' THEN 'AMD'
-    WHEN 'AN' THEN 'ANG'
     WHEN 'AO' THEN 'AOA'
     WHEN 'AR' THEN 'ARS'
     WHEN 'AS' THEN 'USD'
     WHEN 'AT' THEN 'EUR'
     WHEN 'AU' THEN 'AUD'
     WHEN 'AW' THEN 'AWG'
+    WHEN 'AX' THEN 'EUR'
     WHEN 'AZ' THEN 'AZN'
     WHEN 'BA' THEN 'BAM'
     WHEN 'BB' THEN 'BBD'
     WHEN 'BD' THEN 'BDT'
     WHEN 'BE' THEN 'EUR'
     WHEN 'BF' THEN 'XOF'
-    WHEN 'BG' THEN 'BGN'
+    WHEN 'BG' THEN 'EUR'
     WHEN 'BH' THEN 'BHD'
     WHEN 'BI' THEN 'BIF'
     WHEN 'BJ' THEN 'XOF'
+    WHEN 'BL' THEN 'EUR'
     WHEN 'BM' THEN 'BMD'
     WHEN 'BN' THEN 'BND'
     WHEN 'BO' THEN 'BOB'
+    WHEN 'BQ' THEN 'USD'
     WHEN 'BR' THEN 'BRL'
     WHEN 'BS' THEN 'BSD'
     WHEN 'BT' THEN 'BTN'
     WHEN 'BW' THEN 'BWP'
-    WHEN 'BY' THEN 'BYR'
+    WHEN 'BY' THEN 'BYN'
     WHEN 'BZ' THEN 'BZD'
     WHEN 'CA' THEN 'CAD'
     WHEN 'CC' THEN 'AUD'
+    WHEN 'CD' THEN 'CDF'
     WHEN 'CF' THEN 'XAF'
     WHEN 'CG' THEN 'XAF'
     WHEN 'CH' THEN 'CHF'
@@ -2411,10 +2448,10 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'CR' THEN 'CRC'
     WHEN 'CU' THEN 'CUP'
     WHEN 'CV' THEN 'CVE'
+    WHEN 'CW' THEN 'XCG'
     WHEN 'CX' THEN 'AUD'
     WHEN 'CY' THEN 'EUR'
     WHEN 'CZ' THEN 'CZK'
-    WHEN 'DC' THEN 'CDF'
     WHEN 'DE' THEN 'EUR'
     WHEN 'DJ' THEN 'DJF'
     WHEN 'DK' THEN 'DKK'
@@ -2438,6 +2475,7 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'GD' THEN 'XCD'
     WHEN 'GE' THEN 'GEL'
     WHEN 'GF' THEN 'EUR'
+    WHEN 'GG' THEN 'GBP'
     WHEN 'GH' THEN 'GHS'
     WHEN 'GI' THEN 'GIP'
     WHEN 'GL' THEN 'DKK'
@@ -2458,6 +2496,7 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'ID' THEN 'IDR'
     WHEN 'IE' THEN 'EUR'
     WHEN 'IL' THEN 'ILS'
+    WHEN 'IM' THEN 'GBP'
     WHEN 'IN' THEN 'INR'
     WHEN 'IO' THEN 'USD'
     WHEN 'IQ' THEN 'IQD'
@@ -2503,7 +2542,7 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'MN' THEN 'MNT'
     WHEN 'MO' THEN 'MOP'
     WHEN 'MQ' THEN 'EUR'
-    WHEN 'MR' THEN 'MRO'
+    WHEN 'MR' THEN 'MRU'
     WHEN 'MS' THEN 'XCD'
     WHEN 'MT' THEN 'EUR'
     WHEN 'MU' THEN 'MUR'
@@ -2554,14 +2593,15 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'SI' THEN 'EUR'
     WHEN 'SJ' THEN 'NOK'
     WHEN 'SK' THEN 'EUR'
-    WHEN 'SL' THEN 'SLL'
+    WHEN 'SL' THEN 'SLE'
     WHEN 'SM' THEN 'EUR'
     WHEN 'SN' THEN 'XOF'
     WHEN 'SO' THEN 'SOS'
     WHEN 'SR' THEN 'SRD'
-    WHEN 'ST' THEN 'STD'
+    WHEN 'SS' THEN 'SSP'
+    WHEN 'ST' THEN 'STN'
     WHEN 'SV' THEN 'USD'
-    WHEN 'SX' THEN 'ANG'
+    WHEN 'SX' THEN 'XCG'
     WHEN 'SY' THEN 'SYP'
     WHEN 'SZ' THEN 'SZL'
     WHEN 'TC' THEN 'USD'
@@ -2569,7 +2609,8 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'TG' THEN 'XOF'
     WHEN 'TH' THEN 'THB'
     WHEN 'TJ' THEN 'TJS'
-    WHEN 'TM' THEN 'USD'
+    WHEN 'TL' THEN 'USD'
+    WHEN 'TM' THEN 'TMT'
     WHEN 'TN' THEN 'TND'
     WHEN 'TO' THEN 'TOP'
     WHEN 'TR' THEN 'TRY'
@@ -2585,20 +2626,18 @@ LEFT JOIN `#__alfa_currencies` `c` ON `c`.`code` = CASE `seed`.`code2`
     WHEN 'UZ' THEN 'UZS'
     WHEN 'VA' THEN 'EUR'
     WHEN 'VC' THEN 'XCD'
-    WHEN 'VE' THEN 'VEF'
+    WHEN 'VE' THEN 'VES'
     WHEN 'VG' THEN 'USD'
     WHEN 'VI' THEN 'USD'
     WHEN 'VN' THEN 'VND'
     WHEN 'VU' THEN 'VUV'
     WHEN 'WF' THEN 'XPF'
     WHEN 'WS' THEN 'WST'
-    WHEN 'XC' THEN 'EUR'
     WHEN 'YE' THEN 'YER'
     WHEN 'YT' THEN 'EUR'
     WHEN 'ZA' THEN 'ZAR'
-    WHEN 'ZM' THEN 'ZMK'
-    WHEN 'ZW' THEN 'ZWD'
-    WHEN 'ZZ' THEN 'EUR'
+    WHEN 'ZM' THEN 'ZMW'
+    WHEN 'ZW' THEN 'ZWG'
 END
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_places`);
 
@@ -2812,6 +2851,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_user_info` (
   `email` varchar(254) DEFAULT NULL,
   `phone` varchar(20) DEFAULT NULL,
   `country` int(11) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `postcode` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

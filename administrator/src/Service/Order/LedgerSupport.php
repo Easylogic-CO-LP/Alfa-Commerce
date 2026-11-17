@@ -462,9 +462,7 @@ trait LedgerSupport
 
     /**
      * Insert or update a ledger row, keyed by the primary key present in
-     * $data. Unknown keys are stripped to real table columns, and the three
-     * nullable-column sets are sanitised ('' -> null) so MySQL strict mode
-     * accepts them. On insert, the new PK is written back into $data.
+     * $data, and tell of a failure through warn() ({@see self::writeRow()}).
      *
      * @param array $data Row data (by reference; PK back-filled on insert).
      *
@@ -474,6 +472,36 @@ trait LedgerSupport
      */
     private static function saveToTable(array &$data): bool
     {
+        $failure = self::writeRow($data);
+
+        if ($failure !== null) {
+            self::warn($failure);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Insert or update a ledger row, keyed by the primary key present in
+     * $data. Unknown keys are stripped to real table columns, and the three
+     * nullable-column sets are sanitised ('' -> null) so MySQL strict mode
+     * accepts them. On insert, the new PK is written back into $data.
+     *
+     * The failure is answered, not told: the caller logs it, and decides who
+     * reads it (saveToTable() through warn(); the payments ledger's create()
+     * and update() through their refusal, which queues no database text, 2.2.1).
+     *
+     * @param array $data Row data (by reference; PK back-filled on insert).
+     *
+     * @return string|null Null when the row is written; otherwise the failure's
+     *                     detail for the log, a driver's message included.
+     *
+     * @since  2.2.1
+     */
+    private static function writeRow(array &$data): ?string
+    {
         $db = self::db();
 
         // Filter to real DB columns: unknown keys safely stripped
@@ -481,8 +509,7 @@ trait LedgerSupport
         $filtered = array_intersect_key($data, $tableColumns);
 
         if (empty($filtered)) {
-            self::warn('saveToTable(): no valid columns after filtering');
-            return false;
+            return 'saveToTable(): no valid columns after filtering';
         }
 
         // Sanitize nullable columns: forms send '' which MySQL strict rejects
@@ -534,11 +561,10 @@ trait LedgerSupport
                 throw $e;
             }
 
-            self::warn('saveToTable() failed: ' . $e->getMessage());
-            return false;
+            return 'saveToTable() failed: ' . $e->getMessage();
         }
 
-        return true;
+        return null;
     }
 
     /**

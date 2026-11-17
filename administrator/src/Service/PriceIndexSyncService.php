@@ -31,6 +31,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
@@ -138,9 +139,9 @@ use Throwable;
  *
  *   CategoryModel::delete()      -> syncItems()      (the products that lost a category)
  *   ManufacturerModel::delete()  -> syncItems()      (the products that lost a manufacturer, via ProjectionManager)
- *   PlaceModel::delete()         -> the places' own rows are deleted; no rule widens (RuleScopeGuard)
- *   PlaceModel::save() (a new parent), or a delete that leaves places
- *   without their parent          -> oweChainRebuild() (2.2.1)
+ *   PlaceModel::delete()         -> the places' own rows are deleted; no rule widens (RuleScopeGuard), and no
+ *                                   place is left without its parent: the delete is refused (2.2.1)
+ *   PlaceModel::save() (a new parent) -> oweChainRebuild() (2.2.1)
  *
  *   A user group saved under another parent, or removed; an account saved
  *   into another set of groups, or removed; the users component's options
@@ -1036,13 +1037,14 @@ class PriceIndexSyncService
     }
 
     /**
-     * The catalogue's rebuild owed when places take another parent, or lose it
-     * to a delete (2.2.1): every slot of a place at or below them was priced
-     * with the chain it had. Owed only when such a slot exists: a place no
-     * discount, tax or price row names, with none below it, keeps no slot, and
-     * the reader follows the tree as it is.
+     * The catalogue's rebuild owed when places take another parent (2.2.1):
+     * every slot of a place at or below them was priced with the chain it had.
+     * Owed only when such a slot exists: a place no discount, tax or price row
+     * names, with none below it, keeps no slot, and the reader follows the tree
+     * as it is. A delete never leaves a place without its parent (PlaceModel
+     * refuses it), so it owes none.
      *
-     * @param int[] $placeIds The places that took another parent, or the children of the places deleted.
+     * @param int[] $placeIds The places that took another parent.
      *
      * @return bool Whether the rebuild was owed (every product marked and the catalogue job enqueued).
      *
@@ -1303,6 +1305,14 @@ class PriceIndexSyncService
      * waiting for its preparation only for the products its preparation has
      * passed (combination 'through'), so its other rows stay its preparer's.
      *
+     * One fresh instant per chunk (2.2.1), read here: it is the clock the item boundaries are judged at and the moment
+     * the live segment is priced at. The global boundaries were read on their own fresh clock, never later than it.
+     * Factory::getDate() keeps the time of its first call for the whole process, so a task run, a console command or
+     * a queue would otherwise judge every chunk at the process's first instant, and the edges that passed since would
+     * fill the segments and cut a real future edge. The edges must never be judged later than the live segment is
+     * priced: an edge passed in between would be dropped while the live segment still had the prices from before it.
+     * ActiveDateCondition::now(), the storefront request's clock, is left as it is.
+     *
      * @param int[] $chunk The products.
      * @param array $combinations From getActiveContextCombinations().
      * @param string[] $globalEdges From getGlobalBoundaries().
@@ -1319,7 +1329,8 @@ class PriceIndexSyncService
         // that moment, so a promo price exists in the index BEFORE its window
         // opens and the catalog query simply picks the row matching NOW():
         // no scheduler needed, segments activate and expire by themselves.
-        $itemEdges = $this->getItemBoundaries($chunk);
+        $now = (new Date('now', 'UTC'))->toSql();
+        $itemEdges = $this->getItemBoundaries(itemIds: $chunk, now: $now);
 
         // Priced from what the database holds now: rows an earlier pricing in
         // this process loaded may since have changed, and so may the place tree
@@ -1410,10 +1421,12 @@ class PriceIndexSyncService
                 }
 
                 // Future segments evaluate one second INSIDE the segment so
-                // windows ending exactly on the edge are already excluded.
+                // windows ending exactly on the edge are already excluded; the
+                // live segment at the chunk's instant, the clock its edges were
+                // judged at.
                 $reference = $group['start'] !== null
                     ? Factory::getDate($group['start'])->modify('+1 second')->toSql()
-                    : null;
+                    : $now;
 
                 // Anonymous, priced with exactly the slot's pricing groups behind
                 // the "any group" sentinel: what a customer holding that set is charged.
@@ -1893,16 +1906,17 @@ class PriceIndexSyncService
      * (item-level rows only; combination rows have their own lifecycle).
      *
      * @param int[] $itemIds The chunk being indexed.
+     * @param string $now The chunk's instant (SQL datetime, UTC): later than it is future.
      *
      * @return array item_id => [datetime, ...]
      *
      * @since  2.0.0
      */
-    private function getItemBoundaries(array $itemIds): array
+    private function getItemBoundaries(array $itemIds, string $now): array
     {
         $db = $this->db;
         $list = implode(',', array_map('intval', $itemIds));
-        $now = $db->quote(Factory::getDate()->toSql());
+        $now = $db->quote($now);
         $prices = $db->quoteName('#__alfa_items_prices');
 
         $sql = "SELECT DISTINCT item_id, publish_up AS boundary FROM {$prices}
@@ -1931,6 +1945,10 @@ class PriceIndexSyncService
      * join matrix. An extra segment with identical values for unaffected
      * items is cheap; a missed boundary would mean wrong prices.
      *
+     * Judged on a fresh clock read here (2.2.1), before any chunk of the run
+     * reads its own instant, so never later than the moment a chunk prices
+     * its live segment at.
+     *
      * @return string[] Sorted datetime strings.
      *
      * @since  2.0.0
@@ -1938,7 +1956,7 @@ class PriceIndexSyncService
     private function getGlobalBoundaries(): array
     {
         $db = $this->db;
-        $now = $db->quote(Factory::getDate()->toSql());
+        $now = $db->quote((new Date('now', 'UTC'))->toSql());
         $union = [];
 
         foreach (['#__alfa_discounts', '#__alfa_taxes'] as $tableName) {

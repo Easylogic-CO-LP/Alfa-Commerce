@@ -34,7 +34,7 @@ use Throwable;
  * TRANSPORT AND PRESENTATION ONLY. Searching the catalogue is a component capability
  * ({@see CatalogSearchService}): this class maps THIS module's parameters onto a request,
  * renders THIS module's layout, and speaks HTTP. That split is what lets a second
- * presentation package (the premium Enterprise search module) and the storefront filter
+ * presentation package (another search module) and the storefront filter
  * input offer the same search without reimplementing it or reaching into this module.
  *
  * Reached by convention, not by a reference: `com_ajax` resolves

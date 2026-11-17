@@ -33,7 +33,7 @@ use Throwable;
  *    whatever its group. Capability modules (alfa-search, alfa-payments, alfa-shipments, ...) are
  *    not imported for it, so opening any Alfa admin page cannot wake a search engine or a payment
  *    gateway; a capability that needs to be announced in the shared backend ships a platform
- *    adapter in the `alfa` group (plg_alfa_enterprise-search is the worked example).
+ *    adapter in the `alfa` group, a plugin of its own whose work is to announce it.
  *
  * A listener that throws is logged and the next one runs (Alfa's isolated policy), never allowed
  * to empty the menu or break a screen.

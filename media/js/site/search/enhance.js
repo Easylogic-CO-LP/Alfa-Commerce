@@ -23,7 +23,7 @@
  *
  * CONSUMES THE CAPABILITY, NOT A MODULE: results come from the component's own search
  * boundary (SearchController), so this works with no search module published at all, and
- * automatically gets better when the Enterprise engine is active: ranked results, typo
+ * automatically gets better when an installed search engine is active: ranked results, typo
  * correction and completions arrive through the same payload with no change here.
  *
  * DEGRADES TO NOTHING: with JS off, a failed endpoint, or an override that removed the
@@ -290,7 +290,7 @@
             (function (suggestion) {
                 // Contract 2: a suggestion is `{text, type}`. The text is what the shopper
                 // searches with; the type (when the catalogue declared one) is not rendered
-                // by this widget; labels are the premium presentation's job.
+                // by this widget; labels are another presentation's job.
                 var spelling = (suggestion && typeof suggestion === 'object')
                     ? suggestion.text
                     : suggestion;

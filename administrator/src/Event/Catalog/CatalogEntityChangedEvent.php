@@ -19,8 +19,8 @@ use Joomla\CMS\Event\AbstractEvent;
  * `onAlfaCatalogEntityChanged`, emitted through
  * {@see \Alfa\Component\Alfa\Administrator\Service\Catalog\EntityChangeNotifier}
  * whenever category or manufacturer rows are created, renamed, re-described,
- * state-changed or deleted. The first consumer is the Enterprise search engine, which
- * materialises these rows as entity documents, but the event is deliberately about
+ * state-changed or deleted. A search engine that materialises these rows as entity
+ * documents is the obvious consumer, but the event is deliberately about
  * the CATALOGUE fact, not about search: a cache, a feed or an ERP bridge may listen
  * with equal right.
  *

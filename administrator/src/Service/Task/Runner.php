@@ -14,7 +14,6 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
-use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
@@ -41,6 +40,20 @@ use Throwable;
  *
  * Nothing runs while the connection holds a transaction or one of Alfa's named locks, while Alfa is in maintenance,
  * or while an update has paused the runner (`runner.paused_until`).
+ *
+ * THE CLOCK IN A LONG RUN (2.2.1). Joomla's Factory::getDate() keeps the time of its first call for the whole process,
+ * and a run started from the command line, a scheduler or a queue goes on long after that, so an instant that starts a
+ * window, or is compared with one, in a handler or a service it reaches is read afresh: new Date('now', 'UTC'), or
+ * UTC_TIMESTAMP() where the row is compared with the database's clock, as the runner's own leases and due times are.
+ * The places that do: DocumentIssuer::issue() (one instant per document, its shop date and year from the same instant),
+ * Entitlements::grantForOrder() (one instant per order it grants, each expiry counted from it), NotificationHelper
+ * (every stamp and every read of what has not expired, through its now()), PriceIndexSyncService::writeChunk() (one
+ * instant per chunk, the global boundaries read on their own fresh clock before it) and
+ * InventoryEffectOutbox::enqueue() (UTC_TIMESTAMP()). The other reads of the cached clock are stamps that no window of
+ * a run is measured from, or windows of a short administrator, storefront or API request; the one exception is
+ * InventoryService::expireDueReservations(), which core never calls (its docblock says what it means for a caller).
+ * Each place above compares like with like, a row stamped by PHP's clock with PHP's and one stamped by the database's
+ * with the database's, so a drift between the web server's and the database server's clocks moves none of its windows.
  *
  * @since  2.2.0
  */
@@ -310,9 +323,9 @@ final class Runner
     public static function remains(): bool
     {
         return self::anyRow(
-            probes: static fn (DatabaseDriver $db): array => [...self::dueProbes(db: $db), 'SELECT 1 FROM ' . $db->quoteName(Tasks::TABLE)
-                . ' WHERE ' . $db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB) . ' AND ' . $db->quoteName('state') . ' = '
-                . $db->quote(Tasks::STATE_RUNNING) . ' AND ' . $db->quoteName('lease_until') . ' >= UTC_TIMESTAMP(3)'],
+            probes: static fn (DatabaseDriver $db): array => [...self::dueProbes(db: $db), 'SELECT 1 FROM ' . $db->quoteName(DueRead::TABLE)
+                . ' WHERE ' . $db->quoteName('type') . ' = ' . $db->quote(DueRead::TYPE_JOB) . ' AND ' . $db->quoteName('state') . ' = '
+                . $db->quote(DueRead::STATE_RUNNING) . ' AND ' . $db->quoteName('lease_until') . ' >= UTC_TIMESTAMP(3)'],
             failure: 'the remaining-work read failed; the page stops asking',
         );
     }
@@ -368,7 +381,9 @@ final class Runner
     }
 
     /**
-     * The probes of due(), each a SELECT of one column that reads at most one row.
+     * The probes of due(), each a SELECT of one column that reads at most one row. Every name they need is DueRead's
+     * (2.2.1), so the read every storefront page and API request makes loads no job class, nor Tasks or
+     * InventoryEffectOutbox; those load when a job runs.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -378,16 +393,16 @@ final class Runner
      */
     private static function dueProbes(DatabaseDriver $db): array
     {
-        $tasks = $db->quoteName(Tasks::TABLE);
-        $job = $db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB);
+        $tasks = $db->quoteName(DueRead::TABLE);
+        $job = $db->quoteName('type') . ' = ' . $db->quote(DueRead::TYPE_JOB);
         $probes = [
-            'SELECT 1 FROM ' . $tasks . ' WHERE ' . $job . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING)
+            'SELECT 1 FROM ' . $tasks . ' WHERE ' . $job . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(DueRead::STATE_PENDING)
                 . ' AND ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)',
-            'SELECT 1 FROM ' . $tasks . ' WHERE ' . $job . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING)
+            'SELECT 1 FROM ' . $tasks . ' WHERE ' . $job . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(DueRead::STATE_RUNNING)
                 . ' AND ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3)',
         ];
 
-        foreach (Tasks::dueProbes(db: $db) as $single) {
+        foreach (DueRead::singleProbes(db: $db) as $single) {
             $probes[] = $single;
         }
 
@@ -411,10 +426,10 @@ final class Runner
      */
     private static function markWithoutCatalogueJob(DatabaseDriver $db): string
     {
-        $tasks = $db->quoteName(Tasks::TABLE);
-        $handler = $db->quote(Job\CatalogueRebuildJob::NAME);
+        $tasks = $db->quoteName(DueRead::TABLE);
+        $handler = $db->quote(DueRead::CATALOGUE_REBUILD);
 
-        return $db->quoteName('projection_dirty_at') . ' <= UTC_TIMESTAMP(6) - INTERVAL ' . Tasks::GRACE_SECONDS . ' SECOND'
+        return $db->quoteName('projection_dirty_at') . ' <= UTC_TIMESTAMP(6) - INTERVAL ' . DueRead::GRACE_SECONDS . ' SECOND'
             . ' AND ' . $db->quoteName('projection_dirty_at') . ' > COALESCE((SELECT MAX(' . $db->quoteName('created_at') . ') FROM ' . $tasks
             . ' WHERE ' . $db->quoteName('handler') . ' = ' . $handler . "), '1000-01-01 00:00:00')"
             . ' AND NOT EXISTS (SELECT 1 FROM ' . $tasks . ' WHERE ' . $db->quoteName('active_key') . ' = ' . $handler . ')';
@@ -430,10 +445,10 @@ final class Runner
      */
     private static function waitingSetWithoutJob(DatabaseDriver $db): string
     {
-        return $db->quoteName('s.prepared_at') . ' IS NULL AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(Tasks::TABLE, 't')
-            . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(Job\PriceSetPrepareJob::NAME)
-            . ' AND ' . $db->quoteName('t.state') . ' IN (' . implode(', ', array_map([$db, 'quote'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING, Tasks::STATE_FAILED])) . ')'
-            . ' AND ' . $db->quoteName('t.scope_key') . ' = CONCAT(' . $db->quote(Job\PriceSetPrepareJob::NAME . ':') . ', CONVERT(' . $db->quoteName('s.digest') . ' USING utf8mb4)) COLLATE utf8mb4_unicode_ci)';
+        return $db->quoteName('s.prepared_at') . ' IS NULL AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(DueRead::TABLE, 't')
+            . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(DueRead::PRICE_SET_PREPARE)
+            . ' AND ' . $db->quoteName('t.state') . ' IN (' . implode(', ', array_map([$db, 'quote'], [DueRead::STATE_PENDING, DueRead::STATE_RUNNING, DueRead::STATE_FAILED])) . ')'
+            . ' AND ' . $db->quoteName('t.scope_key') . ' = CONCAT(' . $db->quote(DueRead::PRICE_SET_PREPARE . ':') . ', CONVERT(' . $db->quoteName('s.digest') . ' USING utf8mb4)) COLLATE utf8mb4_unicode_ci)';
     }
 
     /**
@@ -447,11 +462,11 @@ final class Runner
      */
     private static function owedMovementWithoutDrain(DatabaseDriver $db): string
     {
-        return '(' . $db->quoteName('status') . ' = ' . $db->quote(InventoryEffectOutbox::STATUS_PENDING)
-            . ' OR ' . InventoryEffectOutbox::abandonedClaimWhere($db) . ')'
-            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(Tasks::TABLE, 't')
-            . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(Job\StockEffectsDrainJob::NAME)
-            . ' AND ' . $db->quoteName('t.state') . ' IN (' . $db->quote(Tasks::STATE_PENDING) . ', ' . $db->quote(Tasks::STATE_RUNNING) . '))';
+        return '(' . $db->quoteName('status') . ' = ' . $db->quote(DueRead::MOVEMENT_PENDING)
+            . ' OR ' . DueRead::abandonedClaimWhere($db) . ')'
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(DueRead::TABLE, 't')
+            . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(DueRead::STOCK_EFFECTS_DRAIN)
+            . ' AND ' . $db->quoteName('t.state') . ' IN (' . $db->quote(DueRead::STATE_PENDING) . ', ' . $db->quote(DueRead::STATE_RUNNING) . '))';
     }
 
     /**

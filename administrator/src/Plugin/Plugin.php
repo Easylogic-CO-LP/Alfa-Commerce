@@ -1298,6 +1298,29 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * turns it into M14BT and hands district M1 to district M14: the reason
      * a normalise-then-compare approach was rejected.
      *
+     * EXCEPT DIGITS AND SPACES ONLY (2.2.1). Greek postcodes are written
+     * "412 22", Swedish "123 45", Czech and Slovak "110 00". A value or a bound
+     * made only of digits and spaces is read as its digits and compared as that
+     * number, so "412 22" and "41222" both meet a band written "41000" to
+     * "41999" or "410 00" to "419 99". Compared naturally, "412" read below
+     * "41000" and the row was missed.
+     *
+     * A BAND MAY BE WHOLE POSTCODES OR THEIR FIRST DIGITS (2.2.1). When both
+     * limits are set, made of digits of one length, and shorter than a value of
+     * digits, the value's first digits of that length are compared: "410" to
+     * "419" meets every postcode from "410 00" to "419 99", written with the
+     * space or without. The same with one limit alone of three digits or more:
+     * up to "419" meets every postcode up to "419 99", and from "410" every
+     * postcode from "410 00" ("409 99" does not). Compared naturally before,
+     * such a band met the spaced form only, and not its last prefix ("419 99"
+     * sorted above "419"). A limit alone of one or two digits (a floor of "1"
+     * set to require a postcode) and limits of different lengths ("41" to
+     * "419", a band written wrong) compare as whole numbers.
+     *
+     * A value or a limit with a letter or a hyphen in it (UK, Canada, the
+     * Netherlands, US ZIP+4, Japan, Poland, Portugal) keeps the comparison
+     * above.
+     *
      * KINDS THAT DO NOT MATCH CANNOT BE JUDGED. A number against a letter (a
      * 5 kg parcel against a ceiling somebody typed as 'abc', a Greek postcode
      * against a Canadian K..Q band) is refused rather than admitted. The old
@@ -1314,6 +1337,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      */
     final protected function isWithinLimits(mixed $value, mixed $min = null, mixed $max = null): bool
     {
+        $min = self::digitsOf($min);
+        $max = self::digitsOf($max);
         $hasMin = !self::isNoLimit($min);
         $hasMax = !self::isNoLimit($max);
 
@@ -1325,6 +1350,15 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         if ($subject === null || $subject === '') {
             return !$hasMin;
+        }
+
+        $subject = self::digitsOf($subject);
+
+        // A band of first digits (2.2.1): its limits (one or both) digits of one length, shorter than the value's.
+        $prefix = self::prefixLength(subject: $subject, min: $hasMin ? $min : null, max: $hasMax ? $max : null);
+
+        if ($prefix > 0) {
+            $subject = substr((string) $subject, 0, $prefix);
         }
 
         if (
@@ -1347,6 +1381,67 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         }
 
         return true;
+    }
+
+    /**
+     * A value or a bound made only of digits and spaces, as its digits ("412 22" as "41222"); anything else as given
+     * (2.2.1).
+     *
+     * @param mixed $value The value or the bound.
+     *
+     * @since  2.2.1
+     */
+    private static function digitsOf(mixed $value): mixed
+    {
+        if (!\is_string($value) || !str_contains($value, ' ')) {
+            return $value;
+        }
+
+        $digits = str_replace(' ', '', trim($value));
+
+        return ctype_digit($digits) ? $digits : $value;
+    }
+
+    /**
+     * The length of the first digits a band compares, or 0 for a band of whole values (2.2.1): a value of digits
+     * against limits of digits shorter than it, both limits of one length, or one limit alone (an upper limit with no
+     * floor, or a floor with no upper limit) of three digits or more, a postcode group. A limit alone of one or two
+     * digits ("1" set to require a postcode) and limits of different lengths compare as whole numbers.
+     *
+     * @param mixed $subject The value, as {@see self::digitsOf()} reads it.
+     * @param mixed $min The lower limit, or null when the band has none.
+     * @param mixed $max The upper limit, or null when the band has none.
+     *
+     * @since  2.2.1
+     */
+    private static function prefixLength(mixed $subject, mixed $min, mixed $max): int
+    {
+        if (!\is_string($subject) || !ctype_digit($subject)) {
+            return 0;
+        }
+
+        $limits = array_values(array_filter([$min, $max], static fn (mixed $limit): bool => $limit !== null));
+
+        foreach ($limits as $limit) {
+            if (!\is_string($limit) || !ctype_digit($limit)) {
+                return 0;
+            }
+        }
+
+        $lengths = array_unique(array_map('strlen', $limits));
+
+        if (\count($lengths) !== 1) {
+            return 0;
+        }
+
+        $length = (int) reset($lengths);
+
+        // A limit alone reads first digits only as a postcode group: one or two digits compare as whole numbers.
+        if (\count($limits) === 1 && $length < 3) {
+            return 0;
+        }
+
+        return $length < \strlen($subject) ? $length : 0;
     }
 
     /**

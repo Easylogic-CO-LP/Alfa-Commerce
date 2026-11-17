@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Extensions;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
+use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -56,6 +57,14 @@ class HtmlView extends BaseHtmlView
     public bool $mayRemove = false;
 
     /**
+     * Whether Clear everything or a Clear Data was at work when the page was drawn: the page then shows the rows it
+     * could read and says so; it never waits for the work to finish.
+     *
+     * @since  2.2.1
+     */
+    public bool $busy = false;
+
+    /**
      * Render the page.
      *
      * @param string|null $tpl The template name.
@@ -75,13 +84,19 @@ class HtmlView extends BaseHtmlView
         // A mark left by a request that died inside an extension's hook becomes cleanup failed, with the reason.
         $lister->recoverStale();
 
-        // Each plugin booted under the lock, marked while it loads: one whose code cannot be loaded is shown so.
-        $rows = $lister->inspect(entries: $lister->rows());
+        // Each plugin booted under the lock, marked while it loads: one whose code cannot be loaded is shown so. The page
+        // never waits for the lock: while a clear is at work it shows what it could read and says so (2.2.1).
+        $rows = $lister->inspect(entries: $lister->rows(), wait: 0);
+        $this->busy = $lister->busy();
         $statuses = ClearDataStatus::all();
         $last = static fn (array $entry): ?array => \is_array($statuses[$entry['key']] ?? null) && isset($statuses[$entry['key']]['status']) ? $statuses[$entry['key']] : null;
 
+        // A language pack owns no data: its Clear Data cell says so (2.2.1).
+        $packs = LanguagePacks::installed();
+
         foreach ($rows as $row) {
             $row['last'] = $last($row);
+            $row['language_pack'] = isset($packs[(int) $row['extension_id']]);
             $row['children'] = array_map(static fn (array $child): array => $child + ['last' => $last($child)], (array) $row['children']);
             $this->rows[] = $row;
         }

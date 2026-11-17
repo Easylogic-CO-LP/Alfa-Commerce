@@ -71,13 +71,23 @@ use Throwable;
  * The refusal is plain English: no language file exists yet at an install's preflight.
  *
  * THE RANGE OF ALFA COMMERCE VERSIONS (2.2.1). An extension that declares the lines of Alfa Commerce it is built for in
- * its manifest (`<alfacore min="2.2" max="2.3"/>`, {@see AlfaCoreRange}) is refused outside them by the same gate,
+ * its manifest (`<alfacore min="2.2" max="2.2"/>`, {@see AlfaCoreRange}) is refused outside them by the same gate,
  * reading the range from its own manifest, the one place core's notice after an update reads it too:
  *
  *         $refusal = $gate::rangeRefusal(name: '<Name>', route: (string) $type, manifest: $parent->getManifest());
  *
  * in place of refusal() (a site whose Alfa Commerce is older than 2.2.1 has no rangeRefusal(): ask method_exists() first
  * and fall back to the extension's own minimum there).
+ *
+ * THE POLICY. Every Alfa extension declares both min and max, max being the last line it was tested on (2.2, never a
+ * patch release). One that installs on its own enforces the range in its preflight exactly as above, so its install,
+ * update and discover_install are refused outside the range, from the command line too, and its uninstall never is. One
+ * that ships inside Alfa Commerce's package declares the range and calls no gate: it arrives with the core it is built
+ * for. A package of several extensions declares the same range in its own manifest, which its installer hands to this
+ * gate, and in each plugin and module manifest it contains, which core's notice reads. Alfa Commerce's own install or
+ * update is never refused because of an extension: after it, core names every installed Alfa extension outside its
+ * range or without one and keeps running it. A range that cannot be read is refused here; a missing one never is, and
+ * core's notice names it "compatibility not stated".
  *
  * @since  2.1.0
  */

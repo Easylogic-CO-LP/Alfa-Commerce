@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use DOMDocument;
 use DOMElement;
 use InvalidArgumentException;
@@ -55,6 +56,15 @@ class FieldsHelper
      * Mirrors the table name #__alfa_form_fields for predictability.
      */
     public const FIELDS_KEY = 'alfa_form_fields';
+
+    /**
+     * The key of a form field's params that holds its Layout setting, the layout its stored value is shown with
+     * ({@see self::render()}); the field form saves it there with the plugin's own params (2.2.1). Never `layout`:
+     * the checkout form gives that param to Joomla's field as the layout of its input.
+     *
+     * @since  2.2.1
+     */
+    public const DISPLAY_LAYOUT = 'display_layout';
 
     /**
      * Bucket for the billing (invoice) copy of the checkout fields. Same
@@ -531,7 +541,7 @@ class FieldsHelper
      * Tmpls start with `extract($displayData);` and see $context, $field,
      * $fieldParams, $item, plus anything else the caller passed in.
      *
-     * Layout resolution (from $field->layout):
+     * Layout resolution (from the field's Layout setting, its params' {@see self::DISPLAY_LAYOUT}):
      *   ""              -> active-template override then plugin's default.php
      *   "_:name"        -> plugin's tmpl/name.php only
      *   "tpl:name"      -> templates/tpl/html/plg_alfa-form-fields_<type>/name.php
@@ -546,11 +556,6 @@ class FieldsHelper
             return '';
         }
 
-        $path = self::resolveLayoutPath($field, $type);
-        if ($path === null) {
-            return '';
-        }
-
         // Resolve inline {lang: value} maps (value/JSON-mode MultilingualText,
         // e.g. choice option labels) to the current language for display.
         $resolvedParams = MultilingualHelper::collapseToCurrent(
@@ -558,6 +563,11 @@ class FieldsHelper
                 ? (json_decode((string) $field->params, true) ?: [])
                 : (array) ($field->params ?? []),
         );
+
+        $path = self::resolveLayoutPath((string) ($resolvedParams[self::DISPLAY_LAYOUT] ?? ''), $type);
+        if ($path === null) {
+            return '';
+        }
 
         $fieldParams = new \Joomla\Registry\Registry();
         $fieldParams->loadArray(is_array($resolvedParams) ? $resolvedParams : []);
@@ -576,11 +586,14 @@ class FieldsHelper
     /**
      * Resolve the filesystem path for a field's chosen layout.
      * Returns null if neither the chosen file nor the plugin default exists.
+     *
+     * @param string $layoutValue The field's Layout setting ({@see self::DISPLAY_LAYOUT}): "", "_:name" or "tpl:name".
+     * @param string $type The field's type, its plugin's element.
+     *
      * @since  1.0.0
      */
-    private static function resolveLayoutPath($field, string $type): ?string
+    private static function resolveLayoutPath(string $layoutValue, string $type): ?string
     {
-        $layoutValue = (string) ($field->layout ?? '');
         $template = null;
         $name = 'default';
 
@@ -679,6 +692,9 @@ class FieldsHelper
      * national number is uninterpretable without one) and it is emphatically
      * NOT a destination. Nothing about shipping or tax reads this.
      *
+     * The default place may be a region or a town: the code is its country's
+     * (PlaceTree::countryOf(), 2.2.1).
+     *
      * @return string The alpha-2 code, or '' when the shop has not said.
      *
      * @since  2.0.0
@@ -699,16 +715,8 @@ class FieldsHelper
             return '';
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
-        $code = (string) $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('code2'))
-                ->from($db->quoteName('#__alfa_places'))
-                ->where($db->quoteName('id') . ' = ' . $placeId),
-        )->loadResult();
-
-        return strtoupper(trim($code));
+        // The country of the default place: a region or a town carries no country code of its own (2.2.1).
+        return PlaceTree::countryOf(placeId: $placeId)['code2'] ?? '';
     }
 
     /**
