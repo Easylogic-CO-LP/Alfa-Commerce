@@ -519,10 +519,12 @@ final class CoreSetupProvider
     }
 
     /**
-     * The published products whose minimum quantity no price row covers while a row begins above it (2.2.2): no row of
-     * the product for every shopper (no currency, group, customer or place of its own) covers the minimum, and some row
-     * of the product starts above it, so a shopper reaches the product at a quantity with no price. Product rows only
-     * (a variant's own rows and minimum are not read); a row's publish window is not read.
+     * The published products whose minimum quantity no price row covers (2.2.2): the product has price rows for every
+     * shopper of a currency (no group, customer or place of their own; an empty scope read as none, as 0), and none of
+     * them covers the minimum, whether the rows begin above it or all end below it. A row of any currency counts, so a
+     * shop with one row per currency is named only where none covers the minimum. A product priced only for a group, a
+     * customer or a place is not named: it is priced for them on purpose. Product rows only (a variant's own rows and
+     * minimum are not read); a row's publish window is not read.
      *
      * @return array{count: int, names: list<string>} How many, and the names of the first ten in the default language.
      *
@@ -532,13 +534,13 @@ final class CoreSetupProvider
     {
         $db = self::db();
         $minimum = 'GREATEST(' . $db->quoteName('i.quantity_min') . ', 1)';
-        $own = $db->quoteName('p.item_id') . ' = ' . $db->quoteName('i.id') . ' AND ' . $db->quoteName('p.combination_id') . ' IS NULL AND ' . $db->quoteName('p.state') . ' = 1';
+        $general = $db->quoteName('p.item_id') . ' = ' . $db->quoteName('i.id') . ' AND ' . $db->quoteName('p.combination_id') . ' IS NULL'
+            . ' AND ' . $db->quoteName('p.state') . ' = 1'
+            . ' AND COALESCE(' . $db->quoteName('p.usergroup_id') . ', 0) = 0 AND COALESCE(' . $db->quoteName('p.user_id') . ', 0) = 0'
+            . ' AND COALESCE(' . $db->quoteName('p.country_id') . ', 0) = 0';
         $where = $db->quoteName('i.state') . ' = 1'
-            . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices', 'p') . ' WHERE ' . $own
-            . ' AND ' . $db->quoteName('p.quantity_start') . ' > ' . $minimum . ')'
-            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices', 'p') . ' WHERE ' . $own
-            . ' AND ' . $db->quoteName('p.currency_id') . ' = 0 AND ' . $db->quoteName('p.usergroup_id') . ' = 0'
-            . ' AND ' . $db->quoteName('p.user_id') . ' = 0 AND ' . $db->quoteName('p.country_id') . ' = 0'
+            . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices', 'p') . ' WHERE ' . $general . ')'
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices', 'p') . ' WHERE ' . $general
             . ' AND COALESCE(' . $db->quoteName('p.quantity_start') . ', 0) <= ' . $minimum
             . ' AND (' . $db->quoteName('p.quantity_end') . ' IS NULL OR ' . $db->quoteName('p.quantity_end') . ' >= ' . $minimum . '))';
         $count = (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_items', 'i') . ' WHERE ' . $where)->loadResult();

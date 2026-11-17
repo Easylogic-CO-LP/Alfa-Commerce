@@ -318,15 +318,16 @@ class PriceCalculator
         // Nothing shifts the price -> feed the base rows straight to the engine, so
         // a combination's (or the item's) OWN sale/override renders exactly like
         // the main product: strikethrough base, - sale amount, savings percent.
+        // When no row applies, the engine says so itself on this path too (2.2.2).
         if ($adjustRow === null && $optionDeltas === [] && $contributions === []) {
             return $this->calculator->compute($itemId, $quantity, $baseRows, $discounts, $taxes, $context, $price);
         }
 
         // NO BASE, NO PRICE (2.2.2). The base is chosen here, from the combination's price rows else the item's. When
         // none applies, a combination's adjust, an option's delta or a contribution shifts nothing: the product is not
-        // priced, and the engine says so from the rows themselves (or prices the operator's explicit price). Only a
-        // contribution that states it supplies the whole price (PriceContribution::$suppliesBase) prices a product with
-        // no row.
+        // priced, and the engine says so from the rows themselves. With an operator's explicit price and no row, the
+        // line is the operator's price and the deltas price nothing. Only a contribution that states it supplies the
+        // whole price (PriceContribution::$suppliesBase) prices a product with no row.
         $winningRow = $this->calculator->selectBaseRow($baseRows, $quantity, $context->groupDistances());
         $suppliesBase = array_filter($contributions, static fn (PriceContribution $contribution): bool => $contribution->suppliesBase) !== [];
 
