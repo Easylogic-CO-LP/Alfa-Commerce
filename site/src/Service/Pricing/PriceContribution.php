@@ -37,6 +37,9 @@ final class PriceContribution
      * @param string $target 'start' (apply on net) or 'final' (apply on gross).
      * @param int $sortOrder Fold order; lower folds first.
      * @param string $source Owning plugin element (the collector fills it when empty).
+     * @param bool $suppliesBase The plugin's contributions are the whole price of the product (2.2.2): a product with no
+     *                           price row that applies is priced from them. Without it, a product with no price row is
+     *                           not priced whatever its contributions add, as it is not priced whatever its options add.
      *
      * @since  2.0.0
      */
@@ -48,6 +51,29 @@ final class PriceContribution
         public readonly string $target = 'final',
         public readonly int $sortOrder = 0,
         public readonly string $source = '',
+        public readonly bool $suppliesBase = false,
     ) {
+    }
+
+    /**
+     * The same contribution with its owning plugin named: the collector's copy for a contribution whose source is
+     * empty, every other field kept.
+     *
+     * @param string $source The owning plugin element.
+     *
+     * @since  2.2.2
+     */
+    public function withSource(string $source): self
+    {
+        return new self(
+            code:         $this->code,
+            label:        $this->label,
+            operation:    $this->operation,
+            amount:       $this->amount,
+            target:       $this->target,
+            sortOrder:    $this->sortOrder,
+            source:       $source,
+            suppliesBase: $this->suppliesBase,
+        );
     }
 }

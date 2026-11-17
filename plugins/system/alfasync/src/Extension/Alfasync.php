@@ -188,7 +188,6 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             'onExtensionChangeState' => 'onExtensionChangeState',
 
             // Custom Alfa events: uncomment + dispatch from component/plugin
-            // 'onAlfaProductAfterSave'  => 'onAlfaProductAfterSave',
             // 'onAlfaOrderAfterSave'    => 'onAlfaOrderAfterSave',
             // 'onAlfaCategoryAfterSave' => 'onAlfaCategoryAfterSave',
         ];
@@ -1485,20 +1484,6 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             }
         }
     }
-
-    // Custom Alfa event handlers: uncomment in getSubscribedEvents() to activate
-
-    // public function onAlfaProductAfterSave(Event $event): void
-    // {
-    //     $data  = $event->getArgument('data')  ?? [];
-    //     $isNew = (bool) ($event->getArgument('isNew') ?? false);
-    //
-    //     if (empty($data['id'])) {
-    //         return;
-    //     }
-    //
-    //     // Add SyncHelper::insertAlfaProduct() and call it here.
-    // }
 
     // Argument extraction helpers
 
