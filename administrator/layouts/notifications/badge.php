@@ -24,13 +24,17 @@ $summary  = $displayData['summary'] ?? ['count' => 0, 'severity' => 'none'];
 $isOpen   = !empty($displayData['is_open']);
 $count    = (int) ($summary['count'] ?? 0);
 $severity = $count > 0 ? ($summary['severity'] ?? 'info') : 'none';
+
+// The figure says its scope (2.2.1): the unread notifications not dismissed, as the panel lists them; the
+// Notifications list counts dismissed ones too unless its scope is Not dismissed.
+$scope = htmlspecialchars(Text::sprintf('COM_ALFA_NOTIFY_BADGE_LABEL', $count), ENT_QUOTES, 'UTF-8');
 ?>
 <div class="alfa-notify" data-region="component">
     <button type="button" class="btn btn-action alfa-notify-btn" data-region="badge" data-severity="<?php echo $severity; ?>"
-            aria-label="<?php echo Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'); ?>">
+            aria-label="<?php echo $scope; ?>">
         <span class="icon-bell" aria-hidden="true"></span>
         <span class="alfa-notify-label"><?php echo Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'); ?></span>
-        <span class="alfa-notify-count"<?php echo $count > 0 ? '' : ' style="display:none"'; ?>><?php echo $count > 99 ? '99+' : $count; ?></span>
+        <span class="alfa-notify-count" title="<?php echo $scope; ?>"<?php echo $count > 0 ? '' : ' style="display:none"'; ?>><?php echo $count > 99 ? '99+' : $count; ?></span>
     </button>
     <?php echo $displayData['panel']; ?>
 </div>

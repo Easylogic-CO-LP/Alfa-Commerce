@@ -29,12 +29,16 @@ function destroyItemMedia() {
 // Let variant.js re-init the gallery after it swaps the item DOM.
 window.alfaInitItemMedia = initItemMedia;
 
+// The images that open the lightbox: the slider's main row, and any images variant that marks its container
+// data-item-gallery (the grid, default_images-grid.php), whose images are never the slider's.
+var ITEM_LIGHTBOX = '.item-images-wrapper .main-images .item-image, .item-images-wrapper [data-item-gallery] .item-image';
+
 function itemMediasGallery(){
     // item gallery support
-    var galleryFlag = document.querySelector(".item-images-wrapper .main-images .item-image");
+    var galleryFlag = document.querySelector(ITEM_LIGHTBOX);
     if(galleryFlag!==null){
         itemGlightbox = GLightbox({
-            selector: '.item-images-wrapper .main-images .item-image',
+            selector: ITEM_LIGHTBOX,
             zoomable: true, // Enable zoom functionality
         });
     }
