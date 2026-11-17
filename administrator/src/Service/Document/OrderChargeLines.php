@@ -2489,7 +2489,14 @@ final class OrderChargeLines
         }
 
         if ($restNet !== null && $sized !== []) {
-            $differ = $restNet->getMinorUnits() - array_sum(array_column($sized, 2));
+            // What the parts' nets state, in minor units.
+            $stated = 0;
+
+            foreach ($sized as [, , $net]) {
+                $stated += $net;
+            }
+
+            $differ = $restNet->getMinorUnits() - $stated;
 
             foreach (array_reverse(array_keys($sized), true) as $i) {
                 if ($differ === 0) {
