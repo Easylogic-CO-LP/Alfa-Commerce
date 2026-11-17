@@ -14,9 +14,11 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\Database\ParameterType;
+use SimpleXMLElement;
 use Throwable;
 
 /**
@@ -25,10 +27,19 @@ use Throwable;
  * courier texts, the country a locker network delivers to.
  *
  * A plugin cannot know what a shop called its fields, and the core does not
- * decide for it: a postcode is a carrier's concern, so the cart holds no
+ * decide for it: a postcode is a carrier's concern, so the cart reads no
  * postcode role and hardcodes no column. The plugin names the field here and
  * reads it off the cart. It lives in the component because the need is not one
  * plugin's, and none of them should ship their own copy of this dropdown.
+ *
+ * A STARTING CHOICE BY ROLE (2.2.1). `defaultrole="postcode"` starts a setting
+ * that was never saved on the field carrying that role (RoleRegistry), when the
+ * picker offers it: a new shop ships its address fields with their roles, so a
+ * new carrier method starts on the shop's own postcode field. A saved setting
+ * is never changed, an empty choice ("None") included, and a field the picker
+ * does not offer (unpublished, of another type or out of its sections) is not
+ * taken. A shop with no field of that role (one installed before 2.2.1) starts
+ * on nothing, as before.
  *
  * IT SAVES THE FIELD'S ID, NOT ITS COLUMN NAME. Renaming a field rewrites the
  * name and ALTERs the column; an id does not move. Read the value back with
@@ -77,6 +88,42 @@ class CheckoutfieldField extends ListField
      * @since  1.0.0
      */
     private const SECTIONS = ['shipping', 'billing'];
+
+    /**
+     * Set the field up; a setting that was never saved starts on the field carrying the `defaultrole` attribute's
+     * role, when the picker offers it (2.2.1).
+     *
+     * @param SimpleXMLElement $element The field's XML element.
+     * @param mixed $value The value, or null.
+     * @param string|null $group The field's group.
+     *
+     * @return bool True when the field is set up.
+     *
+     * @since  2.2.1
+     */
+    public function setup(SimpleXMLElement $element, $value, $group = null)
+    {
+        if (!parent::setup($element, $value, $group)) {
+            return false;
+        }
+
+        $role = trim((string) ($this->element['defaultrole'] ?? ''));
+        // A setting saved empty ("None") is a choice: only one never saved starts on the role's field.
+        $saved = $this->form !== null && $this->form->getData()->exists(($this->group ? $this->group . '.' : '') . $this->fieldname);
+
+        if ($role === '' || $saved || ($this->value !== null && $this->value !== '') || !RoleRegistry::isRole($role)) {
+            return true;
+        }
+
+        $field = RoleRegistry::field($role);
+        $offered = array_map(static fn (object $option): string => (string) $option->value, $this->loadModelRows() ?? []);
+
+        if ($field !== null && \in_array((string) (int) $field->id, $offered, true)) {
+            $this->value = (string) (int) $field->id;
+        }
+
+        return true;
+    }
 
     /**
      * The shop's published checkout fields, narrowed by the XML attributes.

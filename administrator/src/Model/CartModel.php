@@ -688,7 +688,7 @@ class CartModel extends ItemModel
             return [];
         }
 
-        $roleColumns = array_filter(array_map([RoleRegistry::class, 'column'], RoleRegistry::roles()));
+        $roleColumns = array_filter(array_map([RoleRegistry::class, 'column'], RoleRegistry::identityRoles()));
         $addressKeys = array_diff(
             array_column(FieldsHelper::getFields('cart.form'), 'field_name'),
             $roleColumns,
