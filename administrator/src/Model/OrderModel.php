@@ -7,30 +7,6 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-/**
- * Order Model: Admin CRUD for orders and related entities
- *
- * Handles orders, payments, shipments, and order items through
- * a unified architecture with shared helpers.
- *
- * Architecture:
- *   Reusable helpers   -> getRelatedModel(), toMoney(),
- *                         saveDataOnTable(), deleteTableEntry()
- *   Data loading       -> getItem(), getPaymentData(), getShipmentData(), getOrderItemData()
- *   Save / Delete      -> save(), saveOrderPayment(), saveOrderShipment(), saveOrderItem()
- *   Activity log       -> logOrderActivity(), getOrderActivityLog()
- *
- * Totals:
- *   grand_total = items + shipping - discounts
- *   Computed by getItem() via OrderTotalHelper::computeFromArrays().
- *   Single source of truth: same method used by OrdersModel list view.
- *   No total columns stored on #__alfa_orders; always computed.
- *
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- */
-
 namespace Alfa\Component\Alfa\Administrator\Model;
 
 defined('_JEXEC') or die;
@@ -109,6 +85,25 @@ use RuntimeException;
 use stdClass;
 use Throwable;
 
+/**
+ * Order Model: Admin CRUD for orders and related entities
+ *
+ * Handles orders, payments, shipments, and order items through
+ * a unified architecture with shared helpers.
+ *
+ * Architecture:
+ *   Reusable helpers   -> getRelatedModel(), toMoney(),
+ *                         saveDataOnTable(), deleteTableEntry()
+ *   Data loading       -> getItem(), getPaymentData(), getShipmentData(), getOrderItemData()
+ *   Save / Delete      -> save(), saveOrderPayment(), saveOrderShipment(), saveOrderItem()
+ *   Activity log       -> logOrderActivity(), getOrderActivityLog()
+ *
+ * Totals:
+ *   grand_total = items + shipping - discounts
+ *   Computed by getItem() via OrderTotalHelper::computeFromArrays().
+ *   Single source of truth: same method used by OrdersModel list view.
+ *   No total columns stored on #__alfa_orders; always computed.
+ */
 class OrderModel extends AlfaAdminModel
 {
     protected $text_prefix = 'COM_ALFA';
@@ -5831,23 +5826,6 @@ class OrderModel extends AlfaAdminModel
     //   - getItem loads items, payments, shipments, Money objects, history
     //   - For a status change we just need the orders row, not the universe
 
-    /**
-     * Prefill order data for partial updates.
-     *
-     * Loads the FULL current row from the Table object (1 lightweight query),
-     * then overlays the provided $data on top. Fields in $data win;
-     * all other fields keep their current DB values.
-     *
-     * This ensures save() always receives a complete record, so all its
-     * logic fires correctly: prepareTable, stock transitions, activity log.
-     *
-     * @param int $recordKey Order PK
-     * @param array $data Partial data to overlay (changed fields only)
-     *
-     * @return array Complete data array safe for save()
-     *
-     * @since  1.0.0
-     */
     /**
      * Columns the RAW/inline order-update paths may write.
      *
