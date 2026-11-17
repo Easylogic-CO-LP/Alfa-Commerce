@@ -434,18 +434,6 @@ class ItemModel extends BaseItemModel
             $item->surfaces = new SurfaceMap($slots);
         }
 
-        // Catalogue only (2.2.2), core's last word after the field events: the buy form's field surfaces become plain
-        // read-only lists of the fields that drew one, and the cart main slot is none, whatever a plugin set.
-        if (!($item->sellsOnline ?? true)) {
-            $slots = ReadOnlyFields::replace(
-                slots: $slots,
-                fields: (array) $item->fields,
-                buySlots: [ItemSurface::BuyForm->value, ItemSurface::NearAddToCart->value],
-            );
-            $item->cart = ReadOnlyFields::NO_CART;
-            $item->surfaces = new SurfaceMap($slots);
-        }
-
         // Feature plugins (onItemDisplay, 2.2.0): one event on the shared dispatcher after the
         // field surfaces (mode A, a display phase, isolated), so their contributions land on
         // the same slot map, each owner defaulted to the plugin it names.
@@ -460,6 +448,19 @@ class ItemModel extends BaseItemModel
         // Appended AFTER the surface reset above and once the price/discounts are
         // known (set by resolveAndPrice before this runs).
         SaleTag::contribute($item, false);
+
+        // Catalogue only (2.2.2), core's last word, after every pass that can change the buy area (the field events, the
+        // feature plugins, the badges): the buy form's slots hold only plain read-only lists of the fields that drew a
+        // surface there, whoever else contributed to them, and the cart main slot is none, whatever a plugin set.
+        if (!($item->sellsOnline ?? true)) {
+            $slots = ReadOnlyFields::replace(
+                slots: $item->surfaces instanceof SurfaceMap ? $item->surfaces->toArray() : (array) ($item->surfaces ?? []),
+                fields: (array) $item->fields,
+                buySlots: [ItemSurface::BuyForm->value, ItemSurface::NearAddToCart->value],
+            );
+            $item->cart = ReadOnlyFields::NO_CART;
+            $item->surfaces = new SurfaceMap($slots);
+        }
     }
 
     /**

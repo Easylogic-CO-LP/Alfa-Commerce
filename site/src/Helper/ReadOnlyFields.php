@@ -14,12 +14,14 @@ defined('_JEXEC') or die;
 /**
  * The product fields as plain read-only lists, in place of the buy form, in catalogue-only mode (2.2.2).
  *
- * The models call it once, after the field events, where a page's or a card's surfaces are collected and before the
- * read-only map is built: every field surface in the buy form's slots is dropped, whatever it declares (a selector or a
- * configurator's own inputs), and one core descriptor per listed field that offers values takes their place, drawn by
- * the layout `item.fields_readonly` (overridable in a template's html/layouts/com_alfa/item/). Nothing is chosen, so the
- * descriptors carry no showon rule and no plugin owner. A field with no values to list draws nothing. The display slots
- * (the badges, the descriptions, the specifications) are left as the plugins drew them.
+ * The models call it as core's last word, after every pass that can change the buy area (the field events, the page's
+ * feature plugins, a listing's whole-page pass): every surface in the buy form's slots is dropped, whatever it declares
+ * and whoever contributed it (a field's selector, a configurator's own inputs, a feature plugin's control:
+ * nothing selectable or clickable), and one core descriptor per listed field that offers values takes their place,
+ * drawn by the layout `item.fields_readonly` (overridable in a template's html/layouts/com_alfa/item/). Nothing is
+ * chosen, so the descriptors carry no showon rule and no plugin owner. A field with no values to list draws nothing. It
+ * may be called again on its own result: the lists are dropped and drawn again. The display slots (the badges, the
+ * descriptions, the specifications) are left as the plugins drew them.
  *
  * @since  2.2.2
  */
@@ -53,7 +55,7 @@ final class ReadOnlyFields
      * @param string[] $buySlots The buy form's slots; the lists go into the first.
      * @param int[]|null $listed The fields to list; null lists the fields that drew a surface in the buy form's slots.
      *
-     * @return array<string, list<array<string, mixed>>> The slots, the lists first in the first buy slot.
+     * @return array<string, list<array<string, mixed>>> The slots: the buy slots hold only the lists, in the first one.
      *
      * @since  2.2.2
      */
@@ -66,23 +68,13 @@ final class ReadOnlyFields
                 continue;
             }
 
-            $kept = [];
-
             foreach ($slots[$slot] as $descriptor) {
-                if (($descriptor['fieldId'] ?? null) === null) {
-                    $kept[] = $descriptor;
-
-                    continue;
+                if (($descriptor['fieldId'] ?? null) !== null) {
+                    $drew[(int) $descriptor['fieldId']] = true;
                 }
-
-                $drew[(int) $descriptor['fieldId']] = true;
             }
 
-            if ($kept === []) {
-                unset($slots[$slot]);
-            } else {
-                $slots[$slot] = $kept;
-            }
+            unset($slots[$slot]);
         }
 
         $wanted = $listed === null ? $drew : array_flip(array_map('intval', $listed));
@@ -107,7 +99,7 @@ final class ReadOnlyFields
         }
 
         if ($lists !== [] && $buySlots !== []) {
-            $slots[$buySlots[0]] = [...$lists, ...($slots[$buySlots[0]] ?? [])];
+            $slots[$buySlots[0]] = $lists;
         }
 
         return $slots;

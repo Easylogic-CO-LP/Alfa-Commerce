@@ -1799,6 +1799,13 @@ class ItemsModel extends UrlListModel
         // let them adjust across the fully-built page (cross-item pass).
         $this->dispatchItemsListPrepare($items);
 
+        // Catalogue only (2.2.2): core's last word on each card's buy area, after the whole-page pass.
+        if ($this->getState('plugin.layouts', true)) {
+            foreach ($items as $item) {
+                $this->catalogueOnlyBuyArea(item: $item);
+            }
+        }
+
         return $items;
     }
 
@@ -2294,6 +2301,11 @@ class ItemsModel extends UrlListModel
         // Engage the plugins on the dispatcher once (parity with the list path).
         $this->dispatchItemsListPrepare([$item]);
 
+        // Catalogue only (2.2.2): core's last word on the card's buy area, after the whole-page pass.
+        if ($this->getState('plugin.layouts', true)) {
+            $this->catalogueOnlyBuyArea(item: $item);
+        }
+
         return $item;
     }
 
@@ -2469,31 +2481,49 @@ class ItemsModel extends UrlListModel
             $item->cartChildren = $cartChildren;
         }
 
-        // Catalogue only (2.2.2), core's last word after the field events: the buy form's field surfaces become plain
-        // read-only lists of the card's own fields (its listing fields, the informational ones left to its
-        // specifications), and the cart main slot is none, whatever a plugin set. The fields that drew a selector are
-        // still answered, so the card resolves the variant it shows as when selling.
-        if (!($item->sellsOnline ?? true)) {
-            $slots = ReadOnlyFields::replace(
-                slots: $slots,
-                fields: (array) $item->fields,
-                buySlots: [ItemListSurface::BuyForm->value],
-                listed: array_values(array_map(
-                    static fn (object $field): int => (int) $field->id,
-                    array_filter(
-                        (array) $item->fields,
-                        static fn (object $field): bool => isset($listed[(int) $field->id]) && empty($field->informational),
-                    ),
-                )),
-            );
-            $item->cart = ReadOnlyFields::NO_CART;
-        }
-
         // Handed once more after the last field (2.2.1): a plugin that changed the card's surfaces and then failed has
         // its field caught above, and its change must not outlive it.
         $item->surfaces = new SurfaceMap($slots);
 
+        // Catalogue only (2.2.2): the card's buy area as core draws it in the mode. The fields that drew a selector are
+        // still answered, so the card resolves the variant it shows as when selling. Handed again after the whole-page
+        // pass, which runs after this one.
+        $this->catalogueOnlyBuyArea(item: $item);
+
         return $drawnFieldIds;
+    }
+
+    /**
+     * A card's buy area in catalogue-only mode (2.2.2), core's last word: the buy form's slot holds only plain read-only
+     * lists of the card's own fields (its listing fields, the informational ones left to its specifications), whoever
+     * contributed to it, and the cart main slot is none, whatever a plugin set. Called after the per-card field events
+     * and again after the whole-page pass (onItemsListPrepare), the last two passes that can change it; repeatable. A
+     * card that sells is left as it is.
+     *
+     * @param object $item The drawn card (->sellsOnline, ->fields, ->listingFieldIds, ->surfaces).
+     *
+     * @since  2.2.2
+     */
+    protected function catalogueOnlyBuyArea(object $item): void
+    {
+        if ($item->sellsOnline ?? true) {
+            return;
+        }
+
+        $listed = array_flip(array_map('intval', (array) ($item->listingFieldIds ?? [])));
+        $item->surfaces = new SurfaceMap(ReadOnlyFields::replace(
+            slots: $item->surfaces instanceof SurfaceMap ? $item->surfaces->toArray() : (array) ($item->surfaces ?? []),
+            fields: (array) ($item->fields ?? []),
+            buySlots: [ItemListSurface::BuyForm->value],
+            listed: array_values(array_map(
+                static fn (object $field): int => (int) $field->id,
+                array_filter(
+                    (array) ($item->fields ?? []),
+                    static fn (object $field): bool => isset($listed[(int) $field->id]) && empty($field->informational),
+                ),
+            )),
+        ));
+        $item->cart = ReadOnlyFields::NO_CART;
     }
 
     // Filter option helpers

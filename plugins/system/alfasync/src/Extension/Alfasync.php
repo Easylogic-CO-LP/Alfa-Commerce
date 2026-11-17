@@ -54,6 +54,8 @@ use Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility;
 use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerTrigger;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Service\Cart\RecognizeKey;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
@@ -105,6 +107,14 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @since  2.2.1
      */
     private array $uninstallingAlfa = [];
+
+    /**
+     * Whether the shop sold online when a save of Alfa's Options began ({@see self::onExtensionBeforeSave()}), so the
+     * save can tell whether it switched online sales (2.2.2). Request memory only; null when no such save began.
+     *
+     * @since  2.2.2
+     */
+    private ?bool $sellsOnlineBeforeSave = null;
 
     // Event subscriptions: the only place to touch when adding a sync target
 
@@ -928,6 +938,16 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             if ($component === 'com_alfa') {
                 $this->invalidateSetup('com_alfa options saved');
+
+                // Online sales switched on or off (2.2.2): the pages Joomla's page cache stored for guests keep the
+                // prices and buy buttons of before, or their absence, so they are dropped.
+                $sellsOnline = (int) (new Registry((string) ($item->params ?? '{}')))->get('catalogue_only', 0) !== 1;
+
+                if ($this->sellsOnlineBeforeSave !== null && $this->sellsOnlineBeforeSave !== $sellsOnline) {
+                    PageCache::forget();
+                }
+
+                $this->sellsOnlineBeforeSave = null;
             }
 
             // The guest group, or the group new accounts are placed in, may be another one.
@@ -1208,7 +1228,14 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         $context = (string) ($event->getArgument('context') ?? $event->getArgument('0') ?? '');
         $item = $event->getArgument('subject') ?? $event->getArgument('1');
 
-        if ($context !== 'com_config.component' || !\is_object($item) || (string) ($item->element ?? '') !== 'com_alfa' || !$this->paused()) {
+        if ($context !== 'com_config.component' || !\is_object($item) || (string) ($item->element ?? '') !== 'com_alfa') {
+            return;
+        }
+
+        // Online sales as they were before this save: the save after it cleans the page cache when it switches them.
+        $this->sellsOnlineBeforeSave = ShopMode::sellsOnline();
+
+        if (!$this->paused()) {
             return;
         }
 

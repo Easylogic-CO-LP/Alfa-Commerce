@@ -10,6 +10,7 @@
 namespace Alfa\Module\AlfaItems\Site\Dispatcher;
 
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Module\AlfaItems\Site\Helper\AlfaItemsHelper;
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
 use Joomla\CMS\Session\Session;
@@ -87,7 +88,7 @@ class Dispatcher extends AbstractModuleDispatcher
 
     /**
      * Whether the module's cards sell (2.2.2): the first drawn item's word ($item->sellsOnline, set by the model that
-     * drew it). A module whose tabs are all drawn later, on demand, has no item yet and loads the scripts.
+     * drew it); a module whose tabs are all drawn later, on demand, has no item yet and asks the shop's switch.
      *
      * @since  2.2.2
      */
@@ -99,7 +100,7 @@ class Dispatcher extends AbstractModuleDispatcher
             }
         }
 
-        return true;
+        return ShopMode::sellsOnline();
     }
 
     /**

@@ -490,3 +490,9 @@
     color: var(--alfa-warning-color);
     margin: 0 0 0.35rem;
 }
+
+/* Catalogue only (2.2.2): a product field as a plain list of its values (item.fields_readonly), its values level with
+   its name, not indented as a browser draws a <dd>. Lowest specificity, for a template to restyle. */
+:where(.item-field-readonly-value) {
+    margin-inline-start: 0;
+}
