@@ -80,6 +80,10 @@ $titleTag = $this->showPageHeading ? 'h2' : 'h1';
     <?php if ($this->resultsCounter !== '') : ?>
     <span id="alfa-results-counter" hidden><?php echo $this->escape($this->resultsCounter); ?></span>
     <?php endif; ?>
+    <?php // THE LIVE STATUS (2.2.2): empty as drawn; list-form.js writes the counter's words into it after a new result
+          // set is brought in (a filter swap, a later page), so a screen reader says how many products show. With no
+          // products, the sentence it carries. An override keeps it to keep the announcement. ?>
+    <p data-results-status aria-live="polite" data-results-empty="<?php echo $this->escape(Text::_('JGLOBAL_NO_MATCHING_RESULTS')); ?>"></p>
     <?php echo $this->pagination->getListFooter(); ?>
     <?php
     // CLICK ATTRIBUTION IS DECLARED, NEVER INFERRED, and only through the view's two calls

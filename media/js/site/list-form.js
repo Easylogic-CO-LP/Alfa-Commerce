@@ -27,14 +27,17 @@
  * anything ever round-trips this subtree through its own innerHTML, where an attribute would
  * come back set on a node whose listeners did not.
  *
- * THE RESULTS ARE BROUGHT TO THE SHOPPER (2.2.0, design 2.20). revealResults() scrolls the results region
- * (`[data-results]`, the pagination and the list) into view when its top is outside the viewport, the sticky offset
- * (its scroll-margin-top, --alfa-scroll-offset) counted, instantly under prefers-reduced-motion and smoothly otherwise,
- * then gives it the focus without scrolling again, so keyboard and screen-reader users land on the results. It runs once
- * for each new result set: after the filters module's swap (`alfa:results:updated`), and on a page the server marked
- * (`data-results-reveal`: a later page reached by its link, a submitted filter), once its layout is final (the window's
- * load). Never on `joomla:updated` alone or on a
- * card's reload: a re-read of the same results moves nothing.
+ * THE RESULTS ARE BROUGHT TO THE SHOPPER (2.2.0, design 2.20; 2.2.2). revealResults() scrolls the results region
+ * (`[data-results]`, the pagination and the list) so that its top sits right under the page's sticky header, every
+ * time a new result set comes in, wherever the region was, instantly under prefers-reduced-motion and smoothly
+ * otherwise; then it gives the region the focus without scrolling again, so keyboard and screen-reader users land on the
+ * results, and writes the pagination's count into the region's live status (`[data-results-status]`), which a screen
+ * reader announces. The header's height is the template's --alfa-scroll-offset when the template sets it; when it does
+ * not, it is measured at that moment: the elements under the viewport's top edge whose position is sticky or fixed
+ * (headerOffset()). It runs once for each new result set: after the filters module's swap (`alfa:results:updated`), and
+ * on a page the server marked (`data-results-reveal`: a later page reached by its link, a submitted filter), once its
+ * layout is final (the window's load). Never on `joomla:updated` alone or on a card's reload: a variant or a quantity
+ * changed in a card is the same results, and moves nothing.
  */
 
 (function () {
@@ -133,7 +136,73 @@
     }
 
     /**
-     * Bring the results region into view and focus it.
+     * The height the page's sticky header covers at the viewport's top: the template's --alfa-scroll-offset (the
+     * region's scroll-margin-top) when the template sets it; otherwise measured now, in one pass over the elements
+     * under the top edge (at its left, middle and right) and their ancestors, keeping those whose position is sticky or
+     * fixed and that touch the top: the lowest bottom among them.
+     *
+     * @param {Element} region The results region.
+     *
+     * @return {number} Pixels from the viewport's top.
+     */
+    function headerOffset(region) {
+        var style = window.getComputedStyle(region);
+
+        if (style.getPropertyValue('--alfa-scroll-offset').trim() !== '') {
+            return parseFloat(style.scrollMarginTop) || 0;
+        }
+
+        var seen = new Set();
+        var bottom = 0;
+
+        [1, window.innerWidth / 2, window.innerWidth - 2].forEach(function (x) {
+            document.elementsFromPoint(x, 0).forEach(function (element) {
+                for (var node = element; node && node !== document.body && node !== document.documentElement; node = node.parentElement) {
+                    if (seen.has(node) || region.contains(node) || node.contains(region)) {
+                        continue;
+                    }
+
+                    seen.add(node);
+                    var position = window.getComputedStyle(node).position;
+
+                    if (position === 'sticky' || position === 'fixed') {
+                        var box = node.getBoundingClientRect();
+
+                        if (box.top <= 0 && box.bottom > bottom) {
+                            bottom = box.bottom;
+                        }
+                    }
+                }
+            });
+        });
+
+        return bottom;
+    }
+
+    /**
+     * Say how many products the new result set shows: the pagination's own count, or the region's sentence for none,
+     * written into the region's live status after a moment, so the region already on the page announces it.
+     *
+     * @param {Element} region The results region.
+     */
+    function announceCount(region) {
+        var status = region.querySelector('[data-results-status]');
+
+        if (!status) {
+            return;
+        }
+
+        var counter = region.querySelector('#alfa-results-counter');
+        var words = counter ? counter.textContent.trim() : (status.getAttribute('data-results-empty') || '');
+
+        status.textContent = '';
+        window.setTimeout(function () {
+            status.textContent = words;
+        }, 150);
+    }
+
+    /**
+     * Bring the results region's top under the page's sticky header, focus it and announce its count.
      *
      * @param {Element|null} region The results region.
      */
@@ -142,17 +211,13 @@
             return;
         }
 
-        var offset = parseFloat(window.getComputedStyle(region).scrollMarginTop) || 0;
-        var top = region.getBoundingClientRect().top;
-
-        if (top < offset || top >= window.innerHeight) {
-            region.scrollIntoView({
-                block: 'start',
-                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
-            });
-        }
+        window.scrollTo({
+            top: window.scrollY + region.getBoundingClientRect().top - headerOffset(region),
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        });
 
         region.focus({ preventScroll: true });
+        announceCount(region);
     }
 
     // Back/forward cache restores the DOM as submitted, with the stripped fields still
