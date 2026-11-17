@@ -2921,7 +2921,8 @@ class OrderModel extends AlfaAdminModel
         // A product with no price applying for this order (2.2.2) is added only with a custom price, never at zero by
         // accident: the order popup and the REST API's order lines send the custom price with the line.
         if (!$result->isPriced()) {
-            $name = trim((string) ($item->name ?? ''));
+            // Named as the line would be (the catalogue row carries no name; the names are per language).
+            $name = trim(MultilingualHelper::resolveLangMap(ItemFieldsSnapshot::freezeItemName($itemId, $combinationId)));
 
             throw new RuntimeException(Text::sprintf('COM_ALFA_ORDER_LINE_NOT_PRICED', $name !== '' ? $name : '#' . $itemId));
         }
