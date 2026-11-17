@@ -29,16 +29,17 @@ use Throwable;
  * A plugin cannot know what a shop called its fields, and the core does not
  * decide for it: a postcode is a carrier's concern, so the cart reads no
  * postcode role and hardcodes no column. The plugin names the field here and
- * reads it off the cart.
- *
- * A STARTING CHOICE BY ROLE (2.2.1). `defaultrole="postcode"` starts an empty
- * setting on the field that carries that role (RoleRegistry), when one is
- * published: a new shop ships its address fields with their roles, so a new
- * carrier method starts on the shop's own postcode field. It is the field's
- * default, as Joomla treats a default: shown whenever the setting is empty. A
- * shop with no field of that role (one installed before 2.2.1) starts on
- * nothing, as before; a setting that names a field is never changed. It lives in the component because the need is not one
+ * reads it off the cart. It lives in the component because the need is not one
  * plugin's, and none of them should ship their own copy of this dropdown.
+ *
+ * A STARTING CHOICE BY ROLE (2.2.1). `defaultrole="postcode"` starts a setting
+ * that was never saved on the field carrying that role (RoleRegistry), when the
+ * picker offers it: a new shop ships its address fields with their roles, so a
+ * new carrier method starts on the shop's own postcode field. A saved setting
+ * is never changed, an empty choice ("None") included, and a field the picker
+ * does not offer (unpublished, of another type or out of its sections) is not
+ * taken. A shop with no field of that role (one installed before 2.2.1) starts
+ * on nothing, as before.
  *
  * IT SAVES THE FIELD'S ID, NOT ITS COLUMN NAME. Renaming a field rewrites the
  * name and ALTERs the column; an id does not move. Read the value back with
@@ -89,8 +90,8 @@ class CheckoutfieldField extends ListField
     private const SECTIONS = ['shipping', 'billing'];
 
     /**
-     * Set the field up; an empty setting starts on the published field carrying the `defaultrole` attribute's role
-     * (2.2.1).
+     * Set the field up; a setting that was never saved starts on the field carrying the `defaultrole` attribute's
+     * role, when the picker offers it (2.2.1).
      *
      * @param SimpleXMLElement $element The field's XML element.
      * @param mixed $value The value, or null.
@@ -107,13 +108,18 @@ class CheckoutfieldField extends ListField
         }
 
         $role = trim((string) ($this->element['defaultrole'] ?? ''));
+        // A setting saved empty ("None") is a choice: only one never saved starts on the role's field.
+        $saved = $this->form !== null && $this->form->getData()->exists(($this->group ? $this->group . '.' : '') . $this->fieldname);
 
-        if ($role !== '' && ($this->value === null || $this->value === '') && RoleRegistry::isRole($role)) {
-            $field = RoleRegistry::field($role);
+        if ($role === '' || $saved || ($this->value !== null && $this->value !== '') || !RoleRegistry::isRole($role)) {
+            return true;
+        }
 
-            if ($field !== null && (int) $field->state === 1) {
-                $this->value = (string) (int) $field->id;
-            }
+        $field = RoleRegistry::field($role);
+        $offered = array_map(static fn (object $option): string => (string) $option->value, $this->loadModelRows() ?? []);
+
+        if ($field !== null && \in_array((string) (int) $field->id, $offered, true)) {
+            $this->value = (string) (int) $field->id;
         }
 
         return true;

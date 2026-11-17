@@ -39,7 +39,7 @@
         sections=    shipping | billing | registration: which checkout section.
         multiple=    offer several; read them with $cart->delivery()->fields()
                      or ->firstFilled().
-        defaultrole= start an empty setting on the published field carrying
+        defaultrole= start a setting never saved on the offered field carrying
                      that role: address, city or postcode (2.2.1; a shop
                      installed before 2.2.1 has none and starts on nothing).
 
