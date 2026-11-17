@@ -133,6 +133,7 @@ class ToolsmediaModel extends ListModel
                 . ' WHEN ' . $db->quote('item') . ' THEN (i.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('category') . ' THEN (c.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('manufacturer') . ' THEN (m.id IS NOT NULL)'
+                . ' WHEN ' . $db->quote('combination') . ' THEN (co.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('payment') . ' THEN (pm.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('shipment') . ' THEN (sm.id IS NOT NULL)'
                 . ' ELSE 1 END) AS has_parent',
@@ -144,6 +145,8 @@ class ToolsmediaModel extends ListModel
                 . ' ON a.origin = ' . $db->quote('category') . ' AND c.id = a.item_id')
             ->join('LEFT', $db->quoteName('#__alfa_manufacturers', 'm')
                 . ' ON a.origin = ' . $db->quote('manufacturer') . ' AND m.id = a.item_id')
+            ->join('LEFT', $db->quoteName('#__alfa_item_combinations', 'co')
+                . ' ON a.origin = ' . $db->quote('combination') . ' AND co.id = a.item_id')
             ->join('LEFT', $db->quoteName('#__alfa_payments', 'pm')
                 . ' ON a.origin = ' . $db->quote('payment') . ' AND pm.id = a.item_id')
             ->join('LEFT', $db->quoteName('#__alfa_shipments', 'sm')

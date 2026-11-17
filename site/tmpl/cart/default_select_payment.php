@@ -62,7 +62,7 @@ $emptyKey = match (true) {
 				<?php echo $image . htmlspecialchars($payment->name, ENT_QUOTES, 'UTF-8'); ?>
             </label>
 
-            <p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php if (trim((string) $payment->description) !== '') : ?><p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
 			<?php if ($view !== null) : ?>
 				<?php echo Layout::render($view->layout, $view->layoutData, $view->pluginType, $view->pluginName); ?>

@@ -49,7 +49,7 @@ $shipments = $snapshot->offers->shipments;
 				<?php echo $image . htmlspecialchars($shipment->name, ENT_QUOTES, 'UTF-8'); ?>
             </label>
 
-            <p><?php echo htmlspecialchars($shipment->description, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php if (trim((string) $shipment->description) !== '') : ?><p><?php echo htmlspecialchars($shipment->description, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
 			<?php if ($view !== null) : ?>
 				<?php echo Layout::render($view->layout, $view->layoutData, $view->pluginType, $view->pluginName); ?>

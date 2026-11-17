@@ -76,13 +76,13 @@
 
 /* A payment or shipping method's image (2.2.2), before its title: held to the token's height, never wider than a
    few words, its own proportions kept. */
-.method-image {
+:where(.method-image) {
     display: inline-block;
     margin-inline-end: 0.5em;
     vertical-align: middle;
 }
 
-.method-image img {
+:where(.method-image img) {
     display: block;
     width: auto;
     height: auto;
