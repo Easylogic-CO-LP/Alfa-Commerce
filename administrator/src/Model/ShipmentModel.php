@@ -41,7 +41,7 @@ class ShipmentModel extends AlfaAdminModel
      */
     protected string $alfaEntity = 'shipment';
 
-    /**
+    /*
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save() writes the row, the per-language translations, the five scope pivots
      *   and the taxes in one transaction, and onAlfaAdminAfterSave is announced at its

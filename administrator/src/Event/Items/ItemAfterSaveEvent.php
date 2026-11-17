@@ -8,14 +8,15 @@
  *
  * Item After Save Event
  *
- * Dispatched at the END of the admin item save, after every core surface has
- * persisted: `alfa`-group feature plugins store their own injected-field
+ * Dispatched once the whole admin item save has committed (2.2.1), never for a
+ * save that was rolled back: feature plugins store their own injected-field
  * data here (subscription settings, bundle contents, ...) into their OWN
  * tables (`#__plg_<group>_<element>_*`).
  *
- * Read-only payload; a listener failure never blocks the item save (the
- * dispatch site logs and continues; same non-blocking contract as
- * onOrderStatusChange).
+ * Read-only payload; a listener failure never blocks the item save, which
+ * already stands: each listener is called on its own, and one that throws is
+ * logged in com_alfa_plugins.php (category com_alfa.plugins) while the next
+ * one runs.
  *
  * @since  2.0.0
  */

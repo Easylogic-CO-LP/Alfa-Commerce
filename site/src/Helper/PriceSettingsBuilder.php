@@ -120,8 +120,6 @@ class PriceSettingsBuilder
     /**
      * Resolve element name to internal field name
      *
-     * Duplicates PriceSettings::resolve() logic for builder independence.
-     *
      * @param string $element Element name
      *
      * @return string|null Field name or null if not found

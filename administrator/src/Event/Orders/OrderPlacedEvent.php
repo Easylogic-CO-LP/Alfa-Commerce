@@ -26,11 +26,13 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  *
  * WHY THIS EXISTS WHEN `onOrderStatusChange` ALREADY DOES: placement deliberately does NOT run
  * the transition machinery (it is a "no status -> initial status" step that mimics only the
- * email), so no broadcast fires at the one moment that is unlike every later transition: THE
- * SHOPPER IS STILL IN THE REQUEST. A later status change happens in a payment gateway's
- * callback or an administrator's session, where the shopper's identity does not exist. Anything
- * that must observe the order *in the shopper's own context* (search-conversion attribution is
- * the first consumer) can only do it here.
+ * email), so no broadcast fires at the one moment that is unlike every later transition: on a
+ * storefront placement THE SHOPPER IS STILL IN THE REQUEST. A later status change happens in a
+ * payment gateway's callback or an administrator's session, where the shopper's identity does not
+ * exist. Anything that must observe the order *in the shopper's own context* (search-conversion
+ * attribution is the first consumer) can only do it here. A placement staff make for a customer in
+ * the order builder raises it too, in the staff member's request: the current user is then the
+ * member of staff, so a listener reads the customer from the order, never from the identity.
  *
  * WHY IT IS A BROADCAST when `onOrderAfterPlace` already fires at placement: those are TARGETED
  * calls at the selected payment and shipment plugins, and they are constructive (they create
@@ -64,9 +66,7 @@ class OrderPlacedEvent extends AbstractImmutableEvent
     }
 
     /**
-     * The placed order row.
-     *
-     * @return object
+     * The placed order, as the order reader.
      *
      * @since  2.0.0
      */

@@ -57,7 +57,7 @@ class OrderstatusModel extends AlfaAdminModel
      */
     protected string $alfaEntity = 'orderstatus';
 
-    /**
+    /*
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save(): the role-invariant guard (canSaveStatus) returns before parent::save(),
      *   so the onAlfaAdminValidate/BeforeSave/AfterSave bracket fires only for saves

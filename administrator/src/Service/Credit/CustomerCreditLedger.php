@@ -1865,15 +1865,6 @@ final class CustomerCreditLedger
     }
 
     /**
-     * Net ledger amount a credit note produced (0.0 = no wallet leg).
-     *
-     * @param int $documentId The credit document id.
-     *
-     * @return float
-     *
-     * @since  2.0.0
-     */
-    /**
      * The wallet leg of a credit note, as money in the wallet's own currency.
      *
      * The guards ask this rather than comparing the float against a fixed

@@ -563,7 +563,8 @@ final class DocumentIssuer
             // taken a number is authoritative the moment it commits: it has been
             // reported and handed to a customer, and an inventory problem must not
             // be able to un-issue it. But the effect it requires travels through
-            // `alfa-inventory` plugin events into third-party code, which can fail
+            // the stock plugin events (raised with the `alfa` group imported) into
+            // third-party code, which can fail
             // or be slow for reasons that have nothing to do with the document.
             //
             // Those two facts together are exactly why the obligation is written

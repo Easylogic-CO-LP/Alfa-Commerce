@@ -26,16 +26,10 @@
  *   2. Write the handler (extract args, call SyncHelper).
  *   3. Add any DB logic to SyncHelper if it doesn't exist yet.
  *
- * Custom events from com_alfa
- * Dispatch from your component model:
- *
- *   $event = new \Joomla\Event\Event('onAlfaProductAfterSave', [
- *       'data'  => $productData,
- *       'isNew' => $isNew,
- *   ]);
- *   Factory::getApplication()->getDispatcher()->dispatch('onAlfaProductAfterSave', $event);
- *
- * Then add the handler here and the INSERT/UPDATE logic in SyncHelper.
+ * Events of com_alfa
+ * Alfa Commerce announces its own saves, after the save has committed: onItemAfterSave for an item, and
+ * onAlfaAdminAfterSave for the records of its screens. Subscribe to the one you need in
+ * getSubscribedEvents(), then add the handler here and the INSERT/UPDATE logic in SyncHelper.
  */
 
 namespace Alfa\Plugin\System\Alfasync\Extension;

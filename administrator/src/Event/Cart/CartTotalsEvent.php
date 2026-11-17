@@ -101,11 +101,14 @@ class CartTotalsEvent extends AbstractImmutableEvent implements SelectionContrib
      * depends on more than line ids and tax rates: a gift-wrap fee that only
      * applies to physical goods, a small-basket surcharge that must count units.
      *
-     * STILL NO MONEY, AND THAT IS THE POINT. The cart handed over is the settled
-     * state, not the computation: it can say what is in the basket and where it
-     * is going, and it cannot say what the basket comes to. A contributor
-     * reading the total it is about to change is exactly the cycle this event
-     * was shaped to prevent, and handing over HydratedCart does not open it.
+     * THE SUBTOTAL, NEVER THE TOTAL. The cart handed over is the settled
+     * state, not the computation: it says what is in the basket, where it is
+     * going and what the goods come to (getSubtotal(), the settled goods
+     * amount), and it cannot say what the whole cart comes to: getTotal()
+     * throws at this stage, since the carriage and the cart-level charges, this
+     * contributor's among them, are still being decided. A contributor reading
+     * the total it is about to change is exactly the cycle this event was
+     * shaped to prevent, and the Cart handed over keeps it closed.
      *
      *
      * @since  2.0.0

@@ -42,7 +42,7 @@ class SeriesModel extends AlfaAdminModel
      */
     protected string $alfaEntity = 'series';
 
-    /**
+    /*
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save() merges the composer's raw POST keys and bundles `positions` BEFORE
      *   parent::save(), so onAlfaAdminBeforeSave sees the finished payload; but

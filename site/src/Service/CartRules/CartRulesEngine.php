@@ -91,18 +91,6 @@ final class CartRulesEngine
     private array $codeOutcomes = [];
 
     /**
-     * Evaluate every active rule against a cart snapshot.
-     *
-     * @param array $lines Line snapshots (see class docblock).
-     * @param object $context Evaluation context (see class docblock).
-     *
-     * @return object {applied: AppliedCartRule[], progress: object[],
-     *                rejected_codes: string[]} - progress carries the
-     *                distance-to-eligibility structure of near-miss rules.
-     *
-     * @since  2.0.0
-     */
-    /**
      * THE ROUNDING CONTRACT. A discount is MONEY the moment it
      * is computed: every figure this engine emits (the rule's incl/excl
      * values, the per-line shares, the shipping benefit) is quantized to the
@@ -171,6 +159,18 @@ final class CartRulesEngine
         ];
     }
 
+    /**
+     * Evaluate every active rule against a cart snapshot.
+     *
+     * @param array $lines Line snapshots (see class docblock).
+     * @param object $context Evaluation context (see class docblock).
+     *
+     * @return object {applied: AppliedCartRule[], progress: object[],
+     *                rejected_codes: string[]} - progress carries the
+     *                distance-to-eligibility structure of near-miss rules.
+     *
+     * @since  2.0.0
+     */
     public function evaluate(array $lines, object $context): object
     {
         $this->codeOutcomes = [];

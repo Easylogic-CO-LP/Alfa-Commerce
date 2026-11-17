@@ -197,13 +197,6 @@ final class MenuBuilder
     }
 
     /**
-     * Parse the core entries from menu.xml into MenuItems.
-     *
-     * @return MenuItem[]
-     *
-     * @since  2.0.0
-     */
-    /**
      * The headings menu.xml places, keyed by language key.
      *
      * @return array<string, int>
@@ -237,6 +230,13 @@ final class MenuBuilder
         return $sections;
     }
 
+    /**
+     * Parse the core entries from menu.xml into MenuItems.
+     *
+     * @return MenuItem[]
+     *
+     * @since  2.0.0
+     */
     private function coreItems(): array
     {
         $file = JPATH_ADMINISTRATOR . '/components/com_alfa/menu.xml';

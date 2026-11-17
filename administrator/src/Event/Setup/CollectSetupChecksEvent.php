@@ -21,9 +21,10 @@ use Joomla\CMS\Event\AbstractEvent;
  * Collects the store-setup checklist (`onAlfaCollectSetupChecks`).
  *
  * Core's checks are in the event first, through its constructor ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\CoreSetupProvider::checks()}),
- * then every enabled `alfa` PLATFORM plugin is asked; capability groups
- * (alfa-payments, alfa-search, ...) stay out of shared backend surfaces and are
- * represented by their platform adapter. Each plugin names itself as the check's
+ * then the event is raised on the shared dispatcher once the `alfa` PLATFORM
+ * group is imported, so every loaded listener answers (2.2.0); capability groups
+ * (alfa-payments, alfa-search, ...) are not imported for it, and are represented
+ * by their platform adapter. Each plugin names itself as the check's
  * contributor (attribution, never an authorisation), so a check always knows who
  * answers for it.
  *

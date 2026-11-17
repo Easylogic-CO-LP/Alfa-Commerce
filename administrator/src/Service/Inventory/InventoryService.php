@@ -1230,27 +1230,6 @@ final class InventoryService
     }
 
     /**
-     * Read a source's per-line inventory state: the tracked unit, the
-     * active reserved remainder and the net deducted quantity of every
-     * line the source ever touched (reservations OR ledger). The
-     * reconciliation food of order-side callers: nobody sums rows
-     * elsewhere.
-     *
-     * @param string $sourceType Source domain.
-     * @param int $sourceId Source row id.
-     * @param int[] $lineIds Lines the caller knows it owns, for ledger
-     *                       rows another domain wrote against them. A
-     *                       caller that holds its own line list (an
-     *                       order does) should always pass it: without
-     *                       it only lines carrying a reservation are
-     *                       discoverable.
-     *
-     * @return array<int, array{item_id: int, combination_id: int, reserved_remainder: float, deducted_net: float, foreign_deducted_net: float}>
-     *                                                                                                                                           Keyed by line id.
-     *
-     * @since  2.0.0
-     */
-    /**
      * What ANOTHER source physically has out on these lines, per inventory unit.
      *
      * The identity-scoped twin of {@see self::sourceLineState()}'s per-LINE
