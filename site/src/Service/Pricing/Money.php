@@ -281,21 +281,6 @@ class Money
     }
 
     /**
-     * Create zero money
-     *
-     * Useful as a starting point for accumulation.
-     *
-     * @param Currency $currency Currency object
-     * @return self Money object with zero value
-     *
-     * @example
-     * $total = Money::zero(Currency::loadByCode('USD'));
-     * foreach ($items as $item) {
-     *     $total = $total->add($item->price);
-     * }
-     * @since  1.0.0
-     */
-    /**
      * THE monetary rounding primitive: one rule, one place.
      *
      * Every rounding of a monetary amount goes through here, so the whole
@@ -323,6 +308,21 @@ class Money
         return self::of($amount, $currency)->getAmount();
     }
 
+    /**
+     * Create zero money
+     *
+     * Useful as a starting point for accumulation.
+     *
+     * @param Currency $currency Currency object
+     * @return self Money object with zero value
+     *
+     * @example
+     * $total = Money::zero(Currency::loadByCode('USD'));
+     * foreach ($items as $item) {
+     *     $total = $total->add($item->price);
+     * }
+     * @since  1.0.0
+     */
     public static function zero(Currency $currency): self
     {
         return new self(0, $currency);

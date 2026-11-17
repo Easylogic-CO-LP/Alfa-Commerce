@@ -68,8 +68,6 @@ class OrderPlacedEvent extends AbstractImmutableEvent
     /**
      * The placed order, as the order reader.
      *
-     * @return Order
-     *
      * @since  2.0.0
      */
     public function getOrder(): Order

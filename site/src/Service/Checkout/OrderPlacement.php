@@ -744,14 +744,6 @@ class OrderPlacement
     }
 
     /**
-     * Validate that the order can be placed: non-empty cart plus valid payment and shipment methods.
-     * Stores the resolved shipment id on the cart on success and enqueues a message on each failure.
-     *
-     * @return bool True when all prerequisites pass, false otherwise.
-     *
-     * @since  1.0.0
-     */
-    /**
      * Record why a placement is being refused, and tell the shopper if there is
      * one.
      *
@@ -899,23 +891,6 @@ class OrderPlacement
     }
 
     /**
-     * May this placement use the payment method it has chosen?
-     *
-     * Only ever asks anything of an operator placement. For a shopper the
-     * answer is yes by definition: they are the person every storefront method
-     * was written for, and nothing about their checkout changes here.
-     *
-     * The check exists twice on purpose. Hiding a method from the offered list
-     * is presentation, and presentation is a thing a crafted request walks past
-     * - the method id arrives as a number in a POST and nothing about it proves
-     * it was ever displayed. So the offered list is filtered for tidiness, and
-     * this is the one that decides, sitting immediately before the plugin can
-     * be booted and called.
-     *
-     *
-     * @since  2.0.0
-     */
-    /**
      * Is the plugin behind a chosen method actually switched on?
      *
      * Independent of the offered list on purpose. Discovery now excludes a
@@ -972,6 +947,23 @@ class OrderPlacement
         }
     }
 
+    /**
+     * May this placement use the payment method it has chosen?
+     *
+     * Only ever asks anything of an operator placement. For a shopper the
+     * answer is yes by definition: they are the person every storefront method
+     * was written for, and nothing about their checkout changes here.
+     *
+     * The check exists twice on purpose. Hiding a method from the offered list
+     * is presentation, and presentation is a thing a crafted request walks past
+     * - the method id arrives as a number in a POST and nothing about it proves
+     * it was ever displayed. So the offered list is filtered for tidiness, and
+     * this is the one that decides, sitting immediately before the plugin can
+     * be booted and called.
+     *
+     *
+     * @since  2.0.0
+     */
     protected function paymentMethodPermitted(): bool
     {
         if (!$this->subject->isOperatorPlacement()) {
@@ -995,6 +987,14 @@ class OrderPlacement
         return false;
     }
 
+    /**
+     * Validate that the order can be placed: non-empty cart plus valid payment and shipment methods.
+     * Stores the resolved shipment id on the cart on success and enqueues a message on each failure.
+     *
+     * @return bool True when all prerequisites pass, false otherwise.
+     *
+     * @since  1.0.0
+     */
     protected function validateOrderPrerequisites(): bool
     {
         try {
@@ -1731,25 +1731,24 @@ class OrderPlacement
     }
 
     /**
-     * Save order
+     * The language this customer is written to in, with no request involved.
      *
-     * The order status is read from $this->defaultStatus (loaded from DB)
-     * instead of the old hardcoded constant.
-     *
-     * @return int|false New order ID, or false on failure
-     * @since  1.0.0
-     */
-    /**
-     * Build the OrderCreator draft from the live cart: order-level fields plus
-     * one line per cart item with the FROZEN amounts extracted from its
-     * PriceResult (the mapping documented on freezeLineFromCartItem). This
-     * helper prices; OrderCreator persists, never the other way round.
-     *
-     *
-     * @return array The draft for OrderCreator::create().
+     * @return string A language tag: the customer's own, else the site's default language
+     *                ({@see MultilingualHelper::getDefaultLanguageCode()}).
      *
      * @since  2.0.0
      */
+    protected function customerLanguageTag(): string
+    {
+        $chosen = (string) $this->user->getParam('language', '');
+
+        if ($chosen !== '') {
+            return $chosen;
+        }
+
+        return MultilingualHelper::getDefaultLanguageCode();
+    }
+
     /**
      * The #__languages.lang_id of the language this order is being placed in.
      *
@@ -1773,25 +1772,6 @@ class OrderPlacement
      *
      * @since  2.0.0
      */
-    /**
-     * The language this customer is written to in, with no request involved.
-     *
-     * @return string A language tag: the customer's own, else the site's default language
-     *                ({@see MultilingualHelper::getDefaultLanguageCode()}).
-     *
-     * @since  2.0.0
-     */
-    protected function customerLanguageTag(): string
-    {
-        $chosen = (string) $this->user->getParam('language', '');
-
-        if ($chosen !== '') {
-            return $chosen;
-        }
-
-        return MultilingualHelper::getDefaultLanguageCode();
-    }
-
     protected function resolveLanguageId(): int
     {
         // The command's tag when it named one; otherwise the running
@@ -1831,6 +1811,17 @@ class OrderPlacement
         }
     }
 
+    /**
+     * Build the OrderCreator draft from the live cart: order-level fields plus
+     * one line per cart item with the FROZEN amounts extracted from its
+     * PriceResult (the mapping documented on freezeLineFromCartItem). This
+     * helper prices; OrderCreator persists, never the other way round.
+     *
+     *
+     * @return array The draft for OrderCreator::create().
+     *
+     * @since  2.0.0
+     */
     protected function buildOrderDraft(int $paymentMethodId, int $shipmentMethodId): array
     {
         $lines = [];
@@ -2120,10 +2111,6 @@ class OrderPlacement
         }
     }
 
-    /**
-     * V3: Save cart rules
-     * @since  1.0.0
-     */
     /**
      * Freeze the cart's plugin contributions to `#__alfa_order_contributions`
      * - every cart-level charge in full accounting form (excl + tax + incl per
@@ -2871,18 +2858,6 @@ class OrderPlacement
     }
 
     /**
-     * Apply the customer's credit balance as a payment, when they opted in.
-     *
-     * Runs POST-COMMIT (the ledger opens its own transaction; inside the
-     * placement transaction MySQL's START TRANSACTION would implicitly
-     * commit the half-built order) and BEFORE the payment plugin's
-     * onOrderAfterPlace, so the gateway sees only the remainder through
-     * PaymentLedger::amountToCollect(). Non-fatal by contract.
-     *
-     *
-     * @since  2.0.0
-     */
-    /**
      * Let a failure that has already killed the transaction out of a catch that
      * was written to tolerate a failed ROW.
      *
@@ -3039,6 +3014,18 @@ class OrderPlacement
         ];
     }
 
+    /**
+     * Apply the customer's credit balance as a payment, when they opted in.
+     *
+     * Runs POST-COMMIT (the ledger opens its own transaction; inside the
+     * placement transaction MySQL's START TRANSACTION would implicitly
+     * commit the half-built order) and BEFORE the payment plugin's
+     * onOrderAfterPlace, so the gateway sees only the remainder through
+     * PaymentLedger::amountToCollect(). Non-fatal by contract.
+     *
+     *
+     * @since  2.0.0
+     */
     private function applyCustomerCredit(): void
     {
         if (!($this->command?->useCredit ?? false)) {

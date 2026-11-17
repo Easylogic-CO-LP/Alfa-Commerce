@@ -452,11 +452,6 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     //  FRONTEND HOOKS (abstract: plugin MUST implement)
 
     /**
-     * Calculate shipping cost for the cart.
-     *
-     * @since  1.0.0
-     */
-    /**
      * Move a shipment to a new status EXACTLY ONCE, and say what happened.
      *
      * The shipment counterpart of the payments settle. A carrier redelivers
@@ -929,6 +924,11 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         ];
     }
 
+    /**
+     * Calculate shipping cost for the cart.
+     *
+     * @since  1.0.0
+     */
     abstract public function onCalculateShippingCost(CalculateShippingCostEvent $event): void;
 
     //  ADMIN ACTION HOOKS (empty: plugin overrides as needed)

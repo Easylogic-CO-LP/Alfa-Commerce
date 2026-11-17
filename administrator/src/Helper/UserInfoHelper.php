@@ -130,29 +130,6 @@ class UserInfoHelper
     }
 
     /**
-     * Returns the #__alfa_user_info.id to reference for the given field values.
-     *
-     * Decision order (logged-in users):
-     *   1. An identical row already exists -> reuse it (no write).
-     *   2. The caller EXPLICITLY named an owned row ($existingId, the
-     *      User Info edit screen) and it is not frozen by an order ->
-     *      UPDATE it (partial/merge: absent columns are preserved).
-     *      Nothing is ever updated implicitly.
-     *   3. Otherwise -> INSERT a new row: anything different from the saved
-     *      rows is NEW info (registration created the first row; every new
-     *      combination at checkout becomes another one). Rows referenced by
-     *      orders are never touched; history stays exact.
-     *
-     * Guests (id_user = 0) always INSERT.
-     *
-     * @param int $userId Owner id (0 for guests).
-     * @param array $data Raw field values keyed by field_name.
-     *
-     * @return int The id to reference (e.g. as id_address_delivery).
-     *
-     * @since   1.0.1
-     */
-    /**
      * Checkout write path: reuse, complete, or insert; never edit.
      *
      * Dedup first (identical row -> reuse). Then COMPLETION: when the data
@@ -246,6 +223,29 @@ class UserInfoHelper
         return (int) $row->id;
     }
 
+    /**
+     * Returns the #__alfa_user_info.id to reference for the given field values.
+     *
+     * Decision order (logged-in users):
+     *   1. An identical row already exists -> reuse it (no write).
+     *   2. The caller EXPLICITLY named an owned row ($existingId, the
+     *      User Info edit screen) and it is not frozen by an order ->
+     *      UPDATE it (partial/merge: absent columns are preserved).
+     *      Nothing is ever updated implicitly.
+     *   3. Otherwise -> INSERT a new row: anything different from the saved
+     *      rows is NEW info (registration created the first row; every new
+     *      combination at checkout becomes another one). Rows referenced by
+     *      orders are never touched; history stays exact.
+     *
+     * Guests (id_user = 0) always INSERT.
+     *
+     * @param int $userId Owner id (0 for guests).
+     * @param array $data Raw field values keyed by field_name.
+     *
+     * @return int The id to reference (e.g. as id_address_delivery).
+     *
+     * @since   1.0.1
+     */
     public static function insertData(int $userId, array $data, ?int $existingId = null): int
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
@@ -335,14 +335,6 @@ class UserInfoHelper
     }
 
     /**
-     * Loads a single row, scoped to its owner (null when not found / not owned).
-     *
-     * @param int $id Row id.
-     *
-     *
-     * @since   1.0.1
-     */
-    /**
      * One address row by id alone, whoever it belongs to.
      *
      * The cart points at its addresses by id, and a guest's cart points at
@@ -370,6 +362,14 @@ class UserInfoHelper
         return $db->setQuery($query)->loadObject() ?: null;
     }
 
+    /**
+     * Loads a single row, scoped to its owner (null when not found / not owned).
+     *
+     * @param int $id Row id.
+     *
+     *
+     * @since   1.0.1
+     */
     public static function getRow(int $userId, int $id): ?object
     {
         if ($userId <= 0 || $id <= 0) {

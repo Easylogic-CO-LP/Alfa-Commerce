@@ -1487,14 +1487,6 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     }
 
     /**
-     * Load a single payment with method params attached.
-     *
-     *
-     * @return object|null Payment record with ->params, or null
-     *
-     * @since  1.0.0
-     */
-    /**
      * THIS gateway's payment METHOD for an order: its settings, credentials
      * included, `$method->params` already decoded to an array.
      *

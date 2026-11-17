@@ -7,6 +7,23 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
+namespace Alfa\Component\Alfa\Administrator\Helper;
+
+defined('_JEXEC') or die;
+
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
+use Alfa\Component\Alfa\Site\Helper\PriceUnits;
+use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
+use Alfa\Component\Alfa\Site\Service\Pricing\Money;
+use Exception;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
+use Joomla\CMS\User\User;
+use RuntimeException;
+
 /**
  * OrderHelper V3 - With Money Objects
  *
@@ -28,24 +45,6 @@
  * back, decorates them with their item-field snapshot, and builds the customer's
  * price context for the admin order screen.
  */
-
-namespace Alfa\Component\Alfa\Administrator\Helper;
-
-defined('_JEXEC') or die;
-
-use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
-use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
-use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
-use Alfa\Component\Alfa\Site\Helper\PriceUnits;
-use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
-use Alfa\Component\Alfa\Site\Service\Pricing\Money;
-use Exception;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
-use Joomla\CMS\Log\Log;
-use Joomla\CMS\User\User;
-use RuntimeException;
-
 class OrderHelper
 {
     /**

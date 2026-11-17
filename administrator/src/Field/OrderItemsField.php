@@ -7,6 +7,18 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
+namespace Alfa\Component\Alfa\Administrator\Field;
+
+\defined('_JEXEC') or die;
+
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Form\Field\ListField;
+use Throwable;
+
 /**
  * OrderItemsField: Configurable multi-select of order items
  *
@@ -49,19 +61,6 @@
  *
  * @package    Alfa Commerce
  */
-
-namespace Alfa\Component\Alfa\Administrator\Field;
-
-\defined('_JEXEC') or die;
-
-use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
-use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
-use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
-use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Form\Field\ListField;
-use Throwable;
-
 class OrderItemsField extends ListField
 {
     use HasFailClosedOptionsTrait;

@@ -1194,7 +1194,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
     //  Utility
 
-    /**
+    /*
      * WHO AN ORDER IS FOR IS THE ORDER'S OWN QUESTION, not this base class's.
      *
      * `customer($order)` and `recipient($order)` used to live here and were a

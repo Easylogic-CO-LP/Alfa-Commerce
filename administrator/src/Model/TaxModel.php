@@ -62,7 +62,7 @@ class TaxModel extends AlfaAdminModel
      */
     protected string $alfaEntity = 'tax';
 
-    /**
+    /*
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save()/delete() extend the parent mid-method (price index sync + pivot
      *   cascade around parent::save()/parent::delete()), with no early return

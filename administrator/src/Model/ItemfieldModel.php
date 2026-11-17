@@ -50,7 +50,7 @@ class ItemfieldModel extends AlfaAdminModel
      */
     protected string $alfaEntity = 'itemfield';
 
-    /**
+    /*
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save() returns before parent::save() when the machine field_name cannot be
      *   derived from any language's name: nothing persisted, so the contract's
