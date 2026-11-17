@@ -60,8 +60,8 @@ use RuntimeException;
  *
  * Every item-line draft builder goes through here (auto-issue, the order
  * screen's issue and credit modal, and every credit an extension drafts
- * through DocumentDraft), and so does OrderChargeLines::itemShare(), which
- * divides by the same balance.
+ * through DocumentDraft), and so does OrderChargeLines::goodsToInvoice(),
+ * which shares an order or product discount over the same balance.
  *
  * @since  2.0.0
  */
@@ -138,10 +138,9 @@ final class OrderItemLines
         // order issuable and nothing left to state; measured against the frozen
         // total, a credit could claim money that was never invoiced.
         //
-        // The credit pool is read only for what it has left
-        // (OrderChargeLines::itemShare()); no part is ever claimed from it: a
-        // credit is drafted from the document it corrects (buildCreditLines()),
-        // and buildSalesLines() refuses a credit type.
+        // The credit pool is read only for what it has left; no part is ever
+        // claimed from it: a credit is drafted from the document it corrects
+        // (buildCreditLines()), and buildSalesLines() refuses a credit type.
         $targets = null;
 
         switch (DocumentHelper::poolOf($docType)) {
