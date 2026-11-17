@@ -20,7 +20,9 @@ use Joomla\Database\ParameterType;
  * A product's related products: the products its page shows after it, in the order staff set on its Related tab.
  *
  * A link goes one way. A row of `#__alfa_items_related` from A to B shows B on A's page and nothing on B's; B shows A
- * only through a row of its own. The links are kept whatever state either product is in (a trashed, unpublished,
+ * only through a row of its own. Each row names its kind of link in `link_type`: {@see self::TYPE_RELATED} is the one
+ * kind core writes and reads; the column is there so that a further kind (an up-sell, a cross-sell) needs no schema
+ * change, and a row of another kind is neither read nor replaced here. The links are kept whatever state either product is in (a trashed, unpublished,
  * archived or scheduled product keeps its links and shows again when it is published); the storefront shows only the
  * products the visitor may see in the listing. A deleted product's rows go on both sides ({@see self::deleteFor()}).
  *
@@ -39,6 +41,13 @@ final class RelatedItems
      * @since  2.2.2
      */
     public const TABLE = '#__alfa_items_related';
+
+    /**
+     * The kind of link core writes and reads: the product page's related products.
+     *
+     * @since  2.2.2
+     */
+    public const TYPE_RELATED = 'related';
 
     /**
      * The related product ids of a product, in their order.
@@ -62,6 +71,7 @@ final class RelatedItems
             ->select($db->quoteName('related_item_id'))
             ->from($db->quoteName(self::TABLE))
             ->where($db->quoteName('item_id') . ' = :item')
+            ->where($db->quoteName('link_type') . ' = ' . $db->quote(self::TYPE_RELATED))
             ->order($db->quoteName('ordering') . ' ASC, ' . $db->quoteName('related_item_id') . ' ASC')
             ->bind(':item', $itemId, ParameterType::INTEGER);
 
@@ -154,8 +164,9 @@ final class RelatedItems
     }
 
     /**
-     * Replace a product's links by these, in this order (ordering 1, 2, 3). Run inside the save's transaction. Each row
-     * is written only while its product exists, so a product deleted since the check leaves no link.
+     * Replace a product's related products by these, in this order (ordering 1, 2, 3); its links of another kind stay.
+     * Run inside the save's transaction. Each row is written only while its product exists, so a product deleted since
+     * the check leaves no link.
      *
      * @param DatabaseInterface $db The database.
      * @param int $itemId The product.
@@ -168,7 +179,8 @@ final class RelatedItems
         $db->setQuery(
             $db->getQuery(true)
                 ->delete($db->quoteName(self::TABLE))
-                ->where($db->quoteName('item_id') . ' = ' . (int) $itemId),
+                ->where($db->quoteName('item_id') . ' = ' . (int) $itemId)
+                ->where($db->quoteName('link_type') . ' = ' . $db->quote(self::TYPE_RELATED)),
         )->execute();
 
         $position = 0;
@@ -181,8 +193,8 @@ final class RelatedItems
             $position++;
             $db->setQuery(
                 'INSERT INTO ' . $db->quoteName(self::TABLE)
-                . ' (' . $db->quoteName('item_id') . ', ' . $db->quoteName('related_item_id') . ', ' . $db->quoteName('ordering') . ')'
-                . ' SELECT ' . (int) $itemId . ', ' . $db->quoteName('id') . ', ' . $position
+                . ' (' . $db->quoteName('item_id') . ', ' . $db->quoteName('related_item_id') . ', ' . $db->quoteName('link_type') . ', ' . $db->quoteName('ordering') . ')'
+                . ' SELECT ' . (int) $itemId . ', ' . $db->quoteName('id') . ', ' . $db->quote(self::TYPE_RELATED) . ', ' . $position
                 . ' FROM ' . $db->quoteName('#__alfa_items')
                 . ' WHERE ' . $db->quoteName('id') . ' = ' . (int) $id,
             )->execute();
@@ -190,8 +202,8 @@ final class RelatedItems
     }
 
     /**
-     * Remove every link of these products, on both sides: the links they hold and the links other products hold to
-     * them. The item delete's own statement ({@see \Alfa\Component\Alfa\Administrator\Model\ItemModel::delete()}).
+     * Remove every link of these products, on both sides and of every kind: the links they hold and the links other
+     * products hold to them. The item delete's own statement ({@see \Alfa\Component\Alfa\Administrator\Model\ItemModel::delete()}).
      *
      * @param DatabaseInterface $db The database.
      * @param list<int> $itemIds The deleted products.

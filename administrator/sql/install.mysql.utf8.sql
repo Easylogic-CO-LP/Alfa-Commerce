@@ -1202,17 +1202,20 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
 -- Table structure for table `#__alfa_items_related`
 --
 -- The products a product's page shows as related, in the order staff set on the product's Related tab. A link goes
--- one way: a row from A to B shows B on A's page and nothing on B's. The pair key refuses the same link twice; the
--- item delete removes the rows of a deleted product on both sides (ItemModel::delete()).
+-- one way: a row from A to B shows B on A's page and nothing on B's. link_type names the kind of link: related is the
+-- one kind core writes and reads; the column is there so that a further kind needs no schema change. The key refuses the
+-- same link of a kind twice; the item delete removes the rows of a deleted product on both sides, of every kind
+-- (ItemModel::delete()).
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_related` (
   `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product whose page shows the link',
   `related_item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product shown; one direction only',
+  `link_type` varchar(16) NOT NULL DEFAULT 'related' COMMENT 'The kind of link: related, the one kind core writes and reads; the column holds further kinds without a schema change',
   `ordering` int(11) NOT NULL DEFAULT 0 COMMENT 'Position on the page, from 1, in the order staff set',
-  PRIMARY KEY (`item_id`, `related_item_id`),
+  PRIMARY KEY (`item_id`, `related_item_id`, `link_type`),
   KEY `idx_related_item_id` (`related_item_id`),
-  KEY `idx_item_ordering` (`item_id`, `ordering`)
+  KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Related products: which products a product page shows, in order';
 
 --
