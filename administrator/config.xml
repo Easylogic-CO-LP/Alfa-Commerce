@@ -306,6 +306,19 @@
     <fieldset name="cart" label="COM_ALFA_CONFIG_TAB_CART">
             <fieldset name="cart_checkout" label="COM_ALFA_CONFIG_FIELDSET_CHECKOUT">
 
+                <!-- ONLINE SALES (2.2.2). Read through ShopMode::sellsOnline(), from
+                     these Options only: a menu item never switches selling back on.
+                     Catalogue only: no prices, no buy form, no cart, no storefront
+                     order; staff orders and orders already placed are not affected. -->
+                <field name="catalogue_only" type="radio" default="0" filter="integer"
+                       class="btn-group"
+                       label="COM_ALFA_CONFIG_CATALOGUE_ONLY"
+                       description="COM_ALFA_CONFIG_CATALOGUE_ONLY_DESC"
+                >
+                    <option value="0">COM_ALFA_CONFIG_CATALOGUE_ONLY_SELL</option>
+                    <option value="1">COM_ALFA_CONFIG_CATALOGUE_ONLY_CATALOGUE</option>
+                </field>
+
                 <!-- WHICH FIELD SAYS WHERE THE ORDER IS GOING. Only needed by a
                      checkout carrying more than one place field: with exactly
                      one it is inferred, and a shop with none sells fine without

@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\RecentlyViewed;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Model\ItemsModel;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Joomla\CMS\Cache\Controller\CallbackController;
@@ -452,9 +453,11 @@ final class AlfaItemsHelper
         $cache->method = 'getItems';
         $cache->methodparams = [$params, $contextCategoryId, $scopeCategoryIds, $source, $limit, $ordering];
         // One entry per module, query, pricing context, page (an item's link follows
-        // the page's menu item), stock settings and inventory version; the cache keeps
-        // languages apart itself.
+        // the page's menu item), stock settings, inventory version and online sales (a
+        // card drawn to sell is not one drawn for the catalogue only, 2.2.2); the cache
+        // keeps languages apart itself.
         $cache->modeparams = md5(serialize([
+            ShopMode::sellsOnline(),
             $moduleId,
             $contextCategoryId,
             $scopeCategoryIds,

@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -313,6 +314,15 @@ final class CoreSetupProvider
                 arguments: static fn (): array => $minimumUnderTier()['count'] === 0 ? [] : [(string) $minimumUnderTier()['count'], implode(', ', $minimumUnderTier()['names'])],
                 unnamed:   'COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER_UNNAMED',
             );
+
+        // Online sales switched off (2.2.2): the shop shows its catalogue only. An information row, so the mode is never
+        // forgotten: the shop runs, and nothing can be bought online.
+        $this->check('cart.catalogue_only', 'COM_ALFA_SETUP_CHECK_CATALOGUE_ONLY_LABEL')
+            ->tier(SetupCheck::TIER_OPTIONAL)
+            ->reason('COM_ALFA_SETUP_CHECK_CATALOGUE_ONLY')
+            ->cta('index.php?option=com_config&view=component&component=com_alfa')
+            ->priority(385)
+            ->probe(static fn (): string => ShopMode::sellsOnline() ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN);
 
         $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
