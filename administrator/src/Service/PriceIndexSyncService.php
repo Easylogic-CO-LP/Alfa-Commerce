@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
@@ -1468,29 +1469,33 @@ class PriceIndexSyncService
 
                     // Map PriceResult -> index columns
                     // Column names match config fields exactly. Each figure is the price of ONE piece at the product's
-                    // opening quantity, as its card prints it (2.2.2): the result's unit figures, and the final price by
-                    // the one unit rule (PriceUnits::exact()). At quantity 1 a total was the unit; at a minimum of 10
-                    // it is ten units, and a filter or a sort would read the line's money instead of the card's price.
-
-                    $basePrice = round($result->getBasePrice()->getAmount(), 4);
+                    // opening quantity, exactly as its card prints it (2.2.2): every column through the one unit rule
+                    // (PriceUnits::exact(), its figure of the price block). At quantity 1 a total was the unit; at a
+                    // minimum of 10 it is ten units, and a filter or a sort would read the line's money instead of the
+                    // card's price; a line divided by the quantity can differ from the card by a minor unit.
+                    $figure = static fn (string $name): string => PriceUnits::exact(price: $result, figure: $name);
+                    $base = $figure('base');
 
                     // A base of zero writes no row either: the item is absent
-                    // from the catalog's price filters for that period.
-                    if ($basePrice <= 0) {
+                    // from the catalog's price filters for that period. Read
+                    // exact, so half a cent a piece is a base, not a zero.
+                    if (!ExactAmount::of($base)->isPositive()) {
                         continue;
                     }
 
-                    $discountAmount = round($result->getSavingsPrice()->getAmount(), 4);
-                    $basePriceWithDiscounts = round($result->getSubtotalPrice()->getAmount(), 4);
-                    $taxAmount = round($result->getTaxPrice()->getAmount(), 4);
-                    $finalPrice = round((float) PriceUnits::exact(price: $result, figure: 'final'), 4);
+                    $basePrice = round((float) $base, 4);
+                    // The saving beside the price paid: the tax-included saving, on the basis final_price is on.
+                    $discountAmount = round((float) $figure('discount_with_tax'), 4);
+                    $basePriceWithDiscounts = round((float) $figure('subtotal'), 4);
+                    $taxAmount = round((float) $figure('tax'), 4);
+                    $finalPrice = round((float) $figure('final'), 4);
 
                     // base_price_with_tax is the UNDISCOUNTED gross: the struck
                     // "was" price. PriceResult owns that derivation (tax on the full
                     // base at the effective rate); $taxTotal is the tax on what the
                     // customer pays and is the wrong figure for it, before tax and
                     // after tax alike.
-                    $basePriceWithTax = round($result->getBasePriceWithTax()->getAmount(), 4);
+                    $basePriceWithTax = round((float) $figure('base_with_tax'), 4);
 
                     // discount_percent: use PriceResult's authoritative calculation
                     // which correctly handles both before-tax and after-tax discounts

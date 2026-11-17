@@ -2104,7 +2104,7 @@ class com_alfaInstallerScript extends InstallerScript
     /**
      * From 2.2.2 the price index prices each product at the quantity it opens with, its minimum, as a card prints it,
      * where the version before priced every product at quantity 1. The rows of a product whose minimum is above 1 are
-     * therefore written again: those products are marked owed a rebuild (one statement) and the catalogue job is
+     * therefore written again: those products are marked owed a rebuild (in ranges of ids) and the catalogue job is
      * enqueued (Tools > Tasks). Until it ends, the product list may filter and sort such a product by its earlier
      * price, or leave it out when its prices begin at its minimum; the message says so. A shop with no such product has
      * nothing owed and no message. A failure is said, never a failed update.
@@ -2118,12 +2118,12 @@ class com_alfaInstallerScript extends InstallerScript
 
         try
         {
+            // In ranges of ids, one statement per range (quantity_min has no index of its own, so one statement over
+            // the table would scan and lock every row of a large catalogue).
             $db = Factory::getContainer()->get('DatabaseDriver');
-            $db->setQuery(
-                'UPDATE ' . $db->quoteName('#__alfa_items') . ' SET ' . $db->quoteName('projection_dirty_at') . ' = UTC_TIMESTAMP(6)'
-                . ' WHERE ' . $db->quoteName('quantity_min') . ' > 1'
-            )->execute();
-            $marked = (int) $db->getAffectedRows();
+            $marked = \Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager::markForRebuildWhere(
+                condition: $db->quoteName('quantity_min') . ' > 1'
+            );
 
             if ($marked === 0)
             {
