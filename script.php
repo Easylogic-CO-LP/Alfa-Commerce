@@ -1868,6 +1868,7 @@ class com_alfaInstallerScript extends InstallerScript
         $this->dropLeftoverColumns();
         $this->addMissingColumns();
         $this->recordSchemaVersion();
+        $this->seedPriceWindowsCursor();
 
         // The list prices of a new combination of customer groups are prepared by the job runner (2.2.0). On an update
         // from an earlier release, after the Clear-everything check (core's tables must be whole): the sets the
@@ -3246,6 +3247,28 @@ class com_alfaInstallerScript extends InstallerScript
             }
         } catch (\Throwable $e) {
             \Joomla\CMS\Log\Log::add('Alfa Commerce: the pause of the job runner could not be ended; it expires within ten minutes: ' . $e->getMessage(), \Joomla\CMS\Log\Log::WARNING, 'jerror');
+        }
+    }
+
+    /**
+     * Write the cursor of the announced price periods where it is missing (2.2.2; InstallSteps::seedPriceWindowsCursor()):
+     * an update from a release before 2.2.2 announces no period that began before it. A failure is said, never a
+     * failed install: the periods are then not announced, and the Clear everything checks name the missing row.
+     *
+     * @return  void
+     * @since   2.2.2
+     */
+    private function seedPriceWindowsCursor(): void
+    {
+        try {
+            (new \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps(db: Factory::getContainer()->get('DatabaseDriver')))
+                ->seedPriceWindowsCursor();
+        } catch (\Throwable $e) {
+            Factory::getApplication()->enqueueMessage(
+                'Alfa Commerce could not record from when price periods are announced to extensions: ' . $e->getMessage()
+                . ' Install the package again.',
+                'warning'
+            );
         }
     }
 

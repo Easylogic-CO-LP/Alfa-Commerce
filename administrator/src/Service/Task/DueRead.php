@@ -77,6 +77,25 @@ final class DueRead
     public const STALE_CLAIM_SECONDS = 300;
 
     /**
+     * The `#__alfa_meta` row that holds how far the stored price periods that began are announced (onAlfaPricesChanged,
+     * cause window): the moment before which every period that began is announced, UTC as `Y-m-d H:i:s`, followed,
+     * while one moment is announced in parts, by `#` and the last slot key announced in it (item, combination,
+     * currency, place, set of pricing groups). Written by the install SQL and by the installer's update; never seeded
+     * at run time.
+     *
+     * @since 2.2.2
+     */
+    public const META_WINDOWS = 'prices.windows_announced_until';
+
+    /**
+     * Seconds a period has begun before it is announced: longer than the longest chunk of the index writer, which
+     * decides the live period at its start and commits after, so no period passes the cursor before its rows exist.
+     *
+     * @since 2.2.2
+     */
+    public const WINDOW_LAG_SECONDS = 60;
+
+    /**
      * The two single probes of the due read as SQL with no bound value, each selecting 1: a pending single due for
      * recovery and unreserved, a running single whose lease passed. A process with no application leaves out the
      * singles whose handler needs one; only then are the handlers read (Tasks).
@@ -134,6 +153,40 @@ final class DueRead
     public static function unreserved(DatabaseDriver $db): string
     {
         return '(' . $db->quoteName('lease_owner') . ' IS NULL OR ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3))';
+    }
+
+    /**
+     * The due read's probe of the stored price periods owed an announcement, as SQL with no bound value, selecting 1:
+     * a period of the price index that began at or after the cursor's moment and no later than $until. The cursor row
+     * is read by its primary key as a constant table, so the periods are a range of idx_validity. A missing cursor
+     * row makes nothing due here: the schema checks name it.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $until The latest moment announced now (UTC, `Y-m-d H:i:s`): the clock less the lag.
+     *
+     * @since  2.2.2
+     */
+    public static function windowsProbe(DatabaseDriver $db, string $until): string
+    {
+        return 'SELECT 1 FROM ' . $db->quoteName('#__alfa_meta', 'm')
+            . ' INNER JOIN ' . $db->quoteName('#__alfa_items_price_index', 'i')
+            . ' ON ' . $db->quoteName('i.valid_from') . ' >= CAST(SUBSTRING_INDEX(' . $db->quoteName('m.value') . ', ' . $db->quote('#') . ', 1) AS DATETIME)'
+            . ' AND ' . $db->quoteName('i.valid_from') . ' <= ' . $db->quote($until)
+            . ' WHERE ' . $db->quoteName('m.name') . ' = ' . $db->quote(self::META_WINDOWS);
+    }
+
+    /**
+     * The latest moment a stored price period may have begun to be announced now: the PHP clock read afresh (the
+     * clock the catalogue's readers compare the periods with; Factory::getDate() would hold a long run's first
+     * instant) less the lag.
+     *
+     * @return string UTC, `Y-m-d H:i:s`.
+     *
+     * @since  2.2.2
+     */
+    public static function windowsUntil(): string
+    {
+        return gmdate('Y-m-d H:i:s', time() - self::WINDOW_LAG_SECONDS);
     }
 
     /**

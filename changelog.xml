@@ -16,6 +16,10 @@
         <change>
             <item>For plugin authors: a product field extension changes the add to cart area of a catalogue card or of the product page only through its event's setCartLayout() and setCartChildLayout(). When its method fails, what it set is left out and the other fields keep theirs, and a change it writes straight onto the product's cart ($item->cart, $item->cartChildren) is not kept, whether its method fails or not. Before, such a change stayed: after a failure the card or the page could show the failed extension's button, or none, and the card could lose its Choose options link.</item>
         </change>
+
+        <addition>
+            <item>For extension developers: onAlfaPricesChanged is also announced when a price period stored ahead of time begins (a price, a discount or a tax whose dates were set in advance), with the cause window (PricesChangedEvent::CAUSE_WINDOW): one change for each stored row whose final price moved at that moment, the period that ended as the old price. Nothing is written then, so the background work announces it at its first turn at least a minute after the moment (on a shop with visitors or cron, within about two minutes). It covers the periods the price index stores, at most eight per product, the nearest ones. Where the announcements have reached is kept in #__alfa_meta (prices.windows_announced_until), written by the installation, so nothing that began before it is announced.</item>
+        </addition>
     </changelog>
     <changelog>
         <element>com_alfa</element>
