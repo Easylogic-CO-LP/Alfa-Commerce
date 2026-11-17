@@ -265,6 +265,20 @@ class com_alfaInstallerScript extends InstallerScript
     private const LEFTOVER_STATUS_TEXT_COLUMNS = ['email_subject_customer', 'email_body_customer', 'email_subject_admin', 'email_body_admin'];
 
     /**
+     * Columns a release adds to a table an earlier one created (2.2.1): table => column => its definition, exactly as
+     * the install SQL's CREATE has it, and the column it follows. The installation adds each one a table lacks
+     * ({@see self::addMissingColumns()}); the install SQL creates them for a new shop.
+     *
+     * @var array<string, array<string, array{0: string, 1: string}>>
+     * @since 2.2.1
+     */
+    private const NEW_COLUMNS = [
+        '#__alfa_places' => [
+            'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
+        ],
+    ];
+
+    /**
      * The cache groups an update cleans once (2.2.0, A-C16-6): Joomla's page cache, where 2.1.4 could store a guest's
      * completed order under the arrival address and serve it to the next guest, and every group the component writes
      * (the dashboard's cards, the setup checks, the storefront's category tree, the integrity verdict and the
@@ -869,6 +883,75 @@ class com_alfaInstallerScript extends InstallerScript
                 . '. The shop works; a pair written twice in them stays possible until the key is added.',
                 'error'
             );
+        }
+    }
+
+    /**
+     * Add the columns this release adds to a table an earlier one created ({@see self::NEW_COLUMNS}), each only where
+     * the table lacks it.
+     *
+     * The table's own columns are read first, from the database's catalogue, so the step adds nothing twice: a fresh
+     * install (the install SQL created them), an update run again after it stopped, a table kept by an uninstall and
+     * connected again, and a site whose database check already added a column all go on. A table that refuses is named
+     * in an error and the maintenance log: the screens that read the column need it, and the next installation adds it.
+     * The schema version is recorded after it all the same ({@see self::recordSchemaVersion()}): this step runs on every
+     * install and update and adds what is still missing, while a version left behind would make a reconnect of kept
+     * tables, which already hold the release's other changes, refuse this package ({@see self::keptDataRefusal()}).
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function addMissingColumns(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $failed = [];
+
+        foreach (self::NEW_COLUMNS as $name => $columns) {
+            $table = $db->replacePrefix($name);
+
+            try {
+                $present = $db->setQuery(
+                    'SELECT ' . $db->quoteName('COLUMN_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                    . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                    . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($table),
+                )->loadColumn() ?: [];
+
+                // A table the installation did not make is not this step's to change.
+                if ($present === []) {
+                    continue;
+                }
+
+                $add = array_diff_key($columns, array_flip(array_map('strval', $present)));
+
+                if ($add === []) {
+                    continue;
+                }
+
+                $clauses = [];
+
+                foreach ($add as $column => [$definition, $after]) {
+                    $clauses[] = 'ADD COLUMN ' . $db->quoteName($column) . ' ' . $definition
+                        . (\in_array($after, $present, true) ? ' AFTER ' . $db->quoteName($after) : '');
+                }
+
+                $db->setQuery('ALTER TABLE ' . $db->quoteName($table) . ' ' . implode(', ', $clauses))->execute();
+                self::maintenanceLog(
+                    line: sprintf('Update to %s: %s gained the columns %s.', self::SCHEMA_VERSION, $table, implode(', ', array_keys($add))),
+                    priority: \Joomla\CMS\Log\Log::INFO,
+                );
+            } catch (\Throwable $e) {
+                $failed[] = $table . ': ' . implode(', ', array_keys($columns)) . ' (' . $e->getMessage() . ')';
+            }
+        }
+
+        if ($failed !== []) {
+            $message = $this->installerText(
+                key:      'COM_ALFA_INSTALL_NEW_COLUMNS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not add columns this version needs: %2$s. Install the package again; the pages that read them need them.',
+                values:   [$this->packageVersion, implode('; ', $failed)],
+            );
+            Factory::getApplication()->enqueueMessage($message, 'error');
+            self::maintenanceLog(line: $message, priority: \Joomla\CMS\Log\Log::ERROR);
         }
     }
 
@@ -1779,10 +1862,11 @@ class com_alfaInstallerScript extends InstallerScript
             return true;
         }
 
-        // 0. The link tables have their keys (2.0.1), the columns no code reads are gone (2.2.1), then the Alfa
-        //    tables are at this package's schema: say so among them.
+        // 0. The link tables have their keys (2.0.1), the columns no code reads are gone and the columns this release
+        //    adds are there (2.2.1), then the Alfa tables are at this package's schema: say so among them.
         $this->completeLinkKeys();
         $this->dropLeftoverColumns();
+        $this->addMissingColumns();
         $this->recordSchemaVersion();
 
         // The list prices of a new combination of customer groups are prepared by the job runner (2.2.0). On an update

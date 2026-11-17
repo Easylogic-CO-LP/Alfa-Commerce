@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Place;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use Throwable;
@@ -190,35 +192,35 @@ final class PlaceSeed
     ];
 
     /**
-     * Bring a shop's places from a seed up to 2.2.0 to 2.2.1's, as the class description says, in one transaction: a
-     * failure leaves every place as it was. Run once, by the update from a version before 2.2.1; run again it finds
-     * nothing to do.
+     * Bring a shop's places from a seed up to 2.2.0 to 2.2.1's, as the class description says, in one transaction level
+     * closed through TransactionState: a failure leaves every place as it was. Run once, by the update from a version
+     * before 2.2.1; run again it finds nothing to do.
      *
      * The answer: corrected, id => the name now; currencyCorrected, id => [the name, the currency code now]; added,
      * code2 => name; kept, id => [the shop's name, the name 2.2.1 ships]; currencyKept, id => [the shop's name, the
      * currency code 2.2.1 gives it]; noSuccessor, id => the shop's name, Larisa included; currencies, id => [the
      * country's name, the code now]. The words of the update page are the installer's (language keys).
      *
-     * @param DatabaseInterface $db The shop's connection.
+     * @param DatabaseDriver $db The shop's connection.
      *
      * @return array{corrected: array<int, string>, currencyCorrected: array<int, array{0: string, 1: string}>, added: array<string, string>, kept: array<int, array{0: string, 1: string}>, currencyKept: array<int, array{0: string, 1: string}>, noSuccessor: array<int, string>, currencies: array<int, array{0: string, 1: string}>} What was done and what was left.
      *
      * @since  2.2.1
      */
-    public static function correctOnUpdate(DatabaseInterface $db): array
+    public static function correctOnUpdate(DatabaseDriver $db): array
     {
-        $db->transactionStart();
+        $db->transactionStart(true);
 
         try {
             $result = self::correct(db: $db);
-            $db->transactionCommit();
+            TransactionState::commitLevel($db);
+
+            return $result;
         } catch (Throwable $e) {
-            $db->transactionRollback();
+            TransactionState::rollBackLevel($db, $e);
 
             throw $e;
         }
-
-        return $result;
     }
 
     /**
