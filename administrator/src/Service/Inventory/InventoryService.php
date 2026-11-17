@@ -33,6 +33,7 @@ use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\DatabaseDriver;
 use RuntimeException;
 use Throwable;
 use WeakMap;
@@ -282,7 +283,11 @@ final class InventoryService
      */
     private static array $missingLedgerLogged = [];
 
-    private \Joomla\Database\DatabaseInterface $db;
+    /**
+     * @var DatabaseDriver The connection, narrowed once to the driver whose transaction levels TransactionState keeps.
+     * @since  2.0.0
+     */
+    private DatabaseDriver $db;
 
     /** @var int|null Cached default location id. */
     private ?int $defaultLocation = null;
@@ -334,7 +339,7 @@ final class InventoryService
      */
     public function __construct()
     {
-        $this->db = Factory::getContainer()->get('DatabaseDriver');
+        $this->db = TransactionState::driver(Factory::getContainer()->get('DatabaseDriver'));
 
         // The audit trail has to have somewhere to land
         // Every com_alfa.inventory line this class writes is dropped in
@@ -11340,7 +11345,7 @@ final class InventoryService
         }
 
         if ($alreadyHeld) {
-            $this->db->transactionRollback(true);
+            TransactionState::rollBackLevel(db: $this->db);
 
             return;
         }

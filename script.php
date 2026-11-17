@@ -771,7 +771,10 @@ class com_alfaInstallerScript extends InstallerScript
                 continue;
             }
 
-            $db->transactionStart();
+            // On the driver, savepoint-aware: this runs in an update's preflight (and again from completeLinkKeys() in
+            // postflight), and in preflight the package's own classes may not be loaded yet: an installed class
+            // loaded here stays loaded for the rest of the update. Nothing is deferred inside the level.
+            $db->transactionStart(true);
 
             try {
                 foreach ($repeats as $pair) {
@@ -789,9 +792,9 @@ class com_alfaInstallerScript extends InstallerScript
                     $removed += (int) $pair->copies - 1;
                 }
 
-                $db->transactionCommit();
+                $db->transactionCommit(true);
             } catch (\Throwable $e) {
-                $db->transactionRollback();
+                $db->transactionRollback(true);
 
                 throw new \RuntimeException($db->replacePrefix($table) . ': ' . $e->getMessage(), 0, $e);
             }
