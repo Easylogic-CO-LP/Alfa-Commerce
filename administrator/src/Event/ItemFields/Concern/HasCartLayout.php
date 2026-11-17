@@ -32,6 +32,22 @@ defined('_JEXEC') or die;
  * after the field dispatch when the card hides a dimension or required field the
  * buyer must answer. A MAIN a plugin sets here is never replaced by the core.
  *
+ * What a field plugin may and may not do (2.2.2):
+ * - It changes the cart region only by calling these setters, in its own
+ *   onItemListPrepare or onItemView. The values live in this event's private
+ *   properties and the setters are the one way in. setArgument() and $event[...]
+ *   are not a way in: Joomla 6 routes setArgument('cartLayout', ...) to a setter
+ *   only through a deprecated path, and Joomla 7 drops it, so the value would be
+ *   lost.
+ * - It does not write the item's cart: $item->cart and $item->cartChildren are
+ *   core's record, kept by the model and handed to the item again after each
+ *   field, so a write to them from these events is not kept.
+ * - When its handler throws, what it set here is dropped and the other fields
+ *   keep theirs; the page renders and the failure is logged with the plugin's
+ *   name.
+ * The whole-page onItemsListPrepare carries no setters and writes $item->cart
+ * itself (ItemsListPrepareEvent); that is its own contract.
+ *
  * @since  2.0.0
  */
 trait HasCartLayout
@@ -41,28 +57,28 @@ trait HasCartLayout
      *
      * @since  2.0.0
      */
-    protected string $cartLayout = '';
+    private string $cartLayout = '';
 
     /**
      * @var array|object The cart layout's display data (item passed when empty).
      *
      * @since  2.0.0
      */
-    protected array|object $cartLayoutData = [];
+    private array|object $cartLayoutData = [];
 
     /**
      * @var string The plugin group owning the cart layout ('' = orchestrator defaults it).
      *
      * @since  2.0.0
      */
-    protected string $cartLayoutPluginType = '';
+    private string $cartLayoutPluginType = '';
 
     /**
      * @var string The plugin element owning the cart layout ('' = orchestrator defaults it).
      *
      * @since  2.0.0
      */
-    protected string $cartLayoutPluginName = '';
+    private string $cartLayoutPluginName = '';
 
     /**
      * Whether a (non-empty) cart layout was set.
@@ -193,28 +209,28 @@ trait HasCartLayout
      *
      * @since  2.0.0
      */
-    protected string $cartChildLayout = '';
+    private string $cartChildLayout = '';
 
     /**
      * @var array|object The child layout's display data (item passed when empty).
      *
      * @since  2.0.0
      */
-    protected array|object $cartChildLayoutData = [];
+    private array|object $cartChildLayoutData = [];
 
     /**
      * @var string The plugin group owning the child layout ('' = orchestrator defaults it).
      *
      * @since  2.0.0
      */
-    protected string $cartChildLayoutPluginType = '';
+    private string $cartChildLayoutPluginType = '';
 
     /**
      * @var string The plugin element owning the child layout ('' = orchestrator defaults it).
      *
      * @since  2.0.0
      */
-    protected string $cartChildLayoutPluginName = '';
+    private string $cartChildLayoutPluginName = '';
 
     /**
      * Whether a (non-empty) child layout was set.

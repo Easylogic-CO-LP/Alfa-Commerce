@@ -297,7 +297,11 @@ class ItemModel extends BaseItemModel
      * surface descriptors onto $field->surfaces (per slot) and the cart MAIN
      * slot replacement / CHILD siblings ($item->cart / $item->cartChildren). The
      * listing card does the same in ItemsModel via onItemListPrepare; this is the
-     * product-page (onItemView) twin. A plain field's handler is a no-op.
+     * product-page (onItemView) twin. A plain field's handler is a no-op. The
+     * cart region and its children are kept here, changed only from the setters
+     * of a field event that succeeded, and handed to the item after each field
+     * (2.2.2): a write to $item->cart or $item->cartChildren from onItemView is not
+     * kept, and a plugin that throws loses what it set.
      *
      * @param object $item The loaded item (carries ->fields).
      *
@@ -305,13 +309,15 @@ class ItemModel extends BaseItemModel
      */
     protected function dispatchFieldSurfaces(object $item): void
     {
-        $item->cart = [
+        $cart = [
             'layout' => 'cart.add',
             'layoutData' => [],
             'layoutPluginType' => '',
             'layoutPluginName' => '',
         ];
-        $item->cartChildren = [];
+        $cartChildren = [];
+        $item->cart = $cart;
+        $item->cartChildren = $cartChildren;
 
         // The page's surfaces are collected here and handed to the item as a read-only map after each contribution
         // (2.2.1): a plugin holding the item reads what the others contributed and cannot change it.
@@ -348,6 +354,10 @@ class ItemModel extends BaseItemModel
             // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
             // product page renders without it.
             if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') on the product page')) {
+                // What the failed plugin wrote on the item's cart is not kept (2.2.2).
+                $item->cart = $cart;
+                $item->cartChildren = $cartChildren;
+
                 continue;
             }
 
@@ -362,7 +372,7 @@ class ItemModel extends BaseItemModel
 
             // Cart MAIN slot: last field that sets one wins (REPLACE).
             if ($event->hasCartLayout()) {
-                $item->cart = [
+                $cart = [
                     'layout' => $event->getCartLayout(),
                     'layoutData' => $event->getCartLayoutData(),
                     'layoutPluginType' => $event->getCartLayoutPluginType() ?: 'alfa-item-fields',
@@ -372,13 +382,17 @@ class ItemModel extends BaseItemModel
 
             // Cart CHILD slot: same granular contract as MAIN, but APPEND (sibling).
             if ($event->hasCartChild()) {
-                $item->cartChildren[] = [
+                $cartChildren[] = [
                     'layout' => $event->getCartChildLayout(),
                     'layoutData' => $event->getCartChildLayoutData(),
                     'layoutPluginType' => $event->getCartChildLayoutPluginType() ?: 'alfa-item-fields',
                     'layoutPluginName' => $event->getCartChildLayoutPluginName() ?: (string) $field->type,
                 ];
             }
+
+            // Handed after each field (2.2.2): what a plugin wrote on the item's cart outside the setters is not kept.
+            $item->cart = $cart;
+            $item->cartChildren = $cartChildren;
 
             // Aggregate this field's surfaces onto the page slot map (insertion
             // order). Legacy setLayout() bridges to BuyForm; showon rides along.

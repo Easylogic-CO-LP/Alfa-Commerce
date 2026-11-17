@@ -2257,10 +2257,15 @@ class ItemsModel extends UrlListModel
      * card, neither selector, nor spec, nor cart. The plugin may set card
      * SURFACES (aggregated onto $item->surfaces, each descriptor naming its
      * field, so the card renders the same buyer-facing selector the product page
-     * does) and/or overwrite the card's CART region. We fill each layout's owner
-     * from the field's type. Plugin failures never take the card down. (The
-     * dispatcher engagement happens once in dispatchItemsListPrepare; a direct
-     * call needs no prior subscription.)
+     * does) and/or replace the card's CART region and add a CART child, only
+     * through the event's setters (setCartLayout..., setCartChildLayout...). We
+     * fill each layout's owner from the field's type. The card's cart and cart
+     * children are kept here and handed to the item after each field (2.2.2): a
+     * write to $item->cart or $item->cartChildren from this event is not kept, and
+     * a plugin that throws loses what it set, the other fields keeping theirs.
+     * Plugin failures never take the card down. (The dispatcher engagement
+     * happens once in dispatchItemsListPrepare; a direct call needs no prior
+     * subscription.)
      *
      * @param object $item The item being decorated.
      *
@@ -2278,6 +2283,11 @@ class ItemsModel extends UrlListModel
         // read-only map after each contribution (2.2.1): a plugin holding the item reads what the others contributed and
         // cannot change it.
         $slots = [];
+
+        // The card's cart region and its children (setDefaultCart()'s, for this draw), changed only from the setters of a
+        // field event that succeeded and handed to the item after each field (2.2.2).
+        $cart = $item->cart;
+        $cartChildren = $item->cartChildren;
 
         // Card initial visibility painted server-side (no FOUC), same rule + state as JS.
         $showonBag = StateBagBuilder::fromItem($item);
@@ -2333,7 +2343,7 @@ class ItemsModel extends UrlListModel
 
                 // Cart MAIN slot: last field that sets one wins (REPLACE).
                 if ($event->hasCartLayout()) {
-                    $item->cart = [
+                    $cart = [
                         'layout' => $event->getCartLayout(),
                         'layoutData' => $event->getCartLayoutData(),
                         'layoutPluginType' => $event->getCartLayoutPluginType() ?: 'alfa-item-fields',
@@ -2343,7 +2353,7 @@ class ItemsModel extends UrlListModel
 
                 // Cart CHILD slot: same granular contract as MAIN, but APPEND (sibling).
                 if ($event->hasCartChild()) {
-                    $item->cartChildren[] = [
+                    $cartChildren[] = [
                         'layout' => $event->getCartChildLayout(),
                         'layoutData' => $event->getCartChildLayoutData(),
                         'layoutPluginType' => $event->getCartChildLayoutPluginType() ?: 'alfa-item-fields',
@@ -2351,15 +2361,19 @@ class ItemsModel extends UrlListModel
                     ];
                 }
             } catch (Throwable $e) {
-                // Same rule: the card keeps its default cart layout, but the
-                // plugin that failed to supply one is named.
+                // The field draws nothing on the card and the plugin is named; the card keeps the other fields' parts.
                 Log::add(
-                    'onItemListPrepare failed for field type "' . (string) $field->type . '", card kept its default cart layout: '
+                    'onItemListPrepare failed for the field "' . (string) ($field->field_name ?? '') . '" (#' . (int) $field->id
+                    . ') of the plugin alfa-item-fields.' . (string) $field->type . ', its part of the card left out: '
                     . $e->getMessage(),
                     Log::ERROR,
                     'com_alfa',
                 );
             }
+
+            // Handed after each field (2.2.2): what a plugin wrote on the item's cart outside the setters is not kept.
+            $item->cart = $cart;
+            $item->cartChildren = $cartChildren;
         }
 
         // Handed once more after the last field (2.2.1): a plugin that changed the card's surfaces and then failed has
