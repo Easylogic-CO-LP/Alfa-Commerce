@@ -237,8 +237,11 @@ class PriceIndexSyncService
 
     // Dependencies
 
-    /** @var \Joomla\Database\DatabaseInterface */
-    private $db;
+    /**
+     * @var DatabaseDriver The connection, narrowed once to the driver whose transaction levels TransactionState keeps.
+     * @since  1.0.0
+     */
+    private DatabaseDriver $db;
 
     /** @var PriceCalculator */
     private $calculator;
@@ -251,7 +254,7 @@ class PriceIndexSyncService
      */
     public function __construct(?PriceCalculator $calculator = null)
     {
-        $this->db = Factory::getContainer()->get('DatabaseDriver');
+        $this->db = TransactionState::driver(Factory::getContainer()->get('DatabaseDriver'));
         $this->calculator = $calculator ?? new PriceCalculator();
     }
 
@@ -609,7 +612,7 @@ class PriceIndexSyncService
                 } catch (Throwable $e) {
                     // Inside a caller's transaction the failure is the caller's (2.2.0, A-C18-14): a lock wait timeout
                     // or a deadlock swallowed here would let a delete go on, and its cascade take rows no event named.
-                    if ($this->db instanceof DatabaseDriver && TransactionState::isOpen(db: $this->db)) {
+                    if (TransactionState::isOpen(db: $this->db)) {
                         throw $e;
                     }
 
@@ -1240,7 +1243,7 @@ class PriceIndexSyncService
             $chunkWritten = $this->writeChunk(chunk: $chunk, combinations: $combinations, globalEdges: $globalEdges);
 
             if ($chunkWritten !== null) {
-                $this->db->transactionCommit(true);
+                TransactionState::commitLevel(db: $this->db);
                 // Committed: what the chunk changed joins the announcement (2.2.0).
                 $this->keepChunkChanges();
 
@@ -1254,7 +1257,7 @@ class PriceIndexSyncService
         }
 
         $this->dropChunkChanges();
-        $this->db->transactionRollback(true);
+        TransactionState::rollBackLevel(db: $this->db);
 
         return null;
     }
@@ -1593,12 +1596,11 @@ class PriceIndexSyncService
             self::$announcement = null;
 
             if ($announcement->listening) {
-                $db = Factory::getContainer()->get('DatabaseDriver');
                 $deliver = static function () use ($announcement): void {
                     self::deliver(announcement: $announcement);
                 };
 
-                $db instanceof DatabaseDriver ? PostCommit::defer(db: $db, label: PricesChangedEvent::NAME, work: $deliver) : $deliver();
+                PostCommit::defer(db: TransactionState::driver(Factory::getContainer()->get('DatabaseDriver')), label: PricesChangedEvent::NAME, work: $deliver);
             }
         }
     }
@@ -1662,7 +1664,7 @@ class PriceIndexSyncService
             // THE BOUND (A-C18-4). Past the limit, with no transaction open around the write, what is collected is
             // committed: it goes out as its own event and the collection starts again, so a listener never holds the
             // whole of a catalogue-wide write in memory. Inside a caller's transaction the rows wait for its commit.
-            if (\count($announcement->changes) >= self::ANNOUNCE_LIMIT && !($db instanceof DatabaseDriver && TransactionState::isOpen($db))) {
+            if (\count($announcement->changes) >= self::ANNOUNCE_LIMIT && !TransactionState::isOpen($db)) {
                 $part = clone $announcement;
                 $announcement->changes = [];
                 $announcement->items = [];
@@ -1671,7 +1673,7 @@ class PriceIndexSyncService
             }
         };
 
-        $this->db instanceof DatabaseDriver ? PostCommit::defer(db: $this->db, label: PricesChangedEvent::NAME, work: $join) : $join();
+        PostCommit::defer(db: $this->db, label: PricesChangedEvent::NAME, work: $join);
     }
 
     /**
@@ -2352,7 +2354,7 @@ class PriceIndexSyncService
             $this->db->setQuery(
                 'DELETE FROM ' . $this->db->quoteName('#__alfa_items_price_index') . ' WHERE ' . $this->db->quoteName('group_set_id') . ' IN (' . $list . ')',
             )->execute();
-            $this->db->transactionCommit(true);
+            TransactionState::commitLevel(db: $this->db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $this->db, failure: $e);
 
@@ -2423,7 +2425,7 @@ class PriceIndexSyncService
 
             if ($written === null && $this->lastFailure !== '') {
                 $this->lastFailure = '';
-                $this->db->transactionRollback(true);
+                TransactionState::rollBackLevel(db: $this->db);
                 $this->db->transactionStart(true);
                 $written = $holdSet() ? 0 : null;
 
@@ -2441,7 +2443,7 @@ class PriceIndexSyncService
 
                     if ($one === null) {
                         $this->dropChunkChanges();
-                        $this->db->transactionRollback(true);
+                        TransactionState::rollBackLevel(db: $this->db);
                         $left[] = ['set' => $setId, 'product' => $itemId, 'message' => $this->lastFailure];
                         $this->logWarning(message: "Product {$itemId} could not be priced for set {$setId} and is left out of it: " . $this->lastFailure);
                         $this->lastFailure = '';
@@ -2449,7 +2451,7 @@ class PriceIndexSyncService
                         continue;
                     }
 
-                    $this->db->transactionCommit(true);
+                    TransactionState::commitLevel(db: $this->db);
                     $written += $one;
                     $kept = ['changes' => array_merge($kept['changes'], $this->chunkChanges['changes']), 'sets' => array_values(array_unique(array_merge($kept['sets'], $this->chunkChanges['sets'])))];
                 }
@@ -2457,7 +2459,7 @@ class PriceIndexSyncService
 
             if ($written === null) {
                 $this->dropChunkChanges();
-                $this->db->transactionRollback(true);
+                TransactionState::rollBackLevel(db: $this->db);
 
                 return null;
             }
@@ -2468,7 +2470,7 @@ class PriceIndexSyncService
                     . $this->db->quoteName('left_out') . ', ' . $this->db->quote('') . '), ' . $this->db->quote(implode(',', array_column($left, 'product'))) . ')')
                 . ' WHERE ' . $this->db->quoteName('id') . ' = ' . $setId,
             )->execute();
-            $this->db->transactionCommit(true);
+            TransactionState::commitLevel(db: $this->db);
             $this->chunkChanges = $kept;
             $this->keepChunkChanges();
             array_push($leftOut, ...$left);

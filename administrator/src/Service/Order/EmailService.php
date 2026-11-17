@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
+use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -30,6 +31,7 @@ use Joomla\CMS\Mail\MailerFactoryInterface;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\ParameterType;
 use RuntimeException;
+use stdClass;
 use Throwable;
 
 /**
@@ -284,15 +286,19 @@ class EmailService
      * the order picker of the test e-mail all show it. Up to 2.2.0 an invoice number was preferred; nothing wrote one,
      * and 2.2.1 drops the column.
      *
-     * @param object $order The order row.
+     * Two forms of the one argument (2.2.2). A plugin passes the Order reader it was handed (Order); that is the form of
+     * the plugin-facing API, and a plugin never reaches for Order::row() to call this. Core's own code passes the order
+     * row as it loaded it (a stdClass).
+     *
+     * @param Order|stdClass $order The Order reader (plugins), or the order row (core).
      *
      * @return string The order number.
      *
      * @since  2.1.1
      */
-    public static function orderNumber(object $order): string
+    public static function orderNumber(Order|stdClass $order): string
     {
-        return (string) (int) ($order->id ?? 0);
+        return (string) ($order instanceof Order ? $order->id() : (int) ($order->id ?? 0));
     }
 
     /**
