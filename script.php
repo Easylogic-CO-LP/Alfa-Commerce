@@ -771,6 +771,9 @@ class com_alfaInstallerScript extends InstallerScript
                 continue;
             }
 
+            // On the driver, savepoint-aware: this runs in an update's preflight, before the package's own classes
+            // may be loaded (an installed class loaded here stays loaded for the rest of the update). Nothing is
+            // deferred inside the level.
             $db->transactionStart(true);
 
             try {
@@ -789,9 +792,9 @@ class com_alfaInstallerScript extends InstallerScript
                     $removed += (int) $pair->copies - 1;
                 }
 
-                \Alfa\Component\Alfa\Administrator\Helper\TransactionState::commitLevel($db);
+                $db->transactionCommit(true);
             } catch (\Throwable $e) {
-                \Alfa\Component\Alfa\Administrator\Helper\TransactionState::rollBackLevel($db, $e);
+                $db->transactionRollback(true);
 
                 throw new \RuntimeException($db->replacePrefix($table) . ': ' . $e->getMessage(), 0, $e);
             }

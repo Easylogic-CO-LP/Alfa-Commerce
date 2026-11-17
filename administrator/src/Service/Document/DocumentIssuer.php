@@ -3239,8 +3239,8 @@ final class DocumentIssuer
 
         if ($noneLeft && $level > 1) {
             self::logQuietly(
-                entry:    'DocumentIssuer: a savepoint rollback was refused: the server most likely rolled the transaction'
-                          . ' back already; it was ended in full.',
+                entry:    'DocumentIssuer: the rollback of the savepoint at level ' . $level . ' was refused: the server most'
+                          . ' likely rolled the transaction back already; it was ended in full.',
                 priority: Log::WARNING,
                 category: 'com_alfa.documents',
             );
