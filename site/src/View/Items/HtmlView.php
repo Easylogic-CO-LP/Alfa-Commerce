@@ -186,10 +186,14 @@ class HtmlView extends BaseHtmlView
             // THE CARD KEEPS ITS PLACE IN THE RESULT SET (2.2.0): the swap sends the position the card
             // it replaces carried, and the card renders it back through the same call. Only a whole
             // number from 1 counts; anything else renders none. The handle stays on the container.
-            $position = trim(RequestScalar::string($input, 'position', ''));
-            $this->cardPosition = ctype_digit($position) && (int) $position >= 1 ? (int) $position : null;
-            $this->resultAttribution = new ResultAttribution(engine: self::engineKey());
-            $this->announceResultSet(kind: ResultSetRenderEvent::KIND_CARD);
+            // A related product's card belongs to no result set (2.2.2): no position, no attribution and
+            // no announcement, as when it was first drawn.
+            if (!$related) {
+                $position = trim(RequestScalar::string($input, 'position', ''));
+                $this->cardPosition = ctype_digit($position) && (int) $position >= 1 ? (int) $position : null;
+                $this->resultAttribution = new ResultAttribution(engine: self::engineKey());
+                $this->announceResultSet(kind: ResultSetRenderEvent::KIND_CARD);
+            }
 
             parent::display($this->cardTplFor($this->item));
 

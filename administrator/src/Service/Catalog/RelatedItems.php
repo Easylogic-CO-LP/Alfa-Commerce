@@ -11,7 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Model\ItemModel;
 use Joomla\CMS\Language\Text;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -19,7 +19,7 @@ use Joomla\Database\ParameterType;
 /**
  * A product's related products: the products its page shows after it, in the order staff set on its Related tab.
  *
- * A link goes one way. A row of `#__alfa_items_related` from A to B shows B on A's page and nothing on B's; B shows A
+ * A link goes one way. A row of `#__alfa_items_links` from A to B shows B on A's page and nothing on B's; B shows A
  * only through a row of its own. Each row names its kind of link in `link_type`: {@see self::TYPE_RELATED} is the one
  * kind core writes and reads; the column is there so that a further kind (an up-sell, a cross-sell) needs no schema
  * change, and a row of another kind is neither read nor replaced here. The links are kept whatever state either product is in (a trashed, unpublished,
@@ -40,7 +40,7 @@ final class RelatedItems
      *
      * @since  2.2.2
      */
-    public const TABLE = '#__alfa_items_related';
+    public const TABLE = '#__alfa_items_links';
 
     /**
      * The kind of link core writes and reads: the product page's related products.
@@ -68,11 +68,11 @@ final class RelatedItems
         }
 
         $query = $db->getQuery(true)
-            ->select($db->quoteName('related_item_id'))
+            ->select($db->quoteName('linked_item_id'))
             ->from($db->quoteName(self::TABLE))
             ->where($db->quoteName('item_id') . ' = :item')
             ->where($db->quoteName('link_type') . ' = ' . $db->quote(self::TYPE_RELATED))
-            ->order($db->quoteName('ordering') . ' ASC, ' . $db->quoteName('related_item_id') . ' ASC')
+            ->order($db->quoteName('ordering') . ' ASC, ' . $db->quoteName('linked_item_id') . ' ASC')
             ->bind(':item', $itemId, ParameterType::INTEGER);
 
         return array_map('intval', $db->setQuery($query, $offset, $limit)->loadColumn() ?: []);
@@ -156,7 +156,7 @@ final class RelatedItems
 
         foreach (array_keys(array_filter(array_count_values($ids), static fn (int $count): bool => $count > 1)) as $twice) {
             if (\in_array($twice, $existing, true)) {
-                $refusals[] = Text::sprintf('COM_ALFA_ITEM_RELATED_TWICE', self::nameOf(db: $db, itemId: (int) $twice));
+                $refusals[] = Text::sprintf('COM_ALFA_ITEM_RELATED_TWICE', ItemModel::nameForStaff(itemId: (int) $twice));
             }
         }
 
@@ -193,7 +193,7 @@ final class RelatedItems
             $position++;
             $db->setQuery(
                 'INSERT INTO ' . $db->quoteName(self::TABLE)
-                . ' (' . $db->quoteName('item_id') . ', ' . $db->quoteName('related_item_id') . ', ' . $db->quoteName('link_type') . ', ' . $db->quoteName('ordering') . ')'
+                . ' (' . $db->quoteName('item_id') . ', ' . $db->quoteName('linked_item_id') . ', ' . $db->quoteName('link_type') . ', ' . $db->quoteName('ordering') . ')'
                 . ' SELECT ' . (int) $itemId . ', ' . $db->quoteName('id') . ', ' . $db->quote(self::TYPE_RELATED) . ', ' . $position
                 . ' FROM ' . $db->quoteName('#__alfa_items')
                 . ' WHERE ' . $db->quoteName('id') . ' = ' . (int) $id,
@@ -222,34 +222,7 @@ final class RelatedItems
         $db->setQuery(
             $db->getQuery(true)
                 ->delete($db->quoteName(self::TABLE))
-                ->where('(' . $db->quoteName('item_id') . ' IN (' . $list . ') OR ' . $db->quoteName('related_item_id') . ' IN (' . $list . '))'),
+                ->where('(' . $db->quoteName('item_id') . ' IN (' . $list . ') OR ' . $db->quoteName('linked_item_id') . ' IN (' . $list . '))'),
         )->execute();
-    }
-
-    /**
-     * A product's name for staff, for a refusal that names it: its name in the staff member's language, else its SKU,
-     * else its number.
-     *
-     * @param DatabaseInterface $db The database.
-     * @param int $itemId The product.
-     *
-     * @since  2.2.2
-     */
-    public static function nameOf(DatabaseInterface $db, int $itemId): string
-    {
-        $name = trim(MultilingualHelper::getTranslatedValue(id: $itemId, tableName: '#__alfa_items', primaryColumnName: 'id_item', field: 'name'));
-
-        if ($name !== '') {
-            return $name;
-        }
-
-        $sku = trim((string) $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('sku'))
-                ->from($db->quoteName('#__alfa_items'))
-                ->where($db->quoteName('id') . ' = ' . (int) $itemId),
-        )->loadResult());
-
-        return $sku !== '' ? $sku : '#' . $itemId;
     }
 }

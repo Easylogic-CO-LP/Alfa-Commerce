@@ -11,7 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Field\Modal;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
+use Alfa\Component\Alfa\Administrator\Model\ItemModel;
 use Joomla\CMS\Form\Field\ModalSelectField;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
@@ -22,7 +22,8 @@ use SimpleXMLElement;
  * One product, picked in a modal from the products list (type="Modal_Item", 2.2.2): Joomla's modal select field, as
  * com_content's article picker is. The modal is the items list's layout=modal (administrator/tmpl/items/modal.php), with
  * its own search, filters and ordering kept apart from the list's own (modal=1). Select only: no new or edit button. The
- * product's name shows in the staff member's language, else its SKU, else its number.
+ * product shows as the refusals name it ({@see ItemModel::nameForStaff()}): its name in the staff member's language,
+ * else its number.
  *
  * @since  2.2.2
  */
@@ -84,6 +85,6 @@ class ItemField extends ModalSelectField
     {
         $id = (int) $this->value;
 
-        return $id > 0 ? RelatedItems::nameOf(db: $this->getDatabase(), itemId: $id) : '';
+        return $id > 0 ? ItemModel::nameForStaff(itemId: $id) : '';
     }
 }

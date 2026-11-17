@@ -8,8 +8,9 @@
  *
  * The products list in a modal, to pick one product (2.2.2): the field Modal_Item opens it (the product form's Related
  * tab). The list's own search, filters and ordering, kept apart from the products screen's (modal=1). A product's name
- * picks it through Joomla's modal-content-select script, as Joomla's own article picker does; every state is listed,
- * since a product may be linked while it is unpublished.
+ * picks it through Joomla's modal-content-select script, as Joomla's own article picker does. As on the products screen,
+ * published and unpublished products are listed, and archived or trashed ones through the status filter: a product may
+ * be linked while it is not published.
  *
  * @var \Alfa\Component\Alfa\Administrator\View\Items\HtmlView $this
  */
@@ -50,7 +51,7 @@ $iconStates = [-2 => 'icon-trash', 0 => 'icon-unpublish', 1 => 'icon-publish', 2
                             <?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
                         </th>
                         <th scope="col">
-                            <?php echo HTMLHelper::_('searchtools.sort', 'COM_ALFA_ITEMS_NAME', 'a.name', $listDirn, $listOrder); ?>
+                            <?php echo HTMLHelper::_('searchtools.sort', 'COM_ALFA_ITEMS_NAME', 'name', $listDirn, $listOrder); ?>
                         </th>
                         <th scope="col" class="d-none d-md-table-cell">
                             <?php echo HTMLHelper::_('searchtools.sort', 'COM_ALFA_ITEMS_SKU', 'a.sku', $listDirn, $listOrder); ?>
@@ -63,8 +64,9 @@ $iconStates = [-2 => 'icon-trash', 0 => 'icon-unpublish', 1 => 'icon-publish', 2
                 <tbody>
                     <?php foreach ($this->items as $i => $item) : ?>
                         <?php
-                        // The name the field shows once picked: the product's name, else its SKU, else its number.
-                        $title = trim((string) ($item->name ?? '')) ?: (trim((string) ($item->sku ?? '')) ?: '#' . (int) $item->id);
+                        // The name the field shows once picked, by the refusals' rule (ItemModel::nameForStaff()): the
+                        // product's name in the staff member's language, else its number.
+                        $title = trim((string) ($item->name ?? '')) ?: '#' . (int) $item->id;
                         $attributes = 'data-content-select data-content-type="com_alfa.item"'
                             . ' data-id="' . (int) $item->id . '"'
                             . ' data-title="' . $this->escape($title) . '"';

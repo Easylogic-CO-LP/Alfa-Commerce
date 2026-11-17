@@ -74,8 +74,11 @@ final class RelatedProducts
 
             /** @var ItemsModel $model */
             $model = $factory->createModel('Items', 'Site', ['ignore_request' => true]);
+            // No category of the page's: each card is drawn from its own levels, its default category's and the
+            // Options, its link and its reload address under its default category, however the visitor reached the
+            // product page (the model reads category_id from the request otherwise), as the items module reads.
+            $model->setCategoryContext(categoryId: 0);
             // Under ignore_request populateState() never runs: the state is what is set here.
-            $model->getState('list.ordering');
             $model->setState('filter.id', $ids);
             $model->setState('list.limit', 0);
             $model->setState('list.start', 0);

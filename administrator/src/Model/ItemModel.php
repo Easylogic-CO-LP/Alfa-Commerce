@@ -2992,12 +2992,14 @@ class ItemModel extends AlfaAdminModel
 
     /**
      * A product's name in the staff member's language, for a refusal that names it (UX-42); its number when it has none.
+     * The one rule for naming a product to staff: the item's own refusals, the Related tab's refusals and the title of
+     * its product picker (2.2.2).
      *
      * @param int $itemId The product.
      *
      * @since  2.2.0
      */
-    private static function nameForStaff(int $itemId): string
+    public static function nameForStaff(int $itemId): string
     {
         $name = (string) MultilingualHelper::getTranslatedValue(id: $itemId, tableName: '#__alfa_items', primaryColumnName: 'id_item', field: 'name');
 
