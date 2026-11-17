@@ -697,8 +697,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * zone decided alone before).
      *
      * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2). With no destination at all and no zone for it (no place, no
-     * catch-all), the refusal is NEEDS_PLACE; with no postcode and a zone whose every row that would fit has a postcode
-     * band, it is NEEDS_POSTCODE. The cart's offer read takes such a carrier off the list until the checkout has the
+     * catch-all), the refusal is NEEDS_PLACE; with the carrier's postcode field unanswered ('') and a zone whose every row
+     * that would fit has a postcode band, it is NEEDS_POSTCODE. A carrier that reads no postcode field passes null, and
+     * is refused NO_BAND_FITS as before: no shopper could give it one. The cart's offer read takes such a carrier off the list until the checkout has the
      * fact, and names it, instead of offering a carrier that refuses the shopper's first click. The places are read in the order given,
      * nearest first, as AddressView::places() and PlaceTree::placesFor() give
      * them; a caller passing them in another order gets another zone. A place
@@ -714,8 +715,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * @param array $zones The method's configured cost-per-place zones.
      * @param CartLine[] $lines What there is to carry.
      * @param int[] $places The destination and the places it belongs to, nearest first.
-     * @param string|null $postcode The delivery postcode, or NULL when the checkout
-     *                              has not supplied one. Never substituted.
+     * @param string|null $postcode The delivery postcode; '' when the carrier's postcode field is
+     *                              unanswered, NULL when the carrier reads no postcode field. Never substituted.
      * @param float $subtotal The settled merchandise total, for the amount band.
      * @param array $limits What this carrier can physically take, as
      *                      ['width' =>, 'height' =>, 'depth' =>, 'weight' =>].
@@ -815,9 +816,10 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         // said, by omission, that they do not carry it. Until 1.10 this
         // returned 0 and the order shipped free.
         if ($cost === null) {
-            // No postcode given, and a row with a postcode band would fit the cart once one is: the fact is missing.
+            // The carrier reads a postcode field ('' is that field unanswered; null is no field to read), none is given
+            // yet, and a row with a postcode band would fit the cart once one is: the fact is missing.
             $unbanded = array_map(static fn (array $row): array => ['zip-start' => null, 'zip-end' => null] + $row, (array) $calculationData['costs']);
-            $postcodeMissing = trim((string) $postcode) === ''
+            $postcodeMissing = $postcode !== null && trim($postcode) === ''
                 && $this->cheapestMatchingCost($lines, $unbanded, null, $subtotal) !== null;
             $this->refusal = $this->refusalKey($postcodeMissing ? 'NEEDS_POSTCODE' : 'NO_BAND_FITS');
         }

@@ -222,6 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // DELIVERY DETAILS CHANGED: the offered methods and shipping costs depend on them. A carrier is offered only
         // once the checkout gives what it needs (the country, the postcode: 2.2.2), so any delivery field reads the
         // methods again, as the delivery place always did.
+        // The [data-alfa-delivery-place] clause serves a template override of the checkout form without the wrapper.
         if (event.target.matches('[data-alfa-delivery-place]') || event.target.closest('[data-cart-delivery-fields]')) {
             deliveryPlaceChanged(event.target);
         }
