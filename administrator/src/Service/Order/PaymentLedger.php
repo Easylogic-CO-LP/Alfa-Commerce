@@ -1915,7 +1915,7 @@ class PaymentLedger
         $orderId = (int) ($data['id_order'] ?? 0);
 
         if ($orderId <= 0) {
-            self::warn('create(): id_order is required');
+            self::refuse(detail: 'create(): id_order is required', orderId: 0);
             return false;
         }
 
@@ -2070,13 +2070,13 @@ class PaymentLedger
         $rowType = (string) ($data['payment_type'] ?? self::TYPE_PAYMENT);
 
         if (!$ledgerFact && \in_array($rowType, self::FACT_TYPES, true)) {
-            self::warn(sprintf('create(): a %s is recorded by PaymentLedger::recordReversal() or ::recordChargeback()', $rowType));
+            self::refuse(detail: sprintf('create(): a %s is recorded by PaymentLedger::recordReversal() or ::recordChargeback()', $rowType), orderId: $orderId);
 
             return false;
         }
 
         if ($rowType !== self::TYPE_REVERSAL && (int) ($data['id_reversed_payment'] ?? 0) > 0) {
-            self::warn('create(): only a reversal names a reversed row');
+            self::refuse(detail: 'create(): only a reversal names a reversed row', orderId: $orderId);
 
             return false;
         }
@@ -2118,10 +2118,10 @@ class PaymentLedger
         // abs() is deliberately NOT applied: silently turning -5.00 into
         // 5.00 would record money the caller never asked to move.
         if ((float) ($data['amount'] ?? 0) < 0.0) {
-            self::warn(sprintf(
+            self::refuse(detail: sprintf(
                 'create(): amount %.2f is negative; direction is carried by payment_type, not by the sign',
                 (float) $data['amount'],
-            ));
+            ), orderId: $orderId);
 
             return false;
         }
@@ -2131,7 +2131,9 @@ class PaymentLedger
         // not a collection.
         if (!$bornVoided && ($data['payment_type'] ?? self::TYPE_PAYMENT) === self::TYPE_PAYMENT) {
             $thisPayment = self::money($data['amount'], $orderId)->abs();
-            $alreadyRecorded = self::sumRecordedPayments($orderId);
+            // What the order still holds against its total (2.2.1): a lost dispute or a partial refund makes its money
+            // owed again, as amountToCollect() says, so a new payment for it is admitted.
+            $alreadyRecorded = self::heldAgainstTotal($orderId);
 
             // The hint exists because at checkout the shipment row does not
             // exist yet (onOrderAfterPlace fires before the shipment plugin
@@ -2151,16 +2153,21 @@ class PaymentLedger
             // first (Alfa admits Currency::SCALE_MIN..SCALE_MAX), so paying
             // the exact remainder is never rejected on a decimal(24,8)
             // accumulation artefact.
-            if (self::exceedsCap([$alreadyRecorded, $thisPayment], $grandTotal, $orderId)) {
+            if (self::exceedsCap([self::heldAgainstTotal($orderId, plus: $thisPayment)], $grandTotal, $orderId)) {
                 // Both figures at the order's own scale: at two places a refusal
                 // on the last minor units of an 8-place total cannot be read.
-                self::warn(sprintf(
-                    'create(): payment of %s would exceed order #%d total: %s of %s already recorded',
-                    PublishedDecimal::money(money: $thisPayment),
-                    $orderId,
-                    PublishedDecimal::money(money: self::money($alreadyRecorded, $orderId)),
-                    PublishedDecimal::money(money: $grandTotal),
-                ));
+                self::moneyRefusal(
+                    log: sprintf(
+                        'create(): payment of %s would exceed order #%d total: %s of %s already held',
+                        PublishedDecimal::money(money: $thisPayment),
+                        $orderId,
+                        PublishedDecimal::money(money: $alreadyRecorded),
+                        PublishedDecimal::money(money: $grandTotal),
+                    ),
+                    orderId: $orderId,
+                    key: 'COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL',
+                    amounts: [$thisPayment, $grandTotal->subtract($alreadyRecorded)->nonNegative(), $grandTotal],
+                );
 
                 return false;
             }
@@ -2181,13 +2188,13 @@ class PaymentLedger
             $original = self::getRaw($originalId);
 
             if (!$original) {
-                self::warn("create(): refund names payment #{$originalId}, which does not exist");
+                self::refuse(detail: "create(): refund names payment #{$originalId}, which does not exist", orderId: $orderId);
                 return false;
             }
 
             // Only a payment holds money to return; refundPayment() asks the same.
             if ((string) ($original->payment_type ?? '') !== self::TYPE_PAYMENT) {
-                self::warn(sprintf('create(): refund names row #%d, which is a %s, not a payment', $originalId, (string) ($original->payment_type ?? '?')));
+                self::refuse(detail: sprintf('create(): refund names row #%d, which is a %s, not a payment', $originalId, (string) ($original->payment_type ?? '?')), orderId: $orderId);
                 return false;
             }
 
@@ -2200,12 +2207,12 @@ class PaymentLedger
             $booked = self::refundUnderReference($originalId, (string) ($data['transaction_id'] ?? ''));
 
             if ($booked !== null) {
-                self::warn(sprintf(
+                self::refuse(detail: sprintf(
                     'create(): refund %s is already recorded against payment #%d as refund row #%d; a provider retry is not a second refund',
                     json_encode((string) $data['transaction_id'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     $originalId,
                     (int) $booked->id,
-                ));
+                ), orderId: $orderId);
 
                 return false;
             }
@@ -2223,13 +2230,18 @@ class PaymentLedger
             // decimal(24,8) accumulation artefact. A provider's pending word
             // is kept as it is (providerFact()).
             if (!self::providerFactRow($data) && self::exceedsCap([$alreadyRefunded, $thisRefund], $gross, $orderId)) {
-                self::warn(sprintf(
-                    'create(): refund of %.2f would exceed payment #%d: %.2f of %.2f already refunded',
-                    $thisRefund->getAmount(),
-                    $originalId,
-                    $alreadyRefunded->getAmount(),
-                    $gross->getAmount(),
-                ));
+                self::moneyRefusal(
+                    log: sprintf(
+                        'create(): refund of %s would exceed payment #%d: %s of %s already refunded',
+                        PublishedDecimal::money(money: $thisRefund),
+                        $originalId,
+                        PublishedDecimal::money(money: $alreadyRefunded),
+                        PublishedDecimal::money(money: $gross),
+                    ),
+                    orderId: $orderId,
+                    key: 'COM_ALFA_REFUND_REFUSED_PAST_PAYMENT',
+                    amounts: [$thisRefund, $gross, $gross->subtract($alreadyRefunded)->nonNegative()],
+                );
 
                 return false;
             }
@@ -2266,13 +2278,19 @@ class PaymentLedger
             $paidPool = self::sumRefundablePool($orderId);
 
             if (self::exceedsCap([$alreadySettled], $paidPool, $orderId)) {
-                self::warn(sprintf(
-                    'create(): refund of %.2f would exceed order #%d refundable total: %.2f of %.2f already refunded',
-                    $thisRefund->getAmount(),
-                    $orderId,
-                    $alreadySettled->getAmount(),
-                    $paidPool,
-                ));
+                $pool = self::money($paidPool, $orderId);
+                self::moneyRefusal(
+                    log: sprintf(
+                        'create(): refund of %s would exceed order #%d refundable total: %s of %s already refunded',
+                        PublishedDecimal::money(money: $thisRefund),
+                        $orderId,
+                        PublishedDecimal::money(money: $alreadySettled),
+                        PublishedDecimal::money(money: $pool),
+                    ),
+                    orderId: $orderId,
+                    key: 'COM_ALFA_REFUND_REFUSED_PAST_ORDER',
+                    amounts: [$thisRefund, $pool->subtract($alreadySettled->subtract($thisRefund))->nonNegative()],
+                );
 
                 return false;
             }
@@ -2294,7 +2312,7 @@ class PaymentLedger
 
                 if ($refused !== null) {
                     self::$startRefused = $refused;
-                    self::warn($refused['reason'], 'create()');
+                    self::refuse(detail: 'create(): ' . $refused['reason'], orderId: $orderId, plain: $refused['reason']);
 
                     return false;
                 }
@@ -2310,7 +2328,7 @@ class PaymentLedger
                 $refusal = self::refundDocumentRefusal(documentId: $docId, orderId: $orderId, amount: $thisRefund, caller: 'create()');
 
                 if ($refusal !== null) {
-                    self::warn($refusal['reason']);
+                    self::refuse(detail: $refusal['reason'], orderId: $orderId, plain: $refusal['plain']);
 
                     return false;
                 }
@@ -2362,20 +2380,20 @@ class PaymentLedger
             // Whatever the status: a born-voided refund skipped the live
             // guard above, and must not name a payment that does not exist.
             if ($refunded === null) {
-                self::warn($rowType === self::TYPE_REVERSAL
+                self::refuse(detail: $rowType === self::TYPE_REVERSAL
                     ? sprintf('create(): reversal names row #%d, which does not exist', $sourceId)
-                    : sprintf('create(): %s names payment #%d, which does not exist', $rowType, $sourceId));
+                    : sprintf('create(): %s names payment #%d, which does not exist', $rowType, $sourceId), orderId: $orderId);
 
                 return false;
             }
 
             if ($rowType !== self::TYPE_REVERSAL && (string) ($refunded->payment_type ?? '') !== self::TYPE_PAYMENT) {
-                self::warn(sprintf(
+                self::refuse(detail: sprintf(
                     'create(): %s names row #%d, which is a %s, not a payment',
                     $rowType,
                     $sourceId,
                     (string) ($refunded->payment_type ?? '?'),
-                ));
+                ), orderId: $orderId);
 
                 return false;
             }
@@ -2386,7 +2404,7 @@ class PaymentLedger
         // spend this order's pool on money this order never took. A fact
         // is bound to its target's order the same way.
         if ($refunded !== null && (int) $refunded->id_order !== $orderId) {
-            self::warn($rowType === self::TYPE_REFUND
+            self::refuse(detail: $rowType === self::TYPE_REFUND
                 ? sprintf(
                     'create(): refund names payment #%d, which belongs to order #%d, not to order #%d',
                     (int) $refunded->id,
@@ -2399,7 +2417,7 @@ class PaymentLedger
                     (int) $refunded->id,
                     (int) $refunded->id_order,
                     $orderId,
-                ));
+                ), orderId: $orderId);
 
             return false;
         }
@@ -2450,7 +2468,7 @@ class PaymentLedger
             }
 
             if ($refusal !== null) {
-                self::warn('create(): ' . $refusal);
+                self::refuse(detail: 'create(): ' . $refusal, orderId: $orderId);
 
                 return false;
             }
@@ -2498,7 +2516,7 @@ class PaymentLedger
             };
 
             if ($refusal !== null) {
-                self::warn('create(): ' . $refusal . '; nothing was written.');
+                self::refuse(detail: 'create(): ' . $refusal . '; nothing was written.', orderId: $orderId);
 
                 return false;
             }
@@ -2541,13 +2559,13 @@ class PaymentLedger
             $orderCurrencyId = OrderCurrency::idOf(orderId: $orderId);
 
             if ((int) $data['id_currency'] !== $orderCurrencyId) {
-                self::warn(sprintf(
+                self::refuse(detail: sprintf(
                     'create(): payment currency %d is not order #%d\'s currency %d; an order holds'
                     . ' its money in one currency and Alfa performs no conversion.',
                     (int) $data['id_currency'],
                     $orderId,
                     $orderCurrencyId,
-                ));
+                ), orderId: $orderId);
 
                 return false;
             }
@@ -2588,11 +2606,14 @@ class PaymentLedger
             $data['processed_at'] = Factory::getDate('now', 'UTC')->toSql();
         }
 
-        // Persist to database
+        // Persist to database. A failure is a refusal like the others: its
+        // detail, a driver's message included, goes to the log only (2.2.1).
         self::withoutReferenceHash($data);
-        $success = self::saveToTable($data);
+        $failure = self::writeRow($data);
 
-        if (!$success) {
+        if ($failure !== null) {
+            self::refuse(detail: 'create(): ' . $failure, orderId: $orderId);
+
             return false;
         }
 
@@ -2751,14 +2772,14 @@ class PaymentLedger
     public static function update(int $id, array $data, bool $bookkeeping = false, ?Closure $payloadMerge = null, bool $staff = false, string $writer = ''): bool
     {
         if ($id <= 0) {
-            self::warn('update(): invalid payment ID');
+            self::refuse(detail: 'update(): invalid payment ID', orderId: 0);
             return false;
         }
 
         $orderId = (int) ($data['id_order'] ?? 0);
 
         if ($orderId <= 0) {
-            self::warn('update(): id_order is required for activity logging');
+            self::refuse(detail: 'update(): id_order is required for activity logging', orderId: 0);
             return false;
         }
 
@@ -2794,7 +2815,7 @@ class PaymentLedger
         // A gateway's write on an attempt staff moved to Standard (2.2.0): refused before anything is locked, recorded
         // and raised; the check under the lock below still refuses one that moved meanwhile.
         if ($writer !== '' && $before !== null && $writer !== self::STANDARD_METHOD && (string) ($before->payment_method_type ?? '') === self::STANDARD_METHOD) {
-            self::warn(self::writerRefusal(stored: $before, data: $data, writer: $writer) ?? 'payment #' . $id . ' is not money of the ' . $writer . ' plugin', 'update()');
+            self::refuse(detail: 'update(): ' . (self::writerRefusal(stored: $before, data: $data, writer: $writer) ?? 'payment #' . $id . ' is not money of the ' . $writer . ' plugin'), orderId: $orderId);
             self::rejectMovedAttempt(stored: $before, gateway: $writer, reference: (string) ($data['transaction_id'] ?? ''));
 
             return false;
@@ -2828,7 +2849,7 @@ class PaymentLedger
             // rather than write: the pool we would be measuring against is one
             // nobody is holding still.
             if ($oldSnapshot && (int) $oldSnapshot->id_order !== $previousOrderId) {
-                self::warn("update(): payment #{$id} moved order while acquiring locks; retry");
+                self::refuse(detail: "update(): payment #{$id} moved order while acquiring locks; retry", orderId: $orderId);
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2840,7 +2861,7 @@ class PaymentLedger
             $locked = $oldSnapshot ? self::refuseLockedWrite($oldSnapshot, $data, $orderId) : null;
 
             if ($locked !== null) {
-                self::warn('update(): ' . $locked);
+                self::refuse(detail: 'update(): ' . $locked, orderId: $orderId);
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2850,7 +2871,7 @@ class PaymentLedger
             $methodFixed = $oldSnapshot ? self::methodNamedRefusal(stored: $oldSnapshot, data: $data) : null;
 
             if ($methodFixed !== null) {
-                self::warn($methodFixed, 'update()');
+                self::refuse(detail: 'update(): ' . $methodFixed, orderId: $orderId, plain: $methodFixed);
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2860,7 +2881,7 @@ class PaymentLedger
             $staffRefused = $staff && $oldSnapshot ? self::staffWriteRefusal(stored: $oldSnapshot, data: $data) : null;
 
             if ($staffRefused !== null) {
-                self::warn($staffRefused, 'update()');
+                self::refuse(detail: 'update(): ' . $staffRefused, orderId: $orderId, plain: $staffRefused);
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2870,7 +2891,7 @@ class PaymentLedger
             $notTheirs = $writer !== '' && $oldSnapshot ? self::writerRefusal(stored: $oldSnapshot, data: $data, writer: $writer) : null;
 
             if ($notTheirs !== null) {
-                self::warn($notTheirs, 'update()');
+                self::refuse(detail: 'update(): ' . $notTheirs, orderId: $orderId);
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2880,7 +2901,7 @@ class PaymentLedger
             $backward = $oldSnapshot ? self::settledRefundRefusal(stored: $oldSnapshot, data: $data) : null;
 
             if ($backward !== null) {
-                self::warn($backward, 'update()');
+                self::refuse(detail: 'update(): ' . $backward, orderId: $orderId, plain: $backward);
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2905,7 +2926,7 @@ class PaymentLedger
             $startRefused = $oldSnapshot ? self::revivalRefusalLocked(id: $id, orderId: $orderId, stored: $oldSnapshot, data: $data) : null;
 
             if ($startRefused !== null) {
-                self::warn($startRefused['reason'], 'update()');
+                self::refuse(detail: 'update(): ' . $startRefused['reason'], orderId: $orderId, plain: $startRefused['reason']);
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2917,7 +2938,7 @@ class PaymentLedger
                 : null;
 
             if ($documentRefusal !== null) {
-                self::warn($documentRefusal['reason']);
+                self::refuse(detail: $documentRefusal['reason'], orderId: $orderId, plain: $documentRefusal['plain']);
                 TransactionState::rollBackLevel($db);
 
                 return false;
@@ -2958,14 +2979,21 @@ class PaymentLedger
             $refusal = $oldSnapshot ? self::classifyOwned($data, $oldSnapshot) : null;
 
             if ($refusal !== null) {
-                self::warn('update(): ' . $refusal);
+                self::refuse(detail: 'update(): ' . $refusal, orderId: $orderId);
                 TransactionState::rollBackLevel($db);
 
                 return false;
             }
 
             self::withoutReferenceHash($data);
-            $success = self::saveToTable($data);
+            // A failure is a refusal like the others: its detail, a driver's
+            // message included, goes to the log only (2.2.1).
+            $failure = self::writeRow($data);
+            $success = $failure === null;
+
+            if (!$success) {
+                self::refuse(detail: 'update(): ' . $failure, orderId: $orderId);
+            }
 
             // INSIDE the transaction, before the commit: a wallet movement
             // that cannot happen must take the status write down with it.
@@ -3340,14 +3368,14 @@ class PaymentLedger
         string $writer = '',
     ): int {
         if ($id <= 0) {
-            self::warn('updateIfStatus(): invalid payment ID');
+            self::refuse(detail: 'updateIfStatus(): invalid payment ID', orderId: 0);
             return self::WRITE_FAILED;
         }
 
         $orderId = (int) ($data['id_order'] ?? 0);
 
         if ($orderId <= 0) {
-            self::warn('updateIfStatus(): id_order is required for activity logging');
+            self::refuse(detail: 'updateIfStatus(): id_order is required for activity logging', orderId: 0);
             return self::WRITE_FAILED;
         }
 
@@ -3383,14 +3411,14 @@ class PaymentLedger
             $oldSnapshot = self::getRaw($id);
 
             if (!$oldSnapshot) {
-                self::warn("updateIfStatus(): Payment #{$id} not found");
+                self::refuse(detail: "updateIfStatus(): Payment #{$id} not found", orderId: $orderId);
                 TransactionState::rollBackLevel($db);
 
                 return self::WRITE_FAILED;
             }
 
             if ((int) $oldSnapshot->id_order !== $previousOrderId) {
-                self::warn("updateIfStatus(): payment #{$id} moved order while acquiring locks; retry");
+                self::refuse(detail: "updateIfStatus(): payment #{$id} moved order while acquiring locks; retry", orderId: $orderId);
                 TransactionState::rollBackLevel($db);
 
                 return self::WRITE_FAILED;
@@ -3529,7 +3557,7 @@ class PaymentLedger
         $locked = self::refuseLockedWrite($oldSnapshot, $data, $orderId);
 
         if ($locked !== null) {
-            self::warn('updateIfStatus(): ' . $locked);
+            self::refuse(detail: 'updateIfStatus(): ' . $locked, orderId: $orderId);
 
             return -1;
         }
@@ -3538,7 +3566,7 @@ class PaymentLedger
         $methodFixed = self::methodNamedRefusal(stored: $oldSnapshot, data: $data);
 
         if ($methodFixed !== null) {
-            self::warn($methodFixed, 'updateIfStatus()');
+            self::refuse(detail: 'updateIfStatus(): ' . $methodFixed, orderId: $orderId, plain: $methodFixed);
 
             return -1;
         }
@@ -3547,7 +3575,7 @@ class PaymentLedger
         $staffRefused = $staff ? self::staffWriteRefusal(stored: $oldSnapshot, data: $data) : null;
 
         if ($staffRefused !== null) {
-            self::warn($staffRefused, 'updateIfStatus()');
+            self::refuse(detail: 'updateIfStatus(): ' . $staffRefused, orderId: $orderId, plain: $staffRefused);
 
             return -1;
         }
@@ -3556,7 +3584,7 @@ class PaymentLedger
         $notTheirs = $writer !== '' ? self::writerRefusal(stored: $oldSnapshot, data: $data, writer: $writer) : null;
 
         if ($notTheirs !== null) {
-            self::warn($notTheirs, 'updateIfStatus()');
+            self::refuse(detail: 'updateIfStatus(): ' . $notTheirs, orderId: $orderId);
 
             return -1;
         }
@@ -3569,7 +3597,7 @@ class PaymentLedger
             : null;
 
         if ($backward !== null) {
-            self::warn($backward, 'updateIfStatus()');
+            self::refuse(detail: 'updateIfStatus(): ' . $backward, orderId: $orderId, plain: $backward);
 
             return -1;
         }
@@ -3587,7 +3615,7 @@ class PaymentLedger
             : null;
 
         if ($startRefused !== null) {
-            self::warn($startRefused['reason'], 'updateIfStatus()');
+            self::refuse(detail: 'updateIfStatus(): ' . $startRefused['reason'], orderId: $orderId, plain: $startRefused['reason']);
 
             return -1;
         }
@@ -3605,7 +3633,7 @@ class PaymentLedger
                 && !\in_array((string) ($oldSnapshot->transaction_status ?? ''), $settled, true);
 
             if (!$confirms) {
-                self::warn($documentRefusal['reason']);
+                self::refuse(detail: $documentRefusal['reason'], orderId: $orderId, plain: $documentRefusal['plain']);
 
                 return -1;
             }
@@ -3638,7 +3666,7 @@ class PaymentLedger
         $refusal = self::classifyOwned($data, $oldSnapshot);
 
         if ($refusal !== null) {
-            self::warn('updateIfStatus(): ' . $refusal);
+            self::refuse(detail: 'updateIfStatus(): ' . $refusal, orderId: $orderId);
 
             return -1;
         }
@@ -3665,7 +3693,7 @@ class PaymentLedger
         }
 
         if (empty($columns)) {
-            self::warn('updateIfStatus(): no valid columns after filtering');
+            self::refuse(detail: 'updateIfStatus(): no valid columns after filtering', orderId: $orderId);
 
             return -1;
         }
@@ -3694,7 +3722,8 @@ class PaymentLedger
                 throw $e;
             }
 
-            self::warn('updateIfStatus() failed: ' . $e->getMessage());
+            // The driver's text can name a table: it goes to the log only.
+            self::refuse(detail: 'updateIfStatus() failed: ' . $e->getMessage(), orderId: $orderId);
 
             return -1;
         }
@@ -11506,13 +11535,19 @@ class PaymentLedger
             $paidPool = self::sumRefundablePool($orderId, excludeId: $id);
 
             if (self::exceedsCap([$alreadySettled], $paidPool, $orderId)) {
-                self::warn(sprintf(
-                    'update(): refund of %.2f would exceed order #%d refundable total: %.2f of %.2f already refunded',
-                    $amount->getAmount(),
-                    $orderId,
-                    $alreadySettled->getAmount(),
-                    $paidPool,
-                ));
+                $pool = self::money($paidPool, $orderId);
+                self::moneyRefusal(
+                    log: sprintf(
+                        'update(): refund of %s would exceed order #%d refundable total: %s of %s already refunded',
+                        PublishedDecimal::money(money: $amount),
+                        $orderId,
+                        PublishedDecimal::money(money: $alreadySettled),
+                        PublishedDecimal::money(money: $pool),
+                    ),
+                    orderId: $orderId,
+                    key: 'COM_ALFA_REFUND_REFUSED_PAST_ORDER',
+                    amounts: [$amount, $pool->subtract($alreadySettled->subtract($amount))->nonNegative()],
+                );
 
                 return false;
             }
@@ -11522,7 +11557,7 @@ class PaymentLedger
                 $original = self::getRaw($linkId);
 
                 if (!$original) {
-                    self::warn("update(): refund names payment #{$linkId}, which does not exist");
+                    self::refuse(detail: "update(): refund names payment #{$linkId}, which does not exist", orderId: $orderId);
                     return false;
                 }
 
@@ -11531,13 +11566,18 @@ class PaymentLedger
                 $gross = self::money($original->amount, $orderId)->abs();
 
                 if (self::exceedsCap([$alreadyRefunded, $amount], $gross, $orderId)) {
-                    self::warn(sprintf(
-                        'update(): refund of %.2f would exceed payment #%d: %.2f of %.2f already refunded',
-                        $amount->getAmount(),
-                        $linkId,
-                        $alreadyRefunded->getAmount(),
-                        $gross->getAmount(),
-                    ));
+                    self::moneyRefusal(
+                        log: sprintf(
+                            'update(): refund of %s would exceed payment #%d: %s of %s already refunded',
+                            PublishedDecimal::money(money: $amount),
+                            $linkId,
+                            PublishedDecimal::money(money: $alreadyRefunded),
+                            PublishedDecimal::money(money: $gross),
+                        ),
+                        orderId: $orderId,
+                        key: 'COM_ALFA_REFUND_REFUSED_PAST_PAYMENT',
+                        amounts: [$amount, $gross, $gross->subtract($alreadyRefunded)->nonNegative()],
+                    );
 
                     return false;
                 }
@@ -11547,7 +11587,8 @@ class PaymentLedger
         }
 
         if ($type === self::TYPE_PAYMENT) {
-            $alreadyRecorded = self::sumRecordedPayments($orderId, excludeId: $id);
+            // What the order still holds against its total, this row left out (2.2.1, as create() reads it).
+            $alreadyRecorded = self::heldAgainstTotal($orderId, excludeId: $id);
             // SAME hint seam as create(): at checkout the shipment row does
             // not exist yet, so the DB recompute is short by shipping. Without
             // this a 100%-wallet order WITH shipping fails its pending->
@@ -11562,14 +11603,21 @@ class PaymentLedger
                 $grandTotal = $hintTotal;
             }
 
-            if (self::exceedsCap([$alreadyRecorded, $amount], $grandTotal, $orderId)) {
-                self::warn(sprintf(
-                    'update(): payment of %s would exceed order #%d total: %s of %s already recorded',
-                    PublishedDecimal::money(money: $amount),
-                    $orderId,
-                    PublishedDecimal::money(money: self::money($alreadyRecorded, $orderId)),
-                    PublishedDecimal::money(money: $grandTotal),
-                ));
+            // The row's own amount is added before the clamp at zero: its own refunds are netted against it, so a
+            // payment of 100.00 with 30.00 refunded on a total of 70.00 is measured as 70.00 (REV4D RD4D-9).
+            if (self::exceedsCap([self::heldAgainstTotal($orderId, excludeId: $id, plus: $amount)], $grandTotal, $orderId)) {
+                self::moneyRefusal(
+                    log: sprintf(
+                        'update(): payment of %s would exceed order #%d total: %s of %s already held',
+                        PublishedDecimal::money(money: $amount),
+                        $orderId,
+                        PublishedDecimal::money(money: $alreadyRecorded),
+                        PublishedDecimal::money(money: $grandTotal),
+                    ),
+                    orderId: $orderId,
+                    key: 'COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL',
+                    amounts: [$amount, $grandTotal->subtract($alreadyRecorded)->nonNegative(), $grandTotal],
+                );
 
                 return false;
             }
@@ -11603,6 +11651,10 @@ class PaymentLedger
      *     holds its amount: it is refused here, before any money moves at a
      *     provider, rather than when it settles.
      *
+     * The reason is the detail for the log; plain is what staff read (2.2.1): the voided document's sentence as it is,
+     * the ceiling's from its language key as a function of the customer's order number, and none for the document of
+     * another order, a caller's mistake, which staff read in the general sentence ({@see self::refuse()}).
+     *
      * @param int $documentId The document the refund names (positive).
      * @param int $orderId The refund's order (locked).
      * @param Money|string|float $amount The refund's amount, weighed against the note's ceiling.
@@ -11612,8 +11664,8 @@ class PaymentLedger
      * @param bool $settle The write settles the row: a voided document is
      *                     then told how to go on.
      *
-     * @return array{reason: string, kind: string, documentId: int, document: string, amount: Money, paid: ?Money, total: ?Money}|null
-     *                                                                                                                                 The refusal (its sentence, the words staff read, and its facts), or null.
+     * @return array{reason: string, plain: (Closure(string): string)|string|null, kind: string, documentId: int, document: string, amount: Money, paid: ?Money, total: ?Money}|null
+     *                                                                                                                                                                               The refusal (its detail, what staff read, and its facts), or null.
      *
      * @since  2.0.0
      */
@@ -11640,6 +11692,7 @@ class PaymentLedger
         $named = $db->loadObject();
         $noteTotal = $named->total_tax_incl ?? null;
         $refusal = [
+            'plain' => null,
             'documentId' => $documentId,
             'document' => '#' . $documentId,
             'amount' => self::money($amount, $orderId),
@@ -11660,12 +11713,11 @@ class PaymentLedger
 
         // Plain words: staff read these two.
         if ((int) $named->status !== \Alfa\Component\Alfa\Administrator\Helper\DocumentHelper::STATUS_ISSUED) {
-            return [
-                'reason' => $settle
-                    ? sprintf('This refund names document %s, which has been voided. Record it against the document that replaced it, or against no document.', $refusal['document'])
-                    : sprintf('This refund names document %s, which has been voided. A refund is recorded only against an issued document, so nothing was recorded.', $refusal['document']),
-                'kind' => 'voided',
-            ] + $refusal;
+            $voided = $settle
+                ? sprintf('This refund names document %s, which has been voided. Record it against the document that replaced it, or against no document.', $refusal['document'])
+                : sprintf('This refund names document %s, which has been voided. A refund is recorded only against an issued document, so nothing was recorded.', $refusal['document']);
+
+            return ['reason' => $voided, 'plain' => $voided, 'kind' => 'voided'] + $refusal;
         }
 
         $noteCeiling = self::money((string) $noteTotal, $orderId);
@@ -11673,6 +11725,10 @@ class PaymentLedger
             ->add(self::money(self::refundsHoldingDocument(documentId: $documentId, excludeId: $excludeId), $orderId)->nonNegative());
 
         if ($notePaid->add($refusal['amount'])->greaterThan($noteCeiling)) {
+            $amountText = $refusal['amount']->format();
+            $documentText = $refusal['document'];
+            $leftText = $noteCeiling->subtract($notePaid)->nonNegative()->format();
+
             return [
                 'reason' => sprintf(
                     '%s: refund of %.2f would pay credit note #%d twice: %s of %s already returned'
@@ -11683,6 +11739,8 @@ class PaymentLedger
                     $notePaid->format(),
                     $noteCeiling->format(),
                 ),
+                // Staff read what the note has left (2.2.1); the detail above is for the log.
+                'plain' => static fn (string $number): string => Text::sprintf('COM_ALFA_REFUND_REFUSED_PAST_NOTE', $amountText, $number, $documentText, $leftText),
                 'kind' => 'ceiling',
                 'paid' => $notePaid,
                 'total' => $noteCeiling,
@@ -12058,6 +12116,133 @@ class PaymentLedger
     }
 
     /**
+     * What an order holds against its total, for the payment cap (2.2.1): its recorded payments (every payment row
+     * not failed, cancelled or refunded, {@see self::sumRecordedPayments()}: pending and authorized payments count as
+     * held, as they did before) less what its customer's bank took back (its chargebacks, each net of its reversals,
+     * {@see self::sumChargebacks()}) less what it gave back from those payments (its settled refunds, each net of its
+     * reversals, of a payment still recorded or of none), plus the payment being written, never below zero. The
+     * netting is the one what is still owed is read with ({@see OrderFacts}, which counts completed payments only), so a
+     * payment for money that became owed again (a lost dispute, a partial refund) is admitted, and one minor unit
+     * beyond the total refused. The refundable pool is another figure and does not move.
+     *
+     * @param int $orderId The order.
+     * @param int $excludeId A payment row left out of the recorded payments (the one being written; its own refunds
+     *                       and chargebacks stay netted, so its amount comes back through $plus).
+     * @param Money|null $plus The amount of the payment being written, added before the clamp at zero.
+     *
+     * @return Money In the order's currency and scale.
+     *
+     * @since  2.2.1
+     */
+    private static function heldAgainstTotal(int $orderId, int $excludeId = 0, ?Money $plus = null): Money
+    {
+        $held = self::money(self::sumRecordedPayments($orderId, excludeId: $excludeId), $orderId)
+            ->subtract(self::money(self::sumChargebacks($orderId), $orderId))
+            ->subtract(self::money(self::sumReturnedFromRecorded($orderId), $orderId));
+
+        return ($plus === null ? $held : $held->add(self::money($plus, $orderId)))->nonNegative();
+    }
+
+    /**
+     * The order's settled refunds that gave back money of a payment still recorded (or of no payment: a goodwill
+     * refund), each net of its completed reversals. A refund of a payment flipped to refunded is left out: that
+     * payment is no longer recorded, so its money is not counted twice (as {@see OrderFacts} reads it).
+     *
+     * @param int $orderId The order.
+     *
+     * @return string The total in major units, as the SUM's decimal text.
+     *
+     * @since  2.2.1
+     */
+    private static function sumReturnedFromRecorded(int $orderId): string
+    {
+        if ($orderId <= 0) {
+            return '0';
+        }
+
+        $db = self::db();
+        $dead = implode(',', array_map(static fn (string $v): string => $db->quote($v), self::UNRECORDED_PAYMENT_STATUSES));
+        $query = $db->getQuery(true)
+            ->select('COALESCE(SUM(' . self::netAmountSql('r') . '), 0)')
+            ->from($db->quoteName(self::TABLE, 'r'))
+            ->where($db->quoteName('r.id_order') . ' = ' . $orderId)
+            ->where($db->quoteName('r.payment_type') . ' = ' . $db->quote(self::TYPE_REFUND))
+            ->whereIn($db->quoteName('r.transaction_status'), self::REFUND_SETTLED_STATUSES, ParameterType::STRING)
+            ->where('(COALESCE(' . $db->quoteName('r.id_refunded_payment') . ', 0) = 0 OR EXISTS (SELECT 1 FROM ' . $db->quoteName(self::TABLE, 'p')
+                . ' WHERE ' . $db->quoteName('p.id') . ' = ' . $db->quoteName('r.id_refunded_payment')
+                . ' AND ' . $db->quoteName('p.payment_type') . ' = ' . $db->quote(self::TYPE_PAYMENT)
+                . ' AND ' . $db->quoteName('p.transaction_status') . ' NOT IN (' . $dead . ')))');
+
+        $db->setQuery($query);
+
+        return (string) $db->loadResult();
+    }
+
+    /**
+     * A money guard's refusal (2.2.1): {@see self::refuse()} with the plain sentence that names the amounts and the
+     * customer's order number.
+     *
+     * @param string $log The detail for the log.
+     * @param int $orderId The order.
+     * @param string $key The staff sentence's language key: its first argument is the first amount, its second the
+     *                    customer's order number, then the other amounts in order.
+     * @param list<Money> $amounts The amounts the sentence names.
+     *
+     * @since  2.2.1
+     */
+    private static function moneyRefusal(string $log, int $orderId, string $key, array $amounts): void
+    {
+        $formatted = array_map(static fn (Money $money): string => $money->format(), $amounts);
+        self::refuse(detail: $log, orderId: $orderId, plain: static fn (string $number): string => Text::sprintf($key, array_shift($formatted), $number, ...$formatted));
+    }
+
+    /**
+     * A refusal of create(), update() or updateIfStatus() (2.2.1): the internal detail logged (com_alfa.orders), the
+     * caller answered by its own false or WRITE_FAILED, and a plain sentence queued only for staff and for an API client
+     * (on an administrator or an api request), never on a storefront request: a shopper is told by the payment plugin,
+     * in its own words. The plain sentence is the one given, a reason the ledger already words for people; or else the
+     * general one, which names the customer's order number and never a method or an internal id, saying the record was
+     * not saved and the reason is in the orders log (without a number when the write named no order). A database
+     * driver's text is never queued: it goes to the log only.
+     *
+     * @param string $detail The detail for the log.
+     * @param int $orderId The order, 0 when none is known.
+     * @param (Closure(string): string)|string|null $plain The sentence for staff, or a function of the order number
+     *                                                     that makes it; null for the general one.
+     *
+     * @since  2.2.1
+     */
+    private static function refuse(string $detail, int $orderId, Closure|string|null $plain = null): void
+    {
+        Log::add('[PaymentLedger] ' . $detail, Log::WARNING, 'com_alfa.orders');
+
+        try {
+            $app = Factory::getApplication();
+
+            if (!$app->isClient('administrator') && !$app->isClient('api')) {
+                return;
+            }
+
+            $row = $orderId > 0
+                ? self::db()->setQuery('SELECT ' . self::db()->quoteName('id') . ', ' . self::db()->quoteName('invoice_number')
+                    . ' FROM ' . self::db()->quoteName('#__alfa_orders') . ' WHERE ' . self::db()->quoteName('id') . ' = ' . $orderId)->loadObject()
+                : null;
+            $number = $orderId > 0 ? EmailService::orderNumber(order: $row ?? (object) ['id' => $orderId]) : '';
+            $sentence = match (true) {
+                $plain instanceof Closure => $plain($number),
+                \is_string($plain) => $plain,
+                $number === '' => Text::_('COM_ALFA_PAYMENT_WRITE_REFUSED_NO_ORDER'),
+                default => Text::sprintf('COM_ALFA_PAYMENT_WRITE_REFUSED', $number),
+            };
+
+            // Plain text, and the queue renders HTML.
+            $app->enqueueMessage(htmlspecialchars($sentence, ENT_QUOTES, 'UTF-8'), 'error');
+        } catch (Throwable) {
+            // No application (CLI) or no language: the log line above stands.
+        }
+    }
+
+    /**
      * Sum the money actually collected for an order.
      *
      * Completed 'payment' rows only: the refundable pool, and the figure
@@ -12415,6 +12600,9 @@ class PaymentLedger
      *                     row's own id_order.
      *
      * @return object|null The same row, amount hydrated.
+     *
+     * @throws OrderCurrencyException When the row's order does not exist or names no currency: a payment row whose
+     *                                order cannot be read is an integrity fault, never an answer of no row.
      *
      * @since  2.0.0
      */
