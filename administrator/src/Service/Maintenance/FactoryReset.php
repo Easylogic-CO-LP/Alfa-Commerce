@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
 use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
 use Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps;
+use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\User\User;
@@ -897,7 +898,8 @@ final class FactoryReset
      *   V2 no removed table exists that a fresh install does not make;
      *   V3 no object is left in the store, and no folder of it is unreadable (it may hold objects);
      *   V4 the recorded schema version is the installed schema's;
-     *   V5 the identifier floors hold.
+     *   V5 the identifier floors hold;
+     *   V6 the cursor of the announced price periods is there (2.2.2: the install SQL writes it, nothing at run time).
      *
      * @param CoreTables $core The declared set.
      * @param array<string, int> $floors The identifier floors.
@@ -954,6 +956,17 @@ final class FactoryReset
                 array_keys($below),
                 array_values($below),
             ));
+        }
+
+        $cursor = $db->setQuery(
+            $db->createQuery()
+                ->select($db->quoteName('value'))
+                ->from($db->quoteName('#__alfa_meta'))
+                ->where($db->quoteName('name') . ' = ' . $db->quote(DueRead::META_WINDOWS)),
+        )->loadResult();
+
+        if ($cursor === null) {
+            $problems[] = 'V6 the cursor of the announced price periods (#__alfa_meta ' . DueRead::META_WINDOWS . ') is missing';
         }
 
         if ($problems !== []) {

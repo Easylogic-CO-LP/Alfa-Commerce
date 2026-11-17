@@ -115,6 +115,27 @@ final class VariantHelper
     }
 
     /**
+     * Resolve the item's variant as resolveAndPrice() does, and overwrite the item's data with the active combination's,
+     * without pricing it: the storefront in catalogue-only mode (2.2.2, {@see ShopMode}), where no price is computed and
+     * the item's price is null. The cart and the administrator price through resolveAndPrice(), whatever the mode.
+     *
+     * @param object $item The item, with ->fields + ->combinations loaded.
+     * @param array $selection fieldId => valueId from the request (empty = default).
+     * @param int[] $optionValueIds The chosen option value ids.
+     * @param array $payloads fieldId => opaque buyer payload.
+     * @param PriceContext|null $context The visitor's context; session when null.
+     * @param int[]|null $shownFieldIds The fields a listing card draws (null = every field; see resolve()).
+     *
+     * @since  2.2.2
+     */
+    public static function resolveWithoutPrice(object $item, array $selection, array $optionValueIds = [], array $payloads = [], ?PriceContext $context = null, ?array $shownFieldIds = null): void
+    {
+        self::resolve($item, $selection, $optionValueIds, $payloads, $context, $shownFieldIds);
+        self::priceOnto(item: $item, result: null);
+        self::overlay($item, $item->variant->activeCombination ?? null);
+    }
+
+    /**
      * Give an item its price as every template reads it (2.2.2): the result when a price applies at the quantity it was
      * priced at, null when none does, so the price block and the sale badge draw nothing and no zero is shown. The
      * item also carries pricedFrom: for an item with no price there, the smallest quantity above it from which one

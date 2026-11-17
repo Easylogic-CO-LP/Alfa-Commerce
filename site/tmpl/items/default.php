@@ -18,11 +18,18 @@ $params = $app->getParams();
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list')
     ->useScript('com_alfa.list')
-    ->useStyle('com_alfa.item')
-    ->useScript('com_alfa.item.recalculate')
-    ->usePreset('com_alfa.item.addtocart')
-    ->useScript('com_alfa.item.variant')
-    ->useScript('com_alfa.showon.engine');
+    ->useStyle('com_alfa.item');
+
+// The buying scripts only for cards that sell: in catalogue-only mode (2.2.2) a card has no buy form, as its item says
+// ($item->sellsOnline, the first card answering for the page); a page with no card asks the shop's switch.
+$firstCard = \is_array($this->items) && $this->items !== [] ? reset($this->items) : null;
+
+if (\is_object($firstCard) ? (bool) ($firstCard->sellsOnline ?? true) : \Alfa\Component\Alfa\Site\Helper\ShopMode::sellsOnline()) {
+    $wa->useScript('com_alfa.item.recalculate')
+        ->usePreset('com_alfa.item.addtocart')
+        ->useScript('com_alfa.item.variant')
+        ->useScript('com_alfa.showon.engine');
+}
 
 // NO search assets load here, on purpose. The enhancement widget loads in the
 // `list.filter_form` layout, beside the input that declares `data-alfa-search`. A consumer
