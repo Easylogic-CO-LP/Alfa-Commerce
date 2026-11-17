@@ -19,14 +19,17 @@ use SimpleXMLElement;
  * extension's manifest (2.2.1).
  *
  * An Alfa extension declares, in the manifest of each plugin and module it installs, beside the version, the lines of
- * Alfa Commerce it is built for (a package's own manifest is not read by core's notice):
+ * Alfa Commerce it is built for (a package's own manifest is not read by core's notice; a package declares the same
+ * range there too, for its installer's gate):
  *
- *     <alfacore min="2.2" max="2.3"/>
+ *     <alfacore min="2.2" max="2.2"/>
  *
- * A line is a major and a minor version (2.2 covers 2.2.0, 2.2.1 and every 2.2 release). min is required; max is
- * optional, and without it the range is open: every line from min on. An extension that declares no range says
- * nothing about it, and nothing is inferred for it from its own version: core's notice after an update names it
- * "compatibility not stated" ({@see ExtensionCompatibility}).
+ * A line is a major and a minor version (2.2 covers 2.2.0, 2.2.1 and every 2.2 release). The policy
+ * ({@see AlfaInstallerGate}) requires both: min, the first line the extension is built for, and max, the last line it
+ * was tested on, never a patch release; a release of the extension raises max once it is tested on the next line.
+ * This reader requires min only and reads a range without max as open, every line from min on. An extension that
+ * declares no range says nothing about it, and nothing is inferred for it from its own version: core's notice after
+ * an update names it "compatibility not stated" ({@see ExtensionCompatibility}).
  *
  * The same reader serves core's notice after an update and an extension's own install script
  * ({@see AlfaInstallerGate::rangeRefusal()}). Plain PHP, no Joomla class, for the reason {@see AlfaVersion} is: an
