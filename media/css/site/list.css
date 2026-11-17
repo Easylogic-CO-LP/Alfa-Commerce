@@ -67,7 +67,11 @@
     }
 }
 
+/* The track is as tall as its tallest image; an image less tall stands in the middle of its slide, on the arrows'
+   line. */
 .card-slider-slide {
+    display: flex;
+    align-items: center;
     flex: 0 0 100%;
     scroll-snap-align: start;
     scroll-snap-stop: always;
