@@ -15,7 +15,8 @@
  *
  * Read-only payload; a listener failure never blocks the item save, which
  * already stands: each listener is called on its own, and one that throws is
- * logged (com_alfa) while the next one runs.
+ * logged in com_alfa_plugins.php (category com_alfa.plugins) while the next
+ * one runs.
  *
  * @since  2.0.0
  */
