@@ -357,7 +357,7 @@ class MediaHelper
      * took the files at once, so a delete rolled back had lost them). With no transaction open, both follow at once.
      *
      * @param int[] $itemIds Entity ids whose media should be removed.
-     * @param string $origin Media origin ('item' | 'category' | 'manufacturer').
+     * @param string $origin Media origin ('item' | 'category' | 'manufacturer' | 'combination' | 'payment' | 'shipment').
      *
      *
      * @since  1.0.0
