@@ -26,11 +26,13 @@ use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Facet\NarrowingFilters;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Registry\Registry;
 use Throwable;
 
 /**
@@ -121,6 +123,14 @@ class HtmlView extends BaseHtmlView
     private array $cardImagesCache = [];
 
     /**
+     * The reload context of a related product's card on a product page (2.2.2): its reload URL carries it, so the card
+     * is drawn again from the same levels it was drawn from ({@see self::cardsFor()}).
+     *
+     * @since  2.2.2
+     */
+    public const CONTEXT_RELATED = 'related';
+
+    /**
      * Constructor
      *
      * @param array $config Configuration settings
@@ -151,34 +161,39 @@ class HtmlView extends BaseHtmlView
             // The model reads the buyer's sel[]/opt[]/conf[] selection itself
             // (VariantHelper::requestSelection); the view stays thin.
             $itemsModel = $this->getModel();
+            $related = RequestScalar::cmd($input, 'context', '') === self::CONTEXT_RELATED;
+
+            // A related product's card keeps its context in the URL it is drawn with again (2.2.2).
+            if ($related) {
+                $itemsModel->setState('card.context', self::CONTEXT_RELATED);
+            }
+
             $this->item = $itemsModel->getItem(RequestScalar::int($input, 'id', 0));
 
             if (!$this->item) {
                 throw new Exception(\Joomla\CMS\Language\Text::_('COM_ALFA_ERROR_ITEM_NOT_FOUND'), 404);
             }
 
-            $this->priceSettings = PriceSettings::get();
-
             // Same card chain as the listing, on the SAME single query: the model
             // joined the routed category's layouts (the reload URL carries
             // category_id): item -> category -> params. The JS swaps the whole
             // [data-item-id] (variant change) or only the inner [data-item-prices]
-            // (option change).
-            $this->params = $this->app->getParams('com_alfa');
-            $this->cardTpl = SlotResolver::resolve(
-                value: (string) $this->params->get('items_card_layout', ''),
-                view: 'items',
-                slot: 'item',
-            );
-            $this->decideCardImages(layout: 'default');
+            // (option change). A related product's card on a product page (2.2.2,
+            // context=related) takes the Options, as it was drawn (cardsFor()); a
+            // listing's card the menu item's, then the Options.
+            $this->prepareCards(params: $related ? ComponentHelper::getParams('com_alfa') : $this->app->getParams('com_alfa'));
 
             // THE CARD KEEPS ITS PLACE IN THE RESULT SET (2.2.0): the swap sends the position the card
             // it replaces carried, and the card renders it back through the same call. Only a whole
             // number from 1 counts; anything else renders none. The handle stays on the container.
-            $position = trim(RequestScalar::string($input, 'position', ''));
-            $this->cardPosition = ctype_digit($position) && (int) $position >= 1 ? (int) $position : null;
-            $this->resultAttribution = new ResultAttribution(engine: self::engineKey());
-            $this->announceResultSet(kind: ResultSetRenderEvent::KIND_CARD);
+            // A related product's card belongs to no result set (2.2.2): no position, no attribution and
+            // no announcement, as when it was first drawn.
+            if (!$related) {
+                $position = trim(RequestScalar::string($input, 'position', ''));
+                $this->cardPosition = ctype_digit($position) && (int) $position >= 1 ? (int) $position : null;
+                $this->resultAttribution = new ResultAttribution(engine: self::engineKey());
+                $this->announceResultSet(kind: ResultSetRenderEvent::KIND_CARD);
+            }
 
             parent::display($this->cardTplFor($this->item));
 
@@ -495,6 +510,56 @@ class HtmlView extends BaseHtmlView
         }
 
         return $this->cardCache[$card] ??= SlotResolver::resolve(value: $card, view: 'items', slot: 'item', layout: $this->getLayout());
+    }
+
+    /**
+     * The cards of these products as the listing draws them (2.2.2), for the product page's related products: each
+     * through the listing's own card template ({@see self::cardTplFor()}), its images part and its slider, price, stock
+     * line and buy form, so a template's override of the card shows here too. A card's levels are the product's own,
+     * then its default category's (stamped by the model, which reads these products with no category of its own), then
+     * the Options; no menu item, since the page is not a listing, and the card's reload takes the same levels (its URL
+     * carries context=related). Only the card's own preparation is shared with the single-card reload: no position, no
+     * search attribution and no result-set announcement, so a search plugin counts none of these cards as a result.
+     *
+     * @param list<object> $items Products decorated by the site ItemsModel, in the order they show.
+     *
+     * @return array<int, string> Each product's card, by its id, in that order.
+     *
+     * @since  2.2.2
+     */
+    public function cardsFor(array $items): array
+    {
+        $this->prepareCards(params: ComponentHelper::getParams('com_alfa'));
+        $cards = [];
+
+        foreach ($items as $item) {
+            $this->item = $item;
+            $cards[(int) $item->id] = (string) $this->loadTemplate($this->cardTplFor($item));
+        }
+
+        $this->item = null;
+
+        return $cards;
+    }
+
+    /**
+     * What one card needs (2.2.2, the one preparation of the single-card reload and of cardsFor()): the parameters, the
+     * default card's sub-template, the card images' default and the slider's count, the price settings.
+     *
+     * @param Registry $params The parameters the card's defaults come from.
+     *
+     * @since  2.2.2
+     */
+    private function prepareCards(Registry $params): void
+    {
+        $this->params = $params;
+        $this->priceSettings = PriceSettings::get();
+        $this->cardTpl = SlotResolver::resolve(
+            value: (string) $this->params->get('items_card_layout', ''),
+            view: 'items',
+            slot: 'item',
+        );
+        $this->decideCardImages(layout: 'default');
     }
 
     /**

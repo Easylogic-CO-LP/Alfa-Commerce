@@ -84,13 +84,22 @@
     }
 
     /**
-     * Mirror the selection in the address bar, single-item page only (a list of
-     * cards must not rewrite the URL for one card).
+     * Whether a node is the product page's own product (its .item-container), not
+     * a card: a related product's card on the product page (2.2.2) is a card too.
      */
-    function syncAddressBar(node, query) {
+    function isPageProduct(node) {
         var app = node.closest('#alfa-app');
 
-        if (!app || app.dataset.view !== 'item') {
+        return !!app && app.dataset.view === 'item' && node.classList.contains('item-container');
+    }
+
+    /**
+     * Mirror the selection in the address bar, the product page's own product
+     * only (a card, in a list or among the product page's related products, must
+     * not rewrite the URL for itself).
+     */
+    function syncAddressBar(node, query) {
+        if (!isPageProduct(node)) {
             return;
         }
 
@@ -235,7 +244,12 @@
         var focused = focusedControl(container);
 
         container.replaceWith(fresh);
-        reinitMedia();
+
+        // The gallery is the product's own: a card's swap leaves it as it is.
+        if (isPageProduct(fresh)) {
+            reinitMedia();
+        }
+
         restoreFocus(fresh, focused);
         syncAddressBar(fresh, query);
         notifyUpdated(fresh, scope);
