@@ -261,6 +261,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * ]);
      * </code>
      *
+     * @api HOOK: called in cart rendering for each active method; every plugin sets a layout, even an empty one.
+     *
      * @param object $event CartViewEvent
      *
      *
@@ -332,6 +334,9 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * ]);
      * </code>
      *
+     * @api HOOK: called in product page rendering for each active method; every plugin sets a layout, even an empty
+     *      one.
+     *
      * @param object $event ItemViewEvent
      *
      *
@@ -376,6 +381,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *       'status'   => 'refunded',
      *   ]);
      *
+     * @api ANSWERS: the log row's id, or 0 when it could not be written.
+     *
      * @param array $data Log data (key => value pairs matching logs.xml fields)
      *
      * @return int The inserted/updated log row ID, or 0 on failure
@@ -417,6 +424,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * The first call of a request creates or completes the log table when it
      * lacks something, as log() does, and never inside an open transaction.
+     *
+     * @api ANSWERS: the log row's id, or 0 when it could not be written.
      *
      * @param int $methodId The payment/shipment method id (> 0).
      * @param array $data Log data (key => value pairs matching logs.xml fields).
@@ -469,6 +478,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * missing table or method column reads as "nothing logged", never as an
      * error. Inside an open transaction a table that lacks something is left
      * as it is, and reads as "nothing logged" too.
+     *
+     * @api READ ONLY: the method's own log rows, newest first.
      *
      * @param int $methodId The payment/shipment method id.
      * @param array $filters Optional extra filters (see loadLogs()).
@@ -753,6 +764,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *       '__raw'      => 'DATE(created_on) = CURDATE()',       // Raw SQL
      *   ]);
      *
+     * @api READ ONLY: the order's log rows, or null when the table does not exist.
+     *
      * @param int $orderId Order ID
      * @param int $identifierId Payment/shipment ID (0 = all)
      * @param array $filters Optional extra filters
@@ -835,6 +848,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *   foreach ($xml->fields->fieldset->field as $field) { ... }
      *
      *
+     * @api READ ONLY: this plugin's logs.xml, or null.
+     *
      * @since  1.0.0
      */
     protected function getLogsSchema(): ?SimpleXMLElement
@@ -851,6 +866,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * Format: #__alfa_{type}_{name}_logs
      * Example: #__alfa_payments_standard_logs
+     *
+     * @api READ ONLY: this plugin's log table's name.
      *
      * @param int $prefix 0 = no prefix, 1 = real prefix, 2 = #__ prefix
      *
@@ -883,6 +900,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * a message to every logger registered for its category: a name shared
      * between gateways files each one's lines in whichever gateway registered
      * a logger first, and drops them entirely when none did.
+     *
+     * @api READ ONLY: this plugin's own Joomla Log category.
      *
      * @return string Category to pass as Log::add()'s third argument.
      *

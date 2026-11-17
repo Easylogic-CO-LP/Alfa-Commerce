@@ -496,3 +496,14 @@
 :where(.item-field-readonly-value) {
     margin-inline-start: 0;
 }
+
+/* THE RELATED PRODUCTS (default_related.php, 2.2.2): a part after the product, the listing's grid and cards (list.css).
+   Only the part's own spacing and heading here; a template overrides either without !important. */
+:where(.item-related) {
+    margin-top: 2rem;
+}
+
+:where(.item-related-heading) {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+}

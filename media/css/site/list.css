@@ -283,14 +283,23 @@
 }
 
 /* THE RESULTS REGION (2.2.0): brought into view below a sticky header, whose height a template sets as
-   --alfa-scroll-offset; focused by script, its outline shown to keyboard users only. Under either root at no weight of
-   its own (:where), so the listing's .com-alfa root and an override of the listing made before it (#alfa-app only)
-   both keep it, and a template's own rule on [data-results] needs no more weight than that to change it. */
+   --alfa-scroll-offset (list-form.js measures the header when it is not set); focused by script. Under either root at
+   no weight of its own (:where), so the listing's .com-alfa root and an override of the listing made before it
+   (#alfa-app only) both keep it. */
 
 :where(.com-alfa, #alfa-app) [data-results] {
     scroll-margin-top: var(--alfa-scroll-offset, 0px);
 }
 
-:where(.com-alfa, #alfa-app) [data-results]:focus:not(:focus-visible) {
+/* NO OUTLINE ON THE REGION, EVER (2.2.2). The region takes the focus from the script after the results change, not
+   from the shopper's own Tab, so a ring around the whole list is no focus indicator: the shopper's next Tab lands on
+   the first control inside it, which draws its own, and the region's name (the pagination's count) is what the focus
+   announces. A browser may still mark the region :focus-visible after a mouse click (the clicked link
+   is gone with the new page), and a template's generic focus rule (:where(a, button, [tabindex]):focus-visible, or
+   [tabindex]:focus-visible) would then box the whole list. [data-results][tabindex] weighs more than either, so no
+   !important is needed; a template that wants a ring on the region writes its own rule on it. */
+
+:where(.com-alfa, #alfa-app) [data-results][tabindex]:focus,
+:where(.com-alfa, #alfa-app) [data-results][tabindex]:focus-visible {
     outline: none;
 }

@@ -68,6 +68,7 @@ class ItemsController extends ApiController
             'allowedUserGroups',
             'prices',
             'robots',
+            'related',
         ];
     }
 
@@ -158,8 +159,8 @@ class ItemsController extends ApiController
     }
 
     /**
-     * An item's options, combinations, item field values and downloads, which the API does not write: the four keys the
-     * item read publishes, then the keys the item edit form's grids post for the same writes and for the downloads
+     * An item's options, combinations, item field values and downloads, and its related products (`related`, 2.2.2, set on
+     * the product's Related tab), which the API does not write: the four keys the item read publishes, then the keys the item edit form's grids post for the same writes and for the downloads
      * grid, which the item save reads from the request as the form posts them. A list sent in the read's shape was
      * taken by its positions, as value or combination ids (2.2.1).
      *
@@ -170,7 +171,8 @@ class ItemsController extends ApiController
     protected function unwrittenKeys(): array
     {
         return ['fields', 'options', 'combinations', 'informational', 'combinations_default', 'deleted_combination_ids',
-            'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order', 'field_required', 'item_downloads'];
+            'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order', 'field_required', 'item_downloads',
+            'related'];
     }
 
     /**
@@ -180,7 +182,7 @@ class ItemsController extends ApiController
      */
     protected function unwrittenReason(): string
     {
-        return 'an item\'s options, combinations, item field values and downloads are edited on its page in the administrator.'
+        return 'an item\'s options, combinations, item field values, downloads and related products are edited on its page in the administrator.'
             . ' Send the item without them; nothing was saved.';
     }
 

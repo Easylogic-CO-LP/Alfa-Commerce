@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\View\Items;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
 use Alfa\Component\Alfa\Api\View\PublishesStoredFigures;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -65,6 +66,7 @@ class JsonApiView extends BaseApiView
         'prices',
         'categories',
         'manufacturers',
+        'related',
         'medias',
         'translations',
         'fields',
@@ -153,6 +155,11 @@ class JsonApiView extends BaseApiView
 
                 return $option;
             }, $item->options);
+        }
+
+        // The related products (2.2.2): their ids, in their order (the form's rows hold one {item_id} each).
+        if (isset($item->related) && \is_array($item->related)) {
+            $item->related = RelatedItems::posted(posted: $item->related);
         }
 
         return $item;

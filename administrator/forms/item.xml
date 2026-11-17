@@ -378,6 +378,20 @@
         </field>
     </fieldset>
 
+    <!-- The products this product's page shows as related, in this order (2.2.2). A link goes one way. The model
+         refuses the product itself, a product listed twice and one that does not exist (RelatedItems::refusals()). -->
+    <fieldset name="related" label="COM_ALFA_TAB_ITEM_RELATED">
+        <field name="related" type="subform" multiple="true"
+               layout="joomla.form.field.subform.repeatable-table" buttons="add,remove,move"
+               label="COM_ALFA_FORM_LBL_ITEM_RELATED" description="COM_ALFA_FORM_DESC_ITEM_RELATED">
+            <form>
+                <field name="item_id" type="Modal_Item" required="true" filter="integer"
+                       select="true" new="false" edit="false" clear="false"
+                       label="COM_ALFA_FORM_LBL_ITEM_RELATED_ITEM"/>
+            </form>
+        </field>
+    </fieldset>
+
     <!-- Layout overrides for THIS product; every key inherits category -> menu -> global when empty. -->
     <fields name="layouts">
         <fieldset name="layouts" label="COM_ALFA_MENU_LAYOUTS_OPTIONS">
@@ -468,6 +482,38 @@
                     inheritlabel="COM_ALFA_LAYOUT_INHERIT"
                     label="COM_ALFA_LAYOUT_ITEM_CATEGORIES_LABEL"
             />
+
+            <field
+                    name="related"
+                    type="subtemplate"
+                    view="item"
+                    slot="related"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_RELATED_LABEL"
+            />
+
+            <field
+                    name="related_count"
+                    type="list"
+                    label="COM_ALFA_LAYOUT_RELATED_COUNT_LABEL"
+                    description="COM_ALFA_LAYOUT_RELATED_COUNT_DESC"
+                    validate="options"
+            >
+                <option value="">COM_ALFA_LAYOUT_INHERIT</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+            </field>
         </fieldset>
     </fields>
 </form>

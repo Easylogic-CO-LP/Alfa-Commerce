@@ -63,6 +63,8 @@ trait HasTransportUrlsTrait
      *   $this->returnUrl($order);
      *   $this->returnUrl($order, ['statusId' => 'X']);
      *
+     * @api READ ONLY: the absolute return address, TLS forced.
+     *
      * @param object $order Order being paid for or shipped.
      * @param array $extra Query params this plugin wants appended.
      *
@@ -145,6 +147,8 @@ trait HasTransportUrlsTrait
     /**
      * The static server-to-server endpoint for this plugin, in the plain form
      * of {@see self::webhookUrlFor()}.
+     *
+     * @api READ ONLY: the absolute notification address, TLS forced.
      *
      * @param string|null $environment PaymentEnvironment::SANDBOX or ::LIVE; null for an address without a set.
      *
