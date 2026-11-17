@@ -732,7 +732,7 @@ class OrderModel extends AlfaAdminModel
         // stay savable (status, notes, lines) without the operator inventing
         // a value the customer never gave.
         if ($id > 0) {
-            foreach (RoleRegistry::identityRoles() as $role) {
+            foreach (RoleRegistry::roles() as $role) {
                 $column = RoleRegistry::column($role);
 
                 if ($column === null) {
