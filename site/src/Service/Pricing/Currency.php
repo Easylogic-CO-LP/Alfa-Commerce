@@ -553,6 +553,17 @@ class Currency
      *   dropped, never fewer than the scale; "Currency decimals" shows it at the
      *   scale. A net unit is never this case: the custom rate is a gross rate,
      *   so a caller passes the rate only beside the gross unit.
+     * - A unit that is a stored price (a price row's own value or a sale's own
+     *   price, which the caller states) is shown on its own digits. Auto rounds
+     *   it at the fewest decimals, from the scale up to its own, at which it
+     *   times the quantity, rounded at the scale, gives back the line; failing
+     *   that it shows its own decimals. So a stored 290.32258 shows 290.32 for
+     *   1, 290.323 for 3 (a line of 870.97), and 25.338 shows 25.34 for 1 and
+     *   25.338 for 7 (a line of 177.37): never a digit the stored price does
+     *   not have, and none its line does not need. A price above zero that the
+     *   scale rounds to zero (below the smallest coin) shows its own decimals,
+     *   never 0.00 nor a rounding of it: 0.004 is 0.004, 0.0036 is 0.0036.
+     *   "Currency decimals" shows it at the scale.
      * - Any other unit is the line's money per unit: the line total as the
      *   money it states (rounded once at the scale), divided by the quantity.
      *   "Currency decimals" shows it at the scale. Auto shows the fewest
@@ -576,6 +587,7 @@ class Currency
      * @param int $scale The record's monetary scale, 0 to SCALE_MAX.
      * @param float|int|string|null $rate The line's explicit custom rate; null when it has none.
      * @param bool $auto True for Auto, false for "Currency decimals".
+     * @param bool $stated True when the unit is a stored price (a price row's own value or a sale's own price).
      *
      * @return array{figure: string, decimals: int} The decimal text ('.' as the point, '-' for a
      *                                              negative unit) and its number of decimals.
@@ -592,6 +604,7 @@ class Currency
         int $scale,
         float|int|string|null $rate,
         bool $auto,
+        bool $stated = false,
     ): array {
         if ($scale < self::SCALE_MIN || $scale > self::SCALE_MAX) {
             throw new InvalidArgumentException('A unit is shown at a scale between ' . self::SCALE_MIN . ' and ' . self::SCALE_MAX . '; got ' . $scale . '.');
@@ -609,6 +622,23 @@ class Currency
         if ($rate !== null && self::exactOf(value: $rate)->roundedAt(self::SCALE_MAX)->compare($stored) === 0) {
             $text = $stored->text();
             $own = str_contains($text, '.') ? \strlen($text) - strpos($text, '.') - 1 : 0;
+
+            return self::exactFigure(amount: $stored, decimals: $auto ? max($scale, $own) : $scale);
+        }
+
+        // A stored price: its own digits, rounded at the first precision that
+        // gives its line back; a price below the smallest coin as it is.
+        if ($stated) {
+            $text = $stored->text();
+            $own = str_contains($text, '.') ? \strlen($text) - strpos($text, '.') - 1 : 0;
+            $whole = self::exactOf(value: $lineTotal)->roundedAt($scale);
+            $belowCoin = !$stored->isZero() && $stored->roundedAt($scale)->isZero();
+
+            for ($decimals = $scale; $auto && !$belowCoin && $decimals < $own; $decimals++) {
+                if ($stored->roundedAt($decimals)->timesCount(count: $pieces, places: $piecePlaces)->roundedAt($scale)->compare($whole) === 0) {
+                    return self::exactFigure(amount: $stored, decimals: $decimals);
+                }
+            }
 
             return self::exactFigure(amount: $stored, decimals: $auto ? max($scale, $own) : $scale);
         }
@@ -653,6 +683,7 @@ class Currency
      * @param bool $includeSymbol Whether to include the currency symbol.
      * @param bool|null $auto Null: the shop's setting. True: the Auto form whatever the
      *                        setting, for a figure that is data or stored text.
+     * @param bool $stated True when the unit is a stored price (a price row's own value or a sale's own price).
      *
      *
      * @since 2.0.0
@@ -664,6 +695,7 @@ class Currency
         float|int|string|null $rate = null,
         bool $includeSymbol = true,
         ?bool $auto = null,
+        bool $stated = false,
     ): string {
         $figure = self::unitFigure(
             unit: $unit,
@@ -672,6 +704,7 @@ class Currency
             scale: $this->decimalPlaces,
             rate: $rate,
             auto: $auto ?? self::unitPrecisionIsAuto(),
+            stated: $stated,
         );
         $formatted = self::groupFigure(figure: $figure['figure'], decimalSeparator: $this->decimalSeparator, thousandSeparator: $this->thousandSeparator);
 
