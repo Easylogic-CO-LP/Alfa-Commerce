@@ -137,10 +137,11 @@
 
     /**
      * The height the page's sticky header covers at the viewport's top: the template's --alfa-scroll-offset (the
-     * region's scroll-margin-top) when the template sets it; otherwise measured now, in one pass over the elements in
-     * the viewport's top band (8 px deep, at its left, middle and right) and their ancestors, keeping those whose
-     * position is sticky or fixed, that start within that band and that are no taller than half the viewport (a cookie
-     * wall's backdrop or an open off-canvas menu is a layer, not a header): the lowest bottom among them.
+     * region's scroll-margin-top) when the template sets it; otherwise measured now, from the boxes of the page's
+     * elements outside the region: those whose position is sticky or fixed, that reach into the viewport's top 8 px and
+     * that are no taller than half the viewport (a cookie wall's backdrop or an open off-canvas menu is a layer, not a
+     * header): the lowest bottom among them. The boxes, not a hit test at the top edge: right after a smooth scroll a
+     * hit test there can find nothing but the page itself.
      *
      * @param {Element} region The results region.
      *
@@ -154,31 +155,31 @@
         }
 
         var band = 8;
-        var seen = new Set();
+        var half = window.innerHeight / 2;
         var bottom = 0;
-
-        [0, band].forEach(function (y) {
-            [1, window.innerWidth / 2, window.innerWidth - 2].forEach(function (x) {
-                document.elementsFromPoint(x, y).forEach(function (element) {
-                    for (var node = element; node && node !== document.body && node !== document.documentElement; node = node.parentElement) {
-                        if (seen.has(node) || region.contains(node) || node.contains(region)) {
-                            continue;
-                        }
-
-                        seen.add(node);
-                        var position = window.getComputedStyle(node).position;
-
-                        if (position === 'sticky' || position === 'fixed') {
-                            var box = node.getBoundingClientRect();
-
-                            if (box.top <= band && box.height <= window.innerHeight / 2 && box.bottom > bottom) {
-                                bottom = box.bottom;
-                            }
-                        }
-                    }
-                });
-            });
+        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, {
+            acceptNode: function (node) {
+                return node === region ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+            },
         });
+
+        for (var node = walker.nextNode(); node; node = walker.nextNode()) {
+            if (node.contains(region)) {
+                continue;
+            }
+
+            var box = node.getBoundingClientRect();
+
+            if (box.top > band || box.bottom <= bottom || box.height > half || box.width === 0) {
+                continue;
+            }
+
+            var position = window.getComputedStyle(node).position;
+
+            if (position === 'sticky' || position === 'fixed') {
+                bottom = box.bottom;
+            }
+        }
 
         return bottom;
     }
