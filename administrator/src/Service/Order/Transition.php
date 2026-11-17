@@ -622,7 +622,7 @@ class Transition
                 ? 'Stock was not moved for ' . $oldStatusId . ' -> ' . $toStatusId
                   . ' (' . $reason . '); a retry cannot apply it: ' . $resolve
                 : 'Stock was not adjusted for ' . $oldStatusId . ' -> ' . $toStatusId
-                  . ' (' . $reason . '); the order still owes it: Tools -> Database Sync -> Apply outstanding stock movements applies it.',
+                  . ' (' . $reason . '); the order still owes it: Tools > Database Sync > Apply outstanding stock movements applies it.',
             context: [
                 'from' => $oldStatusId,
                 'to' => $toStatusId,

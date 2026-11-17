@@ -3965,7 +3965,7 @@ final class DocumentIssuer
     {
         self::logQuietly(
             entry:    "Document #{$documentId}: stock effect deferred: {$reason}"
-                      . ' (the obligation remains in the outbox; Tools -> Database Sync applies it).',
+                      . ' (the obligation remains in the outbox; Tools > Database Sync applies it).',
             priority: Log::ERROR,
             category: 'com_alfa.inventory',
         );
