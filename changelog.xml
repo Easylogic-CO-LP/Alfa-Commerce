@@ -19,6 +19,7 @@
             <item>For plugin authors: System - Alfa Commerce Sync no longer carries a commented-out onAlfaProductAfterSave subscription and handler. Alfa Commerce announces no such event; an item's save is announced by onItemAfterSave.</item>
             <item>For plugin authors: EmailService::orderNumber() takes the Order reader a payment or shipping plugin is handed, EmailService::orderNumber(order: $order), and gives the number the customer knows the order by. A plugin no longer needs Order::row(), which is not part of the plugin-facing API, to call it. Core's own code still passes the order row.</item>
             <item>The cart, the cart rules, the translations, the price index, the item field filters and two install steps (moving the shipping options and repairing the saved layout choices) close their database transaction levels through Alfa Commerce's own transaction helper, so work held for after a commit (an announcement, a notice, a task) runs once the outermost transaction commits and never after a rollback. They closed them with the database driver alone; none of those levels held such work, so nothing was lost.</item>
+            <item>For extension developers: TransactionState::driver() narrows a connection to the database driver whose transaction levels Alfa Commerce keeps, and refuses any other; the cart, the price index, the item field projection and the inventory service use it once, when they are made. Nothing a shop sees changes.</item>
         </change>
     </changelog>
     <changelog>

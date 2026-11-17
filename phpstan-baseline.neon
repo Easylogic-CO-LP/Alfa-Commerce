@@ -1201,30 +1201,6 @@ parameters:
 			path: administrator/src/Service/Inventory/InventoryIntegrityReader.php
 
 		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\PostCommit\:\:defer\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 3
-			path: administrator/src/Service/Inventory/InventoryService.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 27
-			path: administrator/src/Service/Inventory/InventoryService.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 2
-			path: administrator/src/Service/Inventory/InventoryService.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Service/Inventory/InventoryService.php
-
-		-
 			message: '#^Variable \$requested on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.variable
 			count: 1
@@ -1355,36 +1331,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: administrator/src/Service/Order/Transition.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Service/PriceIndexSyncService.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 4
-			path: administrator/src/Service/PriceIndexSyncService.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:endedBy\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 2
-			path: administrator/src/Service/Projection/ItemFieldValueProjection.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 4
-			path: administrator/src/Service/Projection/ItemFieldValueProjection.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 2
-			path: administrator/src/Service/Projection/ItemFieldValueProjection.php
 
 		-
 			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Service\\Projection\\ProjectionInterface\:\:deleteForItems\(\)\.$#'

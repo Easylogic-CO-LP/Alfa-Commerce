@@ -34,7 +34,6 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
-use LogicException;
 use RuntimeException;
 use Throwable;
 use WeakMap;
@@ -284,7 +283,11 @@ final class InventoryService
      */
     private static array $missingLedgerLogged = [];
 
-    private \Joomla\Database\DatabaseInterface $db;
+    /**
+     * @var DatabaseDriver The connection, narrowed once to the driver whose transaction levels TransactionState keeps.
+     * @since  2.0.0
+     */
+    private DatabaseDriver $db;
 
     /** @var int|null Cached default location id. */
     private ?int $defaultLocation = null;
@@ -336,7 +339,7 @@ final class InventoryService
      */
     public function __construct()
     {
-        $this->db = Factory::getContainer()->get('DatabaseDriver');
+        $this->db = TransactionState::driver(Factory::getContainer()->get('DatabaseDriver'));
 
         // The audit trail has to have somewhere to land
         // Every com_alfa.inventory line this class writes is dropped in
@@ -3904,23 +3907,6 @@ final class InventoryService
     }
 
     //  Shared command internals
-
-    /**
-     * The connection as the driver whose transaction levels TransactionState keeps: every connection Joomla's
-     * container hands out is one, and a level this service opens is closed through it.
-     *
-     * @throws LogicException When the connection keeps no transaction levels.
-     *
-     * @since  2.2.2
-     */
-    private function transactional(): DatabaseDriver
-    {
-        if (!$this->db instanceof DatabaseDriver) {
-            throw new LogicException('The inventory service needs a database driver that keeps transaction levels.');
-        }
-
-        return $this->db;
-    }
 
     /**
      * Close the level a command opened, after a failure inside it, without
@@ -11359,7 +11345,7 @@ final class InventoryService
         }
 
         if ($alreadyHeld) {
-            TransactionState::rollBackLevel(db: $this->transactional());
+            TransactionState::rollBackLevel(db: $this->db);
 
             return;
         }

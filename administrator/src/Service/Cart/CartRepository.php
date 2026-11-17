@@ -67,19 +67,22 @@ use Throwable;
 class CartRepository
 {
     /**
-     * @var DatabaseInterface The connection every statement runs on.
+     * @var DatabaseDriver The connection every statement runs on, narrowed once to the driver whose transaction levels
+     *                     TransactionState keeps.
      * @since  2.0.0
      */
-    private DatabaseInterface $db;
+    private DatabaseDriver $db;
 
     /**
      * @param DatabaseInterface|null $db The connection; the container's when omitted.
+     *
+     * @throws LogicException When the connection is not a database driver ({@see TransactionState::driver()}).
      *
      * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null)
     {
-        $this->db = $db ?? Factory::getContainer()->get(DatabaseInterface::class);
+        $this->db = TransactionState::driver($db ?? Factory::getContainer()->get(DatabaseInterface::class));
     }
 
     //  WRITING LINES: the line and the selections that describe it
@@ -103,7 +106,7 @@ class CartRepository
      */
     public function insertLine(int $cartId, int $itemId, ?int $combinationId, int $quantity, array $selectionRows): int
     {
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {
@@ -150,7 +153,7 @@ class CartRepository
      */
     public function replaceLineConfiguration(int $lineId, ?int $combinationId, int $quantity, array $selectionRows): void
     {
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {
@@ -423,7 +426,7 @@ class CartRepository
             return false;
         }
 
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {
@@ -483,7 +486,7 @@ class CartRepository
             return;
         }
 
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {
@@ -539,7 +542,7 @@ class CartRepository
             return;
         }
 
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {
@@ -827,7 +830,7 @@ class CartRepository
             return false;
         }
 
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {
@@ -1236,7 +1239,7 @@ class CartRepository
             return [];
         }
 
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {
@@ -1614,23 +1617,6 @@ class CartRepository
     //  Internals
 
     /**
-     * The connection as the driver whose transaction levels TransactionState keeps (2.2.1): every connection Joomla's
-     * container hands out is one, and a write that opens a level needs it.
-     *
-     * @throws LogicException When the connection keeps no transaction levels.
-     *
-     * @since  2.2.1
-     */
-    private function transactional(): DatabaseDriver
-    {
-        if (!$this->db instanceof DatabaseDriver) {
-            throw new LogicException('The cart repository needs a database driver that keeps transaction levels.');
-        }
-
-        return $this->db;
-    }
-
-    /**
      * The rows that say how a line was configured.
      *
      * @param int $lineId The line they describe.
@@ -1720,7 +1706,7 @@ class CartRepository
             return [];
         }
 
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {
@@ -1794,7 +1780,7 @@ class CartRepository
             return [];
         }
 
-        $db = $this->transactional();
+        $db = $this->db;
         $db->transactionStart(true);
 
         try {

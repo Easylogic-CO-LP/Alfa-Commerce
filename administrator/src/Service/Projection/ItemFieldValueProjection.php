@@ -45,8 +45,11 @@ class ItemFieldValueProjection implements ProjectionInterface
     /** The projection table. */
     private const TABLE = '#__alfa_item_field_value_index';
 
-    /** @var DatabaseInterface */
-    private $db;
+    /**
+     * @var DatabaseDriver The connection, narrowed once to the driver whose transaction levels TransactionState keeps.
+     * @since  2.0.0
+     */
+    private DatabaseDriver $db;
 
     private ItemFieldValueCollector $collector;
 
@@ -54,13 +57,15 @@ class ItemFieldValueProjection implements ProjectionInterface
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      * @param ItemFieldValueCollector|null $collector Injected for testing; defaults to a new collector.
      *
+     * @throws LogicException When the connection is not a database driver ({@see TransactionState::driver()}).
+     *
      * @since  2.0.0
      */
     public function __construct(
         ?DatabaseInterface $db = null,
         ?ItemFieldValueCollector $collector = null,
     ) {
-        $this->db = $db ?? Factory::getContainer()->get('DatabaseDriver');
+        $this->db = TransactionState::driver($db ?? Factory::getContainer()->get('DatabaseDriver'));
         $this->collector = $collector ?? new ItemFieldValueCollector($this->db);
     }
 
@@ -84,7 +89,7 @@ class ItemFieldValueProjection implements ProjectionInterface
             try {
                 $this->deleteRows([$itemId]);
                 $this->insertRows($itemId, $references);
-                TransactionState::commitLevel(db: $this->transactional());
+                TransactionState::commitLevel(db: $this->db);
             } catch (Throwable $e) {
                 TransactionState::rollBackLevel(db: $this->db, failure: $e);
 
@@ -157,7 +162,7 @@ class ItemFieldValueProjection implements ProjectionInterface
                         $this->insertRows((int) $itemId, $this->collector->collect((int) $itemId));
                     }
 
-                    TransactionState::commitLevel(db: $this->transactional());
+                    TransactionState::commitLevel(db: $this->db);
                 } catch (Throwable $e) {
                     TransactionState::rollBackLevel(db: $this->db, failure: $e);
 
@@ -285,23 +290,6 @@ class ItemFieldValueProjection implements ProjectionInterface
             . implode(', ', $rows);
 
         $this->db->setQuery($sql)->execute();
-    }
-
-    /**
-     * The connection as the driver whose transaction levels TransactionState keeps: every connection Joomla's
-     * container hands out is one, and a level this class opens is closed through it.
-     *
-     * @throws LogicException When the connection keeps no transaction levels.
-     *
-     * @since  2.2.2
-     */
-    private function transactional(): DatabaseDriver
-    {
-        if (!$this->db instanceof DatabaseDriver) {
-            throw new LogicException('The item field value projection needs a database driver that keeps transaction levels.');
-        }
-
-        return $this->db;
     }
 
     /**
