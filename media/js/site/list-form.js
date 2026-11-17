@@ -138,9 +138,10 @@
     /**
      * The height the page's sticky header covers at the viewport's top: the template's --alfa-scroll-offset (the
      * region's scroll-margin-top) when the template sets it; otherwise measured now, from the boxes of the page's
-     * elements outside the region: those whose position is sticky or fixed, that reach into the viewport's top 8 px and
+     * elements outside the region: those whose position is sticky or fixed, that reach into the viewport's top 8 px,
      * that are no taller than half the viewport (a cookie wall's backdrop or an open off-canvas menu is a layer, not a
-     * header): the lowest bottom among them. The boxes, not a hit test at the top edge: right after a smooth scroll a
+     * header) and that are on screen (visible, and not moved wholly out of the viewport sideways, as a closed side
+     * menu often is): the lowest bottom among them. The boxes, not a hit test at the top edge: right after a smooth scroll a
      * hit test there can find nothing but the page itself.
      *
      * @param {Element} region The results region.
@@ -174,9 +175,11 @@
                 continue;
             }
 
-            var position = window.getComputedStyle(node).position;
+            var computed = window.getComputedStyle(node);
 
-            if (position === 'sticky' || position === 'fixed') {
+            if ((computed.position === 'sticky' || computed.position === 'fixed')
+                && computed.visibility !== 'hidden' && computed.visibility !== 'collapse'
+                && box.right > 0 && box.left < window.innerWidth) {
                 bottom = box.bottom;
             }
         }
