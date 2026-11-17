@@ -27,6 +27,9 @@ if (!$this->linkedUser || !$this->editUrl) {
     </span>
 </p>
 
+<?php // What is edited in the Joomla user, said above the button that opens it. ?>
+<p class="form-text mt-0 mb-2"><?php echo Text::_('COM_ALFA_USER_JOOMLA_ACCOUNT_NOTE'); ?></p>
+
 <?php // Trigger buttons?>
 <button type="button"
         class="btn btn-sm btn-outline-secondary"

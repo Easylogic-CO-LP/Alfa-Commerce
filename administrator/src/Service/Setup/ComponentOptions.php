@@ -28,10 +28,14 @@ use Throwable;
  * writes them as they are, and Reset to default saves them through Joomla's own Options save. A
  * default is changed here and nowhere else.
  *
- * Keys follow the `name` of the fields in config.xml. A few have no field and are engine state
- * (setup_completed, setup_version) or are read by Joomla's versioning (save_history,
- * history_limit). Every Option that is not listed here has no installed value: the code that reads
- * it falls back to its own default, the value the Options form shows for it.
+ * Keys follow the `name` of the fields in config.xml, and every field that has a default is listed
+ * with that default, so a shop that never saved its Options stores what the Options form shows. A
+ * few keys have no field and are engine state (setup_completed, setup_version) or are read by
+ * Joomla's versioning (save_history, history_limit). An Option that is not listed here is a field
+ * with no default (the layout choices, the stock messages): the code that reads it falls back to
+ * its own default. One field is stored differently from its form default on purpose: media_mime's
+ * form default is empty, which means the default image types (MediaHelper::resolveAllowedMimes()),
+ * and the installation stores those types as its list.
  *
  * The subset in SyncHelper::PRICES_DISPLAY_KEYS also builds the price display of each customer
  * group (SyncHelper::buildDefaultPricesDisplay()).
@@ -67,6 +71,9 @@ final class ComponentOptions
         // The category's title and description above its listing (shown unless a level says No).
         'show_category_title' => 1,
         'show_category_description' => 1,
+        // A filtered listing: the subcategory strip left out, the filters folded.
+        'hide_categories_when_filtered' => 1,
+        'collapse_items_filters_when_filtered' => 1,
 
         // Pricing
         'combination_adjust_target' => 'final',
@@ -82,6 +89,17 @@ final class ComponentOptions
         // Notifications
         'notifications_history_days' => 7,
 
+        // Cart: guest checkout and the "added to cart" message.
+        'checkout_guest' => 1,
+        'cart_added' => 1,
+        'cart_added_pos' => 'top-right',
+        'cart_added_offset_vertical' => 16,
+        'cart_added_offset_vertical_unit' => 'px',
+        'cart_added_offset_horizontal' => 16,
+        'cart_added_offset_horizontal_unit' => 'px',
+        'cart_added_effect' => 'slide',
+        'cart_added_timeout' => 6,
+
         // Setup checklist / first-run wizard. Only store_name / store_email have
         // config.xml fields; the rest is engine state (deliberately no field,
         // like save_history). Guided tours are seeded from tours/*.json in
@@ -91,7 +109,8 @@ final class ComponentOptions
         'setup_completed' => 0,
         'setup_version' => '',
 
-        // Search indexing
+        // Search: the engine ('' = the built-in one) and its indexing.
+        'search_engine' => '',
         'search_index_aliases' => 1,
         'search_index_manufacturers' => 1,
         'search_index_categories' => 0,
@@ -102,7 +121,9 @@ final class ComponentOptions
         // Documents
         'documents_issuer' => 'com_alfa',
 
-        // Downloads: the download store's direct-download protection check, on (2.2.1).
+        // Downloads: the store's folder ('' = alfa-downloads inside the site, which the installation
+        // provisions and records) and its direct-download protection check, on (2.2.1).
+        'downloads_storage_path' => '',
         'downloads_protection_check' => 1,
 
         // Price display. SyncHelper::PRICES_DISPLAY_KEYS builds the price display
@@ -125,6 +146,9 @@ final class ComponentOptions
         // everything and Reset to default write Sell online.
         'catalogue_only' => 0,
 
+        // Quantities of measured units: as many decimals as the value needs.
+        'unit_display_precision' => 'auto',
+
         // Currency: the ISO-4217 NUMBER (the `number` column, the Options field's
         // key_field, and what Pricing\Currency / OrderCreator read). NEVER the row id.
         'default_currency' => 978,  // EUR
@@ -140,6 +164,9 @@ final class ComponentOptions
         'media_placeholder_manufacturers' => 1,
         'media_url_thumbnail' => 'media/com_alfa/images/placeholders/url.webp',
         'media_full_deletion' => 1,
+        // The images a listing card shows (0 = all) and the product page gallery's columns.
+        'items_card_images_count' => 0,
+        'item_images_grid_columns' => 2,
         'media_mime' => [
             'image/jpeg',
             'image/png',
