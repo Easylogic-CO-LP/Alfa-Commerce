@@ -156,6 +156,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasOrderContextTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasTransportUrlsTrait;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Site\Service\Cart\CartLine;
+use Alfa\Component\Alfa\Site\Service\Pricing\RulePrecedence;
 use Joomla\CMS\Log\Log;
 use RuntimeException;
 
@@ -181,6 +182,15 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     public const WRITE_OK = ShipmentLedger::WRITE_OK;
     public const WRITE_RACED = ShipmentLedger::WRITE_RACED;
     public const WRITE_FAILED = ShipmentLedger::WRITE_FAILED;
+
+    /**
+     * @var string The plugin_data key of a parcel core recorded itself at placement because the order's carrier
+     *             recorded none in onOrderAfterPlace (true on that parcel). A carrier that looks for its own parcel
+     *             afterwards recognises core's by it: $shipment->pluginData()->getBool(key: self::CORE_MADE).
+     *
+     * @since  2.2.1
+     */
+    public const CORE_MADE = ShipmentLedger::CORE_MADE;
 
     /**
      * This family answers on the shipment.* controller.
@@ -640,6 +650,25 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * Resolves the delivery country, finds the matching cost-per-place
      * zone, then delegates to cheapestMatchingCost() for limit matching.
      *
+     * THE NEAREST ZONE WINS (2.2.1). A zone matches when one of its places is
+     * the destination or a place above it. Of the zones that match, the one
+     * naming the place nearest the destination prices the cart: a zone of Crete
+     * before a zone of Greece for an address in Crete, wherever each sits in the
+     * list; between zones at the same distance, the one higher in the list. It
+     * is the order the discounts and taxes of a place follow (RulePrecedence),
+     * each zone ranked by its position in the list, so a shop whose zones name
+     * countries only prices exactly as before. A zone with no places is the
+     * catch-all, used only when no zone matches.
+     *
+     * The nearest zone decides alone: a cart none of its rows fit is refused,
+     * never priced by a farther zone or the catch-all (as the first matching
+     * zone decided alone before). The places are read in the order given,
+     * nearest first, as AddressView::places() and PlaceTree::placesFor() give
+     * them; a caller passing them in another order gets another zone. A place
+     * of the chain is matched whether or not it is published, as before: only a
+     * stored address can hold an unpublished one (the address and zone pickers
+     * offer published places), and the checkout asks for it again.
+     *
      * THREE OUTCOMES, NOT TWO. A configured price; carriage at no charge; and
      * a refusal: the merchant drew zones and this cart fits none of their
      * rows, so they have said by omission that they do not carry it. Before
@@ -647,7 +676,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * @param array $zones The method's configured cost-per-place zones.
      * @param CartLine[] $lines What there is to carry.
-     * @param int[] $places The destination and the places it belongs to.
+     * @param int[] $places The destination and the places it belongs to, nearest first.
      * @param string|null $postcode The delivery postcode, or NULL when the checkout
      *                              has not supplied one. Never substituted.
      * @param float $subtotal The settled merchandise total, for the amount band.
@@ -701,26 +730,33 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
             return 0.0;
         }
 
-        // Find the cost zone matching the delivery country. A country-specific match
-        // WINS OUTRIGHT: the catch-all (no country restriction) is only a fallback,
-        // so it must not overwrite a country match that appears earlier in the list.
-        $calculationData = null;
+        // Find the cost zone matching the destination. A zone that names a place of
+        // the destination's chain WINS OUTRIGHT: the catch-all (no place restriction)
+        // is only a fallback. Among the zones that match, the nearest place decides,
+        // then the list order (RulePrecedence: each zone a place-scoped rule ranked by
+        // its position; a rule's id must be positive, hence the position plus one).
+        $zones = array_values($zones);
+        $matched = [];
         $fallbackZone = null;
-        foreach ($zones as $entry) {
-            if (isset($entry['places'])) {
-                foreach ($entry['places'] as $place) {
-                    if (in_array((int) $place, $places, true)) {
-                        $calculationData = $entry;
-                        break 2;
-                    }
-                }
-            } else {
-                // Remember the catch-all; use it only if no country-specific zone matches.
+
+        foreach ($zones as $position => $entry) {
+            if (!isset($entry['places'])) {
+                // Remember the catch-all; use it only if no zone of a place matches.
                 $fallbackZone = $entry;
+
+                continue;
+            }
+
+            foreach ((array) $entry['places'] as $place) {
+                if (in_array((int) $place, $places, true)) {
+                    $matched[] = (object) ['id' => $position + 1, 'ordering' => $position, 'matched_place' => (int) $place];
+                }
             }
         }
 
-        $calculationData ??= $fallbackZone;
+        $calculationData = $matched === []
+            ? $fallbackZone
+            : $zones[(int) RulePrecedence::order(rows: $matched, chain: $places)[0]->id - 1];
 
         // THE MERCHANT DREW ZONES AND THIS DESTINATION IS IN NONE OF THEM.
         // Not even the catch-all matched, so there is no configured price for

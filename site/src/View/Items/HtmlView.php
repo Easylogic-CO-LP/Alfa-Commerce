@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\View\Items;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\Search\ResultSetRenderEvent;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -105,6 +106,21 @@ class HtmlView extends BaseHtmlView
     private array $cardCache = [];
 
     /**
+     * @var string Resolved default sub-template of the card's images (the "card_images" slot, 2.2.1) for rows without
+     *             their own: the menu item's, else the Options'
+     */
+    protected string $cardImagesTpl = 'card_images';
+
+    /**
+     * @var int How many images a card's slider shows for rows without their own setting (2.2.1): the menu item's, else
+     *          the Options'; 0 for every image
+     */
+    protected int $cardImagesCount = 0;
+
+    /** @var array<string, string> Per-request cache: distinct row images variants -> resolved sub-template */
+    private array $cardImagesCache = [];
+
+    /**
      * Constructor
      *
      * @param array $config Configuration settings
@@ -154,6 +170,7 @@ class HtmlView extends BaseHtmlView
                 view: 'items',
                 slot: 'item',
             );
+            $this->decideCardImages(layout: 'default');
 
             // THE CARD KEEPS ITS PLACE IN THE RESULT SET (2.2.0): the swap sends the position the card
             // it replaces carried, and the card renders it back through the same call. Only a whole
@@ -207,6 +224,10 @@ class HtmlView extends BaseHtmlView
             slot: 'item',
             layout: $this->getLayout(),
         );
+
+        // The cards' images: the menu/global default of the slot and of the slider's count, the entity levels stamped per
+        // row by the model as the card's are.
+        $this->decideCardImages(layout: $this->getLayout());
 
         // Listing "categories" strip: category -> menu -> global, same chain.
         $this->listCategoriesTpl = SlotResolver::resolve(
@@ -343,6 +364,10 @@ class HtmlView extends BaseHtmlView
      */
     private function announceResultSet(string $kind): void
     {
+        // A listener holds the view, and through its model the cards (2.2.1): the surfaces each card was handed are
+        // kept before the announcement and handed again after it, so a listener cannot replace or remove a card's.
+        $handed = $this->cardSurfaces();
+
         try {
             $plugins = AlfaPluginHelper::get();
             $plugins->importGroup('alfa-search');
@@ -361,6 +386,66 @@ class HtmlView extends BaseHtmlView
             } catch (Throwable) {
                 // A log that cannot be written must not break the listing.
             }
+        }
+
+        $this->handCardSurfaces($handed);
+    }
+
+    /**
+     * The surfaces each card of this response was handed (2.2.1): the listing's cards by their key, and the one card of
+     * a single-card reload; null for a card drawn without them.
+     *
+     * @return array{items: array<int|string, array<string, list<array<string, mixed>>>|null>, item?: array<string, list<array<string, mixed>>>|null}
+     *
+     * @since  2.2.1
+     */
+    private function cardSurfaces(): array
+    {
+        $handed = ['items' => []];
+
+        foreach ((array) ($this->items ?? []) as $key => $card) {
+            if (\is_object($card)) {
+                $handed['items'][$key] = isset($card->surfaces) ? (array) $card->surfaces : null;
+            }
+        }
+
+        if (\is_object($this->item ?? null)) {
+            $handed['item'] = isset($this->item->surfaces) ? (array) $this->item->surfaces : null;
+        }
+
+        return $handed;
+    }
+
+    /**
+     * Hand each card the surfaces {@see self::cardSurfaces()} kept (2.2.1): a new read-only map, or none for a card
+     * drawn without them.
+     *
+     * @param array{items: array<int|string, array<string, list<array<string, mixed>>>|null>, item?: array<string, list<array<string, mixed>>>|null} $handed What the cards were handed.
+     *
+     * @since  2.2.1
+     */
+    private function handCardSurfaces(array $handed): void
+    {
+        $cards = [];
+
+        foreach ($handed['items'] as $key => $slots) {
+            if (\is_object($this->items[$key] ?? null)) {
+                $cards[] = [$this->items[$key], $slots];
+            }
+        }
+
+        if (\array_key_exists('item', $handed) && \is_object($this->item ?? null)) {
+            $cards[] = [$this->item, $handed['item']];
+        }
+
+        foreach ($cards as [$card, $slots]) {
+            if ($slots === null) {
+                unset($card->surfaces);
+
+                continue;
+            }
+
+            $card->surfaces = new SurfaceMap($slots);
         }
     }
 
@@ -410,6 +495,75 @@ class HtmlView extends BaseHtmlView
         }
 
         return $this->cardCache[$card] ??= SlotResolver::resolve(value: $card, view: 'items', slot: 'item', layout: $this->getLayout());
+    }
+
+    /**
+     * The sub-template of ONE card's images (the "card_images" slot, 2.2.1), for the card's template to load: the row's
+     * own preference (the item's, else its category's, stamped by the model as the card's is), else the menu item's or
+     * the Options' ({@see self::decideCardImages()}). A card override that does not call it keeps its own image.
+     *
+     * @param object $item The listing row
+     *
+     * @return string loadTemplate() argument for this row's images
+     *
+     * @since  2.2.1
+     */
+    public function cardImagesTplFor(object $item): string
+    {
+        $images = (string) ($item->cardImagesLayout ?? '');
+
+        if ($images === '') {
+            return $this->cardImagesTpl;
+        }
+
+        return $this->cardImagesCache[$images] ??= SlotResolver::resolve(value: $images, view: 'items', slot: 'card_images', layout: $this->getLayout());
+    }
+
+    /**
+     * The images ONE card's slider shows (2.2.1): the card's images that have a picture to show, in their order, the
+     * first N of them by "Images in the Card Slider" (the row's own setting, the item's else its category's, stamped
+     * by the model; else the menu item's or the Options'); every one for All. A product whose variant has a gallery of
+     * its own shows that gallery's, as its card does.
+     *
+     * @param object $item The listing row
+     *
+     * @return list<object> The media to show, each with its thumbnail_url
+     *
+     * @since  2.2.1
+     */
+    public function cardSlides(object $item): array
+    {
+        $own = (string) ($item->cardImagesCount ?? '');
+        $count = $own !== '' ? max(0, (int) $own) : $this->cardImagesCount;
+        $slides = array_values(array_filter(
+            (array) ($item->medias ?? []),
+            static fn ($media): bool => \is_object($media) && !empty($media->thumbnail),
+        ));
+
+        return $count > 0 ? \array_slice($slides, 0, $count) : $slides;
+    }
+
+    /**
+     * The menu item's or the Options' choice of the cards' images (2.2.1), for the rows that set none of their own: the
+     * sub-template of the "card_images" slot and how many images its slider shows (0 for all). The listing then
+     * declares the slider's script: a card a filter or a variant change swaps in may be a slider card on a page that
+     * drew none, and a page without one leaves it nothing to do.
+     *
+     * @param string $layout The view's active main layout, for variants an alternative layout ships
+     *
+     * @since  2.2.1
+     */
+    private function decideCardImages(string $layout): void
+    {
+        $this->cardImagesTpl = SlotResolver::resolve(
+            value: (string) $this->params->get('items_card_images_layout', ''),
+            view: 'items',
+            slot: 'card_images',
+            layout: $layout,
+        );
+        $this->cardImagesCount = max(0, (int) $this->params->get('items_card_images_count', 0));
+
+        $this->getDocument()->getWebAssetManager()->useScript('com_alfa.card.slider');
     }
 
     /**

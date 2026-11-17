@@ -40,6 +40,9 @@ $priceSettings = $this->priceSettings;
 // One h1 per page: the page heading when it shows, the category title then an h2; else the title is the h1.
 $titleTag = $this->showPageHeading ? 'h2' : 'h1';
 ?>
+<?php // The listing's root, as every storefront page has one (com-alfa): a template's own rules for Alfa Commerce's
+      // pages reach the listing through it. ?>
+<div class="com-alfa items-list-page">
 
 <?php if ($this->showPageHeading) : ?>
 <div class="page-header">
@@ -99,3 +102,5 @@ $titleTag = $this->showPageHeading ? 'h2' : 'h1';
     </div>
     <?php echo $this->pagination->getListFooter(); ?>
 </section>
+
+</div>
