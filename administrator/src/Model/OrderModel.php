@@ -943,6 +943,18 @@ class OrderModel extends AlfaAdminModel
 
         $isNew = (int) ($data['id'] ?? 0) === 0;
 
+        // A new order's currency, when the submission names one, is a currency the shop publishes; the refusal names
+        // the field. Nothing is put in its place.
+        if ($isNew) {
+            try {
+                $this->sentCurrencyId(data: $data);
+            } catch (InvalidArgumentException $e) {
+                $this->setError($e->getMessage());
+
+                return false;
+            }
+        }
+
         // WHOSE FORM THIS IS. The buckets were built for the order's customer
         // (getForm), so visibility must be judged for that same customer here
         // - a field the customer has and the administrator does not would
@@ -992,6 +1004,53 @@ class OrderModel extends AlfaAdminModel
         }
 
         return parent::validate($form, $data, $group);
+    }
+
+    /**
+     * The currency a new order is placed in, as the submission names it.
+     *
+     * Null when it names none: the order is placed in the shop's default currency, as the checkout and the order
+     * screen place it. Otherwise the id of a currency the shop publishes, which the order is placed in.
+     *
+     * @param array $data The submission.
+     *
+     * @return int|null The currency id, or null when the submission names none.
+     *
+     * @throws InvalidArgumentException When it names anything else: a currency the shop does not publish, one that
+     *                                  does not exist, or a value that is not an id.
+     *
+     * @since  2.2.2
+     */
+    private function sentCurrencyId(array $data): ?int
+    {
+        $sent = $data['id_currency'] ?? null;
+
+        if ($sent === null || $sent === '') {
+            return null;
+        }
+
+        $id = \is_int($sent) || (\is_string($sent) && preg_match('/^[1-9][0-9]{0,9}$/', $sent) === 1) ? (int) $sent : 0;
+
+        if ($id > 0) {
+            $db = $this->getDatabase();
+            $published = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_currencies'))
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->where($db->quoteName('state') . ' = 1')
+                    ->bind(':id', $id, ParameterType::INTEGER),
+            )->loadResult();
+
+            if ($published === 1) {
+                return $id;
+            }
+        }
+
+        // Shown as sent when it is a plain value; anything else is not repeated back.
+        $shown = \is_scalar($sent) && preg_match('/^[A-Za-z0-9_.+-]{1,40}$/', (string) $sent) === 1 ? (string) $sent : '?';
+
+        throw new InvalidArgumentException(Text::sprintf('COM_ALFA_ORDER_ERROR_CURRENCY_NOT_PUBLISHED', $shown));
     }
 
     /**
@@ -4291,6 +4350,10 @@ class OrderModel extends AlfaAdminModel
                 // OrderCreator already takes `manageTransaction: false` for
                 // exactly this: a caller that owns the wider transaction. No
                 // new mechanism, just the seam it already offers.
+                //
+                // The currency the submission names, a published one, is read
+                // first: a refusal writes nothing.
+                $currencyId = $this->sentCurrencyId(data: $data);
                 $db = $this->getDatabase();
                 $db->transactionStart(true);
 
@@ -4312,7 +4375,7 @@ class OrderModel extends AlfaAdminModel
                         ? OrderIdentity::snapshotFromUser($customerId)
                         : OrderIdentity::snapshotFromDetails((array) ($data[FieldsHelper::FIELDS_KEY] ?? []));
 
-                    $created = OrderCreator::create(draft: [
+                    $draft = [
                         'id_user' => $customerId,
                         'customer_name' => $customer['customer_name'],
                         'customer_email' => $customer['customer_email'],
@@ -4325,7 +4388,16 @@ class OrderModel extends AlfaAdminModel
                         'actor_name' => (string) ($identity?->name ?? 'System'),
                         'allow_empty' => true,
                         'lines' => [],
-                    ], manageTransaction: false);
+                    ];
+
+                    // At the rate the checkout places every order at (1.0: each currency has prices of its own);
+                    // none named, the shop's default.
+                    if ($currencyId !== null) {
+                        $draft['id_currency'] = $currencyId;
+                        $draft['conversion_rate'] = 1.0;
+                    }
+
+                    $created = OrderCreator::create(draft: $draft, manageTransaction: false);
 
                     TransactionState::commitLevel($db);
                 } catch (Throwable $inner) {
