@@ -18,7 +18,9 @@
  * form, after the selectors, as on the product page.
  *
  * Overridable as html/com_alfa/items/default_item.php. The current card is
- * passed on $this->item (the listing loop sets it per row).
+ * passed on $this->item (the listing loop sets it per row). Its images are a
+ * part of their own, the "card_images" slot (default_card_images.php and its
+ * variants), drawn through $this->cardImagesTplFor($item).
  *
  * @var \Alfa\Component\Alfa\Site\View\Items\HtmlView $this
  */
@@ -49,20 +51,10 @@ if ($itemName === '') {
       // reload that carried it; an override keeps the call. ?>
 <article class="list-item" data-item-id="<?php echo (int) $item->id; ?>"<?php echo $this->resultAttributes(position: isset($this->itemPosition) ? (int) $this->itemPosition : null); ?>>
 
-    <?php if (!empty($item->medias[0]->thumbnail)): ?>
-        <div class="item-image">
-            <?php
-                // The same destination as the title below it. Kept clickable for the
-                // mouse, but taken out of the accessibility tree and the tab order:
-                // one card should offer one link, not the same one twice. The image
-                // is decorative for the same reason: the title states the name.
-            ?>
-            <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-                <img src="<?php echo $this->escape($item->medias[0]->thumbnail_url); ?>" alt="" />
-            </a>
-            <?php echo Surface::render($item, ItemListSurface::Image); ?>
-        </div>
-    <?php endif; ?>
+    <?php // The card's images, a part of its own (2.2.1): the first image (default_card_images.php) or a variant of it,
+          // the slider among them, chosen per item, category, menu item or in the Options. An override of this card
+          // that keeps its own image markup keeps showing its first image. ?>
+    <?php echo $this->loadTemplate($this->cardImagesTplFor($item)); ?>
 
     <div class="item-title">
         <a href="<?php echo $this->escape($item->link); ?>"><?php echo $this->escape($itemName); ?></a>
