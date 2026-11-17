@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
 
 defined('_JEXEC') or die;
 
+use LogicException;
+
 /**
  * Price Result - Professional e-commerce price structure
  *
@@ -144,6 +146,22 @@ class PriceResult
     private array $discountedUnits = [];
 
     /**
+     * Whether a price applies at the quantity asked (2.2.2): false for a result the engine states with no figure, whose
+     * money getters throw instead of answering a zero.
+     *
+     * @since  2.2.2
+     */
+    private bool $priced = true;
+
+    /**
+     * For a result with no figure, the smallest quantity above the one asked from which a price row applies; null when
+     * none does.
+     *
+     * @since  2.2.2
+     */
+    private ?int $pricedFrom = null;
+
+    /**
      * THE NEW FACTS ARE REQUIRED PARAMETERS, NOT NULLABLE EXTRAS.
      *
      * This constructor is called in exactly ONE place in the whole tree (the
@@ -198,6 +216,86 @@ class PriceResult
         $this->shownGrossLine = $shownGrossLine;
     }
 
+    /**
+     * A result with no figure (2.2.2): no price row applies to the product at the quantity asked, for this shopper (their
+     * currency, place, customer group and the dates), and no explicit price was given. The product is not priced there:
+     * the models hand a template a null price, the cart refuses it, the index writes no row. Built by the engine only.
+     *
+     * Its money getters throw (assertPriced()): a caller that forgets to ask isPriced() fails rather than show 0,00.
+     *
+     * @param Currency $currency The shopper's currency.
+     * @param int $quantity The quantity asked.
+     * @param int|null $pricedFrom The smallest quantity above it from which a price row applies, or null.
+     *
+     * @since  2.2.2
+     */
+    public static function notPriced(Currency $currency, int $quantity, ?int $pricedFrom): self
+    {
+        $zero = Money::zero($currency);
+        $discounts = new DiscountSummary($zero, []);
+        $breakdown = new PriceBreakdown();
+        $result = new self(
+            $zero,
+            $zero,
+            $zero,
+            $zero,
+            $quantity,
+            $discounts,
+            new TaxSummary($zero, 0.0, []),
+            $breakdown,
+            new PriceReference($zero, $zero, $zero, $discounts, $breakdown),
+            '0',
+            $zero,
+            [],
+            UnitOrigin::PriceRow,
+            UnitAxis::Net,
+            false,
+            '0',
+            null,
+            '0',
+        );
+        $result->priced = false;
+        $result->pricedFrom = $pricedFrom;
+
+        return $result;
+    }
+
+    /**
+     * Whether a price applies at the quantity asked: the result carries its figures. False when no price row applies
+     * to the shopper at that quantity and no explicit price was given; every money getter then throws.
+     *
+     * @since  2.2.2
+     */
+    public function isPriced(): bool
+    {
+        return $this->priced;
+    }
+
+    /**
+     * For a result that is not priced, the smallest quantity above the one asked from which a price row applies (rows
+     * for 1 to 5 and from 10, asked at 7: 10); null when no row applies above it, and for a priced result.
+     *
+     * @since  2.2.2
+     */
+    public function pricedFrom(): ?int
+    {
+        return $this->priced ? null : $this->pricedFrom;
+    }
+
+    /**
+     * Refuse a figure of a result that has none.
+     *
+     * @throws LogicException When the result is not priced.
+     *
+     * @since  2.2.2
+     */
+    private function assertPriced(): void
+    {
+        if (!$this->priced) {
+            throw new LogicException('This price result carries no figure: no price applies at quantity ' . $this->quantity . '. Ask isPriced() first.');
+        }
+    }
+
     // The explicit operator price, and what it superseded
 
     /**
@@ -212,6 +310,8 @@ class PriceResult
      */
     public function getReference(): PriceReference
     {
+        $this->assertPriced();
+
         return $this->reference;
     }
 
@@ -258,6 +358,8 @@ class PriceResult
      */
     public function getExplicitPriceTotal(): ?Money
     {
+        $this->assertPriced();
+
         return $this->explicitTotal;
     }
 
@@ -269,6 +371,8 @@ class PriceResult
      */
     public function getExplicitPriceTotalWithTax(): ?Money
     {
+        $this->assertPriced();
+
         return $this->explicitTotalWithTax;
     }
 
@@ -294,6 +398,8 @@ class PriceResult
      */
     public function getLineSaving(): Money
     {
+        $this->assertPriced();
+
         return $this->reference->getSubtotal()->subtract($this->subtotal)->nonNegative();
     }
 
@@ -305,6 +411,8 @@ class PriceResult
      */
     public function getLineSavingWithTax(): Money
     {
+        $this->assertPriced();
+
         return $this->reference->getTotal()->subtract($this->total)->nonNegative();
     }
 
@@ -326,6 +434,8 @@ class PriceResult
      */
     public function getLineSavingPercent(): float
     {
+        $this->assertPriced();
+
         // On minor units, by the one rule: no float quotient decides a tie.
         return Money::percentOf(
             part: $this->getLineSavingWithTax()->getMinorUnits(),
@@ -341,6 +451,8 @@ class PriceResult
      */
     public function getBaseTotal(): Money
     {
+        $this->assertPriced();
+
         return $this->baseTotal;
     }
 
@@ -350,6 +462,8 @@ class PriceResult
      */
     public function getSubtotal(): Money
     {
+        $this->assertPriced();
+
         return $this->subtotal;
     }
 
@@ -359,6 +473,8 @@ class PriceResult
      */
     public function getTaxTotal(): Money
     {
+        $this->assertPriced();
+
         return $this->taxTotal;
     }
 
@@ -368,6 +484,8 @@ class PriceResult
      */
     public function getTotal(): Money
     {
+        $this->assertPriced();
+
         return $this->total;
     }
 
@@ -380,6 +498,8 @@ class PriceResult
      */
     public function getBaseTotalWithTax(): Money
     {
+        $this->assertPriced();
+
         // A fact the engine states: the base's exact gross, rounded once. It is
         // never charged here on the rounded base, rate by rate, which could miss
         // it by a minor unit and report a saving no discount gave.
@@ -396,6 +516,8 @@ class PriceResult
      */
     public function getBasePrice(): Money
     {
+        $this->assertPriced();
+
         return $this->divideByQuantity($this->baseTotal);
     }
 
@@ -405,6 +527,8 @@ class PriceResult
      */
     public function getSubtotalPrice(): Money
     {
+        $this->assertPriced();
+
         return $this->divideByQuantity($this->subtotal);
     }
 
@@ -414,6 +538,8 @@ class PriceResult
      */
     public function getTaxPrice(): Money
     {
+        $this->assertPriced();
+
         return $this->divideByQuantity($this->taxTotal);
     }
 
@@ -425,6 +551,8 @@ class PriceResult
      */
     public function getPrice(): Money
     {
+        $this->assertPriced();
+
         return $this->divideByQuantity($this->total);
     }
 
@@ -438,6 +566,8 @@ class PriceResult
      */
     public function getBasePriceWithTax(): Money
     {
+        $this->assertPriced();
+
         return $this->divideByQuantity($this->baseTotalWithTax);
     }
 
@@ -449,6 +579,8 @@ class PriceResult
      */
     public function getSavingsTotal(): Money
     {
+        $this->assertPriced();
+
         return $this->discounts->getTotal();
     }
 
@@ -465,6 +597,8 @@ class PriceResult
      */
     public function getSavingsTotalWithTax(): Money
     {
+        $this->assertPriced();
+
         if (!$this->hasDiscount()) {
             return Money::zero($this->getCurrency());
         }
@@ -478,6 +612,8 @@ class PriceResult
      */
     public function getSavingsPrice(): Money
     {
+        $this->assertPriced();
+
         return $this->divideByQuantity($this->getSavingsTotal());
     }
 
@@ -489,6 +625,8 @@ class PriceResult
      */
     public function getSavingsPriceWithTax(): Money
     {
+        $this->assertPriced();
+
         return $this->divideByQuantity($this->getSavingsTotalWithTax());
     }
 
@@ -503,6 +641,8 @@ class PriceResult
      */
     public function getSavingsTotalWithoutTax(): Money
     {
+        $this->assertPriced();
+
         if (!$this->hasDiscount()) {
             return Money::zero($this->getCurrency());
         }
@@ -517,6 +657,8 @@ class PriceResult
      */
     public function getSavingsPriceWithoutTax(): Money
     {
+        $this->assertPriced();
+
         return $this->divideByQuantity($this->getSavingsTotalWithoutTax());
     }
 
@@ -526,6 +668,8 @@ class PriceResult
      */
     public function hasDiscount(): bool
     {
+        $this->assertPriced();
+
         return $this->discounts->hasDiscounts();
     }
 
@@ -540,6 +684,8 @@ class PriceResult
      */
     public function getSavingsPercent(): float
     {
+        $this->assertPriced();
+
         // THE TRUTH RULE:
         // "Any displayed or persisted 'actual savings percentage' =
         //  (base - final) / base x 100, DERIVED FROM ACTUAL MONEY, never by
@@ -580,6 +726,8 @@ class PriceResult
      */
     public function getSavingsPercentBreakdown(): array
     {
+        $this->assertPriced();
+
         return $this->discounts->getPercentBreakdown(
             $this->baseTotal,
             $this->subtotal,
@@ -613,6 +761,8 @@ class PriceResult
      */
     public function getAuthoritativeUnit(): string
     {
+        $this->assertPriced();
+
         return $this->authoritativeUnit;
     }
 
@@ -631,6 +781,8 @@ class PriceResult
      */
     public function getPayableUnit(): string
     {
+        $this->assertPriced();
+
         // Each factor multiplied exactly and the unit held at the eighth place
         // after each, as a derived unit is held.
         return $this->payableUnit ??= ExactAmount::of($this->authoritativeUnit)
@@ -653,6 +805,8 @@ class PriceResult
      */
     public function getPayableUnitExact(): string
     {
+        $this->assertPriced();
+
         if ($this->payableUnitExact === null) {
             $amount = ExactAmount::of($this->authoritativeUnit);
 
@@ -678,6 +832,8 @@ class PriceResult
      */
     public function getStatedOrigin(): UnitOrigin
     {
+        $this->assertPriced();
+
         return $this->statedOrigin;
     }
 
@@ -693,6 +849,8 @@ class PriceResult
      */
     public function getStatedAxis(): UnitAxis
     {
+        $this->assertPriced();
+
         return $this->statedAxis;
     }
 
@@ -708,6 +866,8 @@ class PriceResult
      */
     public function isReduced(): bool
     {
+        $this->assertPriced();
+
         return $this->reduced;
     }
 
@@ -723,6 +883,8 @@ class PriceResult
      */
     public function getListUnit(): string
     {
+        $this->assertPriced();
+
         return $this->listUnit;
     }
 
@@ -743,6 +905,8 @@ class PriceResult
      */
     public function getDiscountedUnitExact(bool $withTax): ?string
     {
+        $this->assertPriced();
+
         $key = $withTax ? 'gross' : 'net';
 
         if (!\array_key_exists($key, $this->discountedUnits)) {
@@ -770,6 +934,8 @@ class PriceResult
      */
     public function getDiscounts(): DiscountSummary
     {
+        $this->assertPriced();
+
         return $this->discounts;
     }
 
@@ -779,6 +945,8 @@ class PriceResult
      */
     public function getTaxes(): TaxSummary
     {
+        $this->assertPriced();
+
         return $this->taxes;
     }
 
@@ -788,6 +956,8 @@ class PriceResult
      */
     public function getBreakdown(): PriceBreakdown
     {
+        $this->assertPriced();
+
         return $this->breakdown;
     }
 
@@ -831,6 +1001,8 @@ class PriceResult
      */
     public function formatAll(bool $includeSymbol = true, bool $includeUnitPrices = false): array
     {
+        $this->assertPriced();
+
         $formatted = [
             'base_total' => $this->baseTotal->format($includeSymbol),
             'subtotal' => $this->subtotal->format($includeSymbol),
@@ -865,6 +1037,8 @@ class PriceResult
      */
     public function toArray(): array
     {
+        $this->assertPriced();
+
         return [
             'base_total' => [
                 'amount' => PublishedDecimal::money($this->baseTotal),
@@ -958,6 +1132,8 @@ class PriceResult
      */
     public function toJson(int $options = JSON_PRETTY_PRINT): string
     {
+        $this->assertPriced();
+
         return json_encode($this->toArray(), $options);
     }
 
@@ -967,6 +1143,8 @@ class PriceResult
      */
     public function toMinimalArray(): array
     {
+        $this->assertPriced();
+
         return [
             'total' => PublishedDecimal::money($this->total),
             'formatted' => $this->total->format(),

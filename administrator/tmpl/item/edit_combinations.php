@@ -639,11 +639,12 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                             <input type="hidden" name="<?php echo $base; ?>[quick_baseline][operation]" value="<?php echo $this->escape($quickOperation); ?>">
                                             <input type="hidden" name="<?php echo $base; ?>[quick_baseline][value]" value="<?php echo $quickRow !== null ? $this->escape($quickRow['value']) : ''; ?>">
                                             <input type="hidden" name="<?php echo $base; ?>[quick_baseline][target]" value="<?php echo $this->escape($quickTarget); ?>">
-                                            <?php if ($quickSaleValue !== '') : ?>
+                                            <?php $quickCharged = $quickSaleValue !== '' ? \Alfa\Component\Alfa\Administrator\Field\AlfapricesField::chargedPrice(itemId: (int) $this->item->id, combinationId: $combinationId) : null; ?>
+                                            <?php if ($quickCharged !== null) : ?>
                                                 <!-- The row's custom discount, kept by every grid save: what the
                                                      shop charges for the variant, from the engine's own price. -->
                                                 <small class="d-block text-muted" data-quick-sale-charged>
-                                                    <?php echo Text::sprintf('COM_ALFA_COMBI_QUICK_SALE_CHARGED', $this->escape(\Alfa\Component\Alfa\Administrator\Field\AlfapricesField::chargedPrice(itemId: (int) $this->item->id, combinationId: $combinationId)->format())); ?>
+                                                    <?php echo Text::sprintf('COM_ALFA_COMBI_QUICK_SALE_CHARGED', $this->escape($quickCharged->format())); ?>
                                                 </small>
                                             <?php endif; ?>
                                         <?php endif; ?>
