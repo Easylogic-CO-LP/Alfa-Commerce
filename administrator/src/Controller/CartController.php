@@ -585,7 +585,8 @@ class CartController extends BaseController
                 return;
             }
 
-            $this->emit(['html' => LayoutHelper::render('cart.builder_quote', ['price' => $priced], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts')]);
+            // A line with no price applying (2.2.2) is quoted as waiting for its custom price: the layout reads null so.
+            $this->emit(['html' => LayoutHelper::render('cart.builder_quote', ['price' => $priced->isPriced() ? $priced : null], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts')]);
         } catch (Throwable $e) {
             $this->emitThrowable($e);
         }
