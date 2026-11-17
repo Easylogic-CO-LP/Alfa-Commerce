@@ -233,6 +233,7 @@ final class SetupHelper
                 'label' => $check->label,
                 'reason' => $state === SetupCheck::STATE_PASS ? $check->reason : $check->reasonFor(arguments: $reasonArgs),
                 'reason_args' => $reasonArgs,
+                'note' => $check->noteNow(),
                 'cta' => $check->cta,
                 'tour' => $check->tour,
                 'priority' => $check->priority,

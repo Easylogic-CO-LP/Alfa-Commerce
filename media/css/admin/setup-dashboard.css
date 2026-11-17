@@ -277,7 +277,8 @@
     font-weight: 400;
 }
 
-.setup-item-reason {
+.setup-item-reason,
+.setup-item-note {
     display: block;
     margin-top: 0.1rem;
     font-size: 0.85rem;

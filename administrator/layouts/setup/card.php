@@ -175,6 +175,9 @@ $ignoredCount = \count($ignored['rows']);
                                 <?php $reasonArgs = array_map(static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'), (array) ($row['reason_args'] ?? [])); ?>
                                 <span class="setup-item-reason"><?php echo $reasonArgs === [] ? Text::_((string) $row['reason']) : Text::sprintf((string) $row['reason'], ...$reasonArgs); ?></span>
                             <?php endif; ?>
+                            <?php if ((string) ($row['note'] ?? '') !== '') : ?>
+                                <span class="setup-item-note"><?php echo Text::_((string) $row['note']); ?></span>
+                            <?php endif; ?>
                         </div>
                         <?php if ($ctaHref !== '' || $tour !== null || $canIgnore || $canShow || (!$isPass && $canProvision && !empty($row['provisionable']))) : ?>
                             <?php
