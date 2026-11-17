@@ -1917,9 +1917,14 @@ class com_alfaInstallerScript extends InstallerScript
             // 6. Thumbnails that are not images (2.2.1): up to 2.2.0 a thumbnail could be a copy of any file the site
             //    could read; the update lists what is left, deleting nothing.
             $this->listNonImageFiles();
+
+            // 7. E-mail layout overrides left in a site template (2.2.1): the e-mails read their layouts from the
+            //    default administrator template only; the update names the files a site template still holds,
+            //    moving nothing.
+            $this->listSiteTemplateEmailLayouts();
         }
 
-        // 7. The installed Alfa extensions not known to work with this version (2.2.1): named on this page,
+        // 8. The installed Alfa extensions not known to work with this version (2.2.1): named on this page,
         //    in the maintenance log and to the administrators.
         $this->reportExtensionCompatibility(type: $type);
 
@@ -2264,6 +2269,87 @@ class com_alfaInstallerScript extends InstallerScript
         {
             // The installation page says it; the log is the second copy.
         }
+    }
+
+    /**
+     * Name the e-mail layout overrides kept in a site template (2.2.1). Since 2.2.1 every e-mail reads its layouts
+     * from the default administrator template (then the template it inherits from) and the component
+     * ({@see \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts}), whatever sends it, so a file under a site
+     * template's html/layouts/com_alfa/emails, where the 2.2.0 Manual advised a copy for the e-mails the storefront
+     * sends, is no longer read. One warning names every such file, and the maintenance log (com_alfa_maintenance.php)
+     * keeps one line per file. Nothing is moved or deleted: staff copy each file they want to keep into the
+     * administrator template. A failure is said, never a failed update.
+     *
+     * @return  void
+     * @since   2.2.1
+     */
+    private function listSiteTemplateEmailLayouts(): void
+    {
+        try
+        {
+            $files = self::siteTemplateEmailLayouts(templates: JPATH_SITE . '/templates');
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage('The site templates were not checked for e-mail layout overrides: '
+                . $e->getMessage(), 'warning');
+
+            return;
+        }
+
+        if ($files === [])
+        {
+            return;
+        }
+
+        Factory::getApplication()->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_EMAIL_LAYOUTS_SITE_TEMPLATE',
+            fallback: 'Alfa Commerce %1$s reads the e-mail layout overrides from the default administrator template'
+                . ' only. These files in a site template are no longer read: %2$s. Copy each one you want to keep into'
+                . ' the html/layouts/com_alfa/emails folder of the default administrator template. Nothing was moved'
+                . ' or deleted.',
+            values:   [$this->packageVersion, implode('; ', array_map(
+                static fn (string $file): string => htmlspecialchars($file, ENT_QUOTES, 'UTF-8'),
+                $files,
+            ))],
+        ), 'warning');
+
+        foreach ($files as $file)
+        {
+            self::maintenanceLog('Update to ' . $this->packageVersion . ': an e-mail layout override in a site template,'
+                . ' no longer read; move it to the administrator template: ' . $file, \Joomla\CMS\Log\Log::WARNING);
+        }
+    }
+
+    /**
+     * The e-mail layout files under every site template's html/layouts/com_alfa/emails, relative to the site root,
+     * sorted. A template without that folder adds nothing.
+     *
+     * @param   string  $templates  The site templates' folder.
+     *
+     * @return  string[]
+     * @since   2.2.1
+     */
+    private static function siteTemplateEmailLayouts(string $templates): array
+    {
+        $files = [];
+
+        foreach (glob($templates . '/*/html/layouts/com_alfa/emails', GLOB_ONLYDIR) ?: [] as $folder)
+        {
+            $walk = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($folder, \FilesystemIterator::SKIP_DOTS));
+
+            foreach ($walk as $file)
+            {
+                if ($file->isFile() && strtolower($file->getExtension()) === 'php')
+                {
+                    $files[] = ltrim(substr($file->getPathname(), \strlen(JPATH_ROOT)), '/');
+                }
+            }
+        }
+
+        sort($files);
+
+        return $files;
     }
 
     /**
