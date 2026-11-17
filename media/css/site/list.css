@@ -293,8 +293,8 @@
 
 /* NO OUTLINE ON THE REGION, EVER (2.2.2). The region takes the focus from the script after the results change, not
    from the shopper's own Tab, so a ring around the whole list is no focus indicator: the shopper's next Tab lands on
-   the first control inside it, which draws its own, and the new count is announced by the region's live status
-   ([data-results-status]). A browser may still mark the region :focus-visible after a mouse click (the clicked link
+   the first control inside it, which draws its own, and the region's name (the pagination's count) is what the focus
+   announces. A browser may still mark the region :focus-visible after a mouse click (the clicked link
    is gone with the new page), and a template's generic focus rule (:where(a, button, [tabindex]):focus-visible, or
    [tabindex]:focus-visible) would then box the whole list. [data-results][tabindex] weighs more than either, so no
    !important is needed; a template that wants a ring on the region writes its own rule on it. */
@@ -302,18 +302,4 @@
 :where(.com-alfa, #alfa-app) [data-results][tabindex]:focus,
 :where(.com-alfa, #alfa-app) [data-results][tabindex]:focus-visible {
     outline: none;
-}
-
-/* The region's live status (2.2.2): read by screen readers, not shown. */
-
-:where(.com-alfa, #alfa-app) [data-results-status] {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
 }
