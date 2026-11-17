@@ -84,20 +84,24 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasActionLogTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasOrderContextTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasTransportUrlsTrait;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
+use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Order\Payment;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use InvalidArgumentException;
+use Joomla\CMS\Application\SiteApplication;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
 use Joomla\Database\QueryInterface;
 use Joomla\Event\SubscriberInterface;
 use RuntimeException;
+use Throwable;
 
 defined('_JEXEC') or die;
 
@@ -1742,6 +1746,62 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         }
 
         return $this->getOrder($orderId);
+    }
+
+    /**
+     * Point the visitor's session at an order whose browser return this gateway has authenticated (2.2.1).
+     *
+     * The process page and the completed page's arrival show the session's order only when this session placed it
+     * or a gateway said, through this method, that it authenticated a return for it. A browser return is a request
+     * anyone can send: an order id it named alone would let the process page ask that order's gateway for a payment
+     * page, and the arrival open that order's page to whoever sent it.
+     *
+     * Call it from onPaymentResponse once the return is authenticated for this order (the provider's signature or
+     * digest, or the provider's own answer naming the attempt), never before, and in whatever session the return
+     * arrives: a fresh one is the normal case (a hosted payment page outlives the PHP session, a cross-site POST
+     * return carries no session cookie, a buyer may finish on another device). Call it for every authentic return,
+     * whatever the payment's result (paid, failed, or cancelled by the buyer): the buyer must land on their own
+     * order's page, where a failed attempt is tried again from the process page. Do not write com_alfa.order_id
+     * yourself: an order id without its mark is refused, and the visitor is sent to the cart.
+     *
+     * Send a failed or cancelled return to the process page (getProcessPageUrl(), with a flag of your own), which
+     * asks your plugin again and offers the retry; the completed page's arrival clears the session's order, and the
+     * order's keyed page offers no retry. A valid signed return link (orderFromReturnLink()) grants exactly the right
+     * this mark grants, that this browser may look at this order, so a return it authenticates may be marked; a
+     * return address that carries the link is then as strong as the order's keyed address, and travels the same way.
+     *
+     * Idempotent: the same order again changes nothing; another order replaces the session's order and its mark.
+     * It reads no table. Outside a storefront request there is no visitor's session, and nothing is set.
+     *
+     * @param int $orderId The order the authenticated return is for.
+     *
+     * @throws InvalidArgumentException When the id is below 1.
+     *
+     * @since  2.2.1
+     */
+    final public function authenticatedReturnFor(int $orderId): void
+    {
+        if ($orderId < 1) {
+            throw new InvalidArgumentException('authenticatedReturnFor() names an order: an id of 1 or more, not ' . $orderId . '.');
+        }
+
+        // NEVER THROWS OTHERWISE: the gateway's handler goes on to its redirect whatever happens here, and a session
+        // that could not be written leaves the order unmarked, so the pages refuse it and say where to look.
+        try {
+            $app = Factory::getApplication();
+
+            if (!$app instanceof SiteApplication) {
+                AlfaLog::register();
+                Log::add('authenticatedReturnFor(' . $orderId . ') was called outside a storefront request; nothing was set.', Log::WARNING, 'com_alfa.payments');
+
+                return;
+            }
+
+            SessionOrder::authenticatedReturn($app, $orderId);
+        } catch (Throwable $e) {
+            AlfaLog::register();
+            Log::add('authenticatedReturnFor(' . $orderId . ') could not write the session (' . $e::class . ': ' . $e->getMessage() . '); the order pages will refuse it.', Log::ERROR, 'com_alfa.payments');
+        }
     }
 
     protected function latestPendingPayment(int $orderId, int $methodId = 0): ?object
