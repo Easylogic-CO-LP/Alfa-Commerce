@@ -1351,11 +1351,21 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      */
     final protected function unbookedProviderRefundsOfPayment(int $paymentId): array
     {
-        // Another gateway's row is never read through this plugin, as for every scoped reader of the set: the row's own
-        // payment_method_type, which keeps answering after the method row is deleted.
-        $row = $paymentId > 0 ? PaymentLedger::get($paymentId) : null;
+        // Another gateway's row is never read through this plugin, as for every scoped reader of the set: one row of this
+        // plugin's element (the row's own payment_method_type, which keeps answering after the method row is deleted)
+        // and of type payment, by its id, read raw: nothing is hydrated, so an order without a currency answers as
+        // the ledger's reader answers it (unread), never with an exception of its own.
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $owned = $paymentId > 0 && (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('1')
+                ->from($db->quoteName('#__alfa_order_payments'))
+                ->where($db->quoteName('id') . ' = ' . $paymentId)
+                ->where($db->quoteName('payment_method_type') . ' = ' . $db->quote($this->_name))
+                ->where($db->quoteName('payment_type') . ' = ' . $db->quote(PaymentLedger::TYPE_PAYMENT)),
+        )->loadResult() === 1;
 
-        if ($row === null || (string) ($row->payment_method_type ?? '') !== (string) $this->_name) {
+        if (!$owned) {
             return ['refunds' => [], 'reserved' => [], 'unread' => null];
         }
 

@@ -14623,13 +14623,26 @@ class PaymentLedger
     }
 
     /**
-     * @var array<string, true> The payment plugins, by element, whose unbookedProviderRefunds() is being asked now: a
-     *                          plugin that asks the core's reading of its own reports from inside that report would ask
-     *                          itself again without end, so the second asking is refused (2.2.2).
+     * @var array<string, bool> The payment plugins, by element, whose unbookedProviderRefunds() is being asked now, and
+     *                          whether a second asking was refused meanwhile: a plugin that asks the core's reading of
+     *                          its own reports from inside that report would ask itself again without end, so the
+     *                          second asking is refused, and the first reads the payment as unread (2.2.2).
      *
      * @since  2.2.2
      */
     private static array $askingGateway = [];
+
+    /**
+     * Whether a second asking of this plugin's unbookedProviderRefunds() was refused while the first was under way.
+     *
+     * @param string $element The payment plugin's element.
+     *
+     * @since  2.2.2
+     */
+    private static function askedItself(string $element): bool
+    {
+        return self::$askingGateway[$element] ?? false;
+    }
 
     /**
      * Ask one payment's gateway which refunds it reports that the books do not
@@ -14660,8 +14673,9 @@ class PaymentLedger
      * NEVER ASKED FROM ITS OWN ANSWER (2.2.2). While a plugin's
      * unbookedProviderRefunds() is being asked, a second asking of the same
      * plugin (its unbookedProviderRefundsOfPayment() called from that report)
-     * throws a LogicException. It leaves the report, so the first asking reads
-     * the payment as unread, and the block holds until the plugin is fixed.
+     * throws a LogicException, and the first asking reads the payment as
+     * unread whatever the report then answers, a report that catches the
+     * exception included: the block holds until the plugin is fixed.
      *
      * @param object $payment The payment row (id, id_order, payment_method_type).
      *
@@ -14726,16 +14740,24 @@ class PaymentLedger
         }
 
         if (isset(self::$askingGateway[$element])) {
+            self::$askingGateway[$element] = true;
+
             throw new LogicException(sprintf(
                 'The %s payment plugin asked for the core\'s reading of its provider refunds while reporting them: unbookedProviderRefundsOfPayment() is never called from unbookedProviderRefunds().',
                 $element,
             ));
         }
 
-        self::$askingGateway[$element] = true;
+        self::$askingGateway[$element] = false;
 
         try {
             $answer = $plugins->invoke($plugin, 'unbookedProviderRefunds', $paymentId);
+
+            // A report that asked itself was refused; whatever it then answered, it is not read.
+            if (self::askedItself(element: $element)) {
+                throw new LogicException(sprintf('The %s payment plugin asked for the core\'s reading of its provider refunds while reporting them.', $element));
+            }
+
             $currency = OrderCurrency::of(orderId: (int) ($payment->id_order ?? 0));
         } catch (Throwable $e) {
             // Staff see a fixed sentence naming the plugin; the exception's own text goes to the log only.
