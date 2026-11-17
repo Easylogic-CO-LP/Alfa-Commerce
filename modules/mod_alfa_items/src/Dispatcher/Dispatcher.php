@@ -10,6 +10,7 @@
 namespace Alfa\Module\AlfaItems\Site\Dispatcher;
 
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Module\AlfaItems\Site\Helper\AlfaItemsHelper;
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
 use Joomla\CMS\Session\Session;
@@ -86,6 +87,23 @@ class Dispatcher extends AbstractModuleDispatcher
     }
 
     /**
+     * Whether the module's cards sell (2.2.2): the first drawn item's word ($item->sellsOnline, set by the model that
+     * drew it); a module whose tabs are all drawn later, on demand, has no item yet and asks the shop's switch.
+     *
+     * @since  2.2.2
+     */
+    private function cardsSell(): bool
+    {
+        foreach ($this->groups as $group) {
+            foreach ((array) ($group['items'] ?? []) as $item) {
+                return (bool) ($item->sellsOnline ?? true);
+            }
+        }
+
+        return ShopMode::sellsOnline();
+    }
+
+    /**
      * Register the assets the cards and the module chrome need.
      *
      * The card and its look are the module's (items.css); what Alfa draws inside it (
@@ -111,12 +129,17 @@ class Dispatcher extends AbstractModuleDispatcher
         $wa->useScript('core')
             ->useStyle('com_alfa.general')
             ->useStyle('com_alfa.item')
-            ->useScript('com_alfa.item.recalculate')
-            ->usePreset('com_alfa.item.addtocart')
-            ->useScript('com_alfa.item.variant')
-            ->useScript('com_alfa.showon.engine')
             ->useStyle('mod_alfa_items.items')
             ->useScript('mod_alfa_items.items');
+
+        // The buying scripts only for cards that sell: in catalogue-only mode (2.2.2) a card has no buy form, as its
+        // items say ($item->sellsOnline, the first drawn item answering for the module).
+        if ($this->cardsSell()) {
+            $wa->useScript('com_alfa.item.recalculate')
+                ->usePreset('com_alfa.item.addtocart')
+                ->useScript('com_alfa.item.variant')
+                ->useScript('com_alfa.showon.engine');
+        }
 
         if (AlfaItemsHelper::usesSlider($params)) {
             $wa->useStyle('mod_alfa_items.keen-slider')
@@ -124,8 +147,11 @@ class Dispatcher extends AbstractModuleDispatcher
         }
 
         // Add-to-cart and re-pricing are CSRF-protected posts; on a page where no
-        // component published the token, the card scripts still need one.
-        $document->addScriptOptions('csrf.token', Session::getFormToken());
+        // component published the token, the card scripts still need one (none in
+        // catalogue-only mode, where nothing posts).
+        if ($this->cardsSell()) {
+            $document->addScriptOptions('csrf.token', Session::getFormToken());
+        }
 
         // Every tab's gap and grid columns, on wide screens and at the module's two widths.
         $wa->addInlineStyle(AlfaItemsHelper::responsiveCss(moduleId: $moduleId, params: $params, groups: $this->groups));

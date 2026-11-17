@@ -6,7 +6,16 @@
                hint="COM_ALFA_USERS_SEARCH_PLACEHOLDER"
                class="js-stools-search-string" />
 
-        
+        <field name="account_state"
+               type="list"
+               label="COM_ALFA_HEADING_ACCOUNT_STATE"
+               onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_ACCOUNT_STATE</option>
+            <option value="0">COM_ALFA_ACCOUNT_STATE_ENABLED</option>
+            <option value="1">COM_ALFA_ACCOUNT_STATE_BLOCKED</option>
+            <option value="2">COM_ALFA_ACCOUNT_STATE_AWAITING</option>
+        </field>
 
     </fields>
 
@@ -20,7 +29,7 @@
                default="a.id DESC"
         >
             <option value="">JGLOBAL_SORT_BY</option>
-            <option value="a.id ASC">COM_ALFA_ID_ASC</option><option value="a.id DESC">COM_ALFA_ID_DESC</option><option value="u.username ASC">COM_ALFA_USERNAME_ASC</option><option value="u.username DESC">COM_ALFA_USERNAME_DESC</option><option value="u.email ASC">COM_ALFA_EMAIL_ASC</option><option value="u.email DESC">COM_ALFA_EMAIL_DESC</option><option value="u.lastvisitDate ASC">COM_ALFA_LASTVISIT_ASC</option><option value="u.lastvisitDate DESC">COM_ALFA_LASTVISIT_DESC</option>
+            <option value="a.id ASC">COM_ALFA_ID_ASC</option><option value="a.id DESC">COM_ALFA_ID_DESC</option><option value="u.username ASC">COM_ALFA_USERNAME_ASC</option><option value="u.username DESC">COM_ALFA_USERNAME_DESC</option><option value="u.email ASC">COM_ALFA_EMAIL_ASC</option><option value="u.email DESC">COM_ALFA_EMAIL_DESC</option><option value="u.lastvisitDate ASC">COM_ALFA_LASTVISIT_ASC</option><option value="u.lastvisitDate DESC">COM_ALFA_LASTVISIT_DESC</option><option value="account_state ASC">COM_ALFA_ACCOUNT_STATE_ASC</option><option value="account_state DESC">COM_ALFA_ACCOUNT_STATE_DESC</option>
 
         </field>
 

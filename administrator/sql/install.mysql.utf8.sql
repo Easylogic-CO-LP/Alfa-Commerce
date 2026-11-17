@@ -30,6 +30,12 @@ INSERT INTO `#__alfa_meta` (`name`, `value`)
 SELECT 'schema_version', '2.2.2' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'schema_version');
 
+-- How far the stored price periods that began are announced (onAlfaPricesChanged, cause window, 2.2.2): from the
+-- moment of install, so nothing before it is announced. The installer's update writes it where it is missing.
+INSERT INTO `#__alfa_meta` (`name`, `value`)
+SELECT 'prices.windows_announced_until', DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%d %H:%i:%s') FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'prices.windows_announced_until');
+
 -- Begin of the Clear everything block, added in 2.1.0. Keep it whole and apart from other tables.
 --
 -- The durable state of Clear everything (Tools > Reset and clear), in one row: the run at work,

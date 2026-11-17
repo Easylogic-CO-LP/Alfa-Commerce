@@ -25,6 +25,7 @@
                 name="field_name"
                 type="text"
                 label="COM_ALFA_FORM_LBL_FIELD_NAME"
+                description="COM_ALFA_FORM_DESC_FIELD_NAME"
                 hint="JFIELD_NAME_PLACEHOLDER"
                 required="false"
         />

@@ -333,7 +333,7 @@ class CartruleModel extends AlfaAdminModel
      */
     protected function syncConditionTree(int $ruleId, array $groups): void
     {
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
 
         // The whole wipe + reinsert must be atomic: a failure mid-reinsert would
         // leave the rule live with an empty condition tree, i.e. applying its
@@ -425,7 +425,7 @@ class CartruleModel extends AlfaAdminModel
                 }
             }
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             throw $e;

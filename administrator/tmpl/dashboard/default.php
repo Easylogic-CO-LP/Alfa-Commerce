@@ -34,6 +34,8 @@ $this->getDocument()->addScriptOptions('com_alfa.setup', [
     'cardUrl'      => Route::_('index.php?option=com_alfa&task=setup.card', false),
     'stateUrl'     => Route::_('index.php?option=com_alfa&task=setup.state', false),
     'provisionUrl' => Route::_('index.php?option=com_alfa&task=setup.provision', false),
+    'ignoreUrl'    => Route::_('index.php?option=com_alfa&task=setup.ignore', false),
+    'showAgainUrl' => Route::_('index.php?option=com_alfa&task=setup.showAgain', false),
     'token'        => Session::getFormToken(),
 ]);
 

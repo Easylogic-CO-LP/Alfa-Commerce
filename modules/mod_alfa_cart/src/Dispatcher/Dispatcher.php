@@ -11,6 +11,7 @@ namespace Alfa\Module\AlfaCart\Site\Dispatcher;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartResolution;
 use Alfa\Component\Alfa\Site\Helper\PageCache;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Module\AlfaCart\Site\Helper\AlfaCartHelper;
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
@@ -27,6 +28,21 @@ use Joomla\CMS\Session\Session;
  */
 class Dispatcher extends AbstractModuleDispatcher
 {
+    /**
+     * Draw the cart, unless the shop shows its catalogue only (2.2.2): then the module draws nothing, reads no cart and
+     * loads nothing.
+     *
+     * @since  2.2.2
+     */
+    public function dispatch(): void
+    {
+        if (!ShopMode::sellsOnline()) {
+            return;
+        }
+
+        parent::dispatch();
+    }
+
     /**
      * Returns the layout data.
      *

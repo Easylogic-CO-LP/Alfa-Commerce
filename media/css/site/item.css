@@ -491,6 +491,12 @@
     margin: 0 0 0.35rem;
 }
 
+/* Catalogue only (2.2.2): a product field as a plain list of its values (item.fields_readonly), its values level with
+   its name, not indented as a browser draws a <dd>. Lowest specificity, for a template to restyle. */
+:where(.item-field-readonly-value) {
+    margin-inline-start: 0;
+}
+
 /* THE RELATED PRODUCTS (default_related.php, 2.2.2): a part after the product, the listing's grid and cards (list.css).
    Only the part's own spacing and heading here; a template overrides either without !important. */
 :where(.item-related) {

@@ -126,6 +126,13 @@ final class SetupCheck
     private string $reasonUnnamed = '';
 
     /**
+     * @var callable|null A sentence the row says in every state, complete or not: fn(): string, a language key, or ''
+     *                    for none (2.2.2). For what the check leaves out on purpose, which a complete row would hide.
+     * @since  2.2.2
+     */
+    private $note = null;
+
+    /**
      * @var callable|null One-click auto-fix (cascade provisioning). Wired by the wizard
      *                    surface; the engine only carries it.
      * @since  2.0.0
@@ -207,6 +214,39 @@ final class SetupCheck
     public function reasonFor(array $arguments): string
     {
         return $this->reasonArguments !== null && $arguments === [] ? $this->reasonUnnamed : $this->reason;
+    }
+
+    /**
+     * A sentence the row says in every state, complete or not, read when the checklist is evaluated (2.2.2): what the
+     * check leaves out on purpose, which a complete row would otherwise hide.
+     *
+     * @param callable $note fn(): string, a language key, or '' when there is nothing to say.
+     *
+     * @since  2.2.2
+     */
+    public function note(callable $note): static
+    {
+        $this->note = $note;
+
+        return $this;
+    }
+
+    /**
+     * The note's language key now; '' when the row has none, says none now, or it cannot be read (2.2.2).
+     *
+     * @since  2.2.2
+     */
+    public function noteNow(): string
+    {
+        if ($this->note === null) {
+            return '';
+        }
+
+        try {
+            return (string) ($this->note)();
+        } catch (Throwable) {
+            return '';
+        }
     }
 
     /**
@@ -384,6 +424,18 @@ final class SetupCheck
         }
 
         return $result ? self::STATE_PASS : self::STATE_FAIL;
+    }
+
+    /**
+     * Whether the merchant may ignore this step: a recommended or optional step may be, a required one never. The tier
+     * alone decides; a check needs nothing else for it (2.2.2).
+     *
+     *
+     * @since  2.2.2
+     */
+    public function ignorable(): bool
+    {
+        return $this->tier !== self::TIER_REQUIRED;
     }
 
     /**
