@@ -14,8 +14,8 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Site\Service\ShowOn\SubmitAuthority;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Log\Log;
@@ -201,13 +201,14 @@ class RegistrationModel extends FormModel
     }
 
     /**
-     * Whether com_users allows public registration.
+     * Whether com_users allows public registration: the one reader the setup checklist uses too, so the sign-up form
+     * and the checklist never disagree (a site that never saved the option reads Joomla's own default, No).
      *
      *
      * @since  1.0.1
      */
     public function registrationAllowed(): bool
     {
-        return (bool) ComponentHelper::getParams('com_users')->get('allowUserRegistration', 1);
+        return MenuProvisioningService::signUpsOpen();
     }
 }

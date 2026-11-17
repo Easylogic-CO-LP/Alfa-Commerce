@@ -209,7 +209,10 @@ final class MenuProvisioningService
 
     /**
      * Whether Joomla accepts sign-ups (Users: Options, Allow User Registration). A site
-     * that has not saved the option reads Joomla's own default, which is No.
+     * that has not saved the option reads Joomla's own default, which is No. The one
+     * reader: the storefront's sign-up form guards its submit with it too
+     * (RegistrationModel::registrationAllowed()), since com_users' own model, which
+     * creates the account, never reads the option.
      *
      *
      * @since  2.2.2
