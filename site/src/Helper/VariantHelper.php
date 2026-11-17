@@ -24,6 +24,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\ExplicitPriceInstruction;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContribution;
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
 use Alfa\Component\Alfa\Site\Service\Pricing\VariantSelection;
 use Alfa\Component\Alfa\Site\Service\Variant\CombinationResolver;
 use Joomla\CMS\Factory;
@@ -97,14 +98,38 @@ final class VariantHelper
      *                                             card and a product page pass null, always.
      * @param int[]|null $shownFieldIds The fields a listing card draws (null = every field; see resolve()).
      *
+     * @return PriceResult The result as the calculator states it, for a caller that judges it (the cart): the item
+     *                     itself carries it only when a price applies ({@see self::priceOnto()}).
+     *
      * @since  2.0.0
      */
-    public static function resolveAndPrice(object $item, array $selection, ?PriceContext $context, PriceCalculator $calculator, int $quantity = 1, array $optionValueIds = [], array $payloads = [], ?ExplicitPriceInstruction $price = null, ?array $shownFieldIds = null): void
+    public static function resolveAndPrice(object $item, array $selection, ?PriceContext $context, PriceCalculator $calculator, int $quantity = 1, array $optionValueIds = [], array $payloads = [], ?ExplicitPriceInstruction $price = null, ?array $shownFieldIds = null): PriceResult
     {
         $variantSelection = self::resolve($item, $selection, $optionValueIds, $payloads, $context, $shownFieldIds);
-        $item->price = $calculator->calculate((int) $item->id, $quantity, $context, $variantSelection, $price);
+        $result = $calculator->calculate((int) $item->id, $quantity, $context, $variantSelection, $price);
+        self::priceOnto(item: $item, result: $result);
 
         self::overlay($item, $item->variant->activeCombination ?? null);
+
+        return $result;
+    }
+
+    /**
+     * Give an item its price as every template reads it (2.2.2): the result when a price applies at the quantity it was
+     * priced at, null when none does, so the price block and the sale badge draw nothing and no zero is shown. The
+     * item also carries pricedFrom: for an item with no price there, the smallest quantity above it from which one
+     * applies, else null. The one place the product page, the card, the single-card reload and the cart give an item
+     * its price.
+     *
+     * @param object $item The item.
+     * @param PriceResult|null $result The calculator's result; null when the item was not priced.
+     *
+     * @since  2.2.2
+     */
+    public static function priceOnto(object $item, ?PriceResult $result): void
+    {
+        $item->price = $result !== null && $result->isPriced() ? $result : null;
+        $item->pricedFrom = $result !== null && !$result->isPriced() ? $result->pricedFrom() : null;
     }
 
     /**
@@ -506,16 +531,9 @@ final class VariantHelper
                 foreach ($event->getContributions() as $contribution) {
                     // Owner default: the collector knows the invoked plugin;
                     // an unset source becomes the field's plugin element.
+                    // Every other field kept, suppliesBase included (2.2.2).
                     if ($contribution->source === '') {
-                        $contribution = new PriceContribution(
-                            code:      $contribution->code,
-                            label:     $contribution->label,
-                            operation: $contribution->operation,
-                            amount:    $contribution->amount,
-                            target:    $contribution->target,
-                            sortOrder: $contribution->sortOrder,
-                            source:    (string) $field->type,
-                        );
+                        $contribution = $contribution->withSource(source: (string) $field->type);
                     }
 
                     $contributions[] = $contribution;

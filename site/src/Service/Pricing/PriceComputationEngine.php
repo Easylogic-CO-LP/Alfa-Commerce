@@ -142,6 +142,15 @@ class PriceComputationEngine
         $currency = $this->getCurrency($context);
         $breakdown = new PriceBreakdown();
 
+        // NO PRICE ROW, NO PRICE (2.2.2). With no row that applies to this shopper at this quantity and no explicit
+        // price, the product is not priced here: the result says so, carries no figure, and names the next quantity a
+        // row applies from. It is never priced at zero.
+        $baseRow = $this->selectBaseRow($prices, $quantity, $context->groupDistances());
+
+        if ($baseRow === null && $price === null) {
+            return PriceResult::notPriced(currency: $currency, quantity: $quantity, pricedFrom: self::pricedFrom(prices: $prices, quantity: $quantity));
+        }
+
         // Taxes are processed up front: an override pinned to the FINAL
         // price needs the exact factor the tax loop below will apply.
         $appliedTaxes = $this->processTaxes($taxes, $currency);
@@ -166,11 +175,12 @@ class PriceComputationEngine
         // taxes apply to, 'final' is the gross the customer pays. Representing
         // it AS a discount keeps the frontend display logic intact:
         // strikethrough base, -amount, savings percent.
-        $baseRow = $this->selectBaseRow($prices, $quantity, $context->groupDistances());
         $isOverride = $baseRow !== null
             && isset($baseRow->override_value)
             && $baseRow->override_value !== null
             && $baseRow->override_value !== '';
+        // Only an explicit price reaches here with no row: the operator's price states the line, and the ordinary
+        // pricing it supersedes had no list price.
         $listUnit = $baseRow === null ? '0' : self::catalogueUnit(value: $baseRow->value);
         $listLine = ExactAmount::of($listUnit)->times($quantity);
 
@@ -676,6 +686,37 @@ class PriceComputationEngine
         }
 
         return [$net, $taxTotal, $charged];
+    }
+
+    /**
+     * The smallest quantity above the one asked from which one of the rows applies (2.2.2): rows for 1 to 5 and from 10,
+     * asked at 7, answer 10; rows for 1 to 5 only, asked at 7, answer null. The rows are the ones that apply to the
+     * shopper (the loader kept their currency, place and dates); the quantity is what the cart and the page name.
+     *
+     * @param array $prices The price rows.
+     * @param int $quantity The quantity asked.
+     *
+     * @since  2.2.2
+     */
+    private static function pricedFrom(array $prices, int $quantity): ?int
+    {
+        $from = null;
+
+        foreach ($prices as $row) {
+            $start = $row->quantity_start ?? null;
+
+            if ($start === null || $start === '') {
+                continue;
+            }
+
+            $start = max(1, (int) ceil((float) $start));
+
+            if ($start > $quantity && ($from === null || $start < $from)) {
+                $from = $start;
+            }
+        }
+
+        return $from;
     }
 
     /**
