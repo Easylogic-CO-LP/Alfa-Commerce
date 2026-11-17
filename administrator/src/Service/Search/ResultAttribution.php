@@ -32,7 +32,8 @@ final class ResultAttribution
      * @param int|string|null $handle The provider's handle for this rendered result set; null when none.
      * @param string $order The shown order (ResultSetContext::$order).
      * @param bool $responseSpecific Whether the handle belongs to this response or visitor alone.
-     * @param string $engine The configured engine's key.
+     * @param string $engine The configured engine's key, as SearchEngineRegistry::configuredKey() reads it: '' for the
+     *                       database search (2.2.1; before, the listing said 'database').
      *
      * @since  2.2.0
      */

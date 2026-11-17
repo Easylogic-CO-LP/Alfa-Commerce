@@ -15,6 +15,8 @@ use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
+use Throwable;
 
 /**
  * Search engine picker, built from whatever is actually installed.
@@ -53,9 +55,22 @@ class SearchEngineField extends ListField
         $registry = new SearchEngineRegistry();
 
         foreach ($registry->all() as $key => $engine) {
-            $label = $engine->label();
+            // An engine that throws while naming itself or reporting its health is offered under its key, as not
+            // ready, and the screen renders (2.2.1): before, it took the whole Options screen down.
+            try {
+                $label = $engine->label();
+                $ready = $registry->readyOrFalse($engine, (string) $key);
+            } catch (Throwable $e) {
+                Log::add(
+                    entry:    "SearchEngineField: engine '{$key}' failed to give its label: " . $e->getMessage(),
+                    priority: Log::WARNING,
+                    category: 'com_alfa.search',
+                );
+                $label = (string) $key;
+                $ready = false;
+            }
 
-            if (!$engine->isReady()) {
+            if (!$ready) {
                 $label .= ' - ' . Text::_('COM_ALFA_CONFIG_SEARCH_ENGINE_NOT_READY');
             }
 

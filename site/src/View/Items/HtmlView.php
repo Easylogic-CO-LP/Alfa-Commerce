@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Event\Search\ResultSetRenderEvent;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
+use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\PageCache;
@@ -24,7 +25,6 @@ use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Facet\NarrowingFilters;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -380,13 +380,14 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The configured engine's key (the component option search_engine).
+     * The configured engine's key (the component option search_engine), from its one reader: '' for the database search
+     * (2.2.1).
      *
      * @since  2.2.0
      */
     private static function engineKey(): string
     {
-        return (string) ComponentHelper::getParams('com_alfa')->get('search_engine', 'database');
+        return SearchEngineRegistry::shared()->configuredKey();
     }
 
     /**

@@ -105,9 +105,11 @@ final class CartLinePresenter
                         'config' => $field->config ?? new Registry($field->params_decoded ?? []),
                     ]);
 
-                    $plugins->dispatchTo($plugin, $event);
-
-                    $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
+                    // Isolated (2.2.1): a plugin whose handler throws leaves the line its plain summary below,
+                    // logged once, and the cart renders.
+                    if ($plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . $fieldId . ') on a cart line')) {
+                        $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
+                    }
                 }
             }
 
