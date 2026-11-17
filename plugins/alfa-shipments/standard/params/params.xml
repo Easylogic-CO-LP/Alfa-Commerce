@@ -39,6 +39,9 @@
         sections=    shipping | billing | registration: which checkout section.
         multiple=    offer several; read them with $cart->delivery()->fields()
                      or ->firstFilled().
+        defaultrole= start a setting never saved on the offered field carrying
+                     that role: address, city or postcode (2.2.1; a shop
+                     installed before 2.2.1 has none and starts on nothing).
 
         IT SAVES THE FIELD'S ID, NOT THE COLUMN NAME. Renaming a field rewrites
         the name and ALTERs the column; an id does not move. Read it back with
@@ -255,12 +258,15 @@
                 address. Cost rows whose band is unrestricted still match; rows
                 with a real band do not.
             -->
+            <!-- defaultrole (2.2.1): a new method starts on the shop's postcode field, which a new shop ships with the
+                 role postcode; a shop installed before 2.2.1 has no such role and starts on nothing, as before. -->
             <field
                     name="postcode_field"
                     type="checkoutfield"
                     addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
                     types="text"
                     sections="shipping,billing"
+                    defaultrole="postcode"
                     label="PLG_ALFA_SHIPMENTS_STANDARD_POSTCODE_FIELD_LABEL"
                     description="PLG_ALFA_SHIPMENTS_STANDARD_POSTCODE_FIELD_DESC"
             >
