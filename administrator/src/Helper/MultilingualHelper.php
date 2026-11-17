@@ -497,7 +497,7 @@ class MultilingualHelper
                 );
             }
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             self::log(
@@ -3742,7 +3742,7 @@ class MultilingualHelper
                 );
             }
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             self::log(

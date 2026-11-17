@@ -423,7 +423,7 @@ class CartRepository
             return false;
         }
 
-        $db = $this->db;
+        $db = $this->transactional();
         $db->transactionStart(true);
 
         try {
@@ -446,7 +446,7 @@ class CartRepository
 
             $removed = (int) $db->getAffectedRows() > 0;
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
 
             return $removed;
         } catch (Throwable $e) {
@@ -483,7 +483,7 @@ class CartRepository
             return;
         }
 
-        $db = $this->db;
+        $db = $this->transactional();
         $db->transactionStart(true);
 
         try {
@@ -506,7 +506,7 @@ class CartRepository
                     ->where($db->quoteName('id_cart') . ' = ' . (int) $cartId),
             )->execute();
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
 
@@ -539,7 +539,7 @@ class CartRepository
             return;
         }
 
-        $db = $this->db;
+        $db = $this->transactional();
         $db->transactionStart(true);
 
         try {
@@ -549,7 +549,7 @@ class CartRepository
                     ->where($db->quoteName('id') . ' = ' . (int) $cartId),
             )->execute();
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
 
@@ -827,7 +827,7 @@ class CartRepository
             return false;
         }
 
-        $db = $this->db;
+        $db = $this->transactional();
         $db->transactionStart(true);
 
         try {
@@ -841,7 +841,7 @@ class CartRepository
             if ((int) $db->getAffectedRows() === 0) {
                 // Touched since it was chosen, or already gone. Either way this
                 // is not our cart to take.
-                $db->transactionRollback(true);
+                TransactionState::rollBackLevel(db: $db);
 
                 return false;
             }
@@ -861,7 +861,7 @@ class CartRepository
 
             // The codes went with the cart row: #__alfa_cart_coupons carries the
             // only foreign key on these tables, ON DELETE CASCADE.
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
 
             return true;
         } catch (Throwable $e) {
@@ -1236,7 +1236,7 @@ class CartRepository
             return [];
         }
 
-        $db = $this->db;
+        $db = $this->transactional();
         $db->transactionStart(true);
 
         try {
@@ -1266,7 +1266,7 @@ class CartRepository
                     ->where($db->quoteName('id') . ' = ' . (int) $guestCartId),
             )->execute();
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
 
             return $moved;
         } catch (Throwable $e) {
@@ -1720,7 +1720,7 @@ class CartRepository
             return [];
         }
 
-        $db = $this->db;
+        $db = $this->transactional();
         $db->transactionStart(true);
 
         try {
@@ -1732,7 +1732,7 @@ class CartRepository
             )->loadObjectList() ?: [];
 
             if ($rows === []) {
-                $db->transactionCommit(true);
+                TransactionState::commitLevel(db: $db);
 
                 return [];
             }
@@ -1759,7 +1759,7 @@ class CartRepository
                     ->whereIn($db->quoteName('id'), $cartIds),
             )->execute();
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
 
             return $cartIds;
         } catch (Throwable $e) {
@@ -1794,7 +1794,7 @@ class CartRepository
             return [];
         }
 
-        $db = $this->db;
+        $db = $this->transactional();
         $db->transactionStart(true);
 
         try {
@@ -1825,7 +1825,7 @@ class CartRepository
                 )->execute();
             }
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $db);
 
             return $cartIds;
         } catch (Throwable $e) {

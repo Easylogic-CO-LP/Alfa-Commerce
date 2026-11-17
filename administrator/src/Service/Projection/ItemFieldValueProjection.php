@@ -14,8 +14,10 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use LogicException;
 use Throwable;
 
 /**
@@ -82,7 +84,7 @@ class ItemFieldValueProjection implements ProjectionInterface
             try {
                 $this->deleteRows([$itemId]);
                 $this->insertRows($itemId, $references);
-                $this->db->transactionCommit(true);
+                TransactionState::commitLevel(db: $this->transactional());
             } catch (Throwable $e) {
                 TransactionState::rollBackLevel(db: $this->db, failure: $e);
 
@@ -155,7 +157,7 @@ class ItemFieldValueProjection implements ProjectionInterface
                         $this->insertRows((int) $itemId, $this->collector->collect((int) $itemId));
                     }
 
-                    $this->db->transactionCommit(true);
+                    TransactionState::commitLevel(db: $this->transactional());
                 } catch (Throwable $e) {
                     TransactionState::rollBackLevel(db: $this->db, failure: $e);
 
@@ -283,6 +285,23 @@ class ItemFieldValueProjection implements ProjectionInterface
             . implode(', ', $rows);
 
         $this->db->setQuery($sql)->execute();
+    }
+
+    /**
+     * The connection as the driver whose transaction levels TransactionState keeps: every connection Joomla's
+     * container hands out is one, and a level this class opens is closed through it.
+     *
+     * @throws LogicException When the connection keeps no transaction levels.
+     *
+     * @since  2.2.2
+     */
+    private function transactional(): DatabaseDriver
+    {
+        if (!$this->db instanceof DatabaseDriver) {
+            throw new LogicException('The item field value projection needs a database driver that keeps transaction levels.');
+        }
+
+        return $this->db;
     }
 
     /**
