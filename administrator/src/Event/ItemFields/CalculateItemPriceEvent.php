@@ -12,7 +12,7 @@
  * never globally dispatched, so a handler only ever receives its OWN typed event
  * for its OWN field (the instanceof guard is therefore defensive). The plugin
  * reads the item, its field, the buyer's opaque payload and its own per-item
- * config, then either APPENDS declarative price lines or OVERRIDES the final:
+ * config, then APPENDS declarative price lines:
  *
  *   public function onCalculateItemPrice($event): void
  *   {
@@ -23,17 +23,18 @@
  *           $event->contribution('configurator3d.images')
  *               ->label('3 images')->add(5.00)->onGross();
  *       }
- *       // or pin the final outright: $event->setOverrideFinal(99.0);
  *   }
  *
  * Contributions are DECLARATIVE (operation + amount + net/gross target), so the
  * engine folds each through the SAME primitive option deltas use
  * (PriceComputationEngine::applyVariantAdjust) in sortOrder, and each becomes a
- * labeled step in the breakdown. The SAME event runs for the catalog price, the
+ * labeled step in the breakdown. 2.2.1 removed setOverrideFinal() and
+ * getOverrideFinal(): the engine never read the pinned final, so a price pinned
+ * through them changed nothing. The SAME event runs for the catalog price, the
  * live item-page preview and the cart line, so a configurator prices identically
  * everywhere.
  *
- * Outputs live in PLAIN properties (+ addContribution()/setOverrideFinal());
+ * Outputs live in PLAIN properties (+ addContribution());
  * NEVER a setX matching an argument key (the Joomla AbstractEvent magic-set trap
  * would null it at construction; see Dev-Notes -> "AbstractEvent set{Ucfirst} magic
  * trap").
@@ -61,13 +62,6 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * @since  2.0.0
      */
     protected array $contributions = [];
-
-    /**
-     * @var float|null The pinned final price, or null when no override.
-     *
-     * @since  2.0.0
-     */
-    protected ?float $overrideFinal = null;
 
     /**
      * The item being priced (the event subject).
@@ -179,33 +173,5 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
                 : $entry,
             $this->contributions,
         );
-    }
-
-    /**
-     * Pin the FINAL price outright: wins over every contribution. The engine
-     * carves taxes out at runtime so invoices stay truthful (same semantics as a
-     * pinned-final custom discount).
-     *
-     * @param float $final The customer-facing final price.
-     *
-     *
-     * @since  2.0.0
-     */
-    public function setOverrideFinal(float $final): static
-    {
-        $this->overrideFinal = $final;
-
-        return $this;
-    }
-
-    /**
-     * The pinned final, or null when no override.
-     *
-     *
-     * @since  2.0.0
-     */
-    public function getOverrideFinal(): ?float
-    {
-        return $this->overrideFinal;
     }
 }

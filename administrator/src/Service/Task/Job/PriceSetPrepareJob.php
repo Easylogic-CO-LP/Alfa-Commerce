@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
@@ -41,7 +42,7 @@ final class PriceSetPrepareJob implements JobHandler
      *
      * @since  2.2.0
      */
-    public const NAME = 'price.set.prepare';
+    public const NAME = DueRead::PRICE_SET_PREPARE;
 
     /**
      * The scope of a set's job.

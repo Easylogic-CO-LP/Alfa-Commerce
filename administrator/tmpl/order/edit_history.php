@@ -182,7 +182,7 @@ $actionColors = [
 												if (is_array($toDisplay)) $toDisplay = json_encode($toDisplay);
 												?>
                                                 <tr>
-                                                    <td class="fw-bold"><?php echo $this->escape($field); ?></td>
+                                                    <td class="fw-bold"><?php echo $this->escape(OrderHistoryHelper::fieldLabel(name: (string) $field)); ?></td>
                                                     <td class="text-danger"><?php echo $this->escape($fromDisplay); ?></td>
                                                     <td class="text-success"><?php echo $this->escape($toDisplay); ?></td>
                                                 </tr>
@@ -250,7 +250,8 @@ $actionColors = [
 										<?php endforeach; ?>
 									<?php else : ?>
                                         <!-- Generic: key-value list, read by OrderHistoryHelper::details() (2.2.0's UX round: the sentence's
-                                             record and the handler left out, the task, the recipients and a gateway said in words) -->
+                                             record and the handler left out, the task, the recipients and a gateway said in words; 2.2.1: each
+                                             field by its label) -->
                                         <div class="mt-2 p-2 bg-body-tertiary rounded" style="font-size:.85em;">
 											<?php foreach (OrderHistoryHelper::details($context) as [$key, $val]) : ?>
                                                 <div class="d-flex justify-content-between py-1 border-bottom">

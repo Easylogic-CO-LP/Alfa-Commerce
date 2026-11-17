@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Cart;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartActivity;
@@ -43,6 +44,17 @@ class HtmlView extends BaseHtmlView
      * @since  2.0.0
      */
     protected string $alfaEntity = 'cart';
+
+    /**
+     * One cart is an edit screen, not a list (2.2.1): a plugin targeting 'cart' sees SCREEN_EDIT, and the
+     * list's row and bulk action events, which have no rows here, are not raised.
+     *
+     * @since  2.2.1
+     */
+    protected function alfaScreen(): string
+    {
+        return AlfaAdminContext::SCREEN_EDIT;
+    }
 
     /**
      * @var object|null The cart, with its lines, its codes and its owner.

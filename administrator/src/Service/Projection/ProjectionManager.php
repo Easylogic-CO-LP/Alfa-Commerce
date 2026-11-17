@@ -115,7 +115,7 @@ class ProjectionManager
             $plugins->importGroup('alfa-search');
             $plugins->importGroup('alfa');
 
-            $event = new CollectCatalogProjectionsEvent('onCollectCatalogProjections', ['projections' => []]);
+            $event = new CollectCatalogProjectionsEvent('onCollectCatalogProjections');
             $plugins->dispatchIsolated($event);
 
             foreach ($event->getProjections() as $entry) {

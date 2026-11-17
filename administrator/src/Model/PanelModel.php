@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Panel\PanelResolver;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormHelper;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 use Joomla\Database\DatabaseQuery;
@@ -325,8 +326,18 @@ class PanelModel extends ListModel
     }
 
     /**
-     * The current page of rows. Cast so a query error (native {@see ListModel::getItems}
-     * can return false) reaches the layout as an empty list, never a non-iterable.
+     * Whether the current page of rows could not be read (2.2.1).
+     *
+     *
+     * @since  2.2.1
+     */
+    private bool $listFailed = false;
+
+    /**
+     * The current page of rows. A query error (native {@see ListModel::getItems} answers false and keeps the
+     * database's message as the model's error) reaches the layout as an empty list, never as one false row (2.2.1:
+     * the (array) cast made [false] of it); the message is logged, and {@see self::listFailed()} says so for
+     * the view to tell staff, without the database's words.
      *
      * @return mixed[]
      *
@@ -334,6 +345,25 @@ class PanelModel extends ListModel
      */
     public function getItems(): array
     {
-        return (array) parent::getItems();
+        $items = parent::getItems();
+
+        if ($items !== false) {
+            return $items;
+        }
+
+        $this->listFailed = true;
+        Log::add('Panel ' . ($this->getIdentity()?->key() ?? '') . ': the list could not be read: ' . $this->getError(), Log::ERROR, 'com_alfa.panel');
+
+        return [];
+    }
+
+    /**
+     * Whether the last getItems() could not read the rows (its message logged).
+     *
+     * @since  2.2.1
+     */
+    public function listFailed(): bool
+    {
+        return $this->listFailed;
     }
 }
