@@ -353,7 +353,7 @@ class ItemModel extends BaseItemModel
 
             // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
             // product page renders without it.
-            if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') on the item page')) {
+            if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') on the product page')) {
                 // What the failed plugin wrote on the item's cart is not kept (2.2.2).
                 $item->cart = $cart;
                 $item->cartChildren = $cartChildren;
