@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -299,7 +300,8 @@ final class Runner
     /**
      * Whether a trigger has work to run now, in one statement (design 2.7): a pending job due, a running job whose lease
      * passed, a single recovery would take, a waiting price set whose job is gone, a stock movement owed with no
-     * drain job to apply it, or an item's rebuild owed past the grace with no catalogue job. A heavy job running under a live lease is not due, so pages stop kicking by themselves.
+     * drain job to apply it, an item's rebuild owed past the grace with no catalogue job, or a stored price period that
+     * began, older than the lag, and is not announced yet (2.2.2). A heavy job running under a live lease is not due, so pages stop kicking by themselves.
      * A failure answers false, logged: a page never fails for it.
      *
      * @since  2.2.0
@@ -409,6 +411,7 @@ final class Runner
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_price_group_sets', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db);
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_inventory_effect_outbox') . ' WHERE ' . self::owedMovementWithoutDrain(db: $db);
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_items') . ' WHERE ' . self::markWithoutCatalogueJob(db: $db);
+        $probes[] = DueRead::windowsProbe(db: $db, until: DueRead::windowsUntil());
 
         return $probes;
     }
@@ -472,8 +475,9 @@ final class Runner
     /**
      * The work a tick owes before it looks for due jobs: a job for each waiting price set with no job of its scope
      * (one whose job failed is not among them), the drain while movements are owed, the catalogue job for a rebuild
-     * mark older than the grace that no job was asked for, and the prune of finished tasks once an hour
-     * (TasksPruneJob::owe()). Each is logged and left on a failure: the tick goes on.
+     * mark older than the grace that no job was asked for, the prune of finished tasks once an hour
+     * (TasksPruneJob::owe()), and the announcement of the stored price periods that began
+     * (PriceIndexSyncService::announceOpenedWindows(), 2.2.2). Each is logged and left on a failure: the tick goes on.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -511,6 +515,12 @@ final class Runner
             Job\TasksPruneJob::owe(db: $db);
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the prune of finished tasks could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+        }
+
+        try {
+            PriceIndexSyncService::announceOpenedWindows();
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Runner: the price periods that began could not be announced: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
         }
     }
 
