@@ -32,6 +32,7 @@ use Joomla\CMS\Language\Text;
 
 $esc = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 $link = (string) ($item->link ?? '');
+$sellsOnline = (bool) ($item->sellsOnline ?? true);
 
 // The link must say what it leads to: an item never translated into the active
 // language has no name, so its SKU names it, and failing that its id.
@@ -56,10 +57,15 @@ if ($name === '') {
             <a href="<?php echo $esc($link); ?>"><?php echo $esc($name); ?></a>
         </div>
         <?php echo Surface::render(owner: $item, slot: ItemListSurface::Title); ?>
+        <?php // Catalogue only (2.2.2, $item->sellsOnline false): a plain block, no form; the fields arrive as read-only lists.?>
+        <?php if ($sellsOnline) : ?>
         <form class="item-card-buy" data-item-form data-action="<?php echo $esc($reloadUrl); ?>"
               action="<?php echo $esc((string) ($item->addToCartUrl ?? '')); ?>" method="post">
             <input type="hidden" name="item_id" value="<?php echo (int) $item->id; ?>">
             <?php echo HTMLHelper::_('form.token'); ?>
+        <?php else : ?>
+        <div class="item-card-catalogue">
+        <?php endif; ?>
             <div class="item-fields-surfaces">
                 <?php echo Surface::render(owner: $item, slot: ItemListSurface::BuyForm); ?>
             </div>
@@ -72,6 +78,6 @@ if ($name === '') {
             <?php echo Layout::render(layout: 'item.price', data: ['item' => $item, 'settings' => $priceSettings]); ?>
             <?php echo Layout::render(layout: 'item.stock_info', data: ['item' => $item]); ?>
             <?php echo Layout::render(layout: 'cart.wrapper', data: $item); ?>
-        </form>
+        <?php echo $sellsOnline ? '</form>' : '</div>'; ?>
     </div>
 </article>

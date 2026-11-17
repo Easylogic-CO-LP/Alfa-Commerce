@@ -16,8 +16,10 @@ use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
@@ -204,6 +206,13 @@ class PriceIndexSyncService
      * @since  2.2.0
      */
     private static ?stdClass $announcement = null;
+
+    /**
+     * Whether this request has logged the missing or unreadable cursor of the announced price periods (once a request).
+     *
+     * @since  2.2.2
+     */
+    private static bool $cursorWarned = false;
 
     /**
      * Whether an onAlfaPricesChanged is being delivered now, and the announcements raised meanwhile (a listener that
@@ -1603,6 +1612,227 @@ class PriceIndexSyncService
                 PostCommit::defer(db: TransactionState::driver(Factory::getContainer()->get('DatabaseDriver')), label: PricesChangedEvent::NAME, work: $deliver);
             }
         }
+    }
+
+    /**
+     * Announce the stored price periods that began (2.2.2): onAlfaPricesChanged with the cause window, one PriceChange
+     * per slot (product, combination, currency, place, set of pricing groups) whose final price moved at the moment its
+     * period began, the period that ended as the old price (none for a slot with no period before it: a new row). Run
+     * by each turn of the task runner (Runner's owe step); nothing is written to the index.
+     *
+     * HOW FAR: the cursor row DueRead::META_WINDOWS. The periods that began after it, and at least
+     * DueRead::WINDOW_LAG_SECONDS ago (a chunk of the writer decides its live period at its start and commits after),
+     * are read in one statement, in idx_validity's order (moment, end, slot: {@see self::openedPeriodsQuery()}), at most
+     * ANNOUNCE_LIMIT; the cursor then moves to the latest moment announced (plus one second), or, when the limit was
+     * reached, to the moment and the position of the last row announced (its end and slot), so one large moment goes out
+     * as several exact events, no row twice, none passed over, each part reading only its own rows. It never moves back.
+     * The cursor is read again under a row lock: two turns at once announce once. With nothing listening the turn only
+     * moves the cursor. A missing cursor row is logged as a WARNING and nothing is announced; it is never seeded here.
+     *
+     * @since  2.2.2
+     */
+    public static function announceOpenedWindows(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        if (!$db instanceof DatabaseDriver) {
+            return;
+        }
+
+        $until = DueRead::windowsUntil();
+        $cursor = self::windowCursor(db: $db, lock: false);
+
+        if ($cursor === null || !$db->setQuery(DueRead::windowsProbe(db: $db, until: $until), 0, 1)->loadResult()) {
+            return;
+        }
+
+        self::announcing(cause: PricesChangedEvent::CAUSE_WINDOW, causeId: 0, work: static function () use ($db, $until): void {
+            $announcement = self::$announcement;
+            $changes = [];
+            $db->transactionStart(true);
+
+            try {
+                $cursor = self::windowCursor(db: $db, lock: true);
+
+                if ($cursor === null) {
+                    TransactionState::commitLevel(db: $db);
+
+                    return;
+                }
+
+                $rows = $announcement !== null && $announcement->listening
+                    ? self::openedPeriods(db: $db, from: $cursor['from'], after: $cursor['after'], until: $until, limit: self::ANNOUNCE_LIMIT + 1)
+                    : [];
+                $capped = \count($rows) > self::ANNOUNCE_LIMIT;
+                $rows = \array_slice($rows, 0, self::ANNOUNCE_LIMIT);
+                $last = $rows === [] ? null : $rows[array_key_last($rows)];
+                $next = $capped && $last !== null
+                    ? $last->valid_from . '#' . implode(',', [$last->valid_until ?? '-', (int) $last->item_id, (int) $last->combination_id, (int) $last->currency_id, (int) $last->place_id, (int) $last->group_set_id])
+                    : gmdate('Y-m-d H:i:s', (int) strtotime($until . ' UTC') + 1);
+
+                // Never back: a clock set back leaves the cursor where it is until the clock passes it again.
+                if (strcmp(substr($next, 0, 19), $cursor['from']) >= 0) {
+                    $db->setQuery(
+                        'UPDATE ' . $db->quoteName('#__alfa_meta') . ' SET ' . $db->quoteName('value') . ' = ' . $db->quote($next)
+                        . ' WHERE ' . $db->quoteName('name') . ' = ' . $db->quote(DueRead::META_WINDOWS),
+                    )->execute();
+                }
+
+                foreach ($rows as $row) {
+                    $old = (int) $row->had_before === 1 ? (string) $row->old_final : null;
+
+                    if ($old !== null && $old === (string) $row->final_price) {
+                        continue;
+                    }
+
+                    $changes[] = new PriceChange(
+                        itemId: (int) $row->item_id,
+                        combinationId: (int) $row->combination_id,
+                        currencyId: (int) $row->currency_id,
+                        placeId: (int) $row->place_id,
+                        groupSetId: (int) $row->group_set_id,
+                        validFrom: (string) $row->valid_from,
+                        validUntil: $row->valid_until === null ? null : (string) $row->valid_until,
+                        oldFinalPrice: $old,
+                        newFinalPrice: (string) $row->final_price,
+                    );
+                }
+
+                TransactionState::commitLevel(db: $db);
+            } catch (Throwable $e) {
+                TransactionState::rollBackLevel(db: $db, failure: $e);
+
+                throw $e;
+            }
+
+            if ($announcement === null || !$announcement->listening) {
+                return;
+            }
+
+            foreach ($changes as $change) {
+                $announcement->changes[] = $change;
+                $announcement->items[$change->itemId] = true;
+                $announcement->sets[$change->groupSetId] = true;
+            }
+        });
+    }
+
+    /**
+     * The cursor of the announced price periods ({@see self::announceOpenedWindows()}): its moment and, while that
+     * moment is announced in parts, the position of the last row announced in it (the row's valid_until, null for an
+     * open end, and its slot key). Null, with a WARNING once a request, when the row is missing or unreadable.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param bool $lock Read it under a row lock (inside the announcing transaction).
+     *
+     * @return array{from: string, after: array{until: string|null, slot: list<int>}|null}|null
+     *
+     * @since  2.2.2
+     */
+    private static function windowCursor(DatabaseDriver $db, bool $lock): ?array
+    {
+        $value = $db->setQuery(
+            'SELECT ' . $db->quoteName('value') . ' FROM ' . $db->quoteName('#__alfa_meta')
+            . ' WHERE ' . $db->quoteName('name') . ' = ' . $db->quote(DueRead::META_WINDOWS) . ($lock ? ' FOR UPDATE' : ''),
+        )->loadResult();
+        $moment = '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/';
+        $parts = $value === null ? [] : explode('#', (string) $value, 2);
+        $from = $parts[0] ?? '';
+        $position = isset($parts[1]) ? explode(',', $parts[1]) : null;
+        $readable = preg_match($moment, $from) === 1
+            && ($position === null || (\count($position) === 6 && ($position[0] === '-' || preg_match($moment, $position[0]) === 1)));
+
+        if (!$readable) {
+            if (self::$cursorWarned) {
+                return null;
+            }
+
+            self::$cursorWarned = true;
+            AlfaLog::register();
+            Log::add(
+                '[PriceIndexSyncService] The cursor of the announced price periods (#__alfa_meta ' . DueRead::META_WINDOWS . ') is '
+                . ($value === null ? 'missing' : 'unreadable') . '; no period is announced until the installation writes it again.',
+                Log::WARNING,
+                'com_alfa',
+            );
+
+            return null;
+        }
+
+        return [
+            'from' => $from,
+            'after' => $position === null ? null : [
+                'until' => $position[0] === '-' ? null : $position[0],
+                'slot' => array_map('intval', \array_slice($position, 1)),
+            ],
+        ];
+    }
+
+    /**
+     * The stored periods that began after the cursor and no later than $until, each with the final price of the period
+     * of its slot that ended at that moment (had_before 0: none), in idx_validity's order.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $from The cursor's moment.
+     * @param array{until: string|null, slot: list<int>}|null $after The last row announced at that moment; null: none
+     *                                                               of that moment is announced.
+     * @param string $until The latest moment.
+     * @param int $limit At most this many rows.
+     *
+     * @return list<object>
+     *
+     * @since  2.2.2
+     */
+    private static function openedPeriods(DatabaseDriver $db, string $from, ?array $after, string $until, int $limit): array
+    {
+        return $db->setQuery(self::openedPeriodsQuery(db: $db, from: $from, after: $after, until: $until), 0, $limit)->loadObjectList() ?: [];
+    }
+
+    /**
+     * The statement of {@see self::openedPeriods()}, without its limit.
+     *
+     * THE ORDER IS idx_validity's (RD4A-32): valid_from, valid_until, then the slot (item, combination, currency, place,
+     * set of pricing groups), which InnoDB keeps after the index's own columns (the primary key). Read in that order,
+     * each part of a moment larger than the limit starts at the cursor's position in the index and stops after the
+     * limit's rows: nothing announced is read again, joined or sorted. The position is the whole order key, and the key
+     * is unique (a slot has one row per valid_from), so no row is read twice and none is passed over. The position is
+     * written as a disjunction of ranges on the index's columns (a later moment; at the moment, a later end; at the
+     * moment and end, a later slot), so both engines read it as ranges of the index; an open end (NULL) sorts first.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $from The cursor's moment.
+     * @param array{until: string|null, slot: list<int>}|null $after The position inside that moment, or null.
+     * @param string $until The latest moment.
+     *
+     * @since  2.2.2
+     */
+    private static function openedPeriodsQuery(DatabaseDriver $db, string $from, ?array $after, string $until): string
+    {
+        $slot = ['item_id', 'combination_id', 'currency_id', 'place_id', 'group_set_id'];
+        $column = static fn (string $name): string => $db->quoteName('i.' . $name);
+        $join = implode(' AND ', array_map(static fn (string $name): string => $db->quoteName('p.' . $name) . ' = ' . $db->quoteName('i.' . $name), $slot));
+        $position = '';
+
+        if ($after !== null) {
+            $atMoment = $column('valid_from') . ' = ' . $db->quote($from);
+            $sameEnd = $after['until'] === null ? $column('valid_until') . ' IS NULL' : $column('valid_until') . ' = ' . $db->quote($after['until']);
+            $laterEnd = $after['until'] === null ? $column('valid_until') . ' IS NOT NULL' : $column('valid_until') . ' > ' . $db->quote($after['until']);
+            $ranges = [$column('valid_from') . ' > ' . $db->quote($from), '(' . $atMoment . ' AND ' . $laterEnd . ')'];
+
+            foreach ($slot as $i => $name) {
+                $equal = array_map(static fn (string $prior, int $value): string => $column($prior) . ' = ' . $value, \array_slice($slot, 0, $i), \array_slice($after['slot'], 0, $i));
+                $ranges[] = '(' . implode(' AND ', [$atMoment, $sameEnd, ...$equal, $column($name) . ' > ' . (int) $after['slot'][$i]]) . ')';
+            }
+
+            $position = ' AND (' . implode(' OR ', $ranges) . ')';
+        }
+
+        return 'SELECT ' . implode(', ', array_map($column, [...$slot, 'valid_from', 'valid_until', 'final_price']))
+            . ', ' . $db->quoteName('p.final_price', 'old_final') . ', (' . $db->quoteName('p.item_id') . ' IS NOT NULL) AS ' . $db->quoteName('had_before')
+            . ' FROM ' . $db->quoteName('#__alfa_items_price_index', 'i')
+            . ' LEFT JOIN ' . $db->quoteName('#__alfa_items_price_index', 'p') . ' ON ' . $join . ' AND ' . $db->quoteName('p.valid_until') . ' = ' . $column('valid_from')
+            . ' WHERE ' . $column('valid_from') . ' >= ' . $db->quote($from) . ' AND ' . $column('valid_from') . ' <= ' . $db->quote($until) . $position
+            . ' ORDER BY ' . implode(', ', array_map($column, ['valid_from', 'valid_until', ...$slot]));
     }
 
     /**
