@@ -2306,12 +2306,11 @@ class com_alfaInstallerScript extends InstallerScript
             key:      'COM_ALFA_INSTALL_EMAIL_LAYOUTS_SITE_TEMPLATE',
             fallback: 'Alfa Commerce %1$s reads the e-mail layout overrides from the default administrator template'
                 . ' only. These files in a site template are no longer read: %2$s. Copy each one you want to keep into'
-                . ' the html/layouts/com_alfa/emails folder of the default administrator template. Nothing was moved'
-                . ' or deleted.',
+                . ' the same subfolder (order or partials) under %3$s. Nothing was moved or deleted.',
             values:   [$this->packageVersion, implode('; ', array_map(
                 static fn (string $file): string => htmlspecialchars($file, ENT_QUOTES, 'UTF-8'),
                 $files,
-            ))],
+            )), htmlspecialchars(self::administratorEmailLayoutFolder(), ENT_QUOTES, 'UTF-8')],
         ), 'warning');
 
         foreach ($files as $file)
@@ -2319,6 +2318,35 @@ class com_alfaInstallerScript extends InstallerScript
             self::maintenanceLog('Update to ' . $this->packageVersion . ': an e-mail layout override in a site template,'
                 . ' no longer read; move it to the administrator template: ' . $file, \Joomla\CMS\Log\Log::WARNING);
         }
+    }
+
+    /**
+     * Where an e-mail layout override is read from since 2.2.1, relative to the site root: the default administrator
+     * template's html/layouts/com_alfa/emails ({@see \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts}),
+     * named by that template's own folder. When no default administrator template style can be read, the folder is
+     * described in words instead, so the warning still says where to copy.
+     *
+     * @return  string
+     * @since   2.2.1
+     */
+    private static function administratorEmailLayoutFolder(): string
+    {
+        try
+        {
+            $paths = \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts::includePaths();
+            $first = (string) ($paths[0] ?? '');
+
+            if (\count($paths) > 1 && str_starts_with($first, JPATH_ADMINISTRATOR . '/templates/'))
+            {
+                return ltrim(substr($first, \strlen(JPATH_ROOT)), '/') . '/emails';
+            }
+        }
+        catch (\Throwable)
+        {
+            // Described in words below.
+        }
+
+        return 'html/layouts/com_alfa/emails of the default administrator template';
     }
 
     /**
