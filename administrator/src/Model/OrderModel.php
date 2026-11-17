@@ -999,7 +999,15 @@ class OrderModel extends AlfaAdminModel
             );
         }
 
-        return parent::validate($form, $data, $group);
+        $valid = parent::validate($form, $data, $group);
+
+        // invoice_differs is not a field of the form, so the filter drops it; a submission that states it (the edit
+        // form's ticked box, or a REST PATCH) keeps it, as 1 or 0, for save() to read as its choice about the invoice.
+        if (\is_array($valid) && \array_key_exists('invoice_differs', $data)) {
+            $valid['invoice_differs'] = empty($data['invoice_differs']) ? 0 : 1;
+        }
+
+        return $valid;
     }
 
     /**
@@ -4486,6 +4494,12 @@ class OrderModel extends AlfaAdminModel
         // can say anything about the addresses; one that does not leaves them as they are.
         $hasAddressSection = \array_key_exists(FieldsHelper::FIELDS_KEY, $data);
 
+        // Whether it says anything about the invoice details: the edit form, whose unticked box is the "invoice to the
+        // delivery address" choice, or a submission that states invoice_differs (a REST PATCH may send the invoice
+        // details without the delivery details). Invoice details sent without invoice_differs are dropped by the
+        // validation, as the checkout drops them, and change nothing.
+        $hasInvoiceChoice = $hasAddressSection || \array_key_exists('invoice_differs', $data);
+
         // Rows this save re-points AWAY from. Collected rather than deleted on
         // the spot: the invoice pointer may still be on the delivery row at
         // this point and only settles a few lines below, so a sweep here would
@@ -4559,14 +4573,15 @@ class OrderModel extends AlfaAdminModel
             // address" choice: the same contract the checkout uses, and what
             // keeps a de-ticked order from keeping a stale invoice record.
             //
-            // A submission WITHOUT the section made no such choice. Reading its
-            // missing bucket as one re-pointed the invoice at the delivery record
-            // on every inline note or status change and, for a guest, discarded
-            // the separate invoice record for good. The API controller documents
-            // the same collapse and restores the pointer around its own saves.
+            // A submission that carries neither the section nor invoice_differs
+            // made no such choice. Reading its missing bucket as one re-pointed the
+            // invoice at the delivery record on every inline note or status change
+            // and, for a guest, discarded the separate invoice record for good. The
+            // API controller documents the same collapse and restores the pointer
+            // around its own saves.
             $previousInvoiceId = (int) ($prevOrder->id_address_invoice ?? 0);
 
-            if ($hasAddressSection) {
+            if ($hasInvoiceChoice) {
                 if (
                     !$this->saveInvoiceInfo(
                         orderId: $orderId,
