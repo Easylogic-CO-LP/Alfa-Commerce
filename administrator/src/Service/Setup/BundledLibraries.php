@@ -12,8 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 \defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use Throwable;
 
 /**
  * The Joomla libraries Alfa Commerce installs with itself (alfa.xml), by the feature that needs them, and whether a
@@ -46,8 +48,10 @@ final class BundledLibraries
     ];
 
     /**
-     * The libraries the phone field (Alfa Fields - Phone) needs to check a number: libphonenumber and the locale data
-     * it reads, each by its library name with one class of it.
+     * The library a phone number is checked and stored with (the phone field, Alfa Fields - Phone, and the
+     * administrator's telephone fields): libphonenumber, by its library name with the class they use. The locale data
+     * installed beside it (giggsey/locale) is read only by its carrier and place names, which Alfa Commerce does not
+     * use, so it is not asked for.
      *
      * @var array<string, class-string>
      *
@@ -55,7 +59,6 @@ final class BundledLibraries
      */
     public const PHONE = [
         'libphonenumber' => \libphonenumber\PhoneNumberUtil::class,
-        'giggsey/locale' => \Giggsey\Locale\Locale::class,
     ];
 
     /**
@@ -92,5 +95,25 @@ final class BundledLibraries
         }
 
         return $unavailable;
+    }
+
+    /**
+     * Whether every library of a set can be used here: {@see self::unavailable()} names none. The point of use asks
+     * this one: a reading that fails is logged and answered as not available, so the feature refuses with its own
+     * plain message rather than a database error.
+     *
+     * @param array<string, class-string> $libraries {@see self::PDF} or {@see self::PHONE}.
+     *
+     * @since  2.2.2
+     */
+    public static function available(array $libraries): bool
+    {
+        try {
+            return self::unavailable(libraries: $libraries) === [];
+        } catch (Throwable $e) {
+            Log::add('The bundled libraries could not be read (' . implode(', ', array_keys($libraries)) . '): ' . $e::class . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+
+            return false;
+        }
     }
 }

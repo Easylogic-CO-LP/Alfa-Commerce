@@ -1030,9 +1030,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
     /**
      * After an Alfa extension is installed, updated or uninstalled (2.2.1): the notification that names the extensions
-     * not known to work with this Alfa Commerce follows the verdict ({@see ExtensionCompatibility::notify()} without an
-     * alert): raised again, unread, when an extension is newly named (2.2.2), brought up to date when one is no longer
-     * named, withdrawn when none is left. Not while Alfa is in maintenance. Never breaks the caller.
+     * not known to work with this Alfa Commerce follows the verdict ({@see ExtensionCompatibility::notify()}): raised
+     * again, unread, when an extension is newly named (2.2.2), brought up to date when one is no longer named,
+     * withdrawn when none is left. Not while Alfa is in maintenance. Never breaks the caller.
      *
      * @since  2.2.1
      */
@@ -1043,7 +1043,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         try {
-            ExtensionCompatibility::notify(alert: false);
+            ExtensionCompatibility::notify();
         } catch (Throwable $e) {
             $this->logError('followCompatibility', $e->getMessage());
         }

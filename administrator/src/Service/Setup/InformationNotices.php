@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
+use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
@@ -21,14 +22,16 @@ use Throwable;
 
 /**
  * What the administrators are told about the site, not asked to do: Joomla's page cache is on, a library a feature
- * needs is missing or disabled. Each is a dismissible notification in the notification centre, never a step of the
- * setup checklist, which holds only the steps an administrator completes (rulings 177 and 178). Each follows its
- * condition ({@see ConditionNotice}): raised when it starts or changes, withdrawn when it ends; a dismissed one stays
- * dismissed while nothing changes.
+ * needs is missing or disabled, an Alfa extension is not built for this version. Each is a dismissible notification
+ * in the notification centre, never a step of the setup checklist, which holds only the steps an administrator
+ * completes. Each follows its condition ({@see ConditionNotice}): raised when it starts or something new holds,
+ * withdrawn when it ends; a dismissed one stays dismissed while nothing new holds.
  *
  * Run from the bell's background refresh ({@see \Alfa\Component\Alfa\Administrator\Controller\NotificationsController::panel()}),
  * never on a page render: a read of the page cache plugin's row (and of System - Alfa Commerce Sync's while the page
- * cache is on), one of the libraries' rows, and one of each notice's facts last told.
+ * cache is on), one of the libraries' rows, and one of each notice's facts last told; the extensions' manifests at
+ * most once in {@see self::EXTENSIONS_MINUTES} minutes for the whole site, since an installation through Joomla
+ * already brings that notice up to date ({@see ExtensionCompatibility::notify()}).
  *
  * @since  2.2.2
  */
@@ -62,6 +65,24 @@ final class InformationNotices
     public const PHONE_LIBRARY = 'alfa.library.phone';
 
     /**
+     * Minutes between two looks of the bell's refresh at the extensions' manifests.
+     *
+     * @var int
+     *
+     * @since  2.2.2
+     */
+    private const EXTENSIONS_MINUTES = 60;
+
+    /**
+     * The cache group of that look's throttle.
+     *
+     * @var string
+     *
+     * @since  2.2.2
+     */
+    private const CACHE_GROUP = 'com_alfa.notices';
+
+    /**
      * Bring every notice up to date with the site as it is now. Advisory: a notice that cannot be brought up to date
      * is logged and the others still are.
      *
@@ -73,6 +94,7 @@ final class InformationNotices
             self::PAGE_CACHE => static fn () => self::followPageCache(),
             self::PDF_LIBRARY => static fn () => self::followLibraries(key: self::PDF_LIBRARY, libraries: BundledLibraries::PDF, title: 'COM_ALFA_NOTIFY_PDF_LIBRARY_TITLE', message: 'COM_ALFA_NOTIFY_PDF_LIBRARY_MSG'),
             self::PHONE_LIBRARY => static fn () => self::followLibraries(key: self::PHONE_LIBRARY, libraries: BundledLibraries::PHONE, title: 'COM_ALFA_NOTIFY_PHONE_LIBRARY_TITLE', message: 'COM_ALFA_NOTIFY_PHONE_LIBRARY_MSG'),
+            ExtensionCompatibility::NOTICE => static fn () => self::followExtensions(),
         ];
 
         foreach ($notices as $key => $follow) {
@@ -148,6 +170,46 @@ final class InformationNotices
                 ],
             ),
         );
+    }
+
+    /**
+     * The extensions' verdict, at most once in {@see self::EXTENSIONS_MINUTES} minutes for the whole site (a cache
+     * callback, as the collation look's); with no cache, every time.
+     *
+     * @since  2.2.2
+     */
+    private static function followExtensions(): void
+    {
+        try {
+            $controller = Factory::getContainer()
+                ->get(CacheControllerFactoryInterface::class)
+                ->createCacheController('callback', [
+                    'defaultgroup' => self::CACHE_GROUP,
+                    'lifetime' => self::EXTENSIONS_MINUTES,
+                    'caching' => true,
+                ]);
+        } catch (Throwable) {
+            self::lookAtExtensions();
+
+            return;
+        }
+
+        $controller->get([self::class, 'lookAtExtensions'], [], 'extensions');
+    }
+
+    /**
+     * The look behind {@see self::followExtensions()}: the compatibility notice follows the verdicts read now. Public
+     * only because it is the cache callback.
+     *
+     * @return bool Always true, for the cache callback.
+     *
+     * @since  2.2.2
+     */
+    public static function lookAtExtensions(): bool
+    {
+        ExtensionCompatibility::notify();
+
+        return true;
     }
 
     /**

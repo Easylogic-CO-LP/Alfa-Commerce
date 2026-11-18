@@ -35,11 +35,12 @@ use RuntimeException;
  *
  * WHERE IT IS SAID. A dismissible notification to the administrators, which opens Tools > Extensions, where each
  * extension shows its verdict ({@see self::verdicts()}); never on the installer's page nor in the setup checklist
- * (2.2.2, rulings 170 and 178). After Alfa Commerce is installed or updated it is raised anew, unread, with one line
- * per extension in the maintenance log (script.php postflight, {@see self::notify()} with an alert). When an Alfa
- * extension is installed, updated or uninstalled, System - Alfa Commerce Sync follows the verdict ({@see self::notify()}
- * without an alert, {@see ConditionNotice}): an extension newly named raises the notice again, unread; one no longer
- * named updates it in place, its read and dismissed state kept; nothing left to name withdraws it.
+ * (2.2.2). It follows the verdict ({@see self::follow()}, {@see ConditionNotice}): after Alfa Commerce is installed or
+ * updated (script.php postflight, which also writes one line per extension named to the maintenance log), after an
+ * Alfa extension is installed, updated or uninstalled (System - Alfa Commerce Sync), when Tools > Extensions is opened,
+ * and at most once an hour from the bell's background refresh. An extension newly named, or a new line of Alfa
+ * Commerce, raises it again, unread; one no longer named updates it in place, its read and dismissed state kept;
+ * nothing left to name withdraws it.
  *
  * @since  2.2.1
  */
@@ -132,30 +133,6 @@ final class ExtensionCompatibility
     }
 
     /**
-     * The installed Alfa extensions not known to work with the installed Alfa Commerce, in the order of Options > About.
-     *
-     * The verdict is NEEDS_BUILD or NOT_STATED; why is what the manifest says, in words, for the maintenance log.
-     *
-     * @return list<array{key: string, name: string, verdict: string, why: string}>
-     *
-     * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
-     *
-     * @since  2.2.1
-     */
-    public static function named(): array
-    {
-        $named = [];
-
-        foreach (self::verdicts() as $entry) {
-            if ($entry['verdict'] !== self::COMPATIBLE) {
-                $named[] = ['key' => $entry['key'], 'name' => $entry['name'], 'verdict' => $entry['verdict'], 'why' => $entry['why']];
-            }
-        }
-
-        return $named;
-    }
-
-    /**
      * The installed line of Alfa Commerce (2.2 for 2.2.1).
      *
      * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
@@ -170,15 +147,13 @@ final class ExtensionCompatibility
     }
 
     /**
-     * Say it to the administrators, or withdraw what was said. With an alert (Alfa Commerce installed or updated): the
-     * notification is raised anew when an extension is named, so it is shown unread even when the last one was
-     * dismissed, and removed when none is. Without an alert (an Alfa extension installed, updated or uninstalled): it
-     * follows the verdict ({@see ConditionNotice::follow()}): raised again, unread, when an extension is newly named;
-     * updated in place, its read and dismissed state kept, when one is no longer named; withdrawn when none is left.
+     * Say it to the administrators, or withdraw what was said, from the verdicts read now: {@see self::follow()}.
+     * Asked after Alfa Commerce is installed or updated (script.php postflight), after an Alfa extension is installed,
+     * updated or uninstalled (System - Alfa Commerce Sync), and at most once an hour by the bell's background refresh
+     * ({@see InformationNotices::sync()}), so the notice follows the extensions also while Alfa Commerce Sync is off.
      *
-     * It answers what it named ({@see self::named()}).
-     *
-     * @param bool $alert Whether this is Alfa Commerce's own installation.
+     * It answers what it named: the extensions not known to work with the installed Alfa Commerce, in the order of
+     * Options > About, each with its verdict (NEEDS_BUILD or NOT_STATED) and why, in words, for the maintenance log.
      *
      * @return list<array{key: string, name: string, verdict: string, why: string}>
      *
@@ -186,17 +161,47 @@ final class ExtensionCompatibility
      *
      * @since  2.2.1
      */
-    public static function notify(bool $alert): array
+    public static function notify(): array
     {
-        $named = self::named();
-        $facts = array_map(static fn (array $entry): string => $entry['key'] . ':' . $entry['verdict'], $named);
-        $push = static fn () => self::push(named: $named);
+        return self::follow(verdicts: self::verdicts());
+    }
 
-        if ($alert) {
-            ConditionNotice::raise(key: self::NOTICE, facts: $facts, push: $push);
-        } else {
-            ConditionNotice::follow(key: self::NOTICE, facts: $facts, push: $push);
+    /**
+     * The notification follows the verdicts ({@see ConditionNotice::follow()}): its facts are each extension named
+     * with its verdict, and the installed line of Alfa Commerce while one is named. An extension newly named, or a new
+     * line of Alfa Commerce, raises it again, unread; an extension no longer named brings it up to date in place, its
+     * read and dismissed state kept; none named withdraws it. An installation that names nothing new leaves a dismissed
+     * notice dismissed. A notice standing from before its facts were kept is withdrawn when nothing is named.
+     *
+     * @param array<string, array{key: string, name: string, verdict: string, range: ?AlfaCoreRange, why: string}> $verdicts From {@see self::verdicts()}.
+     *
+     * @return list<array{key: string, name: string, verdict: string, why: string}> What it named.
+     *
+     * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
+     *
+     * @since  2.2.2
+     */
+    public static function follow(array $verdicts): array
+    {
+        $named = [];
+
+        foreach ($verdicts as $entry) {
+            if ($entry['verdict'] !== self::COMPATIBLE) {
+                $named[] = ['key' => $entry['key'], 'name' => $entry['name'], 'verdict' => $entry['verdict'], 'why' => $entry['why']];
+            }
         }
+
+        $facts = array_map(static fn (array $entry): string => $entry['key'] . ':' . $entry['verdict'], $named);
+
+        if ($facts === []) {
+            if (ConditionNotice::told(key: self::NOTICE) === null && NotificationHelper::isOpen(dedupKey: self::NOTICE)) {
+                NotificationHelper::clear(dedupKey: self::NOTICE);
+            }
+        } else {
+            $facts[] = 'core:' . self::coreLine();
+        }
+
+        ConditionNotice::follow(key: self::NOTICE, facts: $facts, push: static fn () => self::push(named: $named));
 
         return $named;
     }
@@ -205,7 +210,7 @@ final class ExtensionCompatibility
      * The notification naming the extensions: those that need a compatible build, those that do not say, and what to
      * do; it opens Tools > Extensions.
      *
-     * @param list<array{key: string, name: string, verdict: string, why: string}> $named From {@see self::named()}.
+     * @param list<array{key: string, name: string, verdict: string, why: string}> $named From {@see self::follow()}.
      *
      * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
      *

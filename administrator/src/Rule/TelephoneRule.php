@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Rule;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Service\Setup\BundledLibraries;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormRule;
 use Joomla\CMS\Language\Text;
@@ -108,7 +109,8 @@ class TelephoneRule extends FormRule
             throw new RuntimeException(Text::_('COM_ALFA_TELEPHONE_ERR_STRAY_CHARACTERS'));
         }
 
-        return class_exists(PhoneNumberUtil::class)
+        // A library disabled in Extensions: Manage counts as missing, as everywhere else (BundledLibraries).
+        return BundledLibraries::available(libraries: BundledLibraries::PHONE)
             ? $this->testWithLibrary($element, $value, $group, $input)
             : $this->testWithPattern($element, $value, $group, $input);
     }

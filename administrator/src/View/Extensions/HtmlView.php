@@ -115,8 +115,10 @@ class HtmlView extends BaseHtmlView
             $this->rows[] = $row;
         }
 
+        // The verdicts this page shows, and the notification that leads here brought in line with them.
         try {
             $this->compatibility = ExtensionCompatibility::verdicts();
+            ExtensionCompatibility::follow(verdicts: $this->compatibility);
         } catch (Throwable $e) {
             Log::add('Tools > Extensions could not read which extensions are built for this version: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
         }

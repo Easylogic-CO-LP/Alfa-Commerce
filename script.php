@@ -2020,7 +2020,7 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         // 8. The installed Alfa extensions not known to work with this version: one notification to the administrators
-        //    and the maintenance log, never this page (2.2.2, ruling 170).
+        //    and the maintenance log, never this page (2.2.2).
         $this->reportExtensionCompatibility(type: $type);
 
         return true;
@@ -2031,9 +2031,10 @@ class com_alfaInstallerScript extends InstallerScript
      * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility}): those whose manifest declares a
      * range of Alfa Commerce lines that excludes this one ("needs a compatible build") and those that declare none
      * ("compatibility not stated"; nothing is inferred from their own version). One dismissible notification to the
-     * administrators, raised again by every installation, which opens Tools > Extensions, where each one shows its
-     * verdict, and one line per extension in the maintenance log (com_alfa_maintenance.php). The installation page says
-     * nothing of it (2.2.2, ruling 170). A failure is said, never a failed installation.
+     * administrators, which opens Tools > Extensions, where each one shows its verdict, raised again by an installation
+     * that names an extension newly or brings a new line of Alfa Commerce, and one line per extension in the
+     * maintenance log (com_alfa_maintenance.php). The installation page says nothing of it (2.2.2). A failure is said,
+     * never a failed installation.
      *
      * @param   string  $type  install or update.
      *
@@ -2046,7 +2047,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         try
         {
-            $named = $compatibility::notify(alert: true);
+            $named = $compatibility::notify();
         }
         catch (\Throwable $e)
         {

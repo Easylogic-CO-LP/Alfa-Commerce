@@ -26,10 +26,10 @@ class AlfatelRule extends FormRule
             return true;
         }
 
-        // The number is checked with libphonenumber, which ships with Alfa Commerce. While it, or the locale data it
-        // reads, is missing or disabled, a number is refused with a plain message rather than taken unchecked; the
+        // The number is checked with libphonenumber, which ships with Alfa Commerce. While it is missing or disabled
+        // (or cannot be read), a number is refused with a plain message rather than taken unchecked; the
         // administrators are told in the notification centre.
-        if (BundledLibraries::unavailable(libraries: BundledLibraries::PHONE) !== []) {
+        if (!BundledLibraries::available(libraries: BundledLibraries::PHONE)) {
             throw new RuntimeException(Text::_('PLG_ALFA_FORM_FIELDS_TEL_ERR_LIBRARY_UNAVAILABLE'));
         }
 

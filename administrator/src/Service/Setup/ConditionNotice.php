@@ -88,36 +88,6 @@ final class ConditionNotice
     }
 
     /**
-     * Raise the notice anew, unread, whatever was told before (an installation of Alfa Commerce says it again), or
-     * remove it when there is nothing to say; the facts are kept as told.
-     *
-     * @param string $key The notice's dedup key.
-     * @param list<string> $facts What holds now.
-     * @param callable(): void $push Pushes the notice under $key.
-     *
-     * @throws InvalidArgumentException When the key is too long for its meta row.
-     *
-     * @since  2.2.2
-     */
-    public static function raise(string $key, array $facts, callable $push): void
-    {
-        $facts = self::normalise(facts: $facts);
-
-        if (NotificationHelper::exists(dedupKey: $key)) {
-            NotificationHelper::clear(dedupKey: $key, hard: true);
-        }
-
-        if ($facts === []) {
-            self::forget(key: $key);
-
-            return;
-        }
-
-        $push();
-        self::remember(key: $key, facts: $facts);
-    }
-
-    /**
      * The facts last told for the notice; null when none are kept.
      *
      * @param string $key The notice's dedup key.

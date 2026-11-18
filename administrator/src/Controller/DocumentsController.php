@@ -187,8 +187,8 @@ class DocumentsController extends BaseController
      * (nothing is stored). GET, opened in a tab.
      *
      * While the PDF library, or a library it needs, is missing or disabled the
-     * PDF is refused with a plain message on the documents list (2.2.2, ruling
-     * 177): the print view still shows the document.
+     * PDF is refused with a plain message on the documents list (2.2.2): the
+     * print view still shows the document.
      *
      * @since  2.0.0
      */
