@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
@@ -184,6 +185,9 @@ class PaymentModel extends AlfaAdminModel
                 );
             }
 
+            // The method's image (2.2.2): one media row of origin 'payment', as a manufacturer's.
+            $item->medias = MediaHelper::getMediaData(origin: 'payment', itemIDs: (int) ($item->id ?? 0));
+
             $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_categories', 'payment_id', 'category_id');
             $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_manufacturers', 'payment_id', 'manufacturer_id');
             $item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_places', 'payment_id', 'place_id');
@@ -267,6 +271,18 @@ class PaymentModel extends AlfaAdminModel
             return false;
         }
 
+        // The method's image (2.2.2), as a manufacturer's: the uploads fetched apart from the form's data, and a
+        // thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()),
+        // refused before anything is written, from the form and the API alike.
+        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+        $thumbnailRefusals = MediaHelper::thumbnailRefusals(mediaData: (array) ($data['media'] ?? []));
+
+        if ($thumbnailRefusals !== []) {
+            $this->setError(implode(' ', $thumbnailRefusals));
+
+            return false;
+        }
+
         // Alfa's before-save is asked before the transaction (2.1.4, design 0.2). Joomla's onContentBeforeSave runs
         // inside it (parent::save()), so a write its listener makes is rolled back with a failed save;
         // onContentAfterSave and onAlfaAdminAfterSave wait for its commit.
@@ -326,6 +342,17 @@ class PaymentModel extends AlfaAdminModel
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             throw $e;
+        }
+
+        // The image's rows and files, after the method is saved: files are not transactional, as a manufacturer's.
+        if (!empty($data['media'])) {
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $currentId,
+                mediaOrigin:    'payment',
+                customFileName: $data['name_' . MultilingualHelper::getDefaultLanguageTag()] ?? '',
+            );
         }
 
         return true;
@@ -422,6 +449,9 @@ class PaymentModel extends AlfaAdminModel
                 primaryColumnName: 'id_payment',
                 tableName:         '#__alfa_payments',
             );
+
+            // The methods' images (rows; files when media_full_deletion is on).
+            MediaHelper::deleteMediaForItems($pks, 'payment');
         }
 
         return $result;

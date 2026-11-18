@@ -246,9 +246,9 @@ class MediaController extends BaseController
 
     /**
      * May the current user work in a form that carries a MediaZone field: create or edit on
-     * items, categories or manufacturers.
+     * items, categories, manufacturers, payment methods or shipping methods.
      *
-     * The request does not say which form is open, so any of the three qualifies. The tile is
+     * The request does not say which form is open, so any of the five qualifies. The tile is
      * markup only; nothing is stored until that form itself is saved under its own permission.
      *
      *
@@ -258,7 +258,7 @@ class MediaController extends BaseController
     {
         $user = $this->app->getIdentity();
 
-        foreach (['items', 'categories', 'manufacturers'] as $section) {
+        foreach (['items', 'categories', 'manufacturers', 'payments', 'shipments'] as $section) {
             if (
                 AlfaHelper::can(section: $section, action: 'edit', user: $user)
                 || AlfaHelper::can(section: $section, action: 'create', user: $user)
