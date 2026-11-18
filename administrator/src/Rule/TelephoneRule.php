@@ -44,24 +44,14 @@ use SimpleXMLElement;
  * the canonical E.164 value; this decides whether it is acceptable and refuses
  * it by name when it is not.
  *
- * TWO PATHS, AND NEITHER OF THEM ACCEPTS BLINDLY:
- *
- *   {@see self::testWithLibrary()}  libphonenumber. Knows what a real number
- *                                   looks like in each country, which region a
- *                                   number belongs to, and whether it is a
- *                                   mobile. This is the one that normally runs.
- *   {@see self::testWithPattern()}  Joomla's own tel rule, when the library is
- *                                   absent. Shape only (no country knowledge),
- *                                   so it is weaker, and it says so, but it is
- *                                   still a check.
- *
- * WHY THERE IS A FALLBACK AT ALL, when the file `use`s the class at the top:
- * `use` is an alias and resolves nothing, so an absent class throws only where
- * it is CALLED. libphonenumber ships as a separate library extension, and an
- * install interrupted between the component and its libraries really can lack
- * it. The wrong answer there is to accept every value (a form that silently
- * stops validating is worse than one that validates loosely), so the pattern
- * check takes over and the number is still compacted before it is stored.
+ * THE CHECK IS libphonenumber's ({@see self::testWithLibrary()}): what a real
+ * number looks like in each country, which region a number belongs to, and
+ * whether it is a mobile. The library ships with Alfa Commerce as a library
+ * extension of its own; while it is missing or disabled
+ * ({@see BundledLibraries::available()}) a typed number is refused with a
+ * plain sentence rather than stored unchecked, as the phone field of the
+ * customer forms refuses it, and the administrators are told in the
+ * notification centre.
  *
  * @since  2.0.0
  */
@@ -110,9 +100,11 @@ class TelephoneRule extends FormRule
         }
 
         // A library disabled in Extensions: Manage counts as missing, as everywhere else (BundledLibraries).
-        return BundledLibraries::available(libraries: BundledLibraries::PHONE)
-            ? $this->testWithLibrary($element, $value, $group, $input)
-            : $this->testWithPattern($element, $value, $group, $input);
+        if (!BundledLibraries::available(libraries: BundledLibraries::PHONE)) {
+            throw new RuntimeException(Text::_('COM_ALFA_TELEPHONE_ERR_LIBRARY_UNAVAILABLE'));
+        }
+
+        return $this->testWithLibrary($element, $value, $group, $input);
     }
 
     /**
@@ -165,51 +157,6 @@ class TelephoneRule extends FormRule
             if (!\in_array($type, [PhoneNumberType::MOBILE, PhoneNumberType::FIXED_LINE_OR_MOBILE], true)) {
                 throw new RuntimeException(Text::_('COM_ALFA_TELEPHONE_ERR_NOT_MOBILE'));
             }
-        }
-
-        return true;
-    }
-
-    /**
-     * The fallback: shape only, which is what Joomla's own tel rule checks.
-     *
-     * Copied from {@see \Joomla\CMS\Form\Rule\TelRule} rather than reached
-     * for, so the `plan` attribute keeps working and the messages are ours.
-     *
-     * It cannot tell a real Greek number from a plausible-looking one, so it is
-     * strictly weaker than the library path. It is not, however, "accept
-     * anything".
-     *
-     * @param SimpleXMLElement $element The field element.
-     * @param string $value The trimmed posted value.
-     * @param string|null $group The field group.
-     * @param Registry|null $input The whole posted data.
-     *
-     *
-     * @since  2.0.0
-     */
-    private function testWithPattern(SimpleXMLElement $element, string $value, ?string $group, ?Registry $input): bool
-    {
-        $patterns = [
-            'NANP' => '/^(?:\+?1[-. ]?)?\(?([2-9][0-8][0-9])\)?[-. ]?([2-9][0-9]{2})[-. ]?([0-9]{4})$/',
-            'ITU-T' => '/^\+(?:[0-9] ?){6,14}[0-9]$/',
-            'EPP' => '/^\+[0-9]{1,3}\.[0-9]{4,14}(?:x.+)?$/',
-        ];
-
-        $plan = match ((string) ($element['plan'] ?? '')) {
-            'northamerica', 'us', 'NANP' => 'NANP',
-            'IETF', 'EPP' => 'EPP',
-            'International', 'int', 'missdn', 'ITU-T' => 'ITU-T',
-            default => '',
-        };
-
-        $passes = $plan !== ''
-            ? (bool) preg_match($patterns[$plan], $value)
-            // No plan named: digits only, in the length any real number has.
-            : (bool) preg_match('/^[0-9]{7,15}$/', preg_replace('/\D+/', '', $value) ?? '');
-
-        if (!$passes) {
-            throw new RuntimeException(Text::_('COM_ALFA_TELEPHONE_ERR_INVALID'));
         }
 
         return true;
