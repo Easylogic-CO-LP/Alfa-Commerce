@@ -28,6 +28,7 @@ use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\RecentlyViewed;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
+use Alfa\Component\Alfa\Site\Service\Catalog\RelatedProducts;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
 use InvalidArgumentException;
@@ -70,6 +71,15 @@ class HtmlView extends BaseHtmlView
 
     /** @var string Resolved sub-template for the "categories" slot */
     protected $categoriesTpl = 'categories';
+
+    /** @var string Resolved sub-template for the "related" slot (2.2.2): the product's related products */
+    protected string $relatedTpl = 'related';
+
+    /**
+     * @var array<int, string> The related products' cards (2.2.2), the listing's own, in the order staff set and by
+     *                         product id: only the products the visitor may see, at most the count; empty for none
+     */
+    protected array $relatedCards = [];
 
     /**
      * Display the view
@@ -144,6 +154,21 @@ class HtmlView extends BaseHtmlView
             slot: 'categories',
             layout: $this->getLayout(),
         );
+
+        // THE RELATED PRODUCTS (2.2.2): the part and how many it shows, through the page's chain (the product, its
+        // default category, the menu item, the Options; 0 shows none). Not on the buy-form reload (tmpl=component):
+        // the part sits after the product's container, which is all a variant change replaces.
+        $this->relatedTpl = SlotResolver::resolve(
+            value: ($own['related'] ?? '') ?: ($cat['related'] ?? '') ?: (string) $this->params->get('item_related_layout', ''),
+            view: 'item',
+            slot: 'related',
+            layout: $this->getLayout(),
+        );
+        $relatedCount = self::firstSet([$own['related_count'] ?? '', $cat['related_count'] ?? '', $this->params->get('item_related_count', 4)]);
+
+        if ($relatedCount > 0 && RequestScalar::cmd($input, 'tmpl', '') === '' && !empty($this->item->id)) {
+            $this->relatedCards = $this->relatedCards(itemId: (int) $this->item->id, count: $relatedCount);
+        }
 
         // Resolve price settings once for all items
         $this->priceSettings = PriceSettings::get();
@@ -247,6 +272,52 @@ class HtmlView extends BaseHtmlView
         $this->_prepareDocument();
 
         parent::display($tpl);
+    }
+
+    /**
+     * The first value of a chain that is set ('' and null inherit; 0 is a value), as a whole number.
+     *
+     * @param list<mixed> $chain The levels, strongest first.
+     *
+     * @since  2.2.2
+     */
+    private static function firstSet(array $chain): int
+    {
+        foreach ($chain as $value) {
+            if ($value !== null && $value !== '') {
+                return max(0, (int) $value);
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * A product's related products as the listing's cards (2.2.2): the products the visitor may see
+     * ({@see RelatedProducts::visible()}), drawn by the listing's own view
+     * ({@see \Alfa\Component\Alfa\Site\View\Items\HtmlView::cardsFor()}).
+     *
+     * @param int $itemId The product.
+     * @param int $count How many to show, at least 1.
+     *
+     * @return array<int, string> The cards by product id, in their order.
+     *
+     * @since  2.2.2
+     */
+    private function relatedCards(int $itemId, int $count): array
+    {
+        $shown = RelatedProducts::visible(itemId: $itemId, count: $count);
+
+        if ($shown === []) {
+            return [];
+        }
+
+        /** @var \Alfa\Component\Alfa\Site\View\Items\HtmlView $listing */
+        $listing = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory()
+            ->createView('Items', 'Site', 'Html', ['base_path' => JPATH_SITE . '/components/com_alfa']);
+        $listing->setDocument($this->getDocument());
+
+        return $listing->cardsFor(items: $shown);
     }
 
     /**

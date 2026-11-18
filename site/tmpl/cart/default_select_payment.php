@@ -19,12 +19,15 @@ $payments = $snapshot->offers->payments;
 $shipmentChosen = $snapshot->offers->selectedShipmentId > 0;
 
 // Nothing offered: with a shipping method chosen, none is allowed with it;
-// with none chosen yet, only payment methods tied to a shipping method
-// exist and the choice comes first.
+// with one offered and none chosen yet, only payment methods tied to a
+// shipping method exist and the choice comes first. With none offered
+// because a carrier waits for a fact (2.2.2), the list names the same fact;
+// with none offered at all, nothing can pay.
 $emptyKey = match (true) {
-    $shipmentChosen                   => 'COM_ALFA_CART_NO_PAYMENT_FOR_SHIPMENT',
-    $snapshot->offers->hasShipments    => 'COM_ALFA_CART_PAYMENT_CHOOSE_SHIPMENT_FIRST',
-    default                           => 'COM_ALFA_CART_NO_PAYMENT_AVAILABLE',
+    $shipmentChosen                       => 'COM_ALFA_CART_NO_PAYMENT_FOR_SHIPMENT',
+    $snapshot->offers->shipments !== []   => 'COM_ALFA_CART_PAYMENT_CHOOSE_SHIPMENT_FIRST',
+    $snapshot->offers->needsKey() !== ''  => $snapshot->offers->needsKey(),
+    default                               => 'COM_ALFA_CART_NO_PAYMENT_AVAILABLE',
 };
 ?>
 

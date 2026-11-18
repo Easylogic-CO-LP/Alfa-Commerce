@@ -54,6 +54,8 @@ final class CartOffersView
      * @param array $paymentViews What each payment method asked to show,
      *                            keyed by method id.
      * @param array $shipmentViews The same for carriers.
+     * @param list<string> $shipmentNeeds What the checkout has not given yet that a carrier waits for, 'country' before
+     *                                    'postcode' ({@see CartMethods::shipmentNeeds()}).
      *
      * @since  2.0.0
      */
@@ -70,7 +72,24 @@ final class CartOffersView
         public readonly array $notices,
         public readonly array $paymentViews = [],
         public readonly array $shipmentViews = [],
+        public readonly array $shipmentNeeds = [],
     ) {
+    }
+
+    /**
+     * The sentence a list shows when nothing is left to choose and a carrier waits for a fact the checkout has not given
+     * yet (2.2.2): the language key naming what is needed, '' when nothing waits.
+     *
+     * @since  2.2.2
+     */
+    public function needsKey(): string
+    {
+        return match ($this->shipmentNeeds) {
+            ['country'] => 'COM_ALFA_CART_SHIPMENT_NEEDS_COUNTRY',
+            ['postcode'] => 'COM_ALFA_CART_SHIPMENT_NEEDS_POSTCODE',
+            ['country', 'postcode'] => 'COM_ALFA_CART_SHIPMENT_NEEDS_COUNTRY_POSTCODE',
+            default => '',
+        };
     }
 
     /**

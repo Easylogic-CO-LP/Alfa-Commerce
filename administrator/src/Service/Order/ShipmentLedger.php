@@ -2155,7 +2155,7 @@ class ShipmentLedger
                 throw $e;
             }
 
-            self::warn('updateIfStatus() failed: ' . $e->getMessage());
+            self::warnFailure(message: 'updateIfStatus() failed', failure: $e);
 
             return self::WRITE_FAILED;
         }
@@ -2414,7 +2414,7 @@ class ShipmentLedger
                 throw $e;
             }
 
-            self::warn('assignItems() failed: ' . $e->getMessage());
+            self::warnFailure(message: 'assignItems() failed', failure: $e);
             return false;
         }
     }
@@ -2734,7 +2734,7 @@ class ShipmentLedger
                 throw $e;
             }
 
-            self::warn('clearItemAssignments() failed: ' . $e->getMessage());
+            self::warnFailure(message: 'clearItemAssignments() failed', failure: $e);
         }
     }
 

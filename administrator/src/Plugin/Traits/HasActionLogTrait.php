@@ -44,6 +44,8 @@ trait HasActionLogTrait
      * with, in the plugin's language file, a sentence that names the facts:
      *   PLG_ALFA_PAYMENTS_<YOU>_LOG_REFUND_STARTED="User <a href=\"{accountlink}\">{username}</a> started a refund of {amount} on order {title}"
      *
+     * @api ANSWERS: true when the row is written under this plugin, false when not; never throws.
+     *
      * @param string $languageKey The message's language key, the plugin's own.
      * @param array<string, string|int|float|bool> $facts The sentence's facts, by name; scalar values only (userid,
      *                                                    username and accountlink are the acting user's, applied last
