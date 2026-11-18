@@ -21,9 +21,7 @@ defined('_JEXEC') or die;
  * mode the storefront shows the products with their details, images and stock, and nothing can be bought online: the
  * models assign no price and draw no buy form (each item carries the answer as `$item->sellsOnline`), the price index
  * is not read, the cart and checkout show a sentence, and every storefront cart task and placement is refused. Orders
- * staff take in the administrator or over the REST API, and orders already placed, are not affected. While the shop
- * sells online, a product with no price for the visitor is not in the catalogue at all
- * (ItemsModel::applyPriceIndexJoin()); in catalogue-only mode every product is shown.
+ * staff take in the administrator or over the REST API, and orders already placed, are not affected.
  *
  * @since  2.2.2
  */

@@ -2111,8 +2111,8 @@ class com_alfaInstallerScript extends InstallerScript
      * every product at quantity 1 and at its own price only. The rows of a product whose minimum is above 1, or that
      * has published combinations, are therefore written again: those products are marked owed a rebuild (in ranges of
      * ids) and the catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may filter and sort such
-     * a product by its earlier price, and while the shop sells online a product with no row yet (prices that begin at
-     * its minimum, or only on its combinations) is not shown; the message says so. A shop with no such product has
+     * a product by its earlier price, or leave out one with no row yet (prices that begin at its minimum, or only on
+     * its combinations); the message says so. A shop with no such product has
      * nothing owed and no message. A failure is said, never a failed update.
      *
      * @return  void
@@ -2154,7 +2154,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_OPENING_QUANTITY_REBUILD',
-            fallback: 'Alfa Commerce %1$s: the product list now filters and sorts each product by its price at the quantity it sells from, its minimum quantity, and a product with combinations by its default combination\'s price, as its card shows it. The list prices of %2$d products with a minimum quantity above 1 or with combinations are being rebuilt in the background (Tools > Tasks); until that ends, the price filters and the price sort may use their earlier price, and while the shop sells online a product whose prices begin at its minimum, or are set only on its combinations, is not shown.',
+            fallback: 'Alfa Commerce %1$s: the product list now filters and sorts each product by its price at the quantity it sells from, its minimum quantity, and a product with combinations by its default combination\'s price, as its card shows it. The list prices of %2$d products with a minimum quantity above 1 or with combinations are being rebuilt in the background (Tools > Tasks); until that ends, the price filters and the price sort may use their earlier price, or leave out a product whose prices begin at its minimum or are set only on its combinations.',
             values:   [$this->packageVersion, $marked],
         ));
     }

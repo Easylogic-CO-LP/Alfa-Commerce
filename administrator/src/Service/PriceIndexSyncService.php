@@ -91,7 +91,13 @@ use Throwable;
  * job runner's heavy slot). The set is marked prepared after its last chunk; a set without
  * that mark is never read, whatever rows it has, so a preparation that failed
  * or was cut off is invisible until a later run finishes it. A set nobody
- * holds any more is dropped by the request that left it so.
+ * holds any more is dropped by the request that left it so, except one a
+ * change of the pricing groups left (a price row, a discount or a tax naming a
+ * group for the first time, or no longer naming one) while sets customers
+ * hold wait for their preparation (2.2.2): it is kept, written as the held
+ * sets are, and read by the customers who held it while their own set waits
+ * (readableSetKey()), and dropped once no set customers hold waits. Which groups the sets are keyed by, and those before such a
+ * change, are kept as a fact beside the data (META_GROUP_SETS).
  *
  * Every write of an item's rows, a preparation's chunk included, holds the
  * item's lock (2.2.0, IndexRebuildLock): the item and the sets' progress are
@@ -113,7 +119,7 @@ use Throwable;
  *   holdsGroupSet($groupSet)    - whether the index knows a set, prepared or waiting
  *   pricingGroups()             - the groups a price row, a discount or a tax names (the read side)
  *   slotKey($context)           - the set of one visitor's slots (the read side)
- *   readableSetKey($context)    - the prepared set a visitor reads: their own, else the guest's (the read side)
+ *   readableSetKey($context)    - the prepared set a visitor reads: their own, else their previous one or the guest's (the read side)
  *   slotSetJoin($setKey, ...)   - the join that reads only a prepared set (the read side)
  *   slotPlaces($context)        - the places whose slots one visitor reads, nearest first (the read side)
  *   slotRanking($alias, $places) - how one visitor's matching slots are ranked (the read side)
@@ -192,6 +198,16 @@ class PriceIndexSyncService
     /** The sets of pricing groups the index is keyed by. */
     private const SETS_TABLE = '#__alfa_price_group_sets';
 
+    /**
+     * The #__alfa_meta fact of the sets of pricing groups (2.2.2), JSON: pricing, the pricing groups (as
+     * groupSetList() writes them) the sets customers hold were last brought in line with, null until then; previous,
+     * while a change of those groups waits for the sets it brought, the pricing groups before it, else null. Written by
+     * alignGroupSets() when it changes, the row added the first time.
+     *
+     * @since  2.2.2
+     */
+    public const META_GROUP_SETS = 'prices.group_sets';
+
     /** Whether this process's connection may concatenate a list of any length (the accounts' sets). */
     private static bool $longLists = false;
 
@@ -246,6 +262,27 @@ class PriceIndexSyncService
      * @since  2.0.0
      */
     private static ?array $pricingGroups = null;
+
+    /**
+     * The line of groups a visitor with no account holds (com_users' guest group and the groups above it), as read for
+     * this process (2.2.2); read again where the pricing groups are.
+     *
+     * @var int[]|null
+     * @since  2.2.2
+     */
+    private static ?array $guestLine = null;
+
+    /**
+     * The pricing groups before a change of them that waits for the sets it brought (META_GROUP_SETS previous), as
+     * read for this process (2.2.2): null when no change waits; read again where the pricing groups are.
+     *
+     * @var int[]|null
+     * @since  2.2.2
+     */
+    private static ?array $previousPricing = null;
+
+    /** Whether $previousPricing was read for this process (2.2.2). */
+    private static bool $previousRead = false;
 
     // Dependencies
 
@@ -499,7 +536,9 @@ class PriceIndexSyncService
 
     /**
      * Request every set of pricing groups customers hold that the index does not
-     * know yet, and drop every set nobody holds any more, with its slots.
+     * know yet, and drop every set nobody holds any more, with its slots, but
+     * those a change of the pricing groups keeps while sets wait (2.2.2,
+     * alignGroupSets()).
      *
      * A requested set is only recorded, with its price.set.prepare job, which
      * prepares it (2.2.0), so the request that brought it writes no row of it
@@ -535,7 +574,9 @@ class PriceIndexSyncService
      * It prepares no set: a set still waiting is written only up to the product
      * its preparation has passed, and the rest of it is its job's (so after an
      * installation, which prepares nothing, the jobs build the index).
-     * The sets nobody holds are dropped.
+     * The sets nobody holds are dropped, but those a change of the pricing
+     * groups keeps while sets wait (2.2.2, alignGroupSets()), which are written
+     * too.
      *
      * Known limitation: a catalogue-wide rule save (a discount or tax for every
      * category) rewrites every prepared set inside its own request, so with many
@@ -689,7 +730,7 @@ class PriceIndexSyncService
         $chunk = $this->publishedItemIdsAfter(after: $through, limit: $limit);
 
         if ($chunk === []) {
-            return ['state' => $this->markPrepared(setId: $setId) === 1 ? 'prepared' : 'gone', 'written' => 0, 'products' => 0, 'through' => $through];
+            return ['state' => $this->markPrepared(setId: $setId) === 1 ? $this->afterPrepared() : 'gone', 'written' => 0, 'products' => 0, 'through' => $through];
         }
 
         $this->chunkFailure = null;
@@ -731,12 +772,34 @@ class PriceIndexSyncService
         }
 
         if (\count($chunk) < $limit) {
-            $this->markPrepared(setId: $setId);
+            $state = $this->markPrepared(setId: $setId) === 1 ? $this->afterPrepared() : 'prepared';
 
-            return ['state' => 'prepared', 'written' => $written, 'products' => \count($chunk), 'through' => (int) max($chunk)];
+            return ['state' => $state, 'written' => $written, 'products' => \count($chunk), 'through' => (int) max($chunk)];
         }
 
         return ['state' => 'chunk', 'written' => $written, 'products' => \count($chunk), 'through' => (int) max($chunk)];
+    }
+
+    /**
+     * After a set is marked prepared (2.2.2): while a change of the pricing groups waits for its sets, the sets are
+     * brought in line again, so the sets of the groups before it are dropped once no set customers hold waits. A
+     * failure is logged; the set stays prepared and the next sync, or the next claim of a job, drops them.
+     *
+     * @return string The state the chunk answers: prepared.
+     *
+     * @since  2.2.2
+     */
+    private function afterPrepared(): string
+    {
+        try {
+            if (self::groupSetFacts(db: $this->db)['previous'] !== null) {
+                $this->alignGroupSets();
+            }
+        } catch (Throwable $e) {
+            $this->logWarning(message: 'the sets left by a change of the pricing groups could not be dropped after a preparation: ' . $e->getMessage());
+        }
+
+        return 'prepared';
     }
 
     /**
@@ -955,11 +1018,16 @@ class PriceIndexSyncService
     }
 
     /**
-     * The prepared set one visitor's slots are read from (2.2.2): their own set once it is prepared; while it waits for
-     * its preparation (a combination of groups a customer holds for the first time, or a group a price row, a discount
-     * or a tax names for the first time), the guest's set when that one is prepared, so a visitor never meets an empty
-     * catalogue, or products without their figures, because a set is being prepared, and reads their own once it is.
-     * Null when neither is prepared (an installation whose job runner has not run yet): the reader then reads no slot.
+     * The prepared set one visitor's slots are read from (2.2.2): their own set once it is prepared. While it waits for
+     * its preparation, after a change of the pricing groups (a price row, a discount or a tax naming a group for the
+     * first time, or no longer naming one), the set of the groups they hold among the pricing groups before it, which
+     * is kept until no set customers hold waits; else (a combination of groups a customer holds for the first time) the
+     * guest's set, or the guest's set from before such a change. So a visitor
+     * never meets an empty catalogue, or products without their figures, because a set is being prepared, and reads
+     * their own once it is. Null when none of these is prepared (an installation whose job runner has not run yet): the
+     * reader then reads no slot.
+     *
+     * One statement; the guest's line and the change are read once per process (guestLine(), previousPricing()).
      *
      * @param PriceContext $context The visitor's pricing context.
      *
@@ -969,37 +1037,101 @@ class PriceIndexSyncService
      */
     public static function readableSetKey(PriceContext $context): ?string
     {
-        $own = self::slotKey(context: $context);
-        $guest = self::guestSlotKey();
+        $groups = $context->getUserGroups();
+        $guestLine = self::guestLine();
+        $pricing = self::pricingGroups();
+        $previous = self::previousPricing();
+
+        // In the order they are read: own, previous own, the guest's, the guest's previous.
+        $keys = [self::groupSetKey(groupIds: array_intersect($groups, $pricing))];
+
+        if ($previous !== null) {
+            $keys[] = self::groupSetKey(groupIds: array_intersect($groups, $previous));
+        }
+
+        $keys[] = self::groupSetKey(groupIds: array_intersect($guestLine, $pricing));
+
+        if ($previous !== null) {
+            $keys[] = self::groupSetKey(groupIds: array_intersect($guestLine, $previous));
+        }
+
+        $keys = array_values(array_unique($keys));
         $db = Factory::getContainer()->get('DatabaseDriver');
         $prepared = $db->setQuery(
             $db->getQuery(true)
                 ->select($db->quoteName('digest'))
                 ->from($db->quoteName(self::SETS_TABLE))
-                ->whereIn($db->quoteName('digest'), array_values(array_unique([$own, $guest])), ParameterType::STRING)
+                ->whereIn($db->quoteName('digest'), $keys, ParameterType::STRING)
                 ->where($db->quoteName('prepared_at') . ' IS NOT NULL'),
         )->loadColumn() ?: [];
 
-        return match (true) {
-            \in_array($own, $prepared, true) => $own,
-            \in_array($guest, $prepared, true) => $guest,
-            default => null,
-        };
+        foreach ($keys as $key) {
+            if (\in_array($key, $prepared, true)) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 
     /**
-     * The key of the set a visitor with no account reads: the guest group's line (com_users' guest group and the
-     * groups above it) reduced to the groups that can change a price.
+     * The line of groups a visitor with no account holds: com_users' guest group and the groups above it, read once per
+     * process (2.2.2).
+     *
+     * @return int[]
      *
      * @since  2.2.2
      */
-    private static function guestSlotKey(): string
+    private static function guestLine(): array
     {
-        $guestGroup = (int) ComponentHelper::getParams('com_users')->get('guest_usergroup', 1);
-        $groups = array_values(array_intersect(PriceContext::groupLineages(groupIds: [$guestGroup])[$guestGroup] ?? [1], self::pricingGroups()));
-        sort($groups);
+        if (self::$guestLine === null) {
+            $guestGroup = (int) ComponentHelper::getParams('com_users')->get('guest_usergroup', 1);
+            self::$guestLine = array_map('intval', PriceContext::groupLineages(groupIds: [$guestGroup])[$guestGroup] ?? [1]);
+        }
 
-        return self::groupSetKey(groupIds: $groups);
+        return self::$guestLine;
+    }
+
+    /**
+     * The pricing groups before a change of them that waits for the sets it brought, read once per process (2.2.2).
+     *
+     * @return int[]|null Null when no change waits.
+     *
+     * @since  2.2.2
+     */
+    private static function previousPricing(): ?array
+    {
+        if (!self::$previousRead) {
+            $previous = self::groupSetFacts(db: Factory::getContainer()->get('DatabaseDriver'))['previous'];
+            self::$previousPricing = $previous === null ? null : self::groupsOfList(list: $previous);
+            self::$previousRead = true;
+        }
+
+        return self::$previousPricing;
+    }
+
+    /**
+     * The fact of the sets of pricing groups as stored (META_GROUP_SETS, 2.2.2).
+     *
+     * @param DatabaseDriver $db The connection.
+     *
+     * @return array{stored: string|null, pricing: string|null, previous: string|null} The stored value (null when the
+     *                                                                                 row is missing) and its two parts.
+     *
+     * @since  2.2.2
+     */
+    private static function groupSetFacts(DatabaseDriver $db): array
+    {
+        $stored = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('value'))
+                ->from($db->quoteName('#__alfa_meta'))
+                ->where($db->quoteName('name') . ' = ' . $db->quote(self::META_GROUP_SETS)),
+        )->loadResult();
+        $facts = \is_string($stored) ? json_decode($stored, true) : null;
+        $part = static fn (string $name): ?string => \is_array($facts) && \is_string($facts[$name] ?? null) ? $facts[$name] : null;
+
+        return ['stored' => \is_string($stored) ? $stored : null, 'pricing' => $part('pricing'), 'previous' => $part('previous')];
     }
 
     /**
@@ -1534,8 +1666,8 @@ class PriceIndexSyncService
                     $result = $results[$itemId] ?? null;
 
                     // No price applying at the product's opening quantity for this slot and period, to the product or to
-                    // the combination it is listed at (2.2.2): no row is written, so while the shop sells online the
-                    // product is not in the catalogue for the visitors of this slot.
+                    // the combination it is listed at (2.2.2): no row is written, so the reads that ask for a price leave
+                    // the product out for the visitors of this slot, and the others list it with no price.
                     if ($result === null || !$result->isPriced()) {
                         continue;
                     }
@@ -2402,13 +2534,16 @@ class PriceIndexSyncService
      * account, of a visitor with no account and of a newly registered customer.
      * No other combination of the groups is ever requested.
      *
+     * @param int[]|null $pricing The groups the sets are made of; null for the pricing groups now (pricingGroups()),
+     *                            else those before a change of them (2.2.2: the sets customers held then).
+     *
      * @return array<string, int[]> Key (groupSetKey()) => its groups.
      *
      * @since  2.0.0
      */
-    private function groupSetsInUse(): array
+    private function groupSetsInUse(?array $pricing = null): array
     {
-        $pricing = self::pricingGroups();
+        $pricing ??= self::pricingGroups();
 
         // No pricing group: every customer holds the same, empty, set.
         if ($pricing === []) {
@@ -2417,7 +2552,7 @@ class PriceIndexSyncService
 
         $groupSets = [];
 
-        foreach ($this->accountGroupLists() as $list) {
+        foreach ($this->accountGroupLists(pricing: $pricing) as $list) {
             $groups = self::groupsOfList(list: $list);
             $groupSets[self::groupSetKey(groupIds: $groups)] = $groups;
         }
@@ -2449,14 +2584,15 @@ class PriceIndexSyncService
      * root. Then reduced to the pricing groups.
      *
      * @param int|null $userId One account; null for every account.
+     * @param int[]|null $pricing The groups to reduce to; null for the pricing groups now (pricingGroups()).
      *
      * @return string[] Distinct sets, each as its list of ids (ascending, comma-separated).
      *
      * @since  2.0.0
      */
-    private function accountGroupLists(?int $userId = null): array
+    private function accountGroupLists(?int $userId = null, ?array $pricing = null): array
     {
-        $pricing = self::pricingGroups();
+        $pricing ??= self::pricingGroups();
 
         if ($pricing === []) {
             return [''];
@@ -2529,39 +2665,81 @@ class PriceIndexSyncService
      * request each set nobody held before, drop each set nobody holds any more
      * with its rows. The groups that can change a price are read again first.
      *
+     * A change of those groups (a price row, a discount or a tax naming a group
+     * for the first time, or no longer naming one) while sets customers hold
+     * wait keeps the sets of the groups before it (2.2.2): a prepared set
+     * nobody holds any more that a customer reads as their previous one (the
+     * set of the groups they hold among the pricing groups before the change)
+     * stays, is written as the held sets are, and is read by
+     * them while their own set waits (readableSetKey()). Once no set customers
+     * hold waits, those sets are dropped and the change no longer waits
+     * (META_GROUP_SETS).
+     *
      * Nothing is prepared here: a requested set has passed no product yet, so a
      * sync that follows writes no row of it.
      *
      * @return array{0: int, 1: array<int, array{groups: int[], through: int|null, leftOut: int[]}>} Sets requested; and
-     *                                                                                               every set the index now knows, by id, with its groups, while it waits the last product its preparation
-     *                                                                                               passed, and the products its preparation left out.
+     *                                                                                               every set the index now knows that is written, by id, with its groups, while it waits the last product its
+     *                                                                                               preparation passed, and the products its preparation left out.
      *
      * @since  2.0.0
      */
     private function alignGroupSets(): array
     {
         self::$pricingGroups = null;
+        self::$guestLine = null;
+        self::$previousRead = false;
+        $pricing = self::groupSetList(groupIds: self::pricingGroups());
         $held = $this->groupSetsInUse();
         // The index first, then the sets: a set id the index holds and the table
         // no longer does was dropped, not created meanwhile.
         $indexed = $this->indexedGroupSetIds();
         $known = $this->knownGroupSets();
+        $facts = self::groupSetFacts(db: $this->db);
         $unheld = [];
         $knownKeys = [];
+        $waits = false;
 
         foreach ($known as $setId => $set) {
             $knownKeys[(string) $set->digest] = true;
 
             if (!isset($held[(string) $set->digest])) {
                 $unheld[] = (int) $setId;
+            } elseif ($set->prepared_at === null) {
+                $waits = true;
             }
         }
 
-        // The sets nobody holds go now, and so do rows that name no set at all
-        // (a set dropped while a sync was writing it).
-        $this->dropGroupSets(setIds: array_merge($unheld, array_diff($indexed, array_map('intval', array_keys($known)))));
+        $newSets = array_diff_key($held, $knownKeys);
+        $waits = $waits || $newSets !== [];
 
-        $requested = $this->requestGroupSets(groupSets: array_diff_key($held, $knownKeys));
+        // A change of the pricing groups waits for the sets it brought until no set customers hold waits; the groups
+        // before it are those of the first change since then.
+        $previous = $facts['previous'] ?? ($facts['pricing'] !== null && $facts['pricing'] !== $pricing ? $facts['pricing'] : null);
+        $previous = $waits ? $previous : null;
+        $kept = [];
+
+        // Kept: a prepared set nobody holds that a customer reads as their previous one, the set of the groups they hold
+        // among the pricing groups before the change.
+        if ($previous !== null && $unheld !== []) {
+            $readBefore = $this->groupSetsInUse(pricing: self::groupsOfList(list: $previous));
+
+            foreach ($unheld as $setId) {
+                if ($known[$setId]->prepared_at !== null && isset($readBefore[(string) $known[$setId]->digest])) {
+                    $kept[$setId] = true;
+                }
+            }
+        }
+
+        // The sets nobody holds go now, those kept aside, and so do rows that name no set at all (a set dropped while a
+        // sync was writing it).
+        $this->dropGroupSets(setIds: array_merge(
+            array_values(array_diff($unheld, array_keys($kept))),
+            array_diff($indexed, array_map('intval', array_keys($known))),
+        ));
+
+        $requested = $this->requestGroupSets(groupSets: $newSets);
+        $this->recordGroupSetFacts(stored: $facts['stored'], pricing: $pricing, previous: $previous);
 
         if ($requested > 0 || $unheld !== []) {
             $known = $this->knownGroupSets();
@@ -2570,7 +2748,7 @@ class PriceIndexSyncService
         $groupSets = [];
 
         foreach ($known as $setId => $set) {
-            if (isset($held[(string) $set->digest])) {
+            if (isset($held[(string) $set->digest]) || isset($kept[(int) $setId])) {
                 $groupSets[(int) $setId] = [
                     'groups' => self::groupsOfList(list: (string) $set->group_list),
                     'through' => $set->prepared_at === null ? (int) $set->prepared_through : null,
@@ -2580,6 +2758,36 @@ class PriceIndexSyncService
         }
 
         return [$requested, $groupSets];
+    }
+
+    /**
+     * Store the fact of the sets of pricing groups (META_GROUP_SETS, 2.2.2) when it changes; the row is added the first
+     * time.
+     *
+     * @param string|null $stored The value stored now; null when the row is missing.
+     * @param string $pricing The pricing groups the sets are now in line with.
+     * @param string|null $previous The pricing groups before a change that waits; null for none.
+     *
+     * @since  2.2.2
+     */
+    private function recordGroupSetFacts(?string $stored, string $pricing, ?string $previous): void
+    {
+        $value = json_encode(['pricing' => $pricing, 'previous' => $previous], JSON_THROW_ON_ERROR);
+
+        if ($value === $stored) {
+            return;
+        }
+
+        $again = $value;
+        $name = self::META_GROUP_SETS;
+        $query = $this->db->getQuery(true)->setQuery(
+            'INSERT INTO ' . $this->db->quoteName('#__alfa_meta') . ' (' . $this->db->quoteName('name') . ', ' . $this->db->quoteName('value') . ') VALUES (:name, :value)'
+            . ' ON DUPLICATE KEY UPDATE ' . $this->db->quoteName('value') . ' = :again',
+        )
+            ->bind(':name', $name)
+            ->bind(':value', $value)
+            ->bind(':again', $again);
+        $this->db->setQuery($query)->execute();
     }
 
     /**

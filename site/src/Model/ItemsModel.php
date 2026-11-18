@@ -58,7 +58,6 @@ use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\ParameterType;
-use Joomla\Database\QueryInterface;
 use SimpleXMLElement;
 use Throwable;
 
@@ -71,10 +70,12 @@ use Throwable;
  * Column names in the index match the com_alfa config fields exactly.
  *
  * Products without a price
- * While the shop sells online, a product the index holds no row of for the
- * visitor has no valid price for them and is not in the online catalogue:
- * {@see self::applyPriceIndexJoin()} joins the index as an inner join, and
- * every storefront read of products takes the rule from there.
+ * Every product is listed, one with no price for the visitor with no price
+ * and no add to cart. A read that asks for a price (a price filter or range,
+ * the sale or a saving filter, a sort by price the visitor or a module asked
+ * for) lists only the products the index has a figure of for the visitor
+ * ({@see self::applyPriceIndexJoin()}); a listing whose default order is by
+ * price lists every product, those without a figure last.
  *
  * Available filter states
  *   filter.price_min           float   Minimum final_price (range slider left)
@@ -1066,7 +1067,7 @@ class ItemsModel extends UrlListModel
      *   MIN(base_price_with_tax)      -> undiscounted "was" price
      *   MIN(base_price_with_discounts)-> ex-VAT net price
      *   MIN(tax_amount)               -> tax amount
-     * While the shop sells online it is an inner join: a product with no row for the visitor is not listed
+     * A left join, except for a read that asks for a price, which lists only the products with a figure
      * ({@see self::applyPriceIndexJoin()}).
      *
      * All supported filter conditions
@@ -1135,13 +1136,10 @@ class ItemsModel extends UrlListModel
             )
             ->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
 
-        // The visitor's price from the index, and with it the online catalogue's price rule (2.2.2): a product with no
-        // price for the visitor is not listed, counted or offered by a facet. The cart's own read of its lines (a
-        // transactional intent) keeps it, so the line says why it cannot be bought. Catalogue only: no price is read,
-        // so the index is not joined, and every price filter and sort below is left out with it (the sale filter
-        // matches nothing).
+        // Architecture B price index subquery JOIN, added below once the read knows whether it asks for a price.
+        // Catalogue only (2.2.2): no price is read, so the index is not joined, and every price filter and sort below
+        // is left out with it (the sale filter matches nothing).
         $sellsOnline = ShopMode::sellsOnline();
-        self::applyPriceIndexJoin(query: $query, keepUnpriced: $this->pricingIntent?->isTransactional() ?? false);
 
         // MULTILINGUAL: resolve name / alias in the active language
         // 1:1 LEFT JOIN on the PK, so it does not affect the GROUP BY a.id below.
@@ -1382,7 +1380,9 @@ class ItemsModel extends UrlListModel
         // On sale filter
         // discount_amount > 0 is the canonical test; no separate has_discount column needed.
         // A sale nobody sees is no sale: in catalogue-only mode the filter matches nothing.
-        if ($this->getState('filter.on_sale')) {
+        $onSale = (bool) $this->getState('filter.on_sale');
+
+        if ($onSale) {
             $query->where($sellsOnline ? 'pf.discount_amount > 0' : '0 = 1');
         }
 
@@ -1400,13 +1400,15 @@ class ItemsModel extends UrlListModel
         // Minimum discount amount filter
         // "Show items where the visitor saves at least €X."
         $discountAmountMin = $sellsOnline ? $this->getState('filter.discount_amount_min') : null;
-        if (is_numeric($discountAmountMin) && (float) $discountAmountMin > 0) {
+        $savingAsked = is_numeric($discountAmountMin) && (float) $discountAmountMin > 0;
+        if ($savingAsked) {
             $query->where('pf.discount_amount >= ' . (float) $discountAmountMin);
         }
 
         // Minimum discount percentage filter
         // "Show items discounted by at least X%."
         $discountPercentMin = $sellsOnline ? $this->getState('filter.discount_percent_min') : null;
+        $savingAsked = $savingAsked || (is_numeric($discountPercentMin) && (float) $discountPercentMin > 0);
         if (is_numeric($discountPercentMin) && (float) $discountPercentMin > 0) {
             $query->where('pf.discount_percent >= ' . (float) $discountPercentMin);
         }
@@ -1438,6 +1440,7 @@ class ItemsModel extends UrlListModel
         // every service search since the extraction. A caller that DOES want a specific
         // order still gets it by setting the state, which is non-empty and non-default.
         $relevanceOrder = $this->relevanceIds !== [] && !$explicitlySorted && $this->sortIsFallback();
+        $sortsByPrice = false;
 
         if ($relevanceOrder) {
             // FIELD() maps each id to its position in the engine's list. Ids are integers cast
@@ -1445,17 +1448,33 @@ class ItemsModel extends UrlListModel
             // the list is bounded by the engine's own candidate limit.
             $query->order('FIELD(' . $db->quoteName('a.id') . ',' . implode(',', $this->relevanceIds) . ')');
         } elseif ($orderCol && $orderDirn) {
+            $statedOrder = $orderCol . ' ' . $orderDirn;
+
             if ($orderCol === 'price' || $orderCol === 'pf.price') {
                 $orderCol = 'pf.final_price';
             }
 
-            // By a figure of the price index; equal figures by id.
+            // By a figure of the price index. The listing's default order lists
+            // every product, one with no figure for the visitor after every product
+            // that has one, in either direction; a sort asked for (chosen on the
+            // page, or any order other than the listing's default: one kept from an
+            // earlier page, a module's, a caller's) lists only the products with a
+            // figure (2.2.2). Equal figures, and those without, by id.
             if (str_starts_with($orderCol, 'pf.')) {
+                $sortsByPrice = $explicitlySorted || !$this->isDefault('list', 'fullordering', $statedOrder);
+                $query->order($db->quoteName($orderCol) . ' IS NULL ASC');
                 $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
                 $query->order($db->quoteName('a.id') . ' ASC');
             } else {
                 $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
             }
+        }
+
+        // The visitor's price from the index (2.2.2): a read that asks for a price (a price filter, the sale or a saving
+        // filter, a sort by price asked for) lists only the products with a figure for the visitor; every other read
+        // lists every product, one with no price shown with no price.
+        if ($sellsOnline) {
+            $this->applyPriceIndexJoin(query: $query, pricedOnly: $hasMin || $hasMax || $onSale || $savingAsked || $sortsByPrice);
         }
 
         $query->group('a.id');
@@ -1464,38 +1483,27 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * Join the visitor's price from the price index onto a storefront read of products, and with it the online
-     * catalogue's price rule (2.2.2): the one place every storefront read of products takes the rule from.
+     * Append the Architecture-B price index subquery JOIN to the main query: the one place a read of the catalogue
+     * takes the visitor's price figures, and the rule on products without one, from (2.2.2).
      *
      * The subquery (alias pf) reduces the index to one row per item for the current visitor's currency, place chain
-     * and set of pricing groups (their own once prepared, the guest's while theirs waits), at this moment. A product it
-     * holds no row of has no valid price for the visitor and is not in the online catalogue, so the join is an inner
-     * one and leaves it out: the listing with its total and its
-     * facets, the single-card reload, the product page and the category counts read through here. A read that keeps
-     * such a product ($keepUnpriced, the cart reading its own lines) joins it as a left join, its pf columns then null,
-     * and so does every read while no set is prepared to read at all. In catalogue-only mode no price is read: nothing
-     * is joined and nothing is left out.
+     * and set of pricing groups (their own once prepared; while theirs waits, their previous one or the guest's), at
+     * this moment. A left join: a product with no figure for the visitor is listed, its pf columns null. With
+     * $pricedOnly, the read that asks for a price, an inner join: only the products with a figure are listed. While no
+     * set is prepared to read at all (the job runner has not run yet) every read is a left join, so no list is empty
+     * because the index is being prepared.
      *
-     * @param QueryInterface $query The read of products, changed in place.
-     * @param string $itemAlias The alias of #__alfa_items in the read.
-     * @param bool $keepUnpriced Whether a product with no price for the visitor stays in the read.
-     * @param int[] $itemIds The products the read is about, when it reads named ones: the index is read for those
-     *                       only, the rule unchanged. Empty for every product.
-     *
+     * @param \Joomla\Database\QueryInterface $query Mutated in place
+     * @param bool $pricedOnly Whether the read lists only the products with a figure for the visitor.
      * @since  1.0.0
      */
-    public static function applyPriceIndexJoin(QueryInterface $query, string $itemAlias = 'a', bool $keepUnpriced = false, array $itemIds = []): void
+    protected function applyPriceIndexJoin($query, bool $pricedOnly = false): void
     {
-        if (!ShopMode::sellsOnline()) {
-            return;
-        }
-
         // Same UTC clock as the publish window in getListQuery(): the index's
         // valid_from / valid_until are written by PriceIndexSyncService with
         // Factory::getDate()->toSql(), so a promo segment must open on that
         // clock, not on the DB's local-time NOW().
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $now = $db->quote(ActiveDateCondition::now());
+        $now = Factory::getContainer()->get('DatabaseDriver')->quote(ActiveDateCondition::now());
 
         $context = PriceContext::fromSession();
 
@@ -1510,11 +1518,10 @@ class ItemsModel extends UrlListModel
         $placeCond = 'pi.place_id IN (' . implode(', ', array_merge($places, [0])) . ')';
 
         // Groups: the slots of the visitor's own set of pricing groups, priced with exactly the groups of theirs that
-        // change a price; while that set waits for its preparation, the guest's (readableSetKey()), so no visitor meets
-        // an empty catalogue because a set is being prepared. With no prepared set to read at all (the job runner has
-        // not run yet) no slot is read and no product is left out.
+        // change a price; while that set waits for its preparation, their previous one or the guest's (readableSetKey()),
+        // so no visitor meets an empty list or products without figures because a set is being prepared.
         $setKey = PriceIndexSyncService::readableSetKey(context: $context);
-        $keepUnpriced = $keepUnpriced || $setKey === null;
+        $pricedOnly = $pricedOnly && $setKey !== null;
         $setJoin = PriceIndexSyncService::slotSetJoin(setKey: $setKey ?? '', alias: 'pi');
 
         // Subquery: all column aliases match index column names.
@@ -1531,10 +1538,6 @@ class ItemsModel extends UrlListModel
         // own; the ranking keeps one of its slots per product, which the outer
         // aggregate reads.
         $ranking = PriceIndexSyncService::slotRanking(alias: 'pi', places: $places);
-
-        // Named products: their rows only, so a read of one product does not rank the whole index.
-        $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds), static fn (int $id): bool => $id > 0)));
-        $itemCond = $itemIds === [] ? '' : ' AND pi.item_id IN (' . implode(', ', $itemIds) . ')';
 
         $subquery = "
             (
@@ -1560,13 +1563,13 @@ class ItemsModel extends UrlListModel
                     WHERE {$currencyCond}
                       AND {$placeCond}
                       AND pi.valid_from <= {$now}
-                      AND (pi.valid_until IS NULL OR pi.valid_until > {$now}){$itemCond}
+                      AND (pi.valid_until IS NULL OR pi.valid_until > {$now})
                 ) AS ranked
                 WHERE ranked.context_rank = 1
                 GROUP BY ranked.item_id
             ) AS pf";
 
-        $query->join($keepUnpriced ? 'LEFT' : 'INNER', $subquery . ' ON ' . $db->quoteName($itemAlias . '.id') . ' = ' . $db->quoteName('pf.item_id'));
+        $query->join($pricedOnly ? 'INNER' : 'LEFT', $subquery . ' ON a.id = pf.item_id');
     }
 
     /**
@@ -2229,8 +2232,7 @@ class ItemsModel extends UrlListModel
      *
      * @param int $id The item id.
      *
-     * @return object|null The decorated card item, or null when not found, unpublished or, while the shop sells online,
-     *                     without a price for the visitor.
+     * @return object|null The decorated card item, or null when not found/unpublished.
      * @since  2.0.0
      */
     public function getItem(int $id): ?object
@@ -2251,9 +2253,6 @@ class ItemsModel extends UrlListModel
         // is reachable anonymously as view=items&layout=item&id=N, which means a
         // restricted product could be rendered in full simply by guessing an id.
         (new CatalogAccessPolicy())->applyToItems($query, 'a');
-
-        // The online catalogue's price rule (2.2.2): a product with no price for the visitor has no card to redraw.
-        self::applyPriceIndexJoin(query: $query, itemIds: [$id]);
 
         // The routed category's layout overrides ride the SAME query (the reload
         // URL carries category_id): no second query for the card chain.
@@ -2599,6 +2598,7 @@ class ItemsModel extends UrlListModel
                 'MIN(pf.final_price) AS price_min',
                 'MAX(pf.final_price) AS price_max',
             ])
+            ->where('pf.final_price IS NOT NULL')
             ->where('pf.final_price > 0');
 
         // The filter module asks for this facet more than once per render; the

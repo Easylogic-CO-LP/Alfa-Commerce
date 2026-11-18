@@ -19,8 +19,8 @@ use Joomla\CMS\Factory;
  * The related products a visitor sees on a product's page (2.2.2): the product's links in the order staff set, read
  * through the site ItemsModel as the listing reads products (published, within their publish window, what the visitor
  * may see, priced from the price index for the visitor's currency, place and groups), with no search, so no search
- * engine is asked and no result set is announced. A product the visitor may not see, or one with no price for them
- * while the shop sells online, is skipped and the next one takes its place. The links are read in pages of twice the count (at least 8) and never more than {@see self::READ_MAX}, so
+ * engine is asked and no result set is announced. A product the visitor may not see is skipped and the next one takes
+ * its place. The links are read in pages of twice the count (at least 8) and never more than {@see self::READ_MAX}, so
  * a product with many links never loads them all to show a few; a count of 0 reads nothing.
  *
  * @since  2.2.2
