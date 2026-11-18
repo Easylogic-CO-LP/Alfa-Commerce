@@ -287,6 +287,9 @@ class PackageHelper
      * blank-line changes hash the same while any other byte (a BOM included) does
      * not. Any other file hashes byte for byte.
      *
+     * @api READ ONLY: a file's content hash as core's obsolete-file removal compares it (whitespace runs collapsed in a
+     *      text file); false when the file cannot be read.
+     *
      * @param string $path Absolute path of the file.
      *
      * @return string|false The lowercase hex digest, or false when the file can't be read.

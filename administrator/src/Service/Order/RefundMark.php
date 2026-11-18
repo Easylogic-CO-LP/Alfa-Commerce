@@ -44,6 +44,9 @@ final class RefundMark
     /**
      * The mark of a payment.
      *
+     * @api READ ONLY: the payment's refund mark (the newest refund row's id, 0 while none); a refund form carries it
+     *      and the core refuses a form drawn before a later refund.
+     *
      * @param int $paymentId The payment row (#__alfa_order_payments.id).
      *
      * @return int The newest refund row's id; 0 while the payment has none.

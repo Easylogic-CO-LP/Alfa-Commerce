@@ -63,6 +63,8 @@ final class CartService
      * The visitor's own cart, whoever they are.
      *
      *
+     * @api READ ONLY: the cart service of the visitor's own cart.
+     *
      * @since  2.0.0
      */
     public static function ambient(): self
@@ -445,6 +447,10 @@ final class CartService
      * The same cart as {@see read()}, found the same way and with the same writes, but plain: a drawer that shows no
      * method reads no method list, so no carrier is asked to quote for one on every page it renders on (2.2.2). The
      * chosen carrier is still asked for the shipping total.
+     *
+     * @api ANSWERS: the lines and totals of the cart under the mode given, without offers; CURRENT creates no cart for
+     *      a visitor without one (resolving may adopt a guest cart and re-clamp a quantity, as every cart page does);
+     *      Mutable is refused.
      *
      * @param CartResolution $mode How to find it.
      * @param int $cartId Which one, when naming it.

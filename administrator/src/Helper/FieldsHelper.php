@@ -88,6 +88,9 @@ class FieldsHelper
      * rewrites the name and ALTERs the column while the id stays put. This
      * turns one back into the other, memoised per request.
      *
+     * @api READ ONLY: the checkout column a saved checkout-field id names, or null when the field is gone or
+     *      unpublished, or when the read fails.
+     *
      * @param int $fieldId The saved `#__alfa_form_fields.id`.
      *
      * @return string|null The column name, or null when the field is gone or unpublished.

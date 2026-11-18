@@ -687,6 +687,11 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * the question: costFromZones() asks it before every early return, which is
      * the only reason the ceilings hold where no cost row is consulted.
      *
+     * @api HOOK: whether this carrier can physically take the cart, as a refusal language key or null; costFromZones()
+     *      asks it before any price is read. The default judges the carrier's configured maxima (weight summed, each
+     *      dimension per single unit, an unset maximum is none); an override may call parent::parcelRefusal() first to
+     *      keep the merchant's maxima.
+     *
      * @param CartLine[] $lines What there is to carry.
      * @param array $limits ['width' =>, 'height' =>, 'depth' =>, 'weight' =>].
      *

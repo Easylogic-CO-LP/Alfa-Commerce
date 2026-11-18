@@ -51,6 +51,8 @@ final class InstalmentTiers
      * scale and compared as Money, never as a float. On equal thresholds the
      * larger count wins. Nothing configured or nothing reached is 1.
      *
+     * @api READ ONLY: the highest instalment count the method's tiers allow for an amount.
+     *
      * @param array $params The method's params.
      * @param Money $amount The amount to be collected.
      * @param int $ceiling The gateway's own highest count.
@@ -105,6 +107,8 @@ final class InstalmentTiers
      * What one instalment costs, per count, as a disclosure: the first part of
      * the total split with Money::allocate(), which is the largest part.
      *
+     * @api READ ONLY: what one instalment costs per count, as a disclosure.
+     *
      * @param Money $total The amount the customer pays.
      * @param int $max The highest count on offer.
      *
@@ -126,6 +130,8 @@ final class InstalmentTiers
     /**
      * The count to show as selected, so a cart re-render keeps the customer's
      * choice: this request's cartform[instalments], else the remembered one.
+     *
+     * @api READ ONLY: the count to show as chosen: this request's choice, else the remembered one.
      *
      * @param int $max The highest count on offer.
      *
@@ -149,6 +155,8 @@ final class InstalmentTiers
      * Remember the customer's choice for the gateway visit. Called on every
      * placement, 1 included, so an earlier order's choice cannot carry over.
      *
+     * @api SESSION ONLY: keeps the buyer's choice for the gateway visit.
+     *
      * @param int $count The chosen count.
      *
      *
@@ -161,6 +169,8 @@ final class InstalmentTiers
 
     /**
      * Read the remembered choice and clear it.
+     *
+     * @api SESSION ONLY: reads the remembered choice and clears it; 1 when none.
      *
      * @return int The choice, or 1 when there is none.
      *

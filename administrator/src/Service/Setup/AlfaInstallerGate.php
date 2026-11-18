@@ -226,6 +226,9 @@ final class AlfaInstallerGate
      * Alfa Commerce that is missing or older than the extension's minimum. Never for the state of Clear
      * everything.
      *
+     * @api READ ONLY: why an extension's installer must refuse now (Alfa Commerce missing or older than the minimum),
+     *      or null.
+     *
      * @param string $name The extension's name, as the messages show it.
      * @param string $route Joomla's route: install, update, discover_install or uninstall.
      * @param string|null $minimum The extension's MIN_ALFA_VERSION; null for com_alfa itself.
@@ -258,6 +261,9 @@ final class AlfaInstallerGate
      * extension's own manifest declares ({@see AlfaCoreRange}): on the routes that install code, an Alfa Commerce that
      * is missing, or whose line is outside the range, or a range that cannot be read. A manifest that declares no range
      * is never refused here (nothing is inferred for it).
+     *
+     * @api READ ONLY: why an extension's installer must refuse now, read from the range of Alfa Commerce lines its
+     *      manifest declares, or null; a manifest with no range is never refused.
      *
      * @param string $name The extension's name, as the messages show it.
      * @param string $route Joomla's route: install, update, discover_install or uninstall.

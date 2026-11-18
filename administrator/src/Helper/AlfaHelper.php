@@ -251,6 +251,8 @@ class AlfaHelper
      *   - OrderModel::handleStockOperation() -> stock_operation lookup
      *   - OrderModel::logOrderChanges() -> status name enrichment
      *
+     * @api READ ONLY: every order status by id, active and inactive, for naming a status.
+     *
      * @return array Statuses indexed by ID
      *
      * @since  1.0.0
@@ -840,6 +842,9 @@ class AlfaHelper
      * Super User grants by hand.
      *
      * Always User::authorise(), never Access::check(): only the former lets a Super User through.
+     *
+     * @api READ ONLY: whether the user holds alfa.<section>.<action> on com_alfa (a Super User always does); the one
+     *      permission check an extension's back-office screen or download asks.
      *
      * @param string $section A section ('items') or any entity or screen
      *                        name {@see self::PERMISSION_SECTIONS} knows.
