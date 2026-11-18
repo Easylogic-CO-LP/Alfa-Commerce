@@ -271,6 +271,36 @@ trait LedgerSupport
     }
 
     /**
+     * The staged payload's merge, for a write that holds its row itself.
+     *
+     * A compare-and-set takes its own lock and reads the status before it
+     * writes, so it cannot be wrapped in {@see self::writeWithPluginData()}.
+     * It runs this instead, with the row held and the write about to go out:
+     * the stored payload is read then, the staged changes are applied, and the
+     * column's new text goes out in the same UPDATE as the rest of the row. A
+     * write that does not go out (a lost race, a refusal) stores none of it.
+     *
+     * @param int $id The row.
+     *
+     * @return Closure|null fn(): string, the column's new text; null when
+     *                      nothing is staged.
+     *
+     * @since  2.2.2
+     */
+    protected function payloadMergeFor(int $id): ?Closure
+    {
+        if (!$this->hasStagedPluginData()) {
+            return null;
+        }
+
+        return function () use ($id): string {
+            $this->mergeStagedPluginData($id);
+
+            return (string) $this->data['plugin_data'];
+        };
+    }
+
+    /**
      * Read the stored payload with the row held, apply the staged changes, and
      * put the result where the row write will pick it up.
      *

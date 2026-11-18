@@ -77,6 +77,7 @@ use Alfa\Component\Alfa\Site\Service\Shipping\ShippingChargeBasis;
 use Alfa\Component\Alfa\Site\Service\Shipping\ShippingPriceEntryMode;
 use Alfa\Component\Alfa\Site\Service\Shipping\ShippingPriceEntryModeResolver;
 use Alfa\Component\Alfa\Site\Service\Shipping\ShippingTaxResolver;
+use Closure;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -595,6 +596,11 @@ class ShipmentLedger
      * really asking: a redelivered notification must be able to tell
      * "I did it" from "someone already had".
      *
+     * Staged ->pluginData() / ->removePluginData() travel with the verdict:
+     * they are merged against the stored payload under the row lock the
+     * compare-and-set holds and go out in the SAME conditional UPDATE as the
+     * status, so a lost race or a refusal writes none of them.
+     *
      * @param string $expectedStatus The status the row must still hold.
      *
      * @return int WRITE_OK | WRITE_RACED | WRITE_FAILED
@@ -609,7 +615,13 @@ class ShipmentLedger
             return self::WRITE_FAILED;
         }
 
-        return self::updateIfStatus((int) $this->shipmentId, $this->toArray(), $expectedStatus, writer: $this->writer);
+        return self::updateIfStatusWrite(
+            id: (int) $this->shipmentId,
+            data: $this->toArray(),
+            expectedStatus: $expectedStatus,
+            writer: $this->writer,
+            payloadMerge: $this->payloadMergeFor((int) $this->shipmentId),
+        );
     }
 
     // Introspection
@@ -2097,6 +2109,29 @@ class ShipmentLedger
      */
     public static function updateIfStatus(int $id, array $data, string $expectedStatus, string $writer = ''): int
     {
+        return self::updateIfStatusWrite(id: $id, data: $data, expectedStatus: $expectedStatus, writer: $writer);
+    }
+
+    /**
+     * The compare-and-set of {@see self::updateIfStatus()}, and of the builder's saveVerdict(), which hands it the
+     * staged payload's merge.
+     *
+     * @param int $id Shipment row PK
+     * @param array $data Update payload; must carry id_order
+     * @param string $expectedStatus The status the row must still hold
+     * @param string $writer The shipping plugin writing, or '' for staff and for core
+     * @param ?Closure $payloadMerge fn(): string, the builder's staged payload merged against the stored one
+     *                               ({@see self::payloadMergeFor()}): run with the row held and its status confirmed,
+     *                               its answer written as plugin_data in the same UPDATE. null writes no payload.
+     *
+     * @return int WRITE_OK | WRITE_RACED (row moved, nothing written) | WRITE_FAILED
+     *
+     * @throws OrderCurrencyException When the order names no currency: nothing is written.
+     *
+     * @since  2.2.2
+     */
+    private static function updateIfStatusWrite(int $id, array $data, string $expectedStatus, string $writer = '', ?Closure $payloadMerge = null): int
+    {
         $orderId = (int) ($data['id_order'] ?? 0);
 
         if ($id <= 0 || $orderId <= 0) {
@@ -2132,6 +2167,12 @@ class ShipmentLedger
                 TransactionState::rollBackLevel($db);
 
                 return self::WRITE_RACED;
+            }
+
+            // A builder's staged payload is merged now, with the row held and
+            // its status confirmed, and goes out in this UPDATE with the status.
+            if ($payloadMerge !== null) {
+                $data['plugin_data'] = $payloadMerge();
             }
 
             // The row is written while it is still held, the same write
