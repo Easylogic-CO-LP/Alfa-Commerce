@@ -290,6 +290,8 @@ class EmailService
      * the plugin-facing API, and a plugin never reaches for Order::row() to call this. Core's own code passes the order
      * row as it loaded it (a stdClass).
      *
+     * @api READ ONLY: the number the customer knows the order by; a plugin passes the Order reader it is handed.
+     *
      * @param Order|stdClass $order The Order reader (plugins), or the order row (core).
      *
      * @return string The order number.

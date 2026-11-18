@@ -24,7 +24,6 @@
  * |   |-- params.xml                    <- Method config (cost zones)
  * |   `-- logs.xml                      <- Plugin-specific log table schema
  * |-- tmpl/                             <- Layout templates
- * |   |-- default_item_view.php         <- Product page (shipping info)
  * |   |-- default_cart_view.php         <- Cart page (method selector)
  * |   |-- action_view_details.php       <- Admin: shipment details modal
  * |   |-- action_tracking.php           <- Admin: tracking info modal
@@ -373,12 +372,17 @@ final class Standard extends ShipmentsPlugin
     //
     //  These render HTML on the storefront. Each hook receives an event
     //  with the relevant context and the shipment method record.
-    //  You MUST call setLayout(), even for an empty layout.
+    //  The cart and order hooks MUST call setLayout(), even for an empty layout;
+    //  on the product page a method with nothing to add sets none.
 
     /**
-     * Product page: show shipping info (e.g. "Free shipping", "Ships in 2 days").
+     * Product page: what the method adds below itself (e.g. "Ships in 2 days").
      *
-     * For Standard: shows basic shipping text.
+     * Core draws every method there first (2.2.2): its image when the shop set one,
+     * its title and its description (layout methods.item). A plugin's layout adds
+     * only its own content below them, never a logo, the title or the description.
+     *
+     * For Standard: nothing; core's drawing of the method is all it shows.
      * For an API carrier: could show estimated delivery date from API.
      * For an express courier: could show "Express delivery available" badge.
      *
@@ -389,11 +393,7 @@ final class Standard extends ShipmentsPlugin
      */
     public function onItemView($event): void
     {
-        $event->setLayout('default_item_view');
-        $event->setLayoutData([
-            'method' => $event->getMethod(),
-            'item' => $event->getItem(),
-        ]);
+        // No layout: the Standard method adds nothing below core's drawing of it.
     }
 
     /**
@@ -495,9 +495,25 @@ final class Standard extends ShipmentsPlugin
             // did not choose. Same rule the offer filter applied and placement
             // will re-check.
             places: $cart->delivery()->places(fieldId: $method->param('delivery_place_field')),
-            postcode: $cart->delivery()->field((int) $method->param('postcode_field'))->value(),
+            postcode: $this->postcodeOf($method, $cart),
             subtotal: (float) $cart->getSubtotal()->getAmount(),
         );
+    }
+
+    /**
+     * The postcode this carrier prices by: its field's value, '' while that field is unanswered, or null when the method
+     * names no postcode field (2.2.2), so an unanswered field is told apart from one the carrier never reads.
+     *
+     * @param Method $method The carrier being asked.
+     * @param Cart $cart The cart being quoted.
+     *
+     * @since  2.2.2
+     */
+    private function postcodeOf(Method $method, Cart $cart): ?string
+    {
+        $field = $cart->delivery()->field((int) $method->param('postcode_field'));
+
+        return $field->exists() ? (string) ($field->value() ?? '') : null;
     }
 
     //  Order placement hook

@@ -19,12 +19,15 @@ $payments = $snapshot->offers->payments;
 $shipmentChosen = $snapshot->offers->selectedShipmentId > 0;
 
 // Nothing offered: with a shipping method chosen, none is allowed with it;
-// with none chosen yet, only payment methods tied to a shipping method
-// exist and the choice comes first.
+// with one offered and none chosen yet, only payment methods tied to a
+// shipping method exist and the choice comes first. With none offered
+// because a carrier waits for a fact (2.2.2), the list names the same fact;
+// with none offered at all, nothing can pay.
 $emptyKey = match (true) {
-    $shipmentChosen                   => 'COM_ALFA_CART_NO_PAYMENT_FOR_SHIPMENT',
-    $snapshot->offers->hasShipments    => 'COM_ALFA_CART_PAYMENT_CHOOSE_SHIPMENT_FIRST',
-    default                           => 'COM_ALFA_CART_NO_PAYMENT_AVAILABLE',
+    $shipmentChosen                       => 'COM_ALFA_CART_NO_PAYMENT_FOR_SHIPMENT',
+    $snapshot->offers->shipments !== []   => 'COM_ALFA_CART_PAYMENT_CHOOSE_SHIPMENT_FIRST',
+    $snapshot->offers->needsKey() !== ''  => $snapshot->offers->needsKey(),
+    default                               => 'COM_ALFA_CART_NO_PAYMENT_AVAILABLE',
 };
 ?>
 
@@ -44,6 +47,9 @@ $emptyKey = match (true) {
 
 		$checked = $snapshot->offers->selectedPaymentId === (int) $payment->id ? 'checked' : '';
 		$view = $snapshot->offers->viewFor('payment', (int) $payment->id);
+		// Each method in the order every method keeps (2.2.2): its radio, then in its label the image the shop set (none
+		// drawn without one) and its title, then the description the shop wrote, then what its plugin adds.
+		$image = Layout::render('methods.image', ['image' => $snapshot->offers->imageFor('payment', (int) $payment->id), 'title' => (string) $payment->name]);
 		?>
         <div>
             <input
@@ -56,10 +62,10 @@ $emptyKey = match (true) {
             >
 
             <label for="payment_method_<?php echo $payment->id; ?>">
-				<?php echo htmlspecialchars($payment->name, ENT_QUOTES, 'UTF-8'); ?>
+				<?php echo $image . htmlspecialchars($payment->name, ENT_QUOTES, 'UTF-8'); ?>
             </label>
 
-            <p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php if (trim((string) $payment->description) !== '') : ?><p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
 			<?php if ($view !== null) : ?>
 				<?php echo Layout::render($view->layout, $view->layoutData, $view->pluginType, $view->pluginName); ?>

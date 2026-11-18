@@ -116,6 +116,7 @@ use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
 use Joomla\Database\QueryInterface;
 use Joomla\Event\SubscriberInterface;
+use LogicException;
 use RuntimeException;
 use Throwable;
 
@@ -337,6 +338,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * shared dispatcher, never in getSubscribedEvents(). onPaymentStoreReference and onPaymentChargeReference
      * are addressed by an extension's billing engine (a subscriptions extension); core dispatches neither.
      *
+     * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
+     *      answered through the event.
+     *
      * @since  2.2.0
      */
     public const TARGETED_EVENTS = [
@@ -421,6 +425,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     /**
      * Get the order completion page URL.
      *
+     * @api READ ONLY: the completion page's address.
+     *
      * @since  1.0.0
      */
     public function getCompletePageUrl(): string
@@ -440,6 +446,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
 
     /**
      * Get the payment-in-progress (process) page URL.
+     *
+     * @api READ ONLY: the process page's address.
      *
      * @since  1.0.0
      */
@@ -488,6 +496,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * of this plugin's, and a refund or chargeback must return this plugin's own
      * money, or the save answers false and writes nothing.
      *
+     * @api ANSWERS: the ledger in builder mode with this plugin as the writer; its save() writes only on this plugin's
+     *      own methods.
+     *
      * @param object $order Full order object (->id, ->items, ->id_payment_method)
      *
      * @return PaymentLedger Builder: chain setters, finish with ->save()
@@ -520,6 +531,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *   if ($due <= 0.0) { return; }
      *   $this->payment($order)->amount($due)->pending()->save();
      *
+     * @api READ ONLY: what a new charge should collect, clamped at zero.
+     *
      * @param object $order The hydrated order.
      *
      * @return float Amount still to collect, never negative.
@@ -548,6 +561,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * Usage:
      *   if (!$this->refundableNow($order)->isPositive()) { ...offer no Refund action... }
+     *
+     * @api READ ONLY: what a new refund start may take now.
      *
      * @param object $order The hydrated order.
      *
@@ -579,15 +594,16 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Send it to the gateway in minor units through the order's own currency,
      * never `* 100`:
      *
-     *   $left  = $this->refundFormMaximum((int) $payment->id);
-     *   $minor = Money::of($left, $order->currency)->getMinorUnits();
+     *   $minor = $this->refundFormMaximum((int) $payment->id)->getMinorUnits();
      *
      * Alfa ships currencies with 0, 1, 3 and 4 decimals (JPY, MOP, OMR, ...), so
      * a hard-coded hundred is wrong on four of them.
      *
+     * @api READ ONLY: what is left to refund on one payment row.
+     *
      * @param int $paymentId Original payment row PK.
      *
-     * @return float Remaining refundable amount, 0.0 when nothing is left.
+     * @return Money Remaining refundable amount, zero when nothing is left.
      *
      * @since  2.0.0
      */
@@ -608,6 +624,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * Usage:
      *   $max = $this->refundFormMaximum((int) $payment->id);   // the form's maximum
+     *
+     * @api READ ONLY: the most the refund form offers for one payment.
      *
      * @param int $paymentId The payment.
      *
@@ -641,6 +659,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Usage:
      *   $refusal = $this->refundStartRefusal($event->getOrder());
      *   if ($refusal !== null) { ...refuse with $refusal, send nothing... }
+     *
+     * @api READ ONLY: why a refund cannot start now, or null.
      *
      * @param object $order The hydrated order.
      *
@@ -768,8 +788,15 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *     takes no lock and never calls the provider;
      *   - empty for a payment that is not this plugin's, or that does not exist.
      *
+     * The core's reading of these reports for one payment is
+     * unbookedProviderRefundsOfPayment() (2.2.2), never called from here: the
+     * core refuses it with a LogicException and reads the payment as unread.
+     *
      * This default answers empty: a payment method with no provider channel (the
      * bundled Standard method) can never hold a refund a provider reported.
+     *
+     * @api HOOK: the provider's refunds the books do not hold, one entry per refund, oldest first; core asks it of each
+     *      payment's gateway when it decides a refund start and for the order screen's notice.
      *
      * @param int $paymentId The payment.
      *
@@ -816,6 +843,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Storing null KEEPS the key (has() stays true, a typed getter answers with its default); removing takes it away.
      * The merge is one level deep: a key you write replaces what was under it, wholesale. Core never looks inside any
      * of it.
+     *
+     * @api ANSWERS: the ledger in builder mode for one row, naming this plugin as the writer, so its save() refuses
+     *      another plugin's row; throws when the payment is not found.
      *
      * @param int $paymentId Existing payment row PK
      *
@@ -887,6 +917,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *       default:                ... refuse; the money is not in the books
      *   }
      *
+     * @api ANSWERS: WRITE_OK, WRITE_RACED or WRITE_FAILED; the staged plugin data is written by the same
+     *      compare-and-set as the status, or not at all.
+     *
      * @param PaymentLedger $write Update builder with ->expectStatus() armed.
      * @param int $orderId Order the attempt belongs to.
      * @param string $reference Gateway transaction id or order reference,
@@ -940,6 +973,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *       case self::VERDICT_LOCK_NOT_TAKEN: ... ask the provider to deliver again
      *       default:                           ... reconcile; repeating is useless for refused
      *   }
+     *
+     * @api ANSWERS: a PaymentWriteVerdict for the settle (written, raced, refused, lock_not_taken or write_failed).
      *
      * @param PaymentLedger $write Update builder with ->expectStatus() armed.
      * @param int $orderId Order the attempt belongs to.
@@ -1011,6 +1046,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *       throw new RuntimeException(Text::_('..._ERROR_NO_PENDING_PAYMENT'));
      *   }
      *
+     * @api ANSWERS: WRITE_OK, WRITE_RACED or WRITE_FAILED; this plugin's own attempts only.
+     *
      * @param int $paymentId Pending attempt row PK.
      * @param string $reason Why it was abandoned, stamped into the row's note.
      *
@@ -1034,6 +1071,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *   if ($open !== null && !$reusable) {
      *       $closed = $this->supersedeAttemptVerdict((int) $open->id, 'New gateway visit');
      *   }
+     *
+     * @api ANSWERS: a PaymentWriteVerdict for the close; another gateway's row is refused (REFUSAL_NOT_WRITER).
      *
      * @param int $paymentId Pending attempt row PK.
      * @param string $reason Why it was abandoned, stamped into the row's note.
@@ -1102,6 +1141,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *       $event->setError(Text::sprintf('..._ERROR_REFUND', $result['reason']));
      *   }
      *
+     * @api ANSWERS: an array whose 'outcome' is one of the OUTCOME_ constants of this class, with the refund's id and a
+     *      reason.
+     *
      * @param int $paymentId Original payment row PK.
      * @param ?Money $amount Amount to return; null = the refundable
      *                       remainder. A zero or negative Money is REFUSED
@@ -1149,6 +1191,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *   $r = $this->reserveRefund((int) $payment->id, $typedOrNull, ['mark' => $postedMark, 'reason' => $why]);
      *   if ($r['outcome'] !== self::OUTCOME_RESERVED) { ...refuse with $r['reason'], send nothing... }
      *   $answer = <provider refund of $r['amount'], idempotency key $r['key']>;
+     *
+     * @api ANSWERS: an array whose 'outcome' is one of the OUTCOME_ constants of this class, with the reservation and
+     *      its key.
      *
      * @param int $paymentId The completed payment to refund.
      * @param Money|null $amount In the order's currency; null = the form's maximum: what may start on
@@ -1201,6 +1246,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * kept for staff (OUTCOME_UNRECONCILED). Sent outside any transaction of
      * yours (inside one: OUTCOME_FAILED, nothing written; see refundPayment()).
      *
+     * @api ANSWERS: an array whose 'outcome' is one of the OUTCOME_ constants of this class, with the refund's id and a
+     *      reason.
+     *
      * @param int $reservationId The reservation (or a pending refund row split off it).
      * @param Money $amount The provider's figure, in the order's currency.
      * @param string|null $providerRefundId The provider's refund id as given; null when it gives none.
@@ -1223,6 +1271,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * (beyond the ceiling it is kept and every start is refused). Sent outside
      * any transaction of yours, as settleRefund() is.
      *
+     * @api ANSWERS: an array whose 'outcome' is one of the OUTCOME_ constants of this class, with the refund's id and a
+     *      reason.
+     *
      * @param int $reservationId The reservation.
      * @param string|null $providerRefundId The provider's refund id as given; null when it gives none.
      * @param Money|null $amount The provider's figure; null = the whole reservation.
@@ -1243,6 +1294,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * the refund, or the decision closed with this rest unused
      * ({@see PaymentLedger::releaseRefund()}). Never for an unknown outcome.
      * Sent outside any transaction of yours, as settleRefund() is.
+     *
+     * @api ANSWERS: an array whose 'outcome' is one of the OUTCOME_ constants of this class, with the refund's id and a
+     *      reason.
      *
      * @param int $reservationId The reservation.
      * @param string $reason Why, plain text.
@@ -1274,6 +1328,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *   $r = $this->failRefundAttempt($reservationId, $failedRefundId, $why);
      *   if ($r['outcome'] === self::OUTCOME_RESERVED) { ...retry: $r['amount'], idempotency key $r['key']... }
      *
+     * @api ANSWERS: an array whose 'outcome' is one of the OUTCOME_ constants of this class, with the reservation's new
+     *      key.
+     *
      * @param int $reservationId The reservation.
      * @param string $providerRefundId The provider's id of the refund that failed, exactly as given.
      * @param string $reason Why, plain text.
@@ -1293,6 +1350,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * One reservation as the books hold it, with its key while the provider has
      * not named the refund ({@see PaymentLedger::refundReservation()}). Read only.
      *
+     * @api READ ONLY: the reservation, or null.
+     *
      * @param int $reservationId The reservation.
      *
      * @return array{reservation: int, payment: int, order: int, amount: Money, status: string, key: ?string, providerRefundId: ?string}|null
@@ -1309,6 +1368,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * reports, or null ({@see PaymentLedger::reportOutcome()}). Read only, and it
      * never asks this plugin, so unbookedProviderRefunds() may call it.
      *
+     * @api READ ONLY: the outcome core keeps for one of this plugin's refund reports, or null; never asks the plugin.
+     *
      * @param int $paymentId The payment.
      * @param string $reportId The report's reference.
      *
@@ -1319,6 +1380,52 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected function reportOutcome(int $paymentId, string $reportId): ?array
     {
         return PaymentLedger::reportOutcome(paymentId: $paymentId, reportId: $reportId);
+    }
+
+    /**
+     * The refunds this plugin's provider reports for one of its payments that the books do not hold, as the core
+     * reads them ({@see PaymentLedger::unbookedProviderRefundsOfPayment()}): from the reports this plugin gives in
+     * unbookedProviderRefunds(), those already booked under their provider id and those whose outcome the core keeps
+     * are left out; 'reserved' lists the pending ones whose exact amount reserves the refundable pool, 'refunds' the
+     * ones that hold the refund block, and 'unread' says what the core could not read of the answer (a malformed
+     * entry, an answer that threw), or is null.
+     *
+     * Not this plugin's own report: that is unbookedProviderRefunds(), which the core asks to build this answer, so
+     * this is never called from it. A call from it is refused with a LogicException; the core then reads the payment as
+     * unread, and the refund block holds until the plugin is fixed.
+     *
+     * @api READ ONLY: writes nothing, takes no lock and never calls the provider; asks this plugin's
+     *      unbookedProviderRefunds() once; a payment that is not this plugin's, or not a payment, answers the empty shape.
+     *
+     * @param int $paymentId The payment.
+     *
+     * @return array{refunds: list<array{reportId: string, id: ?string, amount: ?Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>, reserved: list<array{reportId: string, id: ?string, amount: Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>, unread: string|null}
+     *
+     * @throws LogicException When called from this plugin's own unbookedProviderRefunds().
+     *
+     * @since  2.2.2
+     */
+    final protected function unbookedProviderRefundsOfPayment(int $paymentId): array
+    {
+        // Another gateway's row is never read through this plugin, as for every scoped reader of the set: one row of this
+        // plugin's element (the row's own payment_method_type, which keeps answering after the method row is deleted)
+        // and of type payment, by its id, read raw: nothing is hydrated, so an order without a currency answers as
+        // the ledger's reader answers it (unread), never with an exception of its own.
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $owned = $paymentId > 0 && (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('1')
+                ->from($db->quoteName('#__alfa_order_payments'))
+                ->where($db->quoteName('id') . ' = ' . $paymentId)
+                ->where($db->quoteName('payment_method_type') . ' = ' . $db->quote($this->_name))
+                ->where($db->quoteName('payment_type') . ' = ' . $db->quote(PaymentLedger::TYPE_PAYMENT)),
+        )->loadResult() === 1;
+
+        if (!$owned) {
+            return ['refunds' => [], 'reserved' => [], 'unread' => null];
+        }
+
+        return PaymentLedger::unbookedProviderRefundsOfPayment(paymentId: $paymentId);
     }
 
     /**
@@ -1334,6 +1441,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * OUTCOME_NOTHING_LEFT; 200 and report on OUTCOME_REFUSED; 503 on
      * OUTCOME_FAILED so the provider redelivers. Never throws. Only this
      * gateway's own rows: another gateway's row is refused (2.2.0).
+     *
+     * @api ANSWERS: ['outcome', 'row_id', 'reason', 'amount', 'reopened']; never throws; this plugin's own rows only.
      *
      * @param int $rowId The refund or chargeback row.
      * @param Money|null $amount What did not stand; null means all not yet reversed.
@@ -1356,6 +1465,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * and options as recordReversal(); another gateway's payment is refused
      * (2.2.0).
      *
+     * @api ANSWERS: ['outcome', 'row_id', 'reason', 'amount', 'reopened']; never capped, never moves the order; another
+     *      gateway's payment is refused.
+     *
      * @param int $paymentId The completed payment.
      * @param Money $amount What the bank took back, in the order's currency.
      * @param array $options As recordReversal().
@@ -1374,6 +1486,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * A failed or cancelled row reserves nothing and is never returned. The
      * reference is compared whole and byte for byte.
+     *
+     * @api READ ONLY: the refund or chargeback row carrying the reference, matched byte for byte, or null.
      *
      * @param int $paymentId The payment.
      * @param string $type self::TYPE_REFUND or self::TYPE_CHARGEBACK.
@@ -1457,6 +1571,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * renews on its own is renewalsAllowed(): this AND the method's own
      * setting (methodAllowsRenewals()).
      *
+     * @api HOOK: whether this gateway can charge a stored credential off-session; false by default.
+     *
      * @since  2.0.0
      */
     public function supportsRecurring(): bool
@@ -1481,6 +1597,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * entirely server-side, needs no redirect, no browser session and no
      * request state, and books nothing at a provider merely by being invoked.
      *
+     *
+     * @api HOOK: whether staff may place an order with this method; false by default.
      *
      * @since  2.0.0
      */
@@ -1511,6 +1629,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * it asks for a mandate and before it charges a stored one. A method of another gateway,
      * or none, is false.
      *
+     * @api READ ONLY: whether a renewal of the method may run without the customer; another gateway's method, or none,
+     *      is false.
+     *
      * @param int $methodId #__alfa_payments.id.
      *
      *
@@ -1539,6 +1660,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * applies its own conditions (a card gateway: not on instant payments). The default is
      * false, so a gateway that does not answer never renews automatically.
      *
+     * @api HOOK: whether the method's saved settings allow automatic renewals; false by default; read by
+     *      renewalsAllowed().
+     *
      * @param array $params The method's saved params.
      *
      *
@@ -1554,6 +1678,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * recorded it under PAYLOAD_ENVIRONMENT. Never guessed and never read from
      * the switch: a payment that recorded none answers null, and the gateway
      * then offers no follow-up action for it.
+     *
+     * @api READ ONLY: the environment the payment's attempt recorded, or null.
      *
      * @param object $payment The #__alfa_order_payments row, or its Payment reader.
      *
@@ -1651,6 +1777,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * plausible method, because every plausible method is a different set of
      * credentials. Foreign methods are never returned either: an order paid
      * through another gateway resolves to nothing here.
+     *
+     * @api READ ONLY: this plugin's method only, in any state, trashed included; never a fallback or a sibling method.
      *
      * @param int $orderId Order PK (0 when only a method id is asked).
      * @param int $methodId #__alfa_payments.id a payment row named, if any.
@@ -1760,6 +1888,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Refund rows are excluded: an attempt is a 'payment'. A refund can carry
      * the same transaction_id as the payment it returns, so including them
      * makes "the newest row with this reference" ambiguous.
+     *
+     * @api READ ONLY: only rows this plugin wrote (any of its methods, deleted ones included), newest first; throws
+     *      OrderCurrencyException for an order that cannot be read.
      *
      * @param int $orderId Order PK.
      * @param int|array $methodId Narrow to one method or a SET of them (0 = any
@@ -1874,6 +2005,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Idempotent: the same order again changes nothing; another order replaces the session's order and its mark.
      * It reads no table. Outside a storefront request there is no visitor's session, and nothing is set.
      *
+     * @api SESSION ONLY: points the visitor's session at the order and its mark; reads no table; idempotent.
+     *
      * @param int $orderId The order the authenticated return is for.
      *
      * @throws InvalidArgumentException When the id is below 1.
@@ -1921,6 +2054,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * version handed back somebody else's payment. Rows arrive newest first,
      * so the first pending one genuinely is the latest.
      *
+     * @api READ ONLY: this plugin's newest pending row of the order, or null.
+     *
      * @param int $orderId Order PK.
      * @param int $methodId Narrow to one method (0 = any of this gateway's).
      *
@@ -1959,6 +2094,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * A reference is matched whole and byte for byte:
      * letter case and trailing spaces are part of it.
+     *
+     * @api READ ONLY: this plugin's row carrying the reference, matched byte for byte, or null; throws
+     *      OrderCurrencyException for an order that cannot be read.
      *
      * @param string[] $references Reference and/or gateway transaction id ('' skipped).
      * @param int $orderId Order PK, or 0 when the payload names none.
@@ -2056,6 +2194,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * One payment row by its id, with its payment method's record attached ({@see PaymentLedger::get()}). Not scoped
      * to this plugin: the row may be another gateway's.
      *
+     * @api READ ONLY: one row by id, not scoped to this plugin (check the row's plugin before acting).
+     *
      * @param int $id The payment row's id.
      *
      * @return object|null The row, its amount as Money; NULL when the id names no row.
@@ -2081,6 +2221,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * line, and picking one of those settles the wrong money. For that use
      * {@see self::gatewayPayments()} or {@see self::gatewayPaymentByReference()},
      * which scope to this plugin.
+     *
+     * @api READ ONLY: every payment row of the order, whatever the gateway: read to refuse or explain, never to pick a
+     *      row to write.
      *
      * @param int $orderId Order PK.
      *
@@ -2119,6 +2262,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *   $due = $this->orderBalance(orderId: (int) $order->id());
      *   if ($row->amount->greaterThan($due)) { ...refuse the capture... }
      *
+     * @api READ ONLY: the order's signed balance, never clamped.
+     *
      * @param int $orderId The order.
      *
      * @return Money Signed, in the order's currency and scale.
@@ -2149,6 +2294,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Usage:
      *   $ceiling = $this->bookedRefundable(orderId: (int) $order->id());
      *
+     * @api READ ONLY: what the books still allow to be refunded on the order.
+     *
      * @param int $orderId The order, above zero.
      *
      * @return Money In the order's currency and scale, never negative.
@@ -2172,6 +2319,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *   foreach ($this->ownMethods() as $methodId => $method) {
      *       $key = (string) ($method->params['webhook_key'] ?? '');
      *   }
+     *
+     * @api READ ONLY: this plugin's methods only.
      *
      * @param bool $publishedOnly True: the published methods only; false: every method of this plugin, whatever its
      *                            state.
@@ -2219,6 +2368,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * Usage:
      *   if ($this->countReferenceHolders(reference: $txId, types: [self::TYPE_PAYMENT]) !== 1) { ...prove nothing... }
+     *
+     * @api READ ONLY: how many of this plugin's rows of the given types hold exactly the reference.
      *
      * @param string $reference The provider reference, whole.
      * @param string[] $types The row types to count, each one of self::TYPE_PAYMENT, self::TYPE_AUTHORIZATION,
@@ -2389,6 +2540,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Usage:
      *   $bookedAs = $this->refundTypeFor(paymentId: $paymentId, amount: $refund) === self::REFUND_FULL ? 'refund' : 'refund_partial';
      *
+     * @api READ ONLY: whether a refund of the amount on one of this plugin's payments is full or partial, as the ledger
+     *      books it.
+     *
      * @param int $paymentId One of this gateway's payment rows.
      * @param Money|null $amount The refund, positive, in the order's currency; null means what is left to refund on it.
      *
@@ -2437,6 +2591,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * spaces and letter case kept, so a gateway claims with the very value
      * it later looks the attempt up by.
      *
+     * @api ANSWERS: true when this call claimed the attempt, false when it is not, or no longer, this plugin's pending
+     *      attempt without a reference; throws when the order cannot be locked.
+     *
      * @param int $paymentId The pending attempt.
      * @param string $reference The provider reference, not blank, stored whole.
      *
@@ -2467,6 +2624,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * gateway's row, or not a payment or authorization); lock_not_taken where claimPendingAttempt() throws today (the
      * attempt stays claimable: try again); write_failed. A plugin never reads a refusal or a lock as "make a new row".
      *
+     * @api ANSWERS: a PaymentWriteVerdict for the claim; another gateway's row is refused (REFUSAL_NOT_WRITER).
+     *
      * @param int $paymentId The pending attempt.
      * @param string $reference The provider reference, not blank, stored whole.
      *
@@ -2490,6 +2649,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     /**
      * Order process view: redirect to gateway or show processing page.
      *
+     * @api HOOK: called for the process page (redirect to the gateway or show progress).
+     *
      * @param object $event OrderProcessViewEvent
      * @since  1.0.0
      */
@@ -2497,6 +2658,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
 
     /**
      * Order complete view: show thank-you page.
+     *
+     * @api HOOK: called for the completion page.
      *
      * @param object $event OrderCompleteViewEvent
      * @since  1.0.0
@@ -2515,6 +2678,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *       ->confirm('Mark as paid?');
      *
      * Default: no actions.
+     *
+     * @api HOOK: the order screen's action buttons; none by default.
      *
      * @param object $event GetPaymentActionsEvent
      * @since  1.0.0
@@ -2537,6 +2702,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * Default: sets error "Unknown action".
      *
+     * @api HOOK: a click on one of this plugin's buttons; "Unknown action" by default.
+     *
      * @param object $event ExecutePaymentActionEvent
      * @since  1.0.0
      */
@@ -2551,6 +2718,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * The default allows deletion. Override to block it (e.g. refuse to delete a
      * captured payment) via $event->setResult(false), or to run gateway-side
      * cleanup before the order and its related rows are removed.
+     *
+     * @api HOOK: before an order is deleted in the admin; vetoes with $event->setResult(false); allows by default.
      *
      * @param object $event AdminOrderDeleteEvent
      *

@@ -290,6 +290,9 @@ class NotificationHelper
      * before 2.1.1 (each producer decides whether its work stands without the notice); a
      * listener's failure never does.
      *
+     * @api DURABLE: a failure to write the row reaches the caller, a listener's failure never does; inside a
+     *      transaction it is written after the outermost commit and discarded on a rollback.
+     *
      * @param string $dedupKey Stable identity, e.g. "order:123" or "alfa.integrity".
      * @param NotificationText|string $title Short headline: a key and its parameters, or literal text.
      * @param array $options group (a group key, e.g. COM_ALFA_NOTIFY_GROUP_ORDERS)|severity|
@@ -601,6 +604,9 @@ class NotificationHelper
      * Inside a transaction, or while notices of its key are still owed, it joins the notice
      * journal, as a push does ({@see self::push()}).
      *
+     * @api DURABLE: archives the notice (deletes it with $hard), joining the notice journal inside a transaction as
+     *      push() does.
+     *
      * @param string $dedupKey The key passed to {@see self::push()}.
      * @param bool $hard True = delete; false = archive to history.
      * @param int|null $historyDays Retention when archiving (null = default).
@@ -676,6 +682,8 @@ class NotificationHelper
      * The answer counts the notices of the key still owed ({@see self::push()}): this
      * transaction's, and those of other requests that have committed, in one statement.
      *
+     * @api READ ONLY: whether any row carries the key, an archived one included.
+     *
      * @param string $dedupKey The key passed to {@see self::push()}.
      *
      * @return bool True when a row carries the key.
@@ -695,6 +703,8 @@ class NotificationHelper
      * needs this one.
      *
      * The answer counts the notices of the key still owed, as {@see self::exists()} does.
+     *
+     * @api READ ONLY: whether a notice of the key is raised and neither dismissed nor cleared.
      *
      * @param string $dedupKey The producer's key.
      *

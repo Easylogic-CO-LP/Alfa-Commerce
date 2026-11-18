@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 
@@ -344,6 +345,14 @@ class PaymentsModel extends AlfaListModel
             MultilingualHelper::bindRelated($item, 'places', $placeMap);
             MultilingualHelper::bindRelated($item, 'usergroups', $ugMap);
             MultilingualHelper::bindRelated($item, 'shipments', $shipMap);
+        }
+
+        // Each method's image (2.2.2), read for the page in one call: its first media row, or null.
+        $images = MediaHelper::getMediaData(origin: 'payment', itemIDs: array_map(static fn (object $item): int => (int) $item->id, $items));
+
+        foreach ($items as $item) {
+            $rows = $images[(int) $item->id] ?? [];
+            $item->image = \is_array($rows) && isset($rows[0]) && \is_object($rows[0]) ? $rows[0] : null;
         }
 
         return $this->alfaEnriched = $items;

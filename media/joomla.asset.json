@@ -180,12 +180,18 @@
     {
       "name": "com_alfa.item",
       "type": "style",
-      "uri": "com_alfa/site/item.css"
+      "uri": "com_alfa/site/item.css",
+      "dependencies": [
+        "com_alfa.tokens"
+      ]
     },
     {
       "name": "com_alfa.cart",
       "type": "style",
-      "uri": "com_alfa/site/cart.css"
+      "uri": "com_alfa/site/cart.css",
+      "dependencies": [
+        "com_alfa.tokens"
+      ]
     },
     {
       "name": "com_alfa.manufacturer",

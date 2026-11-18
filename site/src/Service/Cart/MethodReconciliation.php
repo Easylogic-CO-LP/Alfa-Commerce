@@ -70,12 +70,15 @@ final class MethodReconciliation
         $shipmentChoice = MethodChoice::reconcile($shipments, $chosenShipment);
 
         if ($shipmentChoice->dropCurrent) {
-            // A cart that stopped shipping drops its shipping method silently.
-            if (!$state->isVirtual()) {
-                $methods->addNotice('shipment', Text::sprintf(
-                    'COM_ALFA_CART_SHIPMENT_NO_LONGER_AVAILABLE',
-                    $methods->name('shipment', $chosenShipment),
-                ));
+            // A cart that stopped shipping drops its shipping method silently; so does a carrier the offer read
+            // withheld until the checkout gives a fact it needs (the country, the postcode: 2.2.2). One withheld for
+            // its own answer about the destination the shopper gave is unchecked with that answer, as before.
+            $withheld = $methods->withheld($chosenShipment);
+
+            if (!$state->isVirtual() && ($withheld === null || !CartMethods::waitsForFact($withheld))) {
+                $methods->addNotice('shipment', $withheld === null
+                    ? Text::sprintf('COM_ALFA_CART_SHIPMENT_NO_LONGER_AVAILABLE', $methods->name('shipment', $chosenShipment))
+                    : self::refusalNotice($withheld, $methods->name('shipment', $chosenShipment)));
             }
 
             $this->rows->applyShipment(0, $at);
@@ -104,28 +107,10 @@ final class MethodReconciliation
             $quote = $this->computation->shipmentQuote();
 
             if (!$quote->available) {
-                // SILENCE IS NOT A REFUSAL, AND MUST NOT BE READ ALOUD AS ONE.
-                // A carrier whose hook ran and answered nothing has said
-                // nothing about this parcel, so telling the shopper it "cannot
-                // carry this order" is a statement the shop has no grounds for,
-                // and it sends the merchant to inspect a zone table that is not
-                // at fault. The selection is still dropped, because there is no
-                // price to charge; only the sentence differs.
-                $methods->addNotice('shipment', match (true) {
-                    !$quote->answered => Text::sprintf(
-                        'COM_ALFA_CART_SHIPMENT_NOT_PRICED',
-                        $methods->name('shipment', $chosenShipment),
-                    ),
-                    $quote->reasonKey !== '' => Text::sprintf(
-                        'COM_ALFA_CART_SHIPMENT_CANNOT_CARRY_REASON',
-                        $methods->name('shipment', $chosenShipment),
-                        Text::_($quote->reasonKey),
-                    ),
-                    default => Text::sprintf(
-                        'COM_ALFA_CART_SHIPMENT_CANNOT_CARRY',
-                        $methods->name('shipment', $chosenShipment),
-                    ),
-                });
+                // A carrier that waits for a fact the checkout has not given is set aside without a word (2.2.2).
+                if (!CartMethods::waitsForFact($quote)) {
+                    $methods->addNotice('shipment', self::refusalNotice($quote, $methods->name('shipment', $chosenShipment)));
+                }
 
                 $this->rows->applyShipment(0, $at);
                 $chosenShipment = 0;
@@ -159,5 +144,27 @@ final class MethodReconciliation
         }
 
         return $this->computation->methods()->allNotices();
+    }
+
+    /**
+     * What the shopper is told about a carrier that will not carry the cart.
+     *
+     * SILENCE IS NOT A REFUSAL, AND MUST NOT BE READ ALOUD AS ONE. A carrier whose hook ran and answered nothing has
+     * said nothing about this parcel, so telling the shopper it "cannot carry this order" is a statement the shop has no
+     * grounds for, and it sends the merchant to inspect a zone table that is not at fault. The selection is still
+     * dropped, because there is no price to charge; only the sentence differs.
+     *
+     * @param ShippingQuote $quote The carrier's answer.
+     * @param string $name The carrier's name.
+     *
+     * @since  2.2.2
+     */
+    private static function refusalNotice(ShippingQuote $quote, string $name): string
+    {
+        return match (true) {
+            !$quote->answered => Text::sprintf('COM_ALFA_CART_SHIPMENT_NOT_PRICED', $name),
+            $quote->reasonKey !== '' => Text::sprintf('COM_ALFA_CART_SHIPMENT_CANNOT_CARRY_REASON', $name, Text::_($quote->reasonKey)),
+            default => Text::sprintf('COM_ALFA_CART_SHIPMENT_CANNOT_CARRY', $name),
+        };
     }
 }

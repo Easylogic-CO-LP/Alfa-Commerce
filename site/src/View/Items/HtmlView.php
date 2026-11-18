@@ -91,7 +91,8 @@ class HtmlView extends BaseHtmlView
 
     /**
      * @var string The results region's name (2.2.0, UX-53): the counter Joomla's pagination prints ("1 - 25 / 132
-     *             items"), so the focus a filter gives the region announces how many products show; empty for none.
+     *             items"), so the focus a filter gives the region announces how many products show; with no products
+     *             Joomla's sentence for none (2.2.2).
      */
     protected string $resultsCounter = '';
 
@@ -309,13 +310,16 @@ class HtmlView extends BaseHtmlView
         // item's preset filters are the page itself, not a submission.
         $this->revealResults = (int) $this->state->get('list.start', 0) > 0 || self::carriesValue(value: $input->get('filter', [], 'array'));
 
-        // The region's name, in the words of the counter Joomla's pagination prints above the list.
+        // The region's name, in the words of the counter Joomla's pagination prints above the list; with no products,
+        // Joomla's own sentence for none (2.2.2), so the focus the region takes says how many products show either way.
         $total = (int) $this->pagination->total;
 
         if ($total > 0) {
             $first = (int) $this->pagination->limitstart + 1;
             $limit = (int) $this->pagination->limit;
             $this->resultsCounter = Text::sprintf('JLIB_HTML_PAGINATION_NUMBERS', $first, $limit > 0 ? min($first + $limit - 1, $total) : $total, $total);
+        } else {
+            $this->resultsCounter = Text::_('JGLOBAL_NO_MATCHING_RESULTS');
         }
 
         $this->_prepareDocument();
