@@ -107,17 +107,70 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The Easylogic credit at the foot of the overview: "Designed and developed with", a heart, "by" and the Easylogic
-     * logo, which links to easylogic.gr in the same tab. The view adds it itself, as one inline script with its rules in
-     * the page's own style, so no layout or template file carries it and a template override does not remove it. The
-     * words are English on every site. The logo ships in the package and is drawn into the page from that file, so no
-     * request leaves the site and its letters take the text colour of the administrator's light or dark scheme. The
-     * class is made for each request; the page's content security nonce applies to the script and to the rules.
+     * The credit's script. It builds the credit, appends it as the last element of the overview (.alfa-dashboard), or
+     * of the page's main content when that element is missing, and sets each element's rules on the element itself,
+     * marked important, so no stylesheet rule hides or moves it. A MutationObserver draws it again when it is removed
+     * or changed, on the next task, so a script that keeps removing it never freezes the page. %class%, %html% and
+     * %looks% are replaced with the request's class, the credit's markup and its rules, encoded as JSON.
      *
-     * The script appends the credit as the last element of the overview (.alfa-dashboard), or of the page's main
-     * content when that element is missing: centred in the page's flow, as far below the last row of cards as the rows
-     * are from each other, a line of plain text in the administrator template's muted text colour that wraps on a
-     * narrow screen.
+     * @since  2.2.2
+     */
+    private const CREDIT_SCRIPT = <<<'JS'
+        (() => {
+            const cls = %class%, html = %html%, looks = %looks%;
+            let home = null, box = null, queued = false;
+            const draw = () => {
+                watch.disconnect();
+                const fresh = document.createElement('div');
+                fresh.className = cls;
+                fresh.innerHTML = html;
+                for (const [selector, rules] of Object.entries(looks)) {
+                    for (const element of selector === ':scope' ? [fresh] : fresh.querySelectorAll(selector)) {
+                        for (const rule of rules.split(';')) {
+                            const [name, value] = rule.split(':');
+                            element.style.setProperty(name, value, 'important');
+                        }
+                    }
+                }
+                if (box?.parentNode === home) {
+                    box.replaceWith(fresh);
+                } else {
+                    box?.remove();
+                    home.append(fresh);
+                }
+                box = fresh;
+                watch.observe(home, {childList: true});
+                watch.observe(box, {attributes: true, childList: true, subtree: true, characterData: true});
+            };
+            const watch = new MutationObserver((records) => {
+                if (!queued && records.some((r) => box.contains(r.target) || Array.from(r.removedNodes).includes(box))) {
+                    queued = true;
+                    setTimeout(() => {
+                        queued = false;
+                        draw();
+                    });
+                }
+            });
+            const start = () => {
+                home = document.querySelector('.alfa-dashboard') ?? document.querySelector('main') ?? document.body;
+                draw();
+            };
+            document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', start) : start();
+        })();
+        JS;
+
+    /**
+     * The Easylogic credit at the foot of the overview: "Designed and developed with", a heart, "by" and the Easylogic
+     * logo, which links to easylogic.gr in the same tab. The view adds it itself, as one inline script
+     * ({@see self::CREDIT_SCRIPT}) with its rules in the page's own style, so no layout or template file carries it,
+     * a template override does not remove it, and a template's stylesheet does not hide it. The words are English on
+     * every site. The logo ships in the package and is drawn into the page from that file, so no request leaves the
+     * site and its letters take the text colour of the administrator's light or dark scheme. The class is made for
+     * each request; the page's content security nonce applies to the script and to the rules, and the script sets the
+     * elements' rules through the style API, which such a policy allows.
+     *
+     * The credit sits centred in the page's flow, as far below the last row of cards as the rows are from each other:
+     * a line of plain text in the administrator template's muted text colour that wraps on a narrow screen.
      *
      * @since  2.2.2
      */
@@ -130,25 +183,35 @@ class HtmlView extends BaseHtmlView
             . '<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 '
             . '14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
             . ' by <a href="https://www.easylogic.gr" title="Easylogic">' . $logo . '</a></p>';
+
+        // Each element's rules, by its selector inside the credit (:scope is the credit itself). What every element
+        // carries keeps it shown, whatever a stylesheet says.
+        $shown = 'visibility:visible;opacity:1;position:static;max-width:none;max-height:none;transform:none;clip-path:none;'
+            . 'filter:none';
+        $looks = [
+            ':scope' => "display:block;width:auto;height:auto;overflow:visible;margin:1rem 0 0;{$shown}",
+            ':scope>p' => 'display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.35em;width:auto;'
+                . "height:auto;margin:0;color:var(--secondary-color);font-size:.8125rem;line-height:1.2;{$shown}",
+            ':scope p>svg' => "display:block;width:.95em;height:.95em;fill:#e0245e;{$shown}",
+            ':scope a' => "display:inline-flex;align-items:center;width:auto;height:auto;color:inherit;{$shown}",
+            ':scope a>svg' => "display:block;width:3.85rem;height:.95rem;{$shown}",
+        ];
+        $css = '';
+
+        foreach ($looks as $selector => $rules) {
+            $css .= str_replace(':scope', ".{$class}", $selector) . '{' . $rules . '}';
+        }
+
         // A logo file a site replaced with malformed UTF-8 still draws the credit (the bad bytes become U+FFFD).
         $json = JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR;
 
         $this->getDocument()->getWebAssetManager()
-            ->addInlineStyle(
-                ".{$class}{margin:1rem 0 0}"
-                . ".{$class}>p{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.35em;margin:0;"
-                . 'color:var(--secondary-color);font-size:.8125rem;line-height:1.2}'
-                . ".{$class} p>svg{width:.95em;height:.95em;fill:#e0245e}"
-                . ".{$class} a{display:inline-flex;align-items:center;color:inherit}"
-                . ".{$class} a>svg{display:block;width:3.85rem;height:.95rem}",
-            )
-            ->addInlineScript(
-                '(()=>{const add=()=>{const box=document.createElement("div");'
-                . 'box.className=' . json_encode($class, $json) . ';'
-                . 'box.innerHTML=' . json_encode($credit, $json) . ';'
-                . '(document.querySelector(".alfa-dashboard")??document.querySelector("main")??document.body).append(box);};'
-                . 'document.readyState==="loading"?document.addEventListener("DOMContentLoaded",add):add();})();',
-            );
+            ->addInlineStyle($css)
+            ->addInlineScript(strtr(self::CREDIT_SCRIPT, [
+                '%class%' => json_encode($class, $json),
+                '%html%' => json_encode($credit, $json),
+                '%looks%' => json_encode($looks, $json),
+            ]));
     }
 
     /**
