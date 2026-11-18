@@ -7,8 +7,9 @@
      */
 
     // No direct access
-    use Joomla\CMS\HTML\HTMLHelper;
+    use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
     use Joomla\CMS\Language\Text;
+    use Joomla\CMS\Layout\LayoutHelper;
 
     defined('_JEXEC') or die;
 
@@ -26,6 +27,14 @@
 
     // The merchant's own alt when set; otherwise the name and the image's ordinal from 1. The strip repeats it.
     $altOf = static fn (object $media, int $index): string => (string) ($media->alt ?: Text::sprintf('COM_ALFA_ALT_ITEM_IMAGE', $itemName, $index + 1));
+
+    // A slide is the thumbnail, with the stored image beside it in its srcset (2.2.2), so a slide wider than the
+    // thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image; the lightbox opens the stored
+    // image. The sizes follow item.css: the images take the whole page below 640 px and half of it above; "auto" first
+    // gives the lazy slides their own width where the browser knows it. The strip's small images stay thumbnails.
+    // Every address is the file's versioned one (MediaHelper::displayUrl()), so a file written again is never drawn from
+    // the browser's cache; each image is drawn by Joomla's own image layout (joomla.html.image).
+    $slideSizes = 'auto, (max-width: 640px) 100vw, 50vw';
 ?>
 
 <div class="main-images navigation-controls">
@@ -41,9 +50,16 @@
         } else {
             $imgAttribs['loading'] = 'lazy';
         }
+
+        $srcset = MediaHelper::srcset($media);
+
+        if ($srcset !== '') {
+            $imgAttribs['srcset'] = $srcset;
+            $imgAttribs['sizes'] = $slideSizes;
+        }
         ?>
-        <a class="item-image" href="<?= $media->url ?>">
-            <?= HTMLHelper::_('image', $media->thumbnail_url, $altOf($media, $index), $imgAttribs); ?>
+        <a class="item-image" href="<?= $this->escape(MediaHelper::displayUrl($media->url)) ?>">
+            <?= LayoutHelper::render('joomla.html.image', ['src' => MediaHelper::displayUrl($media->thumbnail_url), 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
         </a>
     <?php endforeach; ?>
 </div>
@@ -65,7 +81,7 @@
         }
         ?>
 
-        <?= HTMLHelper::_('image', $media->thumbnail_url, $altOf($media, $index), $imgAttribs); ?>
+        <?= LayoutHelper::render('joomla.html.image', ['src' => MediaHelper::displayUrl($media->thumbnail_url), 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
     <?php endforeach; ?>
 </div>
 <?php endif; ?>

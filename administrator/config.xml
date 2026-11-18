@@ -839,26 +839,38 @@
         </fieldset>
 
         <fieldset name="mediazone_thumbnails" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_THUMBNAILS">
-            <!-- The box every thumbnail fits in, uploads and library picks alike: 500 x 500 unless the site stores its
-                 own (2.2.0). After a change, Tools > Media recreates the thumbnails. -->
+            <!-- The box every thumbnail fits in, uploads, library picks and Recreate alike: 500 x 500 unless the site
+                 stores its own (2.2.0). Whole pixels from 100 to 1600 (2.2.2: MediaHelper::THUMBNAIL_BOX_MIN and
+                 THUMBNAIL_BOX_MAX, which thumbnailBox() holds a stored value to). A thumbnail is never larger than its
+                 image. A change applies to the thumbnails made after it. -->
             <field
                     name="media_thumbnail_width"
-                    type="int"
+                    type="number"
                     label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_WIDTH_LABEL"
-                    min="50"
+                    description="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_WIDTH_DESC"
                     default="500"
-                    max="500"
-                    description=""
+                    min="100"
+                    max="1600"
+                    step="1"
+                    required="true"
+                    filter="integer"
+                    validate="number"
+                    message="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_SIZE_INVALID"
             />
 
             <field
                     name="media_thumbnail_height"
-                    type="int"
+                    type="number"
                     label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_HEIGHT_LABEL"
-                    min="50"
+                    description="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_HEIGHT_DESC"
                     default="500"
-                    max="500"
-                    description=""
+                    min="100"
+                    max="1600"
+                    step="1"
+                    required="true"
+                    filter="integer"
+                    validate="number"
+                    message="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_SIZE_INVALID"
             />
         </fieldset>
 

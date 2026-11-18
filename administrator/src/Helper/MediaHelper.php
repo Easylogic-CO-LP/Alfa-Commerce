@@ -27,6 +27,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
@@ -72,6 +73,32 @@ class MediaHelper
      * @since  2.2.0
      */
     public const THUMBNAIL_BOX = 500;
+
+    /**
+     * The smallest side of the thumbnail box (2.2.2): the Options fields refuse less, and thumbnailBox() reads a
+     * stored side below it as this.
+     *
+     * @var int
+     * @since  2.2.2
+     */
+    public const THUMBNAIL_BOX_MIN = 100;
+
+    /**
+     * The largest side of the thumbnail box (2.2.2): the Options fields refuse more, and thumbnailBox() reads a
+     * stored side above it as this.
+     *
+     * @var int
+     * @since  2.2.2
+     */
+    public const THUMBNAIL_BOX_MAX = 1600;
+
+    /**
+     * Pixel widths of storefront images read in this request, by site-relative file (2.2.2, srcset()).
+     *
+     * @var array<string, int>
+     * @since  2.2.2
+     */
+    private static array $pixelWidths = [];
 
     /**
      * A row's thumbnail_origin when its thumbnail was made from the row's own image (2.2.0): the Recreate thumbnails job
@@ -344,6 +371,41 @@ class MediaHelper
         }
 
         return rtrim(Uri::root(), '/') . '/' . ltrim($path, '/');
+    }
+
+    /**
+     * A media file's address as a page draws it (2.2.2): the address of one of this site's files (as toUrl() makes it, the
+     * url and thumbnail_url of getMediaData()) with a version of the file itself, ?v= a short digest of its modification
+     * time, size and inode, so a file written again under a name the browser has seen (a thumbnail made again, an image
+     * uploaded again under the name of one deleted) is never drawn from the browser's cache. Any other address (another
+     * site's, a blob, a data URI, one with its own query or fragment such as a library pick's joomlaImage part) and a file
+     * that is not there are returned as they are. The stored paths and the form values stay as they are: this is the
+     * address a page draws, never one it posts back.
+     *
+     * @param string|null $url The address, absolute (toUrl()).
+     *
+     * @return string The address to draw.
+     *
+     * @since  2.2.2
+     */
+    public static function displayUrl(?string $url): string
+    {
+        $url = trim((string) $url);
+        $root = rtrim(Uri::root(), '/') . '/';
+
+        if (!str_starts_with($url, $root)) {
+            return $url;
+        }
+
+        $relative = substr($url, \strlen($root));
+
+        if ($relative === '' || strpbrk($relative, '?#') !== false || str_contains($relative, '..')) {
+            return $url;
+        }
+
+        $stat = @stat(JPATH_ROOT . '/' . $relative);
+
+        return $stat === false ? $url : $url . '?v=' . substr(md5($stat['mtime'] . ':' . $stat['size'] . ':' . $stat['ino']), 0, 10);
     }
 
     /**
@@ -913,7 +975,7 @@ class MediaHelper
             $isUrl = $media['type'] == 'url';
 
             // The tile's own thumbnail, for every non-blob source (a blob thumbnail is the dropped file's own, made below
-            // from the stored image). Made only once the image it belongs to stands (2.2.1): a new image after
+            // from the dropped file itself, 2.2.2). Made only once the image it belongs to stands (2.2.1): a new image after
             // its own checks and its store, a URL after its scheme check, an existing row only when it is kept. Before,
             // it was made first, so an image refused afterwards had already written a thumbnail no row names and had
             // told onAlfaMediaThumbnail of it.
@@ -948,6 +1010,8 @@ class MediaHelper
             if ($isNew) {
                 $src = '';
                 $nameForFile = '';
+                // The image's format as its own bytes say (validatedImageExtension()), once it is accepted.
+                $safeExtension = '';
 
                 // FIND THE UNIQUE NAME FOR THE FILE
                 // The image's name as staff gave it, for a refusal (2.2.1).
@@ -1130,17 +1194,23 @@ class MediaHelper
                             $tileThumbnail();
                         }
 
-                        // A new image with no thumbnail of its own gets one from its stored main
-                        // image: a drop (its blob URL is browser-only and unreachable server-side)
-                        // and an API pick that names none (2.2.0: every image's thumbnail is real).
-                        // On subsequent saves the thumbnail is the row's own, which the
-                        // processThumbnail() call at the top of the loop keeps.
+                        // A new image with no thumbnail of its own gets one: a drop (its blob URL is
+                        // browser-only and unreachable server-side) and an API pick that names none
+                        // (2.2.0: every image's thumbnail is real). It is made from the image as staff
+                        // gave it (2.2.2): the dropped file, the picked library file, read as an
+                        // allowed image from its own bytes above, not from the stored image, which a
+                        // plugin may have made smaller, so its detail never depends on that plugin; the
+                        // thumbnail plugins still set its format and quality. It is named after the
+                        // stored image, in the original's format. On subsequent saves the thumbnail is
+                        // the row's own, which the processThumbnail() call at the top of the loop keeps.
                         if ($storeOk && ((str_contains($media['thumbnail'], 'blob:') && $isDrop) || $finalThumbnail === '')) {
-                            $finalThumbnail = self::processThumbnail(
-                                rawThumbnail:       $relativeDest,
-                                defaultThumbPath:   $urlDefaultThumbnail,
-                                absolutePath:       $absolutePath,
-                                params:             $params,
+                            $guarded = false;
+                            $finalThumbnail = self::writeThumbnail(
+                                source:     $src,
+                                dest:       self::thumbnailDestination(source: pathinfo($relativeDest, PATHINFO_FILENAME) . '.' . $safeExtension, absolutePath: $absolutePath),
+                                params:     $params,
+                                guarded:    $guarded,
+                                sourceName: $isDrop ? $sourceName : '',
                             );
                             $thumbnailOrigin = $finalThumbnail === '' ? null : self::THUMBNAIL_FROM_IMAGE;
                         }
@@ -1396,19 +1466,53 @@ class MediaHelper
      * resized or copied, and none is written, so the plain copy is only ever of an image GD cannot read (an AVIF on a
      * GD without AVIF).
      *
+     * THE BOX RULE IS CORE'S (2.2.2): a thumbnail is never larger than its image's pixels nor
+     * than the box. A plugin's thumbnail is measured once it is written; one that breaks the rule is written again from
+     * the image by the baseline resize, in the plugin's own format at the path it chose (else in the image's format at
+     * the proposed path, the plugin's file removed) and $guarded is set; the media log's line of the thumbnail says so.
+     * The baseline never enlarges an image.
+     *
      * @param string $source Absolute path of the image.
      * @param string $dest Absolute path proposed for the thumbnail.
      * @param object|null $params Component parameters; null to read them.
+     * @param bool $guarded Set to true when a plugin's thumbnail broke the box rule and was written again.
      *
      * @return string Relative path of the file written (a plugin may change its extension), or '' when none was.
      *
      * @since  2.2.0
      */
-    public static function makeThumbnail(string $source, string $dest, ?object $params = null): string
+    public static function makeThumbnail(string $source, string $dest, ?object $params = null, bool &$guarded = false): string
     {
+        $guarded = false;
+
         if (!self::isThumbnailSource(file: $source)) {
             return '';
         }
+
+        return self::writeThumbnail(source: $source, dest: $dest, params: $params, guarded: $guarded);
+    }
+
+    /**
+     * The writer behind makeThumbnail() (2.2.2): the same plugin event, box rule and baseline, for a source already held
+     * to its rule. makeThumbnail() asks isThumbnailSource() first; saveMedia() hands it a new image's original as staff
+     * gave it (a drop's uploaded file, which lies outside the media folders, once validatedImageExtension() has read it
+     * from its own bytes as an allowed image), so the thumbnail's detail never depends on what a plugin did to the stored
+     * image. Every thumbnail it writes, or fails to, is one DEBUG line of the media log (com_alfa.media,
+     * com_alfa_media.php): the source and its size, the box, the result and its size, and how it was written.
+     *
+     * @param string $source Absolute path of the image.
+     * @param string $dest Absolute path proposed for the thumbnail, its extension the format of the image.
+     * @param object|null $params Component parameters; null to read them.
+     * @param bool $guarded Set to true when a plugin's thumbnail broke the box rule and was written again.
+     * @param string $sourceName The image's name as staff gave it, for the media log, when the source is an upload.
+     *
+     * @return string Relative path of the file written (a plugin may change its extension), or '' when none was.
+     *
+     * @since  2.2.2
+     */
+    private static function writeThumbnail(string $source, string $dest, ?object $params, bool &$guarded, string $sourceName = ''): string
+    {
+        $guarded = false;
 
         // Thumbnail SIZE is a component concern (a thumbnail must never be the
         // full image). FORMAT/QUALITY are plugin concerns, applied only when a
@@ -1435,20 +1539,145 @@ class MediaHelper
             // plugin that claims the thumbnail and writes nothing leaves no thumbnail, never a name of no file.
             $written = ltrim(str_replace(JPATH_ROOT . '/', '', $result['dest']), '/');
 
-            return $written !== '' && is_file(JPATH_ROOT . '/' . $written) ? $written : '';
-        }
-
-        // No plugin -> always-on baseline resize so the thumbnail is never the
-        // full image. Falls back to a plain copy only if GD resize fails.
-        if (!self::resizeThumbnail($source, $dest, $thumbnailWidth, $thumbnailHeight)) {
+            if ($written === '' || !is_file(JPATH_ROOT . '/' . $written)) {
+                $final = '';
+                $how = 'none: a media plugin claimed it and wrote no file';
+            } elseif (!self::breaksThumbnailRule(source: $source, thumbnail: JPATH_ROOT . '/' . $written, boxWidth: $thumbnailWidth, boxHeight: $thumbnailHeight)) {
+                $final = $written;
+                $how = 'by a media plugin';
+            } else {
+                // The box rule holds whatever the plugin did (2.2.2): a thumbnail larger than its image or the box is
+                // written again from the image.
+                $guarded = true;
+                $how = 'by a media plugin at ' . self::sizeText(file: JPATH_ROOT . '/' . $written) . ', larger than its image or the box, so written again by the box rule';
+                $final = self::rewriteThumbnail(source: $source, written: $written, dest: $dest, boxWidth: $thumbnailWidth, boxHeight: $thumbnailHeight);
+            }
+        } elseif (self::resizeThumbnail($source, $dest, $thumbnailWidth, $thumbnailHeight)) {
+            // No plugin -> always-on baseline resize so the thumbnail is never the full image.
+            $final = ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+            $how = 'by the baseline resize';
+        } else {
+            // A plain copy only if GD cannot resize it.
             try {
                 File::copy($source, $dest);
+                $final = ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+                $how = 'copied as it is: GD cannot resize this image';
             } catch (Throwable $e) {
-                return '';
+                $final = '';
+                $how = 'none: GD cannot resize this image and the copy failed';
             }
         }
 
-        return ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+        // One diagnostic line a thumbnail (2.2.2), so a thumbnail reported blurred can be read back from the media log.
+        Log::add(
+            'Thumbnail: source ' . ($sourceName !== '' ? $sourceName . ' (' . $source . ')' : ltrim(str_replace(JPATH_ROOT . '/', '', $source), '/'))
+            . ' ' . self::sizeText(file: $source) . ', box ' . $thumbnailWidth . ' x ' . $thumbnailHeight
+            . ', result ' . ($final === '' ? 'none' : $final . ' ' . self::sizeText(file: JPATH_ROOT . '/' . $final)) . ', ' . $how . '.',
+            Log::DEBUG,
+            'com_alfa.media',
+        );
+
+        return $final;
+    }
+
+    /**
+     * An image file's size and type for the media log (2.2.2): "1600 x 1200 image/jpeg", or "(size not readable)".
+     *
+     * @param string $file Absolute path of the file.
+     *
+     * @since  2.2.2
+     */
+    private static function sizeText(string $file): string
+    {
+        $info = @getimagesize($file);
+
+        return $info === false ? '(size not readable)' : $info[0] . ' x ' . $info[1] . ' ' . $info['mime'];
+    }
+
+    /**
+     * The size of an image's thumbnail in a box (2.2.2, the one rule the writer, the box guard and the Recreate
+     * thumbnails job share): the image scaled to fit inside the box, its aspect kept, never enlarged.
+     *
+     * @param int $width The image's width in pixels.
+     * @param int $height The image's height in pixels.
+     * @param int $boxWidth The box's width.
+     * @param int $boxHeight The box's height.
+     *
+     * @return array{0: int, 1: int} Width, height.
+     *
+     * @since  2.2.2
+     */
+    public static function thumbnailSize(int $width, int $height, int $boxWidth, int $boxHeight): array
+    {
+        $width = max(1, $width);
+        $height = max(1, $height);
+        $scale = min(max(1, $boxWidth) / $width, max(1, $boxHeight) / $height, 1);
+
+        return [max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale))];
+    }
+
+    /**
+     * Whether a written thumbnail breaks the box rule (2.2.2): wider or taller than the box, or than its image. An image
+     * whose size cannot be read is held to the box alone; a thumbnail whose size cannot be read is left to its plugin.
+     *
+     * @param string $source Absolute path of the image.
+     * @param string $thumbnail Absolute path of the thumbnail.
+     * @param int $boxWidth The box's width.
+     * @param int $boxHeight The box's height.
+     *
+     * @since  2.2.2
+     */
+    private static function breaksThumbnailRule(string $source, string $thumbnail, int $boxWidth, int $boxHeight): bool
+    {
+        $made = @getimagesize($thumbnail);
+
+        if ($made === false) {
+            return false;
+        }
+
+        $image = @getimagesize($source);
+
+        return $made[0] > $boxWidth || $made[1] > $boxHeight
+            || ($image !== false && ($made[0] > $image[0] || $made[1] > $image[1]));
+    }
+
+    /**
+     * Write again a plugin's thumbnail that broke the box rule (2.2.2): the baseline resize of the image, in the format
+     * the plugin wrote, at its path; when GD cannot write that format, in the image's own format at the proposed path,
+     * the plugin's file removed. Nothing within the rule written: no thumbnail, never an enlarged one.
+     *
+     * @param string $source Absolute path of the image.
+     * @param string $written The plugin's thumbnail, site-relative.
+     * @param string $dest Absolute path proposed for the thumbnail.
+     * @param int $boxWidth The box's width.
+     * @param int $boxHeight The box's height.
+     *
+     * @return string Relative path of the thumbnail, or '' when none could be written.
+     *
+     * @since  2.2.2
+     */
+    private static function rewriteThumbnail(string $source, string $written, string $dest, int $boxWidth, int $boxHeight): string
+    {
+        $writtenPath = JPATH_ROOT . '/' . $written;
+        $before = @getimagesize($writtenPath);
+        $format = $before === false ? '' : (string) $before['mime'];
+        $final = '';
+
+        if ($format !== '' && self::resizeThumbnail(src: $source, dest: $writtenPath, maxW: $boxWidth, maxH: $boxHeight, outputMime: $format)) {
+            $final = $written;
+        } elseif (self::resizeThumbnail(src: $source, dest: $dest, maxW: $boxWidth, maxH: $boxHeight)) {
+            $final = ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+        }
+
+        if ($final !== $written && is_file($writtenPath)) {
+            try {
+                File::delete($writtenPath);
+            } catch (Throwable) {
+                // Left behind, it is a file no row names: Tools > Media lists it.
+            }
+        }
+
+        return $final;
     }
 
     /**
@@ -1678,7 +1907,9 @@ class MediaHelper
     }
 
     /**
-     * The thumbnail box, width and height: the site's stored values, else 500 x 500 (2.2.0).
+     * The thumbnail box, width and height: the site's stored values, else 500 x 500 (2.2.0). A stored side outside the
+     * range the Options fields accept is read as the nearest end of it, THUMBNAIL_BOX_MIN to THUMBNAIL_BOX_MAX
+     * (2.2.2); a side stored as no number is one the site does not store.
      *
      * @param object|null $params Component parameters; null to read them.
      *
@@ -1689,10 +1920,13 @@ class MediaHelper
     public static function thumbnailBox(?object $params = null): array
     {
         $params ??= ComponentHelper::getParams('com_alfa');
+        $side = static fn (mixed $stored): int => is_numeric($stored)
+            ? max(self::THUMBNAIL_BOX_MIN, min(self::THUMBNAIL_BOX_MAX, (int) $stored))
+            : self::THUMBNAIL_BOX;
 
         return [
-            max(1, (int) $params->get('media_thumbnail_width', self::THUMBNAIL_BOX)),
-            max(1, (int) $params->get('media_thumbnail_height', self::THUMBNAIL_BOX)),
+            $side($params->get('media_thumbnail_width', self::THUMBNAIL_BOX)),
+            $side($params->get('media_thumbnail_height', self::THUMBNAIL_BOX)),
         ];
     }
 
@@ -1888,6 +2122,73 @@ class MediaHelper
     }
 
     /**
+     * The images a storefront picture offers the browser (2.2.2): the thumbnail and the stored image, each with
+     * its width in pixels, as an img's srcset, so a slot wider than the thumbnail's pixels (times the screen's pixel
+     * ratio) is drawn from the stored image and a thumbnail is never shown larger than it is. Only for an image row
+     * whose thumbnail was made from its own image (thumbnail_origin image; a picture chosen on the tile is another
+     * picture), with both files on this site; '' when the stored image is not wider than the thumbnail, and for every
+     * other row (a web address, the placeholder, a row of before 2.2.0 until its thumbnail is recreated). The template
+     * that prints it gives the sizes its slot has. Each file's width is read from its header once a request.
+     *
+     * @param object $media A media row as getMediaData() returns it.
+     *
+     * @return string The srcset value, URLs encoded for it; '' for none.
+     *
+     * @since  2.2.2
+     */
+    public static function srcset(object $media): string
+    {
+        if (($media->thumbnail_origin ?? null) !== self::THUMBNAIL_FROM_IMAGE || ($media->type ?? '') !== 'image') {
+            return '';
+        }
+
+        $thumbnail = ltrim((string) ($media->thumbnail ?? ''), '/');
+        $image = ltrim((string) ($media->path ?? ''), '/');
+
+        if ($thumbnail === '' || $image === '' || $thumbnail === $image) {
+            return '';
+        }
+
+        $thumbnailWidth = self::pixelWidth(relative: $thumbnail);
+        $imageWidth = self::pixelWidth(relative: $image);
+
+        if ($thumbnailWidth === 0 || $imageWidth <= $thumbnailWidth) {
+            return '';
+        }
+
+        // A srcset splits its candidates at commas and spaces: encoded in a URL, they stay part of it.
+        $candidate = static fn (string $url, int $width): string => str_replace([' ', ','], ['%20', '%2C'], $url) . ' ' . $width . 'w';
+
+        return $candidate(self::displayUrl(self::toUrl($thumbnail)), $thumbnailWidth) . ', ' . $candidate(self::displayUrl(self::toUrl($image)), $imageWidth);
+    }
+
+    /**
+     * The width in pixels of an image file of this site, read from its header, once a request (srcset()); 0 for a web
+     * address, a file outside the site or one that is not an image.
+     *
+     * @param string $relative Site-relative file.
+     *
+     * @since  2.2.2
+     */
+    private static function pixelWidth(string $relative): int
+    {
+        if (isset(self::$pixelWidths[$relative])) {
+            return self::$pixelWidths[$relative];
+        }
+
+        $width = 0;
+
+        if (!str_contains($relative, '://') && !str_starts_with($relative, '//') && !str_starts_with($relative, 'data:')) {
+            $real = realpath(JPATH_ROOT . '/' . $relative);
+            $root = realpath(JPATH_ROOT);
+            $info = $real !== false && $root !== false && str_starts_with($real, $root . DIRECTORY_SEPARATOR) ? @getimagesize($real) : false;
+            $width = $info === false ? 0 : (int) $info[0];
+        }
+
+        return self::$pixelWidths[$relative] = $width;
+    }
+
+    /**
      * Resolves a display thumbnail for records with no stored thumbnail.
      * Images fall back to their own path; URL media uses the configured URL thumbnail.
      * @since  1.0.0
@@ -2021,24 +2322,27 @@ class MediaHelper
     /**
      * Baseline thumbnail resize: the always-on component fallback used when no
      * optimizer plugin handles {@see onAlfaMediaThumbnail}. Scales the source to
-     * FIT inside ($maxW x $maxH) preserving aspect ratio, and writes it in the
-     * SAME format as the source (no conversion, no fancy compression; that is
-     * the plugin's job). This guarantees a thumbnail is never the full image.
+     * FIT inside ($maxW x $maxH) preserving aspect ratio, never enlarging it
+     * ({@see self::thumbnailSize()}), and writes it in the SAME format as the
+     * source (no conversion, no fancy compression; that is the plugin's job),
+     * or in $outputMime when the box guard rewrites a plugin's thumbnail in the
+     * plugin's format (2.2.2). This guarantees a thumbnail is never the full image.
      *
      * Returns false when the file is missing/unreadable, the server lacks the GD
      * loader/encoder for the format, or the write fails; the caller then copies
      * the original as a last resort.
      *
      * @param string $src Absolute source image path.
-     * @param string $dest Absolute destination path (extension matches source).
+     * @param string $dest Absolute destination path (extension matches the format written).
      * @param int $maxW Maximum thumbnail width.
      * @param int $maxH Maximum thumbnail height.
+     * @param string|null $outputMime The format to write; null for the source's own.
      *
      * @return bool True when a resized thumbnail was written, false otherwise.
      *
      * @since  1.0.0
      */
-    private static function resizeThumbnail(string $src, string $dest, int $maxW, int $maxH): bool
+    private static function resizeThumbnail(string $src, string $dest, int $maxW, int $maxH, ?string $outputMime = null): bool
     {
         if ($src === '' || !is_file($src) || $maxW < 1 || $maxH < 1) {
             return false;
@@ -2072,24 +2376,25 @@ class MediaHelper
         }
 
         // Scale to fit inside the box, preserving aspect ratio; never upscale.
-        $scale = min($maxW / $srcW, $maxH / $srcH, 1);
-        $newW = max(1, (int) round($srcW * $scale));
-        $newH = max(1, (int) round($srcH * $scale));
+        [$newW, $newH] = self::thumbnailSize(width: $srcW, height: $srcH, boxWidth: $maxW, boxHeight: $maxH);
+        $outputMime ??= (string) $info['mime'];
 
         $dstGd = imagecreatetruecolor($newW, $newH);
 
-        // Preserve transparency for formats that support it.
-        if (\in_array($info['mime'], ['image/png', 'image/gif', 'image/webp', 'image/avif'], true)) {
+        // Preserve transparency for formats that support it; a format without it gets white where the source is clear.
+        if (\in_array($outputMime, ['image/png', 'image/gif', 'image/webp', 'image/avif'], true)) {
             imagealphablending($dstGd, false);
             imagesavealpha($dstGd, true);
             $transparent = imagecolorallocatealpha($dstGd, 0, 0, 0, 127);
             imagefill($dstGd, 0, 0, $transparent);
+        } else {
+            imagefill($dstGd, 0, 0, (int) imagecolorallocate($dstGd, 255, 255, 255));
         }
 
         imagecopyresampled($dstGd, $srcGd, 0, 0, 0, 0, $newW, $newH, $srcW, $srcH);
 
-        // Encode in the SAME format as the source (no conversion here).
-        $result = match ($info['mime']) {
+        // Encode in the source's format, or the one asked for (no other conversion here).
+        $result = match ($outputMime) {
             'image/jpeg' => imagejpeg($dstGd, $dest),
             'image/png' => imagepng($dstGd, $dest),
             'image/gif' => imagegif($dstGd, $dest),

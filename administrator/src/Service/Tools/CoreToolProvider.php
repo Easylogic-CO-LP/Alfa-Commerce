@@ -602,8 +602,15 @@ final class CoreToolProvider
 
             $this->stepJob(event: $event, scope: ThumbnailsRecreateJob::NAME, done: static function (array $job): string {
                 $report = ThumbnailRecreation::lastReport() ?? ThumbnailRecreation::emptyReport();
+                $done = Text::sprintf('COM_ALFA_TOOLS_THUMBNAILS_DONE', (int) $report['made'], (int) $report['kept'], (int) $report['missing'], (int) $report['failed']);
 
-                return Text::sprintf('COM_ALFA_TOOLS_THUMBNAILS_DONE', (int) $report['made'], (int) $report['kept'], (int) $report['missing'], (int) $report['failed']);
+                // Of the made thumbnails (2.2.2): those the box rule wrote again (a media plugin had made them too
+                // large), and those whose stored image is smaller than the thumbnail size (a larger upload makes them sharper).
+                foreach (['guarded' => 'COM_ALFA_TOOLS_THUMBNAILS_GUARDED', 'small' => 'COM_ALFA_TOOLS_THUMBNAILS_SMALL'] as $count => $key) {
+                    $done .= (int) $report[$count] > 0 ? ' ' . Text::plural($key, (int) $report[$count]) : '';
+                }
+
+                return $done;
             });
         } catch (Throwable $e) {
             $event->setError($e->getMessage());

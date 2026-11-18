@@ -1903,6 +1903,9 @@ class com_alfaInstallerScript extends InstallerScript
         if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.2', '<'))
         {
             $this->oweOpeningQuantityRebuild();
+
+            // The thumbnail box (2.2.2): a side stored below 500 is raised to 500; nothing else is changed or made.
+            $this->raiseThumbnailBox();
         }
 
         // The web cron's key (2.2.0): made when none is kept; nobody sees it, staff make the one they copy in
@@ -2103,6 +2106,48 @@ class com_alfaInstallerScript extends InstallerScript
                 . ' setup checklist keeps a row until each one named says it is built for this version.',
             values:   [$this->packageVersion, implode(' ', $sentences), $line],
         ), 'warning');
+    }
+
+    /**
+     * From 2.2.2 a side of the thumbnail box stored below the default, 500, is raised to it
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailBoxUpdate::raise()}): a box stored before 2.2.0
+     * (200 x 200 on the demo) was kept by every update since, so its thumbnails stayed at most 200 pixels. The update
+     * writes the two Options only: the thumbnails already made stay as they are, the new ones are made at the new box.
+     * A site that stores no box, or 500 or more a side, has nothing raised and no message. A failure is said, never a
+     * failed update.
+     *
+     * @return  void
+     * @since   2.2.2
+     */
+    private function raiseThumbnailBox(): void
+    {
+        $app = Factory::getApplication();
+
+        try
+        {
+            $raised = \Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailBoxUpdate::raise();
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_THUMBNAIL_BOX_FAILED',
+                fallback: 'Alfa Commerce %1$s could not check the thumbnail size stored in Options > Media: %2$s If it is below 500 x 500, set it there.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+
+            return;
+        }
+
+        if ($raised === null)
+        {
+            return;
+        }
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_THUMBNAIL_BOX_RAISED',
+            fallback: 'Alfa Commerce %1$s: the thumbnail size stored in Options > Media was %2$d x %3$d, below the default of 500 x 500, and is now %4$d x %5$d. New images get thumbnails of the new size.',
+            values:   [$this->packageVersion, $raised['before'][0], $raised['before'][1], $raised['after'][0], $raised['after'][1]],
+        ));
     }
 
     /**

@@ -26,6 +26,7 @@
 	use Joomla\CMS\Component\ComponentHelper;
 	use Joomla\CMS\Language\Text;
 	use Joomla\CMS\HTML\HTMLHelper;
+	use Joomla\CMS\Layout\LayoutHelper;
 
 	$params = ComponentHelper::getParams('com_alfa');
 
@@ -38,17 +39,21 @@
 	$isNew     = $media->isNew ? '1' : '0';
 	$type      = htmlspecialchars($media->type ?? '', ENT_QUOTES, 'UTF-8');
 
+	// A stored file is drawn at its versioned address (2.2.2, MediaHelper::displayUrl()), so a file written again is
+	// never shown from the browser's cache; a dropped file not saved yet is its blob. The form's values stay the paths.
+	$preview = static fn (string $file, string $class): string => str_starts_with($file, 'blob:')
+		? HTMLHelper::_('image', $file, (string) ($media->alt ?? ''), ['loading' => 'lazy', 'class' => $class], false, -1)
+		: LayoutHelper::render('joomla.html.image', ['src' => MediaHelper::displayUrl(MediaHelper::toUrl($file)), 'alt' => (string) ($media->alt ?? ''), 'loading' => 'lazy', 'class' => $class]);
+
 	// Compute preview HTML
 	if ($type === 'url') {
 		$previewHtml = '<a href="' . $path . '" target="_blank">' . $path . '</a>';
 	} else {
-		$outputMode  = str_starts_with($path, 'blob:') ? -1 : 0;
-		$previewHtml = HTMLHelper::_('image', $path, $altText, ['loading' => 'lazy', 'class' => 'media-preview-img'], false, $outputMode);
+		$previewHtml = $preview((string) $media->path, 'media-preview-img');
 	}
 
 	// Compute thumbnail preview
-	$thumbOutputMode = str_starts_with($thumbnail, 'blob:') ? -1 : 0;
-	$thumbnailHtml   = HTMLHelper::_('image', $thumbnail, $altText, ['loading' => 'lazy', 'class' => 'media-thumbnail-img'], false, $thumbOutputMode);
+	$thumbnailHtml = $preview((string) ($media->thumbnail ?? ''), 'media-thumbnail-img');
 ?>
 
 <div class="media-card"

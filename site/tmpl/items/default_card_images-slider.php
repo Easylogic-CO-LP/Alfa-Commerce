@@ -18,6 +18,9 @@
  * are in the tab order, the dots are not (the arrows reach every image). A product with one image is drawn as the
  * default card draws it, with no controls.
  *
+ * Each image is the thumbnail, with the stored image beside it in its srcset and the sizes of the default card's
+ * image, at the files' versioned addresses (default_card_images.php says why, 2.2.2).
+ *
  * Overridable as html/com_alfa/items/default_card_images-slider.php. The card is on $this->item; the images to show
  * come from $this->cardSlides($this->item).
  *
@@ -27,17 +30,24 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\Surface;
 use Joomla\CMS\Language\Text;
 
 $item = $this->item;
 $slides = $this->cardSlides($item);
 $count = \count($slides);
+// The thumbnail and the stored image, for the card's width (default_card_images.php's sizes).
+$sources = function (object $slide): string {
+    $srcset = MediaHelper::srcset($slide);
+
+    return $srcset === '' ? '' : ' srcset="' . $this->escape($srcset) . '" sizes="auto, (max-width: 640px) 100vw, (max-width: 960px) 50vw, (max-width: 1280px) 34vw, 25vw"';
+};
 ?>
 <?php if ($count === 1): ?>
     <div class="item-image">
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt="" />
+            <img src="<?php echo $this->escape(MediaHelper::displayUrl($slides[0]->thumbnail_url)); ?>" alt=""<?php echo $sources($slides[0]); ?> loading="lazy" />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>
@@ -51,7 +61,7 @@ $count = \count($slides);
         <div class="card-slider-track" data-card-slider-track tabindex="-1">
             <?php foreach ($slides as $index => $slide): ?>
                 <a class="card-slider-slide" href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true" data-card-slider-slide>
-                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $index > 0 ? ' loading="lazy"' : ''; ?> />
+                    <img src="<?php echo $this->escape(MediaHelper::displayUrl($slide->thumbnail_url)); ?>" alt=""<?php echo $sources($slide); ?> loading="lazy" />
                 </a>
             <?php endforeach; ?>
         </div>
