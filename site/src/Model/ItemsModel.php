@@ -1492,7 +1492,8 @@ class ItemsModel extends UrlListModel
         // valid_from / valid_until are written by PriceIndexSyncService with
         // Factory::getDate()->toSql(), so a promo segment must open on that
         // clock, not on the DB's local-time NOW().
-        $now = Factory::getContainer()->get('DatabaseDriver')->quote(ActiveDateCondition::now());
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $now = $db->quote(ActiveDateCondition::now());
 
         $context = PriceContext::fromSession();
 
@@ -1560,7 +1561,7 @@ class ItemsModel extends UrlListModel
                 GROUP BY ranked.item_id
             ) AS pf";
 
-        $query->join($keepUnpriced ? 'LEFT' : 'INNER', $subquery . ' ON ' . $itemAlias . '.id = pf.item_id');
+        $query->join($keepUnpriced ? 'LEFT' : 'INNER', $subquery . ' ON ' . $db->quoteName($itemAlias . '.id') . ' = ' . $db->quoteName('pf.item_id'));
     }
 
     /**
