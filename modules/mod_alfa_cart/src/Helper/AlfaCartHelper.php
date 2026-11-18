@@ -251,10 +251,12 @@ class AlfaCartHelper
             return;
         }
 
-        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_SITE);
+        // A com_ajax request runs no module dispatcher, and the entry points load this module's language only after this
+        // refusal: its sentence is loaded here.
+        Factory::getApplication()->getLanguage()->load('mod_alfa_cart');
         http_response_code(403);
         header('Content-Type: application/json; charset=utf-8');
-        echo new JsonResponse(null, Text::_('COM_ALFA_CATALOGUE_ONLY_NOTICE'), true);
+        echo new JsonResponse(null, Text::_('MOD_ALFA_CART_CATALOGUE_ONLY_NOTICE'), true);
         Factory::getApplication()->close();
     }
 
