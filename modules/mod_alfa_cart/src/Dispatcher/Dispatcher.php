@@ -63,10 +63,11 @@ class Dispatcher extends AbstractModuleDispatcher
             $app->getLanguage()->load('com_alfa');
         }
 
-        // The module reads; it hands the layout a reading, not the cart. A visitor who cannot have a cart yet (no
+        // The module reads; it hands the layout a reading, not the cart: the plain one, lines and totals, no offers
+        // (2.2.2: the drawer shows no method, so no carrier is asked to quote for a list on every page). A visitor who cannot have a cart yet (no
         // account and no key of this browser) is handed none, and the layout draws the empty drawer: nothing is read
         // for them, no query on any page (2.2.1).
-        $data['snapshot'] = CartService::ambient()->canHaveCart() ? CartService::ambient()->read(CartResolution::Current) : null;
+        $data['snapshot'] = CartService::ambient()->canHaveCart() ? CartService::ambient()->summary(CartResolution::Current) : null;
 
         // A cart that holds products is this visitor's own, on a page every visitor shares: that page is never stored
         // in Joomla's page cache, whatever plugin is enabled (2.2.1). An empty cart shows nothing of the visitor, and

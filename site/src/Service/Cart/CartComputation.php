@@ -135,6 +135,18 @@ final class CartComputation
             function (): void {
                 $this->totals()->forget();
             },
+            // Every carrier the storefront would offer is asked what it is asked once chosen, so none is offered that
+            // would refuse the shopper's first click (2.2.2). The chosen one answers once per reading, from the same
+            // memo the totals read; any other is told it is not the chosen one.
+            fn (int $methodId): ShippingQuote => $methodId === $this->effectiveShipmentId()
+                ? $this->shipmentQuote()
+                : $this->plugins->shippingCost(
+                    $methodId,
+                    $this->state(),
+                    fn (): float => (float) $this->totals()->total()->getAmount(),
+                    fn (object $method): array => $this->placesForMethod($method),
+                    chosen: false,
+                ),
         );
     }
 
@@ -456,6 +468,7 @@ final class CartComputation
             // The tax follows the same destination the carrier is quoted and the
             // method offered against.
             fn (object $method): array => $this->placesForMethod($method),
+            chosen: true,
         );
     }
 

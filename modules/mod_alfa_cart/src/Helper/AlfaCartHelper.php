@@ -49,7 +49,7 @@ class AlfaCartHelper
         $lang->load('mod_alfa_cart');
         $lang->load('com_alfa');
 
-        $snapshot = CartService::ambient()->read(CartResolution::Current);
+        $snapshot = CartService::ambient()->summary(CartResolution::Current);
 
         $displayData = [
             'snapshot' => $snapshot,

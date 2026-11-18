@@ -84,6 +84,10 @@ final class CartPluginDispatch
      * The inputs that cost something (the delivery places and the merchandise
      * total) are asked for only once a carrier is actually chosen.
      *
+     * ASKED FOR THE CHOSEN CARRIER AND FOR EACH ONE THE CHECKOUT WOULD LIST
+     * (2.2.2): the carrier reads which through its method's isSelected(), true
+     * only for the one the cart has chosen (or placement assumes).
+     *
      * THE CHARGE IS NORMALISED HERE, ONCE. What the carrier answered becomes
      * the canonical net, tax and gross before anything else reads it: a price
      * is read through the method's entry mode and taxed with the method's
@@ -96,6 +100,8 @@ final class CartPluginDispatch
      * @param Closure $destination (object $method): int[] - where that method's
      *                             shipment is going, nearest first: the chain the
      *                             offer filter and the carrier use.
+     * @param bool $chosen Whether the cart has this carrier chosen (or placement
+     *                     assumes it); false for one asked only to be listed.
      *
      * @return ShippingQuote The carrier's answer: a charge, or a refusal.
      *
@@ -106,6 +112,7 @@ final class CartPluginDispatch
         HydratedCart $cart,
         Closure $merchandiseTotal,
         Closure $destination,
+        bool $chosen,
     ): ShippingQuote {
         $currentMethod = $this->shipmentRecord($shipmentId);
         $currentType = $currentMethod?->type;
@@ -124,7 +131,7 @@ final class CartPluginDispatch
         // like an answer. The event starts with nothing and the carrier has to
         // put something in it.
         $event = new CalculateShippingCostEvent($eventName, [
-            'subject' => $this->shippingCostRequest($currentMethod, $cart, $merchandiseTotal()),
+            'subject' => $this->shippingCostRequest($currentMethod, $cart, $merchandiseTotal(), $chosen),
         ]);
 
         // WAS THE CARRIER ACTUALLY ASKED? Silence only means something if a
@@ -196,7 +203,7 @@ final class CartPluginDispatch
         try {
             $charge = $this->chargeFor(
                 event: $event,
-                method: Method::of($currentMethod, selected: true),
+                method: Method::of($currentMethod, selected: $chosen),
                 cart: $cart,
                 destination: $destination,
             );
@@ -688,6 +695,7 @@ final class CartPluginDispatch
         object $method,
         HydratedCart $cart,
         float $merchandiseTotal,
+        bool $chosen,
     ): ShippingCostRequest {
         // THE CARRIER IS ASKED ABOUT WHAT IS BOUGHT. A line flagged
         // unavailable stays in the cart and on the page, but nobody pays for it
@@ -696,10 +704,10 @@ final class CartPluginDispatch
         $payable = $cart->withLines($cart->payableLines());
 
         return new ShippingCostRequest(
-            // Selected, because the carrier being quoted is by definition the
-            // one this cart will ship with: chosen by the shopper, or assumed
-            // while placement tests the method it was submitted with.
-            method: Method::of($method, selected: true),
+            // Selected only for the carrier this cart ships with: chosen by the
+            // shopper, or assumed while placement tests the method it was
+            // submitted with. One asked only to be listed is told it is not.
+            method: Method::of($method, selected: $chosen),
             cart: $this->reader($payable, Money::of($merchandiseTotal, $cart->currency())),
         );
     }

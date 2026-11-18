@@ -149,7 +149,8 @@ final class CartService
      * when it reaches zero.
      *
      * The reading is the plain one: the mini-cart, which asks for this, shows
-     * lines and totals and no methods. The checkout asks
+     * lines and totals and no methods, so it carries no offers and no carrier
+     * is asked to quote for a list (2.2.2). The checkout asks
      * {@see setLineQuantityAtCheckout()} instead.
      *
      * @param int $lineId The line.
@@ -167,7 +168,7 @@ final class CartService
         return new CartMutationResult(
             succeeded: $done,
             cartId: $cart->hydrator->current()->identity()->cartId,
-            snapshot: $this->snapshots->from($cart->hydrator->current(), $cart->computation),
+            snapshot: $this->snapshots->plain($cart->hydrator->current(), $cart->computation),
         );
     }
 
@@ -436,6 +437,33 @@ final class CartService
         $cart = $this->cart($mode, $cartId);
 
         return $this->snapshots->from($cart->hydrator->current(), $cart->computation);
+    }
+
+    /**
+     * The mini-cart's reading: the lines and the totals, and no offers.
+     *
+     * The same cart as {@see read()}, found the same way and with the same writes, but plain: a drawer that shows no
+     * method reads no method list, so no carrier is asked to quote for one on every page it renders on (2.2.2). The
+     * chosen carrier is still asked for the shipping total.
+     *
+     * @param CartResolution $mode How to find it.
+     * @param int $cartId Which one, when naming it.
+     *
+     * @return CartSnapshot A reading whose offers are null.
+     *
+     * @throws InvalidArgumentException When asked to read under a creating mode.
+     *
+     * @since  2.2.2
+     */
+    public function summary(CartResolution $mode, int $cartId = 0): CartSnapshot
+    {
+        if ($mode === CartResolution::Mutable) {
+            throw new InvalidArgumentException('A cart is not created in order to be read.');
+        }
+
+        $cart = $this->cart($mode, $cartId);
+
+        return $this->snapshots->plain($cart->hydrator->current(), $cart->computation);
     }
 
     /**
