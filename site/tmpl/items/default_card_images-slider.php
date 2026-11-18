@@ -47,7 +47,7 @@ $sources = function (object $slide): string {
 <?php if ($count === 1): ?>
     <div class="item-image">
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape(MediaHelper::displayUrl($slides[0]->thumbnail_url)); ?>" alt=""<?php echo $sources($slides[0]); ?> loading="lazy" />
+            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt=""<?php echo $sources($slides[0]); ?> loading="lazy" />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>
@@ -61,7 +61,7 @@ $sources = function (object $slide): string {
         <div class="card-slider-track" data-card-slider-track tabindex="-1">
             <?php foreach ($slides as $index => $slide): ?>
                 <a class="card-slider-slide" href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true" data-card-slider-slide>
-                    <img src="<?php echo $this->escape(MediaHelper::displayUrl($slide->thumbnail_url)); ?>" alt=""<?php echo $sources($slide); ?> loading="lazy" />
+                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $sources($slide); ?> loading="lazy" />
                 </a>
             <?php endforeach; ?>
         </div>

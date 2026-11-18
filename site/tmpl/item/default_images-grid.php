@@ -17,8 +17,8 @@
  *
  * Each image is the thumbnail, with the stored image beside it in its srcset (2.2.2), so a cell wider than the
  * thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image. The sizes follow item.css: the
- * images take the whole page below 640 px and half of it above, in the grid's columns (at most two on a phone). Every
- * address is the file's versioned one (MediaHelper::displayUrl()), drawn by Joomla's own image layout.
+ * images take the whole page below 640 px and half of it above, in the grid's columns (at most two on a phone). The
+ * addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout.
  *
  * Overridable as html/com_alfa/item/default_images-grid.php.
  *
@@ -69,8 +69,8 @@ $cellSizes = 'auto, (max-width: 600px) 50vw, (max-width: 640px) ' . round(100 / 
             $imgAttribs['sizes'] = $cellSizes;
         }
         ?>
-        <a class="item-image" href="<?php echo $this->escape(MediaHelper::displayUrl($media->url)); ?>">
-            <?php echo LayoutHelper::render('joomla.html.image', ['src' => MediaHelper::displayUrl($media->thumbnail_url), 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
+        <a class="item-image" href="<?php echo $this->escape($media->url); ?>">
+            <?php echo LayoutHelper::render('joomla.html.image', ['src' => $media->thumbnail_url, 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
         </a>
     <?php endforeach; ?>
 </div>

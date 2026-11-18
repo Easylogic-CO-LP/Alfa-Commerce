@@ -374,8 +374,8 @@ class MediaHelper
     }
 
     /**
-     * A media file's address as a page draws it (2.2.2): the address of one of this site's files (as toUrl() makes it, the
-     * url and thumbnail_url of getMediaData()) with a version of the file itself, ?v= a short digest of its modification
+     * A media file's address as a page draws it (2.2.2): the address of one of this site's files (as toUrl() makes it)
+     * with a version of the file itself, the url and thumbnail_url getMediaData() gives every reader, ?v= a short digest of its modification
      * time, size and inode, so a file written again under a name the browser has seen (a thumbnail made again, an image
      * uploaded again under the name of one deleted) is never drawn from the browser's cache. Any other address (another
      * site's, a blob, a data URI, one with its own query or fragment such as a library pick's joomlaImage part) and a file
@@ -2095,9 +2095,11 @@ class MediaHelper
             // round-trip / server-side file ops).
             $result->path = ltrim($result->path, '/');
 
-            // Display URLs (absolute) for templates; never mutate the relative path.
-            $result->url = self::toUrl($result->path);
-            $result->thumbnail_url = self::toUrl($result->thumbnail);
+            // Display URLs (absolute) for templates; never mutate the relative path. Each carries its file's version
+            // (2.2.2, displayUrl()), so every page, module, cart and API answer that draws one never shows a file written
+            // again from a cache; the stored paths, which the forms and the API post back, stay as they are.
+            $result->url = self::displayUrl(self::toUrl($result->path));
+            $result->thumbnail_url = self::displayUrl(self::toUrl($result->thumbnail));
 
             $grouped[$result->item_id][] = $result;
         }
@@ -2216,8 +2218,8 @@ class MediaHelper
             'item_id' => 0,
             'path' => $placeholderPath,
             'thumbnail' => $placeholderPath,
-            'url' => self::toUrl($placeholderPath),
-            'thumbnail_url' => self::toUrl($placeholderPath),
+            'url' => self::displayUrl(self::toUrl($placeholderPath)),
+            'thumbnail_url' => self::displayUrl(self::toUrl($placeholderPath)),
             'alt' => 'Placeholder image',
             'ordering' => 0,
             'type' => 'placeholder',

@@ -32,8 +32,8 @@
     // thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image; the lightbox opens the stored
     // image. The sizes follow item.css: the images take the whole page below 640 px and half of it above; "auto" first
     // gives the lazy slides their own width where the browser knows it. The strip's small images stay thumbnails.
-    // Every address is the file's versioned one (MediaHelper::displayUrl()), so a file written again is never drawn from
-    // the browser's cache; each image is drawn by Joomla's own image layout (joomla.html.image).
+    // The addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout
+    // (joomla.html.image): HTMLHelper::image() loses an address with a query and no fragment.
     $slideSizes = 'auto, (max-width: 640px) 100vw, 50vw';
 ?>
 
@@ -58,8 +58,8 @@
             $imgAttribs['sizes'] = $slideSizes;
         }
         ?>
-        <a class="item-image" href="<?= $this->escape(MediaHelper::displayUrl($media->url)) ?>">
-            <?= LayoutHelper::render('joomla.html.image', ['src' => MediaHelper::displayUrl($media->thumbnail_url), 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
+        <a class="item-image" href="<?= $this->escape($media->url) ?>">
+            <?= LayoutHelper::render('joomla.html.image', ['src' => $media->thumbnail_url, 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
         </a>
     <?php endforeach; ?>
 </div>
@@ -81,7 +81,7 @@
         }
         ?>
 
-        <?= LayoutHelper::render('joomla.html.image', ['src' => MediaHelper::displayUrl($media->thumbnail_url), 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
+        <?= LayoutHelper::render('joomla.html.image', ['src' => $media->thumbnail_url, 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
     <?php endforeach; ?>
 </div>
 <?php endif; ?>

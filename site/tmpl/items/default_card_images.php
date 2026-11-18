@@ -17,8 +17,8 @@
  * thumbnail is never stretched past its pixels. Its sizes follow list.css's grid (cards of at least 300 px, a gap of
  * 1rem; at most one card a row up to 640 px, two up to 960 px, three up to 1280 px); "auto" first gives a browser that
  * knows it the card's own width, since the image loads lazily. An override that changes the grid gives its own sizes.
- * The addresses are the files' versioned ones (MediaHelper::displayUrl()), so a file written again is never drawn from
- * the browser's cache.
+ * The addresses carry their files' versions (getMediaData(), MediaHelper::displayUrl()), so a file written again is
+ * never drawn from the browser's cache.
  *
  * Overridable as html/com_alfa/items/default_card_images.php. The card is on $this->item.
  *
@@ -43,7 +43,7 @@ $srcset = empty($item->medias[0]->thumbnail) ? '' : MediaHelper::srcset($item->m
             // is decorative for the same reason: the title states the name.
         ?>
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape(MediaHelper::displayUrl($item->medias[0]->thumbnail_url)); ?>" alt=""<?php if ($srcset !== '') : ?>
+            <img src="<?php echo $this->escape($item->medias[0]->thumbnail_url); ?>" alt=""<?php if ($srcset !== '') : ?>
                  srcset="<?php echo $this->escape($srcset); ?>"
                  sizes="auto, (max-width: 640px) 100vw, (max-width: 960px) 50vw, (max-width: 1280px) 34vw, 25vw"<?php endif; ?>
                  loading="lazy" />
