@@ -101,7 +101,4 @@ Text::script('COM_ALFA_SETUP_REQUEST_FAILED');
     <?php foreach ([DashboardSurface::Main, DashboardSurface::Side, DashboardSurface::Bottom] as $surface) : ?>
         <?php echo $this->surfaces[$surface->value] ?? ''; ?>
     <?php endforeach; ?>
-
-    <?php // The Easylogic credit, on the overview only (2.2.1). ?>
-    <?php echo LayoutHelper::render('dashboard.credit', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 </div>

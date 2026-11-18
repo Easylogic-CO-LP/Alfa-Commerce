@@ -2618,6 +2618,10 @@ class com_alfaInstallerScript extends InstallerScript
             // release from 2.0.0 to 2.2.1 installed (PackageHelper::contentHash()).
             'plugins/alfa-payments/standard/tmpl/default_item_view.php' => ['031d61b4d1714c3dd1a10bed3325a62f31987a41d4dedc422b1e43d1b725d203'],
             'plugins/alfa-shipments/standard/tmpl/default_item_view.php' => ['031d61b4d1714c3dd1a10bed3325a62f31987a41d4dedc422b1e43d1b725d203'],
+            // The Dashboard credit's layout: the Dashboard view adds the credit itself (View/Dashboard/HtmlView.php),
+            // so an older template file that still renders the layout draws no second credit. The copy 2.2.1
+            // installed (PackageHelper::contentHash()).
+            'administrator/components/com_alfa/layouts/dashboard/credit.php' => ['370f8c35631d91094ada9d700a5b3ca4bdf75f0162fbef32d30a93bdd9445839'],
         ],
     ];
 
@@ -2638,6 +2642,9 @@ class com_alfaInstallerScript extends InstallerScript
             'modules/mod_easy_articles/language',
             'plugins/alfa-payments/standard/media/js',
             'plugins/alfa-payments/standard/media',
+        ],
+        '2.2.2' => [
+            'administrator/components/com_alfa/layouts/dashboard',
         ],
     ];
 

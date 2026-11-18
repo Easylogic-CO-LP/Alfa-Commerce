@@ -101,8 +101,53 @@ class HtmlView extends BaseHtmlView
         $this->setupReady = ($counts['total'] ?? 0) > 0 && ($counts['done'] ?? 0) === ($counts['total'] ?? 0);
 
         $this->addToolbar();
+        $this->addCredit();
 
         parent::display($tpl);
+    }
+
+    /**
+     * The Easylogic credit at the foot of the overview: "Designed and developed with", a heart, "by" and the Easylogic
+     * logo, which links to easylogic.gr in the same tab. The view adds it itself, as one inline script with its rules in
+     * the page's own style, so no layout or template file carries it and a template override does not remove it. The
+     * words are English on every site. The logo ships in the package and is drawn into the page from that file, so no
+     * request leaves the site and its letters take the text colour of the administrator's light or dark scheme. The
+     * class is made for each request; the page's content security nonce applies to the script and to the rules.
+     *
+     * The script appends the credit as the last element of the overview (.alfa-dashboard), or of the page's main
+     * content when that element is missing: centred in the page's flow, as far below the last row of cards as the rows
+     * are from each other, a line of plain text in the administrator template's muted text colour that wraps on a
+     * narrow screen.
+     *
+     * @since  2.2.2
+     */
+    private function addCredit(): void
+    {
+        $class = 'c' . bin2hex(random_bytes(6));
+        $logo = trim((string) file_get_contents(JPATH_ROOT . '/media/com_alfa/images/admin/easylogic.svg'));
+        $credit = '<p>Designed and developed with '
+            . '<svg viewBox="0 0 24 24" role="img" aria-label="love" focusable="false"><title>love</title>'
+            . '<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 '
+            . '14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
+            . ' by <a href="https://www.easylogic.gr" title="Easylogic">' . $logo . '</a></p>';
+        $json = JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
+
+        $this->getDocument()->getWebAssetManager()
+            ->addInlineStyle(
+                ".{$class}{margin:1rem 0 0}"
+                . ".{$class}>p{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.35em;margin:0;"
+                . 'color:var(--secondary-color);font-size:.8125rem;line-height:1.2}'
+                . ".{$class} p>svg{width:.95em;height:.95em;fill:#e0245e}"
+                . ".{$class} a{display:inline-flex;align-items:center;color:inherit}"
+                . ".{$class} a>svg{display:block;width:3.85rem;height:.95rem}",
+            )
+            ->addInlineScript(
+                '(()=>{const add=()=>{const box=document.createElement("div");'
+                . 'box.className=' . json_encode($class, $json) . ';'
+                . 'box.innerHTML=' . json_encode($credit, $json) . ';'
+                . '(document.querySelector(".alfa-dashboard")??document.querySelector("main")??document.body).append(box);};'
+                . 'document.readyState==="loading"?document.addEventListener("DOMContentLoaded",add):add();})();',
+            );
     }
 
     /**
