@@ -116,6 +116,7 @@ use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
 use Joomla\Database\QueryInterface;
 use Joomla\Event\SubscriberInterface;
+use LogicException;
 use RuntimeException;
 use Throwable;
 
@@ -787,6 +788,10 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *     takes no lock and never calls the provider;
      *   - empty for a payment that is not this plugin's, or that does not exist.
      *
+     * The core's reading of these reports for one payment is
+     * unbookedProviderRefundsOfPayment() (2.2.2), never called from here: the
+     * core refuses it with a LogicException and reads the payment as unread.
+     *
      * This default answers empty: a payment method with no provider channel (the
      * bundled Standard method) can never hold a refund a provider reported.
      *
@@ -1375,6 +1380,52 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected function reportOutcome(int $paymentId, string $reportId): ?array
     {
         return PaymentLedger::reportOutcome(paymentId: $paymentId, reportId: $reportId);
+    }
+
+    /**
+     * The refunds this plugin's provider reports for one of its payments that the books do not hold, as the core
+     * reads them ({@see PaymentLedger::unbookedProviderRefundsOfPayment()}): from the reports this plugin gives in
+     * unbookedProviderRefunds(), those already booked under their provider id and those whose outcome the core keeps
+     * are left out; 'reserved' lists the pending ones whose exact amount reserves the refundable pool, 'refunds' the
+     * ones that hold the refund block, and 'unread' says what the core could not read of the answer (a malformed
+     * entry, an answer that threw), or is null.
+     *
+     * Not this plugin's own report: that is unbookedProviderRefunds(), which the core asks to build this answer, so
+     * this is never called from it. A call from it is refused with a LogicException; the core then reads the payment as
+     * unread, and the refund block holds until the plugin is fixed.
+     *
+     * @api READ ONLY: writes nothing, takes no lock and never calls the provider; asks this plugin's
+     *      unbookedProviderRefunds() once; a payment that is not this plugin's, or not a payment, answers the empty shape.
+     *
+     * @param int $paymentId The payment.
+     *
+     * @return array{refunds: list<array{reportId: string, id: ?string, amount: ?Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>, reserved: list<array{reportId: string, id: ?string, amount: Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>, unread: string|null}
+     *
+     * @throws LogicException When called from this plugin's own unbookedProviderRefunds().
+     *
+     * @since  2.2.2
+     */
+    final protected function unbookedProviderRefundsOfPayment(int $paymentId): array
+    {
+        // Another gateway's row is never read through this plugin, as for every scoped reader of the set: one row of this
+        // plugin's element (the row's own payment_method_type, which keeps answering after the method row is deleted)
+        // and of type payment, by its id, read raw: nothing is hydrated, so an order without a currency answers as
+        // the ledger's reader answers it (unread), never with an exception of its own.
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $owned = $paymentId > 0 && (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('1')
+                ->from($db->quoteName('#__alfa_order_payments'))
+                ->where($db->quoteName('id') . ' = ' . $paymentId)
+                ->where($db->quoteName('payment_method_type') . ' = ' . $db->quote($this->_name))
+                ->where($db->quoteName('payment_type') . ' = ' . $db->quote(PaymentLedger::TYPE_PAYMENT)),
+        )->loadResult() === 1;
+
+        if (!$owned) {
+            return ['refunds' => [], 'reserved' => [], 'unread' => null];
+        }
+
+        return PaymentLedger::unbookedProviderRefundsOfPayment(paymentId: $paymentId);
     }
 
     /**
