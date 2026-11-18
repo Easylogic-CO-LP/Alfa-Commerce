@@ -165,7 +165,8 @@ final class PlaceTree
      *      capitals, published or not; null for 0 or an id that does not exist. code2 and code3 are empty when the top
      *      place carries none (a chain cut from its country by a parent that no longer exists, or a top place stored
      *      without codes), and a caller then has no country. The first call in a PHP process (one request on the web)
-     *      reads the place table once and keeps it: a place changed later in the same process may not be seen.
+     *      reads the place table once and keeps it: a place changed later in the same process may not be seen. A
+     *      failed read of the place table throws the database's exception; null only ever means no such place.
      *
      * @param int $placeId The `#__alfa_places` id.
      *
