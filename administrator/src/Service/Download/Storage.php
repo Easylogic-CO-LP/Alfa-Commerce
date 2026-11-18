@@ -404,6 +404,11 @@ class Storage
      * The recorded root ({@see self::META_ROOT}), unless the Options name a
      * different path: the shop moved the store, and that path is recorded.
      *
+     * @api ANSWERS: the download store's absolute root, provisioned with deny-all guards; throws when no root is
+     *      recorded (install Alfa Commerce again). An extension keeps its own files only in a folder named after its
+     *      element under it (never a name of two hex characters, the shape of core's object shards) and clears them in
+     *      its onClearData; moving the store moves no file, so its files stay at the old root.
+     *
      * @throws RuntimeException When no root is recorded, or it cannot be
      *                          created or written.
      *
