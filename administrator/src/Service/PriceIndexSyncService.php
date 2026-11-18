@@ -1666,8 +1666,9 @@ class PriceIndexSyncService
                     $result = $results[$itemId] ?? null;
 
                     // No price applying at the product's opening quantity for this slot and period, to the product or to
-                    // the combination it is listed at (2.2.2): no row is written, so the reads that ask for a price leave
-                    // the product out for the visitors of this slot, and the others list it with no price.
+                    // the combination it is listed at (2.2.2): no row is written, so the price filters leave the product
+                    // out for the visitors of this slot, and every other read lists it with no price, last under a sort by
+                    // price.
                     if ($result === null || !$result->isPriced()) {
                         continue;
                     }

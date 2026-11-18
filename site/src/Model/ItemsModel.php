@@ -71,12 +71,12 @@ use Throwable;
  *
  * Products without a price
  * Every product is listed, one with no price for the visitor with no price
- * and no add to cart. A read that asks for a price (a price filter or range,
- * the sale or a saving filter, a sort by price or by saving the visitor or a
- * module asked for) lists only the products the index has a figure of for the
- * visitor ({@see self::applyPriceIndexJoin()}), and so do the facet counts
- * beside it; a listing whose default order is by price lists every product,
- * those without a figure last.
+ * and no add to cart. A read that filters by a price (a price floor, ceiling
+ * or range, the sale or a saving filter) lists only the products the index has
+ * a figure of for the visitor ({@see self::applyPriceIndexJoin()}), and so do
+ * the facet counts beside it, which copy the filters. A sort by price or by
+ * saving, in either direction, lists every product, those without a figure
+ * last.
  *
  * Available filter states
  *   filter.price_min           float   Minimum final_price (range slider left)
@@ -1068,7 +1068,7 @@ class ItemsModel extends UrlListModel
      *   MIN(base_price_with_tax)      -> undiscounted "was" price
      *   MIN(base_price_with_discounts)-> ex-VAT net price
      *   MIN(tax_amount)               -> tax amount
-     * A left join, except for a read that asks for a price, which lists only the products with a figure
+     * A left join, except for a read that filters by a price, which lists only the products with a figure
      * ({@see self::applyPriceIndexJoin()}).
      *
      * All supported filter conditions
@@ -1137,7 +1137,7 @@ class ItemsModel extends UrlListModel
             )
             ->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
 
-        // Architecture B price index subquery JOIN, added below once the read knows whether it asks for a price.
+        // Architecture B price index subquery JOIN, added below once the read knows whether it filters by a price.
         // Catalogue only (2.2.2): no price is read, so the index is not joined, and every price filter and sort below
         // is left out with it (the sale filter matches nothing).
         $sellsOnline = ShopMode::sellsOnline();
@@ -1452,11 +1452,9 @@ class ItemsModel extends UrlListModel
                 $orderCol = 'pf.final_price';
             }
 
-            // By a figure of the price index (the price, the saving). The listing's
-            // default order lists every product, one with no figure for the visitor
-            // after every product that has one, in either direction; a sort asked
-            // for lists only the products with a figure (sortsByPriceAsked(),
-            // below, 2.2.2). Equal figures, and those without, by id.
+            // By a figure of the price index: a product with none for the visitor's
+            // set (no price, or a set not yet prepared) comes after every product
+            // that has one, in either direction; those, and equal figures, by id.
             if (str_starts_with($orderCol, 'pf.')) {
                 $query->order($db->quoteName($orderCol) . ' IS NULL ASC');
                 $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
@@ -1466,11 +1464,11 @@ class ItemsModel extends UrlListModel
             }
         }
 
-        // The visitor's price from the index (2.2.2): a read that asks for a price (a price filter, the sale or a saving
-        // filter, a sort by price or by saving asked for) lists only the products with a figure for the visitor; every
-        // other read lists every product, one with no price shown with no price.
+        // The visitor's price from the index (2.2.2): a read that filters by a price (a price floor, ceiling or range, the
+        // sale or a saving filter) lists only the products with a figure for the visitor; every other read, a sort by
+        // price or by saving included, lists every product, one with no price shown with no price.
         if ($sellsOnline) {
-            $this->applyPriceIndexJoin(query: $query, pricedOnly: $hasMin || $hasMax || $onSale || $savingAsked || $this->sortsByPriceAsked());
+            $this->applyPriceIndexJoin(query: $query, pricedOnly: $hasMin || $hasMax || $onSale || $savingAsked);
         }
 
         $query->group('a.id');
@@ -1479,49 +1477,15 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * Whether the listing is sorted by a figure of the price index (the price, the saving) that was asked for (2.2.2):
-     * chosen on the page (list[fullordering] in the request, even the default one), or any order other than the
-     * listing's default (one kept in the state, a module's tab, a caller's). Such a read lists only the products with a
-     * figure for the visitor; the listing's default order lists every product. A facet sub-model carries the answer of
-     * the listing it counts for (list.price_sort_asked, createFilterSubModel()), so its counts and the listing agree.
-     *
-     * @since  2.2.2
-     */
-    private function sortsByPriceAsked(): bool
-    {
-        if ($this->getState('list.price_sort_asked')) {
-            return true;
-        }
-
-        $explicitlySorted = $this->explicitlySorted();
-
-        // The search engine's order, where nothing else was asked for (getListQuery()).
-        if ($this->relevanceIds !== [] && !$explicitlySorted && $this->sortIsFallback()) {
-            return false;
-        }
-
-        [$column, $direction] = $this->effectiveOrdering();
-
-        if (!$column || !$direction) {
-            return false;
-        }
-
-        $indexColumn = \in_array($column, ['price', 'pf.price'], true) ? 'pf.final_price' : $column;
-
-        return str_starts_with($indexColumn, 'pf.')
-            && ($explicitlySorted || !$this->isDefault('list', 'fullordering', $column . ' ' . $direction));
-    }
-
-    /**
      * Append the Architecture-B price index subquery JOIN to the main query: the one place a read of the catalogue
      * takes the visitor's price figures, and the rule on products without one, from (2.2.2).
      *
      * The subquery (alias pf) reduces the index to one row per item for the current visitor's currency, place chain
      * and set of pricing groups (their own once prepared; while theirs waits, their previous one or the guest's), at
-     * this moment. A left join: a product with no figure for the visitor is listed, its pf columns null. With
-     * $pricedOnly, the read that asks for a price, an inner join: only the products with a figure are listed. While no
-     * set is prepared to read at all (the job runner has not run yet) every read is a left join, so no list is empty
-     * because the index is being prepared.
+     * this moment. A left join: a product with no figure for the visitor is listed, its pf columns null, and a sort by
+     * a figure places it last. With $pricedOnly, the read that filters by a price, an inner join: only the products
+     * with a figure are listed. While no set is prepared to read at all (the job runner has not run yet) every read is
+     * a left join, so no list is empty because the index is being prepared.
      *
      * @param \Joomla\Database\QueryInterface $query Mutated in place
      * @param bool $pricedOnly Whether the read lists only the products with a figure for the visitor.
@@ -3856,10 +3820,6 @@ class ItemsModel extends UrlListModel
         $model->setState('list.limit', 0);
         $model->setState('list.ordering', 'a.id');
         $model->setState('list.direction', 'ASC');
-
-        // The listing's own sort is not copied, but its answer to "a sort by price or by saving asked for" is (2.2.2):
-        // under such a sort the listing lists only the products with a figure, and so do the counts beside it.
-        $model->setState('list.price_sort_asked', $this->sortsByPriceAsked());
 
         return $model;
     }
