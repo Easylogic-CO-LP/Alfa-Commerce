@@ -18,8 +18,8 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 
 /**
- * Whether System - Alfa Commerce Sync runs for a visitor who is not logged in: the one reading the setup checklist's
- * page cache row and the administrator warning for the plugin share.
+ * Whether System - Alfa Commerce Sync runs for a visitor who is not logged in: the one reading the page cache notice
+ * ({@see InformationNotices}) and the administrator warning for the plugin share.
  *
  * Joomla loads a plugin only for a visitor whose view levels include the plugin's Access. Alfa Commerce Sync keeps a
  * shopper with products in the cart, or priced for a currency or place of their own, from being served a page Joomla's

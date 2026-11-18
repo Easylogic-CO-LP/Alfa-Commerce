@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Setup\BundledLibraries;
 use Joomla\CMS\Factory;
 use RuntimeException;
 
@@ -25,7 +26,7 @@ use RuntimeException;
  * The pipeline is the ONE rendering definition: the same HTML
  * DocumentRenderer produces for the print view is fed to the dompdf
  * library (lib_dompdf), which ships with Alfa Commerce as a Joomla library
- * with the four libraries it needs ({@see self::LIBRARIES}); Joomla's
+ * with the four libraries it needs ({@see BundledLibraries::PDF}); Joomla's
  * autoloader loads their classes. The only disk usage is dompdf's own font
  * cache under Joomla's tmp directory.
  *
@@ -34,23 +35,6 @@ use RuntimeException;
 final class PdfRenderer
 {
     /**
-     * The Joomla libraries a PDF needs, each by its library name with one class of it: dompdf and the four
-     * libraries it builds on, installed with Alfa Commerce (alfa.xml). The setup checklist's row and the renderer
-     * ask for each of these classes, so a library someone removed is named before anything is rendered.
-     *
-     * @var array<string, string>
-     *
-     * @since  2.2.1
-     */
-    public const LIBRARIES = [
-        'dompdf' => \Dompdf\Dompdf::class,
-        'php-font-lib' => \FontLib\Font::class,
-        'php-svg-lib' => \Svg\Document::class,
-        'masterminds/html5' => \Masterminds\HTML5::class,
-        'sabberworm/php-css-parser' => \Sabberworm\CSS\Parser::class,
-    ];
-
-    /**
      * Render a document to PDF bytes.
      *
      * @param int $documentId The document id (any status; voided documents
@@ -58,15 +42,16 @@ final class PdfRenderer
      *
      * @return string Raw PDF bytes.
      *
-     * @throws PdfLibraryMissingException When lib_dompdf, or a library it needs, is not installed, asked first:
-     *                                    nothing is rendered for a PDF that cannot be made.
+     * @throws PdfLibraryMissingException When lib_dompdf, or a library it needs, is missing or disabled, asked first
+     *                                    ({@see BundledLibraries::unavailable()}): nothing is rendered for a PDF that
+     *                                    cannot be made.
      * @throws RuntimeException When the document is missing or rendering fails.
      *
      * @since  2.0.0
      */
     public static function pdfBytes(int $documentId): string
     {
-        if (!self::libraryInstalled()) {
+        if (BundledLibraries::unavailable(libraries: BundledLibraries::PDF) !== []) {
             throw new PdfLibraryMissingException();
         }
 
@@ -134,22 +119,5 @@ final class PdfRenderer
         }
 
         return $dir;
-    }
-
-    /**
-     * Whether a PDF can be made here: every library of {@see self::LIBRARIES} is installed, each asked for its
-     * class through Joomla's autoloader. The setup checklist asks the same question.
-     *
-     * @since  2.2.1
-     */
-    public static function libraryInstalled(): bool
-    {
-        foreach (self::LIBRARIES as $class) {
-            if (!class_exists($class)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

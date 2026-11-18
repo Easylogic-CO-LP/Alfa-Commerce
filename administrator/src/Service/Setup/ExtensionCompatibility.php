@@ -16,7 +16,6 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\SchemaRecreator;
 use InvalidArgumentException;
-use Joomla\CMS\Language\Text;
 use RuntimeException;
 
 /**
@@ -34,12 +33,13 @@ use RuntimeException;
  * excludes it: "needs a compatible build". No range, a range that cannot be read, or a manifest that cannot be read:
  * "compatibility not stated", the reason written to the maintenance log by the update.
  *
- * WHERE IT IS SAID. After Alfa Commerce is installed or updated, on the installer's page, in the maintenance log and as
- * one notification to the administrators (script.php postflight, {@see self::notify()} with an alert); a recommended
- * row of the setup checklist reads the same verdict whenever the checklist is computed, and clears when every
- * extension named declares a range that includes this line. When an Alfa extension is installed, updated or
- * uninstalled, System - Alfa Commerce Sync makes the checklist compute again and brings a standing notification up to
- * date ({@see self::notify()} without an alert), clearing it when nothing is left to name.
+ * WHERE IT IS SAID. A dismissible notification to the administrators, which opens Tools > Extensions, where each
+ * extension shows its verdict ({@see self::verdicts()}); never on the installer's page nor in the setup checklist
+ * (2.2.2, rulings 170 and 178). After Alfa Commerce is installed or updated it is raised anew, unread, with one line
+ * per extension in the maintenance log (script.php postflight, {@see self::notify()} with an alert). When an Alfa
+ * extension is installed, updated or uninstalled, System - Alfa Commerce Sync follows the verdict ({@see self::notify()}
+ * without an alert, {@see ConditionNotice}): an extension newly named raises the notice again, unread; one no longer
+ * named updates it in place, its read and dismissed state kept; nothing left to name withdraws it.
  *
  * @since  2.2.1
  */
@@ -53,6 +53,15 @@ final class ExtensionCompatibility
      * @since  2.2.1
      */
     public const NOTICE = 'alfa.extensions.compatibility';
+
+    /**
+     * The verdict of an extension whose declared range includes the installed line.
+     *
+     * @var string
+     *
+     * @since  2.2.2
+     */
+    public const COMPATIBLE = 'compatible';
 
     /**
      * The verdict of an extension whose declared range excludes the installed line.
@@ -73,6 +82,56 @@ final class ExtensionCompatibility
     public const NOT_STATED = 'not_stated';
 
     /**
+     * The verdict of every installed Alfa plugin and module apart from what Alfa Commerce bundles, in the order of
+     * Options > About, as Tools > Extensions shows it beside each one.
+     *
+     * The verdict is COMPATIBLE, NEEDS_BUILD or NOT_STATED; the range is the one the manifest declares (null when it
+     * declares none or it cannot be read); why is what the manifest says, in words, for the maintenance log.
+     *
+     * @return array<string, array{key: string, name: string, verdict: string, range: ?AlfaCoreRange, why: string}> By key.
+     *
+     * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
+     *
+     * @since  2.2.2
+     */
+    public static function verdicts(): array
+    {
+        $core = AlfaVersion::installed()?->toString() ?? throw new RuntimeException('The installed Alfa Commerce version cannot be read.');
+        $bundled = [];
+
+        foreach (SchemaRecreator::bundled() as $extension) {
+            $bundled[AlfaInstallerGate::key(type: $extension['type'], element: $extension['element'], folder: $extension['folder'])] = true;
+        }
+
+        $extensions = new ClearDataExtensions();
+        $verdicts = [];
+
+        foreach (ClearDataExtensions::installed() as $entry) {
+            if (!\in_array($entry['type'], ['plugin', 'module'], true) || isset($bundled[$entry['key']])) {
+                continue;
+            }
+
+            $verdict = ['key' => $entry['key'], 'name' => $extensions->displayName(entry: $entry)];
+
+            try {
+                $range = AlfaCoreRange::ofFile(path: self::manifestPath(entry: $entry));
+            } catch (InvalidArgumentException $e) {
+                $verdicts[$entry['key']] = $verdict + ['verdict' => self::NOT_STATED, 'range' => null, 'why' => $e->getMessage()];
+
+                continue;
+            }
+
+            $verdicts[$entry['key']] = $verdict + match (true) {
+                $range === null => ['verdict' => self::NOT_STATED, 'range' => null, 'why' => 'its manifest has no alfacore element'],
+                !$range->includes(version: $core) => ['verdict' => self::NEEDS_BUILD, 'range' => $range, 'why' => 'it is built for Alfa Commerce ' . $range->describe()],
+                default => ['verdict' => self::COMPATIBLE, 'range' => $range, 'why' => ''],
+            };
+        }
+
+        return $verdicts;
+    }
+
+    /**
      * The installed Alfa extensions not known to work with the installed Alfa Commerce, in the order of Options > About.
      *
      * The verdict is NEEDS_BUILD or NOT_STATED; why is what the manifest says, in words, for the maintenance log.
@@ -85,55 +144,15 @@ final class ExtensionCompatibility
      */
     public static function named(): array
     {
-        $core = AlfaVersion::installed()?->toString() ?? throw new RuntimeException('The installed Alfa Commerce version cannot be read.');
-        $bundled = [];
-
-        foreach (SchemaRecreator::bundled() as $extension) {
-            $bundled[AlfaInstallerGate::key(type: $extension['type'], element: $extension['element'], folder: $extension['folder'])] = true;
-        }
-
-        $extensions = new ClearDataExtensions();
         $named = [];
 
-        foreach (ClearDataExtensions::installed() as $entry) {
-            if (!\in_array($entry['type'], ['plugin', 'module'], true) || isset($bundled[$entry['key']])) {
-                continue;
-            }
-
-            try {
-                $range = AlfaCoreRange::ofFile(path: self::manifestPath(entry: $entry));
-            } catch (InvalidArgumentException $e) {
-                $named[] = ['key' => $entry['key'], 'name' => $extensions->displayName(entry: $entry), 'verdict' => self::NOT_STATED, 'why' => $e->getMessage()];
-
-                continue;
-            }
-
-            if ($range === null) {
-                $named[] = ['key' => $entry['key'], 'name' => $extensions->displayName(entry: $entry), 'verdict' => self::NOT_STATED, 'why' => 'its manifest has no alfacore element'];
-            } elseif (!$range->includes(version: $core)) {
-                $named[] = ['key' => $entry['key'], 'name' => $extensions->displayName(entry: $entry), 'verdict' => self::NEEDS_BUILD, 'why' => 'it is built for Alfa Commerce ' . $range->describe()];
+        foreach (self::verdicts() as $entry) {
+            if ($entry['verdict'] !== self::COMPATIBLE) {
+                $named[] = ['key' => $entry['key'], 'name' => $entry['name'], 'verdict' => $entry['verdict'], 'why' => $entry['why']];
             }
         }
 
         return $named;
-    }
-
-    /**
-     * The extensions named, with what is said of each, as the setup checklist's row names them: "Name (needs a
-     * compatible build); Name (compatibility not stated)", in the administrator's language.
-     *
-     * @param list<array{key: string, name: string, verdict: string, why: string}> $named From {@see self::named()}.
-     *
-     * @since  2.2.1
-     */
-    public static function describe(array $named): string
-    {
-        return implode('; ', array_map(
-            static fn (array $entry): string => $entry['name'] . ' (' . Text::_($entry['verdict'] === self::NEEDS_BUILD
-                ? 'COM_ALFA_EXTENSION_COMPATIBILITY_NEEDS_BUILD'
-                : 'COM_ALFA_EXTENSION_COMPATIBILITY_NOT_STATED') . ')',
-            $named,
-        ));
     }
 
     /**
@@ -151,14 +170,13 @@ final class ExtensionCompatibility
     }
 
     /**
-     * Say it to the administrators, or clear what was said. With an alert (Alfa Commerce installed or updated): the
-     * notification of an earlier installation is removed and, when an extension is named, a new one is raised, so it
-     * is shown unread even when the last one was dismissed. Without an alert (an Alfa extension installed, updated or
-     * uninstalled): a standing notification is brought up to date, its read state kept, or cleared when nothing is
-     * named any more; none is raised.
+     * Say it to the administrators, or withdraw what was said. With an alert (Alfa Commerce installed or updated): the
+     * notification is raised anew when an extension is named, so it is shown unread even when the last one was
+     * dismissed, and removed when none is. Without an alert (an Alfa extension installed, updated or uninstalled): it
+     * follows the verdict ({@see ConditionNotice::follow()}): raised again, unread, when an extension is newly named;
+     * updated in place, its read and dismissed state kept, when one is no longer named; withdrawn when none is left.
      *
-     * It answers what it named ({@see self::named()}); nothing when there was no standing notification to bring up to
-     * date.
+     * It answers what it named ({@see self::named()}).
      *
      * @param bool $alert Whether this is Alfa Commerce's own installation.
      *
@@ -170,24 +188,31 @@ final class ExtensionCompatibility
      */
     public static function notify(bool $alert): array
     {
-        if (!$alert && !NotificationHelper::isOpen(dedupKey: self::NOTICE)) {
-            return [];
-        }
-
         $named = self::named();
+        $facts = array_map(static fn (array $entry): string => $entry['key'] . ':' . $entry['verdict'], $named);
+        $push = static fn () => self::push(named: $named);
 
-        if ($alert && NotificationHelper::exists(dedupKey: self::NOTICE)) {
-            NotificationHelper::clear(dedupKey: self::NOTICE, hard: true);
+        if ($alert) {
+            ConditionNotice::raise(key: self::NOTICE, facts: $facts, push: $push);
+        } else {
+            ConditionNotice::follow(key: self::NOTICE, facts: $facts, push: $push);
         }
 
-        if ($named === []) {
-            if (!$alert) {
-                NotificationHelper::clear(dedupKey: self::NOTICE);
-            }
+        return $named;
+    }
 
-            return [];
-        }
-
+    /**
+     * The notification naming the extensions: those that need a compatible build, those that do not say, and what to
+     * do; it opens Tools > Extensions.
+     *
+     * @param list<array{key: string, name: string, verdict: string, why: string}> $named From {@see self::named()}.
+     *
+     * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
+     *
+     * @since  2.2.2
+     */
+    private static function push(array $named): void
+    {
         $line = self::coreLine();
         $names = static fn (string $verdict): array => array_values(array_map(
             static fn (array $entry): string => $entry['name'],
@@ -214,13 +239,10 @@ final class ExtensionCompatibility
                 'message' => NotificationText::sentences(...$sentences),
                 'url' => 'index.php?option=com_alfa&view=extensions',
                 'dismissible' => true,
-                'constant' => $alert,
                 'view' => ['action' => 'core.admin', 'asset' => 'com_alfa'],
                 'link' => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
             ],
         );
-
-        return $named;
     }
 
     /**

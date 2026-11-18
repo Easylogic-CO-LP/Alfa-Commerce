@@ -3,6 +3,7 @@
 namespace Alfa\Plugin\AlfaFormFields\Tel\Rule;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Service\Setup\BundledLibraries;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormRule;
 use Joomla\CMS\Language\Text;
@@ -23,6 +24,13 @@ class AlfatelRule extends FormRule
         // Empty + not required -> OK. Joomla handles "required" separately.
         if ($value === '' || $value === null) {
             return true;
+        }
+
+        // The number is checked with libphonenumber, which ships with Alfa Commerce. While it, or the locale data it
+        // reads, is missing or disabled, a number is refused with a plain message rather than taken unchecked; the
+        // administrators are told in the notification centre.
+        if (BundledLibraries::unavailable(libraries: BundledLibraries::PHONE) !== []) {
+            throw new RuntimeException(Text::_('PLG_ALFA_FORM_FIELDS_TEL_ERR_LIBRARY_UNAVAILABLE'));
         }
 
         // THE SAME REGION THE FILTER READS AGAINST: the field's, else the
