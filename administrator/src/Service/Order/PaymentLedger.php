@@ -2112,15 +2112,7 @@ class PaymentLedger
      */
     private function writeUpdate(): int
     {
-        $payloadMerge = null;
-
-        if ($this->hasStagedPluginData()) {
-            $payloadMerge = function (): string {
-                $this->mergeStagedPluginData($this->paymentId);
-
-                return (string) $this->data['plugin_data'];
-            };
-        }
+        $payloadMerge = $this->payloadMergeFor((int) $this->paymentId);
 
         if ($this->expectedStatus !== null) {
             return static::updateIfStatus(

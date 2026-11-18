@@ -509,6 +509,10 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * is a duplicate notification and nothing more; it is logged at INFO, not
      * CRITICAL, and there is no reconciliation to demand.
      *
+     * Payload staged on the builder with ->pluginData() or ->removePluginData()
+     * is written by the same compare-and-set as the status, and not at all when
+     * the verdict is not WRITE_OK; no second save() for it.
+     *
      * Usage:
      *   $write   = $this->shipmentUpdate($id)->delivered();
      *   $verdict = $this->settleAttempt($write, $orderId, self::STATUS_SHIPPED);
@@ -516,7 +520,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *   if ($verdict === self::WRITE_RACED) { ... already delivered, answer 200 ... }
      *
      * @api ANSWERS: WRITE_OK, WRITE_RACED or WRITE_FAILED: the shipment moves to the new status exactly once, and a
-     *      redelivered notification races.
+     *      redelivered notification races; the staged plugin data is written by the same compare-and-set as the status,
+     *      or not at all.
      *
      * @param ShipmentLedger $write Builder carrying the new status.
      * @param int $orderId Order PK.
