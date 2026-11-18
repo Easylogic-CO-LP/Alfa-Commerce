@@ -62,7 +62,7 @@ final class PriceUnits
         $currency = $price->getCurrency();
 
         return $rate !== null
-            ? self::stated(currency: $currency, unit: $rate, line: $line, quantity: $price->getQuantity(), includeSymbol: $includeSymbol, auto: null)
+            ? self::ownDigits(currency: $currency, unit: $rate, line: $line, quantity: $price->getQuantity(), includeSymbol: $includeSymbol, auto: null)
             : self::derived(currency: $currency, unit: $unit, line: $line, quantity: $price->getQuantity(), includeSymbol: $includeSymbol, auto: null);
     }
 
@@ -134,9 +134,15 @@ final class PriceUnits
     /**
      * The per-unit figures a product page, a listing or a payload shows for its quantity.
      *
-     * - A figure that IS the stated unit prints that unit's own decimals: a
-     *   price row's stored value on the net, a sale's own price, an agreed
-     *   rate; the PriceResult's provenance says which figure that is.
+     * - A figure that IS a stored price (a price row's own value, a sale's own
+     *   price; the PriceResult's provenance says which figure that is) prints
+     *   its own digits at the fewest decimals, from the currency's scale, that
+     *   give its own extension back (the stored price times the page's
+     *   quantity, rounded once) under Auto: a stored 290.32258 is 290.32 for
+     *   one piece and 290.323 beside three; 25.338 is
+     *   25.34 for one piece and 25.338 beside seven; a stored 0.004 is 0.004,
+     *   never 0.00. The stored value itself is exact()'s.
+     * - An agreed rate prints as agreed (0.125).
      * - A computed unit (a variant's adjust, a gross target), a gross reached
      *   through tax, a discounted figure, a tax or a saving per piece is
      *   derived: the money of the page's quantity per piece.
@@ -162,10 +168,12 @@ final class PriceUnits
         $texts = [];
 
         foreach ($figures ?? self::FIGURES as $figure) {
-            [$unit, $line, $exact] = self::source(price: $price, figure: $figure);
-            $texts[$figure] = $exact !== null
-                ? self::stated(currency: $currency, unit: $exact, line: $line, quantity: $quantity, includeSymbol: $includeSymbol, auto: $auto)
-                : self::derived(currency: $currency, unit: $unit, line: $line, quantity: $quantity, includeSymbol: $includeSymbol, auto: $auto);
+            [$unit, $line, $exact, $stored] = self::source(price: $price, figure: $figure);
+            $texts[$figure] = match (true) {
+                $exact === null => self::derived(currency: $currency, unit: $unit, line: $line, quantity: $quantity, includeSymbol: $includeSymbol, auto: $auto),
+                $stored => $currency->formatUnit(unit: $exact, lineTotal: $line->getAmount(), quantity: $quantity, includeSymbol: $includeSymbol, auto: $auto, stated: true),
+                default => self::ownDigits(currency: $currency, unit: $exact, line: $line, quantity: $quantity, includeSymbol: $includeSymbol, auto: $auto),
+            };
         }
 
         return $texts;
@@ -244,12 +252,13 @@ final class PriceUnits
     }
 
     /**
-     * One figure's per-piece money, its line, and the exact unit it prints when it is one.
+     * One figure's per-piece money, its line, the exact unit it is when it is one, and whether that is a stored price.
      *
      * @param PriceResult $price The priced result.
      * @param string $figure One of FIGURES.
      *
-     * @return array{0: Money, 1: Money, 2: string|null} [per piece, line, the exact unit to print or null when derived]
+     * @return array{0: Money, 1: Money, 2: string|null, 3: bool} [per piece, line, the exact unit or null when derived,
+     *                                                            true when the exact unit is a price row's or a sale's own price]
      *
      * @throws InvalidArgumentException When the figure is not one of FIGURES.
      *
@@ -271,14 +280,14 @@ final class PriceUnits
         $stated = self::statedValue(price: $price, figure: $figure);
 
         if ($stated !== null) {
-            return [$unit, $line, $stated];
+            return [$unit, $line, $stated, $price->getStatedOrigin() !== UnitOrigin::AgreedRate];
         }
 
         // A positive payable unit that one piece settles at zero money.
         $payable = ExactAmount::of($price->getPayableUnitExact());
 
         if (self::payable(price: $price, figure: $figure) && $payable->isPositive() && $payable->toMoney($price->getCurrency())->isZero()) {
-            return [$unit, $line, $price->getPayableUnitExact()];
+            return [$unit, $line, $price->getPayableUnitExact(), false];
         }
 
         // A positive discounted unit that one piece settles at zero money: the
@@ -289,11 +298,11 @@ final class PriceUnits
             $exact = ExactAmount::of($discounted);
 
             if ($exact->isPositive() && $exact->toMoney($price->getCurrency())->isZero()) {
-                return [$unit, $line, $discounted];
+                return [$unit, $line, $discounted, false];
             }
         }
 
-        return [$unit, $line, null];
+        return [$unit, $line, null, false];
     }
 
     /**
@@ -386,10 +395,11 @@ final class PriceUnits
     }
 
     /**
-     * A stated unit: its own decimals under Auto, the currency's scale otherwise.
+     * An agreed rate, or a positive unit whose one piece is zero money: its own decimals under Auto, the currency's
+     * scale otherwise.
      *
      * @param Currency $currency The line's currency.
-     * @param string $unit The stated unit, as its exact decimal text.
+     * @param string $unit The unit, as its exact decimal text.
      * @param Money $line The whole amount it states, in the same tax space.
      * @param int $quantity The quantity.
      * @param bool $includeSymbol Whether to include the currency symbol.
@@ -398,7 +408,7 @@ final class PriceUnits
      *
      * @since  2.0.0
      */
-    private static function stated(Currency $currency, string $unit, Money $line, int $quantity, bool $includeSymbol, ?bool $auto): string
+    private static function ownDigits(Currency $currency, string $unit, Money $line, int $quantity, bool $includeSymbol, ?bool $auto): string
     {
         return $currency->formatUnit(unit: $unit, lineTotal: $line->getAmount(), quantity: $quantity, rate: $unit, includeSymbol: $includeSymbol, auto: $auto);
     }
