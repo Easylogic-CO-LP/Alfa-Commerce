@@ -13,6 +13,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Site\Model\ItemsModel;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Exception;
@@ -214,7 +215,15 @@ class CategoryHelper
      */
     private static function countPriceKey(): string
     {
-        return '_' . md5(ShopMode::sellsOnline() ? PriceContext::fromSession()->toCacheKey() : 'catalogue-only');
+        if (!ShopMode::sellsOnline()) {
+            return '_' . md5('catalogue-only');
+        }
+
+        // The set the visitor reads too: a customer whose own set is being prepared counts by the guest's, and by
+        // their own once it is (PriceIndexSyncService::readableSetKey()).
+        $context = PriceContext::fromSession();
+
+        return '_' . md5($context->toCacheKey() . '|' . (PriceIndexSyncService::readableSetKey(context: $context) ?? ''));
     }
 
     // VISIBILITY FILTER (shared SQL)

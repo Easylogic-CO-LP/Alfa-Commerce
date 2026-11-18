@@ -1468,11 +1468,13 @@ class ItemsModel extends UrlListModel
      * catalogue's price rule (2.2.2): the one place every storefront read of products takes the rule from.
      *
      * The subquery (alias pf) reduces the index to one row per item for the current visitor's currency, place chain
-     * and set of pricing groups, at this moment. A product it holds no row of has no valid price for the visitor and is
-     * not in the online catalogue, so the join is an inner one and leaves it out: the listing with its total and its
+     * and set of pricing groups (their own once prepared, the guest's while theirs waits), at this moment. A product it
+     * holds no row of has no valid price for the visitor and is not in the online catalogue, so the join is an inner
+     * one and leaves it out: the listing with its total and its
      * facets, the single-card reload, the product page and the category counts read through here. A read that keeps
-     * such a product ($keepUnpriced, the cart reading its own lines) joins it as a left join, its pf columns then null.
-     * In catalogue-only mode no price is read: nothing is joined and nothing is left out.
+     * such a product ($keepUnpriced, the cart reading its own lines) joins it as a left join, its pf columns then null,
+     * and so does every read while no set is prepared to read at all. In catalogue-only mode no price is read: nothing
+     * is joined and nothing is left out.
      *
      * @param QueryInterface $query The read of products, changed in place.
      * @param string $itemAlias The alias of #__alfa_items in the read.
@@ -1507,10 +1509,13 @@ class ItemsModel extends UrlListModel
         $places = PriceIndexSyncService::slotPlaces(context: $context);
         $placeCond = 'pi.place_id IN (' . implode(', ', array_merge($places, [0])) . ')';
 
-        // Groups: the slots of the visitor's own set of pricing groups, priced
-        // with exactly the groups of theirs that change a price; a set whose
-        // preparation has not finished is not read at all.
-        $setJoin = PriceIndexSyncService::slotSetJoin(context: $context, alias: 'pi');
+        // Groups: the slots of the visitor's own set of pricing groups, priced with exactly the groups of theirs that
+        // change a price; while that set waits for its preparation, the guest's (readableSetKey()), so no visitor meets
+        // an empty catalogue because a set is being prepared. With no prepared set to read at all (the job runner has
+        // not run yet) no slot is read and no product is left out.
+        $setKey = PriceIndexSyncService::readableSetKey(context: $context);
+        $keepUnpriced = $keepUnpriced || $setKey === null;
+        $setJoin = PriceIndexSyncService::slotSetJoin(setKey: $setKey ?? '', alias: 'pi');
 
         // Subquery: all column aliases match index column names.
         //

@@ -36,6 +36,7 @@ use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
+use Joomla\Database\ParameterType;
 use RuntimeException;
 use stdClass;
 use Throwable;
@@ -112,7 +113,8 @@ use Throwable;
  *   holdsGroupSet($groupSet)    - whether the index knows a set, prepared or waiting
  *   pricingGroups()             - the groups a price row, a discount or a tax names (the read side)
  *   slotKey($context)           - the set of one visitor's slots (the read side)
- *   slotSetJoin($context, ...)    - the join that reads only a prepared set (the read side)
+ *   readableSetKey($context)    - the prepared set a visitor reads: their own, else the guest's (the read side)
+ *   slotSetJoin($setKey, ...)   - the join that reads only a prepared set (the read side)
  *   slotPlaces($context)        - the places whose slots one visitor reads, nearest first (the read side)
  *   slotRanking($alias, $places) - how one visitor's matching slots are ranked (the read side)
  *   oweChainRebuild($placeIds)  - the catalogue's rebuild owed when places take another parent
@@ -953,28 +955,74 @@ class PriceIndexSyncService
     }
 
     /**
-     * The join that keeps a reader to the slots of one visitor's set, and only
-     * once that set is prepared.
-     *
-     * A set still waiting for its preparation is not read at all, whatever rows
-     * the index holds of it: the visitor gets no figure from the index rather
-     * than part of one, or another set's. The set's row is found by its unique
-     * key, so the database reads it once and takes its id as a constant.
+     * The prepared set one visitor's slots are read from (2.2.2): their own set once it is prepared; while it waits for
+     * its preparation (a combination of groups a customer holds for the first time, or a group a price row, a discount
+     * or a tax names for the first time), the guest's set when that one is prepared, so a visitor never meets an empty
+     * catalogue, or products without their figures, because a set is being prepared, and reads their own once it is.
+     * Null when neither is prepared (an installation whose job runner has not run yet): the reader then reads no slot.
      *
      * @param PriceContext $context The visitor's pricing context.
+     *
+     * @return string|null The key of the set to read (groupSetKey()), or null for none.
+     *
+     * @since  2.2.2
+     */
+    public static function readableSetKey(PriceContext $context): ?string
+    {
+        $own = self::slotKey(context: $context);
+        $guest = self::guestSlotKey();
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $prepared = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('digest'))
+                ->from($db->quoteName(self::SETS_TABLE))
+                ->whereIn($db->quoteName('digest'), array_values(array_unique([$own, $guest])), ParameterType::STRING)
+                ->where($db->quoteName('prepared_at') . ' IS NOT NULL'),
+        )->loadColumn() ?: [];
+
+        return match (true) {
+            \in_array($own, $prepared, true) => $own,
+            \in_array($guest, $prepared, true) => $guest,
+            default => null,
+        };
+    }
+
+    /**
+     * The key of the set a visitor with no account reads: the guest group's line (com_users' guest group and the
+     * groups above it) reduced to the groups that can change a price.
+     *
+     * @since  2.2.2
+     */
+    private static function guestSlotKey(): string
+    {
+        $guestGroup = (int) ComponentHelper::getParams('com_users')->get('guest_usergroup', 1);
+        $groups = array_values(array_intersect(PriceContext::groupLineages(groupIds: [$guestGroup])[$guestGroup] ?? [1], self::pricingGroups()));
+        sort($groups);
+
+        return self::groupSetKey(groupIds: $groups);
+    }
+
+    /**
+     * The join that keeps a reader to the slots of one prepared set (readableSetKey()), and only while it is prepared.
+     *
+     * A set still waiting for its preparation is never read, whatever rows the index holds of it. The set's row is
+     * found by its unique key, so the database reads it once and takes its id as a constant. An empty key matches no
+     * set: the reader reads no slot.
+     *
+     * @param string $setKey The key of the set to read.
      * @param string $alias Alias of the index table in the reader's statement.
      *
      * @return string An INNER JOIN clause, to follow the index table in the reader's FROM.
      *
      * @since  2.0.0
      */
-    public static function slotSetJoin(PriceContext $context, string $alias): string
+    public static function slotSetJoin(string $setKey, string $alias): string
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
         $sets = $alias . '_set';
 
         return 'INNER JOIN ' . $db->quoteName(self::SETS_TABLE, $sets)
-            . " ON {$sets}.id = {$alias}.group_set_id AND {$sets}.digest = " . $db->quote(self::slotKey(context: $context))
+            . " ON {$sets}.id = {$alias}.group_set_id AND {$sets}.digest = " . $db->quote($setKey)
             . " AND {$sets}.prepared_at IS NOT NULL";
     }
 
