@@ -80,7 +80,8 @@ class ItemModel extends BaseItemModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @throws Exception
+     * @throws Exception With code 404 when the product is missing, unpublished, outside its publish window, not visible
+     *                   to the visitor or, while the shop sells online, without a price for the visitor.
      * @since  1.0.0
      */
     public function getItem($pk = null): mixed
@@ -119,6 +120,10 @@ class ItemModel extends BaseItemModel
             $query->where($db->quoteName('a.state') . ' = 1')
                 ->where('(' . $db->quoteName('a.publish_up') . ' IS NULL OR ' . $db->quoteName('a.publish_up') . ' <= ' . $now . ')')
                 ->where('(' . $db->quoteName('a.publish_down') . ' IS NULL OR ' . $db->quoteName('a.publish_down') . ' >= ' . $now . ')');
+
+            // The online catalogue's price rule (2.2.2), the listing's own: while the shop sells online, a product with
+            // no price for the visitor is not in the catalogue, so its page answers as an unpublished one does.
+            ItemsModel::applyPriceIndexJoin(query: $query, itemIds: [$pk]);
 
             // Resolve translatable fields in the active language (current ->
             // default -> '') from the per-language tables. No main-table fallback.

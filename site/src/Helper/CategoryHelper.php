@@ -13,6 +13,8 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Site\Model\ItemsModel;
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Exception;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Cache\Controller\CallbackController;
@@ -62,7 +64,9 @@ class CategoryHelper
      * version alone cannot catch two cases, and this age bounds both: a stock
      * command whose operation id was assigned before the build but committed
      * after it (the version then reads the same), and a stock figure changed
-     * outside the inventory service.
+     * outside the inventory service. It also bounds how long a count still holds
+     * a product that has just lost its price, or leaves out one that has just
+     * gained one (2.2.2).
      *
      * @since  2.0.0
      */
@@ -197,6 +201,20 @@ class CategoryHelper
             (new CatalogAccessPolicy())->cacheKey()
             . '|' . (new StockVisibilityPolicy())->cacheKey(),
         );
+    }
+
+    /**
+     * Cache-key fragment for a count tree's price half (2.2.2): while the shop sells online the counts leave out the
+     * products with no price for the visitor, so they differ by pricing context (currency, place, customer groups);
+     * in catalogue-only mode every product is counted and one fragment serves every visitor.
+     *
+     * @return string Fixed-length key fragment.
+     *
+     * @since  2.2.2
+     */
+    private static function countPriceKey(): string
+    {
+        return '_' . md5(ShopMode::sellsOnline() ? PriceContext::fromSession()->toCacheKey() : 'catalogue-only');
     }
 
     // VISIBILITY FILTER (shared SQL)
@@ -470,6 +488,10 @@ class CategoryHelper
      * Category structure (without counts) is NOT usergroup-dependent
      * and uses a shared cache entry.
      *
+     * While the shop sells online, counts also follow the online catalogue's
+     * price rule (2.2.2): a product with no price for the visitor is not
+     * counted, so a count tree is kept per pricing context as well.
+     *
      * Counts also follow stock: under hide-out-of-stock a product sold out
      * leaves the count. A stored count tree therefore carries the inventory
      * version read BEFORE it was built and the time it was built; it is served
@@ -500,7 +522,7 @@ class CategoryHelper
         // built for a privileged visitor would otherwise be stored under a key with
         // no visitor in it and later served to a guest.
         $ugKey = '_' . self::getUserGroupCacheKey();
-        $cacheKey = "{$parentId}_{$buildDepth}_" . ($includeCount ? '1' : '0') . $ugKey;
+        $cacheKey = "{$parentId}_{$buildDepth}_" . ($includeCount ? '1' . self::countPriceKey() : '0') . $ugKey;
 
         // Counts: the inventory version, read before anything is built, so a tree
         // is never stamped with a version newer than the stock it counted.
@@ -765,6 +787,9 @@ class CategoryHelper
 
         // Usergroup visibility
         self::applyUserGroupFilter($query);
+
+        // The online catalogue's price rule, the listing's own: a product with no price for the visitor is not counted.
+        ItemsModel::applyPriceIndexJoin(query: $query, itemAlias: 'i');
 
         $rows = $db->setQuery($query)->loadObjectList();
 

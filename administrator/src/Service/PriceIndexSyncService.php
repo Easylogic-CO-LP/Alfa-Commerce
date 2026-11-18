@@ -30,6 +30,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
 use Alfa\Component\Alfa\Site\Service\Pricing\PricingIntent;
+use Alfa\Component\Alfa\Site\Service\Pricing\VariantSelection;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
@@ -1357,6 +1358,10 @@ class PriceIndexSyncService
         // product sold from 10 with prices from 10 keeps its row, its price filters and its sort place.
         $opening = $this->openingQuantities(itemIds: $published);
 
+        // A product with published combinations is listed at the price of the combination it opens on (2.2.2): its
+        // default combination, else its first published one.
+        $listedAt = $this->listingCombinations(itemIds: $published);
+
         // The products each set is written for in this chunk.
         $itemsOf = [];
 
@@ -1448,8 +1453,16 @@ class PriceIndexSyncService
                     ->withUserGroups(groups: array_merge([0], $combo['groups']))
                     ->withReferenceDate($reference);
 
+                $selections = [];
+
+                foreach ($items as $itemId) {
+                    if (isset($listedAt[$itemId])) {
+                        $selections[$itemId] = new VariantSelection(combinationId: $listedAt[$itemId]);
+                    }
+                }
+
                 try {
-                    $results = $this->calculator->calculate($items, array_intersect_key($opening, array_flip($items)), $context);
+                    $results = $this->calculator->calculateBatch($items, array_intersect_key($opening, array_flip($items)), $context, $selections);
                 } catch (Throwable $e) {
                     $this->lastFailure = $e->getMessage();
 
@@ -1472,9 +1485,9 @@ class PriceIndexSyncService
                 foreach ($items as $itemId) {
                     $result = $results[$itemId] ?? null;
 
-                    // No price row applying at the product's opening quantity for this slot and period (2.2.2): no row is
-                    // written, so every price filter leaves the product out and the price sort lists it after the priced
-                    // ones.
+                    // No price applying at the product's opening quantity for this slot and period, to the product or to
+                    // the combination it is listed at (2.2.2): no row is written, so while the shop sells online the
+                    // product is not in the catalogue for the visitors of this slot.
                     if ($result === null || !$result->isPriced()) {
                         continue;
                     }
@@ -2147,8 +2160,11 @@ class PriceIndexSyncService
     // Temporal boundaries (valid_from / valid_until segments)
 
     /**
-     * Every FUTURE publish-window edge of each item's own price rows
-     * (item-level rows only; combination rows have their own lifecycle).
+     * Every FUTURE publish-window edge of each item's price rows, its
+     * combinations' included (2.2.2): a product with combinations is listed
+     * at the price of the combination it opens on, which opens and closes
+     * with that combination's rows. An edge that changes nothing for the
+     * product's listing price adds a segment with the same figures.
      *
      * @param int[] $itemIds The chunk being indexed.
      * @param string $now The chunk's instant (SQL datetime, UTC): later than it is future.
@@ -2165,11 +2181,11 @@ class PriceIndexSyncService
         $prices = $db->quoteName('#__alfa_items_prices');
 
         $sql = "SELECT DISTINCT item_id, publish_up AS boundary FROM {$prices}
-                 WHERE state = 1 AND combination_id IS NULL AND item_id IN ({$list})
+                 WHERE state = 1 AND item_id IN ({$list})
                    AND publish_up IS NOT NULL AND publish_up > {$now}
                 UNION
                 SELECT DISTINCT item_id, publish_down FROM {$prices}
-                 WHERE state = 1 AND combination_id IS NULL AND item_id IN ({$list})
+                 WHERE state = 1 AND item_id IN ({$list})
                    AND publish_down IS NOT NULL AND publish_down > {$now}";
 
         $boundaries = [];
@@ -2815,6 +2831,41 @@ class PriceIndexSyncService
         $published = array_map('intval', $this->db->setQuery($query)->loadColumn() ?: []);
 
         return array_values(array_intersect(array_map('intval', $itemIds), $published));
+    }
+
+    /**
+     * The combination each product with published combinations is listed at (2.2.2): its default combination (the
+     * one staff mark as default, default_on), else its first published combination in the order the storefront lists
+     * them (ordering, then id), which is what its product page and its card open on when that combination can be
+     * bought. Stock is not read: the listing price does not move with it. A product with no published combination is
+     * listed at its own price and is absent here.
+     *
+     * @param int[] $itemIds The products.
+     *
+     * @return array<int, int> Combination id by item id.
+     *
+     * @since  2.2.2
+     */
+    private function listingCombinations(array $itemIds): array
+    {
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName(['id', 'item_id', 'default_on']))
+            ->from($this->db->quoteName('#__alfa_item_combinations'))
+            ->whereIn($this->db->quoteName('item_id'), array_map('intval', $itemIds))
+            ->where($this->db->quoteName('state') . ' = 1')
+            ->order($this->db->quoteName('item_id') . ' ASC, ' . $this->db->quoteName('default_on') . ' DESC, '
+                . $this->db->quoteName('ordering') . ' ASC, ' . $this->db->quoteName('id') . ' ASC');
+        $out = [];
+
+        foreach ($this->db->setQuery($query)->loadObjectList() ?: [] as $row) {
+            $out[(int) $row->item_id] ??= (int) $row->id;
+        }
+
+        return $out;
     }
 
     /**

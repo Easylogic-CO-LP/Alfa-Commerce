@@ -17,8 +17,9 @@ use Alfa\Component\Alfa\Site\Model\ItemsModel as SiteItemsModel;
  * Storefront product listing, served by the SITE model.
  *
  * Same visibility rules as the catalogue (published, inside the publish
- * window and allowed by CatalogAccessPolicy) with per-row pricing and the
- * resolved default combination.
+ * window, allowed by CatalogAccessPolicy and, while the shop sells online,
+ * priced for the caller) with per-row pricing and the resolved default
+ * combination.
  *
  * @since  2.0.0
  */

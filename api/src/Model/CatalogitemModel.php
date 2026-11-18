@@ -38,8 +38,9 @@ class CatalogitemModel extends SiteItemModel
      * @return mixed The storefront item.
      *
      * @throws ResourceNotFound When the product is missing, unpublished,
-     *                          outside its publish window or not visible to
-     *                          this identity.
+     *                          outside its publish window, not visible to
+     *                          this identity or, while the shop sells online,
+     *                          without a price for it.
      *
      * @since  2.0.0
      */
