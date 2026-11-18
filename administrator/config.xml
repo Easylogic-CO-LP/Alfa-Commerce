@@ -724,13 +724,16 @@
     </fieldset>
 
     <fieldset name="currencies" label="COM_ALFA_CONFIG_CURRENCIES_LABEL">
+        <!-- Published currencies only, and a saved value must be one of them (2.2.2): the shop's prices are in its
+             default currency, which Currency::getDefault() resolves among the published currencies. -->
         <field
                 name="default_currency"
                 type="sql"
                 default="978"
                 label="COM_ALFA_CONFIG_DEFAULT_CURRENCY_LABEL"
-                query="SELECT number, name FROM #__alfa_currencies ORDER BY name ASC" key_field="number"
+                query="SELECT number, name FROM #__alfa_currencies WHERE state = 1 ORDER BY name ASC" key_field="number"
                 value_field="name"
+                validate="options"
         />
     </fieldset>
 

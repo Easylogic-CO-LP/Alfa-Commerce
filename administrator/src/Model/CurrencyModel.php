@@ -235,7 +235,28 @@ class CurrencyModel extends AlfaAdminModel
             return false;
         }
 
-        $app = Factory::getApplication();
+        ['keep' => $pks, 'refusals' => $refusals] = $this->protectedCurrencies($pks);
+
+        foreach ($refusals as $refusal) {
+            Factory::getApplication()->enqueueMessage($refusal, 'error');
+        }
+
+        return $pks !== [];
+    }
+
+    /**
+     * The rules of {@see self::guardProtectedCurrencies()}, read once for the list's batch and for the edit form's save
+     * (2.2.2): which ids of a take-out-of-service request may go, and the sentence of each rule that keeps one standing.
+     *
+     * @param list<int> $pks The candidate ids, already normalised to ints.
+     *
+     * @return array{keep: list<int>, refusals: list<string>}
+     *
+     * @since  2.2.2
+     */
+    private function protectedCurrencies(array $pks): array
+    {
+        $refusals = [];
         $db = $this->getDatabase();
 
         // The param stores the ISO-4217 NUMBER; resolve it to the row id the batch
@@ -255,12 +276,12 @@ class CurrencyModel extends AlfaAdminModel
         }
 
         if ($defaultId > 0 && \in_array($defaultId, $pks, true)) {
-            $app->enqueueMessage(Text::sprintf('COM_ALFA_CURRENCY_ERR_DEFAULT_PROTECTED', $defaultId), 'error');
+            $refusals[] = Text::sprintf('COM_ALFA_CURRENCY_ERR_DEFAULT_PROTECTED', $defaultId);
 
             $pks = array_values(array_diff($pks, [$defaultId]));
 
             if (!$pks) {
-                return false;
+                return ['keep' => [], 'refusals' => $refusals];
             }
         }
 
@@ -276,15 +297,12 @@ class CurrencyModel extends AlfaAdminModel
         // The batch would take every published currency out of service: keep the
         // active ones standing and let the rest of the batch proceed.
         if ($activeIds && \count($affectedActive) >= \count($activeIds)) {
-            $app->enqueueMessage(
-                Text::sprintf('COM_ALFA_CURRENCY_ERR_LAST_ACTIVE', implode(', ', $affectedActive)),
-                'error',
-            );
+            $refusals[] = Text::sprintf('COM_ALFA_CURRENCY_ERR_LAST_ACTIVE', implode(', ', $affectedActive));
 
             $pks = array_values(array_diff($pks, $affectedActive));
         }
 
-        return $pks !== [];
+        return ['keep' => $pks, 'refusals' => $refusals];
     }
 
     /**
@@ -457,6 +475,21 @@ class CurrencyModel extends AlfaAdminModel
             );
 
             return false;
+        }
+
+        // The Status field takes a currency out of service as the list's Unpublish, Archive and Trash do, so it keeps
+        // the same two standing (2.2.2): the store's default currency and the last published one, refused with the
+        // same sentence, which the edit screen and the REST API show.
+        $id = (int) ($data['id'] ?? 0);
+
+        if ($id > 0 && \array_key_exists('state', $data) && (int) $data['state'] !== 1) {
+            $refusals = $this->protectedCurrencies([$id])['refusals'];
+
+            if ($refusals !== []) {
+                $this->setError($refusals[0]);
+
+                return false;
+            }
         }
 
         return parent::save($data);
