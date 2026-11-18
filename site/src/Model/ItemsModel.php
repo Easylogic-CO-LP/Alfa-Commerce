@@ -72,10 +72,11 @@ use Throwable;
  * Products without a price
  * Every product is listed, one with no price for the visitor with no price
  * and no add to cart. A read that asks for a price (a price filter or range,
- * the sale or a saving filter, a sort by price the visitor or a module asked
- * for) lists only the products the index has a figure of for the visitor
- * ({@see self::applyPriceIndexJoin()}); a listing whose default order is by
- * price lists every product, those without a figure last.
+ * the sale or a saving filter, a sort by price or by saving the visitor or a
+ * module asked for) lists only the products the index has a figure of for the
+ * visitor ({@see self::applyPriceIndexJoin()}), and so do the facet counts
+ * beside it; a listing whose default order is by price lists every product,
+ * those without a figure last.
  *
  * Available filter states
  *   filter.price_min           float   Minimum final_price (range slider left)
@@ -1440,7 +1441,6 @@ class ItemsModel extends UrlListModel
         // every service search since the extraction. A caller that DOES want a specific
         // order still gets it by setting the state, which is non-empty and non-default.
         $relevanceOrder = $this->relevanceIds !== [] && !$explicitlySorted && $this->sortIsFallback();
-        $sortsByPrice = false;
 
         if ($relevanceOrder) {
             // FIELD() maps each id to its position in the engine's list. Ids are integers cast
@@ -1448,20 +1448,16 @@ class ItemsModel extends UrlListModel
             // the list is bounded by the engine's own candidate limit.
             $query->order('FIELD(' . $db->quoteName('a.id') . ',' . implode(',', $this->relevanceIds) . ')');
         } elseif ($orderCol && $orderDirn) {
-            $statedOrder = $orderCol . ' ' . $orderDirn;
-
             if ($orderCol === 'price' || $orderCol === 'pf.price') {
                 $orderCol = 'pf.final_price';
             }
 
-            // By a figure of the price index. The listing's default order lists
-            // every product, one with no figure for the visitor after every product
-            // that has one, in either direction; a sort asked for (chosen on the
-            // page, or any order other than the listing's default: one kept from an
-            // earlier page, a module's, a caller's) lists only the products with a
-            // figure (2.2.2). Equal figures, and those without, by id.
+            // By a figure of the price index (the price, the saving). The listing's
+            // default order lists every product, one with no figure for the visitor
+            // after every product that has one, in either direction; a sort asked
+            // for lists only the products with a figure (sortsByPriceAsked(),
+            // below, 2.2.2). Equal figures, and those without, by id.
             if (str_starts_with($orderCol, 'pf.')) {
-                $sortsByPrice = $explicitlySorted || !$this->isDefault('list', 'fullordering', $statedOrder);
                 $query->order($db->quoteName($orderCol) . ' IS NULL ASC');
                 $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
                 $query->order($db->quoteName('a.id') . ' ASC');
@@ -1471,15 +1467,49 @@ class ItemsModel extends UrlListModel
         }
 
         // The visitor's price from the index (2.2.2): a read that asks for a price (a price filter, the sale or a saving
-        // filter, a sort by price asked for) lists only the products with a figure for the visitor; every other read
-        // lists every product, one with no price shown with no price.
+        // filter, a sort by price or by saving asked for) lists only the products with a figure for the visitor; every
+        // other read lists every product, one with no price shown with no price.
         if ($sellsOnline) {
-            $this->applyPriceIndexJoin(query: $query, pricedOnly: $hasMin || $hasMax || $onSale || $savingAsked || $sortsByPrice);
+            $this->applyPriceIndexJoin(query: $query, pricedOnly: $hasMin || $hasMax || $onSale || $savingAsked || $this->sortsByPriceAsked());
         }
 
         $query->group('a.id');
 
         return $query;
+    }
+
+    /**
+     * Whether the listing is sorted by a figure of the price index (the price, the saving) that was asked for (2.2.2):
+     * chosen on the page (list[fullordering] in the request, even the default one), or any order other than the
+     * listing's default (one kept in the state, a module's tab, a caller's). Such a read lists only the products with a
+     * figure for the visitor; the listing's default order lists every product. A facet sub-model carries the answer of
+     * the listing it counts for (list.price_sort_asked, createFilterSubModel()), so its counts and the listing agree.
+     *
+     * @since  2.2.2
+     */
+    private function sortsByPriceAsked(): bool
+    {
+        if ($this->getState('list.price_sort_asked')) {
+            return true;
+        }
+
+        $explicitlySorted = $this->explicitlySorted();
+
+        // The search engine's order, where nothing else was asked for (getListQuery()).
+        if ($this->relevanceIds !== [] && !$explicitlySorted && $this->sortIsFallback()) {
+            return false;
+        }
+
+        [$column, $direction] = $this->effectiveOrdering();
+
+        if (!$column || !$direction) {
+            return false;
+        }
+
+        $indexColumn = \in_array($column, ['price', 'pf.price'], true) ? 'pf.final_price' : $column;
+
+        return str_starts_with($indexColumn, 'pf.')
+            && ($explicitlySorted || !$this->isDefault('list', 'fullordering', $column . ' ' . $direction));
     }
 
     /**
@@ -3826,6 +3856,10 @@ class ItemsModel extends UrlListModel
         $model->setState('list.limit', 0);
         $model->setState('list.ordering', 'a.id');
         $model->setState('list.direction', 'ASC');
+
+        // The listing's own sort is not copied, but its answer to "a sort by price or by saving asked for" is (2.2.2):
+        // under such a sort the listing lists only the products with a figure, and so do the counts beside it.
+        $model->setState('list.price_sort_asked', $this->sortsByPriceAsked());
 
         return $model;
     }
