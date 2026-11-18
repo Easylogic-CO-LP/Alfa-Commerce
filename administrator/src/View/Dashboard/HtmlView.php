@@ -109,26 +109,37 @@ class HtmlView extends BaseHtmlView
     /**
      * The credit's script. It builds the credit, appends it as the last element of the overview (.alfa-dashboard), or
      * of the page's main content when that element is missing, and sets each element's rules on the element itself,
-     * marked important, so no stylesheet rule hides or moves it. A MutationObserver draws it again when it is removed
-     * or changed, on the next task, so a script that keeps removing it never freezes the page. %class%, %html% and
-     * %looks% are replaced with the request's class, the credit's markup and its rules, encoded as JSON.
+     * marked important, so a stylesheet rule on the credit's display, visibility, opacity, position, size, overflow,
+     * transform, clip-path, filter, content-visibility, mask, zoom or text fill does not hide or move it.
+     *
+     * A MutationObserver draws it again when it is taken out of its place, when one of those rules or its class is
+     * changed, or when one of its elements is removed. Changed words are left as they are, so a page translator wins
+     * rather than making the line flicker, and other attributes or added style properties do not count. It redraws on
+     * the next task, at most five times in ten seconds; past that it stops and leaves the credit as it is, so a script
+     * that keeps changing it neither loops nor flickers. %class%, %html% and %looks% are replaced with the request's
+     * class, the credit's markup and its rules, encoded as JSON.
      *
      * @since  2.2.2
      */
     private const CREDIT_SCRIPT = <<<'JS'
         (() => {
             const cls = %class%, html = %html%, looks = %looks%;
-            let home = null, box = null, queued = false;
+            let home = null, box = null, held = [], redraws = [], queued = false;
             const draw = () => {
                 watch.disconnect();
                 const fresh = document.createElement('div');
                 fresh.className = cls;
                 fresh.innerHTML = html;
+                held = [];
                 for (const [selector, rules] of Object.entries(looks)) {
                     for (const element of selector === ':scope' ? [fresh] : fresh.querySelectorAll(selector)) {
                         for (const rule of rules.split(';')) {
                             const [name, value] = rule.split(':');
                             element.style.setProperty(name, value, 'important');
+                            // A property this browser does not know is not held.
+                            if (element.style.getPropertyValue(name) !== '') {
+                                held.push([element, name, element.style.getPropertyValue(name)]);
+                            }
                         }
                     }
                 }
@@ -140,16 +151,31 @@ class HtmlView extends BaseHtmlView
                 }
                 box = fresh;
                 watch.observe(home, {childList: true});
-                watch.observe(box, {attributes: true, childList: true, subtree: true, characterData: true});
+                watch.observe(box, {
+                    attributes: true, attributeFilter: ['style', 'class', 'hidden'], childList: true, subtree: true,
+                });
             };
-            const watch = new MutationObserver((records) => {
-                if (!queued && records.some((r) => box.contains(r.target) || Array.from(r.removedNodes).includes(box))) {
-                    queued = true;
-                    setTimeout(() => {
-                        queued = false;
-                        draw();
-                    });
+            // In its place, with its class, its elements and every rule it was given; its words may have changed.
+            const intact = () => box.parentNode === home && box.className === cls
+                && held.every(([element, name, value]) => box.contains(element)
+                    && element.style.getPropertyValue(name) === value
+                    && element.style.getPropertyPriority(name) === 'important');
+            const watch = new MutationObserver(() => {
+                if (queued || intact()) {
+                    return;
                 }
+                const now = performance.now();
+                redraws = redraws.filter((at) => now - at < 10000);
+                if (redraws.length === 5) {
+                    watch.disconnect();
+                    return;
+                }
+                redraws.push(now);
+                queued = true;
+                setTimeout(() => {
+                    queued = false;
+                    draw();
+                });
             });
             const start = () => {
                 home = document.querySelector('.alfa-dashboard') ?? document.querySelector('main') ?? document.body;
@@ -162,12 +188,13 @@ class HtmlView extends BaseHtmlView
     /**
      * The Easylogic credit at the foot of the overview: "Designed and developed with", a heart, "by" and the Easylogic
      * logo, which links to easylogic.gr in the same tab. The view adds it itself, as one inline script
-     * ({@see self::CREDIT_SCRIPT}) with its rules in the page's own style, so no layout or template file carries it,
-     * a template override does not remove it, and a template's stylesheet does not hide it. The words are English on
-     * every site. The logo ships in the package and is drawn into the page from that file, so no request leaves the
-     * site and its letters take the text colour of the administrator's light or dark scheme. The class is made for
-     * each request; the page's content security nonce applies to the script and to the rules, and the script sets the
-     * elements' rules through the style API, which such a policy allows.
+     * ({@see self::CREDIT_SCRIPT}) with its rules in the page's own style, so no layout or template file carries it
+     * and a template override does not remove it; the common hiding rules of a stylesheet do not hide it, and the
+     * script's docblock says which. The words are English on every site. The logo ships in the package and is drawn
+     * into the page from that file, so no request leaves the site and its letters take the text colour of the
+     * administrator's light or dark scheme. The class is made for each request; the page's content security nonce
+     * applies to the script and to the rules, and the script sets the elements' rules through the style API, which
+     * such a policy allows.
      *
      * The credit sits centred in the page's flow, as far below the last row of cards as the rows are from each other:
      * a line of plain text in the administrator template's muted text colour that wraps on a narrow screen.
@@ -185,9 +212,10 @@ class HtmlView extends BaseHtmlView
             . ' by <a href="https://www.easylogic.gr" title="Easylogic">' . $logo . '</a></p>';
 
         // Each element's rules, by its selector inside the credit (:scope is the credit itself). What every element
-        // carries keeps it shown, whatever a stylesheet says.
-        $shown = 'visibility:visible;opacity:1;position:static;max-width:none;max-height:none;transform:none;clip-path:none;'
-            . 'filter:none';
+        // carries keeps it shown against the common hiding rules of a stylesheet.
+        $shown = 'visibility:visible;opacity:1;position:static;max-width:none;max-height:none;transform:none;'
+            . 'clip-path:none;filter:none;content-visibility:visible;mask:none;-webkit-mask:none;zoom:1;'
+            . '-webkit-text-fill-color:currentColor';
         $looks = [
             ':scope' => "display:block;width:auto;height:auto;overflow:visible;margin:1rem 0 0;{$shown}",
             ':scope>p' => 'display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.35em;width:auto;'
