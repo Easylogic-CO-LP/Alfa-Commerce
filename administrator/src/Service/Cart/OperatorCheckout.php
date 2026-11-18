@@ -85,6 +85,9 @@ final class OperatorCheckout
      * method answers the narrower question a caller asks to decide whether to
      * offer operator checkout at all.
      *
+     * @api READ ONLY: whether the user may place orders on a customer's behalf (checkout authority only); taking over a
+     *      storefront shopper's cart is asked separately.
+     *
      * @param User $actor The member of staff.
      *
      *

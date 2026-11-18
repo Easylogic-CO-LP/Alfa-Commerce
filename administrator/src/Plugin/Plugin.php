@@ -313,8 +313,9 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     /**
      * Item display hook.
      *
-     * Every plugin MUST set a layout, even if it is empty.
-     * Called during product page rendering for each active method.
+     * Called during product page rendering for each active method, after core
+     * has drawn the method (its name and image). A plugin sets a layout only to
+     * add something below that drawing; one that adds nothing sets none.
      *
      * Available on $event:
      *   $event->getItem()    -> The product item object
@@ -334,8 +335,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * ]);
      * </code>
      *
-     * @api HOOK: called in product page rendering for each active method; every plugin sets a layout, even an empty
-     *      one.
+     * @api HOOK: called in product page rendering for each active method, after core has drawn the method; a plugin
+     *      sets a layout only to add something below it.
      *
      * @param object $event ItemViewEvent
      *

@@ -140,6 +140,10 @@ final class TransactionState
      * counting a level the server no longer holds. A caller's own
      * rollBackLevel() then finds no level open, and only drops.
      *
+     * @api DURABLE: closes the level the caller opened with transactionStart(true): at the outermost level it commits,
+     *      or throws after closing a COMMIT that failed, and the work deferred inside then runs; below it the savepoint
+     *      is released and its work goes to the level around it, which decides. Throws when no level is open.
+     *
      * @param DatabaseDriver $db The connection.
      *
      *

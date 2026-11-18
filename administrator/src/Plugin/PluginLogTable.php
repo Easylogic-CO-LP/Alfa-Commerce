@@ -77,6 +77,8 @@ final class PluginLogTable
     /**
      * The log table of an installed plugin, from its own params/logs.xml.
      *
+     * @api READ ONLY: this plugin's log table as its logs.xml declares it, or null when it declares none.
+     *
      * @param DatabaseDriver $db The connection.
      * @param string $type The plugin family, e.g. 'alfa-shipments'.
      * @param string $name The plugin element, e.g. 'mycarrier'.
@@ -253,6 +255,10 @@ final class PluginLogTable
      * where none is open (an install script, or Plugin::ensureLogTable() after
      * it has asked). Inside an open transaction it refuses, by the table's
      * name and what it lacks, before any statement runs.
+     *
+     * @api ANSWERS: creates the table or adds the columns and index it lacks: each failure is told to $report and the
+     *      others go on; false only when the table cannot be created. Run outside any transaction; inside one it
+     *      refuses.
      *
      * @param Closure $report fn(string $detail): void - told of each failure; a
      *                        failed column or index does not stop the others.

@@ -1979,6 +1979,9 @@ class MultilingualHelper
      * reader for frozen multilingual snapshots (order item-fields) and
      * plugin-param label maps; accepts a JSON string, array or stdClass.
      *
+     * @api READ ONLY: one text from a {language: text} map, in the language given (an empty language is this
+     *      request's), else the default language, else the first non-empty entry.
+     *
      * @param mixed $map JSON string / array / object of normalised tag => text.
      * @param string $lang Target language (lang_code or snake); '' = current request language.
      *

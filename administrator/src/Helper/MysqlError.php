@@ -45,6 +45,9 @@ final class MysqlError
     /**
      * The server's error number of a failed statement.
      *
+     * @api READ ONLY: the MySQL error number of a failed statement (1062 a duplicate key, 1205 a lock wait, 1213 a
+     *      deadlock), 0 when the failure is not a statement's; read it instead of parsing a message.
+     *
      * @param Throwable $error The failure.
      *
      * @return int The MySQL error number, or 0 when the failure is not a statement's.

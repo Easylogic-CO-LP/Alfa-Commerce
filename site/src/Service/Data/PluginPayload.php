@@ -83,6 +83,9 @@ final class PluginPayload
      * column somebody edited by hand) throws, because carrying on as though
      * the row were blank is how a booked parcel comes to look unbooked.
      *
+     * @api READ ONLY: a plugin payload read from a stored column: empty for NULL, '' or 'null'; a column that holds
+     *      something else throws.
+     *
      * @param string|null $json The column's contents.
      * @param string $source What row this is, for the error message.
      *
