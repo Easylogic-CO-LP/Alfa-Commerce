@@ -30,6 +30,9 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Money;
  * A code's value never changes and is never reused in 2.x. A later 2.x release may add codes, never kinds, so a plugin
  * handles a code it does not know as its kind.
  *
+ * @api ANSWERS: a read-only value; a code's value never changes and is never reused in 2.x, and a later 2.x may add
+ *      codes, never kinds.
+ *
  * @since  2.2.2
  */
 final class PaymentWriteVerdict

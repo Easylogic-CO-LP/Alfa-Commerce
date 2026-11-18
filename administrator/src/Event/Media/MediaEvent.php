@@ -63,6 +63,7 @@ abstract class MediaEvent extends AbstractImmutableEvent
 
     /**
      * Get the media origin / context ('item' | 'category' | 'manufacturer' |
+     * 'payment' | 'shipment' (a payment or shipping method's image, 2.2.2) |
      * 'thumbnail' | ...).
      *
      *

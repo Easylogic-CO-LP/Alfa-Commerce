@@ -24,13 +24,17 @@ $shipments = $snapshot->offers->shipments;
 	<?php endforeach; ?>
 
 	<?php if ($shipments === []) : ?>
-        <p class="cart-methods-empty"><?php echo Text::_('COM_ALFA_CART_NO_SHIPMENT_AVAILABLE'); ?></p>
+		<?php // What the checkout still needs, when a carrier waits for it (2.2.2). ?>
+        <p class="cart-methods-empty"><?php echo Text::_($snapshot->offers->needsKey() ?: 'COM_ALFA_CART_NO_SHIPMENT_AVAILABLE'); ?></p>
 	<?php endif; ?>
 
 	<?php
 	foreach ($shipments as $shipment):
 		$checked = $snapshot->offers->selectedShipmentId === (int) $shipment->id ? 'checked' : '';
 		$view = $snapshot->offers->viewFor('shipment', (int) $shipment->id);
+		// Each method in the order every method keeps (2.2.2): its radio, then in its label the image the shop set (none
+		// drawn without one) and its title, then the description the shop wrote, then what its plugin adds.
+		$image = Layout::render('methods.image', ['image' => $snapshot->offers->imageFor('shipment', (int) $shipment->id), 'title' => (string) $shipment->name]);
 		?>
         <div>
             <input
@@ -43,10 +47,10 @@ $shipments = $snapshot->offers->shipments;
             >
 
             <label for="shipment_method_<?php echo $shipment->id; ?>">
-				<?php echo htmlspecialchars($shipment->name, ENT_QUOTES, 'UTF-8'); ?>
+				<?php echo $image . htmlspecialchars($shipment->name, ENT_QUOTES, 'UTF-8'); ?>
             </label>
 
-            <p><?php echo htmlspecialchars($shipment->description, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php if (trim((string) $shipment->description) !== '') : ?><p><?php echo htmlspecialchars($shipment->description, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
 			<?php if ($view !== null) : ?>
 				<?php echo Layout::render($view->layout, $view->layoutData, $view->pluginType, $view->pluginName); ?>

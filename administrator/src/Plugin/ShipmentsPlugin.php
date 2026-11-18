@@ -192,6 +192,23 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     public const WRITE_FAILED = ShipmentLedger::WRITE_FAILED;
 
     /**
+     * @var string The refusal costFromZones() records when the delivery country is not given yet and no zone covers an
+     *             unknown destination: core's own reason, worded in core's language file, since the destination field
+     *             is core's. The checkout keeps such a carrier off its list and names the country instead.
+     *
+     * @since  2.2.2
+     */
+    public const REFUSAL_NEEDS_PLACE = 'COM_ALFA_SHIPMENT_NEEDS_PLACE';
+
+    /**
+     * @var string The refusal costFromZones() records when the carrier's postcode field is unanswered and a row with a
+     *             postcode band would fit: core's own reason, as {@see self::REFUSAL_NEEDS_PLACE}.
+     *
+     * @since  2.2.2
+     */
+    public const REFUSAL_NEEDS_POSTCODE = 'COM_ALFA_SHIPMENT_NEEDS_POSTCODE';
+
+    /**
      * @var string The plugin_data key of a parcel core recorded itself at placement because the order's carrier
      *             recorded none in onOrderAfterPlace (true on that parcel). A carrier that looks for its own parcel
      *             afterwards recognises core's by it: $shipment->pluginData()->getBool(key: self::CORE_MADE).
@@ -213,6 +230,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     /**
      * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
      * shared dispatcher, never in getSubscribedEvents().
+     *
+     * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
+     *      answered through the event.
      *
      * @since  2.2.0
      */
@@ -313,6 +333,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *   $id = $this->shipment($order)->delivered()->withAllItems()->cost(0)->save();
      *   $id = $this->shipment($order)->pending()->withItems([101])->cost(8)->save();
      *
+     * @api ANSWERS: the ledger in builder mode with this plugin as the writer; its save() writes only on this plugin's
+     *      own methods.
+     *
      * @param object $order Full order object (->id, ->items, ->id_shipment_method)
      *
      * @return ShipmentLedger Builder: chain setters, finish with ->save()
@@ -346,6 +369,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * parcel recorded as this plugin's, move it only to another method of this plugin, and never name another plugin
      * for it; anything else is refused and nothing is written (2.2.0).
      *
+     * @api ANSWERS: the ledger in builder mode for one parcel, naming this plugin as the writer, so its save() refuses
+     *      another plugin's parcel; throws when the shipment is not found.
+     *
      * @param int $shipmentId Existing shipment row PK
      *
      * @return ShipmentLedger Builder: chain setters, finish with ->save()
@@ -371,6 +397,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * Usage:
      *   $collect = $this->amountToCollect($order);
      *   if ($collect->isPositive()) { $request->cashOnDelivery($collect); }
+     *
+     * @api READ ONLY: the amount still to collect on the order, as Money and never negative: what a cash-on-delivery
+     *      carrier asks the courier to collect.
      *
      * @param object $order The order: the reader a hook was handed, or a loaded row.
      *
@@ -406,6 +435,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     /**
      * Load a single shipment with method params attached.
      *
+     * Not scoped to this plugin: it answers any carrier's shipment, as
+     * PaymentsPlugin::getPayment() answers any gateway's payment, so check the
+     * row's carrier before acting on it.
+     *
+     * @api READ ONLY: one shipment by id with its method's record, any carrier's.
+     *
      * @param int $id Shipment row PK
      *
      * @return object|null Shipment record with ->params, or null
@@ -419,6 +454,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
     /**
      * Load all shipments for an order (lightweight, no params).
+     *
+     * Every carrier's shipments of the order, as PaymentsPlugin::getPaymentsByOrder()
+     * answers every gateway's payments: read to refuse or explain, never to pick
+     * a parcel to write.
+     *
+     * @api READ ONLY: every shipment of the order, any carrier's.
      *
      * @param int $orderId Order PK
      *
@@ -473,6 +514,9 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *   $verdict = $this->settleAttempt($write, $orderId, self::STATUS_SHIPPED);
      *
      *   if ($verdict === self::WRITE_RACED) { ... already delivered, answer 200 ... }
+     *
+     * @api ANSWERS: WRITE_OK, WRITE_RACED or WRITE_FAILED: the shipment moves to the new status exactly once, and a
+     *      redelivered notification races.
      *
      * @param ShipmentLedger $write Builder carrying the new status.
      * @param int $orderId Order PK.
@@ -563,6 +607,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * worded by whoever is refusing, so a shopper is told which carrier will
      * not take the parcel.
      *
+     * @api READ ONLY: the reason as a key of this carrier's language namespace.
+     *
      * @param string $reason The refusal, unqualified.
      *
      * @return string The language key.
@@ -577,10 +623,17 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     /**
      * The refusal the last pricing call recorded, for setUnavailable().
      *
-     * Public so a test can assert WHICH way a parcel failed: "too heavy" and
-     * "too large" send a shopper to do different things, and a suite that could
-     * only see `null` would pass while the carrier blamed the wrong dimension.
+     * Supported for carriers: a carrier passes it to setUnavailable() so the
+     * shopper is told WHICH way the parcel failed ("too heavy" and "too large"
+     * send a shopper to do different things). A test reads it the same way: a
+     * suite that could only see `null` would pass while the carrier blamed the
+     * wrong dimension.
      *
+     * A key of this carrier's language namespace ({@see self::refusalKey()}), or one of core's two keys for a fact the
+     * checkout has not given yet: {@see self::REFUSAL_NEEDS_PLACE} and {@see self::REFUSAL_NEEDS_POSTCODE} (2.2.2),
+     * worded in core's language file, so a carrier needs no key of its own for them.
+     *
+     * @api READ ONLY: the reason key the last pricing call recorded, for setUnavailable().
      *
      * @since  2.0.0
      */
@@ -694,9 +747,16 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * The nearest zone decides alone: a cart none of its rows fit is refused,
      * never priced by a farther zone or the catch-all (as the first matching
-     * zone decided alone before). The places are read in the order given,
-     * nearest first, as AddressView::places() and PlaceTree::placesFor() give
-     * them; a caller passing them in another order gets another zone. A place
+     * zone decided alone before).
+     *
+     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2), in core's words: with no destination at all and no zone for
+     * it (no place, no catch-all), the refusal is {@see self::REFUSAL_NEEDS_PLACE}; with the carrier's postcode field
+     * unanswered ('') and a zone whose every row that would fit has a postcode band, it is
+     * {@see self::REFUSAL_NEEDS_POSTCODE}. A carrier that reads no postcode field passes null, and is refused
+     * NO_BAND_FITS as before: no shopper could give it one. The cart's offer read takes such a carrier off the list
+     * until the checkout has the fact, and names it, instead of offering a carrier that refuses the shopper's first
+     * click. The places are read in the order given, nearest first, as AddressView::places() and PlaceTree::placesFor()
+     * give them; a caller passing them in another order gets another zone. A place
      * of the chain is matched whether or not it is published, as before: only a
      * stored address can hold an unpublished one (the address and zone pickers
      * offer published places), and the checkout asks for it again.
@@ -706,11 +766,16 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * rows, so they have said by omission that they do not carry it. Before
      * 1.10 all three were the float 0.00, and the third one shipped free.
      *
+     * @api READ ONLY: the price, or NULL when this carrier cannot carry the cart (the nearest zone decides alone), its
+     *      reason then read with refusal(): a key of this carrier's language namespace, or core's REFUSAL_NEEDS_PLACE
+     *      or REFUSAL_NEEDS_POSTCODE for a fact not yet given; pass the postcode as '' while the carrier's postcode
+     *      field is unanswered and NULL when it reads none.
+     *
      * @param array $zones The method's configured cost-per-place zones.
      * @param CartLine[] $lines What there is to carry.
      * @param int[] $places The destination and the places it belongs to, nearest first.
-     * @param string|null $postcode The delivery postcode, or NULL when the checkout
-     *                              has not supplied one. Never substituted.
+     * @param string|null $postcode The delivery postcode; '' when the carrier's postcode field is
+     *                              unanswered, NULL when the carrier reads no postcode field. Never substituted.
      * @param float $subtotal The settled merchandise total, for the amount band.
      * @param array $limits What this carrier can physically take, as
      *                      ['width' =>, 'height' =>, 'depth' =>, 'weight' =>].
@@ -794,7 +859,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         // Not even the catch-all matched, so there is no configured price for
         // where this cart is going. Quoting 0 here shipped it free.
         if (empty($calculationData)) {
-            $this->refusal = $this->refusalKey('NO_ZONE_FOR_DESTINATION');
+            $this->refusal = $places === [] ? self::REFUSAL_NEEDS_PLACE : $this->refusalKey('NO_ZONE_FOR_DESTINATION');
 
             return null;
         }
@@ -810,7 +875,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         // said, by omission, that they do not carry it. Until 1.10 this
         // returned 0 and the order shipped free.
         if ($cost === null) {
-            $this->refusal = $this->refusalKey('NO_BAND_FITS');
+            // The carrier reads a postcode field ('' is that field unanswered; null is no field to read), none is given
+            // yet, and a row with a postcode band would fit the cart once one is: the fact is missing.
+            $unbanded = array_map(static fn (array $row): array => ['zip-start' => null, 'zip-end' => null] + $row, (array) $calculationData['costs']);
+            $postcodeMissing = $postcode !== null && trim($postcode) === ''
+                && $this->cheapestMatchingCost($lines, $unbanded, null, $subtotal) !== null;
+            $this->refusal = $postcodeMissing ? self::REFUSAL_NEEDS_POSTCODE : $this->refusalKey('NO_BAND_FITS');
         }
 
         return $cost;
@@ -893,6 +963,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * Depth:  max (deepest product determines box depth)
      * Weight: summed (all items x quantity)
      *
+     * @api READ ONLY: the parcel the products make.
+     *
      * @param CartLine[] $products What there is to carry.
      * @return array ['width' => float, 'height' => float, 'depth' => float, 'weight' => float]
      * @since  2.0.0
@@ -929,6 +1001,12 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     /**
      * Calculate shipping cost for the cart.
      *
+     * @api HOOK: asked for every method the checkout would list, many times a page (every listing, every change of a
+     *      delivery field) and at placement, and when the cart's totals are worked out with the method chosen;
+     *      $event->getMethod()->isSelected() is true only for the chosen one. Answer with setShippingCost(),
+     *      setShippingAmounts() or setUnavailable($reasonKey); free of side effects (no booking, no provider write, no
+     *      row written), quick and repeatable. Abstract: no default.
+     *
      * @since  1.0.0
      */
     abstract public function onCalculateShippingCost(CalculateShippingCostEvent $event): void;
@@ -945,6 +1023,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *       ->confirm('Ship this?');
      *
      * Default: no actions.
+     *
+     * @api HOOK: the order screen's action buttons; none by default.
      *
      * @param object $event GetShipmentActionsEvent
      * @since  1.0.0
@@ -967,6 +1047,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * Default: sets error "Unknown action".
      *
+     * @api HOOK: a click on one of this plugin's buttons; "Unknown action" by default.
+     *
      * @param object $event ExecuteShipmentActionEvent
      * @since  1.0.0
      */
@@ -981,6 +1063,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * The default allows deletion. Override to block it via
      * $event->setResult(false), or to run carrier-side cleanup before the order
      * and its related rows are removed.
+     *
+     * @api HOOK: before an order is deleted in the admin; vetoes with $event->setResult(false); allows by default.
      *
      * @param object $event AdminOrderDeleteEvent
      *

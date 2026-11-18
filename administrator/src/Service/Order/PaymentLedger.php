@@ -1862,6 +1862,10 @@ class PaymentLedger
      *       default:                           ...the write failed: try again later, the same reference...
      *   }
      *
+     * @api ANSWERS: a PaymentWriteVerdict, its kind, a refusal's code and the row, on the builder payment() and
+     *      paymentUpdate() hand out; throws only for a builder used wrongly or a failure that ended the caller's
+     *      transaction.
+     *
      * @return PaymentWriteVerdict What the write did.
      *
      * @throws RuntimeException The builder used wrongly: create mode without a status, update mode without a row.
@@ -13632,8 +13636,9 @@ class PaymentLedger
     //  sums the guards enforce, so a display can never disagree with a cap.
 
     /**
-     * THE amount a gateway should collect for an order: the ONE public
-     * contract every payment plugin (core or third-party) builds on.
+     * THE amount a gateway should collect for an order: core's one source of
+     * it. A plugin reads it through its base class, PaymentsPlugin::amountToCollect()
+     * or ShipmentsPlugin::amountToCollect(), never here.
      *
      * Grand total minus what the shop is STILL HOLDING (collected money less
      * anything given back), clamped at zero and measured at the order's frozen
@@ -14623,6 +14628,28 @@ class PaymentLedger
     }
 
     /**
+     * @var array<string, bool> The payment plugins, by element, whose unbookedProviderRefunds() is being asked now, and
+     *                          whether a second asking was refused meanwhile: a plugin that asks the core's reading of
+     *                          its own reports from inside that report would ask itself again without end, so the
+     *                          second asking is refused, and the first reads the payment as unread (2.2.2).
+     *
+     * @since  2.2.2
+     */
+    private static array $askingGateway = [];
+
+    /**
+     * Whether a second asking of this plugin's unbookedProviderRefunds() was refused while the first was under way.
+     *
+     * @param string $element The payment plugin's element.
+     *
+     * @since  2.2.2
+     */
+    private static function askedItself(string $element): bool
+    {
+        return self::$askingGateway[$element] ?? false;
+    }
+
+    /**
      * Ask one payment's gateway which refunds it reports that the books do not
      * hold, and read the answer entry by entry.
      *
@@ -14648,9 +14675,18 @@ class PaymentLedger
      * method with no gateway (the customer's credit), no recorded method, or an
      * element that is not an Alfa payment plugin answers nothing.
      *
+     * NEVER ASKED FROM ITS OWN ANSWER (2.2.2). While a plugin's
+     * unbookedProviderRefunds() is being asked, a second asking of the same
+     * plugin (its unbookedProviderRefundsOfPayment() called from that report)
+     * throws a LogicException, and the first asking reads the payment as
+     * unread whatever the report then answers, a report that catches the
+     * exception included: the block holds until the plugin is fixed.
+     *
      * @param object $payment The payment row (id, id_order, payment_method_type).
      *
      * @return array{refunds: list<array{reportId: string, id: ?string, amount: ?Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>, reserved: list<array{reportId: string, id: ?string, amount: Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>, unread: string|null, booked: array<string, array{entry: array, row: int}>}
+     *
+     * @throws LogicException When this plugin's unbookedProviderRefunds() is already being asked.
      *
      * @since  2.1.0
      */
@@ -14708,8 +14744,25 @@ class PaymentLedger
             ];
         }
 
+        if (isset(self::$askingGateway[$element])) {
+            self::$askingGateway[$element] = true;
+
+            throw new LogicException(sprintf(
+                'The %s payment plugin asked for the core\'s reading of its provider refunds while reporting them: unbookedProviderRefundsOfPayment() is never called from unbookedProviderRefunds().',
+                $element,
+            ));
+        }
+
+        self::$askingGateway[$element] = false;
+
         try {
             $answer = $plugins->invoke($plugin, 'unbookedProviderRefunds', $paymentId);
+
+            // A report that asked itself was refused; whatever it then answered, it is not read.
+            if (self::askedItself(element: $element)) {
+                throw new LogicException(sprintf('The %s payment plugin asked for the core\'s reading of its provider refunds while reporting them.', $element));
+            }
+
             $currency = OrderCurrency::of(orderId: (int) ($payment->id_order ?? 0));
         } catch (Throwable $e) {
             // Staff see a fixed sentence naming the plugin; the exception's own text goes to the log only.
@@ -14725,6 +14778,8 @@ class PaymentLedger
             }
 
             return ['refunds' => [], 'reserved' => [], 'unread' => Text::sprintf('COM_ALFA_REFUND_REPORTS_PLUGIN_FAILED', $plugins->name(PluginId::from('alfa-payments', $element))), 'booked' => []];
+        } finally {
+            unset(self::$askingGateway[$element]);
         }
 
         $settled = self::settledReports(element: $element, paymentId: $paymentId);

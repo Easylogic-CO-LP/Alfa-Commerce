@@ -186,11 +186,21 @@ class HtmlView extends BaseHtmlView
         // (2.2.1), as the model hands the fields' surfaces.
         $slots = (array) ($this->item->surfaces ?? []);
 
+        // Each method is drawn by core first, in the order every method keeps (2.2.2): its image when the shop set
+        // one, its title, its description (the layout methods.item), then what its plugin adds. The images of the
+        // methods shown are read in one call per kind.
+        $images = [
+            'payment' => $this->methodImages(kind: 'payment', methods: (array) $this->item->payment_methods),
+            'shipment' => $this->methodImages(kind: 'shipment', methods: (array) $this->item->shipment_methods),
+        ];
+
         foreach ($this->item->payment_methods as &$payment_method) {
             if (!$payment_method->show_on_product) {
                 unset($this->item->payment_methods[$payment_method->id]);
                 continue;
             }
+
+            $slots[ItemSurface::PaymentMethods->value][] = $this->methodDescriptor(method: $payment_method, image: $images['payment'][(int) $payment_method->id] ?? null);
 
             $paymentEvent = new PaymentsItemViewEvent($onItemViewEventName, [
                 'subject' => $this->item,
@@ -224,6 +234,8 @@ class HtmlView extends BaseHtmlView
                 unset($this->item->shipment_methods[$shipment_method->id]);
                 continue;
             }
+
+            $slots[ItemSurface::ShipmentMethods->value][] = $this->methodDescriptor(method: $shipment_method, image: $images['shipment'][(int) $shipment_method->id] ?? null);
 
             $shipment_event = new ShipmentsItemViewEvent($onItemViewEventName, [
                 'subject' => $this->item,
@@ -306,6 +318,62 @@ class HtmlView extends BaseHtmlView
         $listing->setDocument($this->getDocument());
 
         return $listing->cardsFor(items: $shown);
+    }
+
+    /**
+     * The images of the methods shown on the product page, by method id: the first media row of each, read in one call
+     * (2.2.2).
+     *
+     * @param string $kind 'payment' or 'shipment'.
+     * @param array<object> $methods The methods of that kind.
+     *
+     * @return array<int, object>
+     *
+     * @since  2.2.2
+     */
+    private function methodImages(string $kind, array $methods): array
+    {
+        $ids = [];
+
+        foreach ($methods as $method) {
+            if (!empty($method->show_on_product)) {
+                $ids[] = (int) $method->id;
+            }
+        }
+
+        $images = [];
+
+        foreach ($ids === [] ? [] : (array) MediaHelper::getMediaData(origin: $kind, itemIDs: $ids) as $id => $rows) {
+            if (\is_array($rows) && isset($rows[0]) && \is_object($rows[0])) {
+                $images[(int) $id] = $rows[0];
+            }
+        }
+
+        return $images;
+    }
+
+    /**
+     * Core's own entry for one method in its slot of the product page (2.2.2): the layout methods.item, drawn before
+     * the method's plugin adds anything.
+     *
+     * @param object $method The method.
+     * @param object|null $image Its image, or null.
+     *
+     * @return array The surface descriptor.
+     *
+     * @since  2.2.2
+     */
+    private function methodDescriptor(object $method, ?object $image): array
+    {
+        return [
+            'layout' => 'methods.item',
+            'layoutData' => ['method' => $method, 'image' => $image],
+            'layoutPluginType' => '',
+            'layoutPluginName' => '',
+            'showon' => '',
+            'fieldId' => null,
+            'fieldName' => null,
+        ];
     }
 
     /**

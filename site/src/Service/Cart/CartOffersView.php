@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\MethodViewContribution;
 
 defined('_JEXEC') or die;
@@ -30,6 +31,15 @@ defined('_JEXEC') or die;
 final class CartOffersView
 {
     /**
+     * The offered methods' images, by kind and method id, read on first use ({@see self::imageFor()}).
+     *
+     * @var array<string, array<int, list<object>>>
+     *
+     * @since  2.2.2
+     */
+    private array $images = [];
+
+    /**
      * @param bool $hasPayments Anything can pay for this cart.
      * @param bool $hasShipments Anything can carry it.
      * @param MethodRequirement $paymentRequirement Whether a payment method
@@ -44,6 +54,8 @@ final class CartOffersView
      * @param array $paymentViews What each payment method asked to show,
      *                            keyed by method id.
      * @param array $shipmentViews The same for carriers.
+     * @param list<string> $shipmentNeeds What the checkout has not given yet that a carrier waits for, 'country' before
+     *                                    'postcode' ({@see CartMethods::shipmentNeeds()}).
      *
      * @since  2.0.0
      */
@@ -60,7 +72,24 @@ final class CartOffersView
         public readonly array $notices,
         public readonly array $paymentViews = [],
         public readonly array $shipmentViews = [],
+        public readonly array $shipmentNeeds = [],
     ) {
+    }
+
+    /**
+     * The sentence a list shows when nothing is left to choose and a carrier waits for a fact the checkout has not given
+     * yet (2.2.2): the language key naming what is needed, '' when nothing waits.
+     *
+     * @since  2.2.2
+     */
+    public function needsKey(): string
+    {
+        return match ($this->shipmentNeeds) {
+            ['country'] => 'COM_ALFA_CART_SHIPMENT_NEEDS_COUNTRY',
+            ['postcode'] => 'COM_ALFA_CART_SHIPMENT_NEEDS_POSTCODE',
+            ['country', 'postcode'] => 'COM_ALFA_CART_SHIPMENT_NEEDS_COUNTRY_POSTCODE',
+            default => '',
+        };
     }
 
     /**
@@ -82,6 +111,29 @@ final class CartOffersView
         $views = $kind === 'payment' ? $this->paymentViews : $this->shipmentViews;
 
         return $views[$methodId] ?? null;
+    }
+
+    /**
+     * The image the shop set for an offered method (2.2.2), or null: its first media row, as a manufacturer's image
+     * is read. The images of every offered method of a kind are read together, once, the first time one is asked for,
+     * so a page that never draws the selectors reads none.
+     *
+     * @param string $kind 'payment' or 'shipment'.
+     * @param int $methodId The method being drawn.
+     *
+     * @since  2.2.2
+     */
+    public function imageFor(string $kind, int $methodId): ?object
+    {
+        if (!isset($this->images[$kind])) {
+            $methods = $kind === 'payment' ? $this->payments : $this->shipments;
+            $ids = array_values(array_unique(array_filter(array_map(static fn ($method): int => (int) ($method->id ?? 0), $methods))));
+            $this->images[$kind] = $ids === [] ? [] : (array) MediaHelper::getMediaData(origin: $kind, itemIDs: $ids);
+        }
+
+        $rows = $this->images[$kind][$methodId] ?? [];
+
+        return \is_array($rows) && isset($rows[0]) && \is_object($rows[0]) ? $rows[0] : null;
     }
 
     /**

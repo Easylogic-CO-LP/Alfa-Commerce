@@ -38,6 +38,11 @@ defined('_JEXEC') or die;
  *   selector templates read the graft back off them. Offers here are a read
  *   projection; a selector that needs the decorated ones still asks the cart.
  *
+ *   OFFERS ON A PLAIN READING (2.2.2). The mini-cart's reading shows lines and
+ *   totals and no method, so its offers are null: no method list is read and
+ *   no carrier is asked to quote for one. The chosen carrier is still asked for
+ *   the shipping total.
+ *
  * @since  2.0.0
  */
 final class CartSnapshot
@@ -51,9 +56,10 @@ final class CartSnapshot
      * @param Currency $currency What it is priced in.
      * @param CartTotalsView $totals What it costs.
      * @param CartRulesView $rules What the rules concluded.
-     * @param CartOffersView $offers What may carry and pay for it.
+     * @param CartOffersView|null $offers What may carry and pay for it; null on a plain reading.
      * @param User $customer Whose cart it is.
      * @param int|null $placeId The delivery place fixed for this request.
+     * @param int $shipmentId The carrier the cart records as chosen, or 0; on every reading, a plain one included.
      *
      * @since  2.0.0
      */
@@ -66,9 +72,10 @@ final class CartSnapshot
         public readonly Currency $currency,
         public readonly CartTotalsView $totals,
         public readonly CartRulesView $rules,
-        public readonly CartOffersView $offers,
+        public readonly ?CartOffersView $offers,
         public readonly User $customer,
         public readonly ?int $placeId,
+        public readonly int $shipmentId,
     ) {
     }
 
@@ -93,7 +100,7 @@ final class CartSnapshot
      */
     public function shippingAwaitsChoice(): bool
     {
-        return !$this->isVirtual && $this->offers->selectedShipmentId === 0;
+        return !$this->isVirtual && $this->shipmentId === 0;
     }
 
     /**

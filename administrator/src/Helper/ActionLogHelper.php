@@ -42,6 +42,8 @@ final class ActionLogHelper
     /**
      * Write one row of Joomla's action log.
      *
+     * @api ANSWERS: true when the row is written, false when not; every failure is caught, logged and answered false.
+     *
      * @param string $extension The extension the row is filed under, whose language file holds $languageKey: a
      *                          component (com_x), or a plugin as plg_<group>_<element>.
      * @param string $languageKey The message's language key, as Joomla's action log renders it with the facts.

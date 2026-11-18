@@ -75,6 +75,10 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                         </th>
 
 
+						<th scope="col" class="w-1 d-none d-md-table-cell">
+							<?php echo Text::_('COM_ALFA_HEADING_IMAGE'); ?>
+						</th>
+
 						<th class='left'>
 							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_PAYMENTS_NAME', 'a.name', $listDirn, $listOrder); ?>
 						</th>
@@ -149,6 +153,13 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
 								<?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'payments.', $canChange, 'cb'); ?>
 							</td>
 							
+							<td class="d-none d-md-table-cell">
+								<?php // The method's image (2.2.2), its thumbnail; its alt the image's own, else the method's name. ?>
+								<?php if (!empty($item->image->thumbnail_url)) : ?>
+									<img src="<?php echo $this->escape($item->image->thumbnail_url); ?>" alt="<?php echo $this->escape(trim((string) ($item->image->alt ?? '')) !== '' ? $item->image->alt : $item->name); ?>" width="48" loading="lazy">
+								<?php endif; ?>
+							</td>
+
 							<td>
 								<?php if (isset($item->checked_out) && $item->checked_out && ($canEdit || $canChange)) : ?>
 									<?php echo HTMLHelper::_('jgrid.checkedout', $i, $item->uEditor, $item->checked_out_time, 'payments.', $canCheckin); ?>
