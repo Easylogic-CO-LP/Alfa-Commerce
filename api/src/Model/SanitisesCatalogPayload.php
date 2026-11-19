@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryAncestry;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
@@ -124,6 +125,18 @@ trait SanitisesCatalogPayload
                     ? (int) $variant->activeCombination->id
                     : null,
             ];
+        }
+
+        // Each category the product is in, with its place in the tree (2.2.2): its ancestors from the top-level
+        // category down, each {id, name, alias, state}, an ancestor the visitor may not see by its id and state only,
+        // and its level (1 for a top-level category). One read of the categories per request (CategoryAncestry).
+        if (isset($item->categories) && \is_array($item->categories)) {
+            foreach ($item->categories as $categoryId => $entry) {
+                if (\is_array($entry)) {
+                    $ancestors = CategoryAncestry::ancestors(categoryId: (int) $categoryId, storefront: true);
+                    $item->categories[$categoryId] = $entry + ['ancestors' => $ancestors, 'level' => \count($ancestors) + 1];
+                }
+            }
         }
 
         $this->projectFieldGraph(item: $item, scale: $scale);
