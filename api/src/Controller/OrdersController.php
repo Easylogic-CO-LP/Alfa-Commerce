@@ -66,6 +66,16 @@ class OrdersController extends ApiController
     ];
 
     /**
+     * The method keys an order's create (POST) does not write (2.2.2): an order takes its payment and shipping
+     * methods from its payments and parcels, and follows the latest live one of each (OrderMethods). The create
+     * dropped them without a word, while the update refuses them by name; it refuses them too.
+     *
+     * @var string[]
+     * @since  2.2.2
+     */
+    private const NOT_CREATED = ['id_payment_method', 'payment_method_name', 'id_shipment_method', 'shipment_method_name'];
+
+    /**
      * The content type of the item.
      *
      * @var string
@@ -172,23 +182,11 @@ class OrdersController extends ApiController
     }
 
     /**
-     * Keep a separate invoice address alive across a partial update.
+     * Update an order: the guards' edit, after the refusals of the keys the update does not take.
      *
-     * OrderModel::save() runs saveInvoiceInfo() on EVERY save, and decides the
-     * invoice address from the billing bucket. In the admin that bucket only
-     * arrives when the "different details" checkbox is ticked (an unticked box
-     * posts nothing), so its absence legitimately means "invoice to the
-     * delivery address". An API PATCH never posts a form bucket either, so
-     * every partial update silently collapsed id_address_invoice onto
-     * id_address_delivery and orphaned the customer's real invoice record.
-     *
-     * The model cannot tell the two cases apart, so the API layer states its
-     * own contract (absent means unchanged, exactly as for relations) by
-     * capturing the pointer before the save and putting it back afterwards.
-     *
-     * Re-supplying the values instead does not work: for a GUEST order
-     * UserInfoHelper::insertData() always writes a fresh row, so every PATCH
-     * would leave a duplicate address behind.
+     * The invoice details are the model's to keep: an update that sends neither invoice_differs nor
+     * alfa_form_fields_billing keeps the order's own invoice details, and the answer is the order as stored
+     * (OrderModel::keepsStoredInvoice(), 2.2.2). Only invoice_differs 0 invoices the order to its delivery details.
      *
      * @param int|null $id The record id.
      *
@@ -220,28 +218,35 @@ class OrdersController extends ApiController
 
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $this->refuseInvoiceWithoutDetails(orderId: $orderId);
-        $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
         // The guards' edit: the published attributes the update does not write are refused first (2.2.1).
-        $result = $this->guardedEdit();
-
-        if ($restore !== null) {
-            $this->restoreInvoiceAddress($orderId, $restore);
-        }
-
-        return $result;
+        return $this->guardedEdit();
     }
 
     /**
-     * Create an order: the guards' create, after the invoice details' own refusal ({@see self::refuseUnstatedInvoice()}).
+     * Create an order: the guards' create, after the invoice details' own refusal ({@see self::refuseUnstatedInvoice()})
+     * and the refusal of the method keys ({@see self::NOT_CREATED}).
+     *
+     * "silent": true leaves the customer out of the e-mail the status the order opens in owes, as on a status change;
+     * an order created without lines owes no e-mail (OrderModel::save(), 2.2.2).
      *
      * @return void
+     *
+     * @throws Save When the body carries a method key (422).
      *
      * @since  2.2.2
      */
     public function add()
     {
         $this->refuseUnstatedInvoice();
+
+        $carried = array_values(array_intersect(self::NOT_CREATED, array_keys($this->requestBody())));
+
+        if ($carried !== []) {
+            throw new Save(implode(', ', $carried) . ' cannot be written when an order is created: an order takes its payment'
+                . ' and shipping methods from its payments and parcels (POST v1/alfa/orders/:id/payments, POST'
+                . ' v1/alfa/orders/:id/shipments) and follows the latest of each. Nothing was saved.', 422);
+        }
 
         $this->guardedAdd();
     }
@@ -448,20 +453,6 @@ class OrdersController extends ApiController
     }
 
     /**
-     * Did the caller say anything about the invoice address?
-     *
-     *
-     * @since  2.0.0
-     */
-    private function billingMentioned(): bool
-    {
-        $body = $this->input->get('data', json_decode($this->input->json->getRaw(), true), 'array');
-
-        return \array_key_exists(FieldsHelper::BILLING_FIELDS_KEY, (array) $body)
-            || \array_key_exists('invoice_differs', (array) $body);
-    }
-
-    /**
      * The order's current invoice address id, or null when it has none of its own.
      *
      * @param int $orderId Order id.
@@ -487,58 +478,5 @@ class OrdersController extends ApiController
         $delivery = (int) ($row->id_address_delivery ?? 0);
 
         return ($invoice > 0 && $invoice !== $delivery) ? $invoice : null;
-    }
-
-    /**
-     * Put the invoice pointer back, and clear up any snapshot the save minted.
-     *
-     * @param int $orderId Order id.
-     * @param int $addressId The invoice address it pointed at before.
-     *
-     *
-     * @since  2.0.0
-     */
-    private function restoreInvoiceAddress(int $orderId, int $addressId): void
-    {
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $current = (int) $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('id_address_invoice'))
-                ->from($db->quoteName('#__alfa_orders'))
-                ->where($db->quoteName('id') . ' = ' . $orderId),
-        )->loadResult();
-
-        if ($current === $addressId) {
-            return;
-        }
-
-        $db->setQuery(
-            $db->getQuery(true)
-                ->update($db->quoteName('#__alfa_orders'))
-                ->set($db->quoteName('id_address_invoice') . ' = ' . $addressId)
-                ->where($db->quoteName('id') . ' = ' . $orderId),
-        )->execute();
-
-        // A guest save mints a brand-new address row every time; drop the one
-        // this request created, but only once nothing points at it any more.
-        if ($current <= 0) {
-            return;
-        }
-
-        $stillUsed = (int) $db->setQuery(
-            $db->getQuery(true)
-                ->select('COUNT(*)')
-                ->from($db->quoteName('#__alfa_orders'))
-                ->where($db->quoteName('id_address_invoice') . ' = ' . $current)
-                ->orWhere($db->quoteName('id_address_delivery') . ' = ' . $current),
-        )->loadResult();
-
-        if ($stillUsed === 0) {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->quoteName('#__alfa_user_info'))
-                    ->where($db->quoteName('id') . ' = ' . $current),
-            )->execute();
-        }
     }
 }

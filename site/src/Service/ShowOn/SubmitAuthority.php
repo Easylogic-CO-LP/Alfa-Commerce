@@ -63,6 +63,29 @@ final class SubmitAuthority
      */
     public static function prune(Form $form, array $fields, array $values, string $group, array $extra = []): array
     {
+        foreach (self::hiddenFields(fields: $fields, values: $values, extra: $extra) as $name) {
+            $form->removeField($name, $group);
+            unset($values[$name]);
+        }
+
+        return $values;
+    }
+
+    /**
+     * The names of the fields of one section that the rules hide for these values: what {@see self::prune()} removes,
+     * read only (2.2.2). A caller that says which values it did not keep (the REST order write, in meta.warnings) asks
+     * this beside the prune, so the two answer from one decision.
+     *
+     * @param object[] $fields The active field definitions for this section's context.
+     * @param array $values The section's posted values, field name => value.
+     * @param array $extra Non-field surfaces of the same scope a rule may address (see {@see self::prune()}).
+     *
+     * @return string[] The hidden field names.
+     *
+     * @since  2.2.2
+     */
+    public static function hiddenFields(array $fields, array $values, array $extra = []): array
+    {
         $rules = [];
         $names = array_keys($extra);
 
@@ -82,17 +105,12 @@ final class SubmitAuthority
         }
 
         if (!$rules) {
-            return $values;
+            return [];
         }
 
         // $extra surfaces answer but are never themselves targets: they carry no
         // definition and so cannot be removed from the form.
-        foreach (array_keys(self::hidden($names, $rules, $values + $extra)) as $name) {
-            $form->removeField($name, $group);
-            unset($values[$name]);
-        }
-
-        return $values;
+        return array_map('strval', array_keys(self::hidden($names, $rules, $values + $extra)));
     }
 
     /**

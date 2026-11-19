@@ -68,11 +68,9 @@ use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPlacedFollowUp;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
-use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
-use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodRequirement;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
@@ -489,8 +487,7 @@ class OrderPlacement
                 // its initial status and its confirmation e-mail. They run once the placement's own work after the
                 // commit (the wallet, the gateway hooks) is done, so the e-mail reads the order as the shopper
                 // completed it; a request that dies leaves them to recovery.
-                Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: (int) $orderId, payload: ['status' => (int) $this->defaultStatus->id]);
-                Tasks::single(handler: OrderPlacementEmail::NAME, subjectType: 'order', subjectId: (int) $orderId, payload: ['status' => (int) $this->defaultStatus->id]);
+                OrderPlacedFollowUp::owe(orderId: (int) $orderId, statusId: (int) $this->defaultStatus->id);
 
                 // The last step of conversion, not cleanup
                 //

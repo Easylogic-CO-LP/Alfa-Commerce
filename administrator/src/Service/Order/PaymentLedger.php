@@ -2948,20 +2948,10 @@ class PaymentLedger
 
         $newId = (int) $data[self::PK];
 
-        // Domain rule: an order created without a payment method (admin
-        // shell orders) adopts the method of its first real payment: the
-        // order's frozen method name is the display source for email
-        // tokens and documents. Never overwrites an existing choice.
-        if (
-            !empty($data['id_payment_method'])
-            && ($data['payment_type'] ?? 'payment') === 'payment'
-            && ($data['payment_method'] ?? '') !== ''
-        ) {
-            self::adoptMethodOnOrderIfEmpty(
-                orderId:    $orderId,
-                methodId:   (int) $data['id_payment_method'],
-                methodName: (string) $data['payment_method'],
-            );
+        // The order's payment method follows its latest live payment (2.2.2, OrderMethods): the order's method is the
+        // display source for e-mail tokens and documents. Under the order's lock, in this write's transaction.
+        if (($data['payment_type'] ?? self::TYPE_PAYMENT) === self::TYPE_PAYMENT) {
+            OrderMethods::followPayments(orderId: $orderId);
         }
 
         // The wallet leg is settled by create(), which owns the transaction and
@@ -10721,6 +10711,10 @@ class PaymentLedger
         if (self::settlesLinkedRefund(stored: $oldSnapshot, data: $data, orderId: $orderId)) {
             self::oweRefundFlip(paymentId: (int) $oldSnapshot->id_refunded_payment, orderId: $orderId);
         }
+
+        // The order's payment method follows its latest live payment (2.2.2, OrderMethods): a payment cancelled, failed
+        // or moved to another method moves the order's, a bookkeeping write too, since it changes which rows are live.
+        OrderMethods::followPayments(orderId: $orderId);
     }
 
     /**
@@ -13397,6 +13391,9 @@ class PaymentLedger
 
                 return false;
             }
+
+            // The order's payment method follows the payments that are left (2.2.2, OrderMethods).
+            OrderMethods::followPayments(orderId: $orderId);
 
             if ($payment) {
                 $methodName = $payment->payment_method ?? '';
@@ -16483,43 +16480,4 @@ class PaymentLedger
     //  INTERNAL: Database Operations
 
     //  INTERNAL: Utilities
-
-    /**
-     * Freeze a payment method onto the order row when the order has none
-     * yet (id + snapshot name). One guarded UPDATE: an order that already
-     * carries a method name is never touched.
-     *
-     * @param int $orderId The order id.
-     * @param int $methodId The payment method id.
-     * @param string $methodName The resolved method-name snapshot.
-     *
-     *
-     * @since  1.0.0
-     */
-    private static function adoptMethodOnOrderIfEmpty(int $orderId, int $methodId, string $methodName): void
-    {
-        // Outside the try: the catch below needs a connection to ask about the transaction.
-        $db = self::db();
-
-        try {
-            $query = $db->getQuery(true)
-                ->update($db->quoteName('#__alfa_orders'))
-                ->set([
-                    $db->quoteName('id_payment_method') . ' = ' . $methodId,
-                    $db->quoteName('payment_method_name') . ' = ' . $db->quote($methodName),
-                ])
-                ->where([
-                    $db->quoteName('id') . ' = ' . $orderId,
-                    '(' . $db->quoteName('payment_method_name') . " = '' OR " . $db->quoteName('payment_method_name') . ' IS NULL)',
-                ]);
-            $db->setQuery(query: $query);
-            $db->execute();
-        } catch (Exception $e) {
-            if (TransactionState::endedBy($db, $e)) {
-                throw $e;
-            }
-
-            self::warnFailure(message: 'adoptMethodOnOrderIfEmpty(): the order\'s payment method was not filled in', failure: $e);
-        }
-    }
 }

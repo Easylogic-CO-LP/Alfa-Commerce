@@ -51,11 +51,13 @@ use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPlacedFollowUp;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\ReconciliationFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
+use Alfa\Component\Alfa\Administrator\Service\Order\WriteWarnings;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBagBuilder;
@@ -967,16 +969,26 @@ class OrderModel extends AlfaAdminModel
         // The email is demanded only where it is kept: a manual order for a
         // MEMBER takes the account's address (the form is built before the
         // customer is picked, so the field is on it and is relaxed on both
-        // sides; see getForm); a GUEST order still has to give one.
+        // sides; see getForm); a GUEST order still has to give one. The order's
+        // mails go to a guest's address, so an update that sends the delivery
+        // details asks it too (2.2.2): before, only the creation did, and an
+        // update could empty it.
         $emailColumn = RoleRegistry::column(RoleRegistry::EMAIL);
 
-        if ($isNew && $emailColumn !== null) {
-            if ($customerId > 0) {
+        if ($emailColumn !== null) {
+            if ($isNew && $customerId > 0) {
                 unset($data[FieldsHelper::FIELDS_KEY][$emailColumn], $data[FieldsHelper::BILLING_FIELDS_KEY][$emailColumn]);
-            } else {
+            } elseif ($customerId <= 0 && ($isNew || \array_key_exists(FieldsHelper::FIELDS_KEY, $data))) {
                 $form->setFieldAttribute($emailColumn, 'required', 'true', FieldsHelper::FIELDS_KEY);
             }
         }
+
+        // What the submission itself sends of each section, before a stored value is laid over it: the fields it is
+        // told were not kept are among these (2.2.2).
+        $sent = [
+            FieldsHelper::FIELDS_KEY => array_map('strval', array_keys((array) ($data[FieldsHelper::FIELDS_KEY] ?? []))),
+            FieldsHelper::BILLING_FIELDS_KEY => array_map('strval', array_keys((array) ($data[FieldsHelper::BILLING_FIELDS_KEY] ?? []))),
+        ];
 
         // A WRITER WHOSE OMITTED KEYS MEAN "UNCHANGED" (the REST API): on an update, the details a submission sends are
         // laid over the order's stored records, so a field it leaves out keeps its value and the record is not replaced
@@ -990,12 +1002,21 @@ class OrderModel extends AlfaAdminModel
         // they are not validated: a field the shop requires there is asked of a creation and of an update that sends
         // the details, never of one that does not. The order screen always sends them.
         if ($isNew || \array_key_exists(FieldsHelper::FIELDS_KEY, $data)) {
+            $deliveryFields = FieldsHelper::getFields('cart.shipping', null, $visibilityId);
+            $deliveryExtra = ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'];
+            $this->noteNotKept(
+                section: FieldsHelper::FIELDS_KEY,
+                fields: $deliveryFields,
+                values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
+                extra: $deliveryExtra,
+                sent: $sent[FieldsHelper::FIELDS_KEY],
+            );
             $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
                 form: $form,
-                fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
+                fields: $deliveryFields,
                 values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
                 group: FieldsHelper::FIELDS_KEY,
-                extra: ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'],
+                extra: $deliveryExtra,
             );
         } else {
             $form->removeGroup(FieldsHelper::FIELDS_KEY);
@@ -1009,9 +1030,17 @@ class OrderModel extends AlfaAdminModel
             // stored value, so the order's own invoice details stay as they are and are not validated.
             $form->removeGroup(FieldsHelper::BILLING_FIELDS_KEY);
         } else {
+            $billingFields = FieldsHelper::getFields('cart.billing', null, $visibilityId);
+            $this->noteNotKept(
+                section: FieldsHelper::BILLING_FIELDS_KEY,
+                fields: $billingFields,
+                values: (array) ($data[FieldsHelper::BILLING_FIELDS_KEY] ?? []),
+                extra: [],
+                sent: $sent[FieldsHelper::BILLING_FIELDS_KEY],
+            );
             $data[FieldsHelper::BILLING_FIELDS_KEY] = SubmitAuthority::prune(
                 form: $form,
-                fields: FieldsHelper::getFields('cart.billing', null, $visibilityId),
+                fields: $billingFields,
                 values: (array) ($data[FieldsHelper::BILLING_FIELDS_KEY] ?? []),
                 group: FieldsHelper::BILLING_FIELDS_KEY,
             );
@@ -1025,13 +1054,68 @@ class OrderModel extends AlfaAdminModel
             $valid['invoice_differs'] = empty($data['invoice_differs']) ? 0 : 1;
         }
 
+        // silent is not a field of the form either: a creation that states it (a REST POST) keeps it for save(), which
+        // then leaves the customer out of the e-mail the new order's status owes, as a status change made silent does
+        // (2.2.2).
+        if (\is_array($valid) && $isNew && !empty($data['silent'])) {
+            $valid['silent'] = 1;
+        }
+
         return $valid;
     }
 
     /**
+     * Say which detail fields a submission sent that the order will not keep (2.2.2), for the REST answer's
+     * meta.warnings (WriteWarnings): a field the shop's display rules hide for the details sent (hidden_by_rule),
+     * removed as the checkout removes it, and a key that is no field of the section on this shop (not_a_field), which
+     * the form leaves out. Only what the submission itself sent is named; a value laid over it from the stored record
+     * is not.
+     *
+     * @param string $section FieldsHelper::FIELDS_KEY or FieldsHelper::BILLING_FIELDS_KEY.
+     * @param object[] $fields The section's active field definitions.
+     * @param array $values The section's values as they will be judged.
+     * @param array $extra The non-field surfaces a rule may read (invoice_differs).
+     * @param string[] $sent The keys the submission sent in the section.
+     *
+     * @since  2.2.2
+     */
+    private function noteNotKept(string $section, array $fields, array $values, array $extra, array $sent): void
+    {
+        if ($sent === []) {
+            return;
+        }
+
+        $known = array_map(static fn (object $field): string => (string) ($field->field_name ?? ''), $fields);
+        $hidden = SubmitAuthority::hiddenFields(fields: $fields, values: $values, extra: $extra);
+        $invoice = $section === FieldsHelper::BILLING_FIELDS_KEY;
+
+        foreach ($sent as $name) {
+            if (!\in_array($name, $known, true)) {
+                WriteWarnings::note(
+                    code: WriteWarnings::NOT_A_FIELD,
+                    detail: Text::sprintf($invoice ? 'COM_ALFA_ORDER_FIELD_NOT_IN_INVOICE' : 'COM_ALFA_ORDER_FIELD_NOT_IN_DELIVERY', $name),
+                    pointer: '/' . $section . '/' . $name,
+                );
+            } elseif (\in_array($name, $hidden, true)) {
+                WriteWarnings::note(
+                    code: WriteWarnings::HIDDEN_BY_RULE,
+                    detail: Text::sprintf('COM_ALFA_ORDER_FIELD_HIDDEN_BY_RULE', $name),
+                    pointer: '/' . $section . '/' . $name,
+                );
+            }
+        }
+    }
+
+    /**
      * Whether a submission keeps the order's stored invoice details whole: an update through the API (whose omitted
-     * sections mean "unchanged") that states invoice_differs 1 and sends no invoice details. The API refuses that request
-     * when the order has no invoice details of its own (OrdersController), so the details kept are the order's own.
+     * sections mean "unchanged") that sends no invoice details and either does not state invoice_differs or states it 1.
+     * Only invoice_differs 0 sent asks the order to invoice to its delivery details. The API refuses invoice_differs 1
+     * without the details when the order has no invoice details of its own (OrdersController), so the details kept are
+     * the order's own. The order screen posts its sections whole and keeps nothing this way.
+     *
+     * Kept by the model (2.2.2), so the save never collapses the invoice and the answer of a PATCH reads the order as
+     * stored: before, an update of the delivery details alone pointed the invoice at the delivery record and the API
+     * controller put the old pointer back after the answer had been made.
      *
      * @param array $data The submission (raw or validated).
      * @param bool $isNew Whether the order is being created.
@@ -1040,10 +1124,11 @@ class OrderModel extends AlfaAdminModel
      */
     private function keepsStoredInvoice(array $data, bool $isNew): bool
     {
-        return !$isNew
-            && $this->keepsOmittedDetails()
-            && !empty($data['invoice_differs'])
-            && !\is_array($data[FieldsHelper::BILLING_FIELDS_KEY] ?? null);
+        if ($isNew || !$this->keepsOmittedDetails() || \is_array($data[FieldsHelper::BILLING_FIELDS_KEY] ?? null)) {
+            return false;
+        }
+
+        return !\array_key_exists('invoice_differs', $data) || !empty($data['invoice_differs']);
     }
 
     /**
@@ -4517,6 +4602,8 @@ class OrderModel extends AlfaAdminModel
                         'source' => $this->newOrderSource(),
                         'created_by' => (int) ($identity?->id ?? 0),
                         'actor_name' => (string) ($identity?->name ?? 'System'),
+                        // The customer's note to the shop, as a marketplace order brings it (2.2.2; it was dropped).
+                        'customer_note' => (string) ($data['customer_note'] ?? ''),
                         'allow_empty' => true,
                         'lines' => [],
                     ];
@@ -4529,6 +4616,18 @@ class OrderModel extends AlfaAdminModel
                     }
 
                     $created = OrderCreator::create(draft: $draft, manageTransaction: false);
+
+                    // The status the order opens in decides its e-mail, as a status change's does (2.2.2): what the
+                    // checkout owes with a new order (OrderPlacedFollowUp), the customer left out when the creation
+                    // says silent. An order created with no lines owes nothing: an order built in steps never mails
+                    // empty.
+                    if ($created->lineIds !== []) {
+                        OrderPlacedFollowUp::owe(
+                            orderId: $created->orderId,
+                            statusId: (int) $created->statusId,
+                            customer: empty($data['silent']),
+                        );
+                    }
 
                     TransactionState::commitLevel($db);
                 } catch (Throwable $inner) {

@@ -974,6 +974,9 @@ class ShipmentLedger
                 ],
                 $newId,
             );
+
+            // The order's shipping method follows its latest live parcel (2.2.2, OrderMethods), in this transaction.
+            OrderMethods::followShipments(orderId: $orderId);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
 
@@ -1916,6 +1919,10 @@ class ShipmentLedger
                 'order_status' => self::orderStatus(orderId: $orderId),
             ]);
         }
+
+        // The order's shipping method follows its latest live parcel (2.2.2, OrderMethods): a parcel cancelled, returned
+        // or moved to another method moves the order's.
+        OrderMethods::followShipments(orderId: $orderId);
     }
 
     /**
@@ -2276,6 +2283,9 @@ class ShipmentLedger
 
                 return false;
             }
+
+            // The order's shipping method follows the parcels that are left (2.2.2, OrderMethods).
+            OrderMethods::followShipments(orderId: $orderId);
 
             if ($shipment) {
                 $methodName = $shipment->shipment_method_name ?? '';

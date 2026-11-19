@@ -104,7 +104,11 @@ final class Choice extends FormFieldsPlugin
             $node->setAttribute('hint', $placeholder);
         }
 
-        // Multi-mode fields get min/max + the choice validator.
+        // Every mode gets the choice validator: a value must be one of the options (2.2.2; before, only the multi modes
+        // carried it, and only for their counts). Multi-mode fields also get min/max.
+        $node->setAttribute('validate', 'choice');
+        FormHelper::addRulePrefix('Alfa\\Plugin\\AlfaFormFields\\Choice\\Rule');
+
         $isMulti = in_array($renderAs, ['multiselect', 'checkbox', 'button-multi'], true);
 
         if ($isMulti) {
@@ -114,8 +118,6 @@ final class Choice extends FormFieldsPlugin
             if ($maxSel > 0) {
                 $node->setAttribute('data-max-selections', (string) $maxSel);
             }
-            $node->setAttribute('validate', 'choice');
-            FormHelper::addRulePrefix('Alfa\\Plugin\\AlfaFormFields\\Choice\\Rule');
 
             // Joomla's validate.js dispatches handlers via class="validate-X",
             // not the validate="X" attribute (server-side only). Without this
