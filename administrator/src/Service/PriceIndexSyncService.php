@@ -98,9 +98,10 @@ use Throwable;
  * Generations. A context-wide change is written as the next GENERATION of every context it reaches, beside the live
  * one, and switched whole when complete ({@see self::markPrepared()}): a rule or a tax whose scope is more than one chunk
  * and at least half the published products (every live context, prepared in the save's request within a budget, the
- * rest by the jobs), and a place moved, published or unpublished (the contexts priced at or below it, by the jobs).
- * Readers read the live generation (is_live) only; writes meanwhile go to the live one and, for the products it has
- * passed, to the one being prepared. The retired generation's rows, and the periods that ended, are removed by the
+ * rest by the jobs), and a place moved, published or unpublished (the contexts priced at or below it, by the jobs);
+ * a first generation still being prepared in their reach is started again from its first product. Readers read the
+ * live generation (is_live) only; writes meanwhile go to the live one and, for the products it has passed, to the one
+ * being prepared, so a product saved while a generation is prepared is read with the change before the switch. The retired generation's rows, and the periods that ended, are removed by the
  * price.index.tidy job (once a day, and after each switch).
  *
  * The update to 2.2.2. The index of 2.2.1 is renamed #__alfa_items_price_index_prev by the
@@ -1806,23 +1807,31 @@ class PriceIndexSyncService
         PlaceTree::forget();
         $this->alignContexts();
         $placed = [];
+        $preparing = [];
 
+        // The live contexts and the first generations being prepared, priced at or below the places.
         foreach ($this->db->setQuery(
-            'SELECT ' . $this->db->quoteName('id') . ', ' . $this->db->quoteName('priced_at_place_id') . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE)
-            . ' WHERE ' . $this->db->quoteName('priced_at_place_id') . ' > 0 AND ' . $this->db->quoteName('is_live') . ' = 1',
-        )->loadAssocList('id', 'priced_at_place_id') ?: [] as $id => $place) {
-            $place = (int) $place;
+            'SELECT ' . $this->db->quoteName('id') . ', ' . $this->db->quoteName('priced_at_place_id') . ', ' . $this->db->quoteName('is_live')
+            . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE)
+            . ' WHERE ' . $this->db->quoteName('priced_at_place_id') . ' > 0 AND ' . $this->db->quoteName('retired_at') . ' IS NULL'
+            . ' AND (' . $this->db->quoteName('is_live') . ' = 1 OR ' . $this->db->quoteName('prepared_at') . ' IS NULL)',
+        )->loadObjectList() ?: [] as $row) {
+            $place = (int) $row->priced_at_place_id;
 
             if (array_intersect(PlaceTree::placesFor(placeId: $place), $placeIds) !== [] || \in_array($place, $placeIds, true)) {
-                $placed[] = (int) $id;
+                if ((int) $row->is_live === 1) {
+                    $placed[] = (int) $row->id;
+                } else {
+                    $preparing[] = (int) $row->id;
+                }
             }
         }
 
-        if ($placed === []) {
+        if ($placed === [] && $preparing === []) {
             return false;
         }
 
-        foreach ($this->regenerate(liveIds: $placed) as $id) {
+        foreach (array_values(array_unique(array_merge($this->regenerate(liveIds: $placed), $this->restartPreparing(ids: $preparing)))) as $id) {
             PriceSetPrepareJob::enqueueFor(contextId: $id);
         }
 
@@ -3536,7 +3545,44 @@ class PriceIndexSyncService
             . ' ORDER BY ' . $this->db->quoteName('id'),
         )->loadColumn() ?: []);
 
-        return $this->prepareNow(ids: $this->regenerate(liveIds: $live), seconds: self::GENERATION_SECONDS);
+        // With them, every first generation still being prepared (a set, a class or a customer new to the data): it is
+        // started again, so the products its preparation passed are priced with the change too.
+        $ids = array_values(array_unique(array_merge($this->regenerate(liveIds: $live), $this->restartPreparing(ids: null))));
+
+        return $this->prepareNow(ids: $ids, seconds: self::GENERATION_SECONDS);
+    }
+
+    /**
+     * Start again from their first product the generations being prepared (their checkpoint 0, their left-out list
+     * cleared): a change that reaches them while they are prepared is then written into every product they hold.
+     *
+     * @param int[]|null $ids These generations only; null for every one being prepared.
+     *
+     * @return int[] The generations started again.
+     *
+     * @since  2.2.2
+     */
+    private function restartPreparing(?array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $db = $this->db;
+        $where = $db->quoteName('prepared_at') . ' IS NULL AND ' . $db->quoteName('retired_at') . ' IS NULL'
+            . ($ids === null ? '' : ' AND ' . $db->quoteName('id') . ' IN (' . implode(',', array_map('intval', $ids)) . ')');
+        $restarted = array_map('intval', $db->setQuery(
+            'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $where . ' ORDER BY ' . $db->quoteName('id'),
+        )->loadColumn() ?: []);
+
+        if ($restarted !== []) {
+            $db->setQuery(
+                'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE) . ' SET ' . $db->quoteName('prepared_through') . ' = 0, ' . $db->quoteName('left_out') . ' = NULL'
+                . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', $restarted) . ') AND ' . $db->quoteName('prepared_at') . ' IS NULL',
+            )->execute();
+        }
+
+        return $restarted;
     }
 
     /**
