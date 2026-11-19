@@ -126,7 +126,8 @@ final class ApiRouteRegistrar
      * Put the routes of the alfa plugin the request's address names on the application's router (2.2.2): called once,
      * by Alfa's webservices plugin at the end of onBeforeApiRoute, after core's routes.
      *
-     * Nothing is loaded or asked unless the address starts with v1/alfa/ext/. In maintenance (Clear everything) one
+     * Nothing is loaded or asked unless the address starts with v1/alfa/ext/; under it a request with no Accept header
+     * takes the route's one format. In maintenance (Clear everything) one
      * public route takes every address under the prefix, so Alfa's API dispatcher answers 503 with no plugin asked. A
      * plugin that is not installed, not enabled, or declares no route leaves the address to Joomla's 404; one that is
      * enabled but cannot be loaded, or whose declaration throws, is answered 503 by ExtController.
@@ -147,6 +148,14 @@ final class ApiRouteRegistrar
 
         if (preg_match('/^[a-z0-9_-]+$/', $element) !== 1) {
             return;
+        }
+
+        // A request with no Accept header takes the route's one format: an integrator's server that sends none (Base's
+        // may) is answered in the route's format instead of Joomla's 406. A header sent is negotiated as Joomla does.
+        $server = Factory::getApplication()->getInput()->server;
+
+        if (trim((string) $server->getString('HTTP_ACCEPT', '')) === '') {
+            $server->set('HTTP_ACCEPT', '*/*');
         }
 
         if (MaintenanceState::active()) {
