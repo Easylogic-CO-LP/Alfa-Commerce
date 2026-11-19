@@ -90,7 +90,7 @@ final class NamedCartEditor
         $lineId = (int) $cart->lines->add($command);
 
         if ($lineId <= 0) {
-            return new CartAddResult(false, 0, null, 0, 0);
+            return new CartAddResult(false, 0, null, 0, 0, stockLimit: $cart->lines->stockLimit());
         }
 
         $again = $this->cart();
@@ -104,6 +104,7 @@ final class NamedCartEditor
             itemCount: $state->itemCount(),
             quantity: $state->quantity(),
             grandTotal: $again->computation->totals()->grandTotal(),
+            stockLimit: $cart->lines->stockLimit(),
         );
     }
 

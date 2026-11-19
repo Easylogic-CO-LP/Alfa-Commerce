@@ -38,6 +38,11 @@ final class CartAddResult
      * @param Money|null $grandTotal What the cart comes to afterwards, or null
      *                               when nothing was added and there is nothing
      *                               to show.
+     * @param StockLimit|null $stockLimit What the shelf said (2.2.2): the cart
+     *                                    already held the available quantity, so
+     *                                    nothing was added, or now holds it, the
+     *                                    request cut to it; null when it said
+     *                                    nothing.
      *
      * @since  2.0.0
      */
@@ -48,6 +53,7 @@ final class CartAddResult
         public readonly int $itemCount,
         public readonly int $quantity,
         public readonly ?Money $grandTotal = null,
+        public readonly ?StockLimit $stockLimit = null,
     ) {
     }
 }

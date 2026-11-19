@@ -70,6 +70,10 @@ final class CartMessaging
      * cut to what the shelf holds is a notice; every other correction is
      * silent. One decision speaks at most one refusal.
      *
+     * A shopper's add and quantity change say the shelf's part with its figure
+     * instead, once the write is done ({@see self::stock()}), whenever the cart
+     * holds some of that stock; this speaks for the rest.
+     *
      * @param QuantityDecision $decision The quantity policy's decision.
      *
      *
@@ -93,6 +97,34 @@ final class CartMessaging
                 $this->app->enqueueMessage(msg: $sentence, type: $type);
             }
         }
+    }
+
+    /**
+     * The shelf's say in a shopper's add or quantity change, as one notice
+     * naming the available quantity: never a failure.
+     *
+     * @param StockLimit $limit What the cart holds of that stock, and whether more went in.
+     *
+     * @since  2.2.2
+     */
+    public function stock(StockLimit $limit): void
+    {
+        $this->app->enqueueMessage(msg: self::stockSentence(limit: $limit), type: 'notice');
+    }
+
+    /**
+     * The one wording of the shelf's say, for every answer that carries it: the
+     * notice, the add's JSON message and its card.
+     *
+     * @param StockLimit $limit What the cart holds of that stock, and whether more went in.
+     *
+     * @return string The sentence in the shopper's language, the figure in it.
+     *
+     * @since  2.2.2
+     */
+    public static function stockSentence(StockLimit $limit): string
+    {
+        return Text::sprintf($limit->added ? 'COM_ALFA_CART_AVAILABLE_ADDED' : 'COM_ALFA_CART_AVAILABLE_HELD', $limit->quantity);
     }
 
     /**

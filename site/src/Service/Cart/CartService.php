@@ -121,7 +121,7 @@ final class CartService
         $lineId = (int) $cart->lines->add($command);
 
         if ($lineId <= 0) {
-            return new CartAddResult(false, 0, null, 0, 0);
+            return new CartAddResult(false, 0, null, 0, 0, stockLimit: $cart->lines->stockLimit());
         }
 
         // A SECOND READING, DELIBERATELY. The cart that performed the write
@@ -139,6 +139,7 @@ final class CartService
             itemCount: $state->itemCount(),
             quantity: $state->quantity(),
             grandTotal: $again->computation->totals()->grandTotal(),
+            stockLimit: $cart->lines->stockLimit(),
         );
     }
 
