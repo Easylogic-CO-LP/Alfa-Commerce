@@ -109,7 +109,7 @@ final class OrderCreateParts
             try {
                 $pricing = LinePricing::fromPayload(payload: $line);
             } catch (InvalidArgumentException $e) {
-                throw new OrderPartRefusedException($at, $e->getMessage() . '.', OrderPartRefusedException::MALFORMED);
+                throw new OrderPartRefusedException($at, $e->getMessage(), OrderPartRefusedException::MALFORMED);
             }
 
             $read['lines'][] = [
@@ -422,7 +422,7 @@ final class OrderCreateParts
         try {
             return $read();
         } catch (InvalidArgumentException $e) {
-            throw new OrderPartRefusedException($at, $e->getMessage() . '.', OrderPartRefusedException::MALFORMED);
+            throw new OrderPartRefusedException($at, $e->getMessage(), OrderPartRefusedException::MALFORMED);
         }
     }
 

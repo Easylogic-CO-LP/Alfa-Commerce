@@ -4532,6 +4532,46 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
+     * Why the payment of an order created in one call was not recorded, in words that never name the order (2.2.2): the
+     * creation is rolled back, so the client never sees the order the ledger's sentence names. On a new order no other
+     * payment holds anything, so the money rule that refuses a payment is its total: the payment is more than the order
+     * owes, said with both figures. Another refusal keeps the ledger's sentence, unless it names the order (the
+     * general sentence of a write refused, or of a lock not taken): then the general sentence without it.
+     *
+     * @param int $orderId The order, written in this transaction.
+     * @param Money $amount The payment sent.
+     * @param string $sentence What the payments ledger told staff, '' when it told nothing.
+     *
+     * @since  2.2.2
+     */
+    private function createdPaymentRefusal(int $orderId, Money $amount, string $sentence): string
+    {
+        $db = $this->getDatabase();
+        $order = $db->setQuery(
+            $db->getQuery(true)
+                ->select('*')
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadObject();
+        $owed = $order !== null ? PaymentLedger::amountToCollectMoney(order: $order) : null;
+
+        if ($owed === null) {
+            return Text::_('COM_ALFA_ORDER_CREATE_PAYMENT_REFUSED');
+        }
+
+        if ($amount->greaterThan($owed)) {
+            return Text::sprintf('COM_ALFA_ORDER_CREATE_PAYMENT_PAST_TOTAL', $amount->format(), $owed->format());
+        }
+
+        $number = EmailService::orderNumber(order: (object) ['id' => $orderId]);
+
+        return $sentence === '' || preg_match('/(?<![0-9])' . preg_quote($number, '/') . '(?![0-9])/u', $sentence) === 1
+            ? Text::_('COM_ALFA_ORDER_CREATE_PAYMENT_REFUSED')
+            : $sentence;
+    }
+
+    /**
      * Write the parts of an order created in one call (2.2.2), inside the creation's transaction: each line through the
      * line writer, then the parcel through the shipments ledger, then the payment through the payments ledger, so the
      * payment is judged against the order's lines and its shipping charge. Each writer takes its own locks and claims as
@@ -4578,7 +4618,11 @@ class OrderModel extends AlfaAdminModel
             $told = \count($app->getMessageQueue());
 
             if (!$this->saveOrderPayment($paymentData)) {
-                throw new OrderPartRefusedException('/payment', PaymentLedger::queuedRefusal(app: $app, told: $told) ?: 'The payment was not recorded.');
+                throw new OrderPartRefusedException('/payment', $this->createdPaymentRefusal(
+                    orderId: $orderId,
+                    amount: $paymentData['amount'],
+                    sentence: PaymentLedger::queuedRefusal(app: $app, told: $told),
+                ));
             }
         }
 

@@ -56,7 +56,9 @@ class OrderPartRefusedException extends RuntimeException
      */
     public function __construct(public readonly string $part, string $reason, public readonly int $status = self::REFUSED)
     {
-        $this->plain = $part . ': ' . rtrim($reason) . ' The order was not created.';
+        // One sentence after another: a reason that ends without its full stop is given one.
+        $reason = rtrim($reason);
+        $this->plain = $part . ': ' . $reason . (preg_match('/[.!?]$/u', $reason) === 1 ? '' : '.') . ' The order was not created.';
         parent::__construct(htmlspecialchars($this->plain, ENT_QUOTES, 'UTF-8'), $status);
     }
 }

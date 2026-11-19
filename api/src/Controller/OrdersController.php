@@ -82,6 +82,16 @@ class OrdersController extends ApiController
     private const NOT_CREATED = ['id_payment_method', 'payment_method_name', 'id_shipment_method', 'shipment_method_name'];
 
     /**
+     * The lists of an order that a create does not take (2.2.2): payments and shipments, as the read publishes them, and
+     * items, the order screen's name for its lines. The order form declares them, so its filter dropped them and a
+     * create answered 201 with no payment, parcel or line; a create in one call sends payment, shipment and lines.
+     *
+     * @var string[]
+     * @since  2.2.2
+     */
+    private const NOT_CREATED_LISTS = ['payments', 'shipments', 'items'];
+
+    /**
      * The model the last save of this request used, so a create refused for one of its parts is answered with the
      * refusal the model set ({@see self::add()}).
      *
@@ -251,8 +261,8 @@ class OrdersController extends ApiController
      * creation has committed, the customer left out when silent; an order created without lines mails nobody.
      *
      * Asked in order: the permission to create (403), the invoice details' own refusal
-     * ({@see self::refuseUnstatedInvoice()}), the method keys at the top level ({@see self::NOT_CREATED}, 422), then
-     * the guards' create.
+     * ({@see self::refuseUnstatedInvoice()}), the method keys at the top level ({@see self::NOT_CREATED}, 422), the
+     * lists the read publishes ({@see self::NOT_CREATED_LISTS}, 422), then the guards' create.
      *
      * @return void
      *
@@ -275,6 +285,14 @@ class OrdersController extends ApiController
             throw new Save(implode(', ', $carried) . ' cannot be written at the top level of an order\'s create: send the'
                 . ' shipping method inside shipment (shipment.id_shipment_method) and the payment method inside payment'
                 . ' (payment.id_payment_method); the order follows its parcels and payments. Nothing was saved.', 422);
+        }
+
+        $lists = array_values(array_intersect(self::NOT_CREATED_LISTS, array_keys($this->requestBody())));
+
+        if ($lists !== []) {
+            throw new Save(implode(', ', $lists) . ' cannot be written when an order is created: send its payment as payment,'
+                . ' its parcel as shipment and its lines as lines; an order\'s payments and shipments are read in payments and'
+                . ' shipments. Nothing was saved.', 422);
         }
 
         try {
