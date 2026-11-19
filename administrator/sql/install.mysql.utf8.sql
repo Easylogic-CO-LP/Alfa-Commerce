@@ -1268,9 +1268,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
 --
 -- The pricing contexts the price index is written for: a currency class, a place class (the nearest place of a
 -- buyer's chain that a discount or a tax names, and the buyer's own place when price rows name it), a set of pricing
--- groups and, for a customer that a price row, a discount or a tax names, that customer. A context new to the data is
--- requested and prepared by its price.set.prepare job, a chunk of products at a time; prepared_through is its
--- checkpoint, and a context without prepared_at is never read.
+-- groups and, for a customer that a price row, a discount or a tax names, that customer. One row per context and
+-- generation: a context new to the data, or the next generation of a context a context-wide change rewrites, is
+-- requested and prepared a chunk of products at a time (prepared_through is its checkpoint) and then switched live
+-- whole; readers read the live generation only, and a retired one is removed in the background.
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_price_contexts` (
@@ -1281,16 +1282,20 @@ CREATE TABLE IF NOT EXISTS `#__alfa_price_contexts` (
   `priced_at_place_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The member place of the class the engine prices it at; 0 = no place',
   `group_set_id` int(10) UNSIGNED NOT NULL COMMENT '#__alfa_price_group_sets.id: the set of pricing groups',
   `user_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'A customer named by a price row, a discount or a tax, whose own rows these are (read before the set''s); 0 = the context of a set',
-  `requested_at` datetime DEFAULT NULL COMMENT 'When the context was asked for; NULL once it is prepared',
-  `prepared_at` datetime DEFAULT NULL COMMENT 'When its last chunk was written; NULL = not read',
+  `generation` int(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'The generation of the context''s rows: a context-wide change writes the next one beside the live one and switches them whole',
+  `is_live` tinyint(1) DEFAULT NULL COMMENT '1 = the generation readers read; NULL = being prepared, or retired and being removed. At most one live per context',
+  `requested_at` datetime DEFAULT NULL COMMENT 'When the generation was asked for; NULL once it is prepared',
+  `prepared_at` datetime DEFAULT NULL COMMENT 'When its last chunk was written and it went live; NULL = being prepared',
   `prepared_through` int(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Checkpoint of the preparation: the last product id written',
-  `left_out` text DEFAULT NULL COMMENT 'Products whose pricing threw while the context was prepared, ids comma-separated; NULL or empty = none',
+  `retired_at` datetime DEFAULT NULL COMMENT 'When a newer generation went live; its rows are removed in the background, then the row',
+  `left_out` text DEFAULT NULL COMMENT 'Products whose pricing threw, written with no figure, ids comma-separated; NULL or empty = none',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_context` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`),
+  UNIQUE KEY `idx_generation` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`,`generation`),
+  UNIQUE KEY `idx_live` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`,`is_live`),
   KEY `idx_group_set` (`group_set_id`),
   KEY `idx_user` (`user_id`),
   KEY `idx_requested` (`requested_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Pricing contexts of the price index';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Pricing contexts of the price index, one row per context and generation';
 
 --
 -- Table structure for table `#__alfa_items_price_index`
@@ -1319,7 +1324,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_price_index` (
   KEY `idx_context_price` (`context_id`,`final_price`),
   KEY `idx_item` (`item_id`),
   KEY `idx_validity` (`valid_from`,`valid_until`),
-  CONSTRAINT `fk_price_index_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `fk_price_index_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_price_index_context` FOREIGN KEY (`context_id`) REFERENCES `#__alfa_price_contexts` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Price index: the resolved price of every unit per pricing context and period';
 
 --

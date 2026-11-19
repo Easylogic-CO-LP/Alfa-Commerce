@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceIndexTidyJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
@@ -158,6 +159,9 @@ class PriceIndexSyncService
 
     /** Rows per multi-row INSERT. */
     private const INSERT_ROWS = 500;
+
+    /** Seconds a rule's save prepares its generations for before it leaves the rest to their jobs (2.2.2). */
+    private const GENERATION_SECONDS = 20.0;
 
     /**
      * The bound on one onAlfaPricesChanged (2.2.0, A-C18-4): once a write outside a caller's transaction has collected
@@ -372,7 +376,9 @@ class PriceIndexSyncService
 
     /**
      * Rewrite some products' rows. The discount and tax delete hooks collect the products before the delete and call
-     * this after it, so the products are priced without the removed rule.
+     * this after it, so the products are priced without the removed rule. A rule's scope of more than one chunk and at
+     * least half the published products (cause discount or tax, outside a caller's transaction) is rewritten as the
+     * next generation of every live context instead, each switched whole when complete (2.2.2).
      *
      * @param int[] $itemIds The products.
      * @param string $cause Why, as onAlfaPricesChanged says it.
@@ -384,9 +390,17 @@ class PriceIndexSyncService
      */
     public function syncItems(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): int
     {
-        return self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemIds): int {
+        return self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemIds, $cause): int {
             // Not strict: a chunk whose calculation failed is rolled back, logged and owed; the others are written.
             try {
+                // A rule's context-wide scope is rewritten as generations, each context switched whole (2.2.2).
+                if (\in_array($cause, [PricesChangedEvent::CAUSE_DISCOUNT, PricesChangedEvent::CAUSE_TAX], true)
+                    && !TransactionState::isOpen(db: $this->db) && $this->contextWide(scope: \count(array_unique(array_map('intval', $itemIds))))) {
+                    $this->alignContexts();
+
+                    return $this->rewriteAsGenerations();
+                }
+
                 return $this->rebuildItems(itemIds: $itemIds, strict: false);
             } catch (Throwable $e) {
                 $this->logWarning('syncItems() failed: ' . $e->getMessage());
@@ -491,6 +505,11 @@ class PriceIndexSyncService
         try {
             $contexts = $this->alignContexts();
             $ids = $itemIds();
+
+            // A context-wide scope as generations, each context switched whole (2.2.2).
+            if (!TransactionState::isOpen(db: $this->db) && $this->contextWide(scope: \count($ids))) {
+                return $this->rewriteAsGenerations();
+            }
 
             return $ids === [] ? 0 : $this->writeIndexRows(itemIds: $ids, contexts: $contexts);
         } catch (Throwable $e) {
@@ -1103,10 +1122,11 @@ class PriceIndexSyncService
      * replaces its rows and takes it off the list. The products' locks held; one transaction level.
      *
      * @param int[] $itemIds The products whose pricing throws.
+     * @param int[]|null $contextIds Only these contexts; null for every one.
      *
      * @since  2.2.2
      */
-    private function leaveOut(array $itemIds): void
+    private function leaveOut(array $itemIds, ?array $contextIds = null): void
     {
         $itemIds = $this->publishedOf(itemIds: array_values(array_unique(array_map('intval', $itemIds))));
 
@@ -1123,7 +1143,7 @@ class PriceIndexSyncService
                 return;
             }
 
-            $contexts = $this->contextRows(ids: null, waitingOnly: false);
+            $contexts = $this->contextRows(ids: $contextIds, waitingOnly: false);
             $units = $this->unitsOf(itemIds: $granted);
             $none = implode(',', array_fill(0, 7, 'NULL'));
             $this->db->transactionStart(true);
@@ -1222,11 +1242,14 @@ class PriceIndexSyncService
             . ' OR (i.combination_id = 0 AND EXISTS (SELECT 1 FROM ' . $combinations . ' AS x WHERE x.item_id = i.item_id AND x.state = 1)))'
             . ' GROUP BY i.context_id',
         )->loadAssocList('context_id', 'n') ?: [];
+        // The periods of the live generations: no future start without the period before it (an ended period may have
+        // been removed by the tidy), no end without the period after it.
+        $live = ' INNER JOIN ' . $db->quoteName(self::CONTEXTS_TABLE) . ' AS lc ON lc.id = i.context_id AND lc.is_live = 1';
         $gaps = (int) $db->setQuery(
-            'SELECT COUNT(*) FROM ' . $index . ' AS i WHERE i.valid_from <> ' . $db->quote(self::EPOCH) . ' AND NOT EXISTS (SELECT 1 FROM ' . $index . ' AS p'
+            'SELECT COUNT(*) FROM ' . $index . ' AS i' . $live . ' WHERE i.valid_from > ' . $now . ' AND NOT EXISTS (SELECT 1 FROM ' . $index . ' AS p'
             . ' WHERE p.context_id = i.context_id AND p.item_id = i.item_id AND p.combination_id = i.combination_id AND p.valid_until = i.valid_from)',
         )->loadResult() + (int) $db->setQuery(
-            'SELECT COUNT(*) FROM ' . $index . ' AS i WHERE i.valid_until IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ' . $index . ' AS n'
+            'SELECT COUNT(*) FROM ' . $index . ' AS i' . $live . ' WHERE i.valid_until IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ' . $index . ' AS n'
             . ' WHERE n.context_id = i.context_id AND n.item_id = i.item_id AND n.combination_id = i.combination_id AND n.valid_from = i.valid_until)',
         )->loadResult();
         $contexts = [];
@@ -1234,7 +1257,7 @@ class PriceIndexSyncService
 
         foreach ($db->setQuery(
             'SELECT ' . implode(', ', $db->quoteName(['id', 'user_id'])) . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE)
-            . ' WHERE ' . $db->quoteName('prepared_at') . ' IS NOT NULL ORDER BY ' . $db->quoteName('id'),
+            . ' WHERE ' . $db->quoteName('is_live') . ' = 1 ORDER BY ' . $db->quoteName('id'),
         )->loadObjectList() ?: [] as $context) {
             $id = (int) $context->id;
             $user = (int) $context->user_id;
@@ -1249,7 +1272,7 @@ class PriceIndexSyncService
 
         foreach ($db->setQuery(
             'SELECT ' . $db->quoteName('left_out') . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE)
-            . ' WHERE ' . $db->quoteName('prepared_at') . ' IS NOT NULL AND ' . $db->quoteName('left_out') . ' IS NOT NULL AND ' . $db->quoteName('left_out') . ' <> ' . $db->quote(''),
+            . ' WHERE ' . $db->quoteName('is_live') . ' = 1 AND ' . $db->quoteName('left_out') . ' IS NOT NULL AND ' . $db->quoteName('left_out') . ' <> ' . $db->quote(''),
         )->loadColumn() ?: [] as $list) {
             $leftOut = array_merge($leftOut, self::groupsOfList(list: (string) $list));
         }
@@ -1282,8 +1305,9 @@ class PriceIndexSyncService
         $db = $this->db;
         $now = $db->quote(gmdate('Y-m-d H:i:s'));
         $index = $db->quoteName(self::INDEX_TABLE);
+        $live = ' INNER JOIN ' . $db->quoteName(self::CONTEXTS_TABLE) . ' AS lc ON lc.id = i.context_id AND lc.is_live = 1';
         $owed = array_merge($owed, array_map('intval', $db->setQuery(
-            'SELECT DISTINCT i.item_id FROM ' . $index . ' AS i'
+            'SELECT DISTINCT i.item_id FROM ' . $index . ' AS i' . $live
             . ' LEFT JOIN ' . $db->quoteName('#__alfa_item_combinations') . ' AS oc ON oc.id = i.combination_id AND oc.item_id = i.item_id AND oc.state = 1'
             . ' WHERE i.valid_from <= ' . $now . ' AND (i.valid_until IS NULL OR i.valid_until > ' . $now . ')'
             . ' AND ((i.combination_id > 0 AND oc.id IS NULL) OR (i.combination_id = 0 AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_item_combinations')
@@ -1291,7 +1315,7 @@ class PriceIndexSyncService
             0,
             1000,
         )->loadColumn() ?: []), array_map('intval', $db->setQuery(
-            'SELECT DISTINCT i.item_id FROM ' . $index . ' AS i WHERE i.valid_until IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ' . $index . ' AS n'
+            'SELECT DISTINCT i.item_id FROM ' . $index . ' AS i' . $live . ' WHERE i.valid_until IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ' . $index . ' AS n'
             . ' WHERE n.context_id = i.context_id AND n.item_id = i.item_id AND n.combination_id = i.combination_id AND n.valid_from = i.valid_until)',
             0,
             1000,
@@ -1348,7 +1372,7 @@ class PriceIndexSyncService
             'SELECT DISTINCT a.id FROM ' . $db->quoteName('#__alfa_items') . ' AS a'
             . ' LEFT JOIN ' . $db->quoteName('#__alfa_item_combinations') . ' AS oc ON oc.item_id = a.id AND oc.state = 1'
             . ' CROSS JOIN ' . $db->quoteName(self::CONTEXTS_TABLE) . ' AS c'
-            . ' WHERE a.state = 1 AND c.prepared_at IS NOT NULL AND c.user_id = 0 AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::INDEX_TABLE) . ' AS i'
+            . ' WHERE a.state = 1 AND c.is_live = 1 AND c.user_id = 0 AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::INDEX_TABLE) . ' AS i'
             . ' WHERE i.context_id = c.id AND i.item_id = a.id AND i.combination_id = COALESCE(oc.id, 0)'
             . ' AND i.valid_from <= ' . $now . ' AND (i.valid_until IS NULL OR i.valid_until > ' . $now . '))'
             . ' ORDER BY a.id',
@@ -1506,8 +1530,9 @@ class PriceIndexSyncService
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $rows = self::$readContexts[$userId] ??= $db->setQuery(
-            'SELECT ' . implode(', ', $db->quoteName(['id', 'currency_id', 'rule_place_id', 'price_place_id', 'group_set_id', 'user_id', 'prepared_at']))
-            . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $db->quoteName('user_id') . ' IN (0, ' . $userId . ')',
+            'SELECT ' . implode(', ', $db->quoteName(['id', 'currency_id', 'rule_place_id', 'price_place_id', 'group_set_id', 'user_id', 'is_live']))
+            . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $db->quoteName('user_id') . ' IN (0, ' . $userId . ')'
+            . ' AND ' . $db->quoteName('retired_at') . ' IS NULL',
         )->loadObjectList() ?: [];
 
         if ($rows === []) {
@@ -1524,7 +1549,8 @@ class PriceIndexSyncService
             $rulePlaces[(int) $row->rule_place_id] = true;
             $pricePlaces[(int) $row->price_place_id] = true;
 
-            if ($row->prepared_at !== null) {
+            // The live generation of each context is read; one being prepared beside it is not.
+            if ((int) $row->is_live === 1) {
                 $prepared[(int) $row->currency_id . '|' . (int) $row->rule_place_id . '|' . (int) $row->price_place_id . '|' . (int) $row->group_set_id . '|' . (int) $row->user_id] = (int) $row->id;
             }
         }
@@ -1747,8 +1773,8 @@ class PriceIndexSyncService
 
     /**
      * The rebuild owed when places take another parent, or are published or unpublished (2.2.2): the place classes and
-     * the chains a context is priced with change at or below them. The contexts are aligned again, and when a context
-     * lies at or below the places every product is marked owed and the catalogue job enqueued.
+     * the chains a context is priced with change at or below them. The contexts are aligned again, and each live context
+     * priced at or below the places gets its next generation, prepared by its job and switched whole when complete.
      *
      * @param int[] $placeIds The places changed.
      *
@@ -1766,21 +1792,26 @@ class PriceIndexSyncService
 
         PlaceTree::forget();
         $this->alignContexts();
-        $placed = array_map('intval', $this->db->setQuery(
-            'SELECT DISTINCT ' . $this->db->quoteName('priced_at_place_id') . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE)
-            . ' WHERE ' . $this->db->quoteName('priced_at_place_id') . ' > 0',
-        )->loadColumn() ?: []);
-        $below = array_filter(
-            $placed,
-            static fn (int $place): bool => array_intersect(PlaceTree::placesFor(placeId: $place), $placeIds) !== [] || \in_array($place, $placeIds, true),
-        );
+        $placed = [];
 
-        if ($below === []) {
+        foreach ($this->db->setQuery(
+            'SELECT ' . $this->db->quoteName('id') . ', ' . $this->db->quoteName('priced_at_place_id') . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE)
+            . ' WHERE ' . $this->db->quoteName('priced_at_place_id') . ' > 0 AND ' . $this->db->quoteName('is_live') . ' = 1',
+        )->loadAssocList('id', 'priced_at_place_id') ?: [] as $id => $place) {
+            $place = (int) $place;
+
+            if (array_intersect(PlaceTree::placesFor(placeId: $place), $placeIds) !== [] || \in_array($place, $placeIds, true)) {
+                $placed[] = (int) $id;
+            }
+        }
+
+        if ($placed === []) {
             return false;
         }
 
-        ProjectionManager::markAllForRebuild();
-        CatalogueRebuildJob::enqueue();
+        foreach ($this->regenerate(liveIds: $placed) as $id) {
+            PriceSetPrepareJob::enqueueFor(contextId: $id);
+        }
 
         return true;
     }
@@ -2028,6 +2059,26 @@ class PriceIndexSyncService
                 $this->readIndexRows(itemIds: $chunk, contextIds: $written),
                 static fn (array $row): bool => \in_array($row['item'], $deleteOf[$row['context']] ?? [], true),
             );
+            // A generation being prepared beside a live one is compared with what readers read now: the live rows.
+            $liveOf = [];
+
+            foreach ($contexts as $context) {
+                if ($context['liveOf'] !== null && ($deleteOf[$context['id']] ?? []) !== []) {
+                    $liveOf[$context['liveOf']] = $context['id'];
+                }
+            }
+
+            if ($liveOf !== []) {
+                $before = array_filter($before, static fn (array $row): bool => !\in_array($row['context'], $liveOf, true));
+
+                foreach ($this->readIndexRows(itemIds: $chunk, contextIds: array_keys($liveOf)) as $row) {
+                    $row['context'] = $liveOf[$row['context']];
+
+                    if (\in_array($row['item'], $deleteOf[$row['context']], true)) {
+                        $before[self::rowKey(row: $row)] = $row;
+                    }
+                }
+            }
         }
 
         // One DELETE per distinct list of products: the rows of exactly the contexts rewritten below.
@@ -2506,7 +2557,8 @@ class PriceIndexSyncService
             . ', COALESCE(' . $db->quoteName('c.user_id') . ', 0) AS ' . $db->quoteName('user_id')
             . ' FROM ' . $db->quoteName(self::INDEX_TABLE, 'i')
             . ' LEFT JOIN ' . $db->quoteName(self::INDEX_TABLE, 'p') . ' ON ' . $join . ' AND ' . $db->quoteName('p.valid_until') . ' = ' . $column('valid_from')
-            . ' LEFT JOIN ' . $db->quoteName(self::CONTEXTS_TABLE, 'c') . ' ON ' . $db->quoteName('c.id') . ' = ' . $column('context_id')
+            // The live generations only: a generation being prepared or retired is read by no visitor.
+            . ' INNER JOIN ' . $db->quoteName(self::CONTEXTS_TABLE, 'c') . ' ON ' . $db->quoteName('c.id') . ' = ' . $column('context_id') . ' AND ' . $db->quoteName('c.is_live') . ' = 1'
             . ' WHERE ' . $column('valid_from') . ' >= ' . $db->quote($from) . ' AND ' . $column('valid_from') . ' <= ' . $db->quote($until) . $position
             . ' ORDER BY ' . implode(', ', array_map($column, ['valid_from', 'valid_until', ...$slot]));
     }
@@ -2767,9 +2819,10 @@ class PriceIndexSyncService
 
     /**
      * Every FUTURE edge of each product's periods, ascending: the windows of all its published price rows, item and
-     * combination rows alike (a combination's own scheduled price is an edge), and the windows of every published
-     * discount and tax, with no horizon. An edge that changes nothing for a unit adds no row: equal
-     * neighbouring periods are merged.
+     * combination rows alike (a combination's own scheduled price is an edge), and the windows of the published
+     * discounts and taxes that can reach the product (their category and manufacturer scope, matched as the engine's
+     * loader matches it; their place, group and customer scope narrow no product), with no horizon. An edge that
+     * changes nothing for a unit adds no row: equal neighbouring periods are merged.
      *
      * @param int[] $itemIds The products.
      * @param string $now The chunk's instant (UTC): later than it is future.
@@ -2788,28 +2841,36 @@ class PriceIndexSyncService
         $list = implode(',', array_map('intval', $itemIds));
         $now = $db->quote($now);
         $prices = $db->quoteName('#__alfa_items_prices');
-        $union = [];
+        $found = [];
+        $rules = static fn (string $rules, string $categories, string $manufacturers, string $key): string => 'SELECT DISTINCT ic.item_id, r.publish_up, r.publish_down'
+            . ' FROM ' . $db->quoteName($rules) . ' AS r'
+            . ' INNER JOIN ' . $db->quoteName('#__alfa_items_categories') . ' AS ic ON ic.item_id IN (' . $list . ')'
+            . ' LEFT JOIN ' . $db->quoteName($categories) . ' AS sc ON sc.' . $key . ' = r.id'
+            . ' LEFT JOIN ' . $db->quoteName($manufacturers) . ' AS sm ON sm.' . $key . ' = r.id'
+            . ' LEFT JOIN ' . $db->quoteName('#__alfa_items_manufacturers') . ' AS im ON im.item_id = ic.item_id'
+            . ' WHERE r.state = 1 AND ((r.publish_up IS NOT NULL AND r.publish_up > ' . $now . ') OR (r.publish_down IS NOT NULL AND r.publish_down > ' . $now . '))'
+            . ' AND (sc.' . $key . ' IS NULL OR sc.category_id = 0 OR sc.category_id = ic.category_id)'
+            . ' AND (sm.' . $key . ' IS NULL OR sm.manufacturer_id = 0 OR sm.manufacturer_id = im.manufacturer_id)';
 
-        foreach (['#__alfa_discounts', '#__alfa_taxes'] as $table) {
-            foreach (['publish_up', 'publish_down'] as $column) {
-                $union[] = 'SELECT ' . $column . ' AS edge FROM ' . $db->quoteName($table) . ' WHERE state = 1 AND ' . $column . ' IS NOT NULL AND ' . $column . ' > ' . $now;
+        foreach ([
+            $rules('#__alfa_discounts', '#__alfa_discount_categories', '#__alfa_discount_manufacturers', 'discount_id'),
+            $rules('#__alfa_taxes', '#__alfa_tax_categories', '#__alfa_tax_manufacturers', 'tax_id'),
+            "SELECT DISTINCT item_id, publish_up, publish_down FROM {$prices} WHERE state = 1 AND item_id IN ({$list})"
+                . " AND ((publish_up IS NOT NULL AND publish_up > {$now}) OR (publish_down IS NOT NULL AND publish_down > {$now}))",
+        ] as $statement) {
+            foreach ($db->setQuery($statement)->loadObjectList() ?: [] as $row) {
+                foreach ([$row->publish_up, $row->publish_down] as $edge) {
+                    if ($edge !== null && strcmp((string) $edge, trim($now, "'")) > 0) {
+                        $found[(int) $row->item_id][(string) $edge] = true;
+                    }
+                }
             }
-        }
-
-        $global = array_map('strval', $db->setQuery('SELECT DISTINCT edge FROM (' . implode(' UNION ALL ', $union) . ') AS edges ORDER BY edge')->loadColumn() ?: []);
-        $own = [];
-
-        foreach ($db->setQuery(
-            "SELECT DISTINCT item_id, publish_up AS edge FROM {$prices} WHERE state = 1 AND item_id IN ({$list}) AND publish_up IS NOT NULL AND publish_up > {$now}"
-            . " UNION SELECT DISTINCT item_id, publish_down FROM {$prices} WHERE state = 1 AND item_id IN ({$list}) AND publish_down IS NOT NULL AND publish_down > {$now}",
-        )->loadObjectList() ?: [] as $row) {
-            $own[(int) $row->item_id][] = (string) $row->edge;
         }
 
         $edges = [];
 
         foreach ($itemIds as $itemId) {
-            $all = array_values(array_unique(array_merge($global, $own[(int) $itemId] ?? [])));
+            $all = array_keys($found[(int) $itemId] ?? []);
             sort($all);
             $edges[(int) $itemId] = $all;
         }
@@ -2856,33 +2917,36 @@ class PriceIndexSyncService
             }
         }
 
+        // Every generation of each context the table holds, by the context's key.
         $known = [];
         $anyPrepared = false;
 
         foreach ($this->db->setQuery(
-            'SELECT ' . implode(', ', $this->db->quoteName(['id', 'currency_id', 'rule_place_id', 'price_place_id', 'group_set_id', 'user_id', 'prepared_at']))
+            'SELECT ' . implode(', ', $this->db->quoteName(['id', 'currency_id', 'rule_place_id', 'price_place_id', 'group_set_id', 'user_id', 'is_live']))
             . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE),
         )->loadObjectList() ?: [] as $row) {
-            $known[(int) $row->currency_id . '|' . (int) $row->rule_place_id . '|' . (int) $row->price_place_id . '|' . (int) $row->group_set_id . '|' . (int) $row->user_id] = (int) $row->id;
-            $anyPrepared = $anyPrepared || $row->prepared_at !== null;
+            $known[(int) $row->currency_id . '|' . (int) $row->rule_place_id . '|' . (int) $row->price_place_id . '|' . (int) $row->group_set_id . '|' . (int) $row->user_id][] = (int) $row->id;
+            $anyPrepared = $anyPrepared || (int) $row->is_live === 1;
         }
 
-        $this->dropContexts(ids: array_values(array_diff_key($known, $defined)));
+        $this->dropContexts(ids: array_merge([], ...array_values(array_diff_key($known, $defined))));
         $new = array_diff_key($defined, $known);
         $this->lastRequested = 0;
 
         if ($new !== []) {
-            $preparedNow = self::buildStartedAt() !== null || !$anyPrepared;
+            $building = self::buildStartedAt() !== null;
+            $preparedNow = $building || !$anyPrepared;
             $rows = [];
 
             foreach ($new as [$currency, $rule, $price, $pricedAt, $setId, $userId]) {
-                $rows[] = '(' . implode(',', [$currency, $rule, $price, $pricedAt, $setId, $userId]) . ', UTC_TIMESTAMP(), ' . ($preparedNow ? 'UTC_TIMESTAMP()' : 'NULL') . ')';
+                $rows[] = '(' . implode(',', [$currency, $rule, $price, $pricedAt, $setId, $userId]) . ', 1, ' . ($preparedNow ? '1' : 'NULL') . ', UTC_TIMESTAMP(), '
+                    . ($preparedNow ? 'UTC_TIMESTAMP()' : 'NULL') . ')';
             }
 
             foreach (array_chunk($rows, self::INSERT_ROWS) as $part) {
                 $this->db->setQuery(
                     'INSERT IGNORE INTO ' . $this->db->quoteName(self::CONTEXTS_TABLE) . ' (' . implode(', ', $this->db->quoteName([
-                        'currency_id', 'rule_place_id', 'price_place_id', 'priced_at_place_id', 'group_set_id', 'user_id', 'requested_at', 'prepared_at',
+                        'currency_id', 'rule_place_id', 'price_place_id', 'priced_at_place_id', 'group_set_id', 'user_id', 'generation', 'is_live', 'requested_at', 'prepared_at',
                     ])) . ') VALUES ' . implode(', ', $part),
                 )->execute();
                 $this->lastRequested += (int) $this->db->getAffectedRows();
@@ -2894,6 +2958,10 @@ class PriceIndexSyncService
                 )->loadColumn() ?: [] as $id) {
                     PriceSetPrepareJob::enqueueFor(contextId: (int) $id);
                 }
+            } elseif (!$building && $this->lastRequested > 0) {
+                // A shop's first contexts, read at once: the products saved before its first price get their rows (with
+                // no figure where they have no price) from the catalogue job.
+                ProjectionManager::owe(itemIds: $this->getAllPublishedItemIds());
             }
         }
 
@@ -2907,7 +2975,7 @@ class PriceIndexSyncService
      * @param int[]|null $ids The contexts; null for every one.
      * @param bool $waitingOnly Only contexts that wait for their preparation.
      *
-     * @return array<int, array{id: int, currency_id: int, rule_place_id: int, price_place_id: int, priced_at_place_id: int, group_set_id: int, user_id: int, groups: int[], through: int|null, leftOut: int[]}>
+     * @return array<int, array{id: int, currency_id: int, rule_place_id: int, price_place_id: int, priced_at_place_id: int, group_set_id: int, user_id: int, groups: int[], through: int|null, leftOut: int[], liveOf: int|null}>
      *
      * @since  2.2.2
      */
@@ -2927,13 +2995,19 @@ class PriceIndexSyncService
             $where[] = 'c.prepared_at IS NULL';
         }
 
+        // A retired generation is no longer written: its rows wait for the tidy.
+        $where[] = 'c.retired_at IS NULL';
         $out = [];
 
         foreach ($this->db->setQuery(
-            'SELECT c.id, c.currency_id, c.rule_place_id, c.price_place_id, c.priced_at_place_id, c.group_set_id, c.user_id, c.prepared_at, c.prepared_through, c.left_out, s.group_list'
+            'SELECT c.id, c.currency_id, c.rule_place_id, c.price_place_id, c.priced_at_place_id, c.group_set_id, c.user_id, c.prepared_at, c.prepared_through, c.left_out, s.group_list,'
+            . ' l.id AS live_id'
             . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE, 'c')
             . ' INNER JOIN ' . $this->db->quoteName(self::SETS_TABLE, 's') . ' ON s.id = c.group_set_id'
-            . ($where === [] ? '' : ' WHERE ' . implode(' AND ', $where))
+            . ' LEFT JOIN ' . $this->db->quoteName(self::CONTEXTS_TABLE, 'l') . ' ON c.prepared_at IS NULL AND l.is_live = 1 AND l.id <> c.id'
+            . ' AND l.currency_id = c.currency_id AND l.rule_place_id = c.rule_place_id AND l.price_place_id = c.price_place_id'
+            . ' AND l.group_set_id = c.group_set_id AND l.user_id = c.user_id'
+            . ' WHERE ' . implode(' AND ', $where)
             . ' ORDER BY c.id',
         )->loadObjectList() ?: [] as $row) {
             $out[(int) $row->id] = [
@@ -2947,6 +3021,8 @@ class PriceIndexSyncService
                 'groups' => self::groupsOfList(list: (string) $row->group_list),
                 'through' => $row->prepared_at === null ? (int) $row->prepared_through : null,
                 'leftOut' => self::groupsOfList(list: (string) $row->left_out),
+                // A generation being prepared beside the live one of its context: the live one's id.
+                'liveOf' => $row->live_id === null ? null : (int) $row->live_id,
             ];
         }
 
@@ -3233,24 +3309,321 @@ class PriceIndexSyncService
     }
 
     /**
-     * Mark a context prepared: from now on it is read.
+     * Mark a generation prepared and switch it live (2.2.2): first every unit it is written for that no row of it covers
+     * now is written (a product the preparation passed while another writer held it), a product whose pricing throws
+     * left out with no figure; then, in one transaction, the live generation of the same context retired and this one
+     * live, so a reader meets the old generation or the new one, never a mix. The retired generation's rows are removed
+     * by the tidy job.
      *
-     * @param int $contextId The context, all of whose chunks are written.
+     * @param int $contextId The generation, all of whose chunks are written.
      *
-     * @return int 1 when the context was marked; 0 when it was gone or already marked.
+     * @return int 1 when it was switched live; 0 when it was gone or already live.
      *
      * @since  2.2.2
      */
     private function markPrepared(int $contextId): int
     {
-        $this->db->setQuery(
-            'UPDATE ' . $this->db->quoteName(self::CONTEXTS_TABLE)
-            . ' SET ' . $this->db->quoteName('prepared_at') . ' = UTC_TIMESTAMP(), ' . $this->db->quoteName('requested_at') . ' = NULL, '
-            . $this->db->quoteName('prepared_through') . ' = 0'
-            . ' WHERE ' . $this->db->quoteName('id') . ' = ' . $contextId . ' AND ' . $this->db->quoteName('prepared_at') . ' IS NULL',
-        )->execute();
+        $context = $this->contextRows(ids: [$contextId], waitingOnly: true)[$contextId] ?? null;
+
+        if ($context === null) {
+            return 0;
+        }
+
+        $expected = $context['user_id'] > 0 ? array_keys($this->touchedBy(userId: $context['user_id'])) : $this->getAllPublishedItemIds();
+        $context['through'] = null;
+        $missing = $this->uncoveredOf(contextId: $contextId, itemIds: $expected);
+
+        foreach ($missing === [] ? [] : array_chunk($missing, self::CHUNK_SIZE) as $chunk) {
+            $this->writeIndexRows(itemIds: $chunk, contexts: [$context]);
+        }
+
+        $failed = $missing === [] ? [] : $this->uncoveredOf(contextId: $contextId, itemIds: $missing);
+
+        if ($failed !== []) {
+            $this->leaveOut(itemIds: $failed, contextIds: [$contextId]);
+        }
+
+        $db = $this->db;
+        $retired = 0;
+        $db->transactionStart(true);
+
+        try {
+            $row = $db->setQuery(
+                'SELECT ' . implode(', ', $db->quoteName(['currency_id', 'rule_place_id', 'price_place_id', 'group_set_id', 'user_id']))
+                . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $contextId
+                . ' AND ' . $db->quoteName('prepared_at') . ' IS NULL FOR UPDATE',
+            )->loadObject();
+
+            if ($row === null) {
+                TransactionState::commitLevel(db: $db);
+
+                return 0;
+            }
+
+            $db->setQuery(
+                'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE) . ' SET ' . $db->quoteName('is_live') . ' = NULL, ' . $db->quoteName('retired_at') . ' = UTC_TIMESTAMP()'
+                . ' WHERE ' . $db->quoteName('is_live') . ' = 1 AND ' . $db->quoteName('id') . ' <> ' . $contextId . ' AND ' . self::keyWhere(db: $db, row: $row),
+            )->execute();
+            $retired = (int) $db->getAffectedRows();
+            $db->setQuery(
+                'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE)
+                . ' SET ' . $db->quoteName('is_live') . ' = 1, ' . $db->quoteName('prepared_at') . ' = UTC_TIMESTAMP(), ' . $db->quoteName('requested_at') . ' = NULL, '
+                . $db->quoteName('prepared_through') . ' = 0'
+                . ' WHERE ' . $db->quoteName('id') . ' = ' . $contextId,
+            )->execute();
+            TransactionState::commitLevel(db: $db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
+        }
+
+        self::$readContexts = [];
+        self::$resolved = [];
+
+        if ($retired > 0) {
+            PriceIndexTidyJob::enqueue();
+        }
+
+        return 1;
+    }
+
+    /**
+     * The WHERE of one context's key: every generation of it.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param object $row currency_id, rule_place_id, price_place_id, group_set_id, user_id.
+     *
+     * @since  2.2.2
+     */
+    private static function keyWhere(DatabaseDriver $db, object $row): string
+    {
+        return implode(' AND ', array_map(
+            static fn (string $column): string => $db->quoteName($column) . ' = ' . (int) $row->{$column},
+            ['currency_id', 'rule_place_id', 'price_place_id', 'group_set_id', 'user_id'],
+        ));
+    }
+
+    // Generations (2.2.2)
+
+    /**
+     * Start the next generation of some live contexts: beside each, a generation not yet live from its first product
+     * (its checkpoint 0), or the one already being prepared started again from its first product. Readers keep reading
+     * the live generation until the new one switches whole ({@see self::markPrepared()}); every write meanwhile goes to
+     * the live generation and, for the products it has passed, to the new one.
+     *
+     * @param int[] $liveIds The live contexts.
+     *
+     * @return int[] The generations being prepared.
+     *
+     * @since  2.2.2
+     */
+    private function regenerate(array $liveIds): array
+    {
+        $liveIds = array_values(array_unique(array_filter(array_map('intval', $liveIds), static fn (int $id): bool => $id > 0)));
+
+        if ($liveIds === []) {
+            return [];
+        }
+
+        $db = $this->db;
+        $building = [];
+
+        foreach ($db->setQuery(
+            'SELECT ' . implode(', ', $db->quoteName(['id', 'currency_id', 'rule_place_id', 'price_place_id', 'priced_at_place_id', 'group_set_id', 'user_id']))
+            . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $db->quoteName('is_live') . ' = 1 AND ' . $db->quoteName('id') . ' IN (' . implode(',', $liveIds) . ')',
+        )->loadObjectList() ?: [] as $row) {
+            $key = self::keyWhere(db: $db, row: $row);
+            $existing = (int) $db->setQuery(
+                'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $key
+                . ' AND ' . $db->quoteName('prepared_at') . ' IS NULL AND ' . $db->quoteName('retired_at') . ' IS NULL',
+            )->loadResult();
+
+            if ($existing > 0) {
+                $db->setQuery(
+                    'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE) . ' SET ' . $db->quoteName('prepared_through') . ' = 0, ' . $db->quoteName('left_out') . ' = NULL, '
+                    . $db->quoteName('requested_at') . ' = UTC_TIMESTAMP() WHERE ' . $db->quoteName('id') . ' = ' . $existing,
+                )->execute();
+                $building[] = $existing;
+
+                continue;
+            }
+
+            $next = (int) $db->setQuery(
+                'SELECT COALESCE(MAX(' . $db->quoteName('generation') . '), 0) + 1 FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $key,
+            )->loadResult();
+            $db->setQuery(
+                'INSERT INTO ' . $db->quoteName(self::CONTEXTS_TABLE) . ' (' . implode(', ', $db->quoteName([
+                    'currency_id', 'rule_place_id', 'price_place_id', 'priced_at_place_id', 'group_set_id', 'user_id', 'generation', 'is_live', 'requested_at', 'prepared_at',
+                ])) . ') VALUES (' . implode(',', [(int) $row->currency_id, (int) $row->rule_place_id, (int) $row->price_place_id, (int) $row->priced_at_place_id,
+                    (int) $row->group_set_id, (int) $row->user_id, $next]) . ', NULL, UTC_TIMESTAMP(), NULL)',
+            )->execute();
+            $building[] = (int) $db->insertid();
+        }
+
+        return $building;
+    }
+
+    /**
+     * Prepare generations now, one after another, each switched live when complete, within a budget of seconds; those
+     * the budget leaves are continued by their price.set.prepare jobs from their checkpoint. The retired generations'
+     * rows are removed within the same budget; the tidy job removes the rest.
+     *
+     * @param int[] $ids The generations being prepared.
+     * @param float $seconds The budget.
+     *
+     * @return int Rows written.
+     *
+     * @since  2.2.2
+     */
+    private function prepareNow(array $ids, float $seconds): int
+    {
+        $until = microtime(true) + $seconds;
+        $written = 0;
+
+        foreach ($ids as $i => $id) {
+            for ($round = 0; microtime(true) < $until; $round++) {
+                $answer = $this->prepareContextChunkAnnounced(contextId: $id, limit: self::CHUNK_SIZE);
+                $written += $answer['written'];
+
+                if ($answer['state'] !== 'chunk') {
+                    break;
+                }
+            }
+
+            if ($this->contextWaits(contextId: $id)) {
+                foreach (\array_slice($ids, $i) as $left) {
+                    PriceSetPrepareJob::enqueueFor(contextId: (int) $left);
+                }
+
+                return $written;
+            }
+        }
+
+        while (microtime(true) < $until && $this->removeRetired(limit: 5000) === 5000) {
+            // The retired rows, in batches, while the budget lasts.
+        }
+
+        return $written;
+    }
+
+    /**
+     * Rewrite a context-wide scope as generations (2.2.2): a rule or a tax whose scope is more than one chunk and at
+     * least half the published products, so its rows switch whole in each context instead of a chunk at a time. Every
+     * live context gets its next generation, prepared now within the budget and continued by the jobs.
+     *
+     * @return int Rows written.
+     *
+     * @since  2.2.2
+     */
+    private function rewriteAsGenerations(): int
+    {
+        $live = array_map('intval', $this->db->setQuery(
+            'SELECT ' . $this->db->quoteName('id') . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $this->db->quoteName('is_live') . ' = 1'
+            . ' ORDER BY ' . $this->db->quoteName('id'),
+        )->loadColumn() ?: []);
+
+        return $this->prepareNow(ids: $this->regenerate(liveIds: $live), seconds: self::GENERATION_SECONDS);
+    }
+
+    /**
+     * Whether a rule's scope is context-wide: more than one chunk, and at least half the published products.
+     *
+     * @param int $scope The products in scope.
+     *
+     * @since  2.2.2
+     */
+    private function contextWide(int $scope): bool
+    {
+        return $scope > self::CHUNK_SIZE && $scope * 2 >= $this->publishedItemCount() && self::buildStartedAt() === null;
+    }
+
+    /**
+     * What the tidy job has left: rows of retired generations and ended periods.
+     *
+     * @since  2.2.2
+     */
+    public function tidyCount(): int
+    {
+        $db = $this->db;
+
+        return (int) $db->setQuery(
+            'SELECT COUNT(*) FROM ' . $db->quoteName(self::INDEX_TABLE) . ' AS i INNER JOIN ' . $db->quoteName(self::CONTEXTS_TABLE) . ' AS c ON c.id = i.context_id'
+            . ' WHERE c.retired_at IS NOT NULL',
+        )->loadResult() + (int) $db->setQuery(
+            'SELECT COUNT(*) FROM ' . $db->quoteName(self::INDEX_TABLE) . ' WHERE ' . $this->endedWhere(),
+        )->loadResult();
+    }
+
+    /**
+     * Remove retired generations: their rows a batch at a time, then the context row of one with none left.
+     *
+     * @param int $limit At most this many rows.
+     *
+     * @return int Rows removed.
+     *
+     * @since  2.2.2
+     */
+    public function removeRetired(int $limit): int
+    {
+        $db = $this->db;
+        $removed = 0;
+
+        foreach (array_map('intval', $db->setQuery(
+            'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $db->quoteName('retired_at') . ' IS NOT NULL ORDER BY ' . $db->quoteName('id'),
+        )->loadColumn() ?: []) as $id) {
+            if ($removed >= $limit) {
+                break;
+            }
+
+            $db->setQuery('DELETE FROM ' . $db->quoteName(self::INDEX_TABLE) . ' WHERE ' . $db->quoteName('context_id') . ' = ' . $id . ' LIMIT ' . max(1, $limit - $removed))->execute();
+            $removed += (int) $db->getAffectedRows();
+
+            if (!(bool) $db->setQuery('SELECT 1 FROM ' . $db->quoteName(self::INDEX_TABLE) . ' WHERE ' . $db->quoteName('context_id') . ' = ' . $id, 0, 1)->loadResult()) {
+                $db->setQuery('DELETE FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id . ' AND ' . $db->quoteName('retired_at') . ' IS NOT NULL')->execute();
+            }
+        }
+
+        return $removed;
+    }
+
+    /**
+     * Remove ended periods (the nightly pass): rows whose period ended more than a day ago and before the moment the
+     * announcement of the periods that began has reached, which no reader and no announcement reads again.
+     *
+     * @param int $limit At most this many rows.
+     *
+     * @return int Rows removed.
+     *
+     * @since  2.2.2
+     */
+    public function removeEndedPeriods(int $limit): int
+    {
+        if ($limit <= 0) {
+            return 0;
+        }
+
+        $this->db->setQuery('DELETE FROM ' . $this->db->quoteName(self::INDEX_TABLE) . ' WHERE ' . $this->endedWhere() . ' LIMIT ' . $limit)->execute();
 
         return (int) $this->db->getAffectedRows();
+    }
+
+    /**
+     * The WHERE of an ended period the tidy removes.
+     *
+     * @since  2.2.2
+     */
+    private function endedWhere(): string
+    {
+        $db = $this->db;
+        $cursor = self::windowCursor(db: $db, lock: false);
+        $before = $db->quote(gmdate('Y-m-d H:i:s', time() - 86400));
+
+        if ($cursor !== null && strcmp($cursor['from'], gmdate('Y-m-d H:i:s', time() - 86400)) < 0) {
+            $before = $db->quote($cursor['from']);
+        }
+
+        return $db->quoteName('valid_until') . ' IS NOT NULL AND ' . $db->quoteName('valid_until') . ' < ' . $before;
     }
 
     // Sets of pricing groups

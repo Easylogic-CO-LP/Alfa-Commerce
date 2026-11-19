@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentAutomation;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentRefundFlip;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\ShipmentAutomation;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceIndexTidyJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\SearchRebuildJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\TasksPruneJob;
@@ -98,6 +99,7 @@ final class TaskRetention
         CatalogueRebuildJob::NAME,
         SearchRebuildJob::NAME,
         TasksPruneJob::NAME,
+        PriceIndexTidyJob::NAME,
         // Its last run's report (2.2.0, part C21).
         ThumbnailsRecreateJob::NAME,
     ];

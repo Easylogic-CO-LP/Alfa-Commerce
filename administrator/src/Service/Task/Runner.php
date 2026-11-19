@@ -477,7 +477,8 @@ final class Runner
      * The work a tick owes before it looks for due jobs: a job for each waiting price set with no job of its scope
      * (one whose job failed is not among them), the drain while movements are owed, the catalogue job for a rebuild
      * mark older than the grace that no job was asked for, the prune of finished tasks once an hour
-     * (TasksPruneJob::owe()), and the announcement of the stored price periods that began
+     * (TasksPruneJob::owe()), the tidy of the price index once a day (PriceIndexTidyJob::owe(), 2.2.2), and the
+     * announcement of the stored price periods that began
      * (PriceIndexSyncService::announceOpenedWindows(), 2.2.2). Each is logged and left on a failure: the tick goes on.
      *
      * @param DatabaseDriver $db The connection.
@@ -516,6 +517,12 @@ final class Runner
             Job\TasksPruneJob::owe(db: $db);
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the prune of finished tasks could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+        }
+
+        try {
+            Job\PriceIndexTidyJob::owe(db: $db);
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Runner: the tidy of the price index could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
         }
 
         try {
@@ -695,6 +702,8 @@ final class Runner
             Job\SearchRebuildJob::NAME => Job\SearchRebuildJob::class,
             Job\CatalogueRebuildJob::NAME => Job\CatalogueRebuildJob::class,
             Job\TasksPruneJob::NAME => Job\TasksPruneJob::class,
+            // The price index's retired generations and ended periods, removed (2.2.2).
+            Job\PriceIndexTidyJob::NAME => Job\PriceIndexTidyJob::class,
             // The gallery's thumbnails, recreated from Tools > Media (2.2.0, part C21).
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
         ];

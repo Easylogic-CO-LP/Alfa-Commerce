@@ -3377,6 +3377,7 @@ class com_alfaInstallerScript extends InstallerScript
                 $db->setQuery($match[0])->execute();
             }
 
+            $this->priceIndexShape(db: $db);
             $hasPrevious = \in_array($previous, $tables, true);
             // A switch made by a build of 2.2.2 that recorded none left rows in the new index and no flag.
             $switched = $service::switchedAt() !== null || ($service::buildStartedAt() === null
@@ -3429,6 +3430,60 @@ class com_alfaInstallerScript extends InstallerScript
                 fallback: 'Alfa Commerce %1$s could not prepare the product list\'s price index: %2$s Install the package again.',
                 values:   [$this->packageVersion, $e->getMessage()],
             ), 'warning');
+        }
+    }
+
+    /**
+     * The price index tables of an earlier build of 2.2.2 brought to this package's shape (2.2.2), by the database's
+     * shape: the contexts' generation columns and keys, every prepared context its live generation; the index's foreign
+     * key to the contexts, its rows of a context no longer there removed first. Nothing when the shape is this one.
+     *
+     * @param   \Joomla\Database\DatabaseInterface  $db  The connection.
+     *
+     * @return  void
+     * @since   2.2.2
+     */
+    private function priceIndexShape(\Joomla\Database\DatabaseInterface $db): void
+    {
+        $contexts = $db->replacePrefix('#__alfa_price_contexts');
+        $index = $db->replacePrefix('#__alfa_items_price_index');
+        $columns = static fn (string $table): array => array_map('strval', $db->setQuery(
+            'SELECT ' . $db->quoteName('COLUMN_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS') . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+            . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($table),
+        )->loadColumn() ?: []);
+        $present = $columns($contexts);
+
+        if ($present !== [] && !\in_array('generation', $present, true)) {
+            $db->setQuery(
+                'ALTER TABLE ' . $db->quoteName($contexts)
+                . " ADD COLUMN `generation` int(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'The generation of the context''s rows: a context-wide change writes the next one beside the live one and switches them whole' AFTER `user_id`,"
+                . " ADD COLUMN `is_live` tinyint(1) DEFAULT NULL COMMENT '1 = the generation readers read; NULL = being prepared, or retired and being removed. At most one live per context' AFTER `generation`,"
+                . " ADD COLUMN `retired_at` datetime DEFAULT NULL COMMENT 'When a newer generation went live; its rows are removed in the background, then the row' AFTER `prepared_through`",
+            )->execute();
+            $db->setQuery('UPDATE ' . $db->quoteName($contexts) . ' SET ' . $db->quoteName('is_live') . ' = 1 WHERE ' . $db->quoteName('prepared_at') . ' IS NOT NULL')->execute();
+            $hasKey = (bool) $db->setQuery(
+                'SELECT 1 FROM ' . $db->quoteName('information_schema.STATISTICS') . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($contexts) . ' AND ' . $db->quoteName('INDEX_NAME') . ' = ' . $db->quote('idx_context'),
+            )->loadResult();
+            $db->setQuery(
+                'ALTER TABLE ' . $db->quoteName($contexts) . ($hasKey ? ' DROP KEY `idx_context`,' : '')
+                . ' ADD UNIQUE KEY `idx_generation` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`,`generation`),'
+                . ' ADD UNIQUE KEY `idx_live` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`,`is_live`)',
+            )->execute();
+        }
+
+        $hasForeignKey = (bool) $db->setQuery(
+            'SELECT 1 FROM ' . $db->quoteName('information_schema.TABLE_CONSTRAINTS') . ' WHERE ' . $db->quoteName('CONSTRAINT_SCHEMA') . ' = DATABASE()'
+            . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($index) . ' AND ' . $db->quoteName('CONSTRAINT_NAME') . ' = ' . $db->quote('fk_price_index_context'),
+        )->loadResult();
+
+        if (!$hasForeignKey && \in_array('context_id', $columns($index), true)) {
+            $db->setQuery(
+                'DELETE i FROM ' . $db->quoteName($index) . ' AS i LEFT JOIN ' . $db->quoteName($contexts) . ' AS c ON c.id = i.context_id WHERE c.id IS NULL',
+            )->execute();
+            $db->setQuery(
+                'ALTER TABLE ' . $db->quoteName($index) . ' ADD CONSTRAINT `fk_price_index_context` FOREIGN KEY (`context_id`) REFERENCES ' . $db->quoteName($contexts) . ' (`id`) ON DELETE CASCADE',
+            )->execute();
         }
     }
 
