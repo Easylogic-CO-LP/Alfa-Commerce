@@ -971,14 +971,16 @@ class OrderModel extends AlfaAdminModel
         // customer is picked, so the field is on it and is relaxed on both
         // sides; see getForm); a GUEST order still has to give one. The order's
         // mails go to a guest's address, so an update that sends the delivery
-        // details asks it too (2.2.2): before, only the creation did, and an
-        // update could empty it.
+        // details of a guest order that has one asks it too (2.2.2): before,
+        // only the creation did, and an update could empty it. A guest order
+        // placed with no e-mail stays savable without one.
         $emailColumn = RoleRegistry::column(RoleRegistry::EMAIL);
+        $keepsEmail = !$isNew && \array_key_exists(FieldsHelper::FIELDS_KEY, $data) && (string) ($this->item->customer_email ?? '') !== '';
 
         if ($emailColumn !== null) {
             if ($isNew && $customerId > 0) {
                 unset($data[FieldsHelper::FIELDS_KEY][$emailColumn], $data[FieldsHelper::BILLING_FIELDS_KEY][$emailColumn]);
-            } elseif ($customerId <= 0 && ($isNew || \array_key_exists(FieldsHelper::FIELDS_KEY, $data))) {
+            } elseif ($customerId <= 0 && ($isNew || $keepsEmail)) {
                 $form->setFieldAttribute($emailColumn, 'required', 'true', FieldsHelper::FIELDS_KEY);
             }
         }
@@ -996,14 +998,31 @@ class OrderModel extends AlfaAdminModel
         // sections whole (an emptied field, an unticked box and a field its rule hides each mean empty), so it is not.
         if (!$isNew && $this->keepsOmittedDetails()) {
             $data = $this->withStoredDetails(data: $data, orderId: (int) ($data['id'] ?? 0), visibilityId: $visibilityId);
+
+            // A choice laid over from the stored record is not judged again (2.2.2): the rule asks what the submission
+            // sends, so a value stored before its option was renamed or removed does not refuse a write that never
+            // named the field.
+            foreach ($sent as $section => $names) {
+                foreach (array_diff(array_map('strval', array_keys((array) ($data[$section] ?? []))), $names) as $name) {
+                    if ($form->getFieldAttribute($name, 'validate', '', $section) === 'choice') {
+                        $form->setFieldAttribute($name, 'validate', '', $section);
+                    }
+                }
+            }
         }
+
+        // The invoice choice as the delivery details' display rules read it: as sent, or, on an API update that does not
+        // state it, whether the order has invoice details of its own (2.2.2).
+        $invoiceDiffers = \array_key_exists('invoice_differs', $data)
+            ? !empty($data['invoice_differs'])
+            : !$isNew && $this->keepsOmittedDetails() && $this->hasOwnInvoice(orderId: (int) ($data['id'] ?? 0));
 
         // An update that leaves the delivery details out (a REST PATCH of the note alone) leaves them as they are, so
         // they are not validated: a field the shop requires there is asked of a creation and of an update that sends
         // the details, never of one that does not. The order screen always sends them.
         if ($isNew || \array_key_exists(FieldsHelper::FIELDS_KEY, $data)) {
             $deliveryFields = FieldsHelper::getFields('cart.shipping', null, $visibilityId);
-            $deliveryExtra = ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'];
+            $deliveryExtra = ['invoice_differs' => $invoiceDiffers ? '1' : null];
             $this->noteNotKept(
                 section: FieldsHelper::FIELDS_KEY,
                 fields: $deliveryFields,
@@ -1108,8 +1127,8 @@ class OrderModel extends AlfaAdminModel
 
     /**
      * Whether a submission keeps the order's stored invoice details whole: an update through the API (whose omitted
-     * sections mean "unchanged") that sends no invoice details and either does not state invoice_differs or states it 1.
-     * Only invoice_differs 0 sent asks the order to invoice to its delivery details. The API refuses invoice_differs 1
+     * sections mean "unchanged") that sends no invoice details and states invoice_differs 1, or does not state it on an
+     * order with invoice details of its own. invoice_differs 0 sent asks the order to invoice to its delivery details. The API refuses invoice_differs 1
      * without the details when the order has no invoice details of its own (OrdersController), so the details kept are
      * the order's own. The order screen posts its sections whole and keeps nothing this way.
      *
@@ -1128,7 +1147,39 @@ class OrderModel extends AlfaAdminModel
             return false;
         }
 
-        return !\array_key_exists('invoice_differs', $data) || !empty($data['invoice_differs']);
+        if (\array_key_exists('invoice_differs', $data)) {
+            return !empty($data['invoice_differs']);
+        }
+
+        // Not stated: an order with invoice details of its own keeps them; one that invoices to its delivery details
+        // goes on doing so, its invoice following the delivery record a change of the details writes.
+        return $this->hasOwnInvoice(orderId: (int) ($data['id'] ?? $this->getState($this->getName() . '.id')));
+    }
+
+    /**
+     * Whether an order has invoice details of its own: an invoice record that is not its delivery record (2.2.2).
+     *
+     * @param int $orderId The order.
+     *
+     * @since  2.2.2
+     */
+    private function hasOwnInvoice(int $orderId): bool
+    {
+        if ($orderId <= 0) {
+            return false;
+        }
+
+        $db = $this->getDatabase();
+        $pointers = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id_address_delivery', 'id_address_invoice']))
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadAssoc() ?: [];
+        $invoice = (int) ($pointers['id_address_invoice'] ?? 0);
+
+        return $invoice > 0 && $invoice !== (int) ($pointers['id_address_delivery'] ?? 0);
     }
 
     /**

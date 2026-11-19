@@ -935,6 +935,9 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
+            // The order row first, as every writer of an order takes it (2.2.2): this write moves the order's shipping
+            // method (OrderMethods), and the order's delete locks the order before its parcels.
+            self::lockOrderRow(orderId: $orderId);
             $success = self::saveToTable($data);
 
             if (!$success) {
@@ -1641,6 +1644,8 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
+            // The order row first, as every writer of an order takes it (2.2.2; see create()).
+            self::lockOrderRow(orderId: $orderId);
             $written = self::writeUpdate(id: $id, orderId: $orderId, data: $data, entered: $entered, writer: $writer);
 
             if ($written === null) {
@@ -2177,6 +2182,9 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
+            // The order row first, as every writer of an order takes it (2.2.2; see create()), then the parcel.
+            self::lockOrderRow(orderId: $orderId);
+
             // Read the CURRENT status inside the transaction, with the row
             // held. Read outside it and a carrier's second delivery
             // notification can pass the check while the first is still
@@ -2275,6 +2283,9 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
+            // The order row first, as every writer of an order takes it (2.2.2; see create()).
+            self::lockOrderRow(orderId: $orderId);
+
             // Clear item assignments first (FK integrity)
             self::clearItemAssignments($id, $orderId);
 
@@ -2503,6 +2514,27 @@ class ShipmentLedger
             self::warnFailure(message: 'assignItems() failed', failure: $e);
             return false;
         }
+    }
+
+    /**
+     * Lock an order's row for the transaction that writes one of its parcels (2.2.2): the parcel's write moves the
+     * order's shipping method, and every writer of an order takes the order's row before its rows (the payments ledger,
+     * the order's delete), so two of them never wait on each other in turn.
+     *
+     * @param int $orderId Order PK
+     *
+     * @since  2.2.2
+     */
+    private static function lockOrderRow(int $orderId): void
+    {
+        $db = self::db();
+        $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = ' . (int) $orderId)
+            . ' FOR UPDATE',
+        )->loadResult();
     }
 
     /**

@@ -82,14 +82,18 @@ final class WriteWarnings
     }
 
     /**
-     * The notes of this request, in the order they were made.
+     * The notes made since they were last taken, in the order they were made, and forget them: an answer says what its
+     * own write changed, never what an earlier write of the same process did.
      *
      * @return list<array{code: string, detail: string, pointer: string}>
      *
      * @since  2.2.2
      */
-    public static function all(): array
+    public static function take(): array
     {
-        return self::$notes;
+        $notes = self::$notes;
+        self::$notes = [];
+
+        return $notes;
     }
 }

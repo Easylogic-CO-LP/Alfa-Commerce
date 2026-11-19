@@ -26,10 +26,12 @@ use Joomla\Database\ParameterType;
  *             (a payment from the customer's credit) is left out, as it keeps its own label;
  *   shipment  the method of the order's latest parcel that is not cancelled or returned.
  *
- * With no such row the order keeps what it holds. Run by the payments ledger and the shipments ledger inside the
- * transaction of every write of a row (a new row, a change, a status change, a delete), so the order and its rows
- * commit together. Before, a payment filled the order's method only while the order had none, so a cancelled method
- * stayed on the order when another one paid, and no parcel ever wrote it.
+ * With no such row the order keeps what it holds, and an order already on that row's method keeps its own name and
+ * plugin (the name the order was placed with, in the customer's language). Run by the payments ledger and the
+ * shipments ledger inside the transaction of every write of a row (a new row, a change, a status change, a delete),
+ * under the order row's lock, so the order and its rows commit together. Before, a payment filled the order's method
+ * only while the order had none, so a cancelled method stayed on the order when another one paid, and no parcel ever
+ * wrote it.
  *
  * @since  2.2.2
  */
@@ -68,8 +70,7 @@ final class OrderMethods
             return;
         }
 
-        self::write(orderId: $orderId, columns: [
-            'id_payment_method' => (int) $row->id_payment_method,
+        self::write(orderId: $orderId, id: ['id_payment_method', (int) $row->id_payment_method], texts: [
             'payment_method_name' => (string) $row->payment_method,
             'payment_method_type' => (string) $row->payment_method_type,
         ]);
@@ -106,33 +107,49 @@ final class OrderMethods
             return;
         }
 
-        self::write(orderId: $orderId, columns: [
-            'id_shipment_method' => (int) $row->id_shipment_method,
+        self::write(orderId: $orderId, id: ['id_shipment_method', (int) $row->id_shipment_method], texts: [
             'shipment_method_name' => (string) ($row->shipment_method_name ?? ''),
             'shipment_method_type' => (string) $row->shipment_method_type,
         ]);
     }
 
     /**
-     * Write the method's three columns onto the order. A row whose columns already hold them is left as it is by the
-     * database itself.
+     * Move the order onto a method: its id, and the row's name and plugin, together. Nothing is written when the order
+     * is already on that method, so an order keeps the name it was placed with while it is paid and sent by the method
+     * it chose.
      *
      * @param int $orderId The order.
-     * @param array<string, int|string> $columns The id, name and type, by column.
+     * @param array{0: string, 1: int} $id The id column and the method's id.
+     * @param array<string, string> $texts The name and plugin columns and the row's values.
      *
      * @since  2.2.2
      */
-    private static function write(int $orderId, array $columns): void
+    private static function write(int $orderId, array $id, array $texts): void
     {
+        [$idColumn, $methodId] = $id;
         $db = self::db();
+        $current = (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName($idColumn))
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :order')
+                ->bind(':order', $orderId, ParameterType::INTEGER),
+        )->loadResult();
+
+        if ($current === $methodId) {
+            return;
+        }
+
         $query = $db->getQuery(true)
             ->update($db->quoteName('#__alfa_orders'))
+            ->set($db->quoteName($idColumn) . ' = :method')
             ->where($db->quoteName('id') . ' = :order')
+            ->bind(':method', $methodId, ParameterType::INTEGER)
             ->bind(':order', $orderId, ParameterType::INTEGER);
 
-        foreach (array_keys($columns) as $column) {
+        foreach (array_keys($texts) as $column) {
             $query->set($db->quoteName($column) . ' = :' . $column)
-                ->bind(':' . $column, $columns[$column], \is_int($columns[$column]) ? ParameterType::INTEGER : ParameterType::STRING);
+                ->bind(':' . $column, $texts[$column], ParameterType::STRING);
         }
 
         $db->setQuery($query)->execute();

@@ -161,7 +161,7 @@ class JsonApiView extends BaseApiView
         // What the write that answers with this order changed or left out on its own (2.2.2): each {code, detail,
         // pointer}, for example a second parcel's charge set to 0 (shipping_charged_once) or a detail field the shop's
         // display rule hides (hidden_by_rule).
-        $warnings = WriteWarnings::all();
+        $warnings = WriteWarnings::take();
 
         if ($warnings !== []) {
             $this->getDocument()->addMeta('warnings', $warnings);
