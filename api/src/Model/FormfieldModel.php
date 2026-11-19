@@ -57,6 +57,12 @@ class FormfieldModel extends AdminFormfieldModel
                 primaryColumnName: 'id_formfield',
                 tableName:         '#__alfa_form_fields',
             );
+
+            // The field type's settings, as the form builds the field from them (2.2.2): a choice's options (each a
+            // value and its text), min_selections and max_selections, a phone's default_region. A text stored per
+            // language reads in the request's language, as the storefront form reads it (FormFieldsPlugin::prepareDom()).
+            // Read only: the field's settings are written on its edit screen.
+            $item->params = MultilingualHelper::collapseToCurrent(data: \is_array($item->params ?? null) ? $item->params : []);
         }
 
         return $item;

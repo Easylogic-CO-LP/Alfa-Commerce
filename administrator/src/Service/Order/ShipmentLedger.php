@@ -2507,6 +2507,39 @@ class ShipmentLedger
     }
 
     /**
+     * How many units of each order line every parcel of an order carries, in one statement (2.2.2): what the REST
+     * order read publishes as each parcel's lines.
+     *
+     * @param int $orderId Order PK
+     *
+     * @return array<int, array<int, int>> [ shipmentId => [ orderItemId => quantity ] ], the lines in id order; a parcel
+     *                                     that carries no line is absent.
+     *
+     * @since  2.2.2
+     */
+    public static function itemQuantitiesOfOrder(int $orderId): array
+    {
+        if ($orderId <= 0) {
+            return [];
+        }
+
+        $db = self::db();
+        $query = $db->getQuery(true)
+            ->select([$db->quoteName('id_order_shipment'), $db->quoteName('id_order_item'), $db->quoteName('quantity')])
+            ->from($db->quoteName(self::SHIPMENT_ITEMS_TABLE))
+            ->where($db->quoteName('id_order') . ' = ' . (int) $orderId)
+            ->order([$db->quoteName('id_order_shipment'), $db->quoteName('id_order_item')]);
+
+        $map = [];
+
+        foreach ($db->setQuery($query)->loadObjectList() ?: [] as $row) {
+            $map[(int) $row->id_order_shipment][(int) $row->id_order_item] = (int) $row->quantity;
+        }
+
+        return $map;
+    }
+
+    /**
      * Get human-readable names of assigned items.
      *
      * Format: "T-Shirt x2, Jeans x1"; the xN is the quantity in THIS

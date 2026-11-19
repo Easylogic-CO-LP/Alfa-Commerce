@@ -40,6 +40,10 @@ class JsonApiView extends BaseApiView
         'is_cancelled',
         'is_completed',
         'notify_customer',
+        // Whether entering the status mails one of its administrator recipients, and who they are (Joomla user ids)
+        // (2.2.2).
+        'notifies_staff',
+        'admin_recipient_ids',
         'ordering',
         'state',
         'translations',
@@ -60,7 +64,30 @@ class JsonApiView extends BaseApiView
         'is_initial',
         'is_cancelled',
         'is_completed',
+        // Who entering the status mails: the customer, and its administrator recipients (2.2.2).
+        'notify_customer',
+        'notifies_staff',
         'ordering',
         'state',
     ];
+
+    /**
+     * A list row's or the record's mail facts as whole numbers, as the status's other flags read (2.2.2).
+     *
+     * @param object $item The status.
+     *
+     * @return object
+     *
+     * @since  2.2.2
+     */
+    protected function prepareItem($item)
+    {
+        foreach (['notify_customer', 'notifies_staff'] as $flag) {
+            if (isset($item->{$flag})) {
+                $item->{$flag} = (int) $item->{$flag};
+            }
+        }
+
+        return parent::prepareItem($item);
+    }
 }

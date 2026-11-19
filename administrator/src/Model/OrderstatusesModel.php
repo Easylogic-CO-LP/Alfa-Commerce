@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Exception;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 
@@ -132,6 +133,10 @@ class OrderstatusesModel extends AlfaListModel
             ),
         );
         $query->from('`#__alfa_orders_statuses` AS a');
+
+        // Whether the status tells staff (2.2.2): an administrator recipient who may receive mail, by the definition
+        // the status e-mail reads (EmailService::staffRecipientsSql()); the REST list publishes it as notifies_staff.
+        $query->select(EmailService::staffRecipientsSql(statusColumn: 'a.id') . ' AS ' . $db->quoteName('notifies_staff'));
 
         // Join over the users for the checked out user
         $query->select('uc.name AS uEditor');

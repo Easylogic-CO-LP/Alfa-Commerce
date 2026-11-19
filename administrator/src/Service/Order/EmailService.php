@@ -823,22 +823,40 @@ class EmailService
         }
 
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $recipients = $db->getQuery(true)
-            ->select('1')
-            ->from($db->quoteName('#__alfa_orderstatus_recipients', 'r'))
-            ->join('INNER', $db->quoteName('#__users', 'u') . ' ON ' . $db->quoteName('u.id') . ' = ' . $db->quoteName('r.id_user'))
-            ->where($db->quoteName('r.id_orderstatus') . ' = ' . $db->quoteName('s.id'))
-            ->where($db->quoteName('u.block') . ' = 0')
-            ->where($db->quoteName('u.email') . " <> ''");
         $query = $db->getQuery(true)
             ->select($db->quoteName('s.notify_customer'))
-            ->select('EXISTS (' . $recipients . ') AS ' . $db->quoteName('admins'))
+            ->select(self::staffRecipientsSql(statusColumn: 's.id') . ' AS ' . $db->quoteName('admins'))
             ->from($db->quoteName('#__alfa_orders_statuses', 's'))
             ->where($db->quoteName('s.id') . ' = :statusId')
             ->bind(':statusId', $statusId, ParameterType::INTEGER);
         $row = $db->setQuery($query)->loadObject();
 
         return $row !== null && (($customer && (int) ($row->notify_customer ?? 0) === 1) || (int) ($row->admins ?? 0) === 1);
+    }
+
+    /**
+     * Whether a status has an administrator recipient who may receive mail (not blocked, an address set), as an SQL
+     * condition on the status column a query names (2.2.2): the one definition of "the status tells staff", read by
+     * {@see self::notifiesForStatus()} and by the order statuses list, which publishes it as notifies_staff.
+     *
+     * @param string $statusColumn The status id column of the query it goes into, e.g. 's.id' or 'a.id'.
+     *
+     * @return string An EXISTS (...) condition.
+     *
+     * @since  2.2.2
+     */
+    public static function staffRecipientsSql(string $statusColumn): string
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $recipients = $db->getQuery(true)
+            ->select('1')
+            ->from($db->quoteName('#__alfa_orderstatus_recipients', 'r'))
+            ->join('INNER', $db->quoteName('#__users', 'u') . ' ON ' . $db->quoteName('u.id') . ' = ' . $db->quoteName('r.id_user'))
+            ->where($db->quoteName('r.id_orderstatus') . ' = ' . $db->quoteName($statusColumn))
+            ->where($db->quoteName('u.block') . ' = 0')
+            ->where($db->quoteName('u.email') . " <> ''");
+
+        return 'EXISTS (' . $recipients . ')';
     }
 
     /**
