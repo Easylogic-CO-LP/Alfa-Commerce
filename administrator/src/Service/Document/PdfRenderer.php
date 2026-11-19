@@ -43,15 +43,16 @@ final class PdfRenderer
      * @return string Raw PDF bytes.
      *
      * @throws PdfLibraryMissingException When lib_dompdf, or a library it needs, is missing or disabled, asked first
-     *                                    ({@see BundledLibraries::unavailable()}): nothing is rendered for a PDF that
-     *                                    cannot be made.
+     *                                    ({@see BundledLibraries::available()}, which answers a failed reading of the
+     *                                    libraries as not available): nothing is rendered for a PDF that cannot be
+     *                                    made, and no database message reaches the caller.
      * @throws RuntimeException When the document is missing or rendering fails.
      *
      * @since  2.0.0
      */
     public static function pdfBytes(int $documentId): string
     {
-        if (BundledLibraries::unavailable(libraries: BundledLibraries::PDF) !== []) {
+        if (!BundledLibraries::available(libraries: BundledLibraries::PDF)) {
             throw new PdfLibraryMissingException();
         }
 

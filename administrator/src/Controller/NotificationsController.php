@@ -90,7 +90,9 @@ class NotificationsController extends BaseController
         CollationCheck::syncNotice();
 
         // And what the administrators are told rather than asked to do (2.2.2): Joomla's page cache, a library a
-        // feature needs that is missing or disabled.
+        // feature needs that is missing or disabled, online sales off, the products priced only from a larger
+        // quantity than they sell from (at most every ten minutes) and the Alfa extensions not built for this
+        // version (at most every hour).
         InformationNotices::sync();
 
         $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);

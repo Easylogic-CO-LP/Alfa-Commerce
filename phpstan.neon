@@ -50,12 +50,11 @@ parameters:
         - '#Call to an undefined method Joomla\\CMS\\Form\\FormField::#'
         - '#Call to an undefined method Joomla\\Session\\SessionInterface::#'
 
-        # libphonenumber (giggsey) and the locale data it reads are bundled as Joomla libraries
-        # (libraries/lib_libphonenumber, libraries/lib_giggsey_locale), not in the scanned Joomla
-        # tree, so their symbols can't be resolved here.
+        # libphonenumber (giggsey) is bundled as a Joomla library (libraries/lib_libphonenumber),
+        # not in the scanned Joomla tree, so its symbols can't be resolved here.
         - '#unknown class libphonenumber\\#'
         - '#unknown class .*\\libphonenumber\\#'
-        - '#class (libphonenumber|Giggsey\\Locale)\\[A-Za-z0-9\\]+ not found#i'
+        - '#class libphonenumber\\[A-Za-z0-9\\]+ not found#i'
 
         # dompdf and the four libraries it needs are bundled the same way (libraries/lib_dompdf and the four beside
         # it, installed as Joomla libraries), so their symbols can't be resolved here either.
