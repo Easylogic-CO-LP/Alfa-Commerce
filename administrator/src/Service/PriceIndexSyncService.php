@@ -95,10 +95,13 @@ use Throwable;
  *
  * The update to 2.2.2. The index of 2.2.1 is renamed #__alfa_items_price_index_prev by the
  * installer and stays readable, with its readers, while the new index is built in the background by the catalogue job
- * (Tools > Rebuild projections shows its progress); the switch is the flag #__alfa_meta prices.index_build: while that
- * row exists the storefront reads the previous index, and the job removes it once every product is rebuilt and the
- * completeness count passes ({@see self::finishBuild()}). The installer of the next update after the switch drops the
- * previous index.
+ * (Tools > Rebuild catalogue projections shows its progress); the switch is the flag #__alfa_meta prices.index_build,
+ * written before the rename: while that row exists the storefront reads the previous index, and the job removes it once
+ * the completeness count passes ({@see self::finishBuild()}). A product whose pricing throws holds no switch: it gets
+ * rows with no figure in every context, is recorded as left out (Tools names it), reads as a product with no price until
+ * it is fixed, and stays owed. The switch is recorded (#__alfa_meta prices.index_switched), and the installer of the next
+ * update after it drops the previous index; an installer run that stopped part way runs again with the next
+ * installation and resumes the build.
  *
  * Every write of a product's rows, a preparation's chunk included, holds the product's lock (IndexRebuildLock): the
  * product, its units and the contexts' progress are read after the grant, and the rows commit before the release.
@@ -192,6 +195,14 @@ class PriceIndexSyncService
      * @since  2.2.2
      */
     public const PREVIOUS_TABLE = '#__alfa_items_price_index_prev';
+
+    /**
+     * The #__alfa_meta row written when the storefront switched from the previous index to this one (2.2.2): its value
+     * the moment. Only once it exists does an update drop the previous index.
+     *
+     * @since  2.2.2
+     */
+    public const META_SWITCHED = 'prices.index_switched';
 
     /**
      * The #__alfa_meta fact of the sets of pricing groups (2.2.2), JSON: pricing, the pricing groups the sets customers
@@ -883,27 +894,54 @@ class PriceIndexSyncService
     }
 
     /**
-     * Begin the build after the update (the installer, 2.2.2): the flag written, every product marked owed a rebuild and
-     * the catalogue job enqueued, so the new index is built in the background while the storefront reads the previous
-     * one.
+     * When the storefront switched from the previous index, as stored; null before the switch (or with no previous
+     * index ever).
      *
-     * @return int The products marked.
+     * @since  2.2.2
+     */
+    public static function switchedAt(): ?string
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $value = $db->setQuery(
+            'SELECT ' . $db->quoteName('value') . ' FROM ' . $db->quoteName('#__alfa_meta')
+            . ' WHERE ' . $db->quoteName('name') . ' = ' . $db->quote(self::META_SWITCHED),
+        )->loadResult();
+
+        return \is_string($value) ? $value : null;
+    }
+
+    /**
+     * Write the flag of the build after the update, keeping the moment of a build already begun: the installer writes it
+     * before it renames the previous index, so a run that stops after the rename resumes the build.
+     *
+     * @since  2.2.2
+     */
+    public static function writeBuildFlag(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $name = self::META_BUILD;
+        $value = gmdate('Y-m-d H:i:s');
+        $db->setQuery(
+            $db->getQuery(true)->setQuery(
+                'INSERT INTO ' . $db->quoteName('#__alfa_meta') . ' (' . $db->quoteName('name') . ', ' . $db->quoteName('value') . ') VALUES (:name, :value)'
+                . ' ON DUPLICATE KEY UPDATE ' . $db->quoteName('value') . ' = ' . $db->quoteName('value'),
+            )->bind(':name', $name)->bind(':value', $value),
+        )->execute();
+        self::$building = true;
+    }
+
+    /**
+     * Begin or resume the build after the update (the installer, 2.2.2): the flag written (its first moment kept), every
+     * item marked owed a rebuild and the catalogue job enqueued, so the new index is built in the background while the
+     * storefront reads the previous one. Each step is idempotent: a second run marks and enqueues again.
+     *
+     * @return int The items marked.
      *
      * @since  2.2.2
      */
     public static function startBuild(): int
     {
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $name = self::META_BUILD;
-        $value = gmdate('Y-m-d H:i:s');
-        $again = $value;
-        $db->setQuery(
-            $db->getQuery(true)->setQuery(
-                'INSERT INTO ' . $db->quoteName('#__alfa_meta') . ' (' . $db->quoteName('name') . ', ' . $db->quoteName('value') . ') VALUES (:name, :value)'
-                . ' ON DUPLICATE KEY UPDATE ' . $db->quoteName('value') . ' = :again',
-            )->bind(':name', $name)->bind(':value', $value)->bind(':again', $again),
-        )->execute();
-        self::$building = true;
+        self::writeBuildFlag();
         $marked = ProjectionManager::markAllForRebuild();
         CatalogueRebuildJob::enqueue();
 
@@ -911,9 +949,12 @@ class PriceIndexSyncService
     }
 
     /**
-     * The switch from the previous index: once no product is owed a rebuild and the completeness count of
-     * every context passes, the flag goes and the storefront reads this index from its next request. A context short of
-     * rows has the products it lacks owed again, and the catalogue job's next pass asks again.
+     * The switch from the previous index, asked when a pass of the catalogue job ends: the contexts aligned, then the
+     * completeness count. A unit no context row covers is written now, each product alone where a chunk fails; a product
+     * whose pricing still throws gets rows with no figure in every context and is recorded as left out, so one product
+     * never holds the storefront on the previous index. Once the count passes the flag goes, the switch is recorded,
+     * and the storefront reads this index from its next request; else the products the count lacks are owed and the
+     * next pass asks again. The marks of other projections never hold the switch.
      *
      * @return bool Whether the switch was made now.
      *
@@ -921,7 +962,7 @@ class PriceIndexSyncService
      */
     public function finishBuild(): bool
     {
-        if (self::buildStartedAt() === null || ProjectionManager::markedCount() > 0) {
+        if (self::buildStartedAt() === null) {
             return false;
         }
 
@@ -930,19 +971,218 @@ class PriceIndexSyncService
         $check = $this->completeness();
 
         if (!$check['rows']) {
+            $this->completeMissing(check: $check);
+            $check = $this->completeness();
+        }
+
+        if (!$check['rows']) {
             $this->oweIncomplete(check: $check);
 
             return false;
         }
 
-        $this->db->setQuery(
-            'DELETE FROM ' . $this->db->quoteName('#__alfa_meta') . ' WHERE ' . $this->db->quoteName('name') . ' = ' . $this->db->quote(self::META_BUILD),
-        )->execute();
+        $name = self::META_SWITCHED;
+        $value = gmdate('Y-m-d H:i:s');
+        $this->db->transactionStart(true);
+
+        try {
+            $this->db->setQuery(
+                'DELETE FROM ' . $this->db->quoteName('#__alfa_meta') . ' WHERE ' . $this->db->quoteName('name') . ' = ' . $this->db->quote(self::META_BUILD),
+            )->execute();
+            $this->db->setQuery(
+                $this->db->getQuery(true)->setQuery(
+                    'INSERT INTO ' . $this->db->quoteName('#__alfa_meta') . ' (' . $this->db->quoteName('name') . ', ' . $this->db->quoteName('value') . ') VALUES (:name, :value)'
+                    . ' ON DUPLICATE KEY UPDATE ' . $this->db->quoteName('value') . ' = :again',
+                )->bind(':name', $name)->bind(':value', $value)->bind(':again', $value),
+            )->execute();
+            TransactionState::commitLevel(db: $this->db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $this->db, failure: $e);
+
+            throw $e;
+        }
+
         self::$building = false;
         AlfaLog::register();
-        Log::add('[PriceIndexSyncService] The price index is built: the storefront reads it from now on; the previous index is dropped by the next update.', Log::INFO, 'com_alfa');
+        Log::add(
+            '[PriceIndexSyncService] The price index is built: the storefront reads it from now on; the previous index is dropped by the next update.'
+            . ($check['leftOut'] === [] ? '' : ' Left out, with no price until they can be priced: item(s) ' . implode(', ', $check['leftOut']) . '.'),
+            $check['leftOut'] === [] ? Log::INFO : Log::WARNING,
+            'com_alfa',
+        );
 
         return true;
+    }
+
+    /**
+     * Write the units the completeness count finds missing (the switch's last step): the products that lack a row
+     * covering now in a context of a set, and those of a customer's incomplete context, at most a thousand at a time;
+     * first together, then each alone where a chunk failed; a product whose pricing still throws is left out
+     * ({@see self::leaveOut()}).
+     *
+     * @param array $check What completeness() answered.
+     *
+     * @since  2.2.2
+     */
+    private function completeMissing(array $check): void
+    {
+        $missing = function () use ($check): array {
+            $items = $this->missingItems(limit: 1000);
+
+            foreach ($check['contexts'] as $context) {
+                if ($context['user'] > 0 && $context['covering'] < $context['expected']) {
+                    $items = array_merge($items, $this->uncoveredOf(contextId: $context['id'], itemIds: array_keys($this->touchedBy(userId: $context['user']))));
+                }
+            }
+
+            $items = array_values(array_unique(array_map('intval', $items)));
+            sort($items);
+
+            return $items;
+        };
+        $items = $missing();
+
+        if ($items === []) {
+            return;
+        }
+
+        $contexts = array_values($this->contextRows(ids: null, waitingOnly: false));
+        $this->writeIndexRows(itemIds: $items, contexts: $contexts);
+        $still = array_values(array_intersect($missing(), $items));
+
+        foreach ($still as $itemId) {
+            $this->writeIndexRows(itemIds: [$itemId], contexts: $contexts);
+        }
+
+        $failed = array_values(array_intersect($missing(), $still));
+
+        if ($failed !== []) {
+            $this->leaveOut(itemIds: $failed);
+        }
+    }
+
+    /**
+     * The products of a list that hold no row covering now in a context, for a published unit of theirs.
+     *
+     * @param int $contextId The context.
+     * @param int[] $itemIds The products.
+     *
+     * @return int[]
+     *
+     * @since  2.2.2
+     */
+    private function uncoveredOf(int $contextId, array $itemIds): array
+    {
+        $itemIds = array_values(array_filter(array_map('intval', $itemIds)));
+
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $db = $this->db;
+        $now = $db->quote(gmdate('Y-m-d H:i:s'));
+        $out = [];
+
+        foreach (array_chunk($itemIds, 1000) as $chunk) {
+            $out = array_merge($out, array_map('intval', $db->setQuery(
+                'SELECT DISTINCT a.id FROM ' . $db->quoteName('#__alfa_items') . ' AS a'
+                . ' LEFT JOIN ' . $db->quoteName('#__alfa_item_combinations') . ' AS oc ON oc.item_id = a.id AND oc.state = 1'
+                . ' WHERE a.state = 1 AND a.id IN (' . implode(',', $chunk) . ') AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::INDEX_TABLE) . ' AS i'
+                . ' WHERE i.context_id = ' . $contextId . ' AND i.item_id = a.id AND i.combination_id = COALESCE(oc.id, 0)'
+                . ' AND i.valid_from <= ' . $now . ' AND (i.valid_until IS NULL OR i.valid_until > ' . $now . '))',
+            )->loadColumn() ?: []));
+        }
+
+        return $out;
+    }
+
+    /**
+     * Leave products out of the index: in every context they are written for, each published unit gets one row from the
+     * epoch to an open end with no figure (listed with no price, last in a price sort, out of the price filters), and
+     * the products are recorded on the contexts' left_out, which Tools names. The next write that prices a product
+     * replaces its rows and takes it off the list. The products' locks held; one transaction level.
+     *
+     * @param int[] $itemIds The products whose pricing throws.
+     *
+     * @since  2.2.2
+     */
+    private function leaveOut(array $itemIds): void
+    {
+        $itemIds = $this->publishedOf(itemIds: array_values(array_unique(array_map('intval', $itemIds))));
+
+        if ($itemIds === []) {
+            return;
+        }
+
+        $lock = new IndexRebuildLock($this->db);
+        $status = $lock->acquire(itemIds: $itemIds);
+        $granted = array_keys($status, IndexRebuildLock::GRANTED, true);
+
+        try {
+            if ($granted === []) {
+                return;
+            }
+
+            $contexts = $this->contextRows(ids: null, waitingOnly: false);
+            $units = $this->unitsOf(itemIds: $granted);
+            $none = implode(',', array_fill(0, 7, 'NULL'));
+            $this->db->transactionStart(true);
+
+            try {
+                $values = [];
+
+                foreach ($contexts as $context) {
+                    $items = $context['through'] === null ? $granted : array_values(array_filter($granted, static fn (int $itemId): bool => $itemId <= $context['through']));
+
+                    if ($context['user_id'] > 0) {
+                        $touched = $this->touchedBy(userId: $context['user_id']);
+                        $items = array_values(array_filter($items, static fn (int $itemId): bool => isset($touched[$itemId])));
+                    }
+
+                    if ($items === []) {
+                        continue;
+                    }
+
+                    $this->db->setQuery(
+                        $this->db->getQuery(true)
+                            ->delete($this->db->quoteName(self::INDEX_TABLE))
+                            ->whereIn($this->db->quoteName('item_id'), $items)
+                            ->where($this->db->quoteName('context_id') . ' = ' . (int) $context['id']),
+                    )->execute();
+
+                    foreach ($items as $itemId) {
+                        foreach ($units[$itemId] === [] ? [0] : $units[$itemId] as $combinationId) {
+                            $values[] = '(' . (int) $context['id'] . ',' . $itemId . ',' . (int) $combinationId . ',' . $this->db->quote(self::EPOCH) . ',NULL,' . $none . ',UTC_TIMESTAMP())';
+                        }
+                    }
+
+                    $this->db->setQuery(
+                        'UPDATE ' . $this->db->quoteName(self::CONTEXTS_TABLE) . ' SET ' . $this->db->quoteName('left_out') . ' = '
+                        . $this->db->quote(implode(',', array_values(array_unique(array_merge($context['leftOut'], $items)))))
+                        . ' WHERE ' . $this->db->quoteName('id') . ' = ' . (int) $context['id'],
+                    )->execute();
+                }
+
+                foreach (array_chunk($values, self::INSERT_ROWS) as $part) {
+                    $this->db->setQuery(
+                        'INSERT INTO ' . $this->db->quoteName(self::INDEX_TABLE) . ' (' . implode(', ', $this->db->quoteName([
+                            'context_id', 'item_id', 'combination_id', 'valid_from', 'valid_until', 'base_price', 'discount_amount', 'base_price_with_discounts',
+                            'tax_amount', 'base_price_with_tax', 'final_price', 'discount_percent', 'updated_at',
+                        ])) . ') VALUES ' . implode(',', $part),
+                    )->execute();
+                }
+
+                TransactionState::commitLevel(db: $this->db);
+            } catch (Throwable $e) {
+                TransactionState::rollBackLevel(db: $this->db, failure: $e);
+
+                throw $e;
+            }
+        } finally {
+            $lock->release(itemIds: $granted);
+        }
+
+        $this->logWarning(message: 'Item(s) ' . implode(', ', $granted) . ' could not be priced and are left out of the price index: listed with no price until a write can price them.');
     }
 
     // The completeness check
@@ -954,7 +1194,7 @@ class PriceIndexSyncService
      * and every product's stored opening combination equal to the choice in SQL. rows says whether the rows pass, which
      * the switch asks; complete adds the pointers, which Tools reports.
      *
-     * @return array{complete: bool, rows: bool, units: int, contexts: list<array{id: int, user: int, expected: int, covering: int, stale: int}>, gaps: int, pointers: array{count: int, items: int[]}}
+     * @return array{complete: bool, rows: bool, units: int, contexts: list<array{id: int, user: int, expected: int, covering: int, stale: int}>, gaps: int, pointers: array{count: int, items: int[]}, leftOut: int[]}
      *
      * @since  2.2.2
      */
@@ -1005,8 +1245,19 @@ class PriceIndexSyncService
         }
 
         $pointers = OpeningCombination::disagreements();
+        $leftOut = [];
 
-        return ['complete' => $complete && $pointers['count'] === 0, 'rows' => $complete, 'units' => $units, 'contexts' => $contexts, 'gaps' => $gaps, 'pointers' => $pointers];
+        foreach ($db->setQuery(
+            'SELECT ' . $db->quoteName('left_out') . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE)
+            . ' WHERE ' . $db->quoteName('prepared_at') . ' IS NOT NULL AND ' . $db->quoteName('left_out') . ' IS NOT NULL AND ' . $db->quoteName('left_out') . ' <> ' . $db->quote(''),
+        )->loadColumn() ?: [] as $list) {
+            $leftOut = array_merge($leftOut, self::groupsOfList(list: (string) $list));
+        }
+
+        $leftOut = array_values(array_unique($leftOut));
+        sort($leftOut);
+
+        return ['complete' => $complete && $pointers['count'] === 0, 'rows' => $complete, 'units' => $units, 'contexts' => $contexts, 'gaps' => $gaps, 'pointers' => $pointers, 'leftOut' => $leftOut];
     }
 
     /**

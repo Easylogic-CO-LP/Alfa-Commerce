@@ -3318,11 +3318,15 @@ class com_alfaInstallerScript extends InstallerScript
      * shape of the database, never by the version recorded (a site that took an earlier 2.2.2 build runs no update file
      * again):
      * - The index of 2.2.1 (the table with a place_id column) is renamed #__alfa_items_price_index_prev and stays
-     *   readable, with its readers, while the new index is built: the new tables are made from this package's install
-     *   SQL, the flag prices.index_build is written, every product is marked owed a rebuild and the catalogue job is
-     *   enqueued, so the storefront keeps the previous prices until the new ones are complete, then switches (the job,
-     *   PriceIndexSyncService::finishBuild()). Staff are told, with Tools > Rebuild projections for the progress.
-     * - After the switch, the next update drops the previous index and the columns of the sets only it read.
+     *   readable, with its readers, while the new index is built: the flag prices.index_build is written first (before
+     *   the rename), the new tables are made from this package's install SQL, every item is marked owed a rebuild and
+     *   the catalogue job is enqueued, so the storefront keeps the previous prices until the new ones are complete, then
+     *   switches (the job, PriceIndexSyncService::finishBuild(), which records the switch). Staff are told, with
+     *   Tools > Rebuild catalogue projections for the progress.
+     * - While the flag and the previous index are there, every run marks and enqueues again (both idempotent), so a run
+     *   that stopped after the rename or before the marks resumes the build.
+     * - Once the switch is recorded, the next update drops the previous index and the columns of the sets only it read;
+     *   never on the flag's absence alone.
      * A failure is said, never a failed install: the step runs again with the next installation.
      *
      * @param   string  $type  install or update.
@@ -3346,9 +3350,12 @@ class com_alfaInstallerScript extends InstallerScript
                 'SELECT 1 FROM ' . $db->quoteName('information_schema.COLUMNS') . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
                 . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($index) . ' AND ' . $db->quoteName('COLUMN_NAME') . ' = ' . $db->quote('place_id'),
             )->loadResult();
-            $renamed = false;
+            $service = \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService::class;
 
             if ($oldShape) {
+                // The flag before the rename: a run that stops after it resumes the build at the next installation.
+                $service::writeBuildFlag();
+
                 if (\in_array($previous, $tables, true)) {
                     // The previous index is kept already: this one of the old shape is a leftover of a run that stopped.
                     $db->setQuery('DROP TABLE ' . $db->quoteName($index))->execute();
@@ -3356,7 +3363,6 @@ class com_alfaInstallerScript extends InstallerScript
                     $db->setQuery('RENAME TABLE ' . $db->quoteName($index) . ' TO ' . $db->quoteName($previous))->execute();
                 }
 
-                $renamed = true;
                 $tables[] = $previous;
             }
 
@@ -3371,19 +3377,26 @@ class com_alfaInstallerScript extends InstallerScript
                 $db->setQuery($match[0])->execute();
             }
 
-            if ($renamed) {
-                $marked = \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService::startBuild();
+            $hasPrevious = \in_array($previous, $tables, true);
+            // A switch made by a build of 2.2.2 that recorded none left rows in the new index and no flag.
+            $switched = $service::switchedAt() !== null || ($service::buildStartedAt() === null
+                && (bool) $db->setQuery('SELECT 1 FROM ' . $db->quoteName($index), 0, 1)->loadResult());
+
+            // The build begun, or resumed: every run while the previous index is there and no switch is recorded marks
+            // every item and enqueues the catalogue job again.
+            if ($hasPrevious && !$switched) {
+                $marked = $service::startBuild();
                 $app->enqueueMessage($this->installerText(
                     key:      'COM_ALFA_INSTALL_PRICE_INDEX_BUILD',
-                    fallback: 'Alfa Commerce %1$s builds the product list\'s price index again, for every combination of each product and every period: %2$d products, in the background (Tools > Rebuild projections shows how far it is). Until it is complete, the product list filters and sorts by the prices of the version before; it then switches by itself.',
+                    fallback: 'Alfa Commerce %1$s builds the product list\'s price index again, for every combination of each product and every period: %2$d items, in the background (Tools > Rebuild catalogue projections shows how far it is). Until it is complete, the product list filters and sorts by the prices of the version before; it then switches by itself.',
                     values:   [$this->packageVersion, $marked],
                 ));
 
                 return;
             }
 
-            // After the switch (no flag left), the next update drops the previous index and the sets' columns only it read.
-            if ($type === 'update' && \in_array($previous, $tables, true) && \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService::buildStartedAt() === null) {
+            // After the switch, the next update drops the previous index and the sets' columns only it read.
+            if ($type === 'update' && $hasPrevious && $switched && $service::buildStartedAt() === null) {
                 $db->setQuery('DROP TABLE ' . $db->quoteName($previous))->execute();
                 $sets = $db->replacePrefix('#__alfa_price_group_sets');
                 $present = array_map('strval', $db->setQuery(

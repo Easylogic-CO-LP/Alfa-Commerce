@@ -598,8 +598,9 @@ final class CoreToolProvider
 
     /**
      * Check the price index (2.2.2): one count per pricing context against the units it is written for, the rows of
-     * units no longer published, the gaps in the periods, and the opening combinations that differ from the choice in
-     * SQL. Changes nothing; the message gives the counts.
+     * units no longer published, the gaps in the periods, the opening combinations that differ from the choice in SQL
+     * (the first of them named), and the products left out with no price (named). Changes nothing; during the build
+     * after the update it says so.
      *
      * @param ExecuteToolActionEvent $event The tool request.
      *
@@ -628,6 +629,18 @@ final class CoreToolProvider
                     $check['pointers']['count'],
                     implode(', ', $check['pointers']['items']) ?: '-',
                 );
+
+            // The products whose pricing throws, listed with no price until a write can price them.
+            if ($check['leftOut'] !== []) {
+                $message .= ' ' . Text::sprintf('COM_ALFA_TOOLS_PRICE_INDEX_CHECK_LEFT_OUT', \count($check['leftOut']), '#' . implode(', #', \array_slice($check['leftOut'], 0, 20)));
+            }
+
+            // While the index is built after the update, the storefront reads the previous one and this check counts
+            // what is built so far.
+            if (PriceIndexSyncService::buildStartedAt() !== null) {
+                $message = Text::_('COM_ALFA_TOOLS_PRICE_INDEX_CHECK_DURING_BUILD') . ' ' . $message;
+            }
+
             $event->setMessage($message);
         } catch (Throwable $e) {
             $event->setError($e->getMessage());
@@ -636,7 +649,8 @@ final class CoreToolProvider
 
     /**
      * What the Rebuild catalogue projections card says while the price index is built after the update (2.2.2): since
-     * when, and how many products are still owed. Empty when the storefront reads the price index.
+     * when, how many items are still owed a rebuild, and the products left out with no price. Empty when the storefront
+     * reads the price index.
      *
      * @since  2.2.2
      */
@@ -649,12 +663,13 @@ final class CoreToolProvider
                 return '';
             }
 
+            $leftOut = PriceIndexSyncService::preparationState()['leftOut'];
+
             return Text::sprintf(
                 'COM_ALFA_TOOLS_PRICE_INDEX_BUILDING',
                 HTMLHelper::_('date', $since, Text::_('DATE_FORMAT_LC2')),
                 ProjectionManager::markedCount(),
-                (new PriceIndexSyncService())->publishedItemCount(),
-            );
+            ) . ($leftOut === [] ? '' : ' ' . Text::sprintf('COM_ALFA_TOOLS_PRICE_INDEX_CHECK_LEFT_OUT', \count($leftOut), '#' . implode(', #', \array_slice($leftOut, 0, 20))));
         } catch (Throwable) {
             return '';
         }

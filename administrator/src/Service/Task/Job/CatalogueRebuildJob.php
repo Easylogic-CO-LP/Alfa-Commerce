@@ -103,6 +103,14 @@ final class CatalogueRebuildJob implements JobHandler
         // never left with neither a job nor a staff item, and an item that always fails never keeps the job turning.
         $failed = ProjectionManager::stillMarked(read: array_intersect_key($marked, array_flip($answer['failed'])));
         $rebuilt = \count($marked) - \count($notRebuilt);
+        $last = max(array_keys($marked));
+        // The pass ends here when no busy item is left behind and no mark follows this chunk's: the switch is asked
+        // before a failure is thrown, so an item that always fails never holds the storefront on the previous index.
+        $finished = $busy === [] && (\count($marked) < $units || ProjectionManager::markedAfter(after: $last, limit: 1) === []);
+
+        if ($finished) {
+            self::finishPriceIndexBuild();
+        }
 
         if ($failed !== [] && $rebuilt === 0 && $busy === []) {
             throw new TaskError('COM_ALFA_TASKS_ERROR_CATALOGUE_STEP', [implode(', #', $failed)]);
@@ -117,19 +125,14 @@ final class CatalogueRebuildJob implements JobHandler
             return new JobChunk(units: $rebuilt, checkpoint: ['after' => min($busy) - 1], finished: false);
         }
 
-        $finished = \count($marked) < $units;
-
-        if ($finished) {
-            self::finishPriceIndexBuild();
-        }
-
-        return new JobChunk(units: \count($marked), checkpoint: ['after' => max(array_keys($marked))], finished: $finished);
+        return new JobChunk(units: \count($marked), checkpoint: ['after' => $last], finished: $finished);
     }
 
     /**
-     * The switch from the previous price index after the update (2.2.2), asked when a pass ends: made once
-     * no product is owed and the completeness count passes, else the products it lacks are owed again and the next pass
-     * asks again. A failure is logged; the storefront keeps reading the previous index.
+     * The switch from the previous price index after the update (2.2.2), asked when a pass ends: made once the
+     * completeness count passes (a product whose pricing throws left out with no figure,
+     * PriceIndexSyncService::finishBuild()), else the products it lacks are owed again and the next pass asks again. A
+     * failure is logged; the storefront keeps reading the previous index.
      *
      * @since  2.2.2
      */
