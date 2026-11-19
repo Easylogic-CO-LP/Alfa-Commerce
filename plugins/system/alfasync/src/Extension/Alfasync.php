@@ -974,7 +974,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     /**
      * The shop-wide stock settings saved with other values (2.2.2): the stock action, the backorder default or the
      * safety floor decide which combination a listing card opens on, so every product's opening combination is
-     * decided again (the price index reads its row by it; no price row is written). Never breaks the save.
+     * decided again (the price index reads its row by it; no price row is written); a failure owes every item to the
+     * catalogue job instead. Never breaks the save.
      *
      * @param array $before The Options before the save.
      * @param array $after The Options saved.
@@ -997,7 +998,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             ComponentHelper::getComponent('com_alfa')->setParams(new Registry($after));
             OpeningCombination::refreshAll();
         } catch (Throwable $e) {
-            $this->logError(caller: 'onExtensionAfterSave', message: 'the opening combinations were not decided again after the stock settings changed: ' . $e->getMessage());
+            $this->logError(caller: 'onExtensionAfterSave', message: 'the opening combinations were not decided again after the stock settings changed, every item is owed: ' . $e->getMessage());
+
+            // Every item owed instead: the catalogue job's writer decides the pointers of the products it writes.
+            OpeningCombination::afterCommand(itemIds: [], all: true);
         }
     }
 

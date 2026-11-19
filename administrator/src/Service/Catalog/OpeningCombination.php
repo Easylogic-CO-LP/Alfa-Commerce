@@ -11,10 +11,15 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
+use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 use Alfa\Component\Alfa\Site\Service\Variant\CombinationResolver;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
+use Throwable;
 
 /**
  * The combination a product's card opens on, stored as #__alfa_items.opening_combination_id (2.2.2): the price index
@@ -25,10 +30,12 @@ use Joomla\Database\DatabaseDriver;
  * CombinationResolver::resolve(): the default combination when it can be bought, else the first buyable one in
  * canonical order, else the default, else the first. A product without a published combination has 0.
  *
- * It is refreshed where an input of that rule changes: inside every inventory kernel command (stock, reservations,
- * integrity holds, tracking, sale rules, a location's state), by the price index writer for the products it writes
- * (the item save with its combinations, the catalogue job), and for the whole catalogue when the shop-wide stock
- * settings are saved. A refresh that changes the pointer writes no price row: only the row the listing reads moves.
+ * It is refreshed where an input of that rule changes: after every inventory kernel command (stock, reservations,
+ * integrity holds, tracking, sale rules) has committed, under the product's rebuild lock and from what is committed
+ * then ({@see self::afterCommand()}; a location's state owes every product to the catalogue job); by the price index
+ * writer for the products it writes, under their locks (the item save with its combinations, the catalogue job); and
+ * for the whole catalogue when the shop-wide stock settings are saved. A refresh that changes the pointer writes no
+ * price row: only the row the listing reads moves.
  *
  * The same choice in SQL ({@see self::choiceSql()}) is kept for checks only: Tools compares it with the stored pointer,
  * and the suites use it as an oracle. No listing reads it.
@@ -121,6 +128,62 @@ final class OpeningCombination
         self::store(pointers: $changed);
 
         return array_keys($changed);
+    }
+
+    /**
+     * Decide the pointers a stock command's change asks for, once its transaction has committed (2.2.2): each product
+     * under its rebuild lock, read after the grant from what is committed, the way the price index writer reads (a
+     * command's own snapshot may predate a concurrent command on another combination of the same product). A product
+     * whose lock is not granted, or whose refresh fails, is owed to the catalogue job, which decides it again. A change
+     * of every product's verdict owes every item and enqueues the job instead: its writer decides the pointers of the
+     * products it writes, in the background, under their locks.
+     *
+     * @param int[] $itemIds The products the command changed.
+     * @param bool $all Whether the command changed every product's verdict.
+     *
+     * @since  2.2.2
+     */
+    public static function afterCommand(array $itemIds, bool $all): void
+    {
+        if ($all) {
+            try {
+                ProjectionManager::markAllForRebuild();
+                CatalogueRebuildJob::enqueue();
+            } catch (Throwable $e) {
+                Log::add('[OpeningCombination] The opening combinations of the catalogue could not be owed after a location changed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');
+            }
+
+            return;
+        }
+
+        $itemIds = self::ids(itemIds: $itemIds);
+
+        if ($itemIds === []) {
+            return;
+        }
+
+        $lock = new IndexRebuildLock(self::db());
+        $granted = [];
+
+        try {
+            $status = $lock->acquire(itemIds: $itemIds);
+            $granted = array_keys($status, IndexRebuildLock::GRANTED, true);
+            $owed = array_values(array_diff($itemIds, $granted));
+
+            try {
+                self::refresh(itemIds: $granted);
+            } catch (Throwable $e) {
+                Log::add('[OpeningCombination] The opening combination of item(s) ' . implode(', ', $granted) . ' was not decided again and is owed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');
+                $owed = $itemIds;
+            }
+
+            ProjectionManager::owe(itemIds: $owed);
+        } catch (Throwable $e) {
+            Log::add('[OpeningCombination] The opening combination of item(s) ' . implode(', ', $itemIds) . ' could not be decided again: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');
+            ProjectionManager::owe(itemIds: $itemIds);
+        } finally {
+            $lock->release(itemIds: $granted);
+        }
     }
 
     /**

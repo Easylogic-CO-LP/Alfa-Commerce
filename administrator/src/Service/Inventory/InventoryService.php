@@ -29,7 +29,6 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
-use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
@@ -325,8 +324,8 @@ final class InventoryService
 
     /**
      * The products this command changed a stock verdict input of (2.2.2): their opening combination
-     * (#__alfa_items.opening_combination_id, the combination a listing card opens on) is decided again inside the
-     * command's transaction, when it registers its operation ({@see self::recordOperation()}).
+     * (#__alfa_items.opening_combination_id, the combination a listing card opens on) is decided again once the
+     * command's transaction has committed, from what is committed then ({@see self::refreshOpenings()}).
      *
      * @var array<int, true>
      */
@@ -3947,6 +3946,10 @@ final class InventoryService
      */
     private function rollBackCommand(Throwable $failure): bool
     {
+        // The opening combinations this command would have decided again go with it: nothing it changed is kept.
+        $this->openingItems = [];
+        $this->openingAll = false;
+
         return TransactionState::rollBackLevel(db: $this->db, failure: $failure);
     }
 
@@ -12278,10 +12281,12 @@ final class InventoryService
     }
 
     /**
-     * Decide again the opening combination of the products this command touched (2.2.2), inside its transaction, so
-     * the pointer the listing reads its price row by commits with the stock it follows. A pointer that moves writes no
-     * price row. A failure never fails the command: the products are owed to the catalogue job, which decides them
-     * again.
+     * Decide again the opening combination of the products this command touched (2.2.2), once the command's outermost
+     * transaction has committed: under each product's rebuild lock and from what is committed then, never from the
+     * snapshot the command's transaction read in, which two commands on two combinations of one product would leave
+     * stale (OpeningCombination::afterCommand()). A pointer that moves writes no price row. A command that changed every
+     * product's verdict (a location's state) owes every item to the catalogue job, whose writer decides the pointers it
+     * writes. A failure, or a lock not granted, owes the products. Nothing is decided when the transaction rolls back.
      *
      * @since  2.2.2
      */
@@ -12296,19 +12301,12 @@ final class InventoryService
             return;
         }
 
-        try {
-            if ($all) {
-                OpeningCombination::refreshAll();
-            } else {
-                OpeningCombination::refresh(itemIds: $items);
-            }
-        } catch (Throwable $e) {
-            if (TransactionState::isOpen(db: $this->db) && TransactionState::endedBy(db: $this->db, failure: $e)) {
-                throw $e;
-            }
-
-            Log::add('[InventoryService] The opening combination of item(s) ' . implode(', ', $items) . ' was not decided again and is owed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');
-            ProjectionManager::owe(itemIds: $all ? [] : $items);
-        }
+        PostCommit::deferToOutermost(
+            db: $this->db,
+            label: 'the opening combinations of the products a stock command changed',
+            work: static function () use ($items, $all): void {
+                OpeningCombination::afterCommand(itemIds: $items, all: $all);
+            },
+        );
     }
 }
