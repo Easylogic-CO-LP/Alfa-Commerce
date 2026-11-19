@@ -67,8 +67,9 @@ final class CartMessaging
      *
      * A refusal the merchant's rules alone cause names the smallest sale and
      * the step; a refusal the shelf causes says the product is out of stock; a
-     * cut to what the shelf holds is a notice; every other correction is
-     * silent. One decision speaks at most one refusal.
+     * cut to what the shelf holds is a notice, unless the decision refuses,
+     * when the refusal speaks alone; every other correction is silent. One
+     * decision speaks at most one refusal.
      *
      * A shopper's add and quantity change say the shelf's part with its figure
      * instead, once the write is done ({@see self::stock()}), whenever the cart
@@ -88,7 +89,9 @@ final class CartMessaging
                     'warning',
                 ],
                 QuantityReason::StockExhausted => [Text::_(string: 'COM_ALFA_CART_OUT_OF_STOCK'), 'warning'],
-                QuantityReason::ClampedToStock => [Text::_(string: 'COM_ALFA_CART_QUANTITY_CLAMPED'), 'notice'],
+                QuantityReason::ClampedToStock => $decision->refused()
+                    ? [null, null]
+                    : [Text::_(string: 'COM_ALFA_CART_QUANTITY_CLAMPED'), 'notice'],
                 QuantityReason::BelowMinimum => [Text::_(string: 'COM_ALFA_CART_OUT_OF_STOCK'), 'warning'],
                 default => [null, null],
             };

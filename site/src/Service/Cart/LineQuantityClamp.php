@@ -13,6 +13,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Cart\KeptQuantity;
 use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityDecision;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Closure;
@@ -89,7 +90,9 @@ final class LineQuantityClamp
 
     /**
      * What this cart holds of a unit's stock, in whole units: every line that
-     * draws on the same stock, as the decision counts them.
+     * draws on the same stock, as the decision counts them, and never more
+     * than the stock supplies, so the figure is the available quantity also
+     * when the stock fell below what the cart holds.
      *
      * @param int $cartId The cart.
      * @param object $item The product.
@@ -105,7 +108,13 @@ final class LineQuantityClamp
             return 0;
         }
 
-        return (int) round($this->repository->pooledQuantity($cartId, $itemId, $combinationId ?: null));
+        $held = (int) round($this->repository->pooledQuantity($cartId, $itemId, $combinationId ?: null));
+        $ceiling = (new InventoryService())->purchasableCeiling(itemId: $itemId, combinationId: $combinationId ?: null);
+
+        // Whole units, as the policy counts the shelf.
+        return $ceiling === null
+            ? $held
+            : min($held, (int) floor($ceiling + InventoryAvailabilityService::QUANTITY_TOLERANCE));
     }
 
     /**

@@ -45,7 +45,8 @@ use Joomla\CMS\Router\Route;
  * joomla.asset.json: the template registry is read after the component's, so its definition wins.
  *
  * SWITCH: Options -> Cart -> Confirmation card. Off = a successful add carries no card at all (the
- * script does nothing, the drawer still refreshes); an add that added nothing always carries this card.
+ * script does nothing, the drawer still refreshes), unless the stock cut it; an add that added nothing
+ * always carries this card.
  *
  * Display data:
  *   line           object|null  the added cart line (id, quantity, data = the priced item, surfaces)

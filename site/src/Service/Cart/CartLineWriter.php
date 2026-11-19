@@ -226,11 +226,11 @@ final class CartLineWriter
                     return false;
                 }
 
-                // What the line held is read only when the shelf cut the edit: it
-                // tells "filled up to" from "already held".
-                $before = $decision->because(QuantityReason::ClampedToStock)
-                    ? $this->repository->lineQuantity($this->cartId(), $editLineId)
-                    : 0;
+                // What the cart held of the new unit's stock is read only when the
+                // shelf cut the edit: it tells "filled up to" from "already held",
+                // also when the edit moves the line to another unit.
+                $cut = $decision->because(QuantityReason::ClampedToStock);
+                $before = $cut ? $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId) : 0;
 
                 try {
                     $this->repository->replaceLineConfiguration($editLineId, $combinationId, $quantity, $rows);
@@ -242,7 +242,12 @@ final class CartLineWriter
 
                 $this->rows->touch();
                 $this->hydrator->reloadLines();
-                $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: $quantity > $before);
+                $this->tell(
+                    decision: $decision,
+                    item: $item,
+                    combinationId: $combinationId,
+                    added: $cut && $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId) > $before,
+                );
 
                 return $editLineId;
             }

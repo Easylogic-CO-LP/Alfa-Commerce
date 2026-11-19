@@ -292,8 +292,9 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $options = $this->addedCardOptions();
 
         // The card key is present only when there is a card to show: a rejected
-        // add always has one, a successful add only while the confirmation is on.
-        if ($line === null || $options['enabled']) {
+        // add always has one, a successful add while the confirmation is on, or
+        // when the stock cut it, since the card is where the shopper reads that.
+        if ($line === null || $options['enabled'] || $notice !== '') {
             $responseData['added'] = Layout::render('cart.added', [
                 'line' => $line,
                 'edited' => $line !== null && $editLineId > 0 && $lineId === $editLineId,
