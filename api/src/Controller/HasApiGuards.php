@@ -354,10 +354,25 @@ trait HasApiGuards
         ));
 
         if ($carried !== []) {
-            throw new Save(implode(', ', $carried) . ' cannot be written through the API: send the texts of each language in'
+            $shown = array_map(fn (string $key): string => $this->shownKey(key: $key), $carried);
+
+            throw new Save(implode(', ', $shown) . ' cannot be written through the API: send the texts of each language in'
                 . ' translations, {"translations": {"en_gb": {"name": "..."}, "el_gr": {"name": "..."}}}, as a read with'
                 . ' include=translations gives them. Nothing was saved.', 422);
         }
+    }
+
+    /**
+     * A key the client sent, as a refusal shows it: its first 64 characters (2.2.2). A key is the client's text; it is
+     * named so the client knows which one, and never repeated whole.
+     *
+     * @param string $key The key as sent.
+     *
+     * @since  2.2.2
+     */
+    protected function shownKey(string $key): string
+    {
+        return mb_strlen($key, 'UTF-8') > 64 ? mb_substr($key, 0, 64, 'UTF-8') . '...' : $key;
     }
 
     /**

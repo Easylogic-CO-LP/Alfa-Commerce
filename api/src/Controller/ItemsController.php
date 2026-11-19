@@ -273,11 +273,11 @@ class ItemsController extends ApiController
 
         foreach ($map as $key => $figure) {
             if ($figure !== null && !\is_scalar($figure)) {
-                throw new Save('inventory_stock.' . $key . ': send one figure, a number such as "3", for each location. Nothing was saved.', 422);
+                throw new Save('inventory_stock.' . $this->shownKey(key: (string) $key) . ': send one figure, a number such as "3", for each location. Nothing was saved.', 422);
             }
 
             if (preg_match('/^[1-9][0-9]*$/D', (string) $key) !== 1) {
-                throw new Save('inventory_stock.' . $key . ' is not a stock location: the keys are the ids of the shop\'s stock'
+                throw new Save('inventory_stock.' . $this->shownKey(key: (string) $key) . ' is not a stock location: the keys are the ids of the shop\'s stock'
                     . ' locations (GET v1/alfa/locations). Nothing was saved.', 422);
             }
 

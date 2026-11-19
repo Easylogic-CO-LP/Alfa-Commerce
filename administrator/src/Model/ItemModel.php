@@ -2997,13 +2997,20 @@ class ItemModel extends AlfaAdminModel
      * REST delete answers 409 with it. Before, the sentence was a plain error, which the REST delete answered as a
      * server fault (500).
      *
+     * The exception's message is safe to print as HTML (the back office prints it so) and its plain sentence is what the
+     * REST delete answers: a sentence of plain text, which can carry a product's name, is escaped for the message; one
+     * already escaped for the screen (the stock held message, the archive's refusal) is unescaped for the plain text.
+     *
      * @param string $sentence The refusal.
+     * @param bool $escaped Whether the sentence is already escaped for HTML.
      *
      * @since  2.2.2
      */
-    private function refuseDelete(string $sentence): void
+    private function refuseDelete(string $sentence, bool $escaped = false): void
     {
-        $this->setError(new DeleteRefusedException($sentence));
+        $this->setError($escaped
+            ? new DeleteRefusedException($sentence, html_entity_decode($sentence, ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+            : new DeleteRefusedException(htmlspecialchars($sentence, ENT_QUOTES, 'UTF-8'), $sentence));
     }
 
     /**
@@ -3098,7 +3105,7 @@ class ItemModel extends AlfaAdminModel
                     key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
                     itemId:   $pk,
                     blockers: $blockers,
-                ));
+                ), escaped: true);
 
                 return false;
             }
@@ -3127,7 +3134,11 @@ class ItemModel extends AlfaAdminModel
         if ($orderHistory !== []) {
             $archive = array_keys($orderHistory);
 
+            // The archive's refusal (stock that arrived, or figures that diverged, after the read-only check above) is
+            // a refusal of the delete, answered 409 over the REST API with its sentence, as every other delete refusal.
             if (!$this->publish(pks: $archive, value: CombinationState::ARCHIVED, queueRefusal: false)) {
+                $this->refuseDelete(sentence: (string) ($this->getError() ?: Text::_('JLIB_APPLICATION_ERROR_DELETE')), escaped: true);
+
                 return false;
             }
 
@@ -3316,7 +3327,7 @@ class ItemModel extends AlfaAdminModel
                     key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
                     itemId:   $retirement->itemId,
                     blockers: $retirement->blockers,
-                ));
+                ), escaped: true);
 
                 return false;
             } catch (Throwable $e) {

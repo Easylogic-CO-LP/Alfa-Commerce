@@ -1122,17 +1122,22 @@ class OrderModel extends AlfaAdminModel
         $invoice = $section === FieldsHelper::BILLING_FIELDS_KEY;
 
         foreach ($sent as $name) {
+            // The key as the client sent it, its first 64 characters, and as a JSON pointer's segment (RFC 6901: ~ as ~0,
+            // / as ~1), so a key with a slash points at itself.
+            $shown = mb_substr((string) $name, 0, 64, 'UTF-8');
+            $pointer = '/' . $section . '/' . str_replace(['~', '/'], ['~0', '~1'], $shown);
+
             if (!\in_array($name, $known, true)) {
                 WriteWarnings::note(
                     code: WriteWarnings::NOT_A_FIELD,
-                    detail: Text::sprintf($invoice ? 'COM_ALFA_ORDER_FIELD_NOT_IN_INVOICE' : 'COM_ALFA_ORDER_FIELD_NOT_IN_DELIVERY', $name),
-                    pointer: '/' . $section . '/' . $name,
+                    detail: Text::sprintf($invoice ? 'COM_ALFA_ORDER_FIELD_NOT_IN_INVOICE' : 'COM_ALFA_ORDER_FIELD_NOT_IN_DELIVERY', $shown),
+                    pointer: $pointer,
                 );
             } elseif (\in_array($name, $hidden, true)) {
                 WriteWarnings::note(
                     code: WriteWarnings::HIDDEN_BY_RULE,
-                    detail: Text::sprintf('COM_ALFA_ORDER_FIELD_HIDDEN_BY_RULE', $name),
-                    pointer: '/' . $section . '/' . $name,
+                    detail: Text::sprintf('COM_ALFA_ORDER_FIELD_HIDDEN_BY_RULE', $shown),
+                    pointer: $pointer,
                 );
             }
         }

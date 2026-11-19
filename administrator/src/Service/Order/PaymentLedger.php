@@ -12602,10 +12602,12 @@ class PaymentLedger
      * The payment cap's refusal (2.2.2): REFUSAL_OPEN_ATTEMPT when the payment would fit if the order's open
      * attempts were not counted, REFUSAL_OVER_TOTAL when it would not fit even then. An open attempt is a pending payment
      * row (payment type 'payment') of the order, of any gateway, the row being written left out; an authorized row is a
-     * reservation the buyer already made and counts as held. The staff sentence is the cap's (COM_ALFA_PAYMENT_REFUSED_
-     * PAST_TOTAL) either way; the verdict's figures, for the plugin's log only: amount, total (the total the cap compared
-     * against), held (what the order holds against it, this row left out), pending (the open attempts in held) and left
-     * (total less held, never below zero).
+     * reservation the buyer already made and counts as held. The staff sentence follows the code: an open attempt names
+     * the pending payment or payments that hold what the order owes (COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPT, or
+     * COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPTS for several), a payment over the total is the cap's own sentence
+     * (COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL); the verdict's figures, for the plugin's log only: amount, total (the total
+     * the cap compared against), held (what the order holds against it, this row left out), pending (the open attempts
+     * in held) and left (total less held, never below zero).
      *
      * @param string $log The detail for the log.
      * @param int $orderId The order.

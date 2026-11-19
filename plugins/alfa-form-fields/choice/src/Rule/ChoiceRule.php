@@ -33,10 +33,10 @@ class ChoiceRule extends FormRule
             }
 
             if (!is_scalar($picked) || !in_array((string) $picked, $choices, true)) {
+                // The value sent is not repeated: the sentence is printed as HTML on the checkout and the order screen.
                 throw new RuntimeException(Text::sprintf(
                     'PLG_ALFA_FORM_FIELDS_CHOICE_ERR_NOT_A_CHOICE',
                     (string) $element['name'],
-                    is_scalar($picked) ? (string) $picked : get_debug_type($picked),
                     implode(', ', array_filter($choices, static fn (string $choice): bool => $choice !== '')),
                 ));
             }
