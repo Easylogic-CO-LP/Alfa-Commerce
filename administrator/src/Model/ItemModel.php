@@ -598,6 +598,35 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * The stock figures a write states, kept only when its caller named them (2.2.2, the rule of the REST update, moved
+     * here so every writer shares it): a stock figure is an instruction to the inventory service, so one the caller did
+     * not send (a figure backfilled from the stored row, as a PATCH or a read-modify-write does) is dropped, and the
+     * derived available quantity and the edit form's rendering baseline are never taken from a caller.
+     *
+     * @api READ ONLY: an item write's data with the stock figures its caller did not name removed; hand save() the
+     *      result.
+     *
+     * @param array<string, mixed> $data The write's data.
+     * @param list<string> $sent The keys the caller named.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.2.2
+     */
+    public static function withoutUnsentStock(array $data, array $sent): array
+    {
+        foreach (['stock', 'inventory_stock'] as $key) {
+            if (!\in_array($key, $sent, true)) {
+                unset($data[$key]);
+            }
+        }
+
+        unset($data['available_quantity'], $data['inventory_stock_baseline']);
+
+        return $data;
+    }
+
+    /**
      * Method to save the form data.
      *
      * Extends the parent save() to also maintain the price index.

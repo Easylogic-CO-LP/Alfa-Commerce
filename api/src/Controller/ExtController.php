@@ -110,7 +110,7 @@ class ExtController extends ApiController
         }
 
         if (isset($vars['alfa_ext_unavailable'])) {
-            $this->refuseUnavailable($element, (string) $vars['alfa_ext_unavailable']);
+            $this->refuseUnavailable($element, (string) $vars['alfa_ext_unavailable'], (string) ($vars['alfa_ext_detail'] ?? ''));
         }
 
         $declaration = ApiRouteRegistry::get($element, (string) ($vars['alfa_ext_route'] ?? ''));
@@ -141,10 +141,15 @@ class ExtController extends ApiController
     public function dispatch(): void
     {
         $declaration = $this->declaration ?? throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
-        $rawBody = (string) $this->input->json->getRaw();
-        $length = $this->input->server->getInt('CONTENT_LENGTH', 0);
 
-        if ($length > $declaration->maxBody || \strlen($rawBody) > $declaration->maxBody) {
+        // The length the request states first, before the body is read; then the body read.
+        if ($this->input->server->getInt('CONTENT_LENGTH', 0) > $declaration->maxBody) {
+            throw new Save(Text::sprintf('COM_ALFA_API_EXT_TOO_LARGE', $declaration->maxBody), 413);
+        }
+
+        $rawBody = (string) $this->input->json->getRaw();
+
+        if (\strlen($rawBody) > $declaration->maxBody) {
             throw new Save(Text::sprintf('COM_ALFA_API_EXT_TOO_LARGE', $declaration->maxBody), 413);
         }
 
@@ -156,7 +161,7 @@ class ExtController extends ApiController
         try {
             $plugin = $plugins->resolve($id) ?? $plugins->bootSingle($id);
         } catch (PluginUnavailable $e) {
-            $this->refuseUnavailable($declaration->element, $e->reason);
+            $this->refuseUnavailable($declaration->element, $e->reason, $e->getMessage());
         }
 
         $event = new ApiRequestEvent(
@@ -240,7 +245,7 @@ class ExtController extends ApiController
 
         if ($refused) {
             $body = $declaration->kind === ApiRequestEvent::KIND_JSON
-                ? $this->encode($declaration, ['errors' => [['title' => (string) $answer['title'], 'code' => $status]]])
+                ? $this->encode($declaration, ['errors' => [['code' => $status, 'title' => (string) $answer['title']]]])
                 : (string) $answer['title'];
             $type = $declaration->kind === ApiRequestEvent::KIND_JSON ? 'application/json; charset=utf-8' : 'text/plain; charset=utf-8';
         } elseif ($declaration->kind === ApiRequestEvent::KIND_JSON) {
@@ -301,13 +306,18 @@ class ExtController extends ApiController
      *
      * @param string $element The plugin's element.
      * @param string $reason The PluginUnavailable reason.
+     * @param string $detail What happened, for the log.
      *
      * @throws Save Always (503).
      *
      * @since  2.2.2
      */
-    private function refuseUnavailable(string $element, string $reason): never
+    private function refuseUnavailable(string $element, string $reason, string $detail): never
     {
+        // Logged here, after the token's login, never at route time, where any caller could add a line.
+        Log::add('The extension ' . PanelDispatcher::PLATFORM_GROUP . '.' . $element . ' cannot answer (' . $reason . ($detail !== '' ? ': ' . $detail : '')
+            . '); its addresses are answered 503.', Log::ERROR, ApiRouteRegistrar::LOG);
+
         try {
             NotificationHelper::pluginUnavailable(PluginId::from(PanelDispatcher::PLATFORM_GROUP, $element), $reason);
         } catch (Throwable $e) {

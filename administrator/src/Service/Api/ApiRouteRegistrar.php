@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Factory;
@@ -171,22 +172,19 @@ final class ApiRouteRegistrar
         // The helper boots com_alfa (its log categories with it), as every Alfa API request does at dispatch.
         $plugins = AlfaPluginHelper::get();
 
-        if (self::reservedElement($element)) {
-            self::warn('The address names ' . $element . ', the name of a core permission section: an extension of that name owns no routes.');
-
-            return;
-        }
-
         $id = PluginId::from(PanelDispatcher::PLATFORM_GROUP, $element);
 
-        if (!$plugins->isAvailable($id)) {
+        // Nothing is logged at route time, before the token is checked (any caller could add a line): a reserved element
+        // and the refused declarations are said on Tools, Security (collect()), a plugin that cannot answer after the
+        // login (ExtController).
+        if (self::reservedElement($element) || !$plugins->isAvailable($id)) {
             return;
         }
 
         try {
             $plugin = $plugins->bootSingle($id);
         } catch (PluginUnavailable $e) {
-            self::unavailable($router, $element, $e->reason, 'cannot be loaded (' . $e->reason . ': ' . $e->getMessage() . ')');
+            self::unavailable($router, $element, $e->reason, $e->getMessage());
 
             return;
         }
@@ -199,17 +197,12 @@ final class ApiRouteRegistrar
             $own = new ApiRouter(Factory::getApplication());
             $plugins->dispatchTo($plugin, new ApiRoutesEvent($own, $element));
         } catch (Throwable $e) {
-            self::unavailable($router, $element, PluginUnavailable::UNLOADABLE, 'threw while it declared its routes (' . $e::class . ': ' . $e->getMessage() . ')');
+            self::unavailable($router, $element, PluginUnavailable::UNLOADABLE, 'it threw while it declared its routes, ' . $e::class . ': ' . $e->getMessage());
 
             return;
         }
 
         $verdict = self::acceptAll($id, $own->getRoutes());
-
-        foreach ($verdict['refused'] as $refusal) {
-            self::warn('The route ' . $refusal->methods . ' ' . $refusal->pattern . ' of the extension ' . $element
-                . ' was not added: ' . $refusal->rule . ', ' . $refusal->detail . '. Its other routes are added.');
-        }
 
         foreach ($verdict['accepted'] as $declaration) {
             $router->addRoute(new Route($declaration->methods, $declaration->pattern, 'ext.dispatch', $declaration->rules, [
@@ -242,6 +235,10 @@ final class ApiRouteRegistrar
         foreach ($plugins->available(PanelDispatcher::PLATFORM_GROUP) as $id) {
             $entry = ['element' => $id->element, 'name' => $plugins->name($id), 'accepted' => [], 'refused' => [], 'unavailable' => ''];
 
+            if (self::reservedElement($id->element)) {
+                self::warn('The extension ' . $id . ' is named like a core permission section: it owns no routes.');
+            }
+
             try {
                 $plugin = $plugins->bootSingle($id);
             } catch (PluginUnavailable $e) {
@@ -265,6 +262,12 @@ final class ApiRouteRegistrar
             }
 
             $verdict = self::acceptAll($id, $own->getRoutes());
+
+            foreach ($verdict['refused'] as $refusal) {
+                self::warn('The route ' . $refusal->methods . ' ' . $refusal->pattern . ' of the extension ' . $id->element
+                    . ' was not added: ' . $refusal->rule . ', ' . $refusal->detail . '. Its other routes are added.');
+            }
+
             $listing[] = ['accepted' => $verdict['accepted'], 'refused' => $verdict['refused']] + $entry;
         }
 
@@ -532,25 +535,25 @@ final class ApiRouteRegistrar
      * @param ApiRouter $router The application's router.
      * @param string $element The plugin's element.
      * @param string $reason The PluginUnavailable reason.
-     * @param string $why What happened, for the log.
+     * @param string $detail What happened, for the log after the login.
      *
      * @since  2.2.2
      */
-    private static function unavailable(ApiRouter $router, string $element, string $reason, string $why): void
+    private static function unavailable(ApiRouter $router, string $element, string $reason, string $detail): void
     {
-        Log::add('The extension ' . PanelDispatcher::PLATFORM_GROUP . '.' . $element . ' ' . $why . '; its addresses are answered 503.', Log::ERROR, self::LOG);
-
         $router->addRoute(new Route(self::METHODS, self::PREFIX . $element . '/*', 'ext.dispatch', [], [
             'component' => 'com_alfa',
             'public' => false,
             'format' => [self::JSONAPI, self::JSON],
             'alfa_ext' => $element,
             'alfa_ext_unavailable' => $reason,
+            // What happened, for the log line the controller writes after the token's login (never at route time).
+            'alfa_ext_detail' => mb_substr($detail, 0, 500),
         ]));
     }
 
     /**
-     * One warning in the routes' log.
+     * One warning in the routes' log, written when Tools lists the routes (collect()), never while a request is routed.
      *
      * @param string $message What to say.
      *
@@ -558,6 +561,8 @@ final class ApiRouteRegistrar
      */
     private static function warn(string $message): void
     {
+        // Tools reads the routes without booting the component: the category's file is registered here too.
+        AlfaLog::register();
         Log::add($message, Log::WARNING, self::LOG);
     }
 }

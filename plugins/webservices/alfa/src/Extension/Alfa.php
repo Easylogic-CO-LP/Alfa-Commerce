@@ -16,10 +16,12 @@ use Joomla\CMS\Application\ApiApplication;
 use Joomla\CMS\Event\Application\BeforeApiRouteEvent;
 use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Router\ApiRouter;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Router\Route;
+use Throwable;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -170,10 +172,12 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * A request on an address an extension adds that Joomla's token sign-in refused answers 401 in every format the
-     * route speaks (2.2.2). Joomla throws its AuthenticationFailed without a code: the JSON:API renderer maps it to 401
-     * by its class, the plain JSON renderer answers 500, so a route that answers application/json (an integrator's
-     * dialect) would tell a caller without a valid token that the server failed.
+     * The errors of an address an extension adds (2.2.2). Joomla's token sign-in throws its AuthenticationFailed without
+     * a code: the JSON:API renderer maps it to 401 by its class, the plain JSON renderer answers 500, so it is given the
+     * code 401 here. On a route that answers plain JSON (an integrator's dialect), every error core raises (401, 403,
+     * 404, 413, 500, 503) is written in the one shape the route's own refusals and the maintenance answer use,
+     * {"errors":[{"code":403,"title":"..."}]}, never Joomla's {"error":true,...} and never a trace; an error that
+     * carries no HTTP code answers 500 with Joomla's general sentence, its own words left to the log.
      *
      * @param ErrorEvent $event The application's error.
      *
@@ -181,16 +185,44 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
      */
     public function onError(ErrorEvent $event): void
     {
-        $error = $event->getError();
+        $app = $event->getApplication();
 
-        if (!$error instanceof AuthenticationFailed || (int) $error->getCode() > 0 || !$event->getApplication() instanceof ApiApplication) {
+        if (!$app instanceof ApiApplication) {
             return;
         }
 
-        $path = trim((string) Factory::getContainer()->get(ApiRouter::class)->getRoutePath(), '/') . '/';
-
-        if (str_starts_with($path, ApiRouteRegistrar::PREFIX)) {
-            $event->setError(new AuthenticationFailed($error->getMessage() !== '' ? $error->getMessage() : 'Forbidden', 401, $error));
+        try {
+            $path = trim((string) Factory::getContainer()->get(ApiRouter::class)->getRoutePath(), '/') . '/';
+        } catch (Throwable) {
+            return;
         }
+
+        if (!str_starts_with($path, ApiRouteRegistrar::PREFIX)) {
+            return;
+        }
+
+        $error = $event->getError();
+
+        if ($error instanceof AuthenticationFailed && (int) $error->getCode() === 0) {
+            $error = new AuthenticationFailed($error->getMessage() !== '' ? $error->getMessage() : 'Forbidden', 401, $error);
+            $event->setError($error);
+        }
+
+        if ($app->getInput()->getWord('format') !== 'json') {
+            return;
+        }
+
+        $code = (int) $error->getCode();
+        [$code, $title] = $code >= 400 && $code <= 599 ? [$code, $error->getMessage()] : [500, Text::_('JERROR_AN_ERROR_HAS_OCCURRED')];
+        $body = (string) json_encode(['errors' => [['code' => $code, 'title' => $title]]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+
+        $app->setHeader('status', (string) $code, true);
+        $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
+        $app->setHeader('Content-Length', (string) \strlen($body), true);
+        $app->sendHeaders();
+
+        echo $body;
+
+        $app->close();
     }
 }
