@@ -97,7 +97,8 @@ class OrdersController extends ApiController
      * Each filter goes onto the model state under the name the orders screen's filter form gives it, and the list
      * model applies it as it does for the screen (2.2.1: payment, fulfilment, waiting, reconciliation, overpaid, the
      * order date window and item_id; and the customer, by account or by the order's e-mail). The date window's bounds
-     * are shop-local times, as the screen's calendars hold them; the screen's date presets are not read here.
+     * are UTC, as every date the API publishes (2.2.2): a bound without a zone is a UTC time and a day is the UTC day;
+     * a bound with Z or an offset is read in its own zone. The screen's date presets are not read here.
      *
      * @return static A BaseController object to support chaining.
      *
@@ -167,6 +168,10 @@ class OrdersController extends ApiController
         if (\array_key_exists('email', $apiFilterInfo)) {
             $this->modelState->set('filter.email', RequestScalar::member($apiFilterInfo, 'email', 'STRING', 'filter'));
         }
+
+        // Every date bound of the API is UTC (2.2.2): a bound without a zone is a UTC time, a day the UTC day; a bound
+        // with Z or an offset keeps its own zone.
+        $this->modelState->set('filter.date_zone', 'UTC');
 
         $apiListInfo = $this->input->get('list', [], 'array');
 

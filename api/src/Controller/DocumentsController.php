@@ -78,8 +78,8 @@ class DocumentsController extends ApiController
             $this->modelState->set('filter.id_order', RequestScalar::member($apiFilterInfo, 'id_order', 'INT', 'filter'));
         }
 
-        // The window over the document's legal date (its issue date in the shop's time zone), as the documents
-        // screen's calendars set it: Y-m-d bounds, both days included (2.2.1).
+        // The window over the document's issue date, both bounds included (2.2.1); in UTC, against the issue instant,
+        // a day being the UTC day (2.2.2; it was the legal date in the shop's time zone).
         if (\array_key_exists('date_start', $apiFilterInfo)) {
             $this->modelState->set('filter.date_start', RequestScalar::member($apiFilterInfo, 'date_start', 'STRING', 'filter'));
         }
@@ -87,6 +87,10 @@ class DocumentsController extends ApiController
         if (\array_key_exists('date_end', $apiFilterInfo)) {
             $this->modelState->set('filter.date_end', RequestScalar::member($apiFilterInfo, 'date_end', 'STRING', 'filter'));
         }
+
+        // Every date bound of the API is UTC (2.2.2): a bound without a zone is a UTC time, a day the UTC day; a bound
+        // with Z or an offset keeps its own zone.
+        $this->modelState->set('filter.date_zone', 'UTC');
 
         $apiListInfo = $this->input->get('list', [], 'array');
 
