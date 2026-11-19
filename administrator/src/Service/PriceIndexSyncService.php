@@ -3330,14 +3330,24 @@ class PriceIndexSyncService
             return;
         }
 
-        $contexts = array_map('intval', $this->db->setQuery(
-            'SELECT ' . $this->db->quoteName('id') . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE)
-            . ' WHERE ' . $this->db->quoteName('group_set_id') . ' IN (' . implode(',', $setIds) . ')',
-        )->loadColumn() ?: []);
-        $this->dropContexts(ids: $contexts);
-        $this->db->setQuery(
-            'DELETE FROM ' . $this->db->quoteName(self::SETS_TABLE) . ' WHERE ' . $this->db->quoteName('id') . ' IN (' . implode(',', $setIds) . ')',
-        )->execute();
+        $list = implode(',', $setIds);
+        $this->db->transactionStart(true);
+
+        try {
+            $contexts = array_map('intval', $this->db->setQuery(
+                'SELECT ' . $this->db->quoteName('id') . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE)
+                . ' WHERE ' . $this->db->quoteName('group_set_id') . ' IN (' . $list . ')',
+            )->loadColumn() ?: []);
+            $this->dropContexts(ids: $contexts);
+            $this->db->setQuery(
+                'DELETE FROM ' . $this->db->quoteName(self::SETS_TABLE) . ' WHERE ' . $this->db->quoteName('id') . ' IN (' . $list . ')',
+            )->execute();
+            TransactionState::commitLevel(db: $this->db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $this->db, failure: $e);
+
+            throw $e;
+        }
     }
 
     // Products
