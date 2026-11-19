@@ -11,12 +11,15 @@
 namespace Alfa\Plugin\WebServices\Alfa\Extension;
 
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRegistrar;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Joomla\CMS\Access\Exception\AuthenticationFailed;
 use Joomla\CMS\Application\ApiApplication;
 use Joomla\CMS\Event\Application\BeforeApiRouteEvent;
 use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
+use Joomla\CMS\MVC\Controller\Exception\Save;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Router\ApiRouter;
 use Joomla\Event\SubscriberInterface;
@@ -177,7 +180,8 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
      * code 401 here. On a route that answers plain JSON (an integrator's dialect), every error core raises (401, 403,
      * 404, 413, 500, 503) is written in the one shape the route's own refusals and the maintenance answer use,
      * {"errors":[{"code":403,"title":"..."}]}, never Joomla's {"error":true,...} and never a trace; an error that
-     * carries no HTTP code answers 500 with Joomla's general sentence, its own words left to the log.
+     * carries no HTTP code answers 500 with Joomla's general sentence, its class and message written to
+     * com_alfa_api.php first (the request ends here, before Joomla's own handler would log it).
      *
      * @param ErrorEvent $event The application's error.
      *
@@ -213,7 +217,16 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
         }
 
         $code = (int) $error->getCode();
-        [$code, $title] = $code >= 400 && $code <= 599 ? [$code, $error->getMessage()] : [500, Text::_('JERROR_AN_ERROR_HAS_OCCURRED')];
+        $http = $code >= 400 && $code <= 599;
+
+        // The request ends here, before Joomla's exception handler would log it: an error ExtController did not log
+        // itself (no HTTP code, or a 5xx raised outside the extension's handler) is logged now, its class and message.
+        if (!$http || ($code >= 500 && !$error instanceof Save)) {
+            AlfaLog::register();
+            Log::add('An extension\'s address (' . rtrim($path, '/') . ') failed outside its handler: ' . $error::class . ': ' . $error->getMessage(), Log::ERROR, ApiRouteRegistrar::LOG);
+        }
+
+        [$code, $title] = $http ? [$code, $error->getMessage()] : [500, Text::_('JERROR_AN_ERROR_HAS_OCCURRED')];
         $body = (string) json_encode(['errors' => [['code' => $code, 'title' => $title]]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 
         $app->setHeader('status', (string) $code, true);
