@@ -27,6 +27,14 @@ use Joomla\CMS\User\User;
 final class TaskAccess
 {
     /**
+     * The permission that lists every task and processes a job: Tools (2.2.2: named once, for the check below and for
+     * the REST controller's declaration that Tools, Security lists).
+     *
+     * @since  2.2.2
+     */
+    public const TOOLS_PERMISSION = 'alfa.tools';
+
+    /**
      * Whether a user may read a task.
      *
      * @param array<string, mixed> $row The task's row: type, subject_type and created_by at least.
@@ -62,6 +70,6 @@ final class TaskAccess
      */
     public static function canUseTools(User $user): bool
     {
-        return !$user->guest && (int) $user->id > 0 && (bool) $user->authorise('alfa.tools', 'com_alfa');
+        return !$user->guest && (int) $user->id > 0 && (bool) $user->authorise(self::TOOLS_PERMISSION, 'com_alfa');
     }
 }

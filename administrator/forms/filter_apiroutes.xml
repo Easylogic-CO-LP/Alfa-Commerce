@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The filters of the REST API addresses' table on Tools, Security (2.2.2). The options of source and permission are
+    the ones the table has, added by the Tools view; a list submits the form when it changes (Joomla's search tools).
+-->
+<form>
+    <fields name="filter">
+        <field name="search"
+               type="text"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               description="COM_ALFA_TOOLS_API_ROUTES_SEARCH_DESC"
+               hint="COM_ALFA_TOOLS_API_ROUTES_SEARCH_HINT"
+               class="js-stools-search-string"
+        />
+
+        <field name="source"
+               type="list"
+               label="COM_ALFA_TOOLS_API_ROUTES_SOURCE"
+               class="js-select-submit-on-change"
+        >
+            <option value="">COM_ALFA_TOOLS_API_ROUTES_FILTER_SOURCE</option>
+        </field>
+
+        <field name="permission"
+               type="list"
+               label="COM_ALFA_TOOLS_API_ROUTES_PERMISSION"
+               class="js-select-submit-on-change"
+        >
+            <option value="">COM_ALFA_TOOLS_API_ROUTES_FILTER_PERMISSION</option>
+        </field>
+    </fields>
+</form>

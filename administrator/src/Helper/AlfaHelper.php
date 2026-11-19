@@ -857,16 +857,42 @@ class AlfaHelper
      */
     public static function can(string $section, string $action, ?\Joomla\CMS\User\User $user = null): bool
     {
+        $permission = self::permissionName(section: $section, action: $action);
+
+        return $permission !== '' && self::holds(permission: $permission, user: $user);
+    }
+
+    /**
+     * The permission alfa.<section>.<action> a section's action names (2.2.2): the one spelling can() asks, and the
+     * one the REST controllers declare for Tools, Security. Empty when the section or the action is.
+     *
+     * @param string $section A section or any entity or screen name {@see self::PERMISSION_SECTIONS} knows.
+     * @param string $action view | create | edit | edit.state | delete, or a section's own.
+     *
+     * @since  2.2.2
+     */
+    public static function permissionName(string $section, string $action): string
+    {
         $section = self::permissionSection($section);
         $action = strtolower(trim($action));
 
-        if ($section === '' || $action === '') {
-            return false;
-        }
+        return $section === '' || $action === '' ? '' : 'alfa.' . $section . '.' . $action;
+    }
 
+    /**
+     * Whether the user holds a permission on com_alfa, named whole (2.2.2): alfa.items.view, alfa.tools. The check
+     * can() makes; a Super User holds every one (User::authorise()).
+     *
+     * @param string $permission The permission.
+     * @param \Joomla\CMS\User\User|null $user The user, or null for the current identity.
+     *
+     * @since  2.2.2
+     */
+    public static function holds(string $permission, ?\Joomla\CMS\User\User $user = null): bool
+    {
         $user ??= Factory::getApplication()->getIdentity();
 
-        return $user !== null && (bool) $user->authorise('alfa.' . $section . '.' . $action, 'com_alfa');
+        return $permission !== '' && $user !== null && (bool) $user->authorise($permission, 'com_alfa');
     }
 
     /**

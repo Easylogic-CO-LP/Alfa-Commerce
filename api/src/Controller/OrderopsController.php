@@ -11,10 +11,10 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiTaskAccess;
 use Alfa\Component\Alfa\Administrator\Service\Order\LinePricing;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
@@ -29,7 +29,6 @@ use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
-use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
@@ -72,7 +71,9 @@ class OrderopsController extends OrdersController
     /**
      * Every operation here mutates an existing order, so they gate on the order
      * EDIT permission rather than create/delete, except moving the order between
-     * statuses, which asks Change State instead of edit, plus view.
+     * statuses, which asks Change State instead of edit, plus view (2.2.2: declared
+     * here, enforced by HasApiGuards::assertAuthorisedForTask() before the task
+     * runs, listed by Tools, Security).
      *
      * WHY THE STATUS TASK IS NOT ORDINARY EDITING. Entering a status runs stock
      * movements, issues a sales document against a GAPLESS series, emails the
@@ -82,57 +83,33 @@ class OrderopsController extends OrdersController
      * orders list renders a read-only badge without alfa.orders.edit.state, and
      * OrderModel refuses the change without it. This endpoint is the same act
      * through a different door, and it was reachable with ordinary edit rights.
+     * The state permission is the one the administrator path enforces
+     * (OrderModel::STATUS_CHANGE_ACTION names it), so one operator is never told
+     * yes on one door and no on the other.
      *
      * WHY IT ALSO ASKS VIEW. The status task answers with the full order body
      * (customer, addresses, payments). In the admin the status select lives on
      * the orders list, which opens only with orders view, so edit.state alone
      * must not become a way to read orders.
      *
-     * A Joomla Super User still passes, because the one Alfa check lets a
-     * Super User through every action.
+     * HasApiGuards::execute() enforces it BEFORE dispatching the task, so an
+     * unauthorised caller is refused before the target status is read, before
+     * force is considered, and before any Transition exists to have a side
+     * effect. A Joomla Super User still passes, because the one Alfa check lets
+     * a Super User through every action.
      *
-     * @param string $task The task about to run.
-     *
+     * @param string $task The task.
      *
      * @since  2.0.0
      */
-    protected function assertAuthorisedForTask(string $task): void
+    public function taskAccess(string $task): ApiTaskAccess
     {
         // The same split as the admin's orders list: view to see the order, edit.state to move it.
         if ($task === self::STATUS_TASK) {
-            $this->assertAuthorised('view');
-            $this->assertStateChangeAuthorised();
-
-            return;
+            return ApiTaskAccess::asks($this->actionPermission(action: 'view'), AdminOrderModel::STATUS_CHANGE_ACTION);
         }
 
-        $this->assertAuthorised('edit');
-    }
-
-    /**
-     * Refuse a status change to anyone without the orders state permission.
-     *
-     * One permission, the same one the administrator path enforces
-     * (OrderModel::STATUS_CHANGE_ACTION names it), so one operator is never told
-     * yes on one door and no on the other.
-     *
-     * Called from assertAuthorisedForTask(), which HasApiGuards::execute() runs
-     * BEFORE dispatching the task, so an unauthorised caller is refused before
-     * the target status is read, before force is considered, and before any
-     * Transition exists to have a side effect.
-     *
-     *
-     * @throws NotAllowed When the identity lacks the state permission.
-     *
-     * @since  2.0.0
-     */
-    private function assertStateChangeAuthorised(): void
-    {
-        if (AlfaHelper::can(section: 'orders', action: 'edit.state', user: $this->app->getIdentity())) {
-            return;
-        }
-
-        throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        return ApiTaskAccess::asks($this->actionPermission(action: 'edit'));
     }
 
     /**

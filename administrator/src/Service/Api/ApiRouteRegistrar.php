@@ -22,10 +22,13 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Access\Access;
+use Joomla\CMS\Event\Application\BeforeApiRouteEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\ApiRouter;
+use Joomla\Event\SubscriberInterface;
 use Joomla\Router\Route;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -37,7 +40,8 @@ use Throwable;
  * write its routes on a router of its own; each route that keeps the rules of {@see self::accept()} is put on the
  * application's router, its controller rewritten to ext.dispatch, and kept in {@see ApiRouteRegistry} for
  * ExtController. Every other API request pays one string comparison. Tools, Security lists what the plugins declare
- * through {@see self::collect()}, the same reading, so the listing and the router cannot disagree.
+ * through {@see self::collect()}, the same reading, and core's own routes through {@see self::collectCore()}, which asks
+ * the webservices plugin for its list, so the listing and the router cannot disagree.
  *
  * A plugin adds routes of its own under its prefix; it never replaces, removes or shadows a core route: its routes are
  * put after core's, under v1/alfa/ext/, where no core route is registered.
@@ -52,6 +56,13 @@ final class ApiRouteRegistrar
      * @since  2.2.2
      */
     public const PREFIX = 'v1/alfa/ext/';
+
+    /**
+     * The element of Alfa's plugin of the webservices group, which registers core's routes.
+     *
+     * @since  2.2.2
+     */
+    public const WEBSERVICES_PLUGIN = 'alfa';
 
     /**
      * The log category of the routes extensions add.
@@ -269,6 +280,60 @@ final class ApiRouteRegistrar
             }
 
             $listing[] = ['accepted' => $verdict['accepted'], 'refused' => $verdict['refused']] + $entry;
+        }
+
+        return $listing;
+    }
+
+    /**
+     * The routes core puts on the REST API (2.2.2), for Tools, Security: Alfa's webservices plugin is asked for them on
+     * a router of its own, through the handler that registers them at route time, so this reads the one list the
+     * router serves; each route with what its controller's task asks ({@see ApiTaskAccess}, the declaration the
+     * controller's own check enforces), null for a task the controller does not map.
+     *
+     * Building it boots that plugin and makes each REST controller once, on that screen only; no route under
+     * v1/alfa/ext/ is in it (the request is not one).
+     *
+     * @return list<array{route: Route, access: ApiTaskAccess|null}>
+     *
+     * @throws RuntimeException When the webservices plugin does not register routes.
+     *
+     * @since  2.2.2
+     */
+    public static function collectCore(): array
+    {
+        $app = Factory::getApplication();
+        $plugin = $app->bootPlugin(self::WEBSERVICES_PLUGIN, 'webservices');
+        $handler = $plugin instanceof SubscriberInterface ? ($plugin::getSubscribedEvents()['onBeforeApiRoute'] ?? null) : null;
+        $handler = \is_array($handler) ? ($handler[0] ?? null) : $handler;
+
+        if (!\is_string($handler) || !method_exists($plugin, $handler)) {
+            throw new RuntimeException('The plugin webservices/' . self::WEBSERVICES_PLUGIN . ' does not register the REST API routes.');
+        }
+
+        $router = new ApiRouter($app);
+        $plugin->$handler(new BeforeApiRouteEvent('onBeforeApiRoute', ['subject' => $app, 'router' => $router]));
+
+        $factory = $app->bootComponent('com_alfa')->getMVCFactory();
+        $controllers = [];
+        $listing = [];
+
+        foreach ($router->getRoutes() as $route) {
+            if (str_starts_with($route->getPattern(), self::PREFIX)) {
+                continue;
+            }
+
+            [$name, $task] = explode('.', (string) $route->getController(), 2) + ['', ''];
+
+            if (!\array_key_exists($name, $controllers)) {
+                $controllers[$name] = $name !== '' ? $factory->createController($name, 'Api', [], $app, $app->getInput()) : null;
+            }
+
+            $controller = $controllers[$name];
+            $listing[] = [
+                'route' => $route,
+                'access' => $controller !== null && method_exists($controller, 'taskAccess') ? $controller->taskAccess($task) : null,
+            ];
         }
 
         return $listing;

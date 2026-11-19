@@ -33,7 +33,9 @@ use Throwable;
  */
 class DocumentsController extends ApiController
 {
-    use HasApiGuards;
+    use HasApiGuards {
+        taskActions as private crudTaskActions;
+    }
 
     /**
      * The content type of the item.
@@ -50,6 +52,23 @@ class DocumentsController extends ApiController
      * @since  1.0.0
      */
     protected $default_view = 'documents';
+
+    /**
+     * The tasks of a document and what each asks (2.2.2): reading asks view; voiding asks Change State, the
+     * permission the administrator's void asks, since it changes the document's status and nothing else.
+     *
+     * @return array<string, list<string>>
+     *
+     * @since  2.2.2
+     */
+    protected function taskActions(): array
+    {
+        return [
+            'void' => ['edit.state'],
+            'pdf' => ['view'],
+            'html' => ['view'],
+        ] + $this->crudTaskActions();
+    }
 
     /**
      * Documents list view amended to add filtering of data
@@ -111,8 +130,9 @@ class DocumentsController extends ApiController
      * Voiding refills the type's quantity pool, which means the goods become
      * issuable again.
      *
-     * Gated on the edit.state permission, the same one the administrator's void
-     * asks: it changes the document's status and nothing else.
+     * Gated on the edit.state permission ({@see self::taskActions()}), the same
+     * one the administrator's void asks: it changes the document's status and
+     * nothing else.
      *
      * @return static
      *
@@ -120,8 +140,6 @@ class DocumentsController extends ApiController
      */
     public function void()
     {
-        $this->assertAuthorised('edit.state');
-
         $documentId = $this->routeInt('id');
 
         if ($documentId <= 0) {
@@ -160,8 +178,6 @@ class DocumentsController extends ApiController
      */
     public function html(): void
     {
-        $this->assertAuthorised('view');
-
         $document = $this->requireDocument();
         $html = DocumentRenderer::render((int) $document->id);
 
@@ -194,8 +210,6 @@ class DocumentsController extends ApiController
      */
     public function pdf(): void
     {
-        $this->assertAuthorised('view');
-
         $document = $this->requireDocument();
 
         try {

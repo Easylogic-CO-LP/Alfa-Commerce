@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiTaskAccess;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Doctrine\Inflector\InflectorFactory;
@@ -184,29 +185,81 @@ trait HasApiGuards
     }
 
     /**
-     * Map the task to its permission and enforce it.
+     * Enforce what the task asks ({@see self::taskAccess()}): each of its permissions, through the one Alfa check.
      *
      * Unmapped tasks fall through to core, which has its own checks; this
-     * only widens coverage, never narrows it.
+     * only widens coverage, never narrows it. A task whose record decides asks
+     * its permissions itself, after it reads the record.
      *
      * @param string $task The task about to run.
      *
+     * @throws NotAllowed When the identity lacks one of the task's permissions.
      *
      * @since  2.0.0
      */
     protected function assertAuthorisedForTask(string $task): void
     {
-        static $map = [
-            'displayList' => 'view',
-            'displayItem' => 'view',
-            'add' => 'create',
-            'edit' => 'edit',
-            'delete' => 'delete',
-        ];
+        $access = $this->taskAccess($task);
 
-        if (isset($map[$task])) {
-            $this->assertAuthorised($map[$task]);
+        if ($access === null || $access->perRecord) {
+            return;
         }
+
+        foreach ($access->permissions as $permission) {
+            if (!AlfaHelper::holds(permission: $permission, user: $this->app->getIdentity())) {
+                throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+            }
+        }
+    }
+
+    /**
+     * What a task of this controller asks before it answers (2.2.2): the one declaration the check above enforces and
+     * Tools, Security lists for each core address. Null for a task this controller does not map.
+     *
+     * @param string $task The task.
+     *
+     * @since  2.2.2
+     */
+    public function taskAccess(string $task): ?ApiTaskAccess
+    {
+        $actions = $this->taskActions()[$task] ?? null;
+
+        if ($actions === null) {
+            return null;
+        }
+
+        return ApiTaskAccess::asks(...array_map(fn (string $action): string => $this->actionPermission(action: $action), $actions));
+    }
+
+    /**
+     * Each task of this controller and the actions it asks on the controller's section, each one required. A
+     * controller with tasks of its own adds them here.
+     *
+     * @return array<string, list<string>>
+     *
+     * @since  2.2.2
+     */
+    protected function taskActions(): array
+    {
+        return [
+            'displayList' => ['view'],
+            'displayItem' => ['view'],
+            'add' => ['create'],
+            'edit' => ['edit'],
+            'delete' => ['delete'],
+        ];
+    }
+
+    /**
+     * The permission an action names on this controller's section, alfa.<section>.<action>.
+     *
+     * @param string $action view | create | edit | edit.state | delete
+     *
+     * @since  2.2.2
+     */
+    protected function actionPermission(string $action): string
+    {
+        return AlfaHelper::permissionName(section: $this->aclSection(), action: $action);
     }
 
     /**
