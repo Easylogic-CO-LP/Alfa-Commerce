@@ -148,7 +148,7 @@ class PriceIndexSyncService
     // Constants
 
     /** Products per chunk of the writer: one transaction, one load per context and period. */
-    private const CHUNK_SIZE = 100;
+    private const CHUNK_SIZE = 50;
 
     /** Items per removal statement. */
     private const REMOVE_CHUNK_SIZE = 100;
@@ -1785,8 +1785,10 @@ class PriceIndexSyncService
 
         foreach ($byItems as $items => $ids) {
             $this->db->setQuery(
-                'DELETE FROM ' . $this->db->quoteName(self::INDEX_TABLE) . ' WHERE ' . $this->db->quoteName('context_id') . ' IN (' . implode(',', $ids) . ')'
-                . ' AND ' . $this->db->quoteName('item_id') . ' IN (' . $items . ')',
+                $this->db->getQuery(true)
+                    ->delete($this->db->quoteName(self::INDEX_TABLE))
+                    ->whereIn($this->db->quoteName('item_id'), array_map('intval', explode(',', (string) $items)))
+                    ->where($this->db->quoteName('context_id') . ' IN (' . implode(',', $ids) . ')'),
             )->execute();
         }
 
