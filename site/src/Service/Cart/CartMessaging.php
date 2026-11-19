@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartPersistenceException;
 use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityDecision;
 use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityReason;
@@ -17,6 +18,7 @@ use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Throwable;
+use ValueError;
 
 defined('_JEXEC') or die;
 
@@ -119,6 +121,11 @@ final class CartMessaging
      * The one wording of the shelf's say, for every answer that carries it: the
      * notice, the add's JSON message and its card.
      *
+     * A translation that takes other parameters than the one figure cannot be
+     * said as written; the sentence is then said in English, as a notification
+     * whose language cannot say it is ({@see NotificationText}), never thrown
+     * at the shopper.
+     *
      * @param StockLimit $limit What the cart holds of that stock, and whether more went in.
      *
      * @return string The sentence in the shopper's language, the figure in it.
@@ -127,7 +134,16 @@ final class CartMessaging
      */
     public static function stockSentence(StockLimit $limit): string
     {
-        return Text::sprintf($limit->added ? 'COM_ALFA_CART_AVAILABLE_ADDED' : 'COM_ALFA_CART_AVAILABLE_HELD', $limit->quantity);
+        $key = $limit->added ? 'COM_ALFA_CART_AVAILABLE_ADDED' : 'COM_ALFA_CART_AVAILABLE_HELD';
+
+        try {
+            return vsprintf(Text::_($key), [$limit->quantity]);
+        } catch (ValueError) {
+            $english = NotificationText::own(tag: 'en-GB');
+            $english->load(extension: 'com_alfa', basePath: JPATH_SITE, lang: 'en-GB', reload: false, default: false);
+
+            return vsprintf($english->_($key), [$limit->quantity]);
+        }
     }
 
     /**

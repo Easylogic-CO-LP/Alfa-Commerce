@@ -31,12 +31,15 @@ final class StockLimit
     /**
      * @param bool $added Whether the cart holds more than before the request.
      * @param int $quantity What the cart holds of that stock afterwards: the available quantity.
+     * @param bool $lowered Whether a line was lowered to that quantity: the cart held more of that stock than there
+     *                      is, so nothing went in, yet the cart changed.
      *
      * @since  2.2.2
      */
     private function __construct(
         public readonly bool $added,
         public readonly int $quantity,
+        public readonly bool $lowered = false,
     ) {
     }
 
@@ -44,12 +47,13 @@ final class StockLimit
      * Nothing more went in: the cart already held the available quantity.
      *
      * @param int $quantity What the cart holds of that stock.
+     * @param bool $lowered Whether a line was lowered to it on the way.
      *
      * @since  2.2.2
      */
-    public static function held(int $quantity): self
+    public static function held(int $quantity, bool $lowered = false): self
     {
-        return new self(added: false, quantity: $quantity);
+        return new self(added: false, quantity: $quantity, lowered: $lowered);
     }
 
     /**

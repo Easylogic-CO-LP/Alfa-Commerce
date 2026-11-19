@@ -444,6 +444,12 @@
                 return;
             }
 
+            // Nothing was added, yet a line may have been lowered to what the stock
+            // holds (cart_changed): every cart surface on the page reads again.
+            if (responseData.data.cart_changed === true) {
+                announceCartChanged();
+            }
+
             setButtonState(button, null);
             showCard(card);
             return;
@@ -474,8 +480,15 @@
         }
 
         // The cart's contents changed: every cart surface on the page re-reads its own
-        // reading. A notification only, nothing of this answer travels with it; sent
-        // after the add has presented itself, whoever presented it.
+        // reading. Sent after the add has presented itself, whoever presented it.
+        announceCartChanged();
+    }
+
+    /**
+     * Tell every cart surface on the page that the cart's contents changed. A
+     * notification only, nothing of the answer travels with it.
+     */
+    function announceCartChanged() {
         document.dispatchEvent(new CustomEvent('alfa:cart:changed', {
             bubbles: true,
             detail: { source: CART_CHANGED_SOURCE, action: 'add' },

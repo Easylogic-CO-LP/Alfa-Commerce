@@ -289,6 +289,10 @@ class CartController extends FormController implements UserFactoryAwareInterface
             $responseData['available_quantity'] = $limit->quantity;
         }
 
+        // Whether the cart's lines changed: always for a line added or edited; for an add that added nothing, only
+        // when a line was lowered to what the stock holds, so the script tells the other cart surfaces to read again.
+        $responseData['cart_changed'] = $line !== null || ($limit !== null && $limit->lowered);
+
         $options = $this->addedCardOptions();
 
         // The card key is present only when there is a card to show: a rejected

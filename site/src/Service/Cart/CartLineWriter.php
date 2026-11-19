@@ -242,12 +242,10 @@ final class CartLineWriter
 
                 $this->rows->touch();
                 $this->hydrator->reloadLines();
-                $this->tell(
-                    decision: $decision,
-                    item: $item,
-                    combinationId: $combinationId,
-                    added: $cut && $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId) > $before,
-                );
+
+                // The figure after the write, read once: it says whether more went in and is the one the notice names.
+                $after = $cut ? $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId) : null;
+                $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: $after !== null && $after > $before, held: $after);
 
                 return $editLineId;
             }
@@ -313,7 +311,9 @@ final class CartLineWriter
 
                     if ($newTotal <= $existingQuantity) {
                         $this->hydrator->reloadLines();
-                        $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: false);
+
+                        // A line holding more than the stock now has is lowered to it: nothing went in, the cart changed.
+                        $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: false, lowered: $newTotal < $existingQuantity);
 
                         return false;
                     }
@@ -718,16 +718,21 @@ final class CartLineWriter
      * @param object $item The product.
      * @param int|null $combinationId The unit.
      * @param bool $added Whether the cart holds more of it than before the request.
+     * @param bool $lowered Whether a line was lowered to what the stock holds.
+     * @param int|null $held What the cart holds of that stock, when the caller has read it after the write; null
+     *                       reads it here.
      *
      * @since  2.2.2
      */
-    private function tell(QuantityDecision $decision, object $item, ?int $combinationId, bool $added): void
+    private function tell(QuantityDecision $decision, object $item, ?int $combinationId, bool $added, bool $lowered = false, ?int $held = null): void
     {
         if ($decision->because(QuantityReason::StockExhausted) || $decision->because(QuantityReason::ClampedToStock)) {
-            $held = $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId);
+            $held ??= $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId);
 
             if ($held > 0) {
-                $this->stockLimit = $added ? StockLimit::reached(quantity: $held) : StockLimit::held(quantity: $held);
+                $this->stockLimit = $added
+                    ? StockLimit::reached(quantity: $held)
+                    : StockLimit::held(quantity: $held, lowered: $lowered);
                 $this->messaging->stock(limit: $this->stockLimit);
 
                 return;

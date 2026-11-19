@@ -42,9 +42,10 @@ final class CartAddResult
      *                               to show.
      * @param StockLimit|null $stockLimit What the shelf said (2.2.2): the cart
      *                                    already held the available quantity, so
-     *                                    nothing was added, or now holds it, the
-     *                                    request cut to it; null when it said
-     *                                    nothing.
+     *                                    nothing more of that stock went in (an
+     *                                    edit still re-configures its line), or
+     *                                    now holds it, the request cut to it;
+     *                                    null when it said nothing.
      *
      * @since  2.0.0
      */

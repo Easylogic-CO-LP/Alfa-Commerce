@@ -59,7 +59,8 @@ use Joomla\CMS\Router\Route;
  *   priceSettings  array        price display settings for the `item.price` layout
  *   notice         string       what the shelf said, one sentence naming the available quantity: with
  *                               no line, the cart already holds it (the card says only that); with a
- *                               line, the request was cut to it (2.2.2); empty when it said nothing
+ *                               line, the request was cut to it, or an edited line already held it
+ *                               (2.2.2); empty when it said nothing
  *   messages       array        buyer messages [{message, type}] when the add was rejected
  *   placement, effect, offsetY, offsetX, timeout   the Options -> Cart values (timeout in seconds, fractions allowed)
  *
