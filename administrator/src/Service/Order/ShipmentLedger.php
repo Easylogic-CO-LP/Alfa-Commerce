@@ -830,9 +830,23 @@ class ShipmentLedger
             ? self::resolvedChain(methodId: (int) ($data['id_shipment_method'] ?? 0), orderId: $orderId)
             : self::carrierChain(data: $data);
         $data['shipping_tax_chain'] = $chain === null ? null : self::chainText(chain: $chain);
+
+        // A parcel entered with no charge states no tax rate (2.2.2): whatever rate it carries, or none, it is frozen
+        // with the shipping tax that applies and that tax's combined rate, so a charge given to it later is judged on
+        // that chain, as any change of an entered parcel's charge is. Before, a free parcel had to state the rate
+        // that applies (the full triple 0.00, 0.00 and 24), and the method alone, 0.00 alone or a rate of 0 was
+        // refused on a taxed order.
+        $free = $entered && $chain !== null
+            && ExactAmount::of((string) $data['shipping_cost_tax_incl'])->isZero()
+            && ExactAmount::of((string) $data['shipping_cost_tax_excl'])->isZero();
+
+        if ($free) {
+            $data['shipping_tax_rate'] = self::chainRateText(chain: $chain);
+        }
+
         $refusal = ($basis === null ? self::basisRefusal(data: $data) : null)
             ?? ($chain === null ? self::chainRefusal(data: $data) : null)
-            ?? ($entered ? self::resolvedRateRefusal(data: $data, chain: $chain) : null)
+            ?? ($entered && !$free ? self::resolvedRateRefusal(data: $data, chain: $chain) : null)
             ?? self::chargeRefusal(data: $data, orderId: $orderId)
             ?? ($entered ? self::enteredChargeRefusal(data: $data, mode: $basis->mode(), chain: $chain, orderId: $orderId) : null);
 
@@ -861,6 +875,13 @@ class ShipmentLedger
             $data['shipping_tax_chain'] = self::chainText(chain: []);
 
             self::warn(message: Text::sprintf('COM_ALFA_SHIPMENT_CHARGED_ONCE', $orderId), context: 'create()');
+
+            // Said to the caller too (2.2.2): the REST answer carries it in meta.warnings.
+            WriteWarnings::note(
+                code: WriteWarnings::SHIPPING_CHARGED_ONCE,
+                detail: Text::sprintf('COM_ALFA_SHIPMENT_CHARGED_ONCE', $orderId),
+                pointer: '/shipping_cost_tax_incl',
+            );
         }
 
         // Snapshot method name (survives deletion)
@@ -2422,18 +2443,32 @@ class ShipmentLedger
 
             self::clearItemAssignments($shipmentId, $orderId);
 
+            $lines = self::lineIdsOf(orderId: $orderId);
+
             foreach (self::normaliseItemMap($items) as $itemId => $quantity) {
-                // Not a line of this order, or nothing left to ship on it.
+                // Not a line of this order, or nothing left to ship on it; a line of the order asked for an exact
+                // number is said cut to nothing (2.2.2).
                 if (!isset($remaining[$itemId])) {
+                    if ($quantity > 0 && \in_array($itemId, $lines, true)) {
+                        self::noteCut(itemId: $itemId, asked: $quantity, assigned: 0);
+                    }
+
                     continue;
                 }
 
                 // A map asks for an exact number. A plain list means "leave
                 // this line as it is", or (for a line being added now) "all
                 // of it that is still unshipped".
+                $asked = $quantity;
                 $quantity = $quantity > 0
                     ? min($quantity, $remaining[$itemId])
                     : min($current[$itemId] ?? $remaining[$itemId], $remaining[$itemId]);
+
+                // An exact number cut to what the line still has to send is said to the caller (2.2.2): the REST answer
+                // carries it in meta.warnings.
+                if ($asked > $quantity) {
+                    self::noteCut(itemId: $itemId, asked: $asked, assigned: $quantity);
+                }
 
                 if ($quantity <= 0) {
                     continue;
@@ -2458,6 +2493,46 @@ class ShipmentLedger
             self::warnFailure(message: 'assignItems() failed', failure: $e);
             return false;
         }
+    }
+
+    /**
+     * The ids of an order's lines (2.2.2).
+     *
+     * @param int $orderId Order PK
+     *
+     * @return int[]
+     *
+     * @since  2.2.2
+     */
+    private static function lineIdsOf(int $orderId): array
+    {
+        $db = self::db();
+
+        return array_map('intval', $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName(self::ITEMS_TABLE))
+                ->where($db->quoteName('id_order') . ' = ' . (int) $orderId),
+        )->loadColumn() ?: []);
+    }
+
+    /**
+     * Note, for the caller, a line's quantity in a parcel cut to what the order still has to send of it (2.2.2):
+     * the REST answer carries it in meta.warnings.
+     *
+     * @param int $itemId The order line.
+     * @param int $asked The units asked for.
+     * @param int $assigned The units the parcel carries now.
+     *
+     * @since  2.2.2
+     */
+    private static function noteCut(int $itemId, int $asked, int $assigned): void
+    {
+        WriteWarnings::note(
+            code: WriteWarnings::QUANTITY_CUT,
+            detail: Text::sprintf('COM_ALFA_SHIPMENT_QUANTITY_CUT', $itemId, $asked, $assigned),
+            pointer: '/items',
+        );
     }
 
     /**

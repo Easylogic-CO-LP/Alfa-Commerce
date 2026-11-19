@@ -438,8 +438,16 @@ class OrderopsController extends OrdersController
      * Create a shipment / fulfil lines.
      *
      * POST v1/alfa/orders/:id/shipments
-     * {id_shipment_method, tracking_number?, status?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
+     * {id_shipment_method, tracking_number?, carrier?, status?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
      *  shipping_tax_rate?, items?: [{id_order_item, quantity}]}
+     *
+     * `carrier` is the carrier company's name (the parcel's carrier_name). A parcel keeps no note: a `note` is refused
+     * (422, 2.2.2), where it was dropped without a word.
+     *
+     * A parcel with no charge (no figures, or both at 0.00) states no rate: it takes the shipping tax that applies
+     * (2.2.2). The order is charged shipping once: a second open parcel's charge is set to 0 and meta.warnings says
+     * so (shipping_charged_once), and a quantity beyond what the line still has to send is cut to it and said
+     * (quantity_cut).
      *
      * The charge: shipping_cost_tax_incl alone is an untaxed charge (the net is
      * the gross, the rate 0). A taxed charge sends all three; the VAT rate is a
@@ -462,14 +470,19 @@ class OrderopsController extends OrdersController
     {
         $orderId = $this->requireOrderId();
         $body = $this->body();
+        $this->refuseParcelNote(body: $body);
 
         $data = [
             'id_order' => $orderId,
             'id_shipment_method' => (int) ($body['id_shipment_method'] ?? 0),
             'tracking_number' => $body['tracking_number'] ?? '',
             'status' => (string) ($body['status'] ?? 'pending'),
-            'note' => $body['note'] ?? '',
         ];
+
+        // The carrier company's name is the parcel's carrier_name (2.2.2; it was dropped, not being a column).
+        if (isset($body['carrier'])) {
+            $data['carrier_name'] = (string) $body['carrier'];
+        }
 
         foreach (['shipping_cost_tax_incl', 'shipping_cost_tax_excl'] as $key) {
             if (isset($body[$key])) {
@@ -498,8 +511,10 @@ class OrderopsController extends OrdersController
      * Update a shipment: status, tracking, carrier, cost or composition.
      *
      * PATCH v1/alfa/orders/:id/shipments/:shipmentId
-     * {status?, tracking_number?, carrier?, weight?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
+     * {status?, tracking_number?, carrier?, id_shipment_method?, weight?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
      *  shipping_tax_rate?, items?}
+     *
+     * `carrier` writes the parcel's carrier_name; a `note` is refused (422), a parcel keeps none (2.2.2).
      *
      * The charge follows the rules of addShipment(), on the entry mode the
      * parcel kept: a figure the body does not carry is the parcel's own, and the
@@ -530,16 +545,22 @@ class OrderopsController extends OrdersController
         $orderId = $this->requireOrderId();
         $shipment = $this->requireOwnedShipment($orderId);
         $body = $this->body();
+        $this->refuseParcelNote(body: $body);
 
         $data = [
             'id' => (int) $shipment->id,
             'id_order' => $orderId,
         ];
 
-        foreach (['status', 'tracking_number', 'carrier', 'note'] as $key) {
+        foreach (['status', 'tracking_number'] as $key) {
             if (isset($body[$key])) {
                 $data[$key] = (string) $body[$key];
             }
+        }
+
+        // The carrier company's name is the parcel's carrier_name (2.2.2; it was dropped, not being a column).
+        if (isset($body['carrier'])) {
+            $data['carrier_name'] = (string) $body['carrier'];
         }
 
         foreach (['shipping_cost_tax_incl', 'shipping_cost_tax_excl'] as $key) {
@@ -568,6 +589,26 @@ class OrderopsController extends OrdersController
         $this->runOrderWrite('saveOrderShipment', $data);
 
         return $this->displayItem($orderId);
+    }
+
+    /**
+     * Answer 422 naming note when a parcel's write carries one (2.2.2): a parcel keeps no note (#__alfa_order_shipments
+     * has no column for one, and its plugin data is the carrier plugin's), so a note sent was dropped with a 200. An
+     * empty note asks nothing and is let through.
+     *
+     * @param array $body The request body.
+     *
+     * @throws Save When the body carries a note (422).
+     *
+     * @since  2.2.2
+     */
+    private function refuseParcelNote(array $body): void
+    {
+        if (($body['note'] ?? null) !== null && $body['note'] !== '') {
+            throw new Save('note cannot be written through the API: a parcel keeps no note. Write the order\'s note to the'
+                . ' customer through PATCH v1/alfa/orders/:id (customer_note), or a status change\'s note through POST'
+                . ' v1/alfa/orders/:id/status. Nothing was saved.', 422);
+        }
     }
 
     /**
