@@ -52,6 +52,8 @@ use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
+use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -3515,8 +3517,10 @@ class ItemModel extends AlfaAdminModel
             $priceObject = new stdClass();
             $priceObject->id = isset($price['id']) ? intval($price['id']) : 0;
             $priceObject->item_id = $productId;
-            $priceObject->value = isset($price['value']) ? floatval($price['value']) : 0.0;
-            $priceObject->override_value = (trim((string) ($price['override_value'] ?? '')) !== '') ? floatval($price['override_value']) : null;
+            // Exact decimal text for the DECIMAL(24,8) columns (2.2.2, P3-434): the typed figure on its digits, never
+            // through a float; a value that is not a number, or is finer or larger than the column holds, is refused.
+            $priceObject->value = StoredDecimal::ofTyped($price['value'] ?? null) ?? StoredDecimal::of(ExactAmount::of('0'));
+            $priceObject->override_value = StoredDecimal::ofTyped($price['override_value'] ?? null);
             $priceObject->override_type = in_array($price['override_type'] ?? '', ['start', 'final'], true) ? $price['override_type'] : 'start';
             $priceObject->state = ((string) ($price['price_status'] ?? '1') === '1') ? 1 : 0;
             $priceObject->country_id = isset($price['country_id']) ? intval($price['country_id']) : 0;

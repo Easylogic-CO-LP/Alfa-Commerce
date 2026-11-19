@@ -30,6 +30,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitRetirementE
 use Alfa\Component\Alfa\Administrator\Service\Inventory\LocationPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\ItemFields\ItemFieldDisplayResolver;
+use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
@@ -5319,8 +5320,9 @@ class ItemFieldsAdminHelper
                 'combination_id' => $combinationId,
                 'mode' => $mode,
                 'operation' => ($mode === 'adjust' && in_array($operation, ['+', '-', '%', '-%'], true)) ? $operation : null,
-                'value' => (float) $row['value'],
-                'override_value' => ($mode === 'price' && trim((string) ($row['override_value'] ?? '')) !== '') ? (float) $row['override_value'] : null,
+                // Exact decimal text for the DECIMAL(24,8) columns (2.2.2, P3-434), never through a float.
+                'value' => StoredDecimal::ofTyped($row['value']),
+                'override_value' => $mode === 'price' ? StoredDecimal::ofTyped($row['override_value'] ?? null) : null,
                 // For an adjust, override_type carries the net/gross target (a
                 // separate POST key); for a price it carries the override pin.
                 'override_type' => $mode === 'adjust'
