@@ -325,7 +325,9 @@ final class InventoryService
     /**
      * The products this command changed a stock verdict input of (2.2.2): their opening combination
      * (#__alfa_items.opening_combination_id, the combination a listing card opens on) is decided again once the
-     * command's transaction has committed, from what is committed then ({@see self::refreshOpenings()}).
+     * command's transaction has committed, from what is committed then ({@see self::refreshOpenings()}). A command
+     * refused before it registers its operation leaves its products here, and the next command decides them too, from
+     * what is committed: no harm.
      *
      * @var array<int, true>
      */
@@ -3946,10 +3948,6 @@ final class InventoryService
      */
     private function rollBackCommand(Throwable $failure): bool
     {
-        // The opening combinations this command would have decided again go with it: nothing it changed is kept.
-        $this->openingItems = [];
-        $this->openingAll = false;
-
         return TransactionState::rollBackLevel(db: $this->db, failure: $failure);
     }
 
@@ -7157,9 +7155,6 @@ final class InventoryService
      */
     public function changeLocationState(array $locationIds, callable $write, InventoryContext $context): mixed
     {
-        // A location enabled or disabled changes the stock verdict of every unit stocked there (2.2.2).
-        $this->openingAll = true;
-
         $ids = array_values(array_unique(array_filter(array_map('intval', $locationIds), static fn (int $id): bool => $id > 0)));
         sort($ids);
 
@@ -7232,6 +7227,9 @@ final class InventoryService
                     );
                 }
 
+                // A location enabled or disabled changes the stock verdict of every unit stocked there (2.2.2): set
+                // where the change is registered, so a write refused before it owes nothing.
+                $this->openingAll = true;
                 $this->recordOperation(
                     operationId: $this->newOperationId(),
                     command: 'location_state',
