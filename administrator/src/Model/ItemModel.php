@@ -54,6 +54,7 @@ use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
+use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -800,6 +801,14 @@ class ItemModel extends AlfaAdminModel
             if ($widened !== []) {
                 return $this->refuseSave(messages: [PriceRowPlaces::refusal(widened: $widened)]);
             }
+        }
+
+        // A price is stored exactly as typed (2.2.2): a row whose figure is not a number, or has more decimals or digits
+        // than the column holds, is refused here, naming the row, before anything is written.
+        $priceRefusals = self::priceRefusals(rows: \is_array($data['prices'] ?? null) ? $data['prices'] : []);
+
+        if ($priceRefusals !== []) {
+            return $this->refuseSave(messages: $priceRefusals);
         }
 
         // The posted quantity rules, parsed exactly and normalised in $data.
@@ -2823,6 +2832,38 @@ class ItemModel extends AlfaAdminModel
         }
 
         return true;
+    }
+
+    /**
+     * The posted price rows whose price or custom discount the DECIMAL(24,8) columns cannot store (2.2.2): not a number,
+     * more than eight decimals, or more than sixteen digits before the point. Each named by its row and what was typed.
+     *
+     * @param array $rows jform[prices].
+     *
+     * @return string[] One refusal per figure refused.
+     *
+     * @since  2.2.2
+     */
+    private static function priceRefusals(array $rows): array
+    {
+        $refusals = [];
+        $position = 0;
+
+        foreach ($rows as $row) {
+            $position++;
+
+            foreach (['value', 'override_value'] as $column) {
+                $typed = \is_array($row) ? ($row[$column] ?? null) : null;
+
+                try {
+                    StoredDecimal::ofTyped($typed);
+                } catch (InvalidArgumentException) {
+                    $refusals[] = Text::sprintf('COM_ALFA_ITEM_PRICE_INVALID', $position, htmlspecialchars(\is_scalar($typed) ? (string) $typed : '', ENT_QUOTES, 'UTF-8'));
+                }
+            }
+        }
+
+        return $refusals;
     }
 
     /**

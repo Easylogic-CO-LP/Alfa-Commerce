@@ -92,7 +92,16 @@ use Throwable;
  * context's checkpoint (prepared_through). A context is read only once prepared; until then its visitors read the
  * context they read before it existed ({@see self::readContext()}): their previous set or the guest's, the next ruled
  * place above, currency class 0. A context requested while the index is being built after the update, or while no
- * context is prepared at all (a new shop's first price), has no previous answer to keep and is prepared at once.
+ * context is prepared at all (a new shop's first price, every published product then owed), has no previous answer to
+ * keep and is prepared at once.
+ *
+ * Generations. A context-wide change is written as the next GENERATION of every context it reaches, beside the live
+ * one, and switched whole when complete ({@see self::markPrepared()}): a rule or a tax whose scope is more than one chunk
+ * and at least half the published products (every live context, prepared in the save's request within a budget, the
+ * rest by the jobs), and a place moved, published or unpublished (the contexts priced at or below it, by the jobs).
+ * Readers read the live generation (is_live) only; writes meanwhile go to the live one and, for the products it has
+ * passed, to the one being prepared. The retired generation's rows, and the periods that ended, are removed by the
+ * price.index.tidy job (once a day, and after each switch).
  *
  * The update to 2.2.2. The index of 2.2.1 is renamed #__alfa_items_price_index_prev by the
  * installer and stays readable, with its readers, while the new index is built in the background by the catalogue job
@@ -105,7 +114,8 @@ use Throwable;
  * installation and resumes the build.
  *
  * Every write of a product's rows, a preparation's chunk included, holds the product's lock (IndexRebuildLock): the
- * product, its units and the contexts' progress are read after the grant, and the rows commit before the release.
+ * product, its units and the contexts' progress are read after the grant, and the rows commit before the release. The
+ * edges a product's periods are cut at are its own price rows' and those of the discounts and taxes that can reach it.
  *
  * Public API
  *   syncItem($itemId)              - rewrite one product's rows (its save, its publish)
@@ -126,16 +136,19 @@ use Throwable;
  *   finishBuild()                  - the switch from the previous index, when the new one is complete
  *   pricingGroups(), slotKey()     - the groups that change a price; the set of one visitor
  *   readableSetKey(), slotSetJoin(), slotPlaces(), slotRanking() - the previous index's reader, kept for the build
- *   oweChainRebuild($placeIds)     - the rebuild owed when places take another parent or another state
+ *   oweChainRebuild($placeIds)     - the generations owed when places take another parent or another state
+ *   removeRetired($n), removeEndedPeriods($n), tidyCount() - the tidy (the price.index.tidy job)
+ *   startBuild(), writeBuildFlag(), switchedAt() - the build after the update (the installer)
  *
  * SYNC TRIGGER MAP
  *   ItemModel::save(), publish()  -> ProjectionManager -> syncItem() / deleteForItems() (its units, its pointer)
  *   DiscountModel, TaxModel save, publish, delete -> syncItems() over the old and new scope / syncByDiscount() /
- *                                    syncByTax() (a catalogue-wide scope: every product)
+ *                                    syncByTax() (a scope of at least half the catalogue: generations)
  *   CategoryModel::delete(), ManufacturerModel::delete() -> syncItems() (the products that lost the link)
- *   PlaceModel::save() (a new parent), publish() -> oweChainRebuild(); PlaceModel::delete() -> syncGroupSets()
+ *   PlaceModel::save() (a new parent), publish() -> oweChainRebuild() (generations); PlaceModel::delete() -> syncGroupSets()
  *   A user group saved or removed, an account's groups changed, the users component's options saved -> syncGroupSets()
- *   An inventory kernel command, the shop-wide stock settings saved -> the opening combination only (no price row)
+ *   An inventory kernel command (after its commit), the shop-wide stock settings saved -> the opening combination only
+ *                                    (no price row)
  *
  * A failure of a write is logged and owed to the catalogue job (ProjectionManager::owe()); a save is never refused.
  *
