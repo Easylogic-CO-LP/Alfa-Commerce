@@ -95,12 +95,9 @@ $base = rtrim(Uri::root(), '/') . '/api/index.php/';
                     <ul class="small">
                         <?php foreach ($permission['groups'] as $group) : ?>
                             <li>
-                                <?php echo $this->escape($group['title']); ?>
-                                <?php if ($group['superUsers']) : ?>
-                                    (<?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_SUPER_USERS'); ?>)
-                                <?php endif; ?>:
-                                <?php echo Text::_($group['apiLogin'] ? 'COM_ALFA_TOOLS_API_ROUTES_API_LOGIN_YES' : 'COM_ALFA_TOOLS_API_ROUTES_API_LOGIN_NO'); ?>;
-                                <?php echo Text::_($group['tokenAllowed'] ? 'COM_ALFA_TOOLS_API_ROUTES_TOKEN_ALLOWED_YES' : 'COM_ALFA_TOOLS_API_ROUTES_TOKEN_ALLOWED_NO'); ?>.
+                                <?php echo $this->escape($group['title']) . ($group['superUsers'] ? ' (' . Text::_('COM_ALFA_TOOLS_API_ROUTES_SUPER_USERS') . ')' : '') . ': '
+                                    . Text::_($group['apiLogin'] ? 'COM_ALFA_TOOLS_API_ROUTES_API_LOGIN_YES' : 'COM_ALFA_TOOLS_API_ROUTES_API_LOGIN_NO') . '; '
+                                    . Text::_($group['tokenAllowed'] ? 'COM_ALFA_TOOLS_API_ROUTES_TOKEN_ALLOWED_YES' : 'COM_ALFA_TOOLS_API_ROUTES_TOKEN_ALLOWED_NO') . '.'; ?>
                                 <?php if ($group['accounts'] === []) : ?>
                                     <?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_NO_TOKEN'); ?>
                                 <?php else : ?>
