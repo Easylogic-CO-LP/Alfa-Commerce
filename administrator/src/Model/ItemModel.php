@@ -29,6 +29,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
@@ -2991,6 +2992,21 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * Refuse a delete by the item rule that stops it (2.2.2): the refusal is a DeleteRefusedException, as the category,
+     * payment method and currency models refuse theirs, so the back office prints the same sentence as before and the
+     * REST delete answers 409 with it. Before, the sentence was a plain error, which the REST delete answered as a
+     * server fault (500).
+     *
+     * @param string $sentence The refusal.
+     *
+     * @since  2.2.2
+     */
+    private function refuseDelete(string $sentence): void
+    {
+        $this->setError(new DeleteRefusedException($sentence));
+    }
+
+    /**
      * A product's name in the staff member's language, for a refusal that names it (UX-42); its number when it has none.
      * The one rule for naming a product to staff: the item's own refusals, the Related tab's refusals and the title of
      * its product picker (2.2.2).
@@ -3078,7 +3094,7 @@ class ItemModel extends AlfaAdminModel
             $blockers = $service->retirementBlockers(itemId: $pk, combinationIds: null);
 
             if ($blockers !== []) {
-                $this->setError(error: $this->stockHeldMessage(
+                $this->refuseDelete(sentence: $this->stockHeldMessage(
                     key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
                     itemId:   $pk,
                     blockers: $blockers,
@@ -3088,7 +3104,7 @@ class ItemModel extends AlfaAdminModel
             }
 
             if (!$this->projectionsAgree(itemId: $pk)) {
-                $this->setError(error: Text::_('COM_ALFA_INVENTORY_FIGURES_DISAGREE'));
+                $this->refuseDelete(sentence: Text::_('COM_ALFA_INVENTORY_FIGURES_DISAGREE'));
 
                 return false;
             }
@@ -3194,7 +3210,7 @@ class ItemModel extends AlfaAdminModel
 
         if ($busy !== []) {
             $itemLock->release(itemIds: $locked);
-            $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $busy[0]), (int) $busy[0]));
+            $this->refuseDelete(sentence: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $busy[0]), (int) $busy[0]));
 
             return false;
         }
@@ -3213,7 +3229,7 @@ class ItemModel extends AlfaAdminModel
 
                         // Every close of this level discards what was deferred inside it.
                         TransactionState::rollBackLevel(db: $db, failure: new RuntimeException($refusal));
-                        $this->setError(error: $refusal);
+                        $this->refuseDelete(sentence: $refusal);
 
                         return false;
                     }
@@ -3296,7 +3312,7 @@ class ItemModel extends AlfaAdminModel
             } catch (InventoryUnitRetirementException $retirement) {
                 TransactionState::rollBackLevel(db: $db, failure: $retirement);
 
-                $this->setError(error: $this->stockHeldMessage(
+                $this->refuseDelete(sentence: $this->stockHeldMessage(
                     key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
                     itemId:   $retirement->itemId,
                     blockers: $retirement->blockers,
@@ -3311,7 +3327,7 @@ class ItemModel extends AlfaAdminModel
                 // The removal met another writer (A-C18-14): nothing was deleted, and the merchant is told so.
                 if ($e === $busyRemoval) {
                     Log::add('Item delete: the price index rows of item(s) ' . implode(', ', $existing) . ' could not be removed, nothing was deleted: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
-                    $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
+                    $this->refuseDelete(sentence: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
 
                     return false;
                 }

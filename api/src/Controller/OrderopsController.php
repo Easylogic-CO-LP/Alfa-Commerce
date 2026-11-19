@@ -1050,6 +1050,11 @@ class OrderopsController extends OrdersController
     /**
      * Run a write on the order model and translate failure into an HTTP error.
      *
+     * The refusal's sentence is the model's error when it set one (a line), else the sentence the payments or the
+     * shipments ledger told staff about the write it refused (2.2.2: a second pending payment while one covers the
+     * balance, a parcel's charge the tax rule refuses), as the settle reads it; the generic sentence only when neither
+     * said why.
+     *
      * @param string $method The model method to call.
      * @param array $data Data passed by reference to the model.
      * @param array $arguments Further arguments, by name (the line writer's pricing instructions).
@@ -1060,9 +1065,10 @@ class OrderopsController extends OrdersController
     private function runOrderWrite(string $method, array $data, array $arguments = []): void
     {
         $model = $this->orderModel();
+        $told = \count($this->app->getMessageQueue());
 
         if (!$model->$method($data, ...$arguments)) {
-            throw new Save($this->modelError($model, 'The order could not be updated'), 409);
+            throw new Save($this->modelError($model, $this->ledgerRefusal(told: $told) ?: 'The order could not be updated'), 409);
         }
     }
 

@@ -12630,14 +12630,46 @@ class PaymentLedger
         );
         $left = $total->subtract($held)->nonNegative();
         $withoutOpen = self::heldAgainstTotal($orderId, excludeId: $excludeId, plus: $amount)->subtract($pending);
+        $figures = ['amount' => $amount, 'total' => $total, 'held' => $held, 'pending' => $pending, 'left' => $left];
 
-        self::moneyRefusal(
-            log: $log,
+        if (!$pending->isPositive() || self::exceedsCap([$withoutOpen], $total, $orderId)) {
+            self::moneyRefusal(
+                log: $log,
+                orderId: $orderId,
+                key: 'COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL',
+                amounts: [$amount, $left, $total],
+                code: self::REFUSAL_OVER_TOTAL,
+                figures: $figures,
+            );
+
+            return;
+        }
+
+        // An open attempt in the way (2.2.2): the sentence names the pending payment, since "is owed 0.00" read wrong
+        // beside a balance the order still owes. Several pending rows are named together with their sum.
+        $db = self::db();
+        $open = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'amount']))
+                ->from($db->quoteName(self::TABLE))
+                ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                ->where($db->quoteName('payment_type') . ' = ' . $db->quote(self::TYPE_PAYMENT))
+                ->where($db->quoteName('transaction_status') . ' = ' . $db->quote(self::STATUS_PENDING))
+                ->where($db->quoteName(self::PK) . ' != ' . $excludeId)
+                ->order($db->quoteName(self::PK)),
+        )->loadObjectList() ?: [];
+        $ids = array_map(static fn (object $row): int => (int) $row->id, $open);
+        $shown = $amount->format();
+        $pendingShown = (\count($open) === 1 ? self::money((string) $open[0]->amount, $orderId)->abs() : $pending)->format();
+
+        self::refuse(
+            detail: $log,
             orderId: $orderId,
-            key: 'COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL',
-            amounts: [$amount, $left, $total],
-            code: $pending->isPositive() && !self::exceedsCap([$withoutOpen], $total, $orderId) ? self::REFUSAL_OPEN_ATTEMPT : self::REFUSAL_OVER_TOTAL,
-            figures: ['amount' => $amount, 'total' => $total, 'held' => $held, 'pending' => $pending, 'left' => $left],
+            code: self::REFUSAL_OPEN_ATTEMPT,
+            plain: static fn (string $number): string => \count($ids) === 1
+                ? Text::sprintf('COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPT', $shown, $number, $ids[0], $pendingShown)
+                : Text::sprintf('COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPTS', $shown, $number, implode(', ', $ids), $pendingShown),
+            figures: $figures,
         );
     }
 
