@@ -90,29 +90,6 @@ final class CategoryAncestry
     }
 
     /**
-     * A category's level: 1 for a top-level category, its children 2, and so on.
-     *
-     * @param int $categoryId The category.
-     *
-     * @since  2.2.2
-     */
-    public static function level(int $categoryId): int
-    {
-        return \count(self::ancestors(categoryId: $categoryId)) + 1;
-    }
-
-    /**
-     * Forget what this request read (a category saved or deleted in the same request is read again).
-     *
-     * @since  2.2.2
-     */
-    public static function forget(): void
-    {
-        self::$categories = [];
-        self::$visible = [];
-    }
-
-    /**
      * Every category, read once per request and language.
      *
      * @return array<int, array{0: int, 1: int, 2: string, 3: string}>
