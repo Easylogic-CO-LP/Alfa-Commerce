@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\View\Categories;
 
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryAncestry;
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
+use Alfa\Component\Alfa\Api\View\ListsTranslations;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
 /**
@@ -23,6 +24,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 class JsonApiView extends BaseApiView
 {
     use ListsRequestTasks;
+    use ListsTranslations;
 
     /**
      * The fields to render item in the documents
@@ -95,5 +97,17 @@ class JsonApiView extends BaseApiView
         }
 
         return parent::prepareItem($item);
+    }
+
+    /**
+     * The translations a list row carries with translations=1 (2.2.2, ListsTranslations).
+     *
+     * @return array{0: string, 1: string, 2: string[]}
+     *
+     * @since  2.2.2
+     */
+    protected function translationSource(): array
+    {
+        return ['#__alfa_categories', 'id_category', []];
     }
 }

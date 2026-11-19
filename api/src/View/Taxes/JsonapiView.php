@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\View\Taxes;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
+use Alfa\Component\Alfa\Api\View\ListsTranslations;
 use Alfa\Component\Alfa\Api\View\PublishesStoredFigures;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
@@ -23,6 +24,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 class JsonApiView extends BaseApiView
 {
     use ListsRequestTasks;
+    use ListsTranslations;
     use PublishesStoredFigures;
 
     /**
@@ -88,5 +90,17 @@ class JsonApiView extends BaseApiView
         }
 
         return $item;
+    }
+
+    /**
+     * The translations a list row carries with translations=1 (2.2.2, ListsTranslations).
+     *
+     * @return array{0: string, 1: string, 2: string[]}
+     *
+     * @since  2.2.2
+     */
+    protected function translationSource(): array
+    {
+        return ['#__alfa_taxes', 'id_tax', []];
     }
 }

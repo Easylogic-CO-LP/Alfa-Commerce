@@ -982,6 +982,71 @@ class MultilingualHelper
     }
 
     /**
+     * {@see self::getMultilingualData()} for many records at once (2.2.2): one statement per language table, so a list
+     * of fifty records costs as many statements as the shop has content languages, never one per row.
+     *
+     * @param int[] $ids The records.
+     * @param string $primaryColumnName PK column of the lang tables (e.g. "id_item").
+     * @param string $tableName Base table with Joomla prefix (e.g. "#__alfa_items").
+     *
+     * @return array<int, array<string, array<string, mixed>>> id => [lang => row]; a record with no translation row has
+     *                                                         an empty map.
+     *
+     * @throws RuntimeException On a read that fails.
+     *
+     * @since  2.2.2
+     */
+    public static function getMultilingualDataForIds(array $ids, string $primaryColumnName, string $tableName): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        self::assertValidArguments(
+            currentId:         $ids[0],
+            primaryColumnName: $primaryColumnName,
+            tableName:         $tableName,
+            callerMethod:      __METHOD__,
+        );
+
+        $db = self::getDb();
+        $existingTables = self::fetchTableList(db: $db);
+        $result = array_fill_keys($ids, []);
+
+        foreach (self::buildLangCodeList(languages: LanguageHelper::getLanguages('lang_code')) as $langCode) {
+            $langTableName = $db->replacePrefix($tableName . '_' . $langCode);
+
+            if (!\in_array($langTableName, $existingTables, true)) {
+                continue;
+            }
+
+            try {
+                $rows = $db->setQuery(
+                    $db->getQuery(true)
+                        ->select('*')
+                        ->from($db->qn($langTableName))
+                        ->whereIn($db->qn($primaryColumnName), $ids),
+                )->loadAssocList() ?: [];
+            } catch (Throwable $e) {
+                throw new RuntimeException(
+                    '[MultilingualHelper::getMultilingualDataForIds] Read failed for "' . $langTableName . '": ' . $e->getMessage(),
+                    previous: $e,
+                );
+            }
+
+            foreach ($rows as $row) {
+                $id = (int) $row[$primaryColumnName];
+                unset($row[$primaryColumnName]);
+                $result[$id][$langCode] = $row;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Flatten the structured output of getMultilingualData() into a single-level
      * array that can be merged directly into a Joomla item object / form data.
      *
