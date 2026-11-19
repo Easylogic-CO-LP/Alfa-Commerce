@@ -69,6 +69,15 @@ use Throwable;
  * subquery restricted to the visitor's currency, place, and usergroups.
  * Column names in the index match the com_alfa config fields exactly.
  *
+ * Products without a price
+ * Every product is listed, one with no price for the visitor with no price
+ * and no add to cart. A read that filters by a price (a price floor, ceiling
+ * or range, the sale or a saving filter) lists only the products the index has
+ * a figure of for the visitor ({@see self::applyPriceIndexJoin()}), and so do
+ * the facet counts beside it, which copy the filters. A sort by price or by
+ * saving, in either direction, lists every product, those without a figure
+ * last.
+ *
  * Available filter states
  *   filter.price_min           float   Minimum final_price (range slider left)
  *   filter.price_max           float   Maximum final_price (range slider right)
@@ -1059,6 +1068,8 @@ class ItemsModel extends UrlListModel
      *   MIN(base_price_with_tax)      -> undiscounted "was" price
      *   MIN(base_price_with_discounts)-> ex-VAT net price
      *   MIN(tax_amount)               -> tax amount
+     * A left join, except for a read that filters by a price, which lists only the products with a figure
+     * ({@see self::applyPriceIndexJoin()}).
      *
      * All supported filter conditions
      *   filter.price_min            -> pf.final_price >= X
@@ -1126,13 +1137,10 @@ class ItemsModel extends UrlListModel
             )
             ->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
 
-        // Architecture B price index subquery JOIN. Catalogue only (2.2.2): no price is read, so the index is not
-        // joined, and every price filter and sort below is left out with it (the sale filter matches nothing).
+        // Architecture B price index subquery JOIN, added below once the read knows whether it filters by a price.
+        // Catalogue only (2.2.2): no price is read, so the index is not joined, and every price filter and sort below
+        // is left out with it (the sale filter matches nothing).
         $sellsOnline = ShopMode::sellsOnline();
-
-        if ($sellsOnline) {
-            $this->applyPriceIndexJoin($query);
-        }
 
         // MULTILINGUAL: resolve name / alias in the active language
         // 1:1 LEFT JOIN on the PK, so it does not affect the GROUP BY a.id below.
@@ -1361,22 +1369,21 @@ class ItemsModel extends UrlListModel
         $hasMax = is_numeric($priceMax) && $priceMax !== '' && $priceMax !== null;
 
         if ($hasMin && $hasMax) {
-            // Strict inclusive range; unpriced items (NULL) naturally excluded
+            // Strict inclusive range.
             $query->where('pf.final_price >= ' . (float) $priceMin);
             $query->where('pf.final_price <= ' . (float) $priceMax);
         } elseif ($hasMin) {
             $query->where('pf.final_price >= ' . (float) $priceMin);
         } elseif ($hasMax) {
-            // A ceiling alone, as a floor or a range: only products with a figure
-            // for the visitor's set. One without (no price, or a set not yet
-            // prepared) has nothing to compare and is not listed.
             $query->where('pf.final_price <= ' . (float) $priceMax);
         }
 
         // On sale filter
         // discount_amount > 0 is the canonical test; no separate has_discount column needed.
         // A sale nobody sees is no sale: in catalogue-only mode the filter matches nothing.
-        if ($this->getState('filter.on_sale')) {
+        $onSale = (bool) $this->getState('filter.on_sale');
+
+        if ($onSale) {
             $query->where($sellsOnline ? 'pf.discount_amount > 0' : '0 = 1');
         }
 
@@ -1394,13 +1401,15 @@ class ItemsModel extends UrlListModel
         // Minimum discount amount filter
         // "Show items where the visitor saves at least €X."
         $discountAmountMin = $sellsOnline ? $this->getState('filter.discount_amount_min') : null;
-        if (is_numeric($discountAmountMin) && (float) $discountAmountMin > 0) {
+        $savingAsked = is_numeric($discountAmountMin) && (float) $discountAmountMin > 0;
+        if ($savingAsked) {
             $query->where('pf.discount_amount >= ' . (float) $discountAmountMin);
         }
 
         // Minimum discount percentage filter
         // "Show items discounted by at least X%."
         $discountPercentMin = $sellsOnline ? $this->getState('filter.discount_percent_min') : null;
+        $savingAsked = $savingAsked || (is_numeric($discountPercentMin) && (float) $discountPercentMin > 0);
         if (is_numeric($discountPercentMin) && (float) $discountPercentMin > 0) {
             $query->where('pf.discount_percent >= ' . (float) $discountPercentMin);
         }
@@ -1455,21 +1464,34 @@ class ItemsModel extends UrlListModel
             }
         }
 
+        // The visitor's price from the index (2.2.2): a read that filters by a price (a price floor, ceiling or range, the
+        // sale or a saving filter) lists only the products with a figure for the visitor; every other read, a sort by
+        // price or by saving included, lists every product, one with no price shown with no price.
+        if ($sellsOnline) {
+            $this->applyPriceIndexJoin(query: $query, pricedOnly: $hasMin || $hasMax || $onSale || $savingAsked);
+        }
+
         $query->group('a.id');
 
         return $query;
     }
 
     /**
-     * Append the Architecture-B price index subquery JOIN to the main query.
+     * Append the Architecture-B price index subquery JOIN to the main query: the one place a read of the catalogue
+     * takes the visitor's price figures, and the rule on products without one, from (2.2.2).
      *
-     * The subquery (alias pf) reduces the index to one row per item for the
-     * current visitor's currency, place, and usergroups.
+     * The subquery (alias pf) reduces the index to one row per item for the current visitor's currency, place chain
+     * and set of pricing groups (their own once prepared; while theirs waits, their previous one or the guest's), at
+     * this moment. A left join: a product with no figure for the visitor is listed, its pf columns null, and a sort by
+     * a figure places it last. With $pricedOnly, the read that filters by a price, an inner join: only the products
+     * with a figure are listed. While no set is prepared to read at all (the job runner has not run yet) every read is
+     * a left join, so no list is empty because the index is being prepared.
      *
      * @param \Joomla\Database\QueryInterface $query Mutated in place
+     * @param bool $pricedOnly Whether the read lists only the products with a figure for the visitor.
      * @since  1.0.0
      */
-    protected function applyPriceIndexJoin($query): void
+    protected function applyPriceIndexJoin($query, bool $pricedOnly = false): void
     {
         // Same UTC clock as the publish window in getListQuery(): the index's
         // valid_from / valid_until are written by PriceIndexSyncService with
@@ -1489,10 +1511,12 @@ class ItemsModel extends UrlListModel
         $places = PriceIndexSyncService::slotPlaces(context: $context);
         $placeCond = 'pi.place_id IN (' . implode(', ', array_merge($places, [0])) . ')';
 
-        // Groups: the slots of the visitor's own set of pricing groups, priced
-        // with exactly the groups of theirs that change a price; a set whose
-        // preparation has not finished is not read at all.
-        $setJoin = PriceIndexSyncService::slotSetJoin(context: $context, alias: 'pi');
+        // Groups: the slots of the visitor's own set of pricing groups, priced with exactly the groups of theirs that
+        // change a price; while that set waits for its preparation, their previous one or the guest's (readableSetKey()),
+        // so no visitor meets an empty list or products without figures because a set is being prepared.
+        $setKey = PriceIndexSyncService::readableSetKey(context: $context);
+        $pricedOnly = $pricedOnly && $setKey !== null;
+        $setJoin = PriceIndexSyncService::slotSetJoin(setKey: $setKey ?? '', alias: 'pi');
 
         // Subquery: all column aliases match index column names.
         //
@@ -1502,8 +1526,11 @@ class ItemsModel extends UrlListModel
         // corresponds to the slot of his own set of pricing groups and of his
         // own currency and place. The index says how its slots are ranked:
         // taking the ranking from there keeps the filter and the card telling
-        // the same number. Across combinations the outer MIN() stands: an item
-        // matches the slider when ANY variant does.
+        // the same number. The writer keeps one row per product and slot
+        // (combination 0): the price of the combination the product opens on,
+        // its default one, for a product with combinations (2.2.2), else its
+        // own; the ranking keeps one of its slots per product, which the outer
+        // aggregate reads.
         $ranking = PriceIndexSyncService::slotRanking(alias: 'pi', places: $places);
 
         $subquery = "
@@ -1536,7 +1563,7 @@ class ItemsModel extends UrlListModel
                 GROUP BY ranked.item_id
             ) AS pf";
 
-        $query->join('LEFT', $subquery . ' ON a.id = pf.item_id');
+        $query->join($pricedOnly ? 'INNER' : 'LEFT', $subquery . ' ON a.id = pf.item_id');
     }
 
     /**
