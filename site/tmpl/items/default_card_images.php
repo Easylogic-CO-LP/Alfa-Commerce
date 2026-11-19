@@ -15,10 +15,11 @@
  * The image is the thumbnail, with the stored image beside it in its srcset (MediaHelper::srcset(), 2.2.2), so
  * a card wider than the thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image and the
  * thumbnail is never stretched past its pixels. Its sizes follow list.css's grid (cards of at least 300 px, a gap of
- * 1rem; at most one card a row up to 640 px, two up to 960 px, three up to 1280 px); "auto" first gives a browser that
- * knows it the card's own width, since the image loads lazily. An override that changes the grid gives its own sizes.
- * The addresses carry their files' versions (getMediaData(), MediaHelper::displayUrl()), so a file written again is
- * never drawn from the browser's cache.
+ * 1rem; at most one card a row up to 640 px, two up to 960 px, three up to 1280 px). An override that changes the grid
+ * gives its own sizes; a sizes value that begins with "auto" makes the browser draw the image in a box of 300 x 150
+ * until the CSS sets both its sides. The first four cards of the page load at once, the first before every other
+ * image, and the others lazily ($this->cardImageLoading()). The addresses carry their files' versions (getMediaData(),
+ * MediaHelper::displayUrl()), so a file written again is never drawn from the browser's cache.
  *
  * Overridable as html/com_alfa/items/default_card_images.php. The card is on $this->item.
  *
@@ -45,8 +46,7 @@ $srcset = empty($item->medias[0]->thumbnail) ? '' : MediaHelper::srcset($item->m
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
             <img src="<?php echo $this->escape($item->medias[0]->thumbnail_url); ?>" alt=""<?php if ($srcset !== '') : ?>
                  srcset="<?php echo $this->escape($srcset); ?>"
-                 sizes="auto, (max-width: 640px) 100vw, (max-width: 960px) 50vw, (max-width: 1280px) 34vw, 25vw"<?php endif; ?>
-                 loading="lazy" />
+                 sizes="(max-width: 640px) 100vw, (max-width: 960px) 50vw, (max-width: 1280px) 34vw, 25vw"<?php endif; ?><?php echo $this->cardImageLoading(); ?> />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>

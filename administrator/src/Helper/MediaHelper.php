@@ -375,12 +375,13 @@ class MediaHelper
 
     /**
      * A media file's address as a page draws it (2.2.2): the address of one of this site's files (as toUrl() makes it)
-     * with a version of the file itself, the url and thumbnail_url getMediaData() gives every reader, ?v= a short digest of its modification
-     * time, size and inode, so a file written again under a name the browser has seen (a thumbnail made again, an image
-     * uploaded again under the name of one deleted) is never drawn from the browser's cache. Any other address (another
-     * site's, a blob, a data URI, one with its own query or fragment such as a library pick's joomlaImage part) and a file
-     * that is not there are returned as they are. The stored paths and the form values stay as they are: this is the
-     * address a page draws, never one it posts back.
+     * with a version of the file itself, as getMediaData() gives every reader an image's url and every thumbnail_url:
+     * ?v= a short digest of its modification time, size and inode, so a file written again under a name the browser has
+     * seen (a thumbnail made again, an image uploaded again under the name of one deleted) is never drawn from the
+     * browser's cache. Any other address (another site's, a blob, a data URI, one with its own query or fragment such as
+     * a library pick's joomlaImage part, one holding a NUL byte, which no file is named with) and a file that is not
+     * there are returned as they are. The stored paths and the form values stay as they are: this is the address a page
+     * draws, never one it posts back.
      *
      * @param string|null $url The address, absolute (toUrl()).
      *
@@ -399,7 +400,7 @@ class MediaHelper
 
         $relative = substr($url, \strlen($root));
 
-        if ($relative === '' || strpbrk($relative, '?#') !== false || str_contains($relative, '..')) {
+        if ($relative === '' || strpbrk($relative, "?#\0") !== false || str_contains($relative, '..')) {
             return $url;
         }
 
@@ -2095,10 +2096,12 @@ class MediaHelper
             // round-trip / server-side file ops).
             $result->path = ltrim($result->path, '/');
 
-            // Display URLs (absolute) for templates; never mutate the relative path. Each carries its file's version
-            // (2.2.2, displayUrl()), so every page, module, cart and API answer that draws one never shows a file written
-            // again from a cache; the stored paths, which the forms and the API post back, stay as they are.
-            $result->url = self::displayUrl(self::toUrl($result->path));
+            // Display URLs (absolute) for templates; never mutate the relative path. An image's file and every thumbnail
+            // carry their file's version (2.2.2, displayUrl()), so every page, module, cart and API answer that draws one
+            // never shows a file written again from a cache; the stored paths, which the forms and the API post back,
+            // stay as they are. A web address (a row of type url) is drawn as it is stored: the API reads a row's url
+            // back as its address, so a GET echoed back keeps it as it was.
+            $result->url = $result->type === 'url' ? self::toUrl($result->path) : self::displayUrl(self::toUrl($result->path));
             $result->thumbnail_url = self::displayUrl(self::toUrl($result->thumbnail));
 
             $grouped[$result->item_id][] = $result;
@@ -2166,7 +2169,8 @@ class MediaHelper
 
     /**
      * The width in pixels of an image file of this site, read from its header, once a request (srcset()); 0 for a web
-     * address, a file outside the site or one that is not an image.
+     * address, a file outside the site, one that is not an image, and a path holding a NUL byte (a row written outside
+     * Alfa: realpath() and getimagesize() throw on one, so the page draws the thumbnail alone).
      *
      * @param string $relative Site-relative file.
      *
@@ -2180,7 +2184,7 @@ class MediaHelper
 
         $width = 0;
 
-        if (!str_contains($relative, '://') && !str_starts_with($relative, '//') && !str_starts_with($relative, 'data:')) {
+        if (!str_contains($relative, '://') && !str_starts_with($relative, '//') && !str_starts_with($relative, 'data:') && !str_contains($relative, "\0")) {
             $real = realpath(JPATH_ROOT . '/' . $relative);
             $root = realpath(JPATH_ROOT);
             $info = $real !== false && $root !== false && str_starts_with($real, $root . DIRECTORY_SEPARATOR) ? @getimagesize($real) : false;

@@ -19,8 +19,8 @@
  * default card draws it, with no controls.
  *
  * Each image is the thumbnail, with the stored image beside it in its srcset and the sizes of the default card's
- * image, at the files' versioned addresses (default_card_images.php says why, 2.2.2). The first image loads at once and
- * the others lazily, so the first takes the sizes' list and the others the browser's own measure where it has one.
+ * image, at the files' versioned addresses (default_card_images.php says why, 2.2.2). The first image of a slider loads
+ * at once and the others lazily; a card of one image loads as the default card's does ($this->cardImageLoading()).
  *
  * Overridable as html/com_alfa/items/default_card_images-slider.php. The card is on $this->item; the images to show
  * come from $this->cardSlides($this->item).
@@ -42,13 +42,13 @@ $count = \count($slides);
 $sources = function (object $slide): string {
     $srcset = MediaHelper::srcset($slide);
 
-    return $srcset === '' ? '' : ' srcset="' . $this->escape($srcset) . '" sizes="auto, (max-width: 640px) 100vw, (max-width: 960px) 50vw, (max-width: 1280px) 34vw, 25vw"';
+    return $srcset === '' ? '' : ' srcset="' . $this->escape($srcset) . '" sizes="(max-width: 640px) 100vw, (max-width: 960px) 50vw, (max-width: 1280px) 34vw, 25vw"';
 };
 ?>
 <?php if ($count === 1): ?>
     <div class="item-image">
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt=""<?php echo $sources($slides[0]); ?> loading="lazy" />
+            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt=""<?php echo $sources($slides[0]); ?><?php echo $this->cardImageLoading(); ?> />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>

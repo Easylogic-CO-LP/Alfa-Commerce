@@ -373,6 +373,29 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
+     * How the current card's image loads (2.2.2): the first four cards of the page at once, the first of them before
+     * every other image of the page, since the first row of list.css's grid holds at most four cards on Cassiopeia and
+     * the page's largest image is among them; every other card lazily, and so does a card drawn outside the listing's
+     * loop (a single card's reload, a related product), which has no place on the page. The place is the card's
+     * position on this page: the listing's position less the page's offset.
+     *
+     * @return string The img attributes, each preceded by a space: fetchpriority high for the first card, none for the
+     *                next three, loading lazy for every other card.
+     *
+     * @since  2.2.2
+     */
+    public function cardImageLoading(): string
+    {
+        $place = isset($this->itemPosition) ? (int) $this->itemPosition - (int) ($this->pagination->limitstart ?? 0) : 0;
+
+        return match (true) {
+            $place === 1 => ' fetchpriority="high"',
+            $place >= 2 && $place <= 4 => '',
+            default => ' loading="lazy"',
+        };
+    }
+
+    /**
      * Announce the rendered result set (onAlfaResultSetRender; mode A, a display phase): the alfa-search group imported
      * first, each listener isolated, so one that fails is logged by the helper, named, and the others and the listing
      * go on. A listener may add its own assets and script options.

@@ -30,11 +30,12 @@
 
     // A slide is the thumbnail, with the stored image beside it in its srcset (2.2.2), so a slide wider than the
     // thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image; the lightbox opens the stored
-    // image. The sizes follow item.css: the images take the whole page below 640 px and half of it above; "auto" first
-    // gives the lazy slides their own width where the browser knows it. The strip's small images stay thumbnails.
+    // image. The sizes follow item.css: the images take the whole page below 640 px and half of it above (never "auto",
+    // which draws an image in a box of 300 x 150 until the CSS sets both its sides). The strip's small images stay
+    // thumbnails.
     // The addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout
     // (joomla.html.image): HTMLHelper::image() loses an address with a query and no fragment.
-    $slideSizes = 'auto, (max-width: 640px) 100vw, 50vw';
+    $slideSizes = '(max-width: 640px) 100vw, 50vw';
 ?>
 
 <div class="main-images navigation-controls">

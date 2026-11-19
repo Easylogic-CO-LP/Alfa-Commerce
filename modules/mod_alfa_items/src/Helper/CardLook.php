@@ -532,6 +532,43 @@ final class CardLook
         return $bands;
     }
 
+    /**
+     * The width a card's image takes on each screen, as an img's sizes value (2.2.2): the screen's width over the cards
+     * side by side there (the grid's columns, or the slider's cards per view), times the image's share of the card
+     * where it sits beside the text; the narrowest screen first, as the browser reads the list. The module's place on
+     * the page is not known, so a row of cards takes at most the whole screen: the browser may take the larger image a
+     * little early, never one too small.
+     *
+     * @param array<string, array<string, mixed>> $resolved The place on every device (resolve()).
+     * @param array $breakpoints The module's breakpoints (key, max), widest first.
+     *
+     * @return string The sizes value, such as "(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 25vw".
+     *
+     * @since  2.2.2
+     */
+    public static function sizes(array $resolved, array $breakpoints): string
+    {
+        $slider = $resolved['']['display'] === 'slider';
+        $width = static function (array $card) use ($slider): string {
+            $across = max(1, (int) ($slider ? $card['perView'] : $card['columns']));
+            $beside = $card['style'] !== 'overlay' && \in_array($card['imagePosition'], ['left', 'right'], true);
+            $share = $beside ? (int) ($card['imageWidth'] ?? 40) / 100 : 1;
+
+            return round(100 / $across * $share, 2) . 'vw';
+        };
+        $sizes = [];
+
+        foreach (array_reverse(array_values($breakpoints)) as $breakpoint) {
+            if (isset($resolved[$breakpoint['key']])) {
+                $sizes[] = '(max-width: ' . (int) $breakpoint['max'] . 'px) ' . $width($resolved[$breakpoint['key']]);
+            }
+        }
+
+        $sizes[] = $width($resolved['']);
+
+        return implode(', ', $sizes);
+    }
+
     // Rules
 
     /**

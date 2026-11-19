@@ -12,7 +12,8 @@
  * @var object $module        The module instance
  * @var \Joomla\Registry\Registry $params        Module parameters
  * @var array $group         ['key', 'label', 'items' => object[], 'lazy', 'link']
- * @var array $display       Module-wide settings (AlfaItemsHelper::displayOptions), with `place`: the name of the tab's cards
+ * @var array $display       Module-wide settings (AlfaItemsHelper::displayOptions), with `place`: the name of the tab's cards,
+ *                            and `sizes`: their image's width on each screen (CardLook::sizes())
  * @var array $priceSettings Price visibility settings
  * @var int $moduleId      Module instance id
  */
@@ -37,7 +38,7 @@ $link = (string) ($group['link'] ?? '');
 <?php else : ?>
     <div class="grid">
         <?php foreach ($items as $item) : ?>
-            <?php echo AlfaItemsHelper::renderCard(item: $item, params: $params, place: $display['place'], priceSettings: $priceSettings, reloadUrl: AlfaItemsHelper::reloadUrl(moduleId: $moduleId, tab: (string) $group['key'], item: $item)); ?>
+            <?php echo AlfaItemsHelper::renderCard(item: $item, params: $params, place: $display['place'], priceSettings: $priceSettings, reloadUrl: AlfaItemsHelper::reloadUrl(moduleId: $moduleId, tab: (string) $group['key'], item: $item), sizes: $display['sizes']); ?>
         <?php endforeach; ?>
     </div>
 <?php endif; ?>

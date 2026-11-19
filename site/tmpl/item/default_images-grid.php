@@ -46,7 +46,7 @@ $altOf = static fn (object $media, int $index): string => (string) ($media->alt 
 
 // A cell's width: the images' share of the page over the grid's columns (two on a phone, item.css).
 $columns = max(2, (int) $this->imagesGridColumns);
-$cellSizes = 'auto, (max-width: 600px) 50vw, (max-width: 640px) ' . round(100 / $columns, 2) . 'vw, ' . round(50 / $columns, 2) . 'vw';
+$cellSizes = '(max-width: 600px) 50vw, (max-width: 640px) ' . round(100 / $columns, 2) . 'vw, ' . round(50 / $columns, 2) . 'vw';
 ?>
 
 <div class="item-images-grid item-images-grid--cols-<?php echo (int) $this->imagesGridColumns; ?>" data-item-gallery>
