@@ -1388,8 +1388,9 @@ class PriceIndexSyncService
 
     /**
      * The prepared set of the previous index one visitor's slots are read from: their own set while the previous index
-     * prepared it, else their previous one or the guest's ({@see self::readableSetKeys()}). Read only while
-     * {@see self::isBuilding()}; the previous index's sets keep their prepared mark from before the update.
+     * prepared it, else their previous one or the guest's ({@see self::readableSetKeys()}). There is a previous index
+     * only while {@see self::isBuilding()}, and its sets keep their prepared mark from before the update until then;
+     * after it no set of it is read.
      *
      * @param PriceContext $context The visitor's pricing context.
      *
@@ -1399,6 +1400,10 @@ class PriceIndexSyncService
      */
     public static function readableSetKey(PriceContext $context): ?string
     {
+        if (!self::isBuilding()) {
+            return null;
+        }
+
         $keys = self::readableSetKeys(context: $context);
         $db = Factory::getContainer()->get('DatabaseDriver');
         $prepared = $db->setQuery(
