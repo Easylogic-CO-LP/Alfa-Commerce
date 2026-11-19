@@ -10,7 +10,13 @@
 
 namespace Alfa\Plugin\WebServices\Alfa\Extension;
 
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRegistrar;
+use Joomla\CMS\Access\Exception\AuthenticationFailed;
+use Joomla\CMS\Application\ApiApplication;
 use Joomla\CMS\Event\Application\BeforeApiRouteEvent;
+use Joomla\CMS\Event\ErrorEvent;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Router\ApiRouter;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Router\Route;
@@ -36,6 +42,7 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
     {
         return [
             'onBeforeApiRoute' => 'onBeforeApiRoute',
+            'onError' => 'onError',
         ];
     }
 
@@ -155,5 +162,35 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             new Route(['GET'], 'v1/alfa/tasks/:id', 'tasks.displayItem', ['id' => '\d+'], $defaults),
             new Route(['POST'], 'v1/alfa/tasks/:id/process', 'tasks.process', ['id' => '\d+'], $defaults),
         ]);
+
+        // The routes an alfa plugin adds, under v1/alfa/ext/<element>/, after every core route (2.2.2): the plugin the
+        // address names declares them on a router of its own (onAlfaBeforeApiRoute) and core puts the ones that keep
+        // its rules here. No core route is ever registered under v1/alfa/ext/.
+        ApiRouteRegistrar::registerFor($router);
+    }
+
+    /**
+     * A request on an address an extension adds that Joomla's token sign-in refused answers 401 in every format the
+     * route speaks (2.2.2). Joomla throws its AuthenticationFailed without a code: the JSON:API renderer maps it to 401
+     * by its class, the plain JSON renderer answers 500, so a route that answers application/json (an integrator's
+     * dialect) would tell a caller without a valid token that the server failed.
+     *
+     * @param ErrorEvent $event The application's error.
+     *
+     * @since  2.2.2
+     */
+    public function onError(ErrorEvent $event): void
+    {
+        $error = $event->getError();
+
+        if (!$error instanceof AuthenticationFailed || (int) $error->getCode() > 0 || !$event->getApplication() instanceof ApiApplication) {
+            return;
+        }
+
+        $path = trim((string) Factory::getContainer()->get(ApiRouter::class)->getRoutePath(), '/') . '/';
+
+        if (str_starts_with($path, ApiRouteRegistrar::PREFIX)) {
+            $event->setError(new AuthenticationFailed($error->getMessage() !== '' ? $error->getMessage() : 'Forbidden', 401, $error));
+        }
     }
 }

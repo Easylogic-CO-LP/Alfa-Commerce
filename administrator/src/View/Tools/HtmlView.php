@@ -11,23 +11,32 @@ namespace Alfa\Component\Alfa\Administrator\View\Tools;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Access\GetAccessActionsEvent;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRegistrar;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerCronKey;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
+use Joomla\CMS\Access\Access;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\User\UserFactoryInterface;
 use Joomla\Database\DatabaseInterface;
+use Joomla\Database\ParameterType;
+use Joomla\Registry\Registry;
 use Throwable;
 
 /**
@@ -101,6 +110,24 @@ class HtmlView extends BaseHtmlView
      * @since  1.0.0
      */
     public string $integrityHtml = '';
+
+    /**
+     * The routes extensions add to the REST API ({@see ApiRouteRegistrar::collect()}) and who may call them: for each
+     * plugin its accepted and refused routes or why it cannot be loaded; for each permission its title, the groups
+     * granted it, whether each has API Login and the token plugin's leave, and the accounts in it with an enabled
+     * token. Drawn from a fixed-path partial, as the integrity verdict is.
+     *
+     * @var array{plugins: list<array<string, mixed>>, permissions: array<string, array<string, mixed>>, tokenPlugin: bool, unreadable: bool}
+     * @since  2.2.2
+     */
+    public array $apiRoutes = ['plugins' => [], 'permissions' => [], 'tokenPlugin' => false, 'unreadable' => false];
+
+    /**
+     * The card of the routes extensions add, pre-rendered from a fixed-path partial (2.2.2).
+     *
+     * @since  2.2.2
+     */
+    public string $apiRoutesHtml = '';
 
     /**
      * The Tasks tab: the failed and held tasks ({@see TaskStaff::attentionRows()}), their number, and the names of
@@ -182,6 +209,13 @@ class HtmlView extends BaseHtmlView
         include __DIR__ . '/_integrity.php';
         $this->integrityHtml = ob_get_clean();
 
+        // The routes extensions add to the REST API, from a fixed-path partial too: what an override draws cannot
+        // hide a route or a token holder.
+        $this->apiRoutes = $this->apiRoutes();
+        ob_start();
+        include __DIR__ . '/_apiroutes.php';
+        $this->apiRoutesHtml = ob_get_clean();
+
         $this->tasks = $this->tasks();
         $this->jobs = $this->jobs();
         $this->runner = $this->runner();
@@ -245,6 +279,119 @@ class HtmlView extends BaseHtmlView
         }
 
         return ['rows' => $rows, 'total' => $total, 'users' => $users, 'unreadable' => false];
+    }
+
+    /**
+     * The routes extensions add to the REST API and who may call them (2.2.2, P3-445), for Tools, Security. A reading
+     * that fails costs this card only.
+     *
+     * @return array{plugins: list<array<string, mixed>>, permissions: array<string, array<string, mixed>>, tokenPlugin: bool, unreadable: bool}
+     *
+     * @since  2.2.2
+     */
+    private function apiRoutes(): array
+    {
+        try {
+            $plugins = ApiRouteRegistrar::collect();
+            $permissions = [];
+
+            foreach ($plugins as $plugin) {
+                AlfaHelper::loadPluginLanguage(group: PanelDispatcher::PLATFORM_GROUP, element: $plugin['element']);
+
+                foreach ($plugin['accepted'] as $declaration) {
+                    $permissions[$declaration->permission] ??= ['title' => '', 'groups' => []];
+                }
+            }
+
+            if ($permissions === []) {
+                return ['plugins' => $plugins, 'permissions' => [], 'tokenPlugin' => PluginHelper::isEnabled('api-authentication', 'token'), 'unreadable' => false];
+            }
+
+            // The permissions' titles, as the plugins declare them for Options, Permissions.
+            $event = PanelDispatcher::broadcast(new GetAccessActionsEvent('onAlfaGetAccessActions', []));
+
+            if ($event instanceof GetAccessActionsEvent) {
+                foreach ($event->all() as $action) {
+                    if (isset($permissions[$action->name])) {
+                        $permissions[$action->name]['title'] = Text::_((string) $action->title);
+                    }
+                }
+            }
+
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $groups = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'title']))
+                    ->from($db->quoteName('#__usergroups'))
+                    ->order($db->quoteName('lft')),
+            )->loadAssocList('id', 'title') ?: [];
+            // The token's sign-in (API Authentication - Web Services Joomla Token) reads the allowed groups from the
+            // plugin User - Joomla API Token, Super Users by default.
+            $token = PluginHelper::getPlugin('api-authentication', 'token');
+            $userToken = PluginHelper::getPlugin('user', 'token');
+            $allowed = array_map('intval', (array) (new Registry(\is_object($userToken) ? (string) ($userToken->params ?? '') : ''))->get('allowedUserGroups', [8]));
+
+            foreach (array_keys($permissions) as $permission) {
+                foreach ($groups as $groupId => $title) {
+                    $superUsers = Access::checkGroup((int) $groupId, 'core.admin') === true;
+
+                    if (!$superUsers && Access::checkGroup((int) $groupId, $permission, 'com_alfa') !== true) {
+                        continue;
+                    }
+
+                    $permissions[$permission]['groups'][] = [
+                        'title' => (string) $title,
+                        'superUsers' => $superUsers,
+                        'apiLogin' => $superUsers || Access::checkGroup((int) $groupId, 'core.login.api') === true,
+                        'tokenAllowed' => \in_array((int) $groupId, $allowed, true),
+                        'accounts' => $this->tokenHolders(db: $db, groupId: (int) $groupId),
+                    ];
+                }
+            }
+
+            return ['plugins' => $plugins, 'permissions' => $permissions, 'tokenPlugin' => \is_object($token), 'unreadable' => false];
+        } catch (Throwable $e) {
+            Log::add('Tools: the routes extensions add could not be read: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, ApiRouteRegistrar::LOG);
+
+            return ['plugins' => [], 'permissions' => [], 'tokenPlugin' => false, 'unreadable' => true];
+        }
+    }
+
+    /**
+     * The accounts of a group (directly in it) with an enabled Joomla API token, each marked when it is a Super User.
+     *
+     * @param DatabaseInterface $db The database.
+     * @param int $groupId The group.
+     *
+     * @return list<array{name: string, username: string, superUser: bool}>
+     *
+     * @since  2.2.2
+     */
+    private function tokenHolders(DatabaseInterface $db, int $groupId): array
+    {
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['u.id', 'u.name', 'u.username']))
+                ->from($db->quoteName('#__users', 'u'))
+                ->join('INNER', $db->quoteName('#__user_usergroup_map', 'm') . ' ON ' . $db->quoteName('m.user_id') . ' = ' . $db->quoteName('u.id'))
+                ->join('INNER', $db->quoteName('#__user_profiles', 'e') . ' ON ' . $db->quoteName('e.user_id') . ' = ' . $db->quoteName('u.id')
+                    . ' AND ' . $db->quoteName('e.profile_key') . ' = ' . $db->quote('joomlatoken.enabled')
+                    . ' AND ' . $db->quoteName('e.profile_value') . ' = ' . $db->quote('1'))
+                ->join('INNER', $db->quoteName('#__user_profiles', 't') . ' ON ' . $db->quoteName('t.user_id') . ' = ' . $db->quoteName('u.id')
+                    . ' AND ' . $db->quoteName('t.profile_key') . ' = ' . $db->quote('joomlatoken.token'))
+                ->where($db->quoteName('m.group_id') . ' = :group')
+                ->where($db->quoteName('u.block') . ' = 0')
+                ->bind(':group', $groupId, ParameterType::INTEGER)
+                ->order($db->quoteName('u.username')),
+            0,
+            50,
+        )->loadObjectList() ?: [];
+
+        return array_map(static fn (object $row): array => [
+            'name' => (string) $row->name,
+            'username' => (string) $row->username,
+            'superUser' => Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById((int) $row->id)->authorise('core.admin'),
+        ], $rows);
     }
 
     /**

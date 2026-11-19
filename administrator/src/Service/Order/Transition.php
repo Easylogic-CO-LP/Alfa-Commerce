@@ -344,6 +344,24 @@ class Transition
     }
 
     /**
+     * Whether a move from one status to another leaves the is_cancelled family: the move that save() refuses unless
+     * force() was asked (2.2.2, the one rule; the REST status verb and an extension ask it before they move an order,
+     * so they can say why a move is refused).
+     *
+     * @api READ ONLY: whether moving an order from $fromStatusId to $toStatusId reinstates a cancelled order, which only
+     *      a conscious act (force()) may do.
+     *
+     * @param int $fromStatusId The status the order is in.
+     * @param int $toStatusId The status it would enter.
+     *
+     * @since  2.2.2
+     */
+    public static function leavesCancelledFamily(int $fromStatusId, int $toStatusId): bool
+    {
+        return OrderStatusHelper::isCancelled($fromStatusId) && !OrderStatusHelper::isCancelled($toStatusId);
+    }
+
+    /**
      * Permit leaving the is_cancelled family. Automation must never pass
      * this: reinstating a cancelled order is an admin decision.
      *
@@ -931,11 +949,7 @@ class Transition
 
         try {
             // Leaving the cancelled family only happens on a conscious admin act.
-            if (
-                !$this->force
-                && OrderStatusHelper::isCancelled($oldStatusId)
-                && !OrderStatusHelper::isCancelled($this->toStatusId)
-            ) {
+            if (!$this->force && self::leavesCancelledFamily(fromStatusId: $oldStatusId, toStatusId: $this->toStatusId)) {
                 Log::add(
                     entry:    'Transition refused for order ' . $this->orderId . ': leaving the cancelled family ('
                               . $oldStatusId . ' -> ' . $this->toStatusId . ') requires force().',

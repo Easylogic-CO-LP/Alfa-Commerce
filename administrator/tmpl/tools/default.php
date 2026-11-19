@@ -130,6 +130,9 @@ $toolsUser = Factory::getApplication()->getIdentity();
                  overridable layout system), so a template override cannot fake it. */ ?>
         <?php echo $this->integrityHtml; ?>
 
+        <?php /* The addresses extensions add to the REST API and who may call them: a fixed-path partial too (2.2.2). */ ?>
+        <?php echo $this->apiRoutesHtml; ?>
+
         <?php echo $renderSurface('integrity'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>

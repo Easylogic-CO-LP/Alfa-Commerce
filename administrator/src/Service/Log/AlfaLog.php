@@ -90,6 +90,8 @@ final class AlfaLog
         'com_alfa.media' => 'com_alfa_media.php',
         'com_alfa.setup' => 'com_alfa_setup.php',
         'com_alfa.cards' => 'com_alfa_cards.php',
+        // The REST API routes extensions add: a declaration refused, an extension that cannot answer (2.2.2).
+        'com_alfa.api' => 'com_alfa_api.php',
 
         // Catalogue & pricing
         'com_alfa.catalog' => 'com_alfa_catalog.php',

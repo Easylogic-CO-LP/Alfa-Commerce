@@ -15,9 +15,11 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Order\LinePricing;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
+use Alfa\Component\Alfa\Administrator\Service\Order\StaffSettleResult;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceCommand;
@@ -272,32 +274,8 @@ class OrderopsController extends OrdersController
     }
 
     /**
-     * The pricing instructions of a line body, validated before anything is written.
-     *
-     * unit_price_tax_incl is a DERIVED column and is refused as an input: the
-     * owner forbids overloading it as the custom-price instruction, and reading
-     * it silently would make one field mean two things. The custom price goes
-     * through the one decoder the admin uses ({@see CustomPriceCommand::fromPayload()}),
-     * so "abc", true, "", "1e1" and a negative amount are refused naming the
-     * field, and so is an amount beyond Alfa's unit-rate precision
-     * (8 decimal places, 14 significant digits). A rate finer than the
-     * order's currency is a unit rate, not settled money
-     * yet: the line charges it times the
-     * quantity, rounded once.
-     *
-     * THE MANUAL DISCOUNT HAS THE POPUP'S NAME, manual_discount_percent, and
-     * the popup's meaning: the line's stored setting, which
-     * a value sets and 0 clears, so a retried PATCH changes nothing. It is
-     * read by the writer's own rule ({@see AdminOrderModel::manualDiscountPercent()}):
-     * 0-100 in whole hundredths, the column's precision. The stored
-     * whole-line rate, discount_percent, is REFUSED as an input like
-     * unit_price_tax_incl: it is a derived column, and reading it as an
-     * instruction re-applied it on every read-modify-write.
-     *
-     * THE TICK HAS THE COLUMN'S NAME, manual_discount_scope, and its two
-     * values ("The API must expose the same explicit state as the
-     * administrator UI"). Omitted, the line's choice stands; it is never
-     * inferred from a manual discount being present.
+     * The pricing instructions of a line body, validated before anything is written: the line's own reader
+     * ({@see LinePricing::fromPayload()}, 2.2.2, G0), its refusal answered 400 with the sentence that names the field.
      *
      * @param array $body The decoded request body.
      *
@@ -309,54 +287,11 @@ class OrderopsController extends OrdersController
      */
     private function linePricing(array $body): array
     {
-        if (\array_key_exists('unit_price_tax_incl', $body)) {
-            throw new Save(
-                'unit_price_tax_incl is derived and cannot be written; send ' . CustomPriceCommand::FIELD
-                . ' (a number to set, null to clear, omitted to leave unchanged)',
-                400,
-            );
-        }
-
-        if (\array_key_exists('discount_percent', $body)) {
-            throw new Save(
-                'discount_percent is the line\'s derived discount rate and cannot be written; send '
-                . 'manual_discount_percent (0-100) to take a manual discount off the line',
-                400,
-            );
-        }
-
         try {
-            $price = CustomPriceCommand::fromPayload(payload: $body);
+            return LinePricing::fromPayload(payload: $body);
         } catch (InvalidArgumentException $e) {
-            throw new Save(CustomPriceCommand::FIELD . ': ' . $e->getMessage(), 400);
+            throw new Save($e->getMessage(), 400);
         }
-
-        $manual = null;
-
-        if (\array_key_exists('manual_discount_percent', $body)) {
-            $manual = AdminOrderModel::manualDiscountPercent($body['manual_discount_percent']);
-
-            if ($manual === null) {
-                throw new Save('manual_discount_percent must be a number from 0 to 100 with at most two decimal places (0 clears the manual discount)', 400);
-            }
-        }
-
-        $scope = null;
-
-        if (\array_key_exists('manual_discount_scope', $body)) {
-            $value = $body['manual_discount_scope'];
-            $scope = \is_string($value) ? ManualDiscountScope::tryFrom($value) : null;
-
-            if ($scope === null) {
-                throw new Save(
-                    'manual_discount_scope must be ' . ManualDiscountScope::ExcludeCustomPrice->value
-                    . ' or ' . ManualDiscountScope::ApplyToCustomPrice->value,
-                    400,
-                );
-            }
-        }
-
-        return ['price' => $price, 'manualDiscountPercent' => $manual, 'manualDiscountScope' => $scope];
     }
 
     /**
@@ -700,113 +635,22 @@ class OrderopsController extends OrdersController
         $payment = $this->requireOwnedPayment($orderId);
         $body = $this->body();
 
-        $to = (string) ($body['to_status'] ?? '');
+        // The settle's rules are the ledger's (2.2.2, G0): this verb words its outcome in HTTP.
+        $result = PaymentLedger::staffSettle(
+            payment: $payment,
+            orderId: $orderId,
+            toStatus: (string) ($body['to_status'] ?? ''),
+            fromStatus: (string) ($body['from_status'] ?? ''),
+            transactionId: isset($body['transaction_id']) ? (string) $body['transaction_id'] : null,
+            note: isset($body['note']) ? (string) $body['note'] : null,
+        );
 
-        // A reversal or a chargeback is a provider fact, born completed and never moved.
-        if (\in_array((string) $payment->payment_type, PaymentLedger::FACT_TYPES, true)) {
-            throw new Save(
-                sprintf('payment %d is a %s recorded from the provider; it has no status to settle', (int) $payment->id, (string) $payment->payment_type),
-                409,
-            );
-        }
-
-        if (!\in_array($to, PaymentLedger::allStatuses(), true)) {
-            throw new Save(
-                'to_status must be one of: ' . implode(', ', PaymentLedger::allStatuses()),
-                400,
-            );
-        }
-
-        // Refunding is not a status write. Flipping the column here would drop
-        // the money out of the paid total with no linked refund row, leaving
-        // the same money refundable a second time.
-        if ($to === PaymentLedger::STATUS_REFUNDED) {
-            throw new Save('Use POST /orders/:id/payments/:paymentId/refund to return money', 409);
-        }
-
-        $current = (string) $payment->transaction_status;
-        $from = (string) ($body['from_status'] ?? '');
-
-        // The precondition is checked BEFORE the idempotent short-circuit: a
-        // caller who sends from_status is asking to be told when reality
-        // disagrees, and answering 200 would hide exactly that.
-        if ($from !== '' && $from !== $current) {
-            throw new Save(
-                sprintf('payment %d is %s, not %s', (int) $payment->id, $current, $from),
-                409,
-            );
-        }
-
-        // Already there. An identical-value conditional write affects 0 rows
-        // and would read as a lost race, turning a harmless retry into a 409.
-        if ($current === $to) {
-            return $this->displayItem($orderId);
-        }
-
-        // THE REFUND BLOCK. A failed or cancelled refund brought back into the
-        // books is a refund typed by staff: while a provider has reported a
-        // refund on this order that the books do not hold, it waits; and it
-        // never takes what the order's pending provider refunds reserve.
-        $refusal = PaymentLedger::staffRefundRefusal(stored: $payment, data: ['transaction_status' => $to], orderId: $orderId)
-            ?? PaymentLedger::staffRefundReservedRefusal(stored: $payment, data: ['transaction_status' => $to], orderId: $orderId);
-
-        if ($refusal !== null) {
-            throw new Save($refusal, 409);
-        }
-
-        $isRefund = (string) $payment->payment_type === PaymentLedger::TYPE_REFUND;
-
-        // A staff entry point: the write is held to the ledger's staff guard at its door, through update() or the
-        // compare-and-set alike (PaymentLedger::staffWriteRefusal(); since 2.1.0).
-        $write = PaymentLedger::load((int) $payment->id)
-            ->asStaff()
-            ->set('transaction_status', $to);
-
-        if (!$isRefund) {
-            $write->expectStatus($current);
-        }
-
-        // processed_at is auto-stamped only when a completed payment is
-        // CREATED; the update paths never touch it, so a settle to completed
-        // would otherwise leave it null.
-        if ($to === PaymentLedger::STATUS_COMPLETED) {
-            $write->processedAt(Factory::getDate()->toSql());
-        }
-
-        // Only when supplied: the ledger writes $data straight through, so an
-        // unconditional key would blank the stored gateway reference.
-        if (isset($body['transaction_id'])) {
-            $write->transactionId((string) $body['transaction_id']);
-        }
-
-        if (isset($body['note'])) {
-            $write->note((string) $body['note']);
-        }
-
-        // What the ledger tells about a write it refuses is queued; only what
-        // this write adds is read.
-        $told = \count($this->app->getMessageQueue());
-
-        switch ($write->saveVerdict()) {
-            case PaymentLedger::WRITE_OK:
-                break;
-
-            case PaymentLedger::WRITE_RACED:
-                throw new Save(
-                    sprintf('Payment %d was changed by another writer; re-read and retry', (int) $payment->id),
-                    409,
-                );
-
-            default:
-                $refusal = $this->ledgerRefusal(told: $told);
-
-                throw new Save(
-                    $refusal !== '' ? $refusal : sprintf(
-                        'The ledger refused the settle of payment %d; see the com_alfa.orders log',
-                        (int) $payment->id,
-                    ),
-                    422,
-                );
+        if (!$result->settled()) {
+            throw new Save($result->sentence, match ($result->outcome) {
+                StaffSettleResult::UNKNOWN_STATUS => 400,
+                StaffSettleResult::REFUSED => 422,
+                default => 409,
+            });
         }
 
         return $this->displayItem($orderId);
@@ -878,11 +722,8 @@ class OrderopsController extends OrdersController
 
         $forced = (bool) ($body['force'] ?? false);
 
-        if (
-            !$forced
-            && OrderStatusHelper::isCancelled($fromStatusId)
-            && !OrderStatusHelper::isCancelled($toStatusId)
-        ) {
+        // The transition's own rule (2.2.2, G0): leaving the cancelled family needs force().
+        if (!$forced && Transition::leavesCancelledFamily(fromStatusId: $fromStatusId, toStatusId: $toStatusId)) {
             throw new Save('Order is in the cancelled family; send "force": true to reinstate it', 409);
         }
 
@@ -1280,30 +1121,6 @@ class OrderopsController extends OrdersController
         $first = $errors[0] ?? ($model->getError() ?? '');
 
         return $first instanceof Throwable ? $first->getMessage() : ((string) $first ?: $fallback);
-    }
-
-    /**
-     * The sentence the ledger told about the write it just refused, as plain text.
-     *
-     * The ledger queues its refusal as an escaped error message; this returns
-     * the last one queued after $told, unescaped, or '' when it told none.
-     *
-     * @param int $told How many messages were queued before the write.
-     *
-     *
-     * @since   2.0.0
-     */
-    private function ledgerRefusal(int $told): string
-    {
-        $refusal = '';
-
-        foreach (\array_slice($this->app->getMessageQueue(), $told) as $message) {
-            if ((string) ($message['type'] ?? '') === 'error') {
-                $refusal = html_entity_decode(strip_tags((string) ($message['message'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            }
-        }
-
-        return $refusal;
     }
 
     /**
