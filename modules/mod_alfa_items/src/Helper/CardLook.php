@@ -533,16 +533,20 @@ final class CardLook
     }
 
     /**
-     * The width a card's image takes on each screen, as an img's sizes value (2.2.2): the screen's width over the cards
-     * side by side there (the grid's columns, or the slider's cards per view), times the image's share of the card
-     * where it sits beside the text; the narrowest screen first, as the browser reads the list. The module's place on
-     * the page is not known, so a row of cards takes at most the whole screen: the browser may take the larger image a
-     * little early, never one too small.
+     * The width a card's image takes on each screen, as an img's sizes value (2.2.2): the screen's width less the gaps
+     * between the cards (the grid's gap, or the slider's spacing), over the cards side by side there (the grid's
+     * columns, or the slider's cards per view), less the card's padding and border on its two sides (the stylesheet's
+     * 10 px and 1 px unless the look sets them; an overlay card has no padding), times the image's share of the card
+     * where it sits beside the text; the narrowest screen first, as the browser reads the list. The share of the screen
+     * is rounded up and the px down. The module's place on the page is not known and only makes a row narrower than the
+     * screen, so the width is never less than the image's, whatever the template: the browser may take the larger image
+     * a little early, never one too small.
      *
      * @param array<string, array<string, mixed>> $resolved The place on every device (resolve()).
      * @param array $breakpoints The module's breakpoints (key, max), widest first.
      *
-     * @return string The sizes value, such as "(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 25vw".
+     * @return string The sizes value, such as "(max-width: 767px) calc(100vw - 22px), (max-width: 1023px) calc(50vw - 30px),
+     *                calc(25vw - 34px)" for the default look.
      *
      * @since  2.2.2
      */
@@ -551,10 +555,16 @@ final class CardLook
         $slider = $resolved['']['display'] === 'slider';
         $width = static function (array $card) use ($slider): string {
             $across = max(1, (int) ($slider ? $card['perView'] : $card['columns']));
-            $beside = $card['style'] !== 'overlay' && \in_array($card['imagePosition'], ['left', 'right'], true);
-            $share = $beside ? (int) ($card['imageWidth'] ?? 40) / 100 : 1;
+            $gap = max(0, (int) ($slider ? $card['spacing'] : $card['gap']));
+            $overlay = $card['style'] === 'overlay';
+            $share = !$overlay && \in_array($card['imagePosition'], ['left', 'right'], true) ? (int) ($card['imageWidth'] ?? 40) : 100;
+            $padding = $overlay ? [0, 0, 0, 0] : ($card['padding'] ?? [10, 10, 10, 10]);
+            $border = $card['border'] ?? [1, 1, 1, 1];
+            $frame = (int) $padding[1] + (int) $padding[3] + (int) $border[1] + (int) $border[3];
+            $vw = ceil(100 * $share / $across) / 100;
+            $px = intdiv($share * (($across - 1) * $gap + $across * $frame), 100 * $across);
 
-            return round(100 / $across * $share, 2) . 'vw';
+            return $px > 0 ? 'calc(' . $vw . 'vw - ' . $px . 'px)' : $vw . 'vw';
         };
         $sizes = [];
 

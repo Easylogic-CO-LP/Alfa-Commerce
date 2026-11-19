@@ -19,8 +19,9 @@
  * The image is the thumbnail, with the stored image beside it in its srcset (Alfa's MediaHelper::srcset()), so a card
  * wider than the thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image and the thumbnail is
  * never stretched past its pixels; its addresses carry their files' versions. Its sizes are the look's ($sizes: the
- * screen's width over the cards side by side, per screen, CardLook::sizes()); with none the card draws the thumbnail
- * alone. The image loads lazily, since a module's place on the page is not known.
+ * screen's width less the gaps, over the cards side by side, less the card's padding and border, per screen,
+ * CardLook::sizes()); with none the card draws the thumbnail alone. The image loads lazily, since a module's place on
+ * the page is not known.
  *
  * @var object $item          A decorated item (Alfa's ItemsModel)
  * @var string $place         The card's place, which its rules are written for

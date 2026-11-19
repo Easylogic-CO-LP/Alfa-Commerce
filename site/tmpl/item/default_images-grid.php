@@ -16,9 +16,10 @@
  * The grid is CSS alone (item.css, the modifier class of its columns); it is never the slider's .main-images.
  *
  * Each image is the thumbnail, with the stored image beside it in its srcset (2.2.2), so a cell wider than the
- * thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image. The sizes follow item.css: the
- * images take the whole page below 640 px and half of it above, in the grid's columns (at most two on a phone). The
- * addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout.
+ * thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image. The sizes follow item.css on
+ * Cassiopeia: the images take the whole page (less 20 px) up to 651 px and half of it (less 26 px) from 652 px, in the
+ * grid's columns with 8 px between them (two columns up to 600 px), each a cell's width or a little more, never less.
+ * The addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout.
  *
  * Overridable as html/com_alfa/item/default_images-grid.php.
  *
@@ -44,9 +45,13 @@ if ($itemName === '') {
 // The merchant's own alt when set; otherwise the name and the image's ordinal from 1.
 $altOf = static fn (object $media, int $index): string => (string) ($media->alt ?: Text::sprintf('COM_ALFA_ALT_ITEM_IMAGE', $itemName, $index + 1));
 
-// A cell's width: the images' share of the page over the grid's columns (two on a phone, item.css).
+// A cell's width: the images' room (the share of the screen less the px given) over the grid's columns, less the 8 px
+// gaps between them; the share rounded up and the px down, so the width is never less than the cell.
 $columns = max(2, (int) $this->imagesGridColumns);
-$cellSizes = '(max-width: 600px) 50vw, (max-width: 640px) ' . round(100 / $columns, 2) . 'vw, ' . round(50 / $columns, 2) . 'vw';
+$cell = static function (int $share, int $less, int $across): string {
+    return 'calc(' . (ceil(100 * $share / $across) / 100) . 'vw - ' . intdiv($less + 8 * ($across - 1), $across) . 'px)';
+};
+$cellSizes = '(max-width: 600px) ' . $cell(100, 20, 2) . ', (max-width: 651px) ' . $cell(100, 20, $columns) . ', ' . $cell(50, 26, $columns);
 ?>
 
 <div class="item-images-grid item-images-grid--cols-<?php echo (int) $this->imagesGridColumns; ?>" data-item-gallery>

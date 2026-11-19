@@ -43,7 +43,7 @@ $count = \count($slides);
 $sources = function (object $slide): string {
     $srcset = MediaHelper::srcset($slide);
 
-    return $srcset === '' ? '' : ' srcset="' . $this->escape($srcset) . '" sizes="(max-width: 640px) 100vw, (max-width: 960px) 50vw, (max-width: 1280px) 34vw, 25vw"';
+    return $srcset === '' ? '' : ' srcset="' . $this->escape($srcset) . '" sizes="(max-width: 647px) calc(100vw - 42px), (max-width: 963px) calc(50vw - 46px), (max-width: 1279px) calc(33.34vw - 43px), calc(25vw - 42px)"';
 };
 ?>
 <?php if ($count === 1): ?>
