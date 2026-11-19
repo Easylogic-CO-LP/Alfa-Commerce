@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 use Joomla\CMS\Log\Log;
+use Throwable;
 
 /**
  * Rebuild every projection of the items marked owed (2.2.0): the price index, the field values, the search entry and
@@ -126,7 +127,7 @@ final class CatalogueRebuildJob implements JobHandler
     }
 
     /**
-     * The switch from the previous price index after the update (2.2.2, decision D2), asked when a pass ends: made once
+     * The switch from the previous price index after the update (2.2.2), asked when a pass ends: made once
      * no product is owed and the completeness count passes, else the products it lacks are owed again and the next pass
      * asks again. A failure is logged; the storefront keeps reading the previous index.
      *
@@ -140,7 +141,7 @@ final class CatalogueRebuildJob implements JobHandler
 
         try {
             (new PriceIndexSyncService())->finishBuild();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::add('[CatalogueRebuildJob] The price index could not switch from the previous one: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
         }
     }

@@ -3517,7 +3517,7 @@ class ItemModel extends AlfaAdminModel
             $priceObject = new stdClass();
             $priceObject->id = isset($price['id']) ? intval($price['id']) : 0;
             $priceObject->item_id = $productId;
-            // Exact decimal text for the DECIMAL(24,8) columns (2.2.2, P3-434): the typed figure on its digits, never
+            // Exact decimal text for the DECIMAL(24,8) columns (2.2.2): the typed figure on its digits, never
             // through a float; a value that is not a number, or is finer or larger than the column holds, is refused.
             $priceObject->value = StoredDecimal::ofTyped($price['value'] ?? null) ?? StoredDecimal::of(ExactAmount::of('0'));
             $priceObject->override_value = StoredDecimal::ofTyped($price['override_value'] ?? null);

@@ -1485,7 +1485,7 @@ class ItemsModel extends UrlListModel
      * places one with none last; with $pricedOnly, the read that filters by a price, an inner join, and the filters'
      * own comparisons leave the NULL rows out. With no context prepared for the visitor nothing is priced.
      *
-     * While the new index is built after the update (decision D2), the previous one is read instead
+     * While the new index is built after the update, the previous one is read instead
      * ({@see self::applyPreviousPriceIndexJoin()}).
      *
      * @param \Joomla\Database\QueryInterface $query Mutated in place
@@ -1522,7 +1522,7 @@ class ItemsModel extends UrlListModel
         $customer = (int) $read['customer'];
         $on = $unit('pf') . ' AND ' . $period('pf');
 
-        // The customer's own row first, the set's where they have none (decision D3 (b)).
+        // The customer's own row first, the set's where they have none.
         $on .= $customer > 0
             ? ' AND pf.context_id IN (' . $customer . ', ' . $context . ') AND (pf.context_id = ' . $customer
                 . ' OR NOT EXISTS (SELECT 1 FROM ' . $index . ' AS pu WHERE pu.context_id = ' . $customer . ' AND ' . $unit('pu') . ' AND ' . $period('pu') . '))'
@@ -1532,7 +1532,7 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * The read of the previous price index, while the new one is built after the update (2.2.2, decision D2): the
+     * The read of the previous price index, while the new one is built after the update (2.2.2): the
      * index of 2.2.1 under the name the update gave it, read as 2.2.1 read it, so a visitor meets the previous prices
      * until the new ones are complete. The subquery (alias pf) reduces it to one row per product for the visitor's
      * currency, place chain and set of pricing groups (one the previous index prepared), at this moment.

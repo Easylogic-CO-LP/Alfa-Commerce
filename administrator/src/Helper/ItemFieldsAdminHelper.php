@@ -5320,7 +5320,7 @@ class ItemFieldsAdminHelper
                 'combination_id' => $combinationId,
                 'mode' => $mode,
                 'operation' => ($mode === 'adjust' && in_array($operation, ['+', '-', '%', '-%'], true)) ? $operation : null,
-                // Exact decimal text for the DECIMAL(24,8) columns (2.2.2, P3-434), never through a float.
+                // Exact decimal text for the DECIMAL(24,8) columns (2.2.2), never through a float.
                 'value' => StoredDecimal::ofTyped($row['value']),
                 'override_value' => $mode === 'price' ? StoredDecimal::ofTyped($row['override_value'] ?? null) : null,
                 // For an adjust, override_type carries the net/gross target (a

@@ -3266,7 +3266,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * The price rows hold their figures as exact decimals (2.2.2, P3-434): #__alfa_items_prices.value and
+     * The price rows hold their figures as exact decimals (2.2.2): #__alfa_items_prices.value and
      * override_value, binary floats up to 2.2.1, become DECIMAL(24,8), on every install and update where they are still
      * floats (the database's shape decides, never the version recorded). A stored float is read back at its eighth
      * place, so 175.004 kept as 175.00399999999999 is 175.00400000. A failure is said, never a failed install.
@@ -3314,7 +3314,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * The price index of 2.2.2 (decision D2 of the price read model, ruling 176), on every install and update, by the
+     * The price index of 2.2.2, on every install and update, by the
      * shape of the database, never by the version recorded (a site that took an earlier 2.2.2 build runs no update file
      * again):
      * - The index of 2.2.1 (the table with a place_id column) is renamed #__alfa_items_price_index_prev and stays

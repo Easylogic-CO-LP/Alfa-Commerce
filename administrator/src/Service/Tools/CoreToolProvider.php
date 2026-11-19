@@ -228,7 +228,7 @@ final class CoreToolProvider
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_PROJECTIONS_DESC');
 
-        // THE PRICE INDEX BUILT AFTER THE UPDATE (2.2.2, decision D2): while the storefront reads the previous index,
+        // THE PRICE INDEX BUILT AFTER THE UPDATE (2.2.2): while the storefront reads the previous index,
         // the card says how far the build is; the catalogue job does it, and the button works it now.
         $build = $this->priceIndexBuildState();
 

@@ -51,7 +51,7 @@ use Throwable;
  * engine charges an anonymous customer of that context for one piece of the unit at the product's opening quantity
  * (its minimum, PricingIntent::catalog). A unit is each published combination of a product, or the product itself when
  * it has none (combination_id 0). Every unit has a row in every prepared context for every period; a unit with no
- * valid price there has a row whose figures are NULL, never 0 (ruling 184), so a sort places it last in either
+ * valid price there has a row whose figures are NULL, never 0, so a sort places it last in either
  * direction and every price filter leaves it out by its own comparison. The listing reads the row of the combination
  * the product's card opens on, kept on the product as #__alfa_items.opening_combination_id
  * ({@see OpeningCombination}); a stock change that moves it moves no price row.
@@ -79,11 +79,11 @@ use Throwable;
  *     that has price rows of its own;
  *   - the set of pricing groups (#__alfa_price_group_sets): the visitor's groups that a price row, a discount or a tax
  *     names;
- *   - the customer (user_id, decision D3 (b), ruling 181): 0 for the context of a set; a customer that a price row, a
+ *   - the customer (user_id): 0 for the context of a set; a customer that a price row, a
  *     discount or a tax names has contexts of their own, holding rows only for the products their rules touch, read
  *     before the set's (a NULL row there where their rules take the price away).
  * The period is not part of the context: each row carries valid_from and valid_until, and every period the price rows
- * (item and combination rows), the discounts and the taxes define is kept, with no horizon (ruling 176); equal
+ * (item and combination rows), the discounts and the taxes define is kept, with no horizon; equal
  * neighbouring periods of a unit are one row.
  *
  * Preparation. A context the data defines for the first time is REQUESTED by the write that brought it, with its
@@ -93,7 +93,7 @@ use Throwable;
  * place above, currency class 0. A context requested while the index is being built after the update, or while no
  * context is prepared at all (a new shop's first price), has no previous answer to keep and is prepared at once.
  *
- * The update to 2.2.2 (decision D2, ruling 176). The index of 2.2.1 is renamed #__alfa_items_price_index_prev by the
+ * The update to 2.2.2. The index of 2.2.1 is renamed #__alfa_items_price_index_prev by the
  * installer and stays readable, with its readers, while the new index is built in the background by the catalogue job
  * (Tools > Rebuild projections shows its progress); the switch is the flag #__alfa_meta prices.index_build: while that
  * row exists the storefront reads the previous index, and the job removes it once every product is rebuilt and the
@@ -186,7 +186,8 @@ class PriceIndexSyncService
 
     /**
      * The index of 2.2.1 under the name the update gives it, read by the storefront while the new index is built
-     * (decision D2), dropped by the installer of the next update after the switch.
+     * so the previous prices stay readable until the new ones are complete, dropped by the installer of the next update
+     * after the switch.
      *
      * @since  2.2.2
      */
@@ -202,7 +203,7 @@ class PriceIndexSyncService
     public const META_GROUP_SETS = 'prices.group_sets';
 
     /**
-     * The switch of decision D2 (2.2.2): while this #__alfa_meta row exists the storefront reads the previous index;
+     * The switch after the update (2.2.2): while this #__alfa_meta row exists the storefront reads the previous index;
      * its value is the moment the build began. Written by the update, removed by {@see self::finishBuild()}.
      *
      * @since  2.2.2
@@ -848,7 +849,7 @@ class PriceIndexSyncService
         return ['waiting' => $waiting, 'leftOut' => $leftOut, 'building' => self::buildStartedAt()];
     }
 
-    // The build after the update, and the switch (decision D2)
+    // The build after the update, and the switch
 
     /**
      * Whether the storefront reads the previous index: the build after the update has not switched yet (2.2.2). Read
@@ -906,7 +907,7 @@ class PriceIndexSyncService
     }
 
     /**
-     * The switch from the previous index (decision D2): once no product is owed a rebuild and the completeness count of
+     * The switch from the previous index: once no product is owed a rebuild and the completeness count of
      * every context passes, the flag goes and the storefront reads this index from its next request. A context short of
      * rows has the products it lacks owed again, and the catalogue job's next pass asks again.
      *
@@ -1379,7 +1380,7 @@ class PriceIndexSyncService
         return ['stored' => \is_string($stored) ? $stored : null, 'pricing' => $part('pricing'), 'previous' => $part('previous')];
     }
 
-    // The previous index's reader (2.2.1), read by the storefront while the new index is built (decision D2)
+    // The previous index's reader (2.2.1), read by the storefront while the new index is built
 
     /**
      * The prepared set of the previous index one visitor's slots are read from: their own set while the previous index
@@ -1918,7 +1919,7 @@ class PriceIndexSyncService
     /**
      * The seven figures of one unit as the columns hold them: the engine's exact decimals at the eighth place (the
      * percentage at the second), or every one NULL when the unit has no valid price (no price applies at the opening
-     * quantity, or its base is zero: ruling 184, NULL, never 0).
+     * quantity, or its base is zero: NULL, never 0, so it is no price and sorts last).
      *
      * @param PriceResult|null $result The engine's result.
      *
@@ -2520,7 +2521,7 @@ class PriceIndexSyncService
     /**
      * Every FUTURE edge of each product's periods, ascending: the windows of all its published price rows, item and
      * combination rows alike (a combination's own scheduled price is an edge), and the windows of every published
-     * discount and tax, with no horizon (ruling 176). An edge that changes nothing for a unit adds no row: equal
+     * discount and tax, with no horizon. An edge that changes nothing for a unit adds no row: equal
      * neighbouring periods are merged.
      *
      * @param int[] $itemIds The products.
@@ -2806,7 +2807,7 @@ class PriceIndexSyncService
 
     /**
      * The customers a published price row, a discount or a tax names, each with the set of pricing groups they hold,
-     * among the sets the index keeps (decision D3 (b)).
+     * among the sets the index keeps.
      *
      * @param array<int, int[]> $sets The sets kept, by id.
      *
