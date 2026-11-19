@@ -19,8 +19,9 @@
  * default card draws it, with no controls.
  *
  * Each image is the thumbnail, with the stored image beside it in its srcset and the sizes of the default card's
- * image, at the files' versioned addresses (default_card_images.php says why, 2.2.2). The first image of a slider loads
- * at once and the others lazily; a card of one image loads as the default card's does ($this->cardImageLoading()).
+ * image, at the files' versioned addresses (default_card_images.php says why, 2.2.2). The first image loads as the
+ * default card's image does at the card's place on the page ($this->cardImageLoading(): the first four cards at once,
+ * the others lazily), and the slider's other images lazily.
  *
  * Overridable as html/com_alfa/items/default_card_images-slider.php. The card is on $this->item; the images to show
  * come from $this->cardSlides($this->item).
@@ -62,7 +63,7 @@ $sources = function (object $slide): string {
         <div class="card-slider-track" data-card-slider-track tabindex="-1">
             <?php foreach ($slides as $index => $slide): ?>
                 <a class="card-slider-slide" href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true" data-card-slider-slide>
-                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $sources($slide); ?><?php echo $index > 0 ? ' loading="lazy"' : ''; ?> />
+                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $sources($slide); ?><?php echo $index > 0 ? ' loading="lazy"' : $this->cardImageLoading(); ?> />
                 </a>
             <?php endforeach; ?>
         </div>
