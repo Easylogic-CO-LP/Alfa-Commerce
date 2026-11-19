@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartTakeover;
 use Alfa\Component\Alfa\Administrator\Service\Cart\OperatorCheckout;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Cart\AddToCartRequest;
+use Alfa\Component\Alfa\Site\Service\Cart\CartMessaging;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
 use Alfa\Component\Alfa\Site\Service\Cart\NamedCartEditor;
@@ -408,11 +409,23 @@ class CartController extends BaseController
                 ]);
             }
 
+            // THE CART ALREADY HOLDS THE AVAILABLE QUANTITY (2.2.2): nothing was
+            // added, and the operator reads the stock's one sentence as a notice,
+            // not the builder's failure, with the popup kept open as on any add
+            // that added nothing. The payload carries the figure and says how the
+            // message reads.
+            $held = $result->added ? null : $result->stockLimit;
+
             $this->emitCart(
                 $editor,
-                $result->added ? '' : Text::_('COM_ALFA_CART_BUILDER_ADD_FAILED'),
+                match (true) {
+                    $result->added => '',
+                    $held !== null => CartMessaging::stockSentence(limit: $held),
+                    default => Text::_('COM_ALFA_CART_BUILDER_ADD_FAILED'),
+                },
                 !$result->added,
-                ['added' => $result->added, 'lineId' => $result->lineId],
+                ['added' => $result->added, 'lineId' => $result->lineId]
+                    + ($held !== null ? ['availableQuantity' => $held->quantity, 'messageType' => 'notice'] : []),
             );
         } catch (Throwable $e) {
             $this->emitThrowable($e);
@@ -1211,6 +1224,10 @@ class CartController extends BaseController
      * A refusal keeps the popup open with the configuration still on screen,
      * rather than closing over a message nobody read.
      *
+     * The message reads as the payload's messageType says (a notice for the
+     * stock's sentence on an add that added nothing, 2.2.2); without one, a
+     * failure reads as an error and anything else as a plain message.
+     *
      * @param string $form Which form posted: 'popup' or 'page'.
      * @param array $data The response payload, for the cart it concerns.
      * @param string $message A message for the operator.
@@ -1226,12 +1243,13 @@ class CartController extends BaseController
         // it just created, so the operator lands in the cart they asked for.
         $cartId = (int) ($data['cartId'] ?? 0) ?: (int) RequestScalar::int($this->input, 'cart_id');
         $lineId = (int) RequestScalar::int($this->input, 'line_id');
+        $type = (string) ($data['messageType'] ?? ($error ? 'error' : 'message'));
 
         if ($form !== 'popup') {
             // A form on the builder: back to the builder, with the outcome said
             // out loud. There is nothing to close and nothing to hand back.
             if ($message !== '') {
-                $this->app->enqueueMessage($message, $error ? 'error' : 'message');
+                $this->app->enqueueMessage($message, $type);
             }
 
             $this->setRedirect(Route::_('index.php?option=com_alfa&view=cart&id=' . $cartId, false));
@@ -1242,7 +1260,7 @@ class CartController extends BaseController
         if ($error) {
             $this->app->enqueueMessage(
                 $message !== '' ? $message : Text::_('COM_ALFA_CART_BUILDER_ADD_FAILED'),
-                'error',
+                $type,
             );
 
             $this->setRedirect(Route::_(

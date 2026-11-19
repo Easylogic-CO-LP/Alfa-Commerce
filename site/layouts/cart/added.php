@@ -35,6 +35,9 @@ use Joomla\CMS\Router\Route;
  *                                     bottom-center | bottom-right (absent = top-right)
  *   data-effect                       slide | fade | zoom | none (absent = fade)
  *   data-outcome                      added | held | rejected
+ *   data-notice                       present when the card carries the stock's notice (the cart holds the
+ *                                     available quantity): the script shows such a card even when a listener
+ *                                     claims the add (2.2.2)
  *   --cart-added-offset-y / -x        distance from the chosen edges (absent = 16px)
  * Phones (<= 600px) always get a bottom sheet.
  *
@@ -90,7 +93,7 @@ $closeIcon  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" vi
 // failure. The notice is the card's one sentence; any other message the add queued follows it.
 $others = array_filter($messages, static fn (array $message): bool => ($message['message'] ?? '') !== $notice);
 ?>
-<div class="com-alfa cart-added" data-cart-added data-outcome="held" data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="<?php echo $timeout; ?>" style="<?php echo $offsets; ?>" role="status" aria-live="polite" tabindex="-1">
+<div class="com-alfa cart-added" data-cart-added data-outcome="held" data-notice data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="<?php echo $timeout; ?>" style="<?php echo $offsets; ?>" role="status" aria-live="polite" tabindex="-1">
     <div class="cart-added-card">
         <div class="cart-added-header">
             <span class="cart-added-title"><?php echo $notice; ?></span>
@@ -143,7 +146,7 @@ $name      = htmlspecialchars((string) ($item->name ?? ''), ENT_QUOTES, 'UTF-8')
 $thumbnail = (string) ($item->medias[0]->thumbnail_url ?? '');
 $surfaces  = $line->surfaces[CartSurface::Main->value] ?? [];
 ?>
-<div class="com-alfa cart-added" data-cart-added data-outcome="added" data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="<?php echo $timeout; ?>" style="<?php echo $offsets; ?>" role="status" aria-live="polite" tabindex="-1">
+<div class="com-alfa cart-added" data-cart-added data-outcome="added"<?php echo $notice !== '' ? ' data-notice' : ''; ?> data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="<?php echo $timeout; ?>" style="<?php echo $offsets; ?>" role="status" aria-live="polite" tabindex="-1">
     <div class="cart-added-card">
         <div class="cart-added-header">
             <span class="cart-added-title"><?php echo Text::_($edited ? 'COM_ALFA_CART_UPDATED_TITLE' : 'COM_ALFA_CART_ADDED_TITLE'); ?></span>
