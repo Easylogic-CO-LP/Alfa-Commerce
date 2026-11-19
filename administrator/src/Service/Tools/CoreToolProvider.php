@@ -219,7 +219,7 @@ final class CoreToolProvider
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_BACKFILL_DESC');
 
-        $event->add(self::ID, 'tools.projections', 'COM_ALFA_TOOLS_PROJECTIONS_TITLE')
+        $projections = $event->add(self::ID, 'tools.projections', 'COM_ALFA_TOOLS_PROJECTIONS_TITLE')
             ->icon('refresh')
             ->mutating()
             ->css('btn-warning')
@@ -227,6 +227,23 @@ final class CoreToolProvider
             ->meta('surface', 'dbsync')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_PROJECTIONS_DESC');
+
+        // THE PRICE INDEX BUILT AFTER THE UPDATE (2.2.2, decision D2): while the storefront reads the previous index,
+        // the card says how far the build is; the catalogue job does it, and the button works it now.
+        $build = $this->priceIndexBuildState();
+
+        if ($build !== '') {
+            $projections->meta('notice', $build);
+        }
+
+        // THE PRICE INDEX CHECKED (2.2.2): the completeness count of every pricing context, the periods' tiling, and
+        // each product's opening combination against the same choice made in SQL. Reads only.
+        $event->add(self::ID, 'pricing.check', 'COM_ALFA_TOOLS_PRICE_INDEX_CHECK_TITLE')
+            ->icon('search')
+            ->css('btn-secondary')
+            ->priority(96)
+            ->meta('surface', 'dbsync')
+            ->meta('description', 'COM_ALFA_TOOLS_PRICE_INDEX_CHECK_DESC');
 
         // THE GALLERY'S THUMBNAILS RECREATED (2.2.0): one job, two modes, on the Media tab. "Missing" first, the
         // everyday and safer one, for the images that have none, whose thumbnail is the full image, or whose thumbnail is
@@ -391,6 +408,7 @@ final class CoreToolProvider
             'media.thumbnails.all' => $this->recreateThumbnails(event: $event, mode: ThumbnailRecreation::MODE_ALL),
             'media.thumbnails.missing' => $this->recreateThumbnails(event: $event, mode: ThumbnailRecreation::MODE_MISSING),
             'pricing.groupsets' => $this->preparePriceSets($event),
+            'pricing.check' => $this->checkPriceIndex($event),
             'inventory.effects' => $this->applyStockEffects($event),
             'tasks.run' => $this->runOutstandingTasks($event),
             'tasks.prune' => $this->pruneFinishedTasks($event),
@@ -579,6 +597,70 @@ final class CoreToolProvider
     }
 
     /**
+     * Check the price index (2.2.2): one count per pricing context against the units it is written for, the rows of
+     * units no longer published, the gaps in the periods, and the opening combinations that differ from the choice in
+     * SQL. Changes nothing; the message gives the counts.
+     *
+     * @param ExecuteToolActionEvent $event The tool request.
+     *
+     * @since  2.2.2
+     */
+    private function checkPriceIndex(ExecuteToolActionEvent $event): void
+    {
+        try {
+            $check = (new PriceIndexSyncService())->completeness();
+            $short = 0;
+            $stale = 0;
+
+            foreach ($check['contexts'] as $context) {
+                $short += max(0, $context['expected'] - $context['covering']);
+                $stale += $context['stale'];
+            }
+
+            $message = $check['complete']
+                ? Text::sprintf('COM_ALFA_TOOLS_PRICE_INDEX_CHECK_COMPLETE', \count($check['contexts']), $check['units'])
+                : Text::sprintf(
+                    'COM_ALFA_TOOLS_PRICE_INDEX_CHECK_INCOMPLETE',
+                    \count($check['contexts']),
+                    $short,
+                    $stale,
+                    $check['gaps'],
+                    $check['pointers']['count'],
+                    implode(', ', $check['pointers']['items']) ?: '-',
+                );
+            $event->setMessage($message);
+        } catch (Throwable $e) {
+            $event->setError($e->getMessage());
+        }
+    }
+
+    /**
+     * What the Rebuild catalogue projections card says while the price index is built after the update (2.2.2): since
+     * when, and how many products are still owed. Empty when the storefront reads the price index.
+     *
+     * @since  2.2.2
+     */
+    private function priceIndexBuildState(): string
+    {
+        try {
+            $since = PriceIndexSyncService::buildStartedAt();
+
+            if ($since === null) {
+                return '';
+            }
+
+            return Text::sprintf(
+                'COM_ALFA_TOOLS_PRICE_INDEX_BUILDING',
+                HTMLHelper::_('date', $since, Text::_('DATE_FORMAT_LC2')),
+                ProjectionManager::markedCount(),
+                (new PriceIndexSyncService())->publishedItemCount(),
+            );
+        } catch (Throwable) {
+            return '';
+        }
+    }
+
+    /**
      * Recreate the gallery's thumbnails in a mode (2.2.0): the plan asks for the job
      * (ThumbnailRecreation::request(), "all" winning over "missing") and opens its progress page; each step works the
      * job for a moment ({@see self::stepJob()}), its report the message when it is done.
@@ -624,7 +706,7 @@ final class CoreToolProvider
             $waiting = PriceIndexSyncService::preparationState()['waiting'];
 
             if ($event->isPlanning()) {
-                (new PriceIndexSyncService())->queueWaitingSets();
+                (new PriceIndexSyncService())->queueWaitingContexts();
                 $event->setTotal(max(1, array_sum(array_map(static fn (array $set): int => $set['products'] - $set['done'], $waiting))));
 
                 return;

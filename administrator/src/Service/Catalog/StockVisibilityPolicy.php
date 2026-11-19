@@ -340,31 +340,7 @@ final class StockVisibilityPolicy
             maxRuleExpr:           $rule(combinationAlias: null, column: 'quantity_max'),
         );
 
-        // A combination's NULL backorder inherits the product; its empty string is a
-        // stored "follow the shop", which the resolution turns into the shop-wide action.
-        $unitSellable = InventoryAvailabilityService::sellableSql(
-            itemExpr:              'sv_c.item_id',
-            combinationExpr:       'sv_c.id',
-            managesExpr:           'COALESCE(sv_c.manage_stock, ' . $alias . '.manage_stock, 0) = 1',
-            projectionNonZeroExpr: InventoryAvailabilityService::projectionNonZeroSql(
-                stockExpr:     'sv_c.stock',
-                availableExpr: 'sv_c.available_quantity',
-            ),
-            holdExpr:              InventoryAvailabilityService::integrityHoldSql(
-                db:              $db,
-                itemExpr:        'sv_c.item_id',
-                combinationExpr: 'sv_c.id',
-            ),
-            backorderExpr:         InventoryAvailabilityService::backorderActionSql(
-                db:           $db,
-                storedExpr:   'COALESCE(sv_c.backorder, ' . $alias . '.backorder)',
-                globalAction: $this->globalBackorder,
-            ),
-            minQtyExpr:            'COALESCE(sv_c.min_qty, ' . $alias . '.min_qty, ' . $globalMinQty . ')',
-            minRuleExpr:           $rule(combinationAlias: 'sv_c', column: 'quantity_min'),
-            stepRuleExpr:          $rule(combinationAlias: 'sv_c', column: 'quantity_step'),
-            maxRuleExpr:           $rule(combinationAlias: 'sv_c', column: 'quantity_max'),
-        );
+        $unitSellable = $this->combinationSellableExpression(combinationAlias: 'sv_c', itemAlias: $alias);
 
         return '(CASE WHEN EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_item_combinations', 'sv_b')
             . ' WHERE sv_b.item_id = ' . $alias . '.id AND ' . CombinationState::currentSql(column: $db->quoteName('sv_b.state')) . ')'
@@ -372,6 +348,55 @@ final class StockVisibilityPolicy
             . ' WHERE sv_c.item_id = ' . $alias . '.id AND sv_c.state = 1 AND ' . $unitSellable . ')'
             . ' ELSE ' . $itemSellable
             . ' END)';
+    }
+
+    /**
+     * The shared stock rule of one combination (2.2.2): whether that unit can be bought now, the part of
+     * {@see self::sellableExpression()} that judges each combination of a product. The opening combination's check
+     * ({@see OpeningCombination::choiceSql()}) reads the same text.
+     *
+     * @param string $combinationAlias The alias of #__alfa_item_combinations in the caller's statement.
+     * @param string $itemAlias The alias of #__alfa_items (the combination's product) in the caller's statement.
+     *
+     * @return string A boolean SQL expression.
+     *
+     * @since  2.2.2
+     */
+    public function combinationSellableExpression(string $combinationAlias, string $itemAlias = 'a'): string
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $globalMinQty = number_format($this->globalMinQty, 8, '.', '');
+        $c = $combinationAlias;
+        $rule = static fn (string $column): string => CartQuantityPolicy::ruleValueSql(
+            combinationExpr: $c . '.' . $column,
+            itemExpr:        $itemAlias . '.' . $column,
+        );
+
+        // A combination's NULL backorder inherits the product; its empty string is a
+        // stored "follow the shop", which the resolution turns into the shop-wide action.
+        return InventoryAvailabilityService::sellableSql(
+            itemExpr:              $c . '.item_id',
+            combinationExpr:       $c . '.id',
+            managesExpr:           'COALESCE(' . $c . '.manage_stock, ' . $itemAlias . '.manage_stock, 0) = 1',
+            projectionNonZeroExpr: InventoryAvailabilityService::projectionNonZeroSql(
+                stockExpr:     $c . '.stock',
+                availableExpr: $c . '.available_quantity',
+            ),
+            holdExpr:              InventoryAvailabilityService::integrityHoldSql(
+                db:              $db,
+                itemExpr:        $c . '.item_id',
+                combinationExpr: $c . '.id',
+            ),
+            backorderExpr:         InventoryAvailabilityService::backorderActionSql(
+                db:           $db,
+                storedExpr:   'COALESCE(' . $c . '.backorder, ' . $itemAlias . '.backorder)',
+                globalAction: $this->globalBackorder,
+            ),
+            minQtyExpr:            'COALESCE(' . $c . '.min_qty, ' . $itemAlias . '.min_qty, ' . $globalMinQty . ')',
+            minRuleExpr:           $rule('quantity_min'),
+            stepRuleExpr:          $rule('quantity_step'),
+            maxRuleExpr:           $rule('quantity_max'),
+        );
     }
 
     /**

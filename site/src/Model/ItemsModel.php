@@ -65,9 +65,10 @@ use Throwable;
  * ItemsModel: Site-side catalog list model with price filtering.
  *
  * Price filter
- * The catalog filter reads from #__alfa_items_price_index via a context-aware
- * subquery restricted to the visitor's currency, place, and usergroups.
- * Column names in the index match the com_alfa config fields exactly.
+ * The catalog filter reads #__alfa_items_price_index by key: the row of the
+ * visitor's pricing context for the combination each product's card opens on
+ * ({@see self::applyPriceIndexJoin()}). Column names in the index match the
+ * com_alfa config fields exactly.
  *
  * Products without a price
  * Every product is listed, one with no price for the visitor with no price
@@ -1060,16 +1061,11 @@ class ItemsModel extends UrlListModel
     /**
      * Build the main catalog list query with price filter support.
      *
-     * PRICE INDEX SUBQUERY (alias: pf)
-     * Aggregates the index down to one row per item for the current visitor:
-     *   MIN(final_price)              -> best price this visitor can get
-     *   MAX(discount_amount)          -> largest absolute saving available
-     *   MAX(discount_percent)         -> highest % saving available
-     *   MIN(base_price_with_tax)      -> undiscounted "was" price
-     *   MIN(base_price_with_discounts)-> ex-VAT net price
-     *   MIN(tax_amount)               -> tax amount
-     * A left join, except for a read that filters by a price, which lists only the products with a figure
-     * ({@see self::applyPriceIndexJoin()}).
+     * PRICE INDEX ROW (alias: pf)
+     * One row per product for the current visitor: the index row of their pricing context for the combination the
+     * product's card opens on, in the period that holds this moment (final_price, discount_amount, discount_percent,
+     * base_price_with_tax, base_price_with_discounts, tax_amount; NULL for no valid price). A left join, except for a
+     * read that filters by a price, which lists only the products with a figure ({@see self::applyPriceIndexJoin()}).
      *
      * All supported filter conditions
      *   filter.price_min            -> pf.final_price >= X
@@ -1477,15 +1473,20 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * Append the Architecture-B price index subquery JOIN to the main query: the one place a read of the catalogue
-     * takes the visitor's price figures, and the rule on products without one, from (2.2.2).
+     * Join the price index to the main query: the one place a read of the catalogue takes the visitor's price figures,
+     * and the rule on products without one, from (2.2.2).
      *
-     * The subquery (alias pf) reduces the index to one row per item for the current visitor's currency, place chain
-     * and set of pricing groups (their own once prepared; while theirs waits, their previous one or the guest's), at
-     * this moment. A left join: a product with no figure for the visitor is listed, its pf columns null, and a sort by
-     * a figure places it last. With $pricedOnly, the read that filters by a price, an inner join: only the products
-     * with a figure are listed. While no set is prepared to read at all (the job runner has not run yet) every read is
-     * a left join, so no list is empty because the index is being prepared.
+     * The index holds a row per pricing context, product, combination and period (PriceIndexSyncService); the read
+     * takes, by key, the row of the visitor's context ({@see PriceIndexSyncService::readContext()}) for the combination
+     * the product's card opens on (#__alfa_items.opening_combination_id, 0 for a product without one), in the period
+     * that holds this moment: one row a product, alias pf, with the columns of the index. A customer with prices of
+     * their own reads their context's row where it has one and the set's otherwise. A product with no valid price for
+     * the visitor has a row whose figures are NULL. A left join, so every product is listed and a sort by a figure
+     * places one with none last; with $pricedOnly, the read that filters by a price, an inner join, and the filters'
+     * own comparisons leave the NULL rows out. With no context prepared for the visitor nothing is priced.
+     *
+     * While the new index is built after the update (decision D2), the previous one is read instead
+     * ({@see self::applyPreviousPriceIndexJoin()}).
      *
      * @param \Joomla\Database\QueryInterface $query Mutated in place
      * @param bool $pricedOnly Whether the read lists only the products with a figure for the visitor.
@@ -1493,45 +1494,67 @@ class ItemsModel extends UrlListModel
      */
     protected function applyPriceIndexJoin($query, bool $pricedOnly = false): void
     {
-        // Same UTC clock as the publish window in getListQuery(): the index's
-        // valid_from / valid_until are written by PriceIndexSyncService with
-        // Factory::getDate()->toSql(), so a promo segment must open on that
-        // clock, not on the DB's local-time NOW().
-        $now = Factory::getContainer()->get('DatabaseDriver')->quote(ActiveDateCondition::now());
+        if (PriceIndexSyncService::isBuilding()) {
+            $this->applyPreviousPriceIndexJoin(query: $query, pricedOnly: $pricedOnly);
 
+            return;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $index = $db->quoteName(PriceIndexSyncService::INDEX_TABLE);
+        // The UTC clock the writer writes the periods on (Factory::getDate()->toSql()), never the database's NOW().
+        $now = $db->quote(ActiveDateCondition::now());
+        $read = PriceIndexSyncService::readContext(context: PriceContext::fromSession());
+
+        if ($read === null) {
+            $query->join('LEFT', $index . ' AS pf ON 1 = 0');
+
+            if ($pricedOnly) {
+                $query->where('0 = 1');
+            }
+
+            return;
+        }
+
+        $period = static fn (string $alias): string => $alias . '.valid_from <= ' . $now . ' AND (' . $alias . '.valid_until IS NULL OR ' . $alias . '.valid_until > ' . $now . ')';
+        $unit = static fn (string $alias): string => $alias . '.item_id = a.id AND ' . $alias . '.combination_id = a.opening_combination_id';
+        $context = (int) $read['context'];
+        $customer = (int) $read['customer'];
+        $on = $unit('pf') . ' AND ' . $period('pf');
+
+        // The customer's own row first, the set's where they have none (decision D3 (b)).
+        $on .= $customer > 0
+            ? ' AND pf.context_id IN (' . $customer . ', ' . $context . ') AND (pf.context_id = ' . $customer
+                . ' OR NOT EXISTS (SELECT 1 FROM ' . $index . ' AS pu WHERE pu.context_id = ' . $customer . ' AND ' . $unit('pu') . ' AND ' . $period('pu') . '))'
+            : ' AND pf.context_id = ' . $context;
+
+        $query->join($pricedOnly ? 'INNER' : 'LEFT', $index . ' AS pf ON ' . $on);
+    }
+
+    /**
+     * The read of the previous price index, while the new one is built after the update (2.2.2, decision D2): the
+     * index of 2.2.1 under the name the update gave it, read as 2.2.1 read it, so a visitor meets the previous prices
+     * until the new ones are complete. The subquery (alias pf) reduces it to one row per product for the visitor's
+     * currency, place chain and set of pricing groups (one the previous index prepared), at this moment.
+     *
+     * @param \Joomla\Database\QueryInterface $query Mutated in place
+     * @param bool $pricedOnly Whether the read lists only the products with a figure for the visitor.
+     * @since  2.2.2
+     */
+    private function applyPreviousPriceIndexJoin($query, bool $pricedOnly): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $now = $db->quote(ActiveDateCondition::now());
         $context = PriceContext::fromSession();
-
-        // Currency: match this currency OR the universal sentinel (0)
         $currencyId = $context->getCurrencyId();
-        $currencyCond = $currencyId > 0
-            ? "pi.currency_id IN ({$currencyId}, 0)"
-            : 'pi.currency_id = 0';
-
-        // Place: the visitor's place, the places above it whose rules it has (2.2.1), OR the universal sentinel (0)
+        $currencyCond = $currencyId > 0 ? "pi.currency_id IN ({$currencyId}, 0)" : 'pi.currency_id = 0';
         $places = PriceIndexSyncService::slotPlaces(context: $context);
         $placeCond = 'pi.place_id IN (' . implode(', ', array_merge($places, [0])) . ')';
-
-        // Groups: the slots of the visitor's own set of pricing groups, priced with exactly the groups of theirs that
-        // change a price; while that set waits for its preparation, their previous one or the guest's (readableSetKey()),
-        // so no visitor meets an empty list or products without figures because a set is being prepared.
         $setKey = PriceIndexSyncService::readableSetKey(context: $context);
         $pricedOnly = $pricedOnly && $setKey !== null;
         $setJoin = PriceIndexSyncService::slotSetJoin(setKey: $setKey ?? '', alias: 'pi');
-
-        // Subquery: all column aliases match index column names.
-        //
-        // Per (item x combination) the visitor may match SEVERAL context
-        // slots (his place, a place above it AND any place, his currency AND any). The displayed
-        // card price comes from the live engine with his FULL context, which
-        // corresponds to the slot of his own set of pricing groups and of his
-        // own currency and place. The index says how its slots are ranked:
-        // taking the ranking from there keeps the filter and the card telling
-        // the same number. The writer keeps one row per product and slot
-        // (combination 0): the price of the combination the product opens on,
-        // its default one, for a product with combinations (2.2.2), else its
-        // own; the ranking keeps one of its slots per product, which the outer
-        // aggregate reads.
         $ranking = PriceIndexSyncService::slotRanking(alias: 'pi', places: $places);
+        $previous = $db->quoteName(PriceIndexSyncService::PREVIOUS_TABLE);
 
         $subquery = "
             (
@@ -1552,7 +1575,7 @@ class ItemsModel extends UrlListModel
                             PARTITION BY pi.item_id, pi.combination_id
                             ORDER BY {$ranking}
                         ) AS context_rank
-                    FROM #__alfa_items_price_index pi
+                    FROM {$previous} pi
                     {$setJoin}
                     WHERE {$currencyCond}
                       AND {$placeCond}

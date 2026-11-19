@@ -408,7 +408,7 @@ final class Runner
             $probes[] = $single;
         }
 
-        $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_price_group_sets', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db);
+        $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_price_contexts', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db);
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_inventory_effect_outbox') . ' WHERE ' . self::owedMovementWithoutDrain(db: $db);
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_items') . ' WHERE ' . self::markWithoutCatalogueJob(db: $db);
         $probes[] = DueRead::windowsProbe(db: $db, until: DueRead::windowsUntil());
@@ -439,8 +439,9 @@ final class Runner
     }
 
     /**
-     * A waiting price set with no job of its scope, pending, running or failed: a set whose job a hand deletion or a
-     * test's cleanup removed. A failed job stands for staff (the attention notice) and is not replaced.
+     * A waiting pricing context of the price index (2.2.2; a set of customer groups before) with no job of its scope,
+     * pending, running or failed: a context whose job a hand deletion or a test's cleanup removed. A failed job stands
+     * for staff (the attention notice) and is not replaced. The table is aliased s.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -451,7 +452,7 @@ final class Runner
         return $db->quoteName('s.prepared_at') . ' IS NULL AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(DueRead::TABLE, 't')
             . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(DueRead::PRICE_SET_PREPARE)
             . ' AND ' . $db->quoteName('t.state') . ' IN (' . implode(', ', array_map([$db, 'quote'], [DueRead::STATE_PENDING, DueRead::STATE_RUNNING, DueRead::STATE_FAILED])) . ')'
-            . ' AND ' . $db->quoteName('t.scope_key') . ' = CONCAT(' . $db->quote(DueRead::PRICE_SET_PREPARE . ':') . ', CONVERT(' . $db->quoteName('s.digest') . ' USING utf8mb4)) COLLATE utf8mb4_unicode_ci)';
+            . ' AND ' . $db->quoteName('t.scope_key') . ' = CONCAT(' . $db->quote(DueRead::PRICE_SET_PREPARE . ':') . ', CAST(' . $db->quoteName('s.id') . ' AS CHAR)) COLLATE utf8mb4_unicode_ci)';
     }
 
     /**
@@ -488,8 +489,8 @@ final class Runner
         try {
             // Each waiting set whose job is gone gets its job; a set whose job failed is left to staff, whatever
             // happens to the others (the Tools button and the update queue every waiting set, their own planning).
-            foreach ($db->setQuery('SELECT ' . $db->quoteName('s.digest') . ' FROM ' . $db->quoteName('#__alfa_price_group_sets', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db))->loadColumn() ?: [] as $digest) {
-                Job\PriceSetPrepareJob::enqueueFor(digest: (string) $digest);
+            foreach ($db->setQuery('SELECT ' . $db->quoteName('s.id') . ' FROM ' . $db->quoteName('#__alfa_price_contexts', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db))->loadColumn() ?: [] as $contextId) {
+                Job\PriceSetPrepareJob::enqueueFor(contextId: (int) $contextId);
             }
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the waiting price sets could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
