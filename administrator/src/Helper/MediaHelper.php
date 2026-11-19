@@ -2160,7 +2160,9 @@ class MediaHelper
      * The sizes value for a media row's srcset (2.2.2): the slot widths a template gives, each capped at the widest file
      * the srcset offers, min(<width>, <px>px), so an image whose stored file is narrower than its slot is drawn no
      * wider than its pixels where its CSS lets it keep its own width (a card's image); the widths as given for a row
-     * with no srcset.
+     * with no srcset. Each capped entry is followed by its plain twin, the same condition with the width as given: a
+     * browser without math functions in sizes (Safari before 26.4) skips the capped entry and takes the twin, where
+     * a list of capped entries alone would leave it 100vw; a browser with them takes the capped entry first.
      *
      * @param object $media A media row as getMediaData() returns it.
      * @param string $sizes The template's sizes value: entries separated by commas, each an optional media condition
@@ -2201,7 +2203,9 @@ class MediaHelper
             }
 
             $condition = rtrim(substr($entry, 0, $at));
-            $entries[] = ($condition === '' ? '' : $condition . ' ') . 'min(' . substr($entry, $at) . ', ' . $widths[1] . 'px)';
+            $condition = $condition === '' ? '' : $condition . ' ';
+            $entries[] = $condition . 'min(' . substr($entry, $at) . ', ' . $widths[1] . 'px)';
+            $entries[] = $condition . substr($entry, $at);
         }
 
         return implode(', ', $entries);
