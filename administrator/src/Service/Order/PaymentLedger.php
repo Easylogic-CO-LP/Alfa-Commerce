@@ -16055,6 +16055,31 @@ class PaymentLedger
     }
 
     /**
+     * The sentence the ledger queued about a write it just refused, as plain text: the last error queued after $told,
+     * unescaped, or '' when it queued none.
+     *
+     * One reader for every door that reports a ledger's refusal: the payments and the shipments ledgers queue theirs
+     * through LedgerSupport::warn(), and the REST order operations and the settle read them here.
+     *
+     * @param \Joomla\CMS\Application\CMSApplicationInterface $app The application.
+     * @param int $told How many messages were queued before the write.
+     *
+     * @since  2.2.2
+     */
+    public static function queuedRefusal(\Joomla\CMS\Application\CMSApplicationInterface $app, int $told): string
+    {
+        $refusal = '';
+
+        foreach (\array_slice($app->getMessageQueue(), $told) as $message) {
+            if ((string) ($message['type'] ?? '') === 'error') {
+                $refusal = html_entity_decode(strip_tags((string) ($message['message'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
+        return $refusal;
+    }
+
+    /**
      * Why a refund written by staff may not enter the books now, or null.
      *
      * While the refund block holds ({@see self::refundStartRefusal()}), no write

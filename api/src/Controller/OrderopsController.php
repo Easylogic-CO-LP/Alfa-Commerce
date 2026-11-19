@@ -839,7 +839,7 @@ class OrderopsController extends OrdersController
                 );
 
             default:
-                $refusal = $this->ledgerRefusal(told: $told);
+                $refusal = PaymentLedger::queuedRefusal(app: $this->app, told: $told);
 
                 throw new Save(
                     $refusal !== '' ? $refusal : sprintf(
@@ -1093,8 +1093,8 @@ class OrderopsController extends OrdersController
      *
      * The refusal's sentence is the model's error when it set one (a line), else the sentence the payments or the
      * shipments ledger told staff about the write it refused (2.2.2: a second pending payment while one covers the
-     * balance, a parcel's charge the tax rule refuses), as the settle reads it; the generic sentence only when neither
-     * said why.
+     * balance, a parcel's charge the tax rule refuses), read by PaymentLedger::queuedRefusal() as the settle reads
+     * it; the generic sentence only when neither said why.
      *
      * @param string $method The model method to call.
      * @param array $data Data passed by reference to the model.
@@ -1109,7 +1109,7 @@ class OrderopsController extends OrdersController
         $told = \count($this->app->getMessageQueue());
 
         if (!$model->$method($data, ...$arguments)) {
-            throw new Save($this->modelError($model, $this->ledgerRefusal(told: $told) ?: 'The order could not be updated'), 409);
+            throw new Save($this->modelError($model, PaymentLedger::queuedRefusal(app: $this->app, told: $told) ?: 'The order could not be updated'), 409);
         }
     }
 
@@ -1327,30 +1327,6 @@ class OrderopsController extends OrdersController
         $first = $errors[0] ?? ($model->getError() ?? '');
 
         return $first instanceof Throwable ? $first->getMessage() : ((string) $first ?: $fallback);
-    }
-
-    /**
-     * The sentence the ledger told about the write it just refused, as plain text.
-     *
-     * The ledger queues its refusal as an escaped error message; this returns
-     * the last one queued after $told, unescaped, or '' when it told none.
-     *
-     * @param int $told How many messages were queued before the write.
-     *
-     *
-     * @since   2.0.0
-     */
-    private function ledgerRefusal(int $told): string
-    {
-        $refusal = '';
-
-        foreach (\array_slice($this->app->getMessageQueue(), $told) as $message) {
-            if ((string) ($message['type'] ?? '') === 'error') {
-                $refusal = html_entity_decode(strip_tags((string) ($message['message'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            }
-        }
-
-        return $refusal;
     }
 
     /**
