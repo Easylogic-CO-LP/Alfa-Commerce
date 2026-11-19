@@ -12,17 +12,16 @@ namespace Alfa\Component\Alfa\Api\View;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
-use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
-use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 
 /**
  * A translated resource's list rows with their translations, on request (2.2.2).
  *
- * A list row carries one flat name, in the language the request asks (lang) or the shop's default content language.
- * With translations=1 on the list request every row also carries `translations`, the same object a single record
- * carries: every content language's texts, keyed by language (en_gb, el_gr). Read for the page's rows in one statement
- * per language (MultilingualHelper::getMultilingualDataForIds()), never one per row. Without the parameter the rows
- * are as they were.
+ * Every read of a translated resource carries its texts flat, in the language the request asks (lang) or the shop's
+ * default content language. With include=translations a list row, as a single record, also carries `translations`:
+ * every content language's texts, keyed by language (en_gb, el_gr), the object a write takes. Read for the page's
+ * rows in one statement per language (MultilingualHelper::getMultilingualDataForIds()), never one per row. Without
+ * it no read carries translations (the single record's model reads them only when asked, ApiInclude).
  *
  * A view that uses this names its translations' table and key in {@see self::translationSource()}.
  *
@@ -41,7 +40,7 @@ trait ListsTranslations
     abstract protected function translationSource(): array;
 
     /**
-     * Display a list, each row with its translations when the request asks for them (translations=1).
+     * Display a list, each row with its translations when the request asks for them (include=translations).
      *
      * @param array|null $items The rows, or null for the model's.
      *
@@ -51,9 +50,7 @@ trait ListsTranslations
      */
     public function displayList(?array $items = null)
     {
-        $asked = RequestScalar::string(Factory::getApplication()->getInput(), 'translations', '');
-
-        if ($items !== null || !\in_array(strtolower($asked), ['1', 'true'], true)) {
+        if ($items !== null || !ApiInclude::asks(ApiInclude::TRANSLATIONS)) {
             return parent::displayList($items);
         }
 

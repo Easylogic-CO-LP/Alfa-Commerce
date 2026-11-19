@@ -323,6 +323,40 @@ trait HasApiGuards
         if ($carried !== []) {
             throw new Save(implode(', ', $carried) . ' cannot be written through the API: ' . $this->unwrittenReason(), 422);
         }
+
+        $this->refuseLanguageKeys();
+    }
+
+    /**
+     * Answer 422, naming them, when the body names a text by a language suffix (name_el_gr) (2.2.2): a write takes the
+     * texts of each language in the translations object, {"translations": {"el_gr": {"name": "..."}}}, the object a
+     * read with include=translations gives, so what a client reads it can send back as it is.
+     *
+     * @throws Save When the body carries a key ending in the suffix of a language of the site (422).
+     *
+     * @since  2.2.2
+     */
+    protected function refuseLanguageKeys(): void
+    {
+        $suffixes = array_map(static fn (string $tag): string => '_' . $tag, MultilingualHelper::getLanguageTags());
+        $carried = array_values(array_filter(
+            array_keys($this->requestBody()),
+            static function ($key) use ($suffixes): bool {
+                foreach ($suffixes as $suffix) {
+                    if (\is_string($key) && \strlen($key) > \strlen($suffix) && str_ends_with($key, $suffix)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+        ));
+
+        if ($carried !== []) {
+            throw new Save(implode(', ', $carried) . ' cannot be written through the API: send the texts of each language in'
+                . ' translations, {"translations": {"en_gb": {"name": "..."}, "el_gr": {"name": "..."}}}, as a read with'
+                . ' include=translations gives them. Nothing was saved.', 422);
+        }
     }
 
     /**
@@ -654,11 +688,11 @@ trait HasApiGuards
      * Translate a nested translations map into the flat per-language keys the
      * save path understands.
      *
-     * A GET emits attributes.translations = {"el_gr": {"name": "..."}, ...} while
-     * the write path only ever understood name_el_gr, so a client could not
-     * send back what it had just read. Both spellings of the tag are accepted
-     * ("el-GR" and "el_gr"); an explicitly supplied flat key always wins over
-     * the nested map.
+     * A GET with include=translations emits attributes.translations =
+     * {"el_gr": {"name": "..."}, ...}, and a write takes the same object: the
+     * one way a write names a text in a language (2.2.2; a key with a language
+     * suffix, name_el_gr, is refused by {@see self::refuseLanguageKeys()}).
+     * Both spellings of the tag are accepted ("el-GR" and "el_gr").
      *
      * Note the field must still be present for the DEFAULT language on every
      * write when the form marks it required: MultilingualTextField::validate()
@@ -672,7 +706,7 @@ trait HasApiGuards
     protected function flattenTranslations(array $data): array
     {
         if (!isset($data['translations']) || !\is_array($data['translations'])) {
-            // Never let the read-only key reach the model as an unknown field.
+            // Never let a translations that is not an object reach the model as an unknown field.
             unset($data['translations']);
 
             return $data;

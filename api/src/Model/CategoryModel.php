@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\CategoryModel as AdminCategoryModel;
+use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 
 /**
  * API Category model: the admin model plus resolved translations.
@@ -48,7 +49,8 @@ class CategoryModel extends AdminCategoryModel
             }
         }
 
-        if ($item && !empty($item->id)) {
+        // Every content language's texts, only when the read asks for them (include=translations, 2.2.2).
+        if ($item && !empty($item->id) && ApiInclude::asks(ApiInclude::TRANSLATIONS)) {
             // Full per-language map ({"en_gb": {...}, "el_gr": {...}}) so API
             // clients can read every translation and PATCH back the same
             // per-language keys the admin form posts (name_el_gr, ...).
