@@ -13,8 +13,11 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
+use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
@@ -52,6 +55,9 @@ class OrdersController extends ApiController
      * and created (the time the order was placed). The delivery details are written through alfa_form_fields, and a
      * PATCH that leaves either out keeps it as stored.
      *
+     * The parts a create takes in its one call, lines, shipment and payment (2.2.2), are refused on an update too: an
+     * existing order's lines, parcels and payments change through the order operations.
+     *
      * @var string[]
      * @since  2.2.1
      */
@@ -62,18 +68,26 @@ class OrdersController extends ApiController
         'fulfillment_status', 'fulfillment_percentage', 'payment_percentage', 'balance', 'overpaid', 'excess', 'still_held',
         'order_total', 'order_total_tax_excl', 'items_total', 'shipping_total', 'discount_total', 'contributions_total',
         'total_paid_real', 'total_refunded_real', 'source', 'created', 'modified', 'lines', 'payments', 'shipments',
-        'contributions', 'history', 'delivery_address', 'invoice_address',
+        'contributions', 'history', 'delivery_address', 'invoice_address', 'shipment', 'payment',
     ];
 
     /**
-     * The method keys an order's create (POST) does not write (2.2.2): an order takes its payment and shipping
-     * methods from its payments and parcels, and follows the latest live one of each (OrderMethods). The create
-     * dropped them without a word, while the update refuses them by name; it refuses them too.
+     * The method keys an order's create (POST) does not take at its top level (2.2.2): an order takes its payment and
+     * shipping methods from its payments and parcels, and follows the latest live one of each (OrderMethods). A create
+     * in one call names them inside its payment and its shipment ({@see OrderCreateParts}).
      *
      * @var string[]
      * @since  2.2.2
      */
     private const NOT_CREATED = ['id_payment_method', 'payment_method_name', 'id_shipment_method', 'shipment_method_name'];
+
+    /**
+     * The model the last save of this request used, so a create refused for one of its parts is answered with the
+     * refusal the model set ({@see self::add()}).
+     *
+     * @since  2.2.2
+     */
+    private ?object $savedModel = null;
 
     /**
      * The content type of the item.
@@ -229,31 +243,88 @@ class OrdersController extends ApiController
     }
 
     /**
-     * Create an order: the guards' create, after the invoice details' own refusal ({@see self::refuseUnstatedInvoice()})
-     * and the refusal of the method keys ({@see self::NOT_CREATED}).
+     * Create an order, in one call when the body carries its parts (2.2.2): lines, a shipment and a payment beside the
+     * customer's details, customer_note, invoice_differs with alfa_form_fields_billing, id_order_status and silent.
+     * Everything is written in one transaction by the order model ({@see OrderCreateParts}); a part refused leaves no
+     * order and answers 422 when it is not in a shape the create takes, 409 when its writer refused it, with the part
+     * named as a JSON pointer into the body. The status the order opens in mails as a status change does, once the
+     * creation has committed, the customer left out when silent; an order created without lines mails nobody.
      *
-     * "silent": true leaves the customer out of the e-mail the status the order opens in owes, as on a status change;
-     * an order created without lines owes no e-mail (OrderModel::save(), 2.2.2).
+     * Asked in order: the permission to create (403), the invoice details' own refusal
+     * ({@see self::refuseUnstatedInvoice()}), the method keys at the top level ({@see self::NOT_CREATED}, 422), then
+     * the guards' create.
      *
      * @return void
      *
-     * @throws Save When the body carries a method key (422).
+     * @throws NotAllowed When the user may not create an order (403).
+     * @throws Save When the body carries a method key at its top level (422), or a part is refused (422, 409).
      *
      * @since  2.2.2
      */
     public function add()
     {
+        if (!$this->allowAdd()) {
+            throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
+        }
+
         $this->refuseUnstatedInvoice();
 
         $carried = array_values(array_intersect(self::NOT_CREATED, array_keys($this->requestBody())));
 
         if ($carried !== []) {
-            throw new Save(implode(', ', $carried) . ' cannot be written when an order is created: an order takes its payment'
-                . ' and shipping methods from its payments and parcels (POST v1/alfa/orders/:id/payments, POST'
-                . ' v1/alfa/orders/:id/shipments) and follows the latest of each. Nothing was saved.', 422);
+            throw new Save(implode(', ', $carried) . ' cannot be written at the top level of an order\'s create: send the'
+                . ' shipping method inside shipment (shipment.id_shipment_method) and the payment method inside payment'
+                . ' (payment.id_payment_method); the order follows its parcels and payments. Nothing was saved.', 422);
         }
 
-        $this->guardedAdd();
+        try {
+            $this->guardedAdd();
+        } catch (Save $e) {
+            $refusal = $this->partRefusal();
+
+            if ($refusal !== null) {
+                throw new Save($refusal->plain, $refusal->status, $e);
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * The model of a save, kept so add() can read the refusal it set; every call makes a new model, as core's does.
+     *
+     * @param string $name The model name.
+     * @param string $prefix The class prefix.
+     * @param array $config The configuration.
+     *
+     * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel|bool Model object on success; otherwise false on failure.
+     *
+     * @since  2.2.2
+     */
+    public function getModel($name = '', $prefix = '', $config = [])
+    {
+        $model = parent::getModel($name, $prefix, $config);
+        $this->savedModel = \is_object($model) ? $model : null;
+
+        return $model;
+    }
+
+    /**
+     * The refusal of a part the last save's model set, or null ({@see OrderPartRefusedException}).
+     *
+     * @since  2.2.2
+     */
+    private function partRefusal(): ?OrderPartRefusedException
+    {
+        $errors = $this->savedModel !== null && method_exists($this->savedModel, 'getErrors') ? $this->savedModel->getErrors() : [];
+
+        foreach ($errors as $error) {
+            if ($error instanceof OrderPartRefusedException) {
+                return $error;
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -268,6 +268,7 @@ trait HasApiGuards
      * @return void
      *
      * @throws NotAllowed When the identity may not create the resource.
+     * @throws Save When the save is refused.
      *
      * @since  2.2.1
      */

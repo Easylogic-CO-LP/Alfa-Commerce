@@ -45,12 +45,14 @@ use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderPlacedFollowUp;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\ReconciliationFacts;
@@ -1078,6 +1080,17 @@ class OrderModel extends AlfaAdminModel
         // (2.2.2).
         if (\is_array($valid) && $isNew && !empty($data['silent'])) {
             $valid['silent'] = 1;
+        }
+
+        // The parts of an order created in one call (2.2.2), its lines, its parcel and its payment, are not fields of
+        // the form either: a creation keeps them for save(), which reads them through OrderCreateParts and writes each
+        // through its own writer in the creation's transaction.
+        if (\is_array($valid) && $isNew) {
+            foreach (['lines', 'shipment', 'payment'] as $part) {
+                if (\array_key_exists($part, $data)) {
+                    $valid[$part] = $data[$part];
+                }
+            }
         }
 
         return $valid;
@@ -4514,6 +4527,60 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
+     * Write the parts of an order created in one call (2.2.2), inside the creation's transaction: each line through the
+     * line writer, then the parcel through the shipments ledger, then the payment through the payments ledger, so the
+     * payment is judged against the order's lines and its shipping charge. Each writer takes its own locks and claims as
+     * on the order operations: a line claims its stock as it is written, the claims of every line held by the one
+     * transaction. The first part refused stops the creation: its writer's sentence, naming the part, and the caller
+     * rolls the whole creation back.
+     *
+     * @param int $orderId The order, written in this transaction.
+     * @param array $parts The parts as OrderCreateParts::read() answered them.
+     *
+     * @return int[] The lines written, in the body's order.
+     *
+     * @throws OrderPartRefusedException When a part is refused.
+     *
+     * @since  2.2.2
+     */
+    private function writeCreatedParts(int $orderId, array $parts): array
+    {
+        $app = Factory::getApplication();
+        $lineIds = [];
+
+        foreach ($parts['lines'] as $index => $line) {
+            $lineData = OrderCreateParts::lineData(line: $line, orderId: $orderId);
+            $told = \count($app->getMessageQueue());
+
+            if (!$this->saveOrderItem($lineData, ...$line['pricing'])) {
+                throw new OrderPartRefusedException('/lines/' . $index, PaymentLedger::queuedRefusal(app: $app, told: $told) ?: 'The line was not added.');
+            }
+
+            $lineIds[] = (int) $lineData['id'];
+        }
+
+        if ($parts['shipment'] !== null) {
+            $shipmentData = OrderCreateParts::shipmentData(shipment: $parts['shipment'], orderId: $orderId);
+            $told = \count($app->getMessageQueue());
+
+            if (!$this->saveOrderShipment($shipmentData)) {
+                throw new OrderPartRefusedException('/shipment', PaymentLedger::queuedRefusal(app: $app, told: $told) ?: 'The parcel was not recorded.');
+            }
+        }
+
+        if ($parts['payment'] !== null) {
+            $paymentData = OrderCreateParts::paymentData(payment: $parts['payment'], orderId: $orderId);
+            $told = \count($app->getMessageQueue());
+
+            if (!$this->saveOrderPayment($paymentData)) {
+                throw new OrderPartRefusedException('/payment', PaymentLedger::queuedRefusal(app: $app, told: $told) ?: 'The payment was not recorded.');
+            }
+        }
+
+        return $lineIds;
+    }
+
+    /**
      * Save an order with stock operation handling.
      *
      * On status change, delegates to StockPolicy::handleStatusTransition()
@@ -4594,14 +4661,19 @@ class OrderModel extends AlfaAdminModel
             }
         }
 
-        // Manual creation: the ONE write path. A new backend order is a
-        // metadata-only shell (explicit allow_empty) created through
-        // OrderCreator: same defaults, guards and audit trail as the
-        // checkout and the renewals. Lines/payments/shipments are added
-        // afterwards on the normal edit screen; from the first line on,
+        // Manual creation: the ONE write path. A new order is created through
+        // OrderCreator: same defaults, guards and audit trail as the checkout
+        // and the renewals. The order screen creates a metadata-only shell
+        // (explicit allow_empty) and adds lines, payments and shipments on the
+        // edit screen; a REST create may carry them in its one call (2.2.2):
+        // each is written by its own writer, the line writer, the shipments
+        // ledger and the payments ledger, inside the creation's transaction,
+        // so a part refused leaves no order at all. From the first line on,
         // prices are FROZEN (recalculation only via the explicit action).
         if ($isNew) {
             try {
+                // The parts' shape, read before anything is written.
+                $parts = OrderCreateParts::read(data: $data);
                 $identity = $app->getIdentity();
                 $customerId = (int) ($data['id_user'] ?? 0);
 
@@ -4667,12 +4739,13 @@ class OrderModel extends AlfaAdminModel
                     }
 
                     $created = OrderCreator::create(draft: $draft, manageTransaction: false);
+                    $lineIds = $this->writeCreatedParts(orderId: $created->orderId, parts: $parts);
 
                     // The status the order opens in decides its e-mail, as a status change's does (2.2.2): what the
-                    // checkout owes with a new order (OrderPlacedFollowUp), the customer left out when the creation
-                    // says silent. An order created with no lines owes nothing: an order built in steps never mails
-                    // empty.
-                    if ($created->lineIds !== []) {
+                    // checkout owes with a new order (OrderPlacedFollowUp), sent once the creation has committed, the
+                    // customer left out when the creation says silent. An order created with no lines owes nothing: an
+                    // order built in steps never mails empty.
+                    if ($lineIds !== []) {
                         OrderPlacedFollowUp::owe(
                             orderId: $created->orderId,
                             statusId: (int) $created->statusId,
@@ -4694,6 +4767,11 @@ class OrderModel extends AlfaAdminModel
                 $this->setState($this->getName() . '.id', $created->orderId);
 
                 return true;
+            } catch (OrderPartRefusedException $e) {
+                // The refusal itself is the error, so the REST create answers it with its status and the part it names.
+                $this->setError($e);
+
+                return false;
             } catch (Exception $e) {
                 $this->setError($e->getMessage());
 

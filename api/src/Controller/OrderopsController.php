@@ -15,17 +15,16 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Order\LinePricing;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceCommand;
-use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
-use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
-use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
@@ -272,32 +271,8 @@ class OrderopsController extends OrdersController
     }
 
     /**
-     * The pricing instructions of a line body, validated before anything is written.
-     *
-     * unit_price_tax_incl is a DERIVED column and is refused as an input: the
-     * owner forbids overloading it as the custom-price instruction, and reading
-     * it silently would make one field mean two things. The custom price goes
-     * through the one decoder the admin uses ({@see CustomPriceCommand::fromPayload()}),
-     * so "abc", true, "", "1e1" and a negative amount are refused naming the
-     * field, and so is an amount beyond Alfa's unit-rate precision
-     * (8 decimal places, 14 significant digits). A rate finer than the
-     * order's currency is a unit rate, not settled money
-     * yet: the line charges it times the
-     * quantity, rounded once.
-     *
-     * THE MANUAL DISCOUNT HAS THE POPUP'S NAME, manual_discount_percent, and
-     * the popup's meaning: the line's stored setting, which
-     * a value sets and 0 clears, so a retried PATCH changes nothing. It is
-     * read by the writer's own rule ({@see AdminOrderModel::manualDiscountPercent()}):
-     * 0-100 in whole hundredths, the column's precision. The stored
-     * whole-line rate, discount_percent, is REFUSED as an input like
-     * unit_price_tax_incl: it is a derived column, and reading it as an
-     * instruction re-applied it on every read-modify-write.
-     *
-     * THE TICK HAS THE COLUMN'S NAME, manual_discount_scope, and its two
-     * values ("The API must expose the same explicit state as the
-     * administrator UI"). Omitted, the line's choice stands; it is never
-     * inferred from a manual discount being present.
+     * The pricing instructions of a line body, validated before anything is written: the line's own reader
+     * ({@see LinePricing::fromPayload()}, 2.2.2, G0), its refusal answered 400 with the sentence that names the field.
      *
      * @param array $body The decoded request body.
      *
@@ -309,54 +284,11 @@ class OrderopsController extends OrdersController
      */
     private function linePricing(array $body): array
     {
-        if (\array_key_exists('unit_price_tax_incl', $body)) {
-            throw new Save(
-                'unit_price_tax_incl is derived and cannot be written; send ' . CustomPriceCommand::FIELD
-                . ' (a number to set, null to clear, omitted to leave unchanged)',
-                400,
-            );
-        }
-
-        if (\array_key_exists('discount_percent', $body)) {
-            throw new Save(
-                'discount_percent is the line\'s derived discount rate and cannot be written; send '
-                . 'manual_discount_percent (0-100) to take a manual discount off the line',
-                400,
-            );
-        }
-
         try {
-            $price = CustomPriceCommand::fromPayload(payload: $body);
+            return LinePricing::fromPayload(payload: $body);
         } catch (InvalidArgumentException $e) {
-            throw new Save(CustomPriceCommand::FIELD . ': ' . $e->getMessage(), 400);
+            throw new Save($e->getMessage(), 400);
         }
-
-        $manual = null;
-
-        if (\array_key_exists('manual_discount_percent', $body)) {
-            $manual = AdminOrderModel::manualDiscountPercent($body['manual_discount_percent']);
-
-            if ($manual === null) {
-                throw new Save('manual_discount_percent must be a number from 0 to 100 with at most two decimal places (0 clears the manual discount)', 400);
-            }
-        }
-
-        $scope = null;
-
-        if (\array_key_exists('manual_discount_scope', $body)) {
-            $value = $body['manual_discount_scope'];
-            $scope = \is_string($value) ? ManualDiscountScope::tryFrom($value) : null;
-
-            if ($scope === null) {
-                throw new Save(
-                    'manual_discount_scope must be ' . ManualDiscountScope::ExcludeCustomPrice->value
-                    . ' or ' . ManualDiscountScope::ApplyToCustomPrice->value,
-                    400,
-                );
-            }
-        }
-
-        return ['price' => $price, 'manualDiscountPercent' => $manual, 'manualDiscountScope' => $scope];
     }
 
     /**
@@ -1221,7 +1153,8 @@ class OrderopsController extends OrdersController
     /**
      * A parcel's VAT rate from the body: a percentage of zero or more with at
      * most three decimal places, as the column holds it. A JSON number is read
-     * at the digits it carries; text as written, never rounded.
+     * at the digits it carries; text as written, never rounded. The rule is
+     * {@see OrderCreateParts::rate()}, which the one-call create reads too.
      *
      * @param mixed $value The body's value, already known to be present.
      *
@@ -1233,14 +1166,11 @@ class OrderopsController extends OrdersController
      */
     private function parcelRate(mixed $value): string
     {
-        $text = \is_float($value) && is_finite($value) ? ExactAmount::ofNumber($value)->text() : $value;
-
-        if ((!\is_string($text) && !\is_int($text)) || preg_match('/^\d+(?:\.\d+)?$/D', (string) $text) !== 1
-            || StoredDecimal::refusal(value: ExactAmount::of((string) $text), precision: 10, scale: 3) !== null) {
-            throw new Save('shipping_tax_rate must be a percentage of zero or more with at most three decimal places', 400);
+        try {
+            return OrderCreateParts::rate(value: $value, field: 'shipping_tax_rate');
+        } catch (InvalidArgumentException $e) {
+            throw new Save($e->getMessage(), 400);
         }
-
-        return (string) $text;
     }
 
     /**
@@ -1278,7 +1208,8 @@ class OrderopsController extends OrdersController
      *
      * Canonical ungrouped decimals only, and NOT trimmed: presentation formats
      * ("1.234,56", " 5") belong to a parser with a format contract, not to a
-     * money verb.
+     * money verb. The rule is {@see OrderCreateParts::amount()}, which the
+     * one-call create reads too.
      *
      * @param mixed $value The body's value, already known to be present.
      * @param string $field The body key, for the refusal.
@@ -1291,23 +1222,10 @@ class OrderopsController extends OrdersController
      */
     private function exactAmount(mixed $value, string $field, Currency $currency): Money
     {
-        if (!\is_int($value) && !\is_float($value) && !\is_string($value)) {
-            throw new Save($field . ' must be a number', 400);
-        }
-
         try {
-            return ExactMoney::of(value: $value, currency: $currency);
-        } catch (ExactMoneyRefusal $e) {
-            throw new Save(
-                match ($e->reason()) {
-                    ExactMoney::FINER => sprintf('%s has more decimal places than %s allows (%d)', $field, $currency->getCode(), $currency->getDecimalPlaces()),
-                    ExactMoney::LARGER => sprintf('%s %s is larger than an amount of %s holds', $field, $e->typed(), $currency->getCode()),
-                    ExactMoney::NOT_EXACT => sprintf('%s is a JSON number that does not carry its digits exactly: send the amount as a string', $field),
-                    default => $field . ' must be a decimal number',
-                },
-                400,
-                $e,
-            );
+            return OrderCreateParts::amount(value: $value, field: $field, currency: $currency);
+        } catch (InvalidArgumentException $e) {
+            throw new Save($e->getMessage(), 400, $e);
         }
     }
 
