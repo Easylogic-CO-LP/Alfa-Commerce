@@ -585,7 +585,11 @@ class PriceIndexSyncService
                     )->execute();
 
                     if ($before !== null) {
-                        $this->chunkChanges = ['changes' => $this->rowChanges(before: $before, after: []), 'sets' => $this->setsOfRows(rows: $before)];
+                        $terms = $this->contextTerms(ids: array_values(array_unique(array_map(static fn (array $row): int => $row['context'], $before))));
+                        $this->chunkChanges = [
+                            'changes' => self::rowChanges(before: $before, after: [], terms: $terms),
+                            'sets' => array_values(array_unique(array_map(static fn (array $term): int => $term['set'], $terms))),
+                        ];
                         $this->keepChunkChanges();
                     }
                 } catch (Throwable $e) {
@@ -1909,9 +1913,22 @@ class PriceIndexSyncService
             }
         }
 
-        $this->chunkChanges = $detect
-            ? ['changes' => $this->rowChanges(before: $before, after: $after), 'sets' => $this->setsOfContexts(ids: array_keys(array_filter($deleteOf, static fn (array $items): bool => $items !== [])))]
-            : ['changes' => [], 'sets' => []];
+        if ($detect) {
+            // The event's terms of each context from the contexts in hand: detection reads the rows and nothing more.
+            $terms = [];
+
+            foreach ($contexts as $context) {
+                $terms[$context['id']] = ['currency' => $context['currency_id'], 'place' => $context['priced_at_place_id'], 'set' => $context['group_set_id'], 'user' => $context['user_id']];
+            }
+
+            $written = array_keys(array_filter($deleteOf, static fn (array $items): bool => $items !== []));
+            $this->chunkChanges = [
+                'changes' => self::rowChanges(before: $before, after: $after, terms: $terms),
+                'sets' => array_values(array_unique(array_map(static fn (int $id): int => $terms[$id]['set'], $written))),
+            ];
+        } else {
+            $this->chunkChanges = ['changes' => [], 'sets' => []];
+        }
 
         return \count($values);
     }
@@ -2424,14 +2441,14 @@ class PriceIndexSyncService
      *
      * @param array<string, array> $before The rows before, by key.
      * @param array<string, array> $after The rows after, by key.
+     * @param array<int, array{currency: int, place: int, set: int, user: int}> $terms The terms of the rows' contexts, by id.
      *
      * @return PriceChange[]
      *
      * @since  2.2.0
      */
-    private function rowChanges(array $before, array $after): array
+    private static function rowChanges(array $before, array $after, array $terms): array
     {
-        $terms = $this->contextTerms(ids: array_values(array_unique(array_map(static fn (array $row): int => $row['context'], $after + $before))));
         $changes = [];
 
         foreach ($after + $before as $key => $row) {
@@ -2486,34 +2503,6 @@ class PriceIndexSyncService
         }
 
         return $out;
-    }
-
-    /**
-     * The sets of the contexts some rows belong to.
-     *
-     * @param array<string, array{context: int}> $rows The rows.
-     *
-     * @return int[]
-     *
-     * @since  2.2.2
-     */
-    private function setsOfRows(array $rows): array
-    {
-        return $this->setsOfContexts(ids: array_values(array_unique(array_map(static fn (array $row): int => $row['context'], $rows))));
-    }
-
-    /**
-     * The sets of some contexts.
-     *
-     * @param int[] $ids The contexts.
-     *
-     * @return int[]
-     *
-     * @since  2.2.2
-     */
-    private function setsOfContexts(array $ids): array
-    {
-        return array_values(array_unique(array_map(static fn (array $term): int => $term['set'], $this->contextTerms(ids: $ids))));
     }
 
     // Periods
