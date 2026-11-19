@@ -52,7 +52,7 @@ final class LineQuantityClamp
      */
     public function allowed(int $cartId, object $item, ?int $combinationId, int $quantity, int $excludeLineId = 0): int
     {
-        $decision = $this->decide(
+        $decision = $this->decision(
             cartId: $cartId,
             item: $item,
             combinationId: $combinationId,
@@ -81,7 +81,7 @@ final class LineQuantityClamp
      *
      * @since  2.2.2
      */
-    public function decide(int $cartId, object $item, ?int $combinationId, int $quantity, int $excludeLineId = 0): QuantityDecision
+    public function decision(int $cartId, object $item, ?int $combinationId, int $quantity, int $excludeLineId = 0): QuantityDecision
     {
         [$ceiling, $pooled] = $this->shelf(cartId: $cartId, item: $item, combinationId: $combinationId, excludeLineId: $excludeLineId);
 

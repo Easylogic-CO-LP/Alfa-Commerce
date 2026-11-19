@@ -206,7 +206,7 @@ final class CartLineWriter
                 : null;
 
             if ($editedLine !== null && (int) $editedLine->id_item === $command->itemId) {
-                $decision = $this->clamp->decide(
+                $decision = $this->clamp->decision(
                     cartId: $this->cartId(),
                     item: $item,
                     combinationId: $combinationId,
@@ -278,7 +278,7 @@ final class CartLineWriter
                     // A line already holding every available unit gets nothing
                     // more, and that is a notice, not a failed add.
                     $existingQuantity = $this->repository->lineQuantity($this->cartId(), $existingId);
-                    $delta = $this->clamp->decide(
+                    $delta = $this->clamp->decision(
                         cartId: $this->cartId(),
                         item: $item,
                         combinationId: $combinationId,
@@ -292,7 +292,7 @@ final class CartLineWriter
                         return false;
                     }
 
-                    $decision = $this->clamp->decide(
+                    $decision = $this->clamp->decision(
                         cartId: $this->cartId(),
                         item: $item,
                         combinationId: $combinationId,
@@ -320,7 +320,7 @@ final class CartLineWriter
 
                     $lineId = $existingId;
                 } else {
-                    $decision = $this->clamp->decide(
+                    $decision = $this->clamp->decision(
                         cartId: $this->cartId(),
                         item: $item,
                         combinationId: $combinationId,
@@ -435,7 +435,7 @@ final class CartLineWriter
                     return false;
                 }
 
-                $decision = $this->clamp->decide(
+                $decision = $this->clamp->decision(
                     cartId: $cartId,
                     item: $item,
                     combinationId: $comboId,
