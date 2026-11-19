@@ -16,8 +16,8 @@ use Joomla\CMS\Application\ApiApplication;
 use Joomla\CMS\Event\Application\BeforeApiRouteEvent;
 use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Router\ApiRouter;
 use Joomla\CMS\Plugin\CMSPlugin;
+use Joomla\CMS\Router\ApiRouter;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Router\Route;
 

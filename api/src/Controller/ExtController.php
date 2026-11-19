@@ -132,7 +132,6 @@ class ExtController extends ApiController
     /**
      * Hand the request to the plugin that owns the route and write its answer.
      *
-     * @return void
      *
      * @throws Save 413 for a body larger than the route takes; 503 when the plugin cannot be loaded; 500 when the
      *              plugin throws, gives no answer, or gives one that does not fit the route.
@@ -196,7 +195,6 @@ class ExtController extends ApiController
      * @param ApiRequestEvent $event The answered event.
      * @param array<string, mixed> $answer Its answer.
      *
-     * @return void
      *
      * @since  2.2.2
      */
