@@ -39,11 +39,12 @@ use Joomla\CMS\Language\Text;
 $item = $this->item;
 $slides = $this->cardSlides($item);
 $count = \count($slides);
-// The thumbnail and the stored image, for the card's width (default_card_images.php's sizes).
+// The thumbnail and the stored image, for the card's width (default_card_images.php's sizes, each capped at the stored
+// image's width by MediaHelper::sizes()).
 $sources = function (object $slide): string {
     $srcset = MediaHelper::srcset($slide);
 
-    return $srcset === '' ? '' : ' srcset="' . $this->escape($srcset) . '" sizes="(max-width: 647px) calc(100vw - 42px), (max-width: 963px) calc(50vw - 46px), (max-width: 1279px) calc(33.34vw - 43px), calc(25vw - 42px)"';
+    return $srcset === '' ? '' : ' srcset="' . $this->escape($srcset) . '" sizes="' . $this->escape(MediaHelper::sizes($slide, '(max-width: 647px) calc(100vw - 42px), (max-width: 963px) calc(50vw - 46px), (max-width: 1279px) calc(33.34vw - 43px), calc(25vw - 42px)')) . '"';
 };
 ?>
 <?php if ($count === 1): ?>

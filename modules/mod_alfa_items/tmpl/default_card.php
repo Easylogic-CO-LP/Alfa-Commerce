@@ -20,8 +20,9 @@
  * wider than the thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image and the thumbnail is
  * never stretched past its pixels; its addresses carry their files' versions. Its sizes are the look's ($sizes: the
  * screen's width less the gaps, over the cards side by side, less the card's padding and border, per screen,
- * CardLook::sizes()); with none the card draws the thumbnail alone. The image loads lazily, since a module's place on
- * the page is not known.
+ * CardLook::sizes()), each capped at the stored image's width (MediaHelper::sizes()), so an image stored narrower than
+ * its card is drawn at its own width; with none the card draws the thumbnail alone. The image loads lazily, since a
+ * module's place on the page is not known.
  *
  * @var object $item          A decorated item (Alfa's ItemsModel)
  * @var string $place         The card's place, which its rules are written for
@@ -58,7 +59,7 @@ if ($name === '') {
             <?php // The name's destination again, for the mouse only: one link per card in the tab order and for a screen reader.?>
             <a href="<?php echo $esc($link); ?>" tabindex="-1" aria-hidden="true">
                 <img src="<?php echo $esc((string) $item->medias[0]->thumbnail_url); ?>" alt=""<?php if ($srcset !== '') : ?>
-                     srcset="<?php echo $esc($srcset); ?>" sizes="<?php echo $esc($sizes); ?>"<?php endif; ?> loading="lazy">
+                     srcset="<?php echo $esc($srcset); ?>" sizes="<?php echo $esc(MediaHelper::sizes($item->medias[0], $sizes)); ?>"<?php endif; ?> loading="lazy">
             </a>
             <?php echo Surface::render(owner: $item, slot: ItemListSurface::Image); ?>
         </div>

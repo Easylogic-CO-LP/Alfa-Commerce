@@ -2143,28 +2143,126 @@ class MediaHelper
      */
     public static function srcset(object $media): string
     {
-        if (($media->thumbnail_origin ?? null) !== self::THUMBNAIL_FROM_IMAGE || ($media->type ?? '') !== 'image') {
-            return '';
-        }
+        $widths = self::srcsetWidths(media: $media);
 
-        $thumbnail = ltrim((string) ($media->thumbnail ?? ''), '/');
-        $image = ltrim((string) ($media->path ?? ''), '/');
-
-        if ($thumbnail === '' || $image === '' || $thumbnail === $image) {
-            return '';
-        }
-
-        $thumbnailWidth = self::pixelWidth(relative: $thumbnail);
-        $imageWidth = self::pixelWidth(relative: $image);
-
-        if ($thumbnailWidth === 0 || $imageWidth <= $thumbnailWidth) {
+        if ($widths === null) {
             return '';
         }
 
         // A srcset splits its candidates at commas and spaces: encoded in a URL, they stay part of it.
         $candidate = static fn (string $url, int $width): string => str_replace([' ', ','], ['%20', '%2C'], $url) . ' ' . $width . 'w';
 
-        return $candidate(self::displayUrl(self::toUrl($thumbnail)), $thumbnailWidth) . ', ' . $candidate(self::displayUrl(self::toUrl($image)), $imageWidth);
+        return $candidate(self::displayUrl(self::toUrl(ltrim((string) $media->thumbnail, '/'))), $widths[0])
+            . ', ' . $candidate(self::displayUrl(self::toUrl(ltrim((string) $media->path, '/'))), $widths[1]);
+    }
+
+    /**
+     * The sizes value for a media row's srcset (2.2.2): the slot widths a template gives, each capped at the widest file
+     * the srcset offers, min(<width>, <px>px), so an image whose stored file is narrower than its slot is drawn no
+     * wider than its pixels where its CSS lets it keep its own width (a card's image); the widths as given for a row
+     * with no srcset.
+     *
+     * @param object $media A media row as getMediaData() returns it.
+     * @param string $sizes The template's sizes value: entries separated by commas, each an optional media condition
+     *                      and a width.
+     *
+     * @return string The sizes value to print.
+     *
+     * @since  2.2.2
+     */
+    public static function sizes(object $media, string $sizes): string
+    {
+        $widths = self::srcsetWidths(media: $media);
+
+        if ($widths === null || trim($sizes) === '') {
+            return $sizes;
+        }
+
+        $entries = [];
+
+        foreach (self::sizesEntries(sizes: $sizes) as $entry) {
+            // The width is the entry's last part: a function with its parentheses (calc(), min()) or a plain length.
+            if (str_ends_with($entry, ')')) {
+                $depth = 0;
+
+                for ($at = \strlen($entry) - 1; $at >= 0; $at--) {
+                    $depth += $entry[$at] === ')' ? 1 : ($entry[$at] === '(' ? -1 : 0);
+
+                    if ($depth === 0) {
+                        break;
+                    }
+                }
+
+                while ($at > 0 && preg_match('/[a-z-]/i', $entry[$at - 1])) {
+                    $at--;
+                }
+            } else {
+                $at = (int) strrpos(' ' . $entry, ' ');
+            }
+
+            $condition = rtrim(substr($entry, 0, $at));
+            $entries[] = ($condition === '' ? '' : $condition . ' ') . 'min(' . substr($entry, $at) . ', ' . $widths[1] . 'px)';
+        }
+
+        return implode(', ', $entries);
+    }
+
+    /**
+     * A sizes value's entries: split at the commas outside parentheses, each trimmed.
+     *
+     * @param string $sizes The sizes value.
+     *
+     * @return string[] Its entries, in order.
+     *
+     * @since  2.2.2
+     */
+    private static function sizesEntries(string $sizes): array
+    {
+        $entries = [];
+        $depth = 0;
+        $from = 0;
+
+        for ($at = 0, $length = \strlen($sizes); $at < $length; $at++) {
+            $depth += $sizes[$at] === '(' ? 1 : ($sizes[$at] === ')' ? -1 : 0);
+
+            if ($sizes[$at] === ',' && $depth === 0) {
+                $entries[] = trim(substr($sizes, $from, $at - $from));
+                $from = $at + 1;
+            }
+        }
+
+        $entries[] = trim(substr($sizes, $from));
+
+        return array_values(array_filter($entries, static fn (string $entry): bool => $entry !== ''));
+    }
+
+    /**
+     * The widths of the two files a row's srcset offers (2.2.2): the thumbnail's and the stored image's, in pixels; null
+     * for a row with none (see srcset()).
+     *
+     * @param object $media A media row as getMediaData() returns it.
+     *
+     * @return array{0: int, 1: int}|null The thumbnail's width and the stored image's, the wider.
+     *
+     * @since  2.2.2
+     */
+    private static function srcsetWidths(object $media): ?array
+    {
+        if (($media->thumbnail_origin ?? null) !== self::THUMBNAIL_FROM_IMAGE || ($media->type ?? '') !== 'image') {
+            return null;
+        }
+
+        $thumbnail = ltrim((string) ($media->thumbnail ?? ''), '/');
+        $image = ltrim((string) ($media->path ?? ''), '/');
+
+        if ($thumbnail === '' || $image === '' || $thumbnail === $image) {
+            return null;
+        }
+
+        $thumbnailWidth = self::pixelWidth(relative: $thumbnail);
+        $imageWidth = self::pixelWidth(relative: $image);
+
+        return $thumbnailWidth === 0 || $imageWidth <= $thumbnailWidth ? null : [$thumbnailWidth, $imageWidth];
     }
 
     /**

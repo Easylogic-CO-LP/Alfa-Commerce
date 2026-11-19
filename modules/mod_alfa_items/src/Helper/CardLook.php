@@ -539,8 +539,9 @@ final class CardLook
      * 10 px and 1 px unless the look sets them; an overlay card has no padding), times the image's share of the card
      * where it sits beside the text; the narrowest screen first, as the browser reads the list. The share of the screen
      * is rounded up and the px down. The module's place on the page is not known and only makes a row narrower than the
-     * screen, so the width is never less than the image's, whatever the template: the browser may take the larger image
-     * a little early, never one too small.
+     * screen, so the width is never less than the image's while the card's padding is the look's or the stylesheet's (a
+     * template that sets the card padding property lower makes it a few px less): the browser may take the larger image
+     * a little early, never one too small. The card caps it at its own stored image's width (MediaHelper::sizes()).
      *
      * @param array<string, array<string, mixed>> $resolved The place on every device (resolve()).
      * @param array $breakpoints The module's breakpoints (key, max), widest first.

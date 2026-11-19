@@ -32,7 +32,8 @@
     // thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image; the lightbox opens the stored
     // image. The sizes follow item.css on Cassiopeia: the images take the whole page (less its 20 px of padding) up to
     // 651 px and half of it (less 26 px) from 652 px, never less than the slide (never "auto", which draws an image in
-    // a box of 300 x 150 until the CSS sets both its sides). The strip's small images stay thumbnails.
+    // a box of 300 x 150 until the CSS sets both its sides), each capped at the stored image's width
+    // (MediaHelper::sizes()). The strip's small images stay thumbnails.
     // The addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout
     // (joomla.html.image): HTMLHelper::image() loses an address with a query and no fragment.
     $slideSizes = '(max-width: 651px) calc(100vw - 20px), calc(50vw - 26px)';
@@ -56,7 +57,7 @@
 
         if ($srcset !== '') {
             $imgAttribs['srcset'] = $srcset;
-            $imgAttribs['sizes'] = $slideSizes;
+            $imgAttribs['sizes'] = MediaHelper::sizes($media, $slideSizes);
         }
         ?>
         <a class="item-image" href="<?= $this->escape($media->url) ?>">

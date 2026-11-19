@@ -18,7 +18,8 @@
  * Each image is the thumbnail, with the stored image beside it in its srcset (2.2.2), so a cell wider than the
  * thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image. The sizes follow item.css on
  * Cassiopeia: the images take the whole page (less 20 px) up to 651 px and half of it (less 26 px) from 652 px, in the
- * grid's columns with 8 px between them (two columns up to 600 px), each a cell's width or a little more, never less.
+ * grid's columns with 8 px between them (two columns up to 600 px), each a cell's width or a little more, never less,
+ * and capped at the stored image's width (MediaHelper::sizes()).
  * The addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout.
  *
  * Overridable as html/com_alfa/item/default_images-grid.php.
@@ -71,7 +72,7 @@ $cellSizes = '(max-width: 600px) ' . $cell(100, 20, 2) . ', (max-width: 651px) '
 
         if ($srcset !== '') {
             $imgAttribs['srcset'] = $srcset;
-            $imgAttribs['sizes'] = $cellSizes;
+            $imgAttribs['sizes'] = MediaHelper::sizes($media, $cellSizes);
         }
         ?>
         <a class="item-image" href="<?php echo $this->escape($media->url); ?>">
