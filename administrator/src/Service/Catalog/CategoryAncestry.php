@@ -160,7 +160,7 @@ final class CategoryAncestry
     private static function visible(): array
     {
         $identity = Factory::getApplication()->getIdentity();
-        $key = (string) ($identity?->id ?? 0) . ':' . implode(',', $identity?->getAuthorisedGroups() ?? []);
+        $key = (string) ($identity->id ?? 0) . ':' . implode(',', $identity?->getAuthorisedGroups() ?? []);
 
         if (isset(self::$visible[$key])) {
             return self::$visible[$key];
