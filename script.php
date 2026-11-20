@@ -2020,8 +2020,8 @@ class com_alfaInstallerScript extends InstallerScript
             $this->listSiteTemplateEmailLayouts();
         }
 
-        // 8. The installed Alfa extensions not known to work with this version (2.2.1): named on this page,
-        //    in the maintenance log and to the administrators.
+        // 8. The installed Alfa extensions not known to work with this version: one notification to the administrators
+        //    and the maintenance log, never this page.
         $this->reportExtensionCompatibility(type: $type);
 
         return true;
@@ -2031,10 +2031,11 @@ class com_alfaInstallerScript extends InstallerScript
      * Name the installed Alfa extensions not known to work with this version
      * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility}): those whose manifest declares a
      * range of Alfa Commerce lines that excludes this one ("needs a compatible build") and those that declare none
-     * ("compatibility not stated"; nothing is inferred from their own version). One warning on this page, one line per
-     * extension in the maintenance log (com_alfa_maintenance.php), and one notification to the administrators, raised
-     * again by every installation; the setup checklist's row reads the same until each one is updated. A failure is
-     * said, never a failed installation.
+     * ("compatibility not stated"; nothing is inferred from their own version). One dismissible notification to the
+     * administrators, which opens Tools > Extensions, where each one shows its verdict, raised again by an installation
+     * that names an extension newly or brings a new line of Alfa Commerce, and one line per extension in the
+     * maintenance log (com_alfa_maintenance.php). The installation page says nothing of it. A failure is said,
+     * never a failed installation.
      *
      * @param   string  $type  install or update.
      *
@@ -2047,8 +2048,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         try
         {
-            $named = $compatibility::notify(alert: true);
-            $line  = $compatibility::coreLine();
+            $named = $compatibility::notify();
         }
         catch (\Throwable $e)
         {
@@ -2058,52 +2058,14 @@ class com_alfaInstallerScript extends InstallerScript
             return;
         }
 
-        if ($named === [])
-        {
-            return;
-        }
-
-        $names = [$compatibility::NEEDS_BUILD => [], $compatibility::NOT_STATED => []];
-
         foreach ($named as $entry)
         {
-            $names[$entry['verdict']][] = $entry['name'];
             self::maintenanceLog(
                 ($type === 'update' ? 'Update to ' : 'Installation of ') . $this->packageVersion . ': ' . $entry['key'] . ' (' . $entry['name'] . ') '
                     . ($entry['verdict'] === $compatibility::NEEDS_BUILD ? 'needs a compatible build' : 'compatibility not stated') . ': ' . $entry['why'] . '.',
                 \Joomla\CMS\Log\Log::WARNING,
             );
         }
-
-        $sentences = [];
-
-        if ($names[$compatibility::NEEDS_BUILD] !== [])
-        {
-            $sentences[] = $this->installerText(
-                key:      'COM_ALFA_INSTALL_EXTENSIONS_NEED_BUILD',
-                fallback: 'These need a compatible build: %s.',
-                values:   [implode(', ', $names[$compatibility::NEEDS_BUILD])],
-            );
-        }
-
-        if ($names[$compatibility::NOT_STATED] !== [])
-        {
-            $sentences[] = $this->installerText(
-                key:      'COM_ALFA_INSTALL_EXTENSIONS_NOT_STATED',
-                fallback: 'These do not say which versions of Alfa Commerce they work with (compatibility not stated): %s.',
-                values:   [implode(', ', $names[$compatibility::NOT_STATED])],
-            );
-        }
-
-        Factory::getApplication()->enqueueMessage($this->installerText(
-            key:      'COM_ALFA_INSTALL_EXTENSIONS_COMPATIBILITY',
-            fallback: 'Alfa Commerce %1$s: some of the Alfa Commerce extensions installed here are not known to work with it. %2$s'
-                . ' Update each one to its build for Alfa Commerce %3$s, together with core, or ask its developer which build'
-                . ' works with it: with a build for an older version an extension can lose its dashboard cards, setup checks,'
-                . ' tools, document types and panels, and Tools > Extensions can answer its Clear Data "not supported". The'
-                . ' setup checklist keeps a row until each one named says it is built for this version.',
-            values:   [$this->packageVersion, implode(' ', $sentences), $line],
-        ), 'warning');
     }
 
     /**

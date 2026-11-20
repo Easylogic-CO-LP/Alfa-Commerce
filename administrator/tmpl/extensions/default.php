@@ -9,13 +9,14 @@
 
 /**
  * Tools > Extensions: the Alfa extensions installed apart from Alfa Commerce, one row each (a package with its
- * extensions inside it), and the dialogs of the three toolbar actions.
+ * extensions inside it, each with its own verdict), and the dialogs of the three toolbar actions.
  *
  * @var \Alfa\Component\Alfa\Administrator\View\Extensions\HtmlView $this
  */
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
@@ -29,6 +30,32 @@ $type = static fn (array $entry): string => match ($entry['type']) {
     'plugin' => Text::sprintf('COM_ALFA_EXTENSIONS_TYPE_PLUGIN', $entry['folder']),
     'module' => Text::_((int) $entry['client_id'] === 1 ? 'COM_ALFA_EXTENSIONS_TYPE_MODULE_ADMIN' : 'COM_ALFA_EXTENSIONS_TYPE_MODULE_SITE'),
     default => ucfirst((string) $entry['type']),
+};
+// Whether a plugin or module is built for this version of Alfa Commerce, as its manifest states it; a package is judged
+// by its extensions, and a plugin of another vendor's group that is not Alfa's has no verdict.
+$verdict = function (array $entry): string {
+    $verdict = $this->compatibility[(string) $entry['key']] ?? null;
+
+    if ($verdict === null) {
+        return '';
+    }
+
+    // The range a build that needs replacing declares: the line it is built for.
+    $range = $verdict['range'];
+    $builtFor = match (true) {
+        $range === null => '',
+        $range->max() === null => Text::sprintf('COM_ALFA_EXTENSIONS_BUILT_FOR_FROM', $range->min()),
+        $range->max() === $range->min() => Text::sprintf('COM_ALFA_EXTENSIONS_BUILT_FOR', $range->min()),
+        default => Text::sprintf('COM_ALFA_EXTENSIONS_BUILT_FOR_RANGE', $range->min(), $range->max()),
+    };
+
+    return match ($verdict['verdict']) {
+        ExtensionCompatibility::COMPATIBLE => '<span class="badge bg-success">' . Text::_('COM_ALFA_EXTENSIONS_VERDICT_COMPATIBLE') . '</span>',
+        ExtensionCompatibility::NEEDS_BUILD => '<span class="badge bg-warning text-dark">' . Text::_('COM_ALFA_EXTENSIONS_VERDICT_NEEDS_BUILD') . '</span>'
+            . '<div class="small">' . $this->escape($builtFor) . '</div>',
+        default => '<span class="badge bg-secondary">' . Text::_('COM_ALFA_EXTENSIONS_VERDICT_NOT_STATED') . '</span>'
+            . '<div class="small">' . Text::_('COM_ALFA_EXTENSIONS_NOT_STATED_WHY') . '</div>',
+    };
 };
 $clearData = function (array $entry): string {
     $support = (array) $entry['support'];
@@ -95,6 +122,7 @@ $clearData = function (array $entry): string {
                         <th scope="col" class="w-15"><?php echo Text::_('COM_ALFA_EXTENSIONS_COL_TYPE'); ?></th>
                         <th scope="col" class="w-10"><?php echo Text::_('COM_ALFA_EXTENSIONS_COL_VERSION'); ?></th>
                         <th scope="col" class="w-10"><?php echo Text::_('COM_ALFA_EXTENSIONS_COL_STATE'); ?></th>
+                        <th scope="col" class="w-15"><?php echo Text::_('COM_ALFA_EXTENSIONS_COL_COMPATIBILITY'); ?></th>
                         <th scope="col" class="w-25"><?php echo Text::_('COM_ALFA_EXTENSIONS_COL_CLEAR_DATA'); ?></th>
                     </tr>
                     </thead>
@@ -111,6 +139,7 @@ $clearData = function (array $entry): string {
                                             <li>
                                                 <?php echo $this->escape((string) $child['label']); ?>
                                                 <span class="text-muted">(<?php echo $this->escape($type($child)); ?>)</span>
+                                                <?php echo $verdict($child); ?>
                                                 <?php echo $child['type'] === 'plugin' ? $clearData($child) : ''; ?>
                                             </li>
                                         <?php endforeach; ?>
@@ -122,6 +151,7 @@ $clearData = function (array $entry): string {
                             <td><?php echo $row['enabled']
                                 ? '<span class="badge bg-success">' . Text::_('COM_ALFA_EXTENSIONS_STATE_ENABLED') . '</span>'
                                 : '<span class="badge bg-secondary">' . Text::_('COM_ALFA_EXTENSIONS_STATE_DISABLED') . '</span>'; ?></td>
+                            <td><?php echo $verdict($row); ?></td>
                             <td><?php if ($row['type'] === 'package' && $row['support']['status'] === 'remove_only') : ?>
                                 <?php // A language pack holds no data; it goes when Alfa Commerce is uninstalled. ?>
                                 <?php echo $row['language_pack'] ? '<span class="small text-muted">' . Text::_('COM_ALFA_EXTENSIONS_LANGUAGE_PACK') . '</span>' : ''; ?>

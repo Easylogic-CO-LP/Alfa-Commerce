@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Filter;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Service\Setup\BundledLibraries;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormFilterInterface;
 use Joomla\Registry\Registry;
@@ -75,7 +76,8 @@ class TelephoneFilter implements FormFilterInterface
             return $value;
         }
 
-        if (class_exists(PhoneNumberUtil::class)) {
+        // A library disabled in Extensions: Manage counts as missing, as everywhere else (BundledLibraries).
+        if (BundledLibraries::available(libraries: BundledLibraries::PHONE)) {
             $canonical = $this->viaLibrary($element, $value);
 
             if ($canonical !== null) {

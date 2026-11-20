@@ -50,10 +50,11 @@ parameters:
         - '#Call to an undefined method Joomla\\CMS\\Form\\FormField::#'
         - '#Call to an undefined method Joomla\\Session\\SessionInterface::#'
 
-        # libphonenumber (giggsey) is bundled with the tel field plugin, not in
-        # the scanned Joomla tree, so its symbols can't be resolved here.
+        # libphonenumber (giggsey) is bundled as a Joomla library (libraries/lib_libphonenumber),
+        # not in the scanned Joomla tree, so its symbols can't be resolved here.
         - '#unknown class libphonenumber\\#'
         - '#unknown class .*\\libphonenumber\\#'
+        - '#class libphonenumber\\[A-Za-z0-9\\]+ not found#i'
 
         # dompdf and the four libraries it needs are bundled the same way (libraries/lib_dompdf and the four beside
         # it, installed as Joomla libraries), so their symbols can't be resolved here either.
