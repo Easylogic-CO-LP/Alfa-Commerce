@@ -21,7 +21,7 @@ use Joomla\Database\ParameterType;
 use Joomla\Registry\Registry;
 
 /**
- * Who holds the permissions of the REST API's addresses (2.2.2), for Tools, Security: the user groups granted them,
+ * Who holds the permissions of the REST API's addresses, for Tools, Security: the user groups granted them,
  * whether each may sign in to the API with a token, and the accounts in each that have an enabled Joomla API token.
  * One computation for every address, core's and the plugins', each group and account read once.
  *

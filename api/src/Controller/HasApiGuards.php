@@ -213,7 +213,7 @@ trait HasApiGuards
     }
 
     /**
-     * What a task of this controller asks before it answers (2.2.2): the one declaration the check above enforces and
+     * What a task of this controller asks before it answers: the one declaration the check above enforces and
      * Tools, Security lists for each core address. Null for a task this controller does not map.
      *
      * @param string $task The task.

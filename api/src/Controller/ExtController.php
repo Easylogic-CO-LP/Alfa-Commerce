@@ -37,7 +37,7 @@ use Tobscure\JsonApi\Collection;
 use Tobscure\JsonApi\Resource;
 
 /**
- * The one controller of every route an alfa plugin adds to the REST API (2.2.2, P3-445): ext.dispatch.
+ * The one controller of every route an alfa plugin adds to the REST API: ext.dispatch.
  *
  * The route's owner and task are read from the route the router matched, never from the request (Joomla also writes a
  * route's defaults into the request, where a body or query field of the same name could stand beside them). Before the

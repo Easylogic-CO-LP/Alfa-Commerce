@@ -193,7 +193,7 @@ class ItemsController extends ApiController
      */
     protected function preprocessSaveData(array $data): array
     {
-        // The item model's own rule (2.2.2): a stock figure counts only when the body names it.
+        // The item model's own rule: a stock figure counts only when the body names it.
         $data = AdminItemModel::withoutUnsentStock(data: $data, sent: array_keys($this->requestBody()));
 
         return $this->guardedPreprocessSaveData(data: $data);

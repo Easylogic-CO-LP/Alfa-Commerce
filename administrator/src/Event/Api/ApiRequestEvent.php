@@ -17,7 +17,7 @@ use Joomla\CMS\User\User;
 use LogicException;
 
 /**
- * A request on a route an alfa plugin declared (onAlfaApiRequest, 2.2.2): addressed to the plugin that owns the route,
+ * A request on a route an alfa plugin declared (onAlfaApiRequest): addressed to the plugin that owns the route,
  * after Joomla authenticated the token and core checked the route's permission and the body's size.
  *
  * The plugin reads the request through the read methods and answers with exactly one of respondData(), respondList(),

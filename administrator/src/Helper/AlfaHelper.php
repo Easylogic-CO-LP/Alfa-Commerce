@@ -863,7 +863,7 @@ class AlfaHelper
     }
 
     /**
-     * The permission alfa.<section>.<action> a section's action names (2.2.2): the one spelling can() asks, and the
+     * The permission alfa.<section>.<action> a section's action names: the one spelling can() asks, and the
      * one the REST controllers declare for Tools, Security. Empty when the section or the action is.
      *
      * @param string $section A section or any entity or screen name {@see self::PERMISSION_SECTIONS} knows.
@@ -880,7 +880,7 @@ class AlfaHelper
     }
 
     /**
-     * Whether the user holds a permission on com_alfa, named whole (2.2.2): alfa.items.view, alfa.tools. The check
+     * Whether the user holds a permission on com_alfa, named whole: alfa.items.view, alfa.tools. The check
      * can() makes; a Super User holds every one (User::authorise()).
      *
      * @param string $permission The permission.

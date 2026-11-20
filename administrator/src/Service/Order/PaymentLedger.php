@@ -16026,7 +16026,7 @@ class PaymentLedger
     }
 
     /**
-     * Move a payment to another transaction_status as staff, exactly once (2.2.2, G0): the settle the REST verb and an
+     * Move a payment to another transaction_status as staff, exactly once: the settle the REST verb and an
      * extension make, with every rule of it here, so no door keeps one of its own.
      *
      * In order: a reversal or a chargeback is a provider's fact and has no status to settle; the status asked must be

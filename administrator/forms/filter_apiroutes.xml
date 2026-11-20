@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The filters of the REST API addresses' table on Tools, Security (2.2.2). The options of source and permission are
+    The filters of the REST API addresses' table on Tools, Security. The options of source and permission are
     the ones the table has, added by the Tools view; a list submits the form when it changes (Joomla's search tools).
 -->
 <form>

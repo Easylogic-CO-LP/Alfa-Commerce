@@ -13,7 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 \defined('_JEXEC') or die;
 
 /**
- * The routes core accepted from alfa plugins in this request (2.2.2), kept by the registrar at route time so that
+ * The routes core accepted from alfa plugins in this request, kept by the registrar at route time so that
  * ExtController reads a route's permission, answer kind and body limit without asking the plugin again. It lives for the
  * request only.
  *

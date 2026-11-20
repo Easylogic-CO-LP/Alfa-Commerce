@@ -13,7 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 \defined('_JEXEC') or die;
 
 /**
- * What a task of a core REST controller asks before it answers (2.2.2): the permissions on com_alfa, each one required,
+ * What a task of a core REST controller asks before it answers: the permissions on com_alfa, each one required,
  * or that the record decides. The controller's check (HasApiGuards::assertAuthorisedForTask()) and the table of
  * Tools, Security (ApiAddressListing) read the same declaration, so the two cannot differ.
  *

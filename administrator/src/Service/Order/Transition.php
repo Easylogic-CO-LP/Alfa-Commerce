@@ -345,7 +345,7 @@ class Transition
 
     /**
      * Whether a move from one status to another leaves the is_cancelled family: the move that save() refuses unless
-     * force() was asked (2.2.2, the one rule; the REST status verb and an extension ask it before they move an order,
+     * force() was asked (the one rule; the REST status verb and an extension ask it before they move an order,
      * so they can say why a move is refused).
      *
      * @api READ ONLY: whether moving an order from $fromStatusId to $toStatusId reinstates a cancelled order, which only

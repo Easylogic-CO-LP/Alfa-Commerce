@@ -54,7 +54,7 @@ class DocumentsController extends ApiController
     protected $default_view = 'documents';
 
     /**
-     * The tasks of a document and what each asks (2.2.2): reading asks view; voiding asks Change State, the
+     * The tasks of a document and what each asks: reading asks view; voiding asks Change State, the
      * permission the administrator's void asks, since it changes the document's status and nothing else.
      *
      * @return array<string, list<string>>

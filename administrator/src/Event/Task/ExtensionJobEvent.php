@@ -14,7 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Task;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
- * The background work an extension owes, handed back to it by the task runner (onAlfaExtensionJob, 2.2.2): addressed
+ * The background work an extension owes, handed back to it by the task runner (onAlfaExtensionJob): addressed
  * to the plugin that enqueued the job ({@see \Alfa\Component\Alfa\Administrator\Service\Task\Job\ExtensionJob}), never
  * raised on the shared dispatcher.
  *

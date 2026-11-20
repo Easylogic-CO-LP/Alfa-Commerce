@@ -13,7 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 \defined('_JEXEC') or die;
 
 /**
- * A route an alfa plugin declared and core refused (2.2.2): the rule it broke, for the log and for Tools, Security.
+ * A route an alfa plugin declared and core refused: the rule it broke, for the log and for Tools, Security.
  *
  * @since  2.2.2
  */

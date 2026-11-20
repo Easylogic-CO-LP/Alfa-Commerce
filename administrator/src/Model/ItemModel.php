@@ -598,8 +598,8 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
-     * The stock figures a write states, kept only when its caller named them (2.2.2, the rule of the REST update, moved
-     * here so every writer shares it): a stock figure is an instruction to the inventory service, so one the caller did
+     * The stock figures a write states, kept only when its caller named them (one rule for every writer, the REST
+     * update included): a stock figure is an instruction to the inventory service, so one the caller did
      * not send (a figure backfilled from the stored row, as a PATCH or a read-modify-write does) is dropped, and the
      * derived available quantity and the edit form's rendering baseline are never taken from a caller.
      *

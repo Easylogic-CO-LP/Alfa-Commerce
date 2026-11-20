@@ -168,14 +168,14 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             new Route(['POST'], 'v1/alfa/tasks/:id/process', 'tasks.process', ['id' => '\d+'], $defaults),
         ]);
 
-        // The routes an alfa plugin adds, under v1/alfa/ext/<element>/, after every core route (2.2.2): the plugin the
+        // The routes an alfa plugin adds, under v1/alfa/ext/<element>/, after every core route: the plugin the
         // address names declares them on a router of its own (onAlfaBeforeApiRoute) and core puts the ones that keep
         // its rules here. No core route is ever registered under v1/alfa/ext/.
         ApiRouteRegistrar::registerFor($router);
     }
 
     /**
-     * The errors of an address an extension adds (2.2.2). Joomla's token sign-in throws its AuthenticationFailed without
+     * The errors of an address an extension adds. Joomla's token sign-in throws its AuthenticationFailed without
      * a code: the JSON:API renderer maps it to 401 by its class, the plain JSON renderer answers 500, so it is given the
      * code 401 here. On a route that answers plain JSON (an integrator's dialect), every error core raises (401, 403,
      * 404, 413, 500, 503) is written in the one shape the route's own refusals and the maintenance answer use,

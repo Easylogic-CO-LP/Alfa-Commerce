@@ -180,7 +180,7 @@ class TasksController extends ApiController
     }
 
     /**
-     * What each task asks (2.2.2): the list is Tools', asked before it runs; one task and its processing are decided by
+     * What each task asks: the list is Tools', asked before it runs; one task and its processing are decided by
      * the task's record (its creator, or the permission of its work), then processing asks Tools too, so a task the
      * caller may not read answers 404 whatever else the caller holds.
      *

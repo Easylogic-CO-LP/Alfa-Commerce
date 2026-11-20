@@ -8,7 +8,7 @@
  */
 
 /**
- * The card of the REST API's addresses and who may call them (2.2.2), on Tools, Security: one table, one row an
+ * The card of the REST API's addresses and who may call them, on Tools, Security: one table, one row an
  * address, core's and the plugins', with Joomla's search tools over it; the declarations core refused and the plugins
  * that cannot be loaded under it.
  *

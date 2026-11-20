@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 \defined('_JEXEC') or die;
 
 /**
- * What a payment's settle by staff came to ({@see PaymentLedger::staffSettle()}, 2.2.2, G0): moved (or already in the
+ * What a payment's settle by staff came to ({@see PaymentLedger::staffSettle()}): moved (or already in the
  * status asked), or refused, with the outcome that says why and the sentence the caller reads. Each door words the
  * outcome in its own terms: the REST settle verb answers 400, 409 or 422.
  *

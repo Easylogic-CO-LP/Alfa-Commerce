@@ -81,7 +81,7 @@ final class Dispatcher extends ComponentDispatcher
             if ($document instanceof JsonapiDocument) {
                 $document->setErrors([['code' => 503, 'title' => Text::_('COM_ALFA_MAINTENANCE_API')]]);
             } elseif ($document instanceof JsonDocument) {
-                // A route of an extension that answers plain JSON (2.2.2): the same error, in the body the
+                // A route of an extension that answers plain JSON: the same error, in the body the
                 // component's output becomes.
                 echo json_encode(['errors' => [['code' => 503, 'title' => Text::_('COM_ALFA_MAINTENANCE_API')]]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }

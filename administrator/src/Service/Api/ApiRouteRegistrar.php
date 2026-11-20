@@ -32,7 +32,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * The routes alfa plugins add to the REST API (2.2.2, P3-445): the bridge from Joomla's onBeforeApiRoute, which only the
+ * The routes alfa plugins add to the REST API: the bridge from Joomla's onBeforeApiRoute, which only the
  * webservices and system groups hear, to the alfa plugin an address names.
  *
  * At route time ({@see self::registerFor()}, called by Alfa's webservices plugin after core's own routes) a request
@@ -135,7 +135,7 @@ final class ApiRouteRegistrar
     private const MAX_SEGMENTS = 6;
 
     /**
-     * Put the routes of the alfa plugin the request's address names on the application's router (2.2.2): called once,
+     * Put the routes of the alfa plugin the request's address names on the application's router: called once,
      * by Alfa's webservices plugin at the end of onBeforeApiRoute, after core's routes.
      *
      * Nothing is loaded or asked unless the address starts with v1/alfa/ext/; under it a request with no Accept header
@@ -230,7 +230,7 @@ final class ApiRouteRegistrar
     }
 
     /**
-     * What every enabled alfa plugin that declares routes declares (2.2.2), for Tools, Security: the accepted routes,
+     * What every enabled alfa plugin that declares routes declares, for Tools, Security: the accepted routes,
      * the refused ones with their rule, and a plugin that cannot be loaded with the reason. The same reading as
      * {@see self::registerFor()}; it boots those plugins, on that screen only.
      *
@@ -286,7 +286,7 @@ final class ApiRouteRegistrar
     }
 
     /**
-     * The routes core puts on the REST API (2.2.2), for Tools, Security: Alfa's webservices plugin is asked for them on
+     * The routes core puts on the REST API, for Tools, Security: Alfa's webservices plugin is asked for them on
      * a router of its own, through the handler that registers them at route time, so this reads the one list the
      * router serves; each route with what its controller's task asks ({@see ApiTaskAccess}, the declaration the
      * controller's own check enforces), null for a task the controller does not map.
@@ -340,7 +340,7 @@ final class ApiRouteRegistrar
     }
 
     /**
-     * Check one route an alfa plugin made against the rules (2.2.2): the owner, the pattern under the plugin's prefix,
+     * Check one route an alfa plugin made against the rules: the owner, the pattern under the plugin's prefix,
      * the variables and their rules, the methods, the controller and the defaults. A route that keeps them becomes its
      * declaration; one that breaks a rule becomes the refusal that names it.
      *

@@ -13,7 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 \defined('_JEXEC') or die;
 
 /**
- * One route an alfa plugin declared and core accepted (2.2.2): what the router answers it with and what ExtController
+ * One route an alfa plugin declared and core accepted: what the router answers it with and what ExtController
  * reads to serve it, without asking the plugin again.
  *
  * @since  2.2.2

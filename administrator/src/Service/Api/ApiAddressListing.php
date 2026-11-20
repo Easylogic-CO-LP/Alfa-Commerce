@@ -23,7 +23,7 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 
 /**
- * Every address of the REST API and who may call it (2.2.2), for the table of Tools, Security: core's routes
+ * Every address of the REST API and who may call it, for the table of Tools, Security: core's routes
  * ({@see ApiRouteRegistrar::collectCore()}) and the plugins' ({@see ApiRouteRegistrar::collect()}), the registrar's
  * own readings, each with the permissions it asks and the groups and token holders of {@see ApiPermissionHolders}.
  * The table cannot say other than the router and the controllers' checks: it reads what they read.

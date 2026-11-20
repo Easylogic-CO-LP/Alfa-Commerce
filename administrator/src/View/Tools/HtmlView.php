@@ -138,7 +138,7 @@ class HtmlView extends BaseHtmlView
     public array $activeFilters = [];
 
     /**
-     * The card of the REST API addresses, pre-rendered from a fixed-path partial (2.2.2).
+     * The card of the REST API addresses, pre-rendered from a fixed-path partial.
      *
      * @since  2.2.2
      */
@@ -297,7 +297,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Every address of the REST API and who may call it (2.2.2), for Tools, Security, and the ones the request's
+     * Every address of the REST API and who may call it, for Tools, Security, and the ones the request's
      * filters keep (filter[source], filter[permission], filter[search]); the filter form with the sources and the
      * permissions the table has. A reading that fails costs this card only.
      *

@@ -27,7 +27,7 @@ use Joomla\CMS\User\User;
 final class TaskAccess
 {
     /**
-     * The permission that lists every task and processes a job: Tools (2.2.2: named once, for the check below and for
+     * The permission that lists every task and processes a job: Tools (named once, for the check below and for
      * the REST controller's declaration that Tools, Security lists).
      *
      * @since  2.2.2

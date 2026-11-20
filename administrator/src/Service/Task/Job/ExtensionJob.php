@@ -25,9 +25,8 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * Background work an alfa plugin owes, run by the task runner (2.2.2): the one way a plugin's own work is retried on
- * the runner's backoff and shown in Tools, Tasks, until a core capability of its own replaces it (the outbound queue,
- * P3-443 (c), for the notices a shop sends an integrator).
+ * Background work an alfa plugin owes, run by the task runner: the one way a plugin's own work is retried on
+ * the runner's backoff and shown in Tools, Tasks.
  *
  * One active job a plugin and key: a request of the same key while one waits joins it (the payload is never
  * rewritten), and one made while it runs makes it run once more, so the plugin always tells the latest values it reads

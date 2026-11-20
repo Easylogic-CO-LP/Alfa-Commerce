@@ -71,7 +71,7 @@ class OrderopsController extends OrdersController
     /**
      * Every operation here mutates an existing order, so they gate on the order
      * EDIT permission rather than create/delete, except moving the order between
-     * statuses, which asks Change State instead of edit, plus view (2.2.2: declared
+     * statuses, which asks Change State instead of edit, plus view (declared
      * here, enforced by HasApiGuards::assertAuthorisedForTask() before the task
      * runs, listed by Tools, Security).
      *
@@ -252,7 +252,7 @@ class OrderopsController extends OrdersController
 
     /**
      * The pricing instructions of a line body, validated before anything is written: the line's own reader
-     * ({@see LinePricing::fromPayload()}, 2.2.2, G0), its refusal answered 400 with the sentence that names the field.
+     * ({@see LinePricing::fromPayload()}), its refusal answered 400 with the sentence that names the field.
      *
      * @param array $body The decoded request body.
      *
@@ -612,7 +612,7 @@ class OrderopsController extends OrdersController
         $payment = $this->requireOwnedPayment($orderId);
         $body = $this->body();
 
-        // The settle's rules are the ledger's (2.2.2, G0): this verb words its outcome in HTTP.
+        // The settle's rules are the ledger's: this verb words its outcome in HTTP.
         $result = PaymentLedger::staffSettle(
             payment: $payment,
             orderId: $orderId,
@@ -699,7 +699,7 @@ class OrderopsController extends OrdersController
 
         $forced = (bool) ($body['force'] ?? false);
 
-        // The transition's own rule (2.2.2, G0): leaving the cancelled family needs force().
+        // The transition's own rule: leaving the cancelled family needs force().
         if (!$forced && Transition::leavesCancelledFamily(fromStatusId: $fromStatusId, toStatusId: $toStatusId)) {
             throw new Save('Order is in the cancelled family; send "force": true to reinstate it', 409);
         }
