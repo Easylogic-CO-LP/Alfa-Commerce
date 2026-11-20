@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiTaskAccess;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Media\MediaUrls;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Doctrine\Inflector\InflectorFactory;
 use Joomla\CMS\Access\Exception\NotAllowed;
@@ -313,10 +314,34 @@ trait HasApiGuards
 
         $recordId = (int) $this->save();
 
+        // An image given by its address that was not stored is answered by its pointer, the new record's id beside it.
+        if ($this->answerMediaRefusals(recordId: $recordId)) {
+            return;
+        }
+
         $this->displayItem($recordId);
 
         $this->app->setHeader('status', '201', true);
         $this->app->setHeader('Location', rtrim(Uri::current(), '/') . '/' . $recordId, true);
+    }
+
+    /**
+     * Answer one record: core's, unless the write before it left an image given by its address unstored, which is
+     * answered instead ({@see self::answerMediaRefusals()}).
+     *
+     * @param int|null $id The record.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function displayItem($id = null)
+    {
+        if ($this->answerMediaRefusals(recordId: (int) ($id ?? RequestScalar::read($this->input, 'id', 0, 'int')))) {
+            return $this;
+        }
+
+        return parent::displayItem($id);
     }
 
     /**
@@ -633,6 +658,8 @@ trait HasApiGuards
     protected function normaliseMediaPayload(array $data): array
     {
         // A GET emits `medias`; the save path reads `media`. Accept either.
+        $sentAs = isset($data['media']) ? 'media' : 'medias';
+
         if (!isset($data['media']) && isset($data['medias'])) {
             $data['media'] = $data['medias'];
         }
@@ -649,12 +676,20 @@ trait HasApiGuards
 
         // Native shape (keyed by id / "new-..."): normalise each row, keep keys.
         if (!array_is_list($rows)) {
-            $data['media'] = array_map(
-                fn ($row): array => $this->normaliseMediaRow((array) $row),
-                $rows,
-            );
+            $normalised = [];
+
+            foreach ($rows as $rowKey => $row) {
+                $normalised[$rowKey] = $this->normaliseMediaRow((array) $row) + ['pointer' => '/' . $sentAs . '/' . $rowKey . '/url'];
+            }
+
+            $data['media'] = $this->fetchedMedia(rows: $normalised, recordId: (int) ($data['id'] ?? 0));
 
             return $data;
+        }
+
+        // Each row's place in the request, for a refusal's pointer, before the rows are put in order.
+        foreach ($rows as $index => $row) {
+            $rows[$index] = (array) $row + ['__sent' => $index];
         }
 
         // Declarative list: honour a supplied ordering, since saveMedia itself
@@ -667,16 +702,74 @@ trait HasApiGuards
         $normalised = [];
 
         foreach ($rows as $index => $row) {
-            $row = (array) $row;
             $rowId = (int) ($row['id'] ?? 0);
             $rowKey = $rowId > 0 ? (string) $rowId : 'new-' . $index . '-' . bin2hex(random_bytes(4));
 
-            $normalised[$rowKey] = $this->normaliseMediaRow($row);
+            $normalised[$rowKey] = $this->normaliseMediaRow($row) + ['pointer' => '/' . $sentAs . '/' . $row['__sent'] . '/url'];
         }
 
-        $data['media'] = $normalised;
+        $data['media'] = $this->fetchedMedia(rows: $normalised, recordId: (int) ($data['id'] ?? 0));
 
         return $data;
+    }
+
+    /**
+     * The images the write gives as addresses, brought to the upload path ({@see MediaUrls::prepare()}): one already
+     * fetched for the record is not fetched again, one or two are fetched now, before the save, and more are left for
+     * the background job the save writes. An image refused is answered by its pointer once the save is done
+     * ({@see self::answerMediaRefusals()}).
+     *
+     * @param array<string, array> $rows The media rows, keyed as the save reads them.
+     * @param int $recordId The record, 0 for one the write creates.
+     *
+     * @return array<string, array>
+     *
+     * @since  2.2.2
+     */
+    protected function fetchedMedia(array $rows, int $recordId): array
+    {
+        $model = $this->getModel(InflectorFactory::create()->build()->singularize($this->contentType), '', ['ignore_request' => true]);
+
+        return MediaUrls::prepare(rows: $rows, origin: \is_object($model) ? (string) $model->getName() : '', recordId: $recordId);
+    }
+
+    /**
+     * Answer the images of a write that were not fetched or not stored: 422, one error each with its JSON pointer
+     * into the request, the address and the reason, and the record's id in meta.id, since the record was saved with
+     * everything else the write sent.
+     *
+     * @param int $recordId The record the write saved.
+     *
+     * @return bool Whether an image was refused and the answer is written.
+     *
+     * @since  2.2.2
+     */
+    protected function answerMediaRefusals(int $recordId): bool
+    {
+        $refused = MediaUrls::refusals();
+
+        if ($refused === []) {
+            return false;
+        }
+
+        $errors = [];
+
+        foreach ($refused as $one) {
+            $errors[] = [
+                'title' => $one['pointer'] . ': the image at ' . $one['url'] . ' was not stored: ' . $one['reason']
+                    . '. The record was saved with everything else the request sent.',
+                'code' => 422,
+                'source' => ['pointer' => $one['pointer']],
+            ];
+        }
+
+        // The error document Joomla's renderer writes, beside the record's id, which it cannot carry.
+        $document = $this->app->getDocument();
+        $document->setErrors($errors);
+        $document->addMeta('id', $recordId);
+        $this->app->setHeader('status', '422', true);
+
+        return true;
     }
 
     /**
@@ -690,6 +783,19 @@ trait HasApiGuards
     protected function normaliseMediaRow(array $row): array
     {
         $type = (string) ($row['type'] ?? 'image');
+
+        // An image given by its address (type image with url, no path): the shop fetches it and stores it as an upload
+        // (MediaUrls). type url keeps meaning an outside link shown from its address.
+        if ($type === 'image' && (string) ($row['url'] ?? '') !== '' && ($row['path'] ?? null) === null && ($row['source'] ?? null) === null && empty($row['id'])) {
+            $alt = (string) ($row['alt'] ?? '');
+
+            if (StringHelper::strlen($alt) > MediaHelper::ALT_MAX_LENGTH) {
+                throw new Save(Text::sprintf('COM_ALFA_MEDIA_ALT_TOO_LONG_API', MediaHelper::ALT_MAX_LENGTH), 400);
+            }
+
+            return ['source' => '', 'thumbnail' => '', 'alt' => $alt, 'type' => 'image', 'delete' => 0, 'fetch' => trim((string) $row['url'])];
+        }
+
         $source = (string) ($row['source'] ?? $row['url'] ?? $row['path'] ?? '');
 
         // A site-relative path has to arrive picker://-prefixed to take the

@@ -951,6 +951,31 @@
             </field>
         </fieldset>
 
+        <fieldset name="mediazone_fetch" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_FETCH" description="COM_ALFA_MEDIA_CONFIG_FIELDSET_FETCH_DESC">
+            <field
+                    name="media_fetch_max_size"
+                    type="number"
+                    default="10"
+                    min="1"
+                    max="100"
+                    step="1"
+                    filter="integer"
+                    label="COM_ALFA_MEDIA_CONFIG_FETCH_MAX_SIZE_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_FETCH_MAX_SIZE_DESC"
+            />
+            <field
+                    name="media_fetch_timeout"
+                    type="number"
+                    default="15"
+                    min="1"
+                    max="120"
+                    step="1"
+                    filter="integer"
+                    label="COM_ALFA_MEDIA_CONFIG_FETCH_TIMEOUT_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_FETCH_TIMEOUT_DESC"
+            />
+        </fieldset>
+
     </fieldset>
 
     <fieldset

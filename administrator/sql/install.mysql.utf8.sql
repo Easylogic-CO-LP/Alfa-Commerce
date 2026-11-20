@@ -1467,9 +1467,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_media` (
   `ordering` int(11) NOT NULL DEFAULT 0,
   `origin` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `thumbnail_origin` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'What the thumbnail was made from: image (the row image) or chosen (a picture chosen on the tile); NULL before 2.2.0',
+  `source_url` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The address the image was fetched from, as the REST API client gave it; NULL for an image uploaded or picked',
+  `source_url_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'sha256 of source_url: the same address is not fetched twice for one record',
   PRIMARY KEY (`id`),
   KEY `idx_alfa_media_origin_item` (`origin`, `item_id`),
-  KEY `idx_alfa_media_type` (`type`)
+  KEY `idx_alfa_media_type` (`type`),
+  KEY `idx_alfa_media_source` (`origin`, `item_id`, `source_url_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

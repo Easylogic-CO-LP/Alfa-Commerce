@@ -708,6 +708,8 @@ final class Runner
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
             // The background work an alfa plugin owes, handed back to it.
             Job\ExtensionJob::NAME => Job\ExtensionJob::class,
+            // The images a REST API write gave as addresses, fetched and stored.
+            Job\MediaFetchJob::NAME => Job\MediaFetchJob::class,
         ];
     }
 
