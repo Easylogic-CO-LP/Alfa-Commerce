@@ -2108,11 +2108,13 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * From 2.2.2 the price index prices each product at the quantity it opens with, its minimum, as a card prints it,
-     * where the version before priced every product at quantity 1. The rows of a product whose minimum is above 1 are
-     * therefore written again: those products are marked owed a rebuild (in ranges of ids) and the catalogue job is
-     * enqueued (Tools > Tasks). Until it ends, the product list may filter and sort such a product by its earlier
-     * price, or leave it out when its prices begin at its minimum; the message says so. A shop with no such product has
-     * nothing owed and no message. A failure is said, never a failed update.
+     * and a product with published combinations at its default combination's price, where the version before priced
+     * every product at quantity 1 and at its own price only. The rows of a product whose minimum is above 1, or that
+     * has published combinations, are therefore written again: those products are marked owed a rebuild (in ranges of
+     * ids) and the catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may filter and sort such
+     * a product by its earlier price, and one with no row yet (prices that begin at its minimum, or only on its
+     * combinations) is left out of the price filters and listed last by a price sort; the message says so. A shop with
+     * no such product has nothing owed and no message. A failure is said, never a failed update.
      *
      * @return  void
      * @since   2.2.2
@@ -2128,6 +2130,9 @@ class com_alfaInstallerScript extends InstallerScript
             $db = Factory::getContainer()->get('DatabaseDriver');
             $marked = \Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager::markForRebuildWhere(
                 condition: $db->quoteName('quantity_min') . ' > 1'
+                    . ' OR EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_item_combinations', 'ic')
+                    . ' WHERE ' . $db->quoteName('ic.item_id') . ' = ' . $db->quoteName('#__alfa_items.id')
+                    . ' AND ' . $db->quoteName('ic.state') . ' = 1)'
             );
 
             if ($marked === 0)
@@ -2150,7 +2155,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_OPENING_QUANTITY_REBUILD',
-            fallback: 'Alfa Commerce %1$s: the product list now filters and sorts each product by its price at the quantity it sells from, its minimum quantity, as its card shows it. The list prices of %2$d products with a minimum quantity above 1 are being rebuilt in the background (Tools > Tasks); until that ends, the price filters and the price sort may use their price for one piece, or leave out a product whose prices begin at its minimum.',
+            fallback: 'Alfa Commerce %1$s: the product list now filters and sorts each product by its price at the quantity it sells from, its minimum quantity, and a product with combinations by its default combination\'s price, as its card shows it. The list prices of %2$d products with a minimum quantity above 1 or with combinations are being rebuilt in the background (Tools > Tasks); until that ends, the price filters and the price sort may use their earlier price, and a product whose prices begin at its minimum or are set only on its combinations may be left out of the price filters and listed last by the price sort.',
             values:   [$this->packageVersion, $marked],
         ));
     }
