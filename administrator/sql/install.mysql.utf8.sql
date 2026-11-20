@@ -1157,7 +1157,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   `projection_dirty_at` datetime(6) NULL DEFAULT NULL COMMENT 'When a rebuild of this item projections was found owed and not yet done; NULL = current',
-  `opening_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings; the listing reads its price index row by it',
+  `opening_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings',
+  `price_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination whose price the listing card shows: the opening combination when it has price rows of its own, else 0 (the product''s own price). Kept with opening_combination_id; the listing reads its price index row by it',
   PRIMARY KEY (`id`),
   KEY `idx_available_quantity` (`available_quantity`),
   KEY `idx_state` (`state`),
@@ -1300,16 +1301,17 @@ CREATE TABLE IF NOT EXISTS `#__alfa_price_contexts` (
 --
 -- Table structure for table `#__alfa_items_price_index`
 --
--- The resolved price of every unit a product sells (each published combination, or the product itself when it has
--- none: combination_id 0) in every pricing context and period, at the product's opening quantity. Every unit has a row
--- in every prepared context for every period; a unit with no valid price has NULL figures, never 0. Rebuildable from
+-- The resolved price of every unit a product sells in every pricing context and period, at the product's opening
+-- quantity: the product itself (combination_id 0), always, and each published combination with price rows of its own (a
+-- combination without them is priced from the product's rows). Every unit has a row in every prepared context for every
+-- period; a unit with no valid price has NULL figures, an explicit price of 0 the figure 0. Rebuildable from
 -- #__alfa_items_prices and the rules; written by PriceIndexSyncService only.
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_price_index` (
   `context_id` int(10) UNSIGNED NOT NULL COMMENT '#__alfa_price_contexts.id',
   `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK to #__alfa_items.id',
-  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The published combination the row prices; 0 = a product without a published combination',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The published combination with price rows of its own that the row prices; 0 = the product itself, the price of every combination without its own price rows',
   `valid_from` datetime NOT NULL DEFAULT '1000-01-01 00:00:00' COMMENT 'Period start; the epoch sentinel for the period that is live when the row is written',
   `valid_until` datetime DEFAULT NULL COMMENT 'Period end, the next edge; NULL = open-ended',
   `base_price` decimal(24,8) DEFAULT NULL COMMENT 'Unit price before discounts and tax; NULL = no valid price',

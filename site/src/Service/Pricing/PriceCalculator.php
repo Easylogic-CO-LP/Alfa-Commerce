@@ -273,13 +273,12 @@ class PriceCalculator
     }
 
     /**
-     * Price every unit of many products in one pass (the price index): a unit is a product's published
-     * combination, or the product itself when it has none. The base data loads once for the products and the price
-     * rows of every combination once; each unit is then priced by the same path a chosen combination takes
-     * ({@see self::computeVariantFromData()}), so the index holds what the card, the product page and the cart charge
-     * for that combination.
+     * Price every unit of many products in one pass (the price index): a unit is the product itself (0) or one of its
+     * combinations. The base data loads once for the products and the price rows of every combination once; the product
+     * is priced from its own rows, each combination by the same path a chosen combination takes
+     * ({@see self::computeVariantFromData()}), so the index holds what the card, the product page and the cart charge.
      *
-     * @param array<int, int[]> $units Combination ids by product id; an empty list prices the product itself.
+     * @param array<int, int[]> $units Combination ids by product id; 0 in a list, or an empty list, prices the product itself.
      * @param int|int[] $quantities A single quantity for all, or a per-id map.
      * @param PriceContext $context Pricing context.
      *
@@ -297,7 +296,7 @@ class PriceCalculator
 
         $quantities = $this->normalizeQuantities($itemIds, $quantities);
         $data = $this->loader->loadBatch($itemIds, $context);
-        $combinationIds = $units === [] ? [] : array_merge(...array_values(array_map('array_values', $units)));
+        $combinationIds = $units === [] ? [] : array_values(array_filter(array_merge(...array_values(array_map('array_values', $units)))));
         $rows = $combinationIds !== [] ? $this->loader->loadCombinationPriceRowsFor($itemIds, $combinationIds, $context) : [];
         $results = [];
 
@@ -305,21 +304,23 @@ class PriceCalculator
             $itemId = (int) $itemId;
             $quantity = max(1, (int) $quantities[$itemId]);
 
-            if ($combinations === []) {
-                $results[$itemId][0] = $this->calculator->compute(
-                    $itemId,
-                    $quantity,
-                    $data->getPricesFor($itemId),
-                    $data->getDiscountsFor($itemId),
-                    $data->getTaxesFor($itemId),
-                    $context,
-                );
-
-                continue;
-            }
-
-            foreach ($combinations as $combinationId) {
+            foreach ($combinations === [] ? [0] : $combinations as $combinationId) {
                 $combinationId = (int) $combinationId;
+
+                // The product itself, from its own price rows.
+                if ($combinationId === 0) {
+                    $results[$itemId][0] = $this->calculator->compute(
+                        $itemId,
+                        $quantity,
+                        $data->getPricesFor($itemId),
+                        $data->getDiscountsFor($itemId),
+                        $data->getTaxesFor($itemId),
+                        $context,
+                    );
+
+                    continue;
+                }
+
                 $results[$itemId][$combinationId] = $this->computeVariantFromData(
                     $itemId,
                     $quantity,
