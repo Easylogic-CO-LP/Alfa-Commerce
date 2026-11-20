@@ -126,7 +126,7 @@ class JsonApiView extends BaseApiView
     }
 
     /**
-     * The translations a list row carries with include=translations (2.2.2, ListsTranslations).
+     * The translations a list row carries with include=translations (ListsTranslations).
      *
      * @return array{0: string, 1: string, 2: string[]}
      *

@@ -831,7 +831,7 @@ class ShipmentLedger
             : self::carrierChain(data: $data);
         $data['shipping_tax_chain'] = $chain === null ? null : self::chainText(chain: $chain);
 
-        // A parcel entered with no charge states no tax rate (2.2.2): whatever rate it carries, or none, it is frozen
+        // A parcel entered with no charge states no tax rate: whatever rate it carries, or none, it is frozen
         // with the shipping tax that applies and that tax's combined rate, so a charge given to it later is judged on
         // that chain, as any change of an entered parcel's charge is. Before, a free parcel had to state the rate
         // that applies (the full triple 0.00, 0.00 and 24), and the method alone, 0.00 alone or a rate of 0 was
@@ -876,7 +876,7 @@ class ShipmentLedger
 
             self::warn(message: Text::sprintf('COM_ALFA_SHIPMENT_CHARGED_ONCE', $orderId), context: 'create()');
 
-            // Said to the caller too (2.2.2): the REST answer carries it in meta.warnings.
+            // Said to the caller too: the REST answer carries it in meta.warnings.
             WriteWarnings::note(
                 code: WriteWarnings::SHIPPING_CHARGED_ONCE,
                 detail: Text::sprintf('COM_ALFA_SHIPMENT_CHARGED_ONCE', $orderId),
@@ -935,7 +935,7 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
-            // The order row first, as every writer of an order takes it (2.2.2): this write moves the order's shipping
+            // The order row first, as every writer of an order takes it: this write moves the order's shipping
             // method (OrderMethods), and the order's delete locks the order before its parcels.
             self::lockOrderRow(orderId: $orderId);
             $success = self::saveToTable($data);
@@ -978,7 +978,7 @@ class ShipmentLedger
                 $newId,
             );
 
-            // The order's shipping method follows its latest live parcel (2.2.2, OrderMethods), in this transaction.
+            // The order's shipping method follows its latest live parcel (OrderMethods), in this transaction.
             OrderMethods::followShipments(orderId: $orderId);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
@@ -1644,7 +1644,7 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
-            // The order row first, as every writer of an order takes it (2.2.2; see create()).
+            // The order row first, as every writer of an order takes it (see create()).
             self::lockOrderRow(orderId: $orderId);
             $written = self::writeUpdate(id: $id, orderId: $orderId, data: $data, entered: $entered, writer: $writer);
 
@@ -1925,7 +1925,7 @@ class ShipmentLedger
             ]);
         }
 
-        // The order's shipping method follows its latest live parcel (2.2.2, OrderMethods): a parcel cancelled, returned
+        // The order's shipping method follows its latest live parcel (OrderMethods): a parcel cancelled, returned
         // or moved to another method moves the order's.
         OrderMethods::followShipments(orderId: $orderId);
     }
@@ -2182,7 +2182,7 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
-            // The order row first, as every writer of an order takes it (2.2.2; see create()), then the parcel.
+            // The order row first, as every writer of an order takes it (see create()), then the parcel.
             self::lockOrderRow(orderId: $orderId);
 
             // Read the CURRENT status inside the transaction, with the row
@@ -2283,7 +2283,7 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
-            // The order row first, as every writer of an order takes it (2.2.2; see create()).
+            // The order row first, as every writer of an order takes it (see create()).
             self::lockOrderRow(orderId: $orderId);
 
             // Clear item assignments first (FK integrity)
@@ -2295,7 +2295,7 @@ class ShipmentLedger
                 return false;
             }
 
-            // The order's shipping method follows the parcels that are left (2.2.2, OrderMethods).
+            // The order's shipping method follows the parcels that are left (OrderMethods).
             OrderMethods::followShipments(orderId: $orderId);
 
             if ($shipment) {
@@ -2468,7 +2468,7 @@ class ShipmentLedger
 
             foreach (self::normaliseItemMap($items) as $itemId => $quantity) {
                 // Not a line of this order, or nothing left to ship on it; a line of the order asked for an exact
-                // number is said cut to nothing (2.2.2).
+                // number is said cut to nothing.
                 if (!isset($remaining[$itemId])) {
                     if ($quantity > 0 && \in_array($itemId, $lines, true)) {
                         self::noteCut(itemId: $itemId, asked: $quantity, assigned: 0);
@@ -2485,7 +2485,7 @@ class ShipmentLedger
                     ? min($quantity, $remaining[$itemId])
                     : min($current[$itemId] ?? $remaining[$itemId], $remaining[$itemId]);
 
-                // An exact number cut to what the line still has to send is said to the caller (2.2.2): the REST answer
+                // An exact number cut to what the line still has to send is said to the caller: the REST answer
                 // carries it in meta.warnings.
                 if ($asked > $quantity) {
                     self::noteCut(itemId: $itemId, asked: $asked, assigned: $quantity);
@@ -2517,7 +2517,7 @@ class ShipmentLedger
     }
 
     /**
-     * Lock an order's row for the transaction that writes one of its parcels (2.2.2): the parcel's write moves the
+     * Lock an order's row for the transaction that writes one of its parcels: the parcel's write moves the
      * order's shipping method, and every writer of an order takes the order's row before its rows (the payments ledger,
      * the order's delete), so two of them never wait on each other in turn.
      *
@@ -2538,7 +2538,7 @@ class ShipmentLedger
     }
 
     /**
-     * The ids of an order's lines (2.2.2).
+     * The ids of an order's lines.
      *
      * @param int $orderId Order PK
      *
@@ -2559,7 +2559,7 @@ class ShipmentLedger
     }
 
     /**
-     * Note, for the caller, a line's quantity in a parcel cut to what the order still has to send of it (2.2.2):
+     * Note, for the caller, a line's quantity in a parcel cut to what the order still has to send of it:
      * the REST answer carries it in meta.warnings.
      *
      * @param int $itemId The order line.
@@ -2624,7 +2624,7 @@ class ShipmentLedger
     }
 
     /**
-     * How many units of each order line every parcel of an order carries, in one statement (2.2.2): what the REST
+     * How many units of each order line every parcel of an order carries, in one statement: what the REST
      * order read publishes as each parcel's lines.
      *
      * @param int $orderId Order PK

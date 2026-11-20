@@ -146,7 +146,7 @@ class MultilingualHelper
     private static ?array $defaultLanguage = null;
 
     /**
-     * The request's memo of single translated values (2.2.2: a property, so a write can forget what it changed): base
+     * The request's memo of single translated values (a property, so a write can forget what it changed): base
      * table => record id => lookup => value, filled by {@see self::readFirstFilledField()} and
      * {@see self::readFieldFromLangTable()}, and emptied for a record by {@see self::forget()}, which the save and the
      * delete of its translations call. Before, a value read once in a request was answered for the rest of it, so the
@@ -525,7 +525,7 @@ class MultilingualHelper
             );
         }
 
-        // What this request read of the record's texts is read again (2.2.2).
+        // What this request read of the record's texts is read again.
         self::forget(tableName: $tableName, id: $currentId);
 
         // A language added later counts what it still lacks: the counts follow what was saved.
@@ -982,7 +982,7 @@ class MultilingualHelper
     }
 
     /**
-     * {@see self::getMultilingualData()} for many records at once (2.2.2): one statement per language table, so a list
+     * {@see self::getMultilingualData()} for many records at once: one statement per language table, so a list
      * of fifty records costs as many statements as the shop has content languages, never one per row.
      *
      * @param int[] $ids The records.
@@ -2402,7 +2402,7 @@ class MultilingualHelper
     }
 
     /**
-     * Forget what this request read of a record's translated values (2.2.2): the save and the delete of its
+     * Forget what this request read of a record's translated values: the save and the delete of its
      * translations call it, so every read after a write in the same request reads the texts as they are now.
      *
      * @param string $tableName Base table with prefix (e.g. "#__alfa_items").
@@ -3811,7 +3811,7 @@ class MultilingualHelper
             );
         }
 
-        // What this request read of the records' texts is read again (2.2.2).
+        // What this request read of the records' texts is read again.
         foreach ($idList as $id) {
             self::forget(tableName: $tableName, id: $id);
         }

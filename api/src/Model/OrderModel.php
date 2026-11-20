@@ -309,7 +309,7 @@ class OrderModel extends AdminOrderModel
             $rows($item->payments ?? null),
         );
 
-        // Each parcel's lines, read for the order's parcels in one statement (2.2.2).
+        // Each parcel's lines, read for the order's parcels in one statement.
         $parcelLines = ShipmentLedger::itemQuantitiesOfOrder(orderId: (int) ($item->id ?? 0));
 
         $item->shipments = array_map(
@@ -318,7 +318,7 @@ class OrderModel extends AdminOrderModel
                 'id_shipment_method' => isset($s->id_shipment_method) ? (int) $s->id_shipment_method : null,
                 // Where the parcel stands (pending, shipped, delivered, cancelled, on_hold, returned), the method's name
                 // as the parcel froze it, the carrier, when it went out and arrived, and the order lines it carries with
-                // the units of each, under the names the parcel's write takes (2.2.2): a cancelled parcel is told
+                // the units of each, under the names the parcel's write takes: a cancelled parcel is told
                 // from an open one without a second read.
                 'status' => $s->status ?? null,
                 'shipment_method_name' => $s->shipment_method_name ?? null,

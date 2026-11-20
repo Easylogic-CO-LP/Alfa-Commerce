@@ -50,7 +50,7 @@ class JsonApiView extends BaseApiView
         'usergroups',
         'translations',
         // What the field is to the shop (name, email, phone, country, address, city, postcode; null for a field of
-        // the merchant's own), and the field type's settings, a choice's options among them (2.2.2).
+        // the merchant's own), and the field type's settings, a choice's options among them.
         'role',
         'params',
     ];
@@ -78,7 +78,7 @@ class JsonApiView extends BaseApiView
     ];
 
     /**
-     * The translations a list row carries with include=translations (2.2.2, ListsTranslations).
+     * The translations a list row carries with include=translations (ListsTranslations).
      *
      * @return array{0: string, 1: string, 2: string[]}
      *

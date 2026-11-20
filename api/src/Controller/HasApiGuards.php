@@ -329,7 +329,7 @@ trait HasApiGuards
     }
 
     /**
-     * Answer 422, naming them, when the body names a text by a language suffix (name_el_gr) (2.2.2): a write takes the
+     * Answer 422, naming them, when the body names a text by a language suffix (name_el_gr): a write takes the
      * texts of each language in the translations object, {"translations": {"el_gr": {"name": "..."}}}, the object a
      * read with include=translations gives, so what a client reads it can send back as it is.
      *
@@ -363,7 +363,7 @@ trait HasApiGuards
     }
 
     /**
-     * A key the client sent, as a refusal shows it: its first 64 characters (2.2.2). A key is the client's text; it is
+     * A key the client sent, as a refusal shows it: its first 64 characters. A key is the client's text; it is
      * named so the client knows which one, and never repeated whole.
      *
      * @param string $key The key as sent.
@@ -706,7 +706,7 @@ trait HasApiGuards
      *
      * A GET with include=translations emits attributes.translations =
      * {"el_gr": {"name": "..."}, ...}, and a write takes the same object: the
-     * one way a write names a text in a language (2.2.2; a key with a language
+     * one way a write names a text in a language (a key with a language
      * suffix, name_el_gr, is refused by {@see self::refuseLanguageKeys()}).
      * Both spellings of the tag are accepted ("el-GR" and "el_gr").
      *

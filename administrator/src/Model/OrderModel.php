@@ -973,8 +973,8 @@ class OrderModel extends AlfaAdminModel
         // customer is picked, so the field is on it and is relaxed on both
         // sides; see getForm); a GUEST order still has to give one. The order's
         // mails go to a guest's address, so an update that sends the delivery
-        // details of a guest order that has one asks it too (2.2.2): before,
-        // only the creation did, and an update could empty it. A guest order
+        // details of a guest order that has one asks it too, so an update
+        // never empties it. A guest order
         // placed with no e-mail stays savable without one.
         $emailColumn = RoleRegistry::column(RoleRegistry::EMAIL);
         $keepsEmail = !$isNew && \array_key_exists(FieldsHelper::FIELDS_KEY, $data) && (string) ($this->item->customer_email ?? '') !== '';
@@ -988,7 +988,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         // What the submission itself sends of each section, before a stored value is laid over it: the fields it is
-        // told were not kept are among these (2.2.2).
+        // told were not kept are among these.
         $sent = [
             FieldsHelper::FIELDS_KEY => array_map('strval', array_keys((array) ($data[FieldsHelper::FIELDS_KEY] ?? []))),
             FieldsHelper::BILLING_FIELDS_KEY => array_map('strval', array_keys((array) ($data[FieldsHelper::BILLING_FIELDS_KEY] ?? []))),
@@ -1001,7 +1001,7 @@ class OrderModel extends AlfaAdminModel
         if (!$isNew && $this->keepsOmittedDetails()) {
             $data = $this->withStoredDetails(data: $data, orderId: (int) ($data['id'] ?? 0), visibilityId: $visibilityId);
 
-            // A choice laid over from the stored record is not judged again (2.2.2): the rule asks what the submission
+            // A choice laid over from the stored record is not judged again: the rule asks what the submission
             // sends, so a value stored before its option was renamed or removed does not refuse a write that never
             // named the field.
             foreach ($sent as $section => $names) {
@@ -1014,7 +1014,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         // The invoice choice as the delivery details' display rules read it: as sent, or, on an API update that does not
-        // state it, whether the order has invoice details of its own (2.2.2).
+        // state it, whether the order has invoice details of its own.
         $invoiceDiffers = \array_key_exists('invoice_differs', $data)
             ? !empty($data['invoice_differs'])
             : !$isNew && $this->keepsOmittedDetails() && $this->hasOwnInvoice(orderId: (int) ($data['id'] ?? 0));
@@ -1076,13 +1076,12 @@ class OrderModel extends AlfaAdminModel
         }
 
         // silent is not a field of the form either: a creation that states it (a REST POST) keeps it for save(), which
-        // then leaves the customer out of the e-mail the new order's status owes, as a status change made silent does
-        // (2.2.2).
+        // then leaves the customer out of the e-mail the new order's status owes, as a status change made silent does.
         if (\is_array($valid) && $isNew && !empty($data['silent'])) {
             $valid['silent'] = 1;
         }
 
-        // The parts of an order created in one call (2.2.2), its lines, its parcel and its payment, are not fields of
+        // The parts of an order created in one call, its lines, its parcel and its payment, are not fields of
         // the form either: a creation keeps them for save(), which reads them through OrderCreateParts and writes each
         // through its own writer in the creation's transaction.
         if (\is_array($valid) && $isNew) {
@@ -1097,7 +1096,7 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
-     * Say which detail fields a submission sent that the order will not keep (2.2.2), for the REST answer's
+     * Say which detail fields a submission sent that the order will not keep, for the REST answer's
      * meta.warnings (WriteWarnings): a field the shop's display rules hide for the details sent (hidden_by_rule),
      * removed as the checkout removes it, and a key that is no field of the section on this shop (not_a_field), which
      * the form leaves out. Only what the submission itself sent is named; a value laid over it from the stored record
@@ -1150,7 +1149,7 @@ class OrderModel extends AlfaAdminModel
      * without the details when the order has no invoice details of its own (OrdersController), so the details kept are
      * the order's own. The order screen posts its sections whole and keeps nothing this way.
      *
-     * Kept by the model (2.2.2), so the save never collapses the invoice and the answer of a PATCH reads the order as
+     * Kept by the model, so the save never collapses the invoice and the answer of a PATCH reads the order as
      * stored: before, an update of the delivery details alone pointed the invoice at the delivery record and the API
      * controller put the old pointer back after the answer had been made.
      *
@@ -1175,7 +1174,7 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
-     * Whether an order has invoice details of its own: an invoice record that is not its delivery record (2.2.2).
+     * Whether an order has invoice details of its own: an invoice record that is not its delivery record.
      *
      * @param int $orderId The order.
      *
@@ -4532,7 +4531,7 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
-     * Why the payment of an order created in one call was not recorded, in words that never name the order (2.2.2): the
+     * Why the payment of an order created in one call was not recorded, in words that never name the order: the
      * creation is rolled back, so the client never sees the order the ledger's sentence names. On a new order no other
      * payment holds anything, so the money rule that refuses a payment is its total: the payment is more than the order
      * owes, said with both figures. Another refusal keeps the ledger's sentence, unless it names the order (the
@@ -4572,7 +4571,7 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
-     * Write the parts of an order created in one call (2.2.2), inside the creation's transaction: each line through the
+     * Write the parts of an order created in one call, inside the creation's transaction: each line through the
      * line writer, then the parcel through the shipments ledger, then the payment through the payments ledger, so the
      * payment is judged against the order's lines and its shipping charge. Each writer takes its own locks and claims as
      * on the order operations: a line claims its stock as it is written, the claims of every line held by the one
@@ -4714,7 +4713,7 @@ class OrderModel extends AlfaAdminModel
         // OrderCreator: same defaults, guards and audit trail as the checkout
         // and the renewals. The order screen creates a metadata-only shell
         // (explicit allow_empty) and adds lines, payments and shipments on the
-        // edit screen; a REST create may carry them in its one call (2.2.2):
+        // edit screen; a REST create may carry them in its one call:
         // each is written by its own writer, the line writer, the shipments
         // ledger and the payments ledger, inside the creation's transaction,
         // so a part refused leaves no order at all. From the first line on,
@@ -4774,7 +4773,7 @@ class OrderModel extends AlfaAdminModel
                         'source' => $this->newOrderSource(),
                         'created_by' => (int) ($identity?->id ?? 0),
                         'actor_name' => (string) ($identity?->name ?? 'System'),
-                        // The customer's note to the shop, as a marketplace order brings it (2.2.2; it was dropped).
+                        // The customer's note to the shop, as a marketplace order brings it.
                         'customer_note' => (string) ($data['customer_note'] ?? ''),
                         'allow_empty' => true,
                         'lines' => [],
@@ -4790,7 +4789,7 @@ class OrderModel extends AlfaAdminModel
                     $created = OrderCreator::create(draft: $draft, manageTransaction: false);
                     $lineIds = $this->writeCreatedParts(orderId: $created->orderId, parts: $parts);
 
-                    // The status the order opens in decides its e-mail, as a status change's does (2.2.2): what the
+                    // The status the order opens in decides its e-mail, as a status change's does: what the
                     // checkout owes with a new order (OrderPlacedFollowUp), sent once the creation has committed, the
                     // customer left out when the creation says silent. An order created with no lines owes nothing: an
                     // order built in steps never mails empty.

@@ -111,7 +111,7 @@ class InventorymovementsModel extends AlfaListModel
             column:     'a.created',
             localStart: (string) $this->getState('filter.date_start', ''),
             localEnd:   (string) $this->getState('filter.date_end', ''),
-            // UTC bounds from the REST API (2.2.2); the screen's are the shop's.
+            // UTC bounds from the REST API; the screen's are the shop's.
             zone:       AlfaHelper::boundsZone(stated: $this->getState('filter.date_zone')),
         );
 

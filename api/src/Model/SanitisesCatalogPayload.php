@@ -127,7 +127,7 @@ trait SanitisesCatalogPayload
             ];
         }
 
-        // Each category the product is in, with its place in the tree (2.2.2): its ancestors from the top-level
+        // Each category the product is in, with its place in the tree: its ancestors from the top-level
         // category down, each {id, name, alias, state}, an ancestor the visitor may not see by its id and state only,
         // and its level (1 for a top-level category). One read of the categories per request (CategoryAncestry).
         if (isset($item->categories) && \is_array($item->categories)) {

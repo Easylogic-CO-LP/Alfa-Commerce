@@ -2948,7 +2948,7 @@ class PaymentLedger
 
         $newId = (int) $data[self::PK];
 
-        // The order's payment method follows its latest live payment (2.2.2, OrderMethods): the order's method is the
+        // The order's payment method follows its latest live payment (OrderMethods): the order's method is the
         // display source for e-mail tokens and documents. Under the order's lock, in this write's transaction.
         if (($data['payment_type'] ?? self::TYPE_PAYMENT) === self::TYPE_PAYMENT) {
             OrderMethods::followPayments(orderId: $orderId);
@@ -10712,7 +10712,7 @@ class PaymentLedger
             self::oweRefundFlip(paymentId: (int) $oldSnapshot->id_refunded_payment, orderId: $orderId);
         }
 
-        // The order's payment method follows its latest live payment (2.2.2, OrderMethods): a payment cancelled, failed
+        // The order's payment method follows its latest live payment (OrderMethods): a payment cancelled, failed
         // or moved to another method moves the order's, a bookkeeping write too, since it changes which rows are live.
         OrderMethods::followPayments(orderId: $orderId);
     }
@@ -12641,7 +12641,7 @@ class PaymentLedger
             return;
         }
 
-        // An open attempt in the way (2.2.2): the sentence names the pending payment, since "is owed 0.00" read wrong
+        // An open attempt in the way: the sentence names the pending payment, since "is owed 0.00" read wrong
         // beside a balance the order still owes. Several pending rows are named together with their sum.
         $db = self::db();
         $open = $db->setQuery(
@@ -13394,7 +13394,7 @@ class PaymentLedger
                 return false;
             }
 
-            // The order's payment method follows the payments that are left (2.2.2, OrderMethods).
+            // The order's payment method follows the payments that are left (OrderMethods).
             OrderMethods::followPayments(orderId: $orderId);
 
             if ($payment) {

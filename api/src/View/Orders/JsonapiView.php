@@ -158,7 +158,7 @@ class JsonApiView extends BaseApiView
         // The request's singles about this order too: an integration sees an e-mail held without asking again.
         $this->addRequestTasks(subjectType: 'order', subjectId: (int) ($item->id ?? 0));
 
-        // What the write that answers with this order changed or left out on its own (2.2.2): each {code, detail,
+        // What the write that answers with this order changed or left out on its own: each {code, detail,
         // pointer}, for example a second parcel's charge set to 0 (shipping_charged_once) or a detail field the shop's
         // display rule hides (hidden_by_rule).
         $warnings = WriteWarnings::take();

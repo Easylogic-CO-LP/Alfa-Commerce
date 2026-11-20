@@ -26,7 +26,7 @@ class AlfatelRule extends FormRule
         }
 
         // THE SAME REGION THE FILTER READS AGAINST, by the one rule
-        // (FieldsHelper::phoneRegion(), 2.2.2): the country of the place field
+        // (FieldsHelper::phoneRegion()): the country of the place field
         // in the same section of the submission (an order's country), else the
         // field's Default region, else the shop's default country. A leading
         // 00 is read as +. No region and no country code is not a number yet,

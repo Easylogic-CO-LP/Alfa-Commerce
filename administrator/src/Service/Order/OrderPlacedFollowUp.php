@@ -16,7 +16,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 
 /**
- * What a new order owes for the status it opens in (2.2.2): the download access of that status and its e-mail, to
+ * What a new order owes for the status it opens in: the download access of that status and its e-mail, to
  * the customer when the status tells the customer and to the status's administrator recipients, as a status change's
  * e-mail goes. One place for the checkout's placement and for an order created with its lines over the REST API.
  *

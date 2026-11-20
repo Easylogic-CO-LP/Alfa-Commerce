@@ -14,7 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 use RuntimeException;
 
 /**
- * A part of an order created in one call that was not written, with the sentence that names the part (2.2.2): a line,
+ * A part of an order created in one call that was not written, with the sentence that names the part: a line,
  * the parcel or the payment ({@see OrderCreateParts}). Nothing of the order is written when one is refused.
  *
  * Set as the order model's error: the REST create answers it with its status, 422 for a part sent in a shape it does

@@ -221,7 +221,7 @@ class ItemsController extends ApiController
 
     /**
      * The guards' refusal of the keys the write does not take, then the refusal of a stock shape the item does not
-     * take ({@see self::refuseStockShapes()}, 2.2.2): both before core's edit checks the record out and before anything
+     * take ({@see self::refuseStockShapes()}): both before core's edit checks the record out and before anything
      * is saved.
      *
      * @param bool $update Whether the write is an update (PATCH) rather than a create (POST).
@@ -237,7 +237,7 @@ class ItemsController extends ApiController
     }
 
     /**
-     * Answer 422, naming the key and the shape, when the body states stock in a shape the item does not take (2.2.2).
+     * Answer 422, naming the key and the shape, when the body states stock in a shape the item does not take.
      * `stock` is one figure for a product stocked at one location; `inventory_stock` is an object of location id to
      * figure, {"1": "3", "2": "2"}, each figure absolute, for a product without combinations that tracks stock. A
      * `stock` sent as an object or a list was read as no figure, and an `inventory_stock` keyed by anything but the

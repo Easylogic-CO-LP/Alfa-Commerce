@@ -11,13 +11,13 @@ use SimpleXMLElement;
 
 defined('_JEXEC') or die;
 
-// Resolved by Joomla when validate="choice" on the field node, which every choice mode carries (2.2.2).
+// Resolved by Joomla when validate="choice" on the field node, which every choice mode carries.
 // Every value sent must be one of the field's choices; a multi-mode field also keeps its min/max selection limits.
 class ChoiceRule extends FormRule
 {
     public function test(SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
     {
-        // THE VALUES MUST BE THE FIELD'S OWN (2.2.2). Joomla's list, radio and checkbox fields take any text posted,
+        // THE VALUES MUST BE THE FIELD'S OWN. Joomla's list, radio and checkbox fields take any text posted,
         // so a value that is none of the options ("invoice", or a choice's label typed in place of its value) was
         // stored as sent. The storefront's controls offer only the options; a hand-made post or an API client met
         // nothing. An empty answer is the required rule's business, not this one's.

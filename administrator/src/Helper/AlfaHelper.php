@@ -560,7 +560,7 @@ class AlfaHelper
     }
 
     /**
-     * The zone a list's date bounds are written in, as its state says (2.2.2): 'UTC', which the REST API's list routes
+     * The zone a list's date bounds are written in, as its state says: 'UTC', which the REST API's list routes
      * set (filter.date_zone), is UTC; anything else is the shop's time zone, as the screens' calendars hold them (null,
      * which {@see self::applyDateRange()} reads as the shop's).
      *
@@ -598,7 +598,7 @@ class AlfaHelper
      * whole day, to its last second, as a preset's end is; a start that names a day is
      * its first second (2.2.1).
      *
-     * The REST API's bounds are UTC (2.2.2): its list routes hand $zone UTC, so a bound
+     * The REST API's bounds are UTC: its list routes hand $zone UTC, so a bound
      * without a zone is a UTC time and a day is the UTC day, whatever the shop's time
      * zone. A bound that states its zone ("2026-11-19T11:40:14Z", "...+02:00") is read
      * in it, on every caller.
@@ -608,7 +608,7 @@ class AlfaHelper
      * @param string $localStart Lower bound in shop-local time, '' for none.
      * @param string $localEnd Upper bound in shop-local time, '' for none.
      * @param bool $convertToUtc Whether the column stores UTC.
-     * @param DateTimeZone|null $zone The zone a bound without one is written in; null for the shop's (2.2.2).
+     * @param DateTimeZone|null $zone The zone a bound without one is written in; null for the shop's.
      *
      *
      * @since   2.0.0

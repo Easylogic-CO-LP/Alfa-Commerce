@@ -113,9 +113,9 @@ final class Dispatcher extends ComponentDispatcher
      * A request without lang, or with one the shop does not publish, reads in the
      * shop's default content language (MultilingualHelper::getDefaultLanguageTag(),
      * the language a create requires the names in), never in the API application's
-     * or the token account's interface language (2.2.2). Before, it read in en-GB,
-     * even where en-GB is not a published content language: a Greek shop's status
-     * read "Pending", the row the installation wrote in en-GB, beside translations
+     * or the token account's interface language. A read in en-GB where en-GB is
+     * not a published content language would show a Greek shop's status as
+     * "Pending", the row the installation wrote in en-GB, beside translations
      * that hold only el_gr. The error sentences keep the interface language.
      *
      *

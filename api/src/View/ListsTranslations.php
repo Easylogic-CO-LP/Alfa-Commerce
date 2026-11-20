@@ -15,7 +15,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 
 /**
- * A translated resource's list rows with their translations, on request (2.2.2).
+ * A translated resource's list rows with their translations, on request.
  *
  * Every read of a translated resource carries its texts flat, in the language the request asks (lang) or the shop's
  * default content language. With include=translations a list row, as a single record, also carries `translations`:

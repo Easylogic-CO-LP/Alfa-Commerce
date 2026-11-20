@@ -33,7 +33,7 @@ if ($value === '') {
 }
 
 // The region a stored number without its country is read against: the field's Default region, else the shop's
-// default country (2.2.2); a stored number is E.164 and carries its own.
+// default country; a stored number is E.164 and carries its own.
 $region = FieldsHelper::phoneDefaultRegion(fieldRegion: (string) $fieldParams->get('default_region', ''));
 $displayFormat = strtoupper((string) $fieldParams->get('display_format', 'INTERNATIONAL'));
 

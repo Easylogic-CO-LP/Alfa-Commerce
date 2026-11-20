@@ -143,7 +143,7 @@ class DocumentsModel extends AlfaListModel
         // reporting error, not a cosmetic one. (a.issue_date is the UTC instant; it
         // is not what a period filter should ask about.)
         //
-        // The REST API asks in UTC (filter.date_zone, 2.2.2), as every date it publishes is: its bounds are read against
+        // The REST API asks in UTC (filter.date_zone), as every date it publishes is: its bounds are read against
         // the UTC instant a.issue_date, a day being the UTC day, so a client never needs the shop's time zone.
         $utc = AlfaHelper::boundsZone(stated: $this->getState('filter.date_zone'));
 

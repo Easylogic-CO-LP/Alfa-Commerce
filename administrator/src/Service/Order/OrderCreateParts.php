@@ -22,7 +22,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
 
 /**
- * The parts of an order created in one call (2.2.2): its lines, its parcel and its payment, read from the create's
+ * The parts of an order created in one call: its lines, its parcel and its payment, read from the create's
  * data into what each part's own writer takes, the one reader for the REST create and for an extension that creates
  * an order through the order model. OrderModel::save() writes the order through OrderCreator, then each line through
  * the line writer (saveOrderItem(), the order screen's and POST v1/alfa/orders/:id/lines'), the parcel through the

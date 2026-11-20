@@ -134,7 +134,7 @@ class OrderstatusesModel extends AlfaListModel
         );
         $query->from('`#__alfa_orders_statuses` AS a');
 
-        // Whether the status tells staff (2.2.2): an administrator recipient who may receive mail, by the definition
+        // Whether the status tells staff: an administrator recipient who may receive mail, by the definition
         // the status e-mail reads (EmailService::staffRecipientsSql()); the REST list publishes it as notifies_staff.
         $query->select(EmailService::staffRecipientsSql(statusColumn: 'a.id') . ' AS ' . $db->quoteName('notifies_staff'));
 

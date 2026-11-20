@@ -255,7 +255,7 @@ class OrdersModel extends AlfaListModel
 
         // "An order with a payment like this", optionally within the window on the
         // payment's own date column.
-        // The REST API's bounds are UTC (2.2.2); the screen's are the shop's.
+        // The REST API's bounds are UTC; the screen's are the shop's.
         $zone = AlfaHelper::boundsZone(stated: $this->getState('filter.date_zone'));
         $paymentLike = static function (array $where, ?string $dateColumn) use ($db, $localStart, $localEnd, $zone): string {
             $sub = $db->getQuery(true)
@@ -429,7 +429,7 @@ class OrdersModel extends AlfaListModel
         }
 
         try {
-            // State holds SHOP-LOCAL bounds (UTC ones from the REST API, 2.2.2); the cutoff is
+            // State holds SHOP-LOCAL bounds (UTC ones from the REST API); the cutoff is
             // UTC. Convert the same way AlfaHelper::applyDateRange() does, then compare: both are
             // 'Y-m-d H:i:s', so string order is chronological order.
             $startUtc = Factory::getDate($localStart, AlfaHelper::boundsZone(stated: $this->getState('filter.date_zone')) ?? AlfaHelper::shopTimezone())->toSql();
@@ -604,7 +604,7 @@ class OrdersModel extends AlfaListModel
 
         if (!\in_array($payment, ['failed', 'refunded'], true)) {
             // a.created is UTC; state holds SHOP-LOCAL bounds (what the calendars show), or UTC ones from the REST API
-            // (filter.date_zone, 2.2.2).
+            // (filter.date_zone).
             AlfaHelper::applyDateRange(
                 query:      $query,
                 column:     'a.created',

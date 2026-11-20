@@ -53,7 +53,7 @@ class FormfieldModel extends AdminFormfieldModel
             // Full per-language map ({"en_gb": {...}, "el_gr": {...}}) so API
             // clients can read every translation and PATCH back the same
             // per-language keys the admin form posts (name_el_gr, ...).
-            // Every content language's texts, only when the read asks for them (include=translations, 2.2.2).
+            // Every content language's texts, only when the read asks for them (include=translations).
             if (ApiInclude::asks(ApiInclude::TRANSLATIONS)) {
                 $item->translations = MultilingualHelper::getMultilingualData(
                     currentId:         (int) $item->id,
@@ -62,7 +62,7 @@ class FormfieldModel extends AdminFormfieldModel
                 );
             }
 
-            // The field type's settings, as the form builds the field from them (2.2.2): a choice's options (each a
+            // The field type's settings, as the form builds the field from them: a choice's options (each a
             // value and its text), min_selections and max_selections, a phone's default_region. A text stored per
             // language reads in the request's language, as the storefront form reads it (FormFieldsPlugin::prepareDom()).
             // Read only: the field's settings are written on its edit screen.

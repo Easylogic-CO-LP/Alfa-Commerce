@@ -79,7 +79,7 @@ final class Tel extends FormFieldsPlugin
             $node->setAttribute('autocomplete', 'tel');
         }
 
-        // The flag the widget starts on is the one rule's, as far as a form being drawn can know it (2.2.2): the
+        // The flag the widget starts on is the one rule's, as far as a form being drawn can know it: the
         // field's Default region, else the shop's default country, never a country nobody chose. The server reads
         // the order's country first (FieldsHelper::phoneRegion()).
         $defaultRegion = FieldsHelper::phoneDefaultRegion(fieldRegion: (string) $fieldParams->get('default_region', ''));

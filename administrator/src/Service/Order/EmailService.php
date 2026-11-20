@@ -836,7 +836,7 @@ class EmailService
 
     /**
      * Whether a status has an administrator recipient who may receive mail (not blocked, an address set), as an SQL
-     * condition on the status column a query names (2.2.2): the one definition of "the status tells staff", read by
+     * condition on the status column a query names: the one definition of "the status tells staff", read by
      * {@see self::notifiesForStatus()} and by the order statuses list, which publishes it as notifies_staff.
      *
      * @param string $statusColumn The status id column of the query it goes into, e.g. 's.id' or 'a.id'.

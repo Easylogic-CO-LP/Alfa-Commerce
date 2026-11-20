@@ -108,7 +108,7 @@ class TelephoneRule extends FormRule
             throw new RuntimeException(Text::_('COM_ALFA_TELEPHONE_ERR_STRAY_CHARACTERS'));
         }
 
-        // A leading 00 is the international prefix, read as + (2.2.2).
+        // A leading 00 is the international prefix, read as +.
         $value = FieldsHelper::phoneTyped($value);
 
         return class_exists(PhoneNumberUtil::class)

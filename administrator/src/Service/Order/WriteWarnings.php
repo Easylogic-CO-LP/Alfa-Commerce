@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 \defined('_JEXEC') or die;
 
 /**
- * What an order write changed or left out on its own, said to the caller (2.2.2): the REST answer of the write carries
+ * What an order write changed or left out on its own, said to the caller: the REST answer of the write carries
  * them as meta.warnings, each {code, detail, pointer}.
  *
  * A write that stands but did not do exactly what was sent notes it here: a second parcel's charge set to zero because

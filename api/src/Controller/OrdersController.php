@@ -55,7 +55,7 @@ class OrdersController extends ApiController
      * and created (the time the order was placed). The delivery details are written through alfa_form_fields, and a
      * PATCH that leaves either out keeps it as stored.
      *
-     * The parts a create takes in its one call, lines, shipment and payment (2.2.2), are refused on an update too: an
+     * The parts a create takes in its one call, lines, shipment and payment, are refused on an update too: an
      * existing order's lines, parcels and payments change through the order operations.
      *
      * @var string[]
@@ -72,7 +72,7 @@ class OrdersController extends ApiController
     ];
 
     /**
-     * The method keys an order's create (POST) does not take at its top level (2.2.2): an order takes its payment and
+     * The method keys an order's create (POST) does not take at its top level: an order takes its payment and
      * shipping methods from its payments and parcels, and follows the latest live one of each (OrderMethods). A create
      * in one call names them inside its payment and its shipment ({@see OrderCreateParts}).
      *
@@ -82,7 +82,7 @@ class OrdersController extends ApiController
     private const NOT_CREATED = ['id_payment_method', 'payment_method_name', 'id_shipment_method', 'shipment_method_name'];
 
     /**
-     * The lists of an order that a create does not take (2.2.2): payments and shipments, as the read publishes them, and
+     * The lists of an order that a create does not take: payments and shipments, as the read publishes them, and
      * items, the order screen's name for its lines. The order form declares them, so its filter dropped them and a
      * create answered 201 with no payment, parcel or line; a create in one call sends payment, shipment and lines.
      *
@@ -121,7 +121,7 @@ class OrdersController extends ApiController
      * Each filter goes onto the model state under the name the orders screen's filter form gives it, and the list
      * model applies it as it does for the screen (2.2.1: payment, fulfilment, waiting, reconciliation, overpaid, the
      * order date window and item_id; and the customer, by account or by the order's e-mail). The date window's bounds
-     * are UTC, as every date the API publishes (2.2.2): a bound without a zone is a UTC time and a day is the UTC day;
+     * are UTC, as every date the API publishes: a bound without a zone is a UTC time and a day is the UTC day;
      * a bound with Z or an offset is read in its own zone. The screen's date presets are not read here.
      *
      * @return static A BaseController object to support chaining.
@@ -193,7 +193,7 @@ class OrdersController extends ApiController
             $this->modelState->set('filter.email', RequestScalar::member($apiFilterInfo, 'email', 'STRING', 'filter'));
         }
 
-        // Every date bound of the API is UTC (2.2.2): a bound without a zone is a UTC time, a day the UTC day; a bound
+        // Every date bound of the API is UTC: a bound without a zone is a UTC time, a day the UTC day; a bound
         // with Z or an offset keeps its own zone.
         $this->modelState->set('filter.date_zone', 'UTC');
 
@@ -215,7 +215,7 @@ class OrdersController extends ApiController
      *
      * The invoice details are the model's to keep: an update that sends neither invoice_differs nor
      * alfa_form_fields_billing keeps the order's own invoice details, and the answer is the order as stored
-     * (OrderModel::keepsStoredInvoice(), 2.2.2). Only invoice_differs 0 invoices the order to its delivery details.
+     * (OrderModel::keepsStoredInvoice()). Only invoice_differs 0 invoices the order to its delivery details.
      *
      * @param int|null $id The record id.
      *
@@ -248,12 +248,12 @@ class OrdersController extends ApiController
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $this->refuseInvoiceWithoutDetails(orderId: $orderId);
 
-        // The guards' edit: the published attributes the update does not write are refused first (2.2.1).
+        // The guards' edit: the published attributes the update does not write are refused first.
         return $this->guardedEdit();
     }
 
     /**
-     * Create an order, in one call when the body carries its parts (2.2.2): lines, a shipment and a payment beside the
+     * Create an order, in one call when the body carries its parts: lines, a shipment and a payment beside the
      * customer's details, customer_note, invoice_differs with alfa_form_fields_billing, id_order_status and silent.
      * Everything is written in one transaction by the order model ({@see OrderCreateParts}); a part refused leaves no
      * order and answers 422 when it is not in a shape the create takes, 409 when its writer refused it, with the part

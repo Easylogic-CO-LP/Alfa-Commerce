@@ -272,7 +272,7 @@ class OrderopsController extends OrdersController
 
     /**
      * The pricing instructions of a line body, validated before anything is written: the line's own reader
-     * ({@see LinePricing::fromPayload()}, 2.2.2, G0), its refusal answered 400 with the sentence that names the field.
+     * ({@see LinePricing::fromPayload()}), its refusal answered 400 with the sentence that names the field.
      *
      * @param array $body The decoded request body.
      *
@@ -374,10 +374,10 @@ class OrderopsController extends OrdersController
      *  shipping_tax_rate?, items?: [{id_order_item, quantity}]}
      *
      * `carrier` is the carrier company's name (the parcel's carrier_name). A parcel keeps no note: a `note` is refused
-     * (422, 2.2.2), where it was dropped without a word.
+     * (422).
      *
-     * A parcel with no charge (no figures, or both at 0.00) states no rate: it takes the shipping tax that applies
-     * (2.2.2). The order is charged shipping once: a second open parcel's charge is set to 0 and meta.warnings says
+     * A parcel with no charge (no figures, or both at 0.00) states no rate: it takes the shipping tax that applies.
+     * The order is charged shipping once: a second open parcel's charge is set to 0 and meta.warnings says
      * so (shipping_charged_once), and a quantity beyond what the line still has to send is cut to it and said
      * (quantity_cut).
      *
@@ -411,7 +411,7 @@ class OrderopsController extends OrdersController
             'status' => (string) ($body['status'] ?? 'pending'),
         ];
 
-        // The carrier company's name is the parcel's carrier_name (2.2.2; it was dropped, not being a column).
+        // The carrier company's name is the parcel's carrier_name.
         if (isset($body['carrier'])) {
             $data['carrier_name'] = (string) $body['carrier'];
         }
@@ -446,7 +446,7 @@ class OrderopsController extends OrdersController
      * {status?, tracking_number?, carrier?, id_shipment_method?, weight?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
      *  shipping_tax_rate?, items?}
      *
-     * `carrier` writes the parcel's carrier_name; a `note` is refused (422), a parcel keeps none (2.2.2).
+     * `carrier` writes the parcel's carrier_name; a `note` is refused (422), a parcel keeps none.
      *
      * The charge follows the rules of addShipment(), on the entry mode the
      * parcel kept: a figure the body does not carry is the parcel's own, and the
@@ -490,7 +490,7 @@ class OrderopsController extends OrdersController
             }
         }
 
-        // The carrier company's name is the parcel's carrier_name (2.2.2; it was dropped, not being a column).
+        // The carrier company's name is the parcel's carrier_name.
         if (isset($body['carrier'])) {
             $data['carrier_name'] = (string) $body['carrier'];
         }
@@ -524,7 +524,7 @@ class OrderopsController extends OrdersController
     }
 
     /**
-     * Answer 422 naming note when a parcel's write carries one (2.2.2): a parcel keeps no note (#__alfa_order_shipments
+     * Answer 422 naming note when a parcel's write carries one: a parcel keeps no note (#__alfa_order_shipments
      * has no column for one, and its plugin data is the carrier plugin's), so a note sent was dropped with a 200. An
      * empty note asks nothing and is let through.
      *
@@ -1024,7 +1024,7 @@ class OrderopsController extends OrdersController
      * Run a write on the order model and translate failure into an HTTP error.
      *
      * The refusal's sentence is the model's error when it set one (a line), else the sentence the payments or the
-     * shipments ledger told staff about the write it refused (2.2.2: a second pending payment while one covers the
+     * shipments ledger told staff about the write it refused (a second pending payment while one covers the
      * balance, a parcel's charge the tax rule refuses), read by PaymentLedger::queuedRefusal() as the settle reads
      * it; the generic sentence only when neither said why.
      *

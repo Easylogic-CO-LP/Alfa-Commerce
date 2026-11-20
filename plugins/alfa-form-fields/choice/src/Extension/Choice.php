@@ -104,8 +104,7 @@ final class Choice extends FormFieldsPlugin
             $node->setAttribute('hint', $placeholder);
         }
 
-        // Every mode gets the choice validator: a value must be one of the options (2.2.2; before, only the multi modes
-        // carried it, and only for their counts). Multi-mode fields also get min/max.
+        // Every mode gets the choice validator: a value must be one of the options. Multi-mode fields also get min/max.
         $node->setAttribute('validate', 'choice');
         FormHelper::addRulePrefix('Alfa\\Plugin\\AlfaFormFields\\Choice\\Rule');
 

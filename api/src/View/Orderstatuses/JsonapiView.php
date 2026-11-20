@@ -42,8 +42,7 @@ class JsonApiView extends BaseApiView
         'is_cancelled',
         'is_completed',
         'notify_customer',
-        // Whether entering the status mails one of its administrator recipients, and who they are (Joomla user ids)
-        // (2.2.2).
+        // Whether entering the status mails one of its administrator recipients, and who they are (Joomla user ids).
         'notifies_staff',
         'admin_recipient_ids',
         'ordering',
@@ -66,7 +65,7 @@ class JsonApiView extends BaseApiView
         'is_initial',
         'is_cancelled',
         'is_completed',
-        // Who entering the status mails: the customer, and its administrator recipients (2.2.2).
+        // Who entering the status mails: the customer, and its administrator recipients.
         'notify_customer',
         'notifies_staff',
         'ordering',
@@ -74,7 +73,7 @@ class JsonApiView extends BaseApiView
     ];
 
     /**
-     * A list row's or the record's mail facts as whole numbers, as the status's other flags read (2.2.2).
+     * A list row's or the record's mail facts as whole numbers, as the status's other flags read.
      *
      * @param object $item The status.
      *
@@ -94,7 +93,7 @@ class JsonApiView extends BaseApiView
     }
 
     /**
-     * The translations a list row carries with include=translations (the status labels only, as the record carries them) (2.2.2, ListsTranslations).
+     * The translations a list row carries with include=translations (the status labels only, as the record carries them) (ListsTranslations).
      *
      * @return array{0: string, 1: string, 2: string[]}
      *

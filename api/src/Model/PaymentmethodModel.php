@@ -62,7 +62,7 @@ class PaymentmethodModel extends AdminPaymentModel
     {
         $item = parent::getItem($pk);
 
-        // Every content language's texts, only when the read asks for them (include=translations, 2.2.2).
+        // Every content language's texts, only when the read asks for them (include=translations).
         if ($item && !empty($item->id) && ApiInclude::asks(ApiInclude::TRANSLATIONS)) {
             // Full per-language map ({"en_gb": {...}, "el_gr": {...}}) so API
             // clients can read every translation and PATCH back the same

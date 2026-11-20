@@ -16,7 +16,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceCommand;
 use InvalidArgumentException;
 
 /**
- * The pricing instructions of an order line written by a client (2.2.2, G0): the REST line verbs and an extension read
+ * The pricing instructions of an order line written by a client: the REST line verbs and an extension read
  * them through this one reader, then hand them to OrderModel::saveOrderItem(), so no door keeps a rule of its own.
  *
  * unit_price_tax_incl is a DERIVED column and is refused as an input: overloading it as the custom-price instruction

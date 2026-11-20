@@ -16,7 +16,7 @@ use Joomla\Database\DatabaseDriver;
 use Joomla\Database\ParameterType;
 
 /**
- * The order's payment and shipping method follow its payments and parcels (2.2.2): one rule, in one place.
+ * The order's payment and shipping method follow its payments and parcels: one rule, in one place.
  *
  * The order row keeps the method it is paid and sent with (id, name and plugin, written together): what the orders
  * list, the e-mails and the documents name, and the plugin an order asks when it is deleted. It is the checkout's

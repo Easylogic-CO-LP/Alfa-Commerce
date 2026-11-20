@@ -725,7 +725,7 @@ class FieldsHelper
     }
 
     /**
-     * The region a telephone number with no country code is read against (2.2.2): one rule for the REST API, the
+     * The region a telephone number with no country code is read against: one rule for the REST API, the
      * storefront checkout, the order and customer screens and every back office telephone field.
      *
      * In order, and never a guess:
@@ -752,7 +752,7 @@ class FieldsHelper
 
     /**
      * Steps 2 and 3 of {@see self::phoneRegion()}, for a surface that has no submission to read (the storefront's
-     * phone widget, a stored number shown): the field's own Default region, else the shop's default country (2.2.2).
+     * phone widget, a stored number shown): the field's own Default region, else the shop's default country.
      *
      * @param string $fieldRegion The field's Default region as stored, '' for none.
      *
@@ -768,7 +768,7 @@ class FieldsHelper
     }
 
     /**
-     * A typed telephone number with a leading 00 read as + (2.2.2): 00 is read as the international prefix, the same
+     * A typed telephone number with a leading 00 read as +: 00 is read as the international prefix, the same
      * as +, for every region and with none, so "0030 694 123 4567" is "+30 694 123 4567". Anything else is handed back
      * trimmed and unchanged.
      *
@@ -784,7 +784,7 @@ class FieldsHelper
     }
 
     /**
-     * The country of the place field in the phone field's own section of the submission (2.2.2), the invoice section
+     * The country of the place field in the phone field's own section of the submission, the invoice section
      * falling back to the delivery section's; '' when the submission carries none.
      *
      * @param SimpleXMLElement $element The phone field's element.

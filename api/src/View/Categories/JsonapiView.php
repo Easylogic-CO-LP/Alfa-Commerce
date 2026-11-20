@@ -49,7 +49,7 @@ class JsonApiView extends BaseApiView
         'publish_down',
         'ordering',
         'translations',
-        // Where the category sits in the tree (2.2.2): its ancestors from the top-level category down to its parent,
+        // Where the category sits in the tree: its ancestors from the top-level category down to its parent,
         // each {id, name, alias, state}, and its level (1 for a top-level category).
         'ancestors',
         'level',
@@ -77,7 +77,7 @@ class JsonApiView extends BaseApiView
     ];
 
     /**
-     * A category's place in the tree, on a list row and on the record (2.2.2): its ancestors from the top-level
+     * A category's place in the tree, on a list row and on the record: its ancestors from the top-level
      * category down to its parent, each {id, name, alias, state} in the request's language and listed whatever its
      * state, and its level, 1 for a top-level category. Read from one read of the categories per request
      * (CategoryAncestry), never per row. item_count stays the category's own products, not those of its
@@ -100,7 +100,7 @@ class JsonApiView extends BaseApiView
     }
 
     /**
-     * The translations a list row carries with include=translations (2.2.2, ListsTranslations).
+     * The translations a list row carries with include=translations (ListsTranslations).
      *
      * @return array{0: string, 1: string, 2: string[]}
      *

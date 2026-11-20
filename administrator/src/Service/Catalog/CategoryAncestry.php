@@ -16,7 +16,7 @@ use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
 
 /**
- * A category's place in the tree, as the REST API publishes it (2.2.2): its ancestors from the root down and its level.
+ * A category's place in the tree, as the REST API publishes it: its ancestors from the root down and its level.
  *
  * Categories are an adjacency list (parent_id, no nested set and no path column), so the chains are walked in PHP
  * from one read of every category per request and language, kept for the request: a page of fifty categories, or a

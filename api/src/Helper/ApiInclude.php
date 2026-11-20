@@ -15,7 +15,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Factory;
 
 /**
- * What a read asks to be included beside its fields (2.2.2): the include parameter, a comma-separated list
+ * What a read asks to be included beside its fields: the include parameter, a comma-separated list
  * (include=translations). Today it names one thing, translations: every content language's texts of a translated
  * record, on a list row and on a single record alike; without it a read carries the texts in one language only
  * (lang, else the shop's default content language).

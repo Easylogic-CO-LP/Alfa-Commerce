@@ -75,7 +75,7 @@ class TelephoneFilter implements FormFilterInterface
             return $value;
         }
 
-        // A leading 00 is the international prefix, read as + (2.2.2).
+        // A leading 00 is the international prefix, read as +.
         $value = FieldsHelper::phoneTyped($value);
 
         if (class_exists(PhoneNumberUtil::class)) {
@@ -92,8 +92,8 @@ class TelephoneFilter implements FormFilterInterface
     /**
      * E.164 from libphonenumber, or null when it cannot read the number.
      *
-     * The region a number without a country code is read against is the one rule's (FieldsHelper::phoneRegion(),
-     * 2.2.2): the country of the place field in the same section of the submission, else the field's Default region,
+     * The region a number without a country code is read against is the one rule's (FieldsHelper::phoneRegion()):
+     * the country of the place field in the same section of the submission, else the field's Default region,
      * else the shop's default country.
      *
      * @param SimpleXMLElement $element The field element.

@@ -73,7 +73,7 @@ final class SubmitAuthority
 
     /**
      * The names of the fields of one section that the rules hide for these values: what {@see self::prune()} removes,
-     * read only (2.2.2). A caller that says which values it did not keep (the REST order write, in meta.warnings) asks
+     * read only. A caller that says which values it did not keep (the REST order write, in meta.warnings) asks
      * this beside the prune, so the two answer from one decision.
      *
      * @param object[] $fields The active field definitions for this section's context.

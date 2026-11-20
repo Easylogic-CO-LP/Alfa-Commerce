@@ -164,7 +164,7 @@ class JsonApiView extends BaseApiView
             $item->related = RelatedItems::posted(posted: $item->related);
         }
 
-        // A product that tracks stock and holds no stock record has none on the shelf: its stock reads 0 (2.2.2). The
+        // A product that tracks stock and holds no stock record has none on the shelf: its stock reads 0. The
         // inventory makes no record for a figure of 0, so a product created with stock 0 read null, which a client
         // takes for "not tracked". A product that does not track stock keeps null.
         if (\is_object($item) && property_exists($item, 'stock') && $item->stock === null && (int) ($item->manage_stock ?? 0) === 1) {
@@ -175,7 +175,7 @@ class JsonApiView extends BaseApiView
     }
 
     /**
-     * The translations a list row carries with include=translations (2.2.2, ListsTranslations).
+     * The translations a list row carries with include=translations (ListsTranslations).
      *
      * @return array{0: string, 1: string, 2: string[]}
      *
