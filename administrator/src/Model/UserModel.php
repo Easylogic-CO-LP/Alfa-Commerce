@@ -91,8 +91,10 @@ class UserModel extends AlfaAdminModel
      * Returns a single record enriched with read-only display data from the
      * linked Joomla user (name, email, username) and a pre-built edit URL.
      *
-     * The edit URL uses tmpl=component so the iframe only loads the edit form
-     * without the full admin chrome around it.
+     * The edit URL opens com_users' whole edit page (Users: Edit), toolbar
+     * included (Save, Save & Close, Close), in the customer page's Account
+     * settings modal. It carries no tmpl: the component template draws no
+     * toolbar, and the edit page has no Save of its own.
      *
      * @param int|null $pk Primary key.
      *
@@ -125,9 +127,9 @@ class UserModel extends AlfaAdminModel
             $item->joomla_email = $user->email;
             $item->joomla_username = $user->username;
 
-            // tmpl=component strips admin chrome; only the edit form renders
-            // inside the iframe. Route::_() is intentionally avoided here as
-            // it can mangle core com_users admin URLs.
+            // No tmpl=component, which would drop the toolbar (see above).
+            // Route::_() is intentionally avoided here as it can mangle core
+            // com_users admin URLs.
             $item->joomla_edit_url = 'index.php?option=com_users&task=user.edit'
     . '&id=' . (int) $item->id_user;
         }
