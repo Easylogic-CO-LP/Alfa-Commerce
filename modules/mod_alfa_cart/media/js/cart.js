@@ -127,7 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // With "Open the cart" the drawer is the add's confirmation: claim the add so
-    // the component shows no card. The re-read itself hangs on alfa:cart:changed.
+    // the component shows no card, unless the card carries the stock's notice. The
+    // re-read itself hangs on alfa:cart:changed.
     document.addEventListener("alfaProductAdded", (event) => {
         if (cartOuter.getAttribute("data-on-add") !== "open") {
             return;

@@ -4,7 +4,8 @@
  * markup: the card, its words and its close controls come from the layout; here it is
  * only inserted, timed and removed, through data attributes. A listener that presents
  * the add itself (event.preventDefault() on `alfaProductAdded`, e.g. a cart module
- * opening its drawer) keeps the card away.
+ * opening its drawer) keeps the card away, unless the card carries the stock's notice
+ * (data-notice), which is shown whoever presents the add.
  *
  * On success it also announces `alfa:cart:changed` ({ source: 'add-to-cart', action:
  * 'add' }), the signal every cart surface re-reads on, after this add has presented
@@ -294,6 +295,12 @@
         }
     }
 
+    /** Whether the card the server rendered carries the stock's notice: its root has data-notice. */
+    function carriesNotice(html) {
+        return typeof html === 'string'
+            && new DOMParser().parseFromString(html, 'text/html').querySelector(CARD + '[data-notice]') !== null;
+    }
+
     async function addToCart(button) {
         const item = button.closest('[data-item-id]');
 
@@ -437,6 +444,12 @@
                 return;
             }
 
+            // Nothing was added, yet a line may have been lowered to what the stock
+            // holds (cart_changed): every cart surface on the page reads again.
+            if (responseData.data.cart_changed === true) {
+                announceCartChanged();
+            }
+
             setButtonState(button, null);
             showCard(card);
             return;
@@ -453,16 +466,29 @@
         document.dispatchEvent(event);
 
         if (event.defaultPrevented) {
-            // Someone else presents this add (a cart drawer opening): no new card,
-            // and a card still on screen from an earlier add leaves.
-            closeCard(document.querySelector(CARD));
+            // Someone else presents this add (a cart drawer opening). A card that
+            // carries the stock's notice (data-notice: fewer went in than were asked
+            // for) is still shown, since the drawer does not say why; otherwise no
+            // new card, and a card still on screen from an earlier add leaves.
+            if (carriesNotice(card)) {
+                showCard(card);
+            } else {
+                closeCard(document.querySelector(CARD));
+            }
         } else {
             showCard(card);
         }
 
         // The cart's contents changed: every cart surface on the page re-reads its own
-        // reading. A notification only, nothing of this answer travels with it; sent
-        // after the add has presented itself, whoever presented it.
+        // reading. Sent after the add has presented itself, whoever presented it.
+        announceCartChanged();
+    }
+
+    /**
+     * Tell every cart surface on the page that the cart's contents changed. A
+     * notification only, nothing of the answer travels with it.
+     */
+    function announceCartChanged() {
         document.dispatchEvent(new CustomEvent('alfa:cart:changed', {
             bubbles: true,
             detail: { source: CART_CHANGED_SOURCE, action: 'add' },

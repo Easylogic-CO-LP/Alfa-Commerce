@@ -90,7 +90,17 @@ final class NamedCartEditor
         $lineId = (int) $cart->lines->add($command);
 
         if ($lineId <= 0) {
-            return new CartAddResult(false, 0, null, 0, 0);
+            // The cart already holds the available quantity: said with its
+            // figure and what the cart holds, as the storefront's add says it.
+            $limit = $cart->lines->stockLimit();
+
+            if ($limit === null) {
+                return new CartAddResult(false, 0, null, 0, 0);
+            }
+
+            $state = $cart->hydrator->current();
+
+            return new CartAddResult(false, 0, null, $state->itemCount(), $state->quantity(), stockLimit: $limit);
         }
 
         $again = $this->cart();
@@ -104,6 +114,7 @@ final class NamedCartEditor
             itemCount: $state->itemCount(),
             quantity: $state->quantity(),
             grandTotal: $again->computation->totals()->grandTotal(),
+            stockLimit: $cart->lines->stockLimit(),
         );
     }
 

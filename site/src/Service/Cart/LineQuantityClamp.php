@@ -12,6 +12,8 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Cart\KeptQuantity;
+use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityDecision;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Closure;
@@ -50,13 +52,69 @@ final class LineQuantityClamp
      */
     public function allowed(int $cartId, object $item, ?int $combinationId, int $quantity, int $excludeLineId = 0): int
     {
-        [$ceiling, $pooled] = $this->shelf(cartId: $cartId, item: $item, combinationId: $combinationId, excludeLineId: $excludeLineId);
-
-        $decision = (new CartQuantityPolicy())->decide($item, $combinationId, $quantity, $ceiling, $pooled);
+        $decision = $this->decision(
+            cartId: $cartId,
+            item: $item,
+            combinationId: $combinationId,
+            quantity: $quantity,
+            excludeLineId: $excludeLineId,
+        );
 
         $this->messaging->announce($decision);
 
         return $decision->quantity;
+    }
+
+    /**
+     * The policy's decision, with nothing said to the shopper yet.
+     *
+     * For a caller that speaks once it knows what its write did: a shopper's
+     * add and quantity change name the available quantity after the line is
+     * stored ({@see CartMessaging::stock()}), and leave the rest of the
+     * decision to {@see CartMessaging::announce()}.
+     *
+     * @param int $cartId The cart.
+     * @param object $item The product.
+     * @param int|null $combinationId The variant, when it has them.
+     * @param int $quantity What was asked for.
+     * @param int $excludeLineId A line not to count as already held.
+     *
+     * @since  2.2.2
+     */
+    public function decision(int $cartId, object $item, ?int $combinationId, int $quantity, int $excludeLineId = 0): QuantityDecision
+    {
+        [$ceiling, $pooled] = $this->shelf(cartId: $cartId, item: $item, combinationId: $combinationId, excludeLineId: $excludeLineId);
+
+        return (new CartQuantityPolicy())->decide($item, $combinationId, $quantity, $ceiling, $pooled);
+    }
+
+    /**
+     * What this cart holds of a unit's stock, in whole units: every line that
+     * draws on the same stock, as the decision counts them, and never more
+     * than the stock supplies, so the figure is the available quantity also
+     * when the stock fell below what the cart holds.
+     *
+     * @param int $cartId The cart.
+     * @param object $item The product.
+     * @param int|null $combinationId The variant, when it has them.
+     *
+     * @since  2.2.2
+     */
+    public function held(int $cartId, object $item, ?int $combinationId): int
+    {
+        $itemId = (int) ($item->id ?? 0);
+
+        if ($cartId <= 0 || $itemId <= 0) {
+            return 0;
+        }
+
+        $held = (int) round($this->repository->pooledQuantity($cartId, $itemId, $combinationId ?: null));
+        $ceiling = (new InventoryService())->purchasableCeiling(itemId: $itemId, combinationId: $combinationId ?: null);
+
+        // Whole units, as the policy counts the shelf.
+        return $ceiling === null
+            ? $held
+            : min($held, (int) floor($ceiling + InventoryAvailabilityService::QUANTITY_TOLERANCE));
     }
 
     /**

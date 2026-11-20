@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartPersistenceException;
 use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityDecision;
 use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityReason;
@@ -17,6 +18,7 @@ use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Throwable;
+use ValueError;
 
 defined('_JEXEC') or die;
 
@@ -67,8 +69,13 @@ final class CartMessaging
      *
      * A refusal the merchant's rules alone cause names the smallest sale and
      * the step; a refusal the shelf causes says the product is out of stock; a
-     * cut to what the shelf holds is a notice; every other correction is
-     * silent. One decision speaks at most one refusal.
+     * cut to what the shelf holds is a notice, unless the decision refuses,
+     * when the refusal speaks alone; every other correction is silent. One
+     * decision speaks at most one refusal.
+     *
+     * A shopper's add and quantity change say the shelf's part with its figure
+     * instead, once the write is done ({@see self::stock()}), whenever the cart
+     * holds some of that stock; this speaks for the rest.
      *
      * @param QuantityDecision $decision The quantity policy's decision.
      *
@@ -84,7 +91,9 @@ final class CartMessaging
                     'warning',
                 ],
                 QuantityReason::StockExhausted => [Text::_(string: 'COM_ALFA_CART_OUT_OF_STOCK'), 'warning'],
-                QuantityReason::ClampedToStock => [Text::_(string: 'COM_ALFA_CART_QUANTITY_CLAMPED'), 'notice'],
+                QuantityReason::ClampedToStock => $decision->refused()
+                    ? [null, null]
+                    : [Text::_(string: 'COM_ALFA_CART_QUANTITY_CLAMPED'), 'notice'],
                 QuantityReason::BelowMinimum => [Text::_(string: 'COM_ALFA_CART_OUT_OF_STOCK'), 'warning'],
                 default => [null, null],
             };
@@ -92,6 +101,48 @@ final class CartMessaging
             if ($sentence !== null) {
                 $this->app->enqueueMessage(msg: $sentence, type: $type);
             }
+        }
+    }
+
+    /**
+     * The shelf's say in a shopper's add or quantity change, as one notice
+     * naming the available quantity: never a failure.
+     *
+     * @param StockLimit $limit What the cart holds of that stock, and whether more went in.
+     *
+     * @since  2.2.2
+     */
+    public function stock(StockLimit $limit): void
+    {
+        $this->app->enqueueMessage(msg: self::stockSentence(limit: $limit), type: 'notice');
+    }
+
+    /**
+     * The one wording of the shelf's say, for every answer that carries it: the
+     * notice, the add's JSON message and its card.
+     *
+     * A translation that takes other parameters than the one figure cannot be
+     * said as written; the sentence is then said in English, as a notification
+     * whose language cannot say it is ({@see NotificationText}), never thrown
+     * at the shopper.
+     *
+     * @param StockLimit $limit What the cart holds of that stock, and whether more went in.
+     *
+     * @return string The sentence in the shopper's language, the figure in it.
+     *
+     * @since  2.2.2
+     */
+    public static function stockSentence(StockLimit $limit): string
+    {
+        $key = $limit->added ? 'COM_ALFA_CART_AVAILABLE_ADDED' : 'COM_ALFA_CART_AVAILABLE_HELD';
+
+        try {
+            return vsprintf(Text::_($key), [$limit->quantity]);
+        } catch (ValueError) {
+            $english = NotificationText::own(tag: 'en-GB');
+            $english->load(extension: 'com_alfa', basePath: JPATH_SITE, lang: 'en-GB', reload: false, default: false);
+
+            return vsprintf($english->_($key), [$limit->quantity]);
         }
     }
 
