@@ -21,7 +21,9 @@ use Joomla\Database\ParameterType;
  * A dismissible notification that follows a condition of the site, told as a list of facts (the libraries that are
  * missing, the extensions not built for this version, the page cache's state): raised when a fact appears, withdrawn
  * when none is left. A notice the administrator dismissed stays dismissed while its facts hold; a new fact raises it
- * again, unread; a fact that goes away updates the notice in place, its read and dismissed state kept.
+ * again, unread; a fact that goes away updates the notice in place, its read and dismissed state kept. A fact the
+ * caller names calm (the better of two states, such as the page cache's note after its warning) is no news: when it
+ * replaces another fact the notice is updated in place too, so only a worse state raises it again.
  *
  * The facts last told are kept in `#__alfa_meta` (`notice.<dedup key>`), so the notice is raised once for each change
  * and not again when its dismissed row has expired from the history.
@@ -46,12 +48,14 @@ final class ConditionNotice
      * @param list<string> $facts What holds now; empty when there is nothing to say.
      * @param callable(): void $push Pushes the notice under $key (NotificationHelper::push(), not constant), with
      *                               the words of these facts.
+     * @param list<string> $calm Facts that are no news once the notice has been raised: their arrival updates the
+     *                           notice in place, its read and dismissed state kept. The first raise is always news.
      *
      * @throws InvalidArgumentException When the key is too long for its meta row.
      *
      * @since  2.2.2
      */
-    public static function follow(string $key, array $facts, callable $push): void
+    public static function follow(string $key, array $facts, callable $push, array $calm = []): void
     {
         $facts = self::normalise(facts: $facts);
         $told = self::told(key: $key);
@@ -72,7 +76,9 @@ final class ConditionNotice
             return;
         }
 
-        if (array_diff($facts, $told ?? []) !== []) {
+        $news = array_diff($facts, $told ?? [], $told === null ? [] : self::normalise(facts: $calm));
+
+        if ($news !== []) {
             // A new fact: a notice of its own, unread, even when the last one was dismissed.
             if (NotificationHelper::exists(dedupKey: $key)) {
                 NotificationHelper::clear(dedupKey: $key, hard: true);
@@ -80,7 +86,8 @@ final class ConditionNotice
 
             $push();
         } elseif (NotificationHelper::exists(dedupKey: $key)) {
-            // Fewer facts: the words brought up to date, the notice's read and dismissed state kept.
+            // Fewer facts, or a calm one in place of another: the words brought up to date, the notice's read and
+            // dismissed state kept.
             $push();
         }
 

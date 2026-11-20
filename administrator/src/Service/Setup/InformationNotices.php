@@ -153,7 +153,8 @@ final class InformationNotices
     /**
      * Joomla's page cache: while System - Page Cache is enabled, what Alfa Commerce keeps out of it, in the words of
      * System - Alfa Commerce Sync's state ({@see SyncPluginState}); a note when the plugin runs for visitors who are
-     * not logged in, a warning when it does not.
+     * not logged in, a warning when it does not. Only a worse state raises it again: the note after a warning is
+     * calm, so the notice is brought up to date in place and stays read or dismissed as the administrator left it.
      *
      * @since  2.2.2
      */
@@ -182,6 +183,7 @@ final class InformationNotices
                     'link' => ['action' => 'core.manage', 'asset' => 'com_plugins'],
                 ],
             ),
+            calm:  ['COM_ALFA_NOTIFY_PAGECACHE_MSG'],
         );
     }
 
