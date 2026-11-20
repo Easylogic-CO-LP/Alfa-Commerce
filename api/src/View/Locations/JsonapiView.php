@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\View\Locations;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
+use Alfa\Component\Alfa\Api\View\ListsTranslations;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
 /**
@@ -22,6 +23,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 class JsonApiView extends BaseApiView
 {
     use ListsRequestTasks;
+    use ListsTranslations;
 
     /**
      * The fields to render item in the documents
@@ -68,4 +70,16 @@ class JsonApiView extends BaseApiView
         'stock_physical',
         'stock_reserved',
     ];
+
+    /**
+     * The translations a list row carries with include=translations (ListsTranslations).
+     *
+     * @return array{0: string, 1: string, 2: string[]}
+     *
+     * @since  2.2.2
+     */
+    protected function translationSource(): array
+    {
+        return ['#__alfa_inventory_locations', 'id_inventory_location', []];
+    }
 }

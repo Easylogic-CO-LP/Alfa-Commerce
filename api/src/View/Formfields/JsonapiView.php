@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\View\Formfields;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
+use Alfa\Component\Alfa\Api\View\ListsTranslations;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
 /**
@@ -22,6 +23,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 class JsonApiView extends BaseApiView
 {
     use ListsRequestTasks;
+    use ListsTranslations;
 
     /**
      * The fields to render item in the documents
@@ -47,6 +49,10 @@ class JsonApiView extends BaseApiView
         'users',
         'usergroups',
         'translations',
+        // What the field is to the shop (name, email, phone, country, address, city, postcode; null for a field of
+        // the merchant's own), and the field type's settings, a choice's options among them.
+        'role',
+        'params',
     ];
 
     /**
@@ -70,4 +76,16 @@ class JsonApiView extends BaseApiView
         'state',
         'group_title',
     ];
+
+    /**
+     * The translations a list row carries with include=translations (ListsTranslations).
+     *
+     * @return array{0: string, 1: string, 2: string[]}
+     *
+     * @since  2.2.2
+     */
+    protected function translationSource(): array
+    {
+        return ['#__alfa_form_fields', 'id_formfield', []];
+    }
 }

@@ -17,17 +17,15 @@ use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiTaskAccess;
 use Alfa\Component\Alfa\Administrator\Service\Order\LinePricing;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\StaffSettleResult;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceCommand;
-use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
-use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
-use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -350,8 +348,16 @@ class OrderopsController extends OrdersController
      * Create a shipment / fulfil lines.
      *
      * POST v1/alfa/orders/:id/shipments
-     * {id_shipment_method, tracking_number?, status?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
+     * {id_shipment_method, tracking_number?, carrier?, status?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
      *  shipping_tax_rate?, items?: [{id_order_item, quantity}]}
+     *
+     * `carrier` is the carrier company's name (the parcel's carrier_name). A parcel keeps no note: a `note` is refused
+     * (422).
+     *
+     * A parcel with no charge (no figures, or both at 0.00) states no rate: it takes the shipping tax that applies.
+     * The order is charged shipping once: a second open parcel's charge is set to 0 and meta.warnings says
+     * so (shipping_charged_once), and a quantity beyond what the line still has to send is cut to it and said
+     * (quantity_cut).
      *
      * The charge: shipping_cost_tax_incl alone is an untaxed charge (the net is
      * the gross, the rate 0). A taxed charge sends all three; the VAT rate is a
@@ -374,14 +380,19 @@ class OrderopsController extends OrdersController
     {
         $orderId = $this->requireOrderId();
         $body = $this->body();
+        $this->refuseParcelNote(body: $body);
 
         $data = [
             'id_order' => $orderId,
             'id_shipment_method' => (int) ($body['id_shipment_method'] ?? 0),
             'tracking_number' => $body['tracking_number'] ?? '',
             'status' => (string) ($body['status'] ?? 'pending'),
-            'note' => $body['note'] ?? '',
         ];
+
+        // The carrier company's name is the parcel's carrier_name.
+        if (isset($body['carrier'])) {
+            $data['carrier_name'] = (string) $body['carrier'];
+        }
 
         foreach (['shipping_cost_tax_incl', 'shipping_cost_tax_excl'] as $key) {
             if (isset($body[$key])) {
@@ -410,8 +421,10 @@ class OrderopsController extends OrdersController
      * Update a shipment: status, tracking, carrier, cost or composition.
      *
      * PATCH v1/alfa/orders/:id/shipments/:shipmentId
-     * {status?, tracking_number?, carrier?, weight?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
+     * {status?, tracking_number?, carrier?, id_shipment_method?, weight?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
      *  shipping_tax_rate?, items?}
+     *
+     * `carrier` writes the parcel's carrier_name; a `note` is refused (422), a parcel keeps none.
      *
      * The charge follows the rules of addShipment(), on the entry mode the
      * parcel kept: a figure the body does not carry is the parcel's own, and the
@@ -442,16 +455,22 @@ class OrderopsController extends OrdersController
         $orderId = $this->requireOrderId();
         $shipment = $this->requireOwnedShipment($orderId);
         $body = $this->body();
+        $this->refuseParcelNote(body: $body);
 
         $data = [
             'id' => (int) $shipment->id,
             'id_order' => $orderId,
         ];
 
-        foreach (['status', 'tracking_number', 'carrier', 'note'] as $key) {
+        foreach (['status', 'tracking_number'] as $key) {
             if (isset($body[$key])) {
                 $data[$key] = (string) $body[$key];
             }
+        }
+
+        // The carrier company's name is the parcel's carrier_name.
+        if (isset($body['carrier'])) {
+            $data['carrier_name'] = (string) $body['carrier'];
         }
 
         foreach (['shipping_cost_tax_incl', 'shipping_cost_tax_excl'] as $key) {
@@ -480,6 +499,26 @@ class OrderopsController extends OrdersController
         $this->runOrderWrite('saveOrderShipment', $data);
 
         return $this->displayItem($orderId);
+    }
+
+    /**
+     * Answer 422 naming note when a parcel's write carries one: a parcel keeps no note (#__alfa_order_shipments
+     * has no column for one, and its plugin data is the carrier plugin's), so a note sent was dropped with a 200. An
+     * empty note asks nothing and is let through.
+     *
+     * @param array $body The request body.
+     *
+     * @throws Save When the body carries a note (422).
+     *
+     * @since  2.2.2
+     */
+    private function refuseParcelNote(array $body): void
+    {
+        if (($body['note'] ?? null) !== null && $body['note'] !== '') {
+            throw new Save('note cannot be written through the API: a parcel keeps no note. Write the order\'s note to the'
+                . ' customer through PATCH v1/alfa/orders/:id (customer_note), or a status change\'s note through POST'
+                . ' v1/alfa/orders/:id/status. Nothing was saved.', 422);
+        }
     }
 
     /**
@@ -867,6 +906,11 @@ class OrderopsController extends OrdersController
     /**
      * Run a write on the order model and translate failure into an HTTP error.
      *
+     * The refusal's sentence is the model's error when it set one (a line), else the sentence the payments or the
+     * shipments ledger told staff about the write it refused (a second pending payment while one covers the
+     * balance, a parcel's charge the tax rule refuses), read by PaymentLedger::queuedRefusal() as the settle reads
+     * it; the generic sentence only when neither said why.
+     *
      * @param string $method The model method to call.
      * @param array $data Data passed by reference to the model.
      * @param array $arguments Further arguments, by name (the line writer's pricing instructions).
@@ -877,9 +921,10 @@ class OrderopsController extends OrdersController
     private function runOrderWrite(string $method, array $data, array $arguments = []): void
     {
         $model = $this->orderModel();
+        $told = \count($this->app->getMessageQueue());
 
         if (!$model->$method($data, ...$arguments)) {
-            throw new Save($this->modelError($model, 'The order could not be updated'), 409);
+            throw new Save($this->modelError($model, PaymentLedger::queuedRefusal(app: $this->app, told: $told) ?: 'The order could not be updated'), 409);
         }
     }
 
@@ -991,7 +1036,8 @@ class OrderopsController extends OrdersController
     /**
      * A parcel's VAT rate from the body: a percentage of zero or more with at
      * most three decimal places, as the column holds it. A JSON number is read
-     * at the digits it carries; text as written, never rounded.
+     * at the digits it carries; text as written, never rounded. The rule is
+     * {@see OrderCreateParts::rate()}, which the one-call create reads too.
      *
      * @param mixed $value The body's value, already known to be present.
      *
@@ -1003,14 +1049,11 @@ class OrderopsController extends OrdersController
      */
     private function parcelRate(mixed $value): string
     {
-        $text = \is_float($value) && is_finite($value) ? ExactAmount::ofNumber($value)->text() : $value;
-
-        if ((!\is_string($text) && !\is_int($text)) || preg_match('/^\d+(?:\.\d+)?$/D', (string) $text) !== 1
-            || StoredDecimal::refusal(value: ExactAmount::of((string) $text), precision: 10, scale: 3) !== null) {
-            throw new Save('shipping_tax_rate must be a percentage of zero or more with at most three decimal places', 400);
+        try {
+            return OrderCreateParts::rate(value: $value, field: 'shipping_tax_rate');
+        } catch (InvalidArgumentException $e) {
+            throw new Save($e->getMessage(), 400);
         }
-
-        return (string) $text;
     }
 
     /**
@@ -1048,7 +1091,8 @@ class OrderopsController extends OrdersController
      *
      * Canonical ungrouped decimals only, and NOT trimmed: presentation formats
      * ("1.234,56", " 5") belong to a parser with a format contract, not to a
-     * money verb.
+     * money verb. The rule is {@see OrderCreateParts::amount()}, which the
+     * one-call create reads too.
      *
      * @param mixed $value The body's value, already known to be present.
      * @param string $field The body key, for the refusal.
@@ -1061,23 +1105,10 @@ class OrderopsController extends OrdersController
      */
     private function exactAmount(mixed $value, string $field, Currency $currency): Money
     {
-        if (!\is_int($value) && !\is_float($value) && !\is_string($value)) {
-            throw new Save($field . ' must be a number', 400);
-        }
-
         try {
-            return ExactMoney::of(value: $value, currency: $currency);
-        } catch (ExactMoneyRefusal $e) {
-            throw new Save(
-                match ($e->reason()) {
-                    ExactMoney::FINER => sprintf('%s has more decimal places than %s allows (%d)', $field, $currency->getCode(), $currency->getDecimalPlaces()),
-                    ExactMoney::LARGER => sprintf('%s %s is larger than an amount of %s holds', $field, $e->typed(), $currency->getCode()),
-                    ExactMoney::NOT_EXACT => sprintf('%s is a JSON number that does not carry its digits exactly: send the amount as a string', $field),
-                    default => $field . ' must be a decimal number',
-                },
-                400,
-                $e,
-            );
+            return OrderCreateParts::amount(value: $value, field: $field, currency: $currency);
+        } catch (InvalidArgumentException $e) {
+            throw new Save($e->getMessage(), 400, $e);
         }
     }
 

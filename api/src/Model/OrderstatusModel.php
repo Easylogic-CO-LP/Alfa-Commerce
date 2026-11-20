@@ -13,6 +13,8 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderstatusModel as AdminOrderstatusModel;
+use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
+use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 
 /**
  * API Orderstatus model: the admin model plus resolved translations.
@@ -52,14 +54,22 @@ class OrderstatusModel extends AdminOrderstatusModel
             // Per-language map pruned to the status labels: the lang rows also
             // carry email subject/body templates: internal automation config
             // that must not ride along on API responses.
-            $item->translations = array_map(
-                static fn (array $row): array => array_intersect_key($row, array_flip(['name', 'name_customer'])),
-                MultilingualHelper::getMultilingualData(
-                    currentId:         (int) $item->id,
-                    primaryColumnName: 'id_orderstatus',
-                    tableName:         '#__alfa_orders_statuses',
-                ),
-            );
+            // Every content language's texts, only when the read asks for them (include=translations).
+            if (ApiInclude::asks(ApiInclude::TRANSLATIONS)) {
+                $item->translations = array_map(
+                    static fn (array $row): array => array_intersect_key($row, array_flip(['name', 'name_customer'])),
+                    MultilingualHelper::getMultilingualData(
+                        currentId:         (int) $item->id,
+                        primaryColumnName: 'id_orderstatus',
+                        tableName:         '#__alfa_orders_statuses',
+                    ),
+                );
+            }
+
+            // Who entering the status mails: notify_customer is the customer, notifies_staff whether one of the
+            // status's administrator recipients (admin_recipient_ids, hydrated by the parent) may receive mail, by
+            // the definition the status e-mail reads.
+            $item->notifies_staff = (int) EmailService::notifiesForStatus(statusId: (int) $item->id, customer: false);
         }
 
         return $item;

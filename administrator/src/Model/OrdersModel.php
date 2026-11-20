@@ -255,7 +255,9 @@ class OrdersModel extends AlfaListModel
 
         // "An order with a payment like this", optionally within the window on the
         // payment's own date column.
-        $paymentLike = static function (array $where, ?string $dateColumn) use ($db, $localStart, $localEnd): string {
+        // The REST API's bounds are UTC; the screen's are the shop's.
+        $zone = AlfaHelper::boundsZone(stated: $this->getState('filter.date_zone'));
+        $paymentLike = static function (array $where, ?string $dateColumn) use ($db, $localStart, $localEnd, $zone): string {
             $sub = $db->getQuery(true)
                 ->select('1')
                 ->from($db->quoteName('#__alfa_order_payments', 'p'))
@@ -266,7 +268,7 @@ class OrdersModel extends AlfaListModel
             }
 
             if ($dateColumn !== null) {
-                AlfaHelper::applyDateRange(query: $sub, column: $dateColumn, localStart: $localStart, localEnd: $localEnd);
+                AlfaHelper::applyDateRange(query: $sub, column: $dateColumn, localStart: $localStart, localEnd: $localEnd, zone: $zone);
             }
 
             return 'EXISTS (' . (string) $sub . ')';
@@ -427,10 +429,10 @@ class OrdersModel extends AlfaListModel
         }
 
         try {
-            // State holds SHOP-LOCAL bounds; the cutoff is UTC. Convert the same way
-            // AlfaHelper::applyDateRange() does, then compare: both are 'Y-m-d H:i:s',
-            // so string order is chronological order.
-            $startUtc = Factory::getDate($localStart, AlfaHelper::shopTimezone())->toSql();
+            // State holds SHOP-LOCAL bounds (UTC ones from the REST API); the cutoff is
+            // UTC. Convert the same way AlfaHelper::applyDateRange() does, then compare: both are
+            // 'Y-m-d H:i:s', so string order is chronological order.
+            $startUtc = Factory::getDate($localStart, AlfaHelper::boundsZone(stated: $this->getState('filter.date_zone')) ?? AlfaHelper::shopTimezone())->toSql();
         } catch (Exception) {
             return null;                    // unparseable bound: the query drops it too
         }
@@ -601,12 +603,14 @@ class OrdersModel extends AlfaListModel
         }
 
         if (!\in_array($payment, ['failed', 'refunded'], true)) {
-            // a.created is UTC; state holds SHOP-LOCAL bounds (what the calendars show).
+            // a.created is UTC; state holds SHOP-LOCAL bounds (what the calendars show), or UTC ones from the REST API
+            // (filter.date_zone).
             AlfaHelper::applyDateRange(
                 query:      $query,
                 column:     'a.created',
                 localStart: $localStart,
                 localEnd:   $localEnd,
+                zone:       AlfaHelper::boundsZone(stated: $this->getState('filter.date_zone')),
             );
         }
 

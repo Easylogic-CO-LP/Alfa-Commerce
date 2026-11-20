@@ -104,6 +104,9 @@ class TelephoneRule extends FormRule
             throw new RuntimeException(Text::_('COM_ALFA_TELEPHONE_ERR_LIBRARY_UNAVAILABLE'));
         }
 
+        // A leading 00 is the international prefix, read as +.
+        $value = FieldsHelper::phoneTyped($value);
+
         return $this->testWithLibrary($element, $value, $group, $input);
     }
 
@@ -120,7 +123,7 @@ class TelephoneRule extends FormRule
      */
     private function testWithLibrary(SimpleXMLElement $element, string $value, ?string $group, ?Registry $input): bool
     {
-        $region = $this->region($element);
+        $region = FieldsHelper::phoneRegion($element, $input);
 
         // NO REGION AND NO COUNTRY CODE IS NOT A NUMBER YET. A national number
         // cannot be read without knowing where it is from, and inventing a
@@ -181,29 +184,6 @@ class TelephoneRule extends FormRule
     private static function looksTyped(string $value): bool
     {
         return (bool) preg_match('/^\+?[0-9 ().\/-]+$/', $value);
-    }
-
-    /**
-     * The region an unprefixed number is read against.
-     *
-     * IN ORDER, AND NEVER A GUESS. The field's own setting first, because a
-     * form that knows its audience says so; then the SHOP's default country,
-     * which is a real thing the merchant configured on their checkout's place
-     * field; then nothing, which is honest: a national number with no country
-     * to read it against is refused rather than assigned to whichever country
-     * this software was first written in.
-     *
-     * @param SimpleXMLElement $element The field element.
-     *
-     * @return string An alpha-2 code, or '' when the shop has not said.
-     *
-     * @since  2.0.0
-     */
-    private function region(SimpleXMLElement $element): string
-    {
-        $explicit = strtoupper(trim((string) ($element['default_region'] ?? '')));
-
-        return $explicit !== '' ? $explicit : FieldsHelper::shopRegionCode();
     }
 
     /**

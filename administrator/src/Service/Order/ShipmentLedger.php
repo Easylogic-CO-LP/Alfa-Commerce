@@ -830,9 +830,23 @@ class ShipmentLedger
             ? self::resolvedChain(methodId: (int) ($data['id_shipment_method'] ?? 0), orderId: $orderId)
             : self::carrierChain(data: $data);
         $data['shipping_tax_chain'] = $chain === null ? null : self::chainText(chain: $chain);
+
+        // A parcel entered with no charge states no tax rate: whatever rate it carries, or none, it is frozen
+        // with the shipping tax that applies and that tax's combined rate, so a charge given to it later is judged on
+        // that chain, as any change of an entered parcel's charge is. Before, a free parcel had to state the rate
+        // that applies (the full triple 0.00, 0.00 and 24), and the method alone, 0.00 alone or a rate of 0 was
+        // refused on a taxed order.
+        $free = $entered && $chain !== null
+            && ExactAmount::of((string) $data['shipping_cost_tax_incl'])->isZero()
+            && ExactAmount::of((string) $data['shipping_cost_tax_excl'])->isZero();
+
+        if ($free) {
+            $data['shipping_tax_rate'] = self::chainRateText(chain: $chain);
+        }
+
         $refusal = ($basis === null ? self::basisRefusal(data: $data) : null)
             ?? ($chain === null ? self::chainRefusal(data: $data) : null)
-            ?? ($entered ? self::resolvedRateRefusal(data: $data, chain: $chain) : null)
+            ?? ($entered && !$free ? self::resolvedRateRefusal(data: $data, chain: $chain) : null)
             ?? self::chargeRefusal(data: $data, orderId: $orderId)
             ?? ($entered ? self::enteredChargeRefusal(data: $data, mode: $basis->mode(), chain: $chain, orderId: $orderId) : null);
 
@@ -861,6 +875,13 @@ class ShipmentLedger
             $data['shipping_tax_chain'] = self::chainText(chain: []);
 
             self::warn(message: Text::sprintf('COM_ALFA_SHIPMENT_CHARGED_ONCE', $orderId), context: 'create()');
+
+            // Said to the caller too: the REST answer carries it in meta.warnings.
+            WriteWarnings::note(
+                code: WriteWarnings::SHIPPING_CHARGED_ONCE,
+                detail: Text::sprintf('COM_ALFA_SHIPMENT_CHARGED_ONCE', $orderId),
+                pointer: '/shipping_cost_tax_incl',
+            );
         }
 
         // Snapshot method name (survives deletion)
@@ -914,6 +935,9 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
+            // The order row first, as every writer of an order takes it: this write moves the order's shipping
+            // method (OrderMethods), and the order's delete locks the order before its parcels.
+            self::lockOrderRow(orderId: $orderId);
             $success = self::saveToTable($data);
 
             if (!$success) {
@@ -953,6 +977,9 @@ class ShipmentLedger
                 ],
                 $newId,
             );
+
+            // The order's shipping method follows its latest live parcel (OrderMethods), in this transaction.
+            OrderMethods::followShipments(orderId: $orderId);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
 
@@ -1617,6 +1644,8 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
+            // The order row first, as every writer of an order takes it (see create()).
+            self::lockOrderRow(orderId: $orderId);
             $written = self::writeUpdate(id: $id, orderId: $orderId, data: $data, entered: $entered, writer: $writer);
 
             if ($written === null) {
@@ -1895,6 +1924,10 @@ class ShipmentLedger
                 'order_status' => self::orderStatus(orderId: $orderId),
             ]);
         }
+
+        // The order's shipping method follows its latest live parcel (OrderMethods): a parcel cancelled, returned
+        // or moved to another method moves the order's.
+        OrderMethods::followShipments(orderId: $orderId);
     }
 
     /**
@@ -2149,6 +2182,9 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
+            // The order row first, as every writer of an order takes it (see create()), then the parcel.
+            self::lockOrderRow(orderId: $orderId);
+
             // Read the CURRENT status inside the transaction, with the row
             // held. Read outside it and a carrier's second delivery
             // notification can pass the check while the first is still
@@ -2247,6 +2283,9 @@ class ShipmentLedger
         $db->transactionStart(true);
 
         try {
+            // The order row first, as every writer of an order takes it (see create()).
+            self::lockOrderRow(orderId: $orderId);
+
             // Clear item assignments first (FK integrity)
             self::clearItemAssignments($id, $orderId);
 
@@ -2255,6 +2294,9 @@ class ShipmentLedger
 
                 return false;
             }
+
+            // The order's shipping method follows the parcels that are left (OrderMethods).
+            OrderMethods::followShipments(orderId: $orderId);
 
             if ($shipment) {
                 $methodName = $shipment->shipment_method_name ?? '';
@@ -2422,18 +2464,32 @@ class ShipmentLedger
 
             self::clearItemAssignments($shipmentId, $orderId);
 
+            $lines = self::lineIdsOf(orderId: $orderId);
+
             foreach (self::normaliseItemMap($items) as $itemId => $quantity) {
-                // Not a line of this order, or nothing left to ship on it.
+                // Not a line of this order, or nothing left to ship on it; a line of the order asked for an exact
+                // number is said cut to nothing.
                 if (!isset($remaining[$itemId])) {
+                    if ($quantity > 0 && \in_array($itemId, $lines, true)) {
+                        self::noteCut(itemId: $itemId, asked: $quantity, assigned: 0);
+                    }
+
                     continue;
                 }
 
                 // A map asks for an exact number. A plain list means "leave
                 // this line as it is", or (for a line being added now) "all
                 // of it that is still unshipped".
+                $asked = $quantity;
                 $quantity = $quantity > 0
                     ? min($quantity, $remaining[$itemId])
                     : min($current[$itemId] ?? $remaining[$itemId], $remaining[$itemId]);
+
+                // An exact number cut to what the line still has to send is said to the caller: the REST answer
+                // carries it in meta.warnings.
+                if ($asked > $quantity) {
+                    self::noteCut(itemId: $itemId, asked: $asked, assigned: $quantity);
+                }
 
                 if ($quantity <= 0) {
                     continue;
@@ -2458,6 +2514,67 @@ class ShipmentLedger
             self::warnFailure(message: 'assignItems() failed', failure: $e);
             return false;
         }
+    }
+
+    /**
+     * Lock an order's row for the transaction that writes one of its parcels: the parcel's write moves the
+     * order's shipping method, and every writer of an order takes the order's row before its rows (the payments ledger,
+     * the order's delete), so two of them never wait on each other in turn.
+     *
+     * @param int $orderId Order PK
+     *
+     * @since  2.2.2
+     */
+    private static function lockOrderRow(int $orderId): void
+    {
+        $db = self::db();
+        $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = ' . (int) $orderId)
+            . ' FOR UPDATE',
+        )->loadResult();
+    }
+
+    /**
+     * The ids of an order's lines.
+     *
+     * @param int $orderId Order PK
+     *
+     * @return int[]
+     *
+     * @since  2.2.2
+     */
+    private static function lineIdsOf(int $orderId): array
+    {
+        $db = self::db();
+
+        return array_map('intval', $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName(self::ITEMS_TABLE))
+                ->where($db->quoteName('id_order') . ' = ' . (int) $orderId),
+        )->loadColumn() ?: []);
+    }
+
+    /**
+     * Note, for the caller, a line's quantity in a parcel cut to what the order still has to send of it:
+     * the REST answer carries it in meta.warnings.
+     *
+     * @param int $itemId The order line.
+     * @param int $asked The units asked for.
+     * @param int $assigned The units the parcel carries now.
+     *
+     * @since  2.2.2
+     */
+    private static function noteCut(int $itemId, int $asked, int $assigned): void
+    {
+        WriteWarnings::note(
+            code: WriteWarnings::QUANTITY_CUT,
+            detail: Text::sprintf('COM_ALFA_SHIPMENT_QUANTITY_CUT', $itemId, $asked, $assigned),
+            pointer: '/items',
+        );
     }
 
     /**
@@ -2501,6 +2618,39 @@ class ShipmentLedger
 
         foreach ($db->loadObjectList() ?: [] as $row) {
             $map[(int) $row->id_order_item] = (int) $row->quantity;
+        }
+
+        return $map;
+    }
+
+    /**
+     * How many units of each order line every parcel of an order carries, in one statement: what the REST
+     * order read publishes as each parcel's lines.
+     *
+     * @param int $orderId Order PK
+     *
+     * @return array<int, array<int, int>> [ shipmentId => [ orderItemId => quantity ] ], the lines in id order; a parcel
+     *                                     that carries no line is absent.
+     *
+     * @since  2.2.2
+     */
+    public static function itemQuantitiesOfOrder(int $orderId): array
+    {
+        if ($orderId <= 0) {
+            return [];
+        }
+
+        $db = self::db();
+        $query = $db->getQuery(true)
+            ->select([$db->quoteName('id_order_shipment'), $db->quoteName('id_order_item'), $db->quoteName('quantity')])
+            ->from($db->quoteName(self::SHIPMENT_ITEMS_TABLE))
+            ->where($db->quoteName('id_order') . ' = ' . (int) $orderId)
+            ->order([$db->quoteName('id_order_shipment'), $db->quoteName('id_order_item')]);
+
+        $map = [];
+
+        foreach ($db->setQuery($query)->loadObjectList() ?: [] as $row) {
+            $map[(int) $row->id_order_shipment][(int) $row->id_order_item] = (int) $row->quantity;
         }
 
         return $map;
