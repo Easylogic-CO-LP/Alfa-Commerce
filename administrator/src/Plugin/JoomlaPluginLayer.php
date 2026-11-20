@@ -262,9 +262,9 @@ final class JoomlaPluginLayer
      * scope). Only what is empty is filled. A plugin that asks Joomla to load its language when it is built
      * (CMSPlugin's autoloadLanguage) found no name to load it by; once its name and group are filled, its language is
      * loaded, Joomla's own step (CMSPlugin::loadLanguage(): the administrator's language folder, then the plugin's own),
-     * so its texts and the labels it gives are translated (2.2.1). The helper asks this only for its maintenance boot,
-     * under the maintenance lock (Clear Data of a disabled plugin), and for its customer boot inside an operator
-     * placement (2.2.1).
+     * so its texts and the labels it gives are translated. The helper asks this only for its maintenance boot, under
+     * the maintenance lock (Clear Data of a disabled plugin), for its customer boot inside an operator placement and
+     * for a background job the task runner runs (bootForWork()).
      *
      * @param CMSApplicationInterface $app The application.
      * @param PluginId $id The plugin.
