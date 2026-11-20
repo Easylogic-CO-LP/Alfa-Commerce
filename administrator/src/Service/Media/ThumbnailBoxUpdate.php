@@ -18,10 +18,10 @@ use RuntimeException;
 /**
  * The thumbnail box an update raises: a site that stores a side of the box below the default
  * (MediaHelper::THUMBNAIL_BOX, 500) has that side written as the default. The update writes the two Options and nothing
- * else: no notification, no job, no thumbnail made again. The thumbnails already made stay as they are; the new ones are
- * made at the new box, and the storefront draws an image from its stored file wherever its thumbnail is smaller than its
- * slot (MediaHelper::srcset()), so a thumbnail of the old box is never stretched. A site that stores no box, or one of
- * 500 or more a side, is left as it is.
+ * else: no notification, no job, no thumbnail made again. The thumbnails already made stay as they are and the
+ * storefront draws them as they are; the new ones are made at the new box, and Tools, Media, Create missing thumbnails
+ * makes the smaller ones again at it (the update's message says so). A site that stores no box, or one of 500 or more a
+ * side, is left as it is.
  *
  * The installer asks it on an update from an earlier version, where a box a site stored while the default was
  * 200 x 200 was kept by ComponentOptions, so the default of 500 never reached it.

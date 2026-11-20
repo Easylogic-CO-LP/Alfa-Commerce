@@ -717,8 +717,6 @@ final class AlfaItemsHelper
         $display['mode'] = $resolved['']['display'];
         $display['bands'] = CardLook::bands($resolved, self::BREAKPOINTS);
         $display['place'] = (int) $module->id . '-' . $group['key'];
-        // The cards' image width on each screen, from the same look: the sizes of its srcset.
-        $display['sizes'] = CardLook::sizes($resolved, self::BREAKPOINTS);
         $priceSettings = PriceSettings::get();
         $moduleId = (int) $module->id;
 
@@ -742,13 +740,11 @@ final class AlfaItemsHelper
      * @param string $place The card's place, which its rules are written for (CardLook::css).
      * @param array $priceSettings Price visibility settings.
      * @param string $reloadUrl Where a variant or option change re-draws the card (reloadUrl()).
-     * @param string $sizes The card image's width on each screen (CardLook::sizes()), for its srcset; with ''
-     *                      (a group layout that passes none) the card draws the thumbnail alone.
      *
      *
      * @since  1.0.0
      */
-    public static function renderCard(object $item, Registry $params, string $place, array $priceSettings, string $reloadUrl, string $sizes = ''): string
+    public static function renderCard(object $item, Registry $params, string $place, array $priceSettings, string $reloadUrl): string
     {
         $path = self::layoutPath($params, '_card');
 
@@ -1074,10 +1070,6 @@ final class AlfaItemsHelper
             place:         $moduleId . '-' . $key,
             priceSettings: PriceSettings::get(),
             reloadUrl:     self::reloadUrl(moduleId: $moduleId, tab: $key, item: $item),
-            sizes:         CardLook::sizes(
-                resolved:    CardLook::resolve(levels: [self::displayOptions($params)['level'], $tab['look']], breakpoints: self::BREAKPOINTS),
-                breakpoints: self::BREAKPOINTS,
-            ),
         );
 
         $app->close();

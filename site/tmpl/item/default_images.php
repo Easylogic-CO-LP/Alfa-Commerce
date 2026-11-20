@@ -7,7 +7,6 @@
      */
 
     // No direct access
-    use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
     use Joomla\CMS\Language\Text;
     use Joomla\CMS\Layout\LayoutHelper;
 
@@ -28,15 +27,10 @@
     // The merchant's own alt when set; otherwise the name and the image's ordinal from 1. The strip repeats it.
     $altOf = static fn (object $media, int $index): string => (string) ($media->alt ?: Text::sprintf('COM_ALFA_ALT_ITEM_IMAGE', $itemName, $index + 1));
 
-    // A slide is the thumbnail, with the stored image beside it in its srcset, so a slide wider than the
-    // thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image; the lightbox opens the stored
-    // image. The sizes follow item.css on Cassiopeia: the images take the whole page (less its 20 px of padding) up to
-    // 651 px and half of it (less 26 px) from 652 px, never less than the slide (never "auto", which draws an image in
-    // a box of 300 x 150 until the CSS sets both its sides), each capped at the stored image's width
-    // (MediaHelper::sizes()). The strip's small images stay thumbnails.
+    // A slide is the generated thumbnail, never the stored image, which only the lightbox opens when the shopper
+    // opens it. The strip's small images are the same thumbnails.
     // The addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout
     // (joomla.html.image): HTMLHelper::image() loses an address with a query and no fragment.
-    $slideSizes = '(max-width: 651px) calc(100vw - 20px), calc(50vw - 26px)';
 ?>
 
 <div class="main-images navigation-controls">
@@ -51,13 +45,6 @@
             $imgAttribs['fetchpriority'] = 'high';
         } else {
             $imgAttribs['loading'] = 'lazy';
-        }
-
-        $srcset = MediaHelper::srcset($media);
-
-        if ($srcset !== '') {
-            $imgAttribs['srcset'] = $srcset;
-            $imgAttribs['sizes'] = MediaHelper::sizes($media, $slideSizes);
         }
         ?>
         <a class="item-image" href="<?= $this->escape($media->url) ?>">

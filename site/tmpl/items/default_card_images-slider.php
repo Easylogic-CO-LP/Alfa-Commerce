@@ -18,10 +18,9 @@
  * are in the tab order, the dots are not (the arrows reach every image). A product with one image is drawn as the
  * default card draws it, with no controls.
  *
- * Each image is the thumbnail, with the stored image beside it in its srcset and the sizes of the default card's
- * image, at the files' versioned addresses (default_card_images.php says why). The first image loads as the
- * default card's image does at the card's place on the page ($this->cardImageLoading(): the first four cards at once,
- * the others lazily), and the slider's other images lazily.
+ * Each image is the generated thumbnail, never the stored image, at its file's versioned address. The first image
+ * loads as the default card's image does at the card's place on the page ($this->cardImageLoading(): the first four
+ * cards at once, the others lazily), and the slider's other images lazily.
  *
  * Overridable as html/com_alfa/items/default_card_images-slider.php. The card is on $this->item; the images to show
  * come from $this->cardSlides($this->item).
@@ -32,25 +31,17 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
-use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\Surface;
 use Joomla\CMS\Language\Text;
 
 $item = $this->item;
 $slides = $this->cardSlides($item);
 $count = \count($slides);
-// The thumbnail and the stored image, for the card's width (default_card_images.php's sizes, each capped at the stored
-// image's width by MediaHelper::sizes()).
-$sources = function (object $slide): string {
-    $srcset = MediaHelper::srcset($slide);
-
-    return $srcset === '' ? '' : ' srcset="' . $this->escape($srcset) . '" sizes="' . $this->escape(MediaHelper::sizes($slide, '(max-width: 647px) calc(100vw - 42px), (max-width: 963px) calc(50vw - 46px), (max-width: 1279px) calc(33.34vw - 43px), calc(25vw - 42px)')) . '"';
-};
 ?>
 <?php if ($count === 1): ?>
     <div class="item-image">
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt=""<?php echo $sources($slides[0]); ?><?php echo $this->cardImageLoading(); ?> />
+            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt=""<?php echo $this->cardImageLoading(); ?> />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>
@@ -64,7 +55,7 @@ $sources = function (object $slide): string {
         <div class="card-slider-track" data-card-slider-track tabindex="-1">
             <?php foreach ($slides as $index => $slide): ?>
                 <a class="card-slider-slide" href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true" data-card-slider-slide>
-                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $sources($slide); ?><?php echo $index > 0 ? ' loading="lazy"' : $this->cardImageLoading(); ?> />
+                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $index > 0 ? ' loading="lazy"' : $this->cardImageLoading(); ?> />
                 </a>
             <?php endforeach; ?>
         </div>

@@ -2145,7 +2145,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_THUMBNAIL_BOX_RAISED',
-            fallback: 'Alfa Commerce %1$s: the thumbnail size stored in Options > Media was %2$d x %3$d, below the default of 500 x 500, and is now %4$d x %5$d. New images get thumbnails of the new size.',
+            fallback: 'Alfa Commerce %1$s: the thumbnail size stored in Options > Media was %2$d x %3$d, below the default of 500 x 500, and is now %4$d x %5$d. New images get thumbnails of the new size; Tools, Media, Create missing thumbnails makes the smaller thumbnails already made again at it.',
             values:   [$this->packageVersion, $raised['before'][0], $raised['before'][1], $raised['after'][0], $raised['after'][1]],
         ));
     }

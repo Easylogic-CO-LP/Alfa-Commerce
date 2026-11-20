@@ -12,8 +12,7 @@
  *
  * @var object[] $sliderItems   The cards
  * @var array $slider        The slider's settings on every device, widest first (CardLook::bands)
- * @var array $display       Module-wide settings, with `place`: the name of the tab's cards, and `sizes`: their image's
- *                            width on each screen (CardLook::sizes())
+ * @var array $display       Module-wide settings, with `place`: the name of the tab's cards
  * @var \Joomla\Registry\Registry $params Module parameters
  * @var array $group         The tab (its key)
  * @var int $moduleId      Module instance id
@@ -60,7 +59,7 @@ $bands = array_map(static fn (array $band): array => array_diff_key($band, ['key
     <div class="track keen-slider" data-slider-track>
         <?php foreach ($sliderItems as $item) : ?>
             <div class="slide keen-slider__slide">
-                <?php echo AlfaItemsHelper::renderCard(item: $item, params: $params, place: $display['place'], priceSettings: $priceSettings, reloadUrl: AlfaItemsHelper::reloadUrl(moduleId: $moduleId, tab: (string) $group['key'], item: $item), sizes: $display['sizes']); ?>
+                <?php echo AlfaItemsHelper::renderCard(item: $item, params: $params, place: $display['place'], priceSettings: $priceSettings, reloadUrl: AlfaItemsHelper::reloadUrl(moduleId: $moduleId, tab: (string) $group['key'], item: $item)); ?>
             </div>
         <?php endforeach; ?>
     </div>

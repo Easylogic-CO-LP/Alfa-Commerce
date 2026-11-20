@@ -31,7 +31,7 @@ $wa->useStyle('com_alfa.list');
                 <div class="manufacturer-item list-item">
                     <a href="<?php echo $item->link; ?>">
                         <?php if (!empty($item->medias[0])): ?>
-                            <img src="<?= $item->medias[0]->url ?>">
+                            <img src="<?php echo htmlspecialchars((string) $item->medias[0]->thumbnail_url, ENT_QUOTES, 'UTF-8'); ?>">
                         <?php endif; ?>
                     </a>
 

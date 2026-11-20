@@ -16,25 +16,18 @@
  * card names its place (`data-look`); how it looks there, on every screen and per
  * breakpoint, is in the rules the module writes for that place (CardLook::css).
  *
- * The image is the thumbnail, with the stored image beside it in its srcset (Alfa's MediaHelper::srcset()), so a card
- * wider than the thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image and the thumbnail is
- * never stretched past its pixels; its addresses carry their files' versions. Its sizes are the look's ($sizes: the
- * screen's width less the gaps, over the cards side by side, less the card's padding and border, per screen,
- * CardLook::sizes()), each capped at the stored image's width (MediaHelper::sizes()), so an image stored narrower than
- * its card is drawn at its own width; with none the card draws the thumbnail alone. The image loads lazily, since a
- * module's place on the page is not known.
+ * The image is the product's generated thumbnail, never its stored image, at the file's versioned address. It loads
+ * lazily, since a module's place on the page is not known.
  *
  * @var object $item          A decorated item (Alfa's ItemsModel)
  * @var string $place         The card's place, which its rules are written for
  * @var array $priceSettings Price visibility settings
  * @var string $reloadUrl     Where a variant or option change re-draws the card; '' when there is nothing to choose
- * @var string $sizes         The image's width on each screen, the sizes of its srcset; '' for none
  */
 
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
-use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\Surface;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -42,7 +35,6 @@ use Joomla\CMS\Language\Text;
 
 $esc = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 $link = (string) ($item->link ?? '');
-$srcset = empty($item->medias[0]->thumbnail) || $sizes === '' ? '' : MediaHelper::srcset($item->medias[0]);
 $sellsOnline = (bool) ($item->sellsOnline ?? true);
 
 // The link must say what it leads to: an item never translated into the active
@@ -58,8 +50,7 @@ if ($name === '') {
         <div class="item-card-image">
             <?php // The name's destination again, for the mouse only: one link per card in the tab order and for a screen reader.?>
             <a href="<?php echo $esc($link); ?>" tabindex="-1" aria-hidden="true">
-                <img src="<?php echo $esc((string) $item->medias[0]->thumbnail_url); ?>" alt=""<?php if ($srcset !== '') : ?>
-                     srcset="<?php echo $esc($srcset); ?>" sizes="<?php echo $esc(MediaHelper::sizes($item->medias[0], $sizes)); ?>"<?php endif; ?> loading="lazy">
+                <img src="<?php echo $esc((string) $item->medias[0]->thumbnail_url); ?>" alt="" loading="lazy">
             </a>
             <?php echo Surface::render(owner: $item, slot: ItemListSurface::Image); ?>
         </div>
