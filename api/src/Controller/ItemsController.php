@@ -53,8 +53,6 @@ class ItemsController extends ApiController
     /**
      * The prices_state the update sent with its prices, or null when it sent none.
      *
-     * @var string|null
-     *
      * @since  2.2.2
      */
     private ?string $pricesState = null;

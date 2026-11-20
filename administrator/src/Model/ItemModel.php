@@ -636,8 +636,6 @@ class ItemModel extends AlfaAdminModel
     /**
      * The state of the product's own prices the writer read, when it sent one ({@see self::expectPricesState()}).
      *
-     * @var string|null
-     *
      * @since  2.2.2
      */
     private ?string $expectedPricesState = null;
