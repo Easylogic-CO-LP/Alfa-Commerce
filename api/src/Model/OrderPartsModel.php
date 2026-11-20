@@ -64,6 +64,19 @@ abstract class OrderPartsModel extends ListModel
     }
 
     /**
+     * The fields the order read gives a row of the part; id alone when the part has no row (nothing is rendered, and
+     * Joomla's list view asks for at least one name).
+     *
+     * @return non-empty-list<string>
+     *
+     * @since  2.2.2
+     */
+    public function fields(): array
+    {
+        return array_keys((array) ($this->rows()[0] ?? [])) ?: ['id'];
+    }
+
+    /**
      * The part's rows as the order read gives them; an order that names no currency is read as that read answers it.
      *
      * @return list<object>
