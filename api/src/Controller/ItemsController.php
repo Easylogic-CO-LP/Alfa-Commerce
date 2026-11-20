@@ -13,8 +13,12 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
+use Joomla\CMS\MVC\Controller\Exception\Save;
+use Joomla\Database\DatabaseInterface;
 
 /**
  * The Items controller
@@ -25,6 +29,7 @@ class ItemsController extends ApiController
 {
     use HasApiGuards {
         preprocessSaveData as private guardedPreprocessSaveData;
+        refuseUnwrittenKeys as private guardedRefuseUnwrittenKeys;
     }
 
     /**
@@ -100,6 +105,18 @@ class ItemsController extends ApiController
 
         if (\array_key_exists('fields', $apiFilterInfo)) {
             $this->modelState->set('filter.fields', $this->fieldsFilter($apiFilterInfo['fields']));
+        }
+
+        // The products whose stock, prices or own fields changed at or after a time (commerce_changed_at): UTC, as every
+        // date the API publishes, a bound with Z or an offset in its own zone.
+        if (\array_key_exists('changed_since', $apiFilterInfo)) {
+            $bound = CommerceChange::bound(bound: (string) RequestScalar::member($apiFilterInfo, 'changed_since', 'STRING', 'filter'));
+
+            if ($bound === null) {
+                throw new Save('filter[changed_since] must be a date and time, 2026-11-20T10:00:00Z (UTC when it states no zone).', 400);
+            }
+
+            $this->modelState->set('filter.changed_since', $bound);
         }
 
         $apiListInfo = $this->input->get('list', [], 'array');
@@ -197,6 +214,91 @@ class ItemsController extends ApiController
         $data = AdminItemModel::withoutUnsentStock(data: $data, sent: array_keys($this->requestBody()));
 
         return $this->guardedPreprocessSaveData(data: $data);
+    }
+
+    /**
+     * The guards' refusal of the keys the write does not take, then the refusal of a stock shape the item does not
+     * take ({@see self::refuseStockShapes()}): both before core's edit checks the record out and before anything
+     * is saved.
+     *
+     * @param bool $update Whether the write is an update (PATCH) rather than a create (POST).
+     *
+     * @throws Save When the body carries an unwritten key or a stock shape the item does not take (422).
+     *
+     * @since  2.2.2
+     */
+    protected function refuseUnwrittenKeys(bool $update): void
+    {
+        $this->guardedRefuseUnwrittenKeys(update: $update);
+        $this->refuseStockShapes(body: $this->requestBody());
+    }
+
+    /**
+     * Answer 422, naming the key and the shape, when the body states stock in a shape the item does not take.
+     * `stock` is one figure for a product stocked at one location; `inventory_stock` is an object of location id to
+     * figure, {"1": "3", "2": "2"}, each figure absolute, for a product without combinations that tracks stock. A
+     * `stock` sent as an object or a list was read as no figure, and an `inventory_stock` keyed by anything but the
+     * shop's stock locations wrote nothing: both answered 200. An empty figure ('' or null) is no figure, as before.
+     *
+     * @param array $body The request body.
+     *
+     * @throws Save When a stock key has another shape, or inventory_stock names something that is no stock location (422).
+     *
+     * @since  2.2.2
+     */
+    private function refuseStockShapes(array $body): void
+    {
+        $shape = 'for stock per location send inventory_stock, an object of location id to figure, {"1": "3", "2": "2"}.'
+            . ' Nothing was saved.';
+
+        if (\array_key_exists('stock', $body) && $body['stock'] !== null && !\is_scalar($body['stock'])) {
+            throw new Save('stock: send one figure, a number such as "5", for a product stocked at one location; ' . $shape, 422);
+        }
+
+        if (!\array_key_exists('inventory_stock', $body) || $body['inventory_stock'] === null) {
+            return;
+        }
+
+        $map = $body['inventory_stock'];
+
+        if (!\is_array($map) || ($map !== [] && array_is_list($map))) {
+            throw new Save('inventory_stock: send an object of location id to figure, {"1": "3", "2": "2"}, not a list or a single'
+                . ' value. Nothing was saved.', 422);
+        }
+
+        $ids = [];
+
+        foreach ($map as $key => $figure) {
+            if ($figure !== null && !\is_scalar($figure)) {
+                throw new Save('inventory_stock.' . $this->shownKey(key: (string) $key) . ': send one figure, a number such as "3", for each location. Nothing was saved.', 422);
+            }
+
+            if (preg_match('/^[1-9][0-9]*$/D', (string) $key) !== 1) {
+                throw new Save('inventory_stock.' . $this->shownKey(key: (string) $key) . ' is not a stock location: the keys are the ids of the shop\'s stock'
+                    . ' locations (GET v1/alfa/locations). Nothing was saved.', 422);
+            }
+
+            $ids[] = (int) $key;
+        }
+
+        if ($ids === []) {
+            return;
+        }
+
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $known = array_map('intval', $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName('#__alfa_inventory_locations'))
+                ->whereIn($db->quoteName('id'), $ids),
+        )->loadColumn() ?: []);
+
+        foreach ($ids as $id) {
+            if (!\in_array($id, $known, true)) {
+                throw new Save('inventory_stock.' . $id . ' is not a stock location: the keys are the ids of the shop\'s stock'
+                    . ' locations (GET v1/alfa/locations). Nothing was saved.', 422);
+            }
+        }
     }
 
     /**

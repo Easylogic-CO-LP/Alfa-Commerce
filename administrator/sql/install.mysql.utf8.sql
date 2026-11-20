@@ -1154,6 +1154,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `checked_out_time` datetime DEFAULT NULL,
   `created_by` int(11) DEFAULT 0,
   `modified` datetime NOT NULL,
+  `commerce_changed_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]',
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   `projection_dirty_at` datetime(6) NULL DEFAULT NULL COMMENT 'When a rebuild of this item projections was found owed and not yet done; NULL = current',
@@ -1163,7 +1164,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
-  KEY `idx_projection_dirty` (`projection_dirty_at`)
+  KEY `idx_projection_dirty` (`projection_dirty_at`),
+  -- The products changed since a time (the REST API filter[changed_since]): a range read on this key.
+  KEY `idx_commerce_changed` (`commerce_changed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1480,7 +1483,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `ip_address` varchar(255) DEFAULT NULL,
   `customer_note` text DEFAULT NULL,
   `note` text DEFAULT NULL,
-  `source` varchar(16) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api',
+  `source` varchar(32) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api, or the channel a REST API client names (lower-case letters, digits, _ and -)',
+  -- THE OTHER SYSTEM ID OF THE ORDER: the name of the system an order came from (a marketplace, an ERP, a connector)
+  -- and its id of the order there, both or neither, written once. One pair names one order (idx_external_reference),
+  -- so a connector that sends the same order again is answered with the order it made.
+  `external_source` varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once',
+  `external_reference` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source',
   `checked_out` int(10) DEFAULT NULL,
   `state` tinyint(1) DEFAULT 1 COMMENT 'To manage trashed orders e.g. before delete',
   `checked_out_time` datetime DEFAULT NULL,
@@ -1505,7 +1513,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   -- address on the customer screen and the cart): without these, a full read of the
   -- orders for each address.
   KEY `idx_address_delivery` (`id_address_delivery`),
-  KEY `idx_address_invoice` (`id_address_invoice`)
+  KEY `idx_address_invoice` (`id_address_invoice`),
+  -- One order per pair of the other system name and its id; a row with neither holds no place in it. Also the
+  -- lookup of the REST API filters filter[external_source] and filter[external_reference].
+  UNIQUE KEY `idx_external_reference` (`external_source`, `external_reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

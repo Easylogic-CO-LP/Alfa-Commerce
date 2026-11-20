@@ -128,6 +128,12 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             new Route(['POST'], 'v1/alfa/orders/:id/shipments', 'orderops.addShipment', ['id' => '\d+'], $defaults),
             new Route(['PATCH'], 'v1/alfa/orders/:id/shipments/:shipmentId', 'orderops.updateShipment', ['id' => '\d+', 'shipmentId' => '\d+'], $defaults),
 
+            // The order screen's changes and removals, with its rules: a payment's method, reference and note; a
+            // payment that moved no money removed; a parcel removed, its lines released.
+            new Route(['PATCH'], 'v1/alfa/orders/:id/payments/:paymentId', 'orderops.updatePayment', ['id' => '\d+', 'paymentId' => '\d+'], $defaults),
+            new Route(['DELETE'], 'v1/alfa/orders/:id/payments/:paymentId', 'orderops.removePayment', ['id' => '\d+', 'paymentId' => '\d+'], $defaults),
+            new Route(['DELETE'], 'v1/alfa/orders/:id/shipments/:shipmentId', 'orderops.removeShipment', ['id' => '\d+', 'shipmentId' => '\d+'], $defaults),
+
             // Money verbs. A refund is never a status write: it flips the
             // original under compare-and-set, writes the linked audit row,
             // returns store credit and compensates if the row is refused.

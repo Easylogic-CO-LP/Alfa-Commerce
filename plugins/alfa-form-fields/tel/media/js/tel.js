@@ -102,8 +102,10 @@
             .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
         // intl-tel-input keys countries by LOWERCASE iso2. Uppercase 'GR'
-        // silently fails and falls back to 'us'.
-        const initialCountry = (input.dataset.defaultRegion || 'GR').toLowerCase();
+        // silently fails and falls back to 'us'. The region is the server's
+        // (the field's Default region, else the shop's default country); with
+        // none, no flag is preselected: no country is assumed.
+        const initialCountry = (input.dataset.defaultRegion || '').toLowerCase();
 
         const opts = {
             initialCountry: initialCountry,

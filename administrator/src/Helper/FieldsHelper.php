@@ -30,6 +30,8 @@ use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use Joomla\Registry\Registry;
+use SimpleXMLElement;
 use Throwable;
 
 defined('_JEXEC') or die;
@@ -720,6 +722,106 @@ class FieldsHelper
 
         // The country of the default place: a region or a town carries no country code of its own.
         return PlaceTree::countryOf(placeId: $placeId)['code2'] ?? '';
+    }
+
+    /**
+     * The region a telephone number with no country code is read against: one rule for the REST API, the
+     * storefront checkout, the order and customer screens and every back office telephone field.
+     *
+     * In order, and never a guess:
+     *   1. the country of the place field the same section of the submission carries: an order's delivery country
+     *      for its delivery details, the invoice country for its invoice details, else the delivery country;
+     *   2. the phone field's own Default region;
+     *   3. the shop's default country ({@see self::shopRegionCode()}).
+     * '' when none of them says: a national number is then refused, never read against a country nobody chose. A
+     * number that starts with + or 00 carries its own country ({@see self::phoneTyped()}).
+     *
+     * @param SimpleXMLElement $element The phone field's element (its default_region attribute, and its group).
+     * @param Registry|null $input The whole submission, as Joomla hands it to a filter or a rule; null when there is none.
+     *
+     * @return string An ISO 3166-1 alpha-2 code in capitals, or ''.
+     *
+     * @since  2.2.2
+     */
+    public static function phoneRegion(SimpleXMLElement $element, ?Registry $input = null): string
+    {
+        $sent = self::sectionCountry(element: $element, input: $input);
+
+        return $sent !== '' ? $sent : self::phoneDefaultRegion(fieldRegion: (string) ($element['default_region'] ?? ''));
+    }
+
+    /**
+     * Steps 2 and 3 of {@see self::phoneRegion()}, for a surface that has no submission to read (the storefront's
+     * phone widget, a stored number shown): the field's own Default region, else the shop's default country.
+     *
+     * @param string $fieldRegion The field's Default region as stored, '' for none.
+     *
+     * @return string An ISO 3166-1 alpha-2 code in capitals, or ''.
+     *
+     * @since  2.2.2
+     */
+    public static function phoneDefaultRegion(string $fieldRegion): string
+    {
+        $explicit = strtoupper(trim($fieldRegion));
+
+        return $explicit !== '' ? $explicit : self::shopRegionCode();
+    }
+
+    /**
+     * A typed telephone number with a leading 00 read as +: 00 is read as the international prefix, the same
+     * as +, for every region and with none, so "0030 694 123 4567" is "+30 694 123 4567". Anything else is handed back
+     * trimmed and unchanged.
+     *
+     * @param string $value The number as typed.
+     *
+     * @since  2.2.2
+     */
+    public static function phoneTyped(string $value): string
+    {
+        $value = trim($value);
+
+        return str_starts_with($value, '00') ? '+' . substr($value, 2) : $value;
+    }
+
+    /**
+     * The country of the place field in the phone field's own section of the submission, the invoice section
+     * falling back to the delivery section's; '' when the submission carries none.
+     *
+     * @param SimpleXMLElement $element The phone field's element.
+     * @param Registry|null $input The whole submission.
+     *
+     * @since  2.2.2
+     */
+    private static function sectionCountry(SimpleXMLElement $element, ?Registry $input): string
+    {
+        $column = RoleRegistry::column(RoleRegistry::COUNTRY);
+
+        if ($input === null || $column === null) {
+            return '';
+        }
+
+        $group = implode('.', array_map('strval', $element->xpath('ancestor::fields[@name]/@name') ?: []));
+        $keys = [$group !== '' ? $group . '.' . $column : $column];
+
+        if ($group === self::BILLING_FIELDS_KEY) {
+            $keys[] = self::FIELDS_KEY . '.' . $column;
+        }
+
+        foreach ($keys as $key) {
+            $placeId = $input->get($key);
+
+            if (!is_numeric($placeId) || (int) $placeId <= 0) {
+                continue;
+            }
+
+            $code = strtoupper((string) (PlaceTree::countryOf(placeId: (int) $placeId)['code2'] ?? ''));
+
+            if ($code !== '') {
+                return $code;
+            }
+        }
+
+        return '';
     }
 
     /**
