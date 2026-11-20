@@ -141,7 +141,7 @@ class CartController extends BaseController
         // states the dependency instead of inheriting it: loaded once, here,
         // before anything is rendered, for refusals and warnings alike. The few
         // that speak to the shopper are said to staff by self::OPERATOR_WORDING.
-        $app->getLanguage()->load('com_alfa', JPATH_SITE);
+        $this->speakStorefront();
 
         $actor = $app->getIdentity() ?? new User(0);
 
@@ -629,14 +629,18 @@ class CartController extends BaseController
      * afterwards is too late: the string is already resolved. So it is loaded
      * before the guard returns, on the two doors every endpoint comes through,
      * rather than duplicating the wording into the admin catalogue where it
-     * would only get two places to drift apart.
+     * would only get two places to drift apart. The administrator's own file is
+     * loaded again over it, so a key both files carry reads as the administrator's
+     * says it: only the keys the administrator's file lacks come from the site's.
      *
      *
      * @since  2.0.0
      */
     private function speakStorefront(): void
     {
-        $this->app->getLanguage()->load('com_alfa', JPATH_SITE);
+        $language = $this->app->getLanguage();
+        $language->load('com_alfa', JPATH_SITE);
+        $language->load('com_alfa', JPATH_ADMINISTRATOR, null, true);
     }
 
     /**

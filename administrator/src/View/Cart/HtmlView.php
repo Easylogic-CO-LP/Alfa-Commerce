@@ -195,6 +195,20 @@ class HtmlView extends BaseHtmlView
     protected int $newItemId = 0;
 
     /**
+     * The storefront's strings the builder prints (the engine's notices, the custom-price label), loaded under the
+     * administrator's own: the administrator's file is loaded again over the site's, so a key both files carry reads
+     * as the administrator's says it and only the keys it lacks come from the site's.
+     *
+     * @since  2.3.0
+     */
+    private static function speakStorefront(): void
+    {
+        $language = Factory::getApplication()->getLanguage();
+        $language->load('com_alfa', JPATH_SITE);
+        $language->load('com_alfa', JPATH_ADMINISTRATOR, null, true);
+    }
+
+    /**
      * @param string|null $tpl The layout.
      *
      * @return void
@@ -214,10 +228,10 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        // The methods tab prints the engine's own notices about a method it had
+        // The methods section prints the engine's own notices about a method it had
         // to drop, and those sentences are the storefront's, stated as a
         // dependency, never copied into the admin catalogue.
-        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_SITE);
+        self::speakStorefront();
 
         $this->item = $this->get('Item');
 
@@ -359,8 +373,8 @@ class HtmlView extends BaseHtmlView
         }
 
         // The quote renders the Items table's own cells, whose custom-price label
-        // is the storefront's: loaded here as the builder page loads it (:207).
-        $app->getLanguage()->load(extension: 'com_alfa', basePath: JPATH_SITE);
+        // is the storefront's: loaded here as the builder page loads it.
+        self::speakStorefront();
 
         $this->configLine = null;
         $this->configItem = null;
