@@ -146,7 +146,7 @@ final class CartService
     /**
      * The answer to an add that added nothing.
      *
-     * When the cart already holds the available quantity (2.2.2) the answer
+     * When the cart already holds the available quantity the answer
      * says so with its figure and, like an add that landed, what the cart
      * holds: its lines and units as the writer left them. Any other refusal
      * names no line and no totals.

@@ -217,7 +217,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * their type (application/json), so the script can tell the cart's answer from any
      * other page a request may be answered with.
      *
-     * When the shelf limited the add (2.2.2) the answer says so in one sentence, a notice
+     * When the shelf limited the add the answer says so in one sentence, a notice
      * and never a failure: the cart already holds the available quantity, so nothing was
      * added, or now holds it, the request cut to it. That sentence is the JSON message,
      * the card's words and, on a navigation, the only message; the figure is the JSON's

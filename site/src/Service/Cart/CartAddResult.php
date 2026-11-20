@@ -40,7 +40,7 @@ final class CartAddResult
      * @param Money|null $grandTotal What the cart comes to afterwards, or null
      *                               when nothing was added and there is nothing
      *                               to show.
-     * @param StockLimit|null $stockLimit What the shelf said (2.2.2): the cart
+     * @param StockLimit|null $stockLimit What the shelf said: the cart
      *                                    already held the available quantity, so
      *                                    nothing more of that stock went in (an
      *                                    edit still re-configures its line), or

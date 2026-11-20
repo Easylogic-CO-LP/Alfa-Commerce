@@ -409,7 +409,7 @@ class CartController extends BaseController
                 ]);
             }
 
-            // THE CART ALREADY HOLDS THE AVAILABLE QUANTITY (2.2.2): nothing was
+            // THE CART ALREADY HOLDS THE AVAILABLE QUANTITY: nothing was
             // added, and the operator reads the stock's one sentence as a notice,
             // not the builder's failure, with the popup kept open as on any add
             // that added nothing. The payload carries the figure and says how the
@@ -1225,7 +1225,7 @@ class CartController extends BaseController
      * rather than closing over a message nobody read.
      *
      * The message reads as the payload's messageType says (a notice for the
-     * stock's sentence on an add that added nothing, 2.2.2); without one, a
+     * stock's sentence on an add that added nothing); without one, a
      * failure reads as an error and anything else as a plain message.
      *
      * @param string $form Which form posted: 'popup' or 'page'.

@@ -90,7 +90,7 @@ final class NamedCartEditor
         $lineId = (int) $cart->lines->add($command);
 
         if ($lineId <= 0) {
-            // The cart already holds the available quantity (2.2.2): said with its
+            // The cart already holds the available quantity: said with its
             // figure and what the cart holds, as the storefront's add says it.
             $limit = $cart->lines->stockLimit();
 

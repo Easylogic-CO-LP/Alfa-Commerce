@@ -37,7 +37,7 @@ use Joomla\CMS\Router\Route;
  *   data-outcome                      added | held | rejected
  *   data-notice                       present when the card carries the stock's notice (the cart holds the
  *                                     available quantity): the script shows such a card even when a listener
- *                                     claims the add (2.2.2)
+ *                                     claims the add
  *   --cart-added-offset-y / -x        distance from the chosen edges (absent = 16px)
  * Phones (<= 600px) always get a bottom sheet.
  *
@@ -59,8 +59,8 @@ use Joomla\CMS\Router\Route;
  *   priceSettings  array        price display settings for the `item.price` layout
  *   notice         string       what the shelf said, one sentence naming the available quantity: with
  *                               no line, the cart already holds it (the card says only that); with a
- *                               line, the request was cut to it, or an edited line already held it
- *                               (2.2.2); empty when it said nothing
+ *                               line, the request was cut to it, or an edited line already held it;
+ *                               empty when it said nothing
  *   messages       array        buyer messages [{message, type}] when the add was rejected
  *   placement, effect, offsetY, offsetX, timeout   the Options -> Cart values (timeout in seconds, fractions allowed)
  *
