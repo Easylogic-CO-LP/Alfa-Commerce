@@ -410,17 +410,18 @@ class CartController extends BaseController
             }
 
             // THE CART ALREADY HOLDS THE AVAILABLE QUANTITY: nothing was
-            // added, and the operator reads the stock's one sentence as a notice,
-            // not the builder's failure, with the popup kept open as on any add
-            // that added nothing. The payload carries the figure and says how the
-            // message reads.
+            // added, and the operator reads the stock's sentence as a notice, in
+            // the builder's own words about the cart being built (never the
+            // shopper's "your cart"), not the builder's failure, with the popup
+            // kept open as on any add that added nothing. The payload carries the
+            // figure and says how the message reads.
             $held = $result->added ? null : $result->stockLimit;
 
             $this->emitCart(
                 $editor,
                 match (true) {
                     $result->added => '',
-                    $held !== null => CartMessaging::stockSentence(limit: $held),
+                    $held !== null => CartMessaging::builderHeldSentence(limit: $held),
                     default => Text::_('COM_ALFA_CART_BUILDER_ADD_FAILED'),
                 },
                 !$result->added,
