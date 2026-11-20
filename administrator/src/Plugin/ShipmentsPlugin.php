@@ -209,15 +209,6 @@ abstract class ShipmentsPlugin extends Plugin
     public const REFUSAL_NEEDS_POSTCODE = 'COM_ALFA_SHIPMENT_NEEDS_POSTCODE';
 
     /**
-     * @var string The plugin_data key of a parcel core recorded itself at placement because the order's carrier
-     *             recorded none in onOrderAfterPlace (true on that parcel). A carrier that looks for its own parcel
-     *             afterwards recognises core's by it: $shipment->pluginData()->getBool(key: self::CORE_MADE).
-     *
-     * @since  2.2.1
-     */
-    public const CORE_MADE = ShipmentLedger::CORE_MADE;
-
-    /**
      * This family answers on the shipment.* controller.
      *
      * @since  2.0.0

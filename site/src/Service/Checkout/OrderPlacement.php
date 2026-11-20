@@ -1488,10 +1488,13 @@ class OrderPlacement
      *
      * So the failure is reported rather than swallowed, and the caller is told.
      *
-     * Each hook is dispatched once. After the shipment hook, an order whose
-     * carrier recorded no parcel gets one from core with its shipping charge
-     * ({@see self::recordMissingParcel()}); 'shipment' is reported
-     * when the hook failed or core could not record the parcel.
+     * Each hook is dispatched once. Before the shipment hook, Alfa records the
+     * order's parcel with the shipping charge and every item
+     * ({@see self::recordParcel()}) and hands it to the carrier on the event,
+     * which completes it and records no parcel of its own; 'shipment' is
+     * reported when core could not record the parcel (the hook is then not
+     * dispatched: there is nothing to complete), when the carrier cannot be
+     * loaded, or when its hook failed.
      *
      * @return string[] The sides that failed ('payment', 'shipment'); empty on success.
      *
@@ -1548,6 +1551,15 @@ class OrderPlacement
                 }
             }
 
+            // The order's parcel, recorded by core before the carrier's hook: the shipping charge the customer accepted
+            // and the gateway was asked for, and every item. The carrier completes it; it never records a second one.
+            $parcelId = $carrier !== '' && $this->order ? $this->recordParcel(carrier: $carrier) : 0;
+
+            if ($carrier !== '' && $this->order && $parcelId === 0) {
+                $failed[] = 'shipment';
+                $this->shipment_type = '';
+            }
+
             $shipmentPlugin = !empty($this->shipment_type) && $this->order ? $this->methodPlugin('alfa-shipments', $this->shipment_type) : null;
 
             if (!empty($this->shipment_type) && $this->order && $shipmentPlugin === null) {
@@ -1566,24 +1578,17 @@ class OrderPlacement
 
             if ($shipmentPlugin !== null && !empty($this->shipment_type) && $this->order) {
                 try {
-                    $this->toMethodPlugin($shipmentPlugin, new ShipmentOrderAfterPlaceEvent('onOrderAfterPlace', ['subject' => $this->order]));
+                    $this->toMethodPlugin($shipmentPlugin, new ShipmentOrderAfterPlaceEvent('onOrderAfterPlace', ['subject' => $this->order, 'shipment' => $parcelId]));
                 } catch (Throwable $e) {
                     $failed[] = 'shipment';
                     Log::add(
                         'Shipment plugin "' . $this->shipment_type . '" failed in onOrderAfterPlace for order #'
-                        . (int) ($this->order->id ?? 0) . ': the shipment row was not created: '
-                        . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                        . (int) ($this->order->id ?? 0) . ': its parcel #' . $parcelId . ' carries the charge and the items,'
+                        . ' without what the carrier adds to it: ' . $e->getMessage() . "\n" . $e->getTraceAsString(),
                         Log::CRITICAL,
                         'com_alfa.orders',
                     );
                 }
-            }
-
-            // The parcel carries the order's shipping charge: an order whose carrier recorded none (it returned
-            // without one, its write failed, or its plugin could not be loaded) would lack the charge the customer
-            // accepted and the gateway was asked for. Core records it once, after the one dispatch.
-            if ($carrier !== '' && $this->order && !$this->recordMissingParcel(carrier: $carrier) && !\in_array('shipment', $failed, true)) {
-                $failed[] = 'shipment';
             }
         } catch (Throwable $e) {
             $failed[] = 'unknown';
@@ -1594,45 +1599,36 @@ class OrderPlacement
     }
 
     /**
-     * Record the order's parcel when its carrier recorded none in onOrderAfterPlace.
+     * Record the order's parcel before its carrier's onOrderAfterPlace.
      *
-     * The order row stores no totals: its shipping is the sum of its parcels, and the parcel is the carrier's to
-     * write in onOrderAfterPlace, after the commit. A carrier that returns without one, whose write fails, or whose
-     * plugin cannot be loaded leaves an order whose own total lacks the shipping the customer accepted and the
-     * gateway was asked for, so the paid order would read as overpaid by it.
+     * The order row stores no totals: its shipping is the sum of its parcels. Core records the parcel the customer's
+     * charge belongs to, pending, with the charge the order froze at placement (its shipping with and without tax, its
+     * rate, its chain and its basis) and every item, on the order's shipping method, so it is the carrier's parcel
+     * (the ledger records the method's plugin). The carrier is handed it on the event and completes it through
+     * ShipmentsPlugin::shipmentUpdate(); it records no parcel of its own. Asked once per placement, before the one
+     * dispatch of the hook.
      *
-     * Asked once per placement, after the one dispatch of the hook (the hook is never dispatched again for the
-     * order). Any parcel of the order on the order's shipment method, of any status and by any writer, is the
-     * carrier's record, and nothing is added: a carrier's own parcel is never doubled. With none, core records one
-     * pending parcel with the charge the order froze at placement (its shipping with and without tax, its rate, its
-     * chain and its basis, as a carrier records them) and every item, marked core-made in its plugin_data
-     * (ShipmentLedger::CORE_MADE), and tells staff which carrier recorded nothing and that a pickup point or locker the
-     * shopper chose was lost with it. When core cannot record it either, the order stays short by its shipping: that is
-     * logged CRITICAL and staff are told in a notice of its own, naming the carrier and the charge to record by hand.
+     * Under the order's row lock, in one transaction: a parcel already on the order's method (another request that
+     * took the lock first recorded it) is the order's parcel, and nothing is added. When core cannot record it, the
+     * order stays short by its shipping: that is logged CRITICAL and staff are told in a notice naming the carrier and
+     * the charge to record by hand.
      *
      * @param string $carrier The element of the order's shipment plugin.
      *
-     * @return bool True when the order has its parcel (the carrier's, or core's now); false when core could not record
-     *              it (logged CRITICAL, staff told).
+     * @return int The order's parcel; 0 when core could not record it (logged CRITICAL, staff told).
      *
-     * @since  2.2.1
+     * @since  2.2.2
      */
-    private function recordMissingParcel(string $carrier): bool
+    private function recordParcel(string $carrier): int
     {
         $order = Order::of($this->order);
         $orderId = $order->id();
         $methodId = $order->shipmentMethodId();
 
         if ($orderId <= 0 || $methodId <= 0) {
-            return true;
+            return 0;
         }
 
-        // The question and the record under the order's row lock, in one transaction. A second asker, and any writer
-        // that locks the order's row first (a carrier's own find-or-create may), waits and then finds the parcel, so
-        // core records it once. A writer that takes no lock on the order (the bundled Standard carrier, the base
-        // class's shipment(), staff's Add shipment, the REST API) is not held here; a second charging parcel from one
-        // is still written at 0.00 by the ledger's charged-once rule, and withAllItems() leaves it no unit, so the
-        // order's total never counts the shipping twice.
         $db = $this->db;
         $db->transactionStart(true);
 
@@ -1647,89 +1643,72 @@ class OrderPlacement
 
             $recorded = (int) $db->setQuery(
                 $db->getQuery(true)
-                    ->select('COUNT(*)')
+                    ->select('MIN(' . $db->quoteName('id') . ')')
                     ->from($db->quoteName('#__alfa_order_shipments'))
                     ->where($db->quoteName('id_order') . ' = ' . $orderId)
                     ->where($db->quoteName('id_shipment_method') . ' = ' . $methodId),
             )->loadResult();
 
-            $parcelId = $recorded > 0 ? 0 : ShipmentLedger::for($order)
+            $parcelId = $recorded > 0 ? $recorded : (int) ShipmentLedger::for($order)
                 ->pending()
                 ->withAllItems()
                 ->cost($order->shipmentTotal(), $order->shipmentTotalExcl(), $order->shipmentTaxRate())
-                ->pluginData([ShipmentLedger::CORE_MADE => true])
                 ->save();
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
             Log::add(
-                'Order #' . $orderId . ': the carrier "' . $carrier . '" recorded no parcel, and core could not record it: '
+                'Order #' . $orderId . ': core could not record the parcel of the carrier "' . $carrier . '": '
                     . $e::class . ': ' . $e->getMessage(),
                 Log::CRITICAL,
                 'com_alfa.orders',
             );
-            $this->noticeParcel(missing: true, order: $order, carrier: $carrier);
+            $this->noticeMissingParcel(order: $order, carrier: $carrier);
 
-            return false;
+            return 0;
         }
 
         // After the try: a commit that fails is not closed a second time.
         TransactionState::commitLevel($db);
 
-        if ($recorded > 0) {
-            return true;
-        }
-
-        if (!$parcelId) {
+        if ($parcelId <= 0) {
             Log::add(
-                'Order #' . $orderId . ': the carrier "' . $carrier . '" recorded no parcel, and the ledger refused core\'s record of it;'
+                'Order #' . $orderId . ': the ledger refused the parcel of the carrier "' . $carrier . '";'
                     . ' the order lacks its shipping charge.',
                 Log::CRITICAL,
                 'com_alfa.orders',
             );
-            $this->noticeParcel(missing: true, order: $order, carrier: $carrier);
+            $this->noticeMissingParcel(order: $order, carrier: $carrier);
 
-            return false;
+            return 0;
         }
 
-        Log::add(
-            'Order #' . $orderId . ': the carrier "' . $carrier . '" recorded no parcel at placement; core recorded parcel #'
-                . (int) $parcelId . ' with the order\'s shipping charge and every item.',
-            Log::WARNING,
-            'com_alfa.orders',
-        );
-        $this->noticeParcel(missing: false, order: $order, carrier: $carrier);
-
-        return true;
+        return $parcelId;
     }
 
     /**
-     * Tell staff what became of an order's parcel its carrier did not record: core recorded it
-     * (orders.parcel.coremade.<order>, a warning), or core could not and the order lacks its shipping charge
-     * (orders.parcel.missing.<order>, critical, naming the charge to record by hand). Both name the carrier: its
-     * method, as the order's language names it, and its plugin. A notice that cannot be written is logged; the order
-     * and its parcel stand either way.
+     * Tell staff that core could not record an order's parcel and the order lacks its shipping charge
+     * (orders.parcel.missing.<order>, critical, naming the charge to record by hand), naming the carrier: its method,
+     * as the order's language names it, and its plugin. A notice that cannot be written is logged; the order stands
+     * either way.
      *
-     * @param bool $missing True when core could not record the parcel.
      * @param Order $order The order.
      * @param string $carrier The element of the order's shipment plugin.
      *
-     * @since  2.2.1
+     * @since  2.2.2
      */
-    private function noticeParcel(bool $missing, Order $order, string $carrier): void
+    private function noticeMissingParcel(Order $order, string $carrier): void
     {
         $orderId = $order->id();
         $method = $this->getShipmentMethodName($order->shipmentMethodId());
 
         try {
             NotificationHelper::push(
-                dedupKey: ($missing ? 'orders.parcel.missing.' : 'orders.parcel.coremade.') . $orderId,
-                title: NotificationText::of($missing ? 'COM_ALFA_NOTIFY_PARCEL_MISSING_TITLE' : 'COM_ALFA_NOTIFY_PARCEL_CORE_MADE_TITLE', $orderId),
+                dedupKey: 'orders.parcel.missing.' . $orderId,
+                title: NotificationText::of('COM_ALFA_NOTIFY_PARCEL_MISSING_TITLE', $orderId),
                 options: [
-                    'severity' => $missing ? 'danger' : 'warning',
+                    'severity' => 'danger',
                     'group' => NotificationHelper::GROUP_SHIPPING,
-                    'message' => $missing
-                        ? NotificationText::of('COM_ALFA_NOTIFY_PARCEL_MISSING_MSG', $method, $carrier, $order->shipmentTotal()->format())
-                        : NotificationText::of('COM_ALFA_NOTIFY_PARCEL_CORE_MADE_MSG', $method, $carrier),
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_PARCEL_MISSING_MSG', $method, $carrier, $order->shipmentTotal()->format()),
                     'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
                     'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
                     'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
