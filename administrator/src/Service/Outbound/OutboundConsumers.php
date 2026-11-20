@@ -87,6 +87,27 @@ final class OutboundConsumers
     }
 
     /**
+     * The consumer row core keeps for a plugin, or null when the plugin consumes no change.
+     *
+     * @api READ ONLY: the consumer id of a plugin consumer, what OutboundFeed::waiting() asks with.
+     *
+     * @param PluginId $plugin The plugin.
+     *
+     * @since  2.2.2
+     */
+    public static function ofPlugin(PluginId $plugin): ?int
+    {
+        $db = self::db();
+        $key = (string) $plugin;
+        $id = (int) $db->setQuery(
+            $db->getQuery(true)->select($db->quoteName('id'))->from($db->quoteName(OutboundFeed::CONSUMERS))
+                ->where($db->quoteName('plugin') . ' = :plugin')->bind(':plugin', $key),
+        )->loadResult();
+
+        return $id > 0 ? $id : null;
+    }
+
+    /**
      * The card's rows: each consumer with its kind, topics, state, what waits, what was given up, and its last attempt.
      *
      * @return list<array<string, mixed>>
