@@ -46,6 +46,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartOwner;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
+use Alfa\Component\Alfa\Administrator\Service\Log\ErrorRecorder;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
@@ -57,8 +58,11 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerTrigger;
 use Alfa\Component\Alfa\Site\Service\Cart\RecognizeKey;
 use Exception;
+use Joomla\Application\WebApplicationInterface;
+use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Document\HtmlDocument;
+use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
 use Joomla\CMS\Event\Module\AfterModuleListEvent;
 use Joomla\CMS\Event\PageCache\IsExcludedEvent;
@@ -74,6 +78,7 @@ use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\ParameterType;
 use Joomla\Event\Event;
+use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Registry\Registry;
 use RuntimeException;
@@ -120,7 +125,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     // Event subscriptions: the only place to touch when adding a sync target
 
     /**
-     * @return array<string, string>
+     * @return array<string, string|array{0: string, 1: int}>
      * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
@@ -129,6 +134,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // A provider's webhook in its plain address marked before Joomla routes it; the texts of Alfa's guided
             // tours, before anything on an administrator request reads them.
             'onAfterInitialise' => 'onAfterInitialise',
+
+            // A server error of the request: recorded in Alfa Commerce's error log before any other listener changes
+            // it, and the page shows its reference only.
+            'onError' => ['onError', Priority::HIGH],
 
             // User events: always active
             'onUserBeforeSave' => 'onUserBeforeSave',
@@ -1600,5 +1609,45 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         $ctx = empty($context) ? '' : ' | ' . json_encode($context);
         Log::add('[' . $caller . '] ' . $message . $ctx, $level, 'alfa_sync');
+    }
+
+    /**
+     * A server error of the request (an uncaught throwable that is not a 4xx): one line in Alfa Commerce's error log
+     * ({@see ErrorRecorder}), the reference in a response header, and the error the page shows replaced by a sentence
+     * with that reference, the original chained to it as its cause. The status stays the error's own 5xx (500 for any
+     * other code). A 4xx is Joomla's own and is left as it is. Nothing is retried and nothing is held back from the
+     * log; a failure here never changes the page.
+     *
+     * @param ErrorEvent $event The application's error event.
+     *
+     * @since  2.2.2
+     */
+    public function onError(ErrorEvent $event): void
+    {
+        try {
+            $error = $event->getError();
+            $app = $event->getApplication();
+
+            if (!ErrorRecorder::isServerError(error: $error) || !$app instanceof CMSApplicationInterface) {
+                return;
+            }
+
+            $reference = ErrorRecorder::reference();
+            ErrorRecorder::record(error: $error, app: $app, reference: $reference);
+
+            if ($app instanceof WebApplicationInterface) {
+                $app->setHeader(ErrorRecorder::HEADER, $reference, true);
+            }
+
+            $this->loadLanguage();
+
+            $event->setError(new RuntimeException(
+                Text::sprintf('PLG_SYSTEM_ALFASYNC_ERROR_REFERENCE', $reference),
+                ErrorRecorder::status(error: $error),
+                $error,
+            ));
+        } catch (Throwable) {
+            // The error page is Joomla's own, as if this listener were not there.
+        }
     }
 }
