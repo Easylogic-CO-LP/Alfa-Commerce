@@ -70,7 +70,7 @@ class ItemFieldsAdminHelper
      *
      * @since  2.0.0
      */
-    private const PRICE_ROW_COLUMNS = [
+    public const PRICE_ROW_COLUMNS = [
         'id', 'mode', 'operation', 'value', 'override_value', 'override_type',
         'currency_id', 'country_id', 'usergroup_id', 'user_id',
         'quantity_start', 'quantity_end', 'publish_up', 'publish_down', 'state',

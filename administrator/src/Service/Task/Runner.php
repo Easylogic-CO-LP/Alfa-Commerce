@@ -301,7 +301,8 @@ final class Runner
      * Whether a trigger has work to run now, in one statement: a pending job due, a running job whose lease
      * passed, a single recovery would take, a waiting price set whose job is gone, a stock movement owed with no
      * drain job to apply it, an item's rebuild owed past the grace with no catalogue job, or a stored price period that
-     * began, older than the lag, and is not announced yet. A heavy job running under a live lease is not due, so pages stop kicking by themselves.
+     * began, older than the lag, and is not announced yet, or a change owed to a consumer of the shop's changes, due
+     * now, with no delivery job. A heavy job running under a live lease is not due, so pages stop kicking by themselves.
      * A failure answers false, logged: a page never fails for it.
      *
      * @since  2.2.0
@@ -412,6 +413,7 @@ final class Runner
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_inventory_effect_outbox') . ' WHERE ' . self::owedMovementWithoutDrain(db: $db);
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_items') . ' WHERE ' . self::markWithoutCatalogueJob(db: $db);
         $probes[] = DueRead::windowsProbe(db: $db, until: DueRead::windowsUntil());
+        $probes[] = 'SELECT 1 FROM ' . $db->quoteName(DueRead::OUTBOUND_DELIVERIES, 'd') . ' WHERE ' . DueRead::outboundOwedWhere(db: $db);
 
         return $probes;
     }
@@ -523,6 +525,12 @@ final class Runner
             Job\PriceIndexTidyJob::owe(db: $db);
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the tidy of the price index could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+        }
+
+        try {
+            Job\OutboundDeliveryJob::owe(db: $db);
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Runner: the deliveries owed to the consumers of the shop\'s changes could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
         }
 
         try {
@@ -708,6 +716,8 @@ final class Runner
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
             // The background work an alfa plugin owes, handed back to it.
             Job\ExtensionJob::NAME => Job\ExtensionJob::class,
+            // What a consumer of the shop's changes is owed, delivered.
+            Job\OutboundDeliveryJob::NAME => Job\OutboundDeliveryJob::class,
         ];
     }
 

@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 
@@ -62,6 +63,10 @@ class ItemModel extends AdminItemModel
             }
 
             $this->attachFieldGraph($item);
+
+            // The state of the product's own prices, which a write of its prices sends back to be refused when they
+            // changed since.
+            $item->prices_state = PricesState::ofItems(itemIds: [(int) $item->id])[(int) $item->id];
         }
 
         return $item;

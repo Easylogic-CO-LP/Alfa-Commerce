@@ -13,6 +13,8 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
@@ -46,6 +48,15 @@ class ItemsController extends ApiController
      * @since  1.0.0
      */
     protected $default_view = 'items';
+
+    /**
+     * The prices_state the update sent with its prices, or null when it sent none.
+     *
+     * @var string|null
+     *
+     * @since  2.2.2
+     */
+    private ?string $pricesState = null;
 
     /**
      * Relations the admin model clears when the key is absent from a PATCH.
@@ -218,6 +229,84 @@ class ItemsController extends ApiController
     {
         $this->guardedRefuseUnwrittenKeys(update: $update);
         $this->refuseStockShapes(body: $this->requestBody());
+        $this->pricesState = $this->sentPricesState(body: $this->requestBody(), update: $update);
+    }
+
+    /**
+     * The state of the product's own prices the client read and sends back with its prices ({@see PricesState}): the
+     * update is refused 409 when the prices changed since, and nothing of it is saved. Without it the prices are
+     * written as sent.
+     *
+     * @param array $body The request body.
+     * @param bool $update Whether the write is an update (PATCH).
+     *
+     * @return string|null The state sent, or null.
+     *
+     * @throws Save When prices_state is sent on a create, without prices, or in another shape (422).
+     *
+     * @since  2.2.2
+     */
+    private function sentPricesState(array $body, bool $update): ?string
+    {
+        if (!\array_key_exists('prices_state', $body) || $body['prices_state'] === null) {
+            return null;
+        }
+
+        if (!$update) {
+            throw new Save('prices_state: send it on an update, with the prices it was read with. Nothing was saved.', 422);
+        }
+
+        if (!\array_key_exists('prices', $body)) {
+            throw new Save('prices_state: send it with prices, the state the product\'s prices were read in. Nothing was saved.', 422);
+        }
+
+        if (!\is_string($body['prices_state']) || preg_match(PricesState::PATTERN, $body['prices_state']) !== 1) {
+            throw new Save('prices_state: send it as the item read gives it, 32 hexadecimal digits. Nothing was saved.', 422);
+        }
+
+        return $body['prices_state'];
+    }
+
+    /**
+     * The model of a write, told the prices_state the update sent, so its save refuses prices changed since.
+     *
+     * @param string $name The model name.
+     * @param string $prefix The class prefix.
+     * @param array $config The configuration.
+     *
+     * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel|false
+     *
+     * @since  2.2.2
+     */
+    public function getModel($name = '', $prefix = '', $config = [])
+    {
+        $model = parent::getModel($name, $prefix, $config);
+
+        if ($this->pricesState !== null && $model instanceof AdminItemModel) {
+            $model->expectPricesState(state: $this->pricesState);
+        }
+
+        return $model;
+    }
+
+    /**
+     * Save the write: a write of prices changed since they were read answers 409, its sentence naming prices_state.
+     *
+     * @param int|null $recordKey The record's key.
+     *
+     * @return int The record's id.
+     *
+     * @throws Save When the prices changed since they were read (409).
+     *
+     * @since  2.2.2
+     */
+    protected function save($recordKey = null)
+    {
+        try {
+            return parent::save($recordKey);
+        } catch (PricesStateChanged $e) {
+            throw new Save($e->getMessage(), 409, $e);
+        }
     }
 
     /**

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    A webhook: the https address the shop posts its changes to, signed with the webhook's secret, and the topics it
+    is told of. The secret is made by the shop, shown once after the save that made it, and never shown again.
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="webhook">
+
+        <field
+                name="name"
+                type="text"
+                maxlength="255"
+                required="true"
+                label="COM_ALFA_WEBHOOK_FIELD_NAME"
+                description="COM_ALFA_WEBHOOK_FIELD_NAME_DESC"
+        />
+
+        <field
+                name="url"
+                type="url"
+                maxlength="2048"
+                required="true"
+                validate="url"
+                schemes="https"
+                filter="url"
+                label="COM_ALFA_WEBHOOK_FIELD_URL"
+                description="COM_ALFA_WEBHOOK_FIELD_URL_DESC"
+                hint="https://"
+        />
+
+        <field
+                name="topics"
+                type="checkboxes"
+                required="true"
+                label="COM_ALFA_WEBHOOK_FIELD_TOPICS"
+                description="COM_ALFA_WEBHOOK_FIELD_TOPICS_DESC"
+        >
+            <option value="stock">COM_ALFA_OUTBOUND_TOPIC_STOCK</option>
+            <option value="price">COM_ALFA_OUTBOUND_TOPIC_PRICE</option>
+            <option value="order.created">COM_ALFA_OUTBOUND_TOPIC_ORDER_CREATED</option>
+            <option value="order.status">COM_ALFA_OUTBOUND_TOPIC_ORDER_STATUS</option>
+        </field>
+
+        <field
+                name="new_secret"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                label="COM_ALFA_WEBHOOK_FIELD_NEW_SECRET"
+                description="COM_ALFA_WEBHOOK_FIELD_NEW_SECRET_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="state"
+                type="list"
+                label="JSTATUS"
+                default="1"
+                class="form-select-color-state"
+                size="1"
+        >
+            <option value="1">COM_ALFA_WEBHOOK_STATE_ENABLED</option>
+            <option value="0">COM_ALFA_WEBHOOK_STATE_PAUSED</option>
+        </field>
+
+        <field name="id" type="hidden"/>
+    </fieldset>
+</form>

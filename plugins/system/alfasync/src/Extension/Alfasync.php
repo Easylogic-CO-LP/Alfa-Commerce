@@ -47,6 +47,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundConsumers;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
@@ -962,6 +963,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         // com_plugins.plugin
         $this->invalidateForExtensions(ids: [(int) ($item->extension_id ?? 0)], how: 'saved');
+        // An alfa plugin that consumes the shop's changes keeps its consumer row with the topics it names now.
+        OutboundConsumers::followPlugins(extensionIds: [(int) ($item->extension_id ?? 0)]);
     }
 
     /**
@@ -1122,6 +1125,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         if ($context === 'com_plugins.plugin' && $pks !== [] && !$this->paused()) {
             $this->invalidateForExtensions(ids: array_map('intval', $pks), how: $value === 1 ? 'enabled' : 'disabled');
+            // A consumer plugin enabled delivers again with its topics; disabled, its row is paused and keeps what waits.
+            OutboundConsumers::followPlugins(extensionIds: array_map('intval', $pks));
         }
     }
 
@@ -1372,6 +1377,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         $this->invalidateForAlfaExtension('uninstalled');
         $this->followCompatibility();
+        // A consumer plugin removed takes its consumer row and what it was owed with it.
+        OutboundConsumers::forgetMissingPlugins();
     }
 
     /**

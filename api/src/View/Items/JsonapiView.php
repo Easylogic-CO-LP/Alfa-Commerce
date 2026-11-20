@@ -66,6 +66,7 @@ class JsonApiView extends BaseApiView
         'meta_data',
         'robots',
         'prices',
+        'prices_state',
         'categories',
         'manufacturers',
         'related',

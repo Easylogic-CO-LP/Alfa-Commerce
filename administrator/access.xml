@@ -149,6 +149,13 @@
 		<action name="alfa.usergroups.edit.state" title="COM_ALFA_ACCESS_USERGROUPS_EDIT_STATE" description="COM_ALFA_ACCESS_USERGROUPS_EDIT_STATE_DESC" />
 		<action name="alfa.usergroups.delete" title="COM_ALFA_ACCESS_USERGROUPS_DELETE" description="COM_ALFA_ACCESS_USERGROUPS_DELETE_DESC" />
 
+		<!-- Webhooks: the addresses the shop posts its changes to. A webhook's secret is never shown after the save that made it. -->
+		<action name="alfa.webhooks.view" title="COM_ALFA_ACCESS_WEBHOOKS_VIEW" description="COM_ALFA_ACCESS_WEBHOOKS_VIEW_DESC" />
+		<action name="alfa.webhooks.create" title="COM_ALFA_ACCESS_WEBHOOKS_CREATE" description="COM_ALFA_ACCESS_WEBHOOKS_CREATE_DESC" />
+		<action name="alfa.webhooks.edit" title="COM_ALFA_ACCESS_WEBHOOKS_EDIT" description="COM_ALFA_ACCESS_WEBHOOKS_EDIT_DESC" />
+		<action name="alfa.webhooks.edit.state" title="COM_ALFA_ACCESS_WEBHOOKS_EDIT_STATE" description="COM_ALFA_ACCESS_WEBHOOKS_EDIT_STATE_DESC" />
+		<action name="alfa.webhooks.delete" title="COM_ALFA_ACCESS_WEBHOOKS_DELETE" description="COM_ALFA_ACCESS_WEBHOOKS_DELETE_DESC" />
+
 		<action name="alfa.notifications.view" title="COM_ALFA_ACCESS_NOTIFICATIONS_VIEW" description="COM_ALFA_ACCESS_NOTIFICATIONS_VIEW_DESC" />
 		<action name="alfa.notifications.edit.state" title="COM_ALFA_ACCESS_NOTIFICATIONS_EDIT_STATE" description="COM_ALFA_ACCESS_NOTIFICATIONS_EDIT_STATE_DESC" />
 
