@@ -32,9 +32,10 @@ use Throwable;
  *   it. A 2xx answer takes every change of the batch. No answer, a redirect, 408, 425, 429 or a 5xx retries the batch
  *   (a Retry-After longer than the backoff step is honoured); any other 4xx gives the batch up at once, the status and
  *   the first 255 bytes of the answer kept for staff.
- * - A plugin consumer is handed the batch by its targeted onAlfaOutboundDeliver ({@see OutboundDeliverEvent}) and
- *   answers each change. A plugin that cannot be booted, or declares no handler, leaves the batch waiting one
- *   backoff step, its attempts unchanged.
+ * - A plugin consumer is handed the batch by its targeted onAlfaOutboundDeliver ({@see OutboundDeliverEvent}), its
+ *   public method of that name, and answers each change. A plugin with no such method consumes nothing: its changes
+ *   settle as no consumer (STATE_NO_CONSUMER), never as a failure. A plugin that cannot be booted leaves the batch
+ *   waiting one backoff step, its attempts unchanged.
  *
  * A retried change waits Tasks::BACKOFF_SECONDS for its count of failed attempts (60 seconds, 5 minutes, 30 minutes,
  * 2 hours, 6 hours, 24 hours); after the sixth retry fails it is given up (dead): staff see it in Tools, Tasks and the
@@ -42,8 +43,8 @@ use Throwable;
  * the next change of the unit is told with the newest figure. An order's change waits while an older change of the
  * same order is neither sent nor given up, so an order's changes arrive in the order they happened.
  *
- * Settled rows are removed by the consumer's own deliveries: a sent change after {@see self::SENT_KEEP_DAYS} days,
- * a given up or discarded one after {@see self::DEAD_KEEP_DAYS}.
+ * Settled rows are removed by the consumer's own deliveries: a sent change, or one no consumer took, after
+ * {@see self::SENT_KEEP_DAYS} days, a given up or discarded one after {@see self::DEAD_KEEP_DAYS}.
  *
  * @since  2.2.2
  */
@@ -60,6 +61,9 @@ final class OutboundDelivery
 
     /** A change given up that staff discarded: never sent, no longer counted. @since 2.2.2 */
     public const STATE_DISCARDED = 'discarded';
+
+    /** A change its plugin does not take (the plugin has no onAlfaOutboundDeliver): settled, never an error. @since 2.2.2 */
+    public const STATE_NO_CONSUMER = 'no_consumer';
 
     /**
      * The most changes in one batch.
@@ -267,9 +271,9 @@ final class OutboundDelivery
         }
 
         if (!$helper->declares($loaded, OutboundDeliverEvent::NAME)) {
-            $reason = 'The plugin ' . $plugin . ' has no ' . OutboundDeliverEvent::NAME . '.';
+            $reason = 'The plugin ' . $plugin . ' has no ' . OutboundDeliverEvent::NAME . '(): no consumer.';
 
-            return ['answers' => $all('hold', $reason), 'retryAfter' => null, 'ok' => false, 'result' => $reason];
+            return ['answers' => $all('none', $reason), 'retryAfter' => null, 'ok' => true, 'result' => $reason];
         }
 
         $changes = [];
@@ -397,11 +401,11 @@ final class OutboundDelivery
 
     /**
      * Settle a batch by its answers, in one transaction: taken, retried on the backoff (given up after the last
-     * retry), given up at once, or held one backoff step without counting an attempt.
+     * retry), given up at once, taken by no consumer, or held one backoff step without counting an attempt.
      *
      * @param DatabaseDriver $db The connection.
      * @param list<object> $rows The batch.
-     * @param array<int, array{0: string, 1: string}> $answers By row id: delivered, retry, refused or hold, and why.
+     * @param array<int, array{0: string, 1: string}> $answers By row id: delivered, retry, refused, none or hold, and why.
      * @param int|null $retryAfter Seconds the consumer asked to wait, or null.
      *
      * @since  2.2.2
@@ -427,6 +431,11 @@ final class OutboundDelivery
                         ->set($db->quoteName('pending') . ' = NULL')
                         ->set($db->quoteName('attempts') . ' = ' . min(65535, $failed))
                         ->set($db->quoteName('dead_at') . ' = UTC_TIMESTAMP(6)')
+                        ->set($db->quoteName('last_error') . ' = ' . $db->quote(substr($reason, 0, 500)));
+                } elseif ($answer === 'none') {
+                    $query->set($db->quoteName('state') . ' = ' . $db->quote(self::STATE_NO_CONSUMER))
+                        ->set($db->quoteName('pending') . ' = NULL')
+                        ->set($db->quoteName('sent_at') . ' = UTC_TIMESTAMP(6)')
                         ->set($db->quoteName('last_error') . ' = ' . $db->quote(substr($reason, 0, 500)));
                 } elseif ($answer === 'hold') {
                     $wait = Tasks::BACKOFF_SECONDS[min((int) $row->attempts, \count(Tasks::BACKOFF_SECONDS) - 1)];
@@ -463,7 +472,7 @@ final class OutboundDelivery
     {
         $db->setQuery(
             'DELETE FROM ' . $db->quoteName(OutboundFeed::DELIVERIES) . ' WHERE ' . $db->quoteName('consumer_id') . ' = ' . $consumerId
-            . ' AND ((' . $db->quoteName('state') . ' = ' . $db->quote(self::STATE_SENT) . ' AND ' . $db->quoteName('sent_at') . ' < UTC_TIMESTAMP(6) - INTERVAL ' . self::SENT_KEEP_DAYS . ' DAY)'
+            . ' AND ((' . $db->quoteName('state') . ' IN (' . $db->quote(self::STATE_SENT) . ', ' . $db->quote(self::STATE_NO_CONSUMER) . ') AND ' . $db->quoteName('sent_at') . ' < UTC_TIMESTAMP(6) - INTERVAL ' . self::SENT_KEEP_DAYS . ' DAY)'
             . ' OR (' . $db->quoteName('state') . ' IN (' . $db->quote(self::STATE_DEAD) . ', ' . $db->quote(self::STATE_DISCARDED) . ') AND ' . $db->quoteName('dead_at') . ' < UTC_TIMESTAMP(6) - INTERVAL ' . self::DEAD_KEEP_DAYS . ' DAY))'
             . ' LIMIT ' . self::PRUNE_LIMIT,
         )->execute();

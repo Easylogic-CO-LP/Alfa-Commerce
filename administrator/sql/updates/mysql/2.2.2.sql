@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_outbound_deliveries` (
   `unit_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination for stock and price; 0 for a product without combinations, and for an order',
   `payload` varchar(255) NOT NULL DEFAULT '' COMMENT 'order.status: the status left and the status entered as from:to; empty otherwise, values are read when sent',
   `pending` tinyint(1) NULL DEFAULT NULL COMMENT '1 while a stock or price row waits, NULL otherwise: one waiting row a consumer, topic and unit',
-  `state` varchar(12) NOT NULL DEFAULT 'pending' COMMENT 'pending, sent or dead',
+  `state` varchar(12) NOT NULL DEFAULT 'pending' COMMENT 'pending, sent, no_consumer (its plugin takes none), dead or discarded',
   `attempts` smallint(5) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Delivery attempts that failed',
   `next_attempt_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC, not before this; NULL: due now',
   `last_error` varchar(500) NOT NULL DEFAULT '' COMMENT 'Why the last attempt failed, for staff',
