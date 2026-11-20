@@ -52,8 +52,8 @@ final class CoreTables
     public const KEEP = ['#__alfa_maintenance'];
 
     /**
-     * Core tables an update makes that no install SQL creates: the price index of 2.2.1 the update to 2.2.2 keeps,
-     * renamed, while the new one is built. Clear everything drops them with the rest, so a cleared shop never reads
+     * Core tables an update makes that no install SQL creates: the previous price index the update keeps, renamed,
+     * while the new one is built. Clear everything drops them with the rest, so a cleared shop never reads
      * them again.
      *
      * @var string[]

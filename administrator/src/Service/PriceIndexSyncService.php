@@ -46,7 +46,7 @@ use Throwable;
 
 /**
  * PriceIndexSyncService: builds and maintains the price index, the resolved price of every unit a product sells in
- * every pricing context and period (2.2.2).
+ * every pricing context and period.
  *
  * The index (#__alfa_items_price_index) holds one row per pricing context, product, combination and period: what the
  * engine charges an anonymous customer of that context for one piece of the unit at the product's opening quantity
@@ -104,7 +104,7 @@ use Throwable;
  * being prepared, so a product saved while a generation is prepared is read with the change before the switch. The retired generation's rows, and the periods that ended, are removed by the
  * price.index.tidy job (once a day, and after each switch).
  *
- * The update to 2.2.2. The index of 2.2.1 is renamed #__alfa_items_price_index_prev by the
+ * On an update, the previous index (the table with a place_id column) is renamed #__alfa_items_price_index_prev by the
  * installer and stays readable, with its readers, while the new index is built in the background by the catalogue job
  * (Tools > Rebuild catalogue projections shows its progress); the switch is the flag #__alfa_meta prices.index_build,
  * written before the rename: while that row exists the storefront reads the previous index, and the job removes it once
@@ -174,11 +174,11 @@ class PriceIndexSyncService
     /** Rows per multi-row INSERT. */
     private const INSERT_ROWS = 500;
 
-    /** Seconds a rule's save prepares its generations for before it leaves the rest to their jobs (2.2.2). */
+    /** Seconds a rule's save prepares its generations for before it leaves the rest to their jobs. */
     private const GENERATION_SECONDS = 20.0;
 
     /**
-     * The bound on one onAlfaPricesChanged (2.2.0, A-C18-4): once a write outside a caller's transaction has collected
+     * The bound on one onAlfaPricesChanged: once a write outside a caller's transaction has collected
      * this many changed rows, what it holds goes out as its own event and the collection starts again.
      *
      * @since  2.2.0
@@ -192,21 +192,21 @@ class PriceIndexSyncService
     private const SETS_TABLE = '#__alfa_price_group_sets';
 
     /**
-     * The pricing contexts of the index (2.2.2).
+     * The pricing contexts of the index.
      *
      * @since  2.2.2
      */
     public const CONTEXTS_TABLE = '#__alfa_price_contexts';
 
     /**
-     * The price index (2.2.2: keyed by context, product, combination and valid_from).
+     * The price index (keyed by context, product, combination and valid_from).
      *
      * @since  2.2.2
      */
     public const INDEX_TABLE = '#__alfa_items_price_index';
 
     /**
-     * The index of 2.2.1 under the name the update gives it, read by the storefront while the new index is built
+     * The previous index under the name the update gives it, read by the storefront while the new index is built
      * so the previous prices stay readable until the new ones are complete, dropped by the installer of the next update
      * after the switch.
      *
@@ -215,7 +215,7 @@ class PriceIndexSyncService
     public const PREVIOUS_TABLE = '#__alfa_items_price_index_prev';
 
     /**
-     * The #__alfa_meta row written when the storefront switched from the previous index to this one (2.2.2): its value
+     * The #__alfa_meta row written when the storefront switched from the previous index to this one: its value
      * the moment. Only once it exists does an update drop the previous index.
      *
      * @since  2.2.2
@@ -223,7 +223,7 @@ class PriceIndexSyncService
     public const META_SWITCHED = 'prices.index_switched';
 
     /**
-     * The #__alfa_meta fact of the sets of pricing groups (2.2.2), JSON: pricing, the pricing groups the sets customers
+     * The #__alfa_meta fact of the sets of pricing groups, JSON: pricing, the pricing groups the sets customers
      * hold were last brought in line with; previous, while a change of those groups waits for the contexts it brought,
      * the pricing groups before it, else null.
      *
@@ -232,7 +232,7 @@ class PriceIndexSyncService
     public const META_GROUP_SETS = 'prices.group_sets';
 
     /**
-     * The switch after the update (2.2.2): while this #__alfa_meta row exists the storefront reads the previous index;
+     * The switch after the update: while this #__alfa_meta row exists the storefront reads the previous index;
      * its value is the moment the build began. Written by the update, removed by {@see self::finishBuild()}.
      *
      * @since  2.2.2
@@ -252,7 +252,7 @@ class PriceIndexSyncService
     private int $lastRequested = 0;
 
     /**
-     * The products each named customer's rules touch, for this write (2.2.2): by user id.
+     * The products each named customer's rules touch, for this write: by user id.
      *
      * @var array<int, array<int, true>>
      * @since  2.2.2
@@ -260,7 +260,7 @@ class PriceIndexSyncService
     private array $customerProducts = [];
 
     /**
-     * The write being announced (2.2.0): its cause, whether anything listens, and what its committed chunks changed.
+     * The write being announced: its cause, whether anything listens, and what its committed chunks changed.
      *
      * @var stdClass|null {cause: string, causeId: int, listening: bool, items: array<int, true>, sets: array<int, true>, changes: PriceChange[]}
      * @since  2.2.0
@@ -270,7 +270,7 @@ class PriceIndexSyncService
     /** Whether this request has logged the missing or unreadable cursor of the announced price periods. */
     private static bool $cursorWarned = false;
 
-    /** Whether an onAlfaPricesChanged is being delivered now (2.2.0, A-C18-7). */
+    /** Whether an onAlfaPricesChanged is being delivered now. */
     private static bool $delivering = false;
 
     /**
@@ -296,7 +296,7 @@ class PriceIndexSyncService
     private static ?array $pricingGroups = null;
 
     /**
-     * The line of groups a visitor with no account holds, as read for this process (2.2.2).
+     * The line of groups a visitor with no account holds, as read for this process.
      *
      * @var int[]|null
      * @since  2.2.2
@@ -315,7 +315,7 @@ class PriceIndexSyncService
     private static bool $previousRead = false;
 
     /**
-     * Whether the storefront reads the previous index, as read for this process (2.2.2); null until read.
+     * Whether the storefront reads the previous index, as read for this process; null until read.
      *
      * @since  2.2.2
      */
@@ -392,7 +392,7 @@ class PriceIndexSyncService
      * Rewrite some products' rows. The discount and tax delete hooks collect the products before the delete and call
      * this after it, so the products are priced without the removed rule. A rule's scope of more than one chunk and at
      * least half the published products (cause discount or tax, outside a caller's transaction) is rewritten as the
-     * next generation of every live context instead, each switched whole when complete (2.2.2).
+     * next generation of every live context instead, each switched whole when complete.
      *
      * @param int[] $itemIds The products.
      * @param string $cause Why, as onAlfaPricesChanged says it.
@@ -407,7 +407,7 @@ class PriceIndexSyncService
         return self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemIds, $cause): int {
             // Not strict: a chunk whose calculation failed is rolled back, logged and owed; the others are written.
             try {
-                // A rule's context-wide scope is rewritten as generations, each context switched whole (2.2.2).
+                // A rule's context-wide scope is rewritten as generations, each context switched whole.
                 if (\in_array($cause, [PricesChangedEvent::CAUSE_DISCOUNT, PricesChangedEvent::CAUSE_TAX], true)
                     && !TransactionState::isOpen(db: $this->db) && $this->contextWide(scope: \count(array_unique(array_map('intval', $itemIds))))) {
                     $this->alignContexts();
@@ -520,7 +520,7 @@ class PriceIndexSyncService
             $contexts = $this->alignContexts();
             $ids = $itemIds();
 
-            // A context-wide scope as generations, each context switched whole (2.2.2).
+            // A context-wide scope as generations, each context switched whole.
             if (!TransactionState::isOpen(db: $this->db) && $this->contextWide(scope: \count($ids))) {
                 return $this->rewriteAsGenerations();
             }
@@ -900,7 +900,7 @@ class PriceIndexSyncService
     // The build after the update, and the switch
 
     /**
-     * Whether the storefront reads the previous index: the build after the update has not switched yet (2.2.2). Read
+     * Whether the storefront reads the previous index: the build after the update has not switched yet. Read
      * once per process.
      *
      * @since  2.2.2
@@ -964,7 +964,7 @@ class PriceIndexSyncService
     }
 
     /**
-     * Begin or resume the build after the update (the installer, 2.2.2): the flag written (its first moment kept), every
+     * Begin or resume the build after the update (the installer): the flag written (its first moment kept), every
      * item marked owed a rebuild and the catalogue job enqueued, so the new index is built in the background while the
      * storefront reads the previous one. Each step is idempotent: a second run marks and enqueues again.
      *
@@ -1222,7 +1222,7 @@ class PriceIndexSyncService
     // The completeness check
 
     /**
-     * The completeness check (2.2.2): every prepared context holds exactly one row covering now for each unit it is
+     * The completeness check: every prepared context holds exactly one row covering now for each unit it is
      * written for (a set's context: every published unit; a customer's context: the units of the products their rules
      * touch), no row of a unit that is not published, the rows of each unit tiling time from the epoch to an open end,
      * and every product's stored opening combination equal to the choice in SQL. rows says whether the rows pass, which
@@ -1483,7 +1483,7 @@ class PriceIndexSyncService
     }
 
     /**
-     * The sets one visitor may read, in the order they are tried (2.2.2): their own; while a change of the pricing
+     * The sets one visitor may read, in the order they are tried: their own; while a change of the pricing
      * groups waits, the set of the groups they hold among the pricing groups before it; the guest's; the guest's before
      * the change.
      *
@@ -1515,7 +1515,7 @@ class PriceIndexSyncService
     }
 
     /**
-     * The prepared context one visitor reads, and their own customer context when they have one prepared (2.2.2).
+     * The prepared context one visitor reads, and their own customer context when they have one prepared.
      *
      * The visitor's context: the currency class (their currency when a context of it exists, else class 0); the place
      * class (the nearest place of their chain that a context's rule place names, and their own place when a context's
@@ -1675,7 +1675,7 @@ class PriceIndexSyncService
         return ['stored' => \is_string($stored) ? $stored : null, 'pricing' => $part('pricing'), 'previous' => $part('previous')];
     }
 
-    // The previous index's reader (2.2.1), read by the storefront while the new index is built
+    // The previous index's reader, read by the storefront while the new index is built
 
     /**
      * The prepared set of the previous index one visitor's slots are read from: their own set while the previous index
@@ -1786,7 +1786,7 @@ class PriceIndexSyncService
     }
 
     /**
-     * The rebuild owed when places take another parent, or are published or unpublished (2.2.2): the place classes and
+     * The rebuild owed when places take another parent, or are published or unpublished: the place classes and
      * the chains a context is priced with change at or below them. The contexts are aligned again, and each live context
      * priced at or below the places gets its next generation, prepared by its job and switched whole when complete.
      *
@@ -2324,7 +2324,7 @@ class PriceIndexSyncService
         return ($dot === false ? $text . '.' : $text) . str_repeat('0', $places - $have);
     }
 
-    // The price-change event (2.2.0)
+    // The price-change event
 
     /**
      * Run one write of the index as one announcement of onAlfaPricesChanged: whether anything listens is asked once, the
@@ -2368,9 +2368,9 @@ class PriceIndexSyncService
      * of a context whose final price moved at the moment its period began, the period that ended as the old price.
      * Run by each turn of the task runner; nothing is written to the index.
      *
-     * HOW FAR: the cursor row DueRead::META_WINDOWS, as before 2.2.2; a position inside a moment names the row's end and
-     * its key (context, product, combination). A cursor written by 2.2.1 with a position of its own key keeps its
-     * moment, the position dropped.
+     * HOW FAR: the cursor row DueRead::META_WINDOWS; a position inside a moment names the row's end and its key
+     * (context, product, combination). A cursor whose position names the previous index's key keeps its moment, the
+     * position dropped.
      *
      * @since  2.2.2
      */
@@ -2485,7 +2485,7 @@ class PriceIndexSyncService
         $from = $parts[0] ?? '';
         $position = isset($parts[1]) ? explode(',', $parts[1]) : null;
 
-        // A position written for the key of 2.2.1 (six parts) names no row of this index: the moment is kept.
+        // A position written for the previous index's key (six parts) names no row of this index: the moment is kept.
         if ($position !== null && \count($position) === 6) {
             $position = null;
         }
@@ -2640,7 +2640,7 @@ class PriceIndexSyncService
                 $announcement->sets[$setId] = true;
             }
 
-            // THE BOUND (A-C18-4): past the limit, with no transaction open, what is collected goes out as its own event.
+            // THE BOUND: past the limit, with no transaction open, what is collected goes out as its own event.
             if (\count($announcement->changes) >= self::ANNOUNCE_LIMIT && !TransactionState::isOpen($db)) {
                 $part = clone $announcement;
                 $announcement->changes = [];
@@ -3331,7 +3331,7 @@ class PriceIndexSyncService
     }
 
     /**
-     * Mark a generation prepared and switch it live (2.2.2): first every unit it is written for that no row of it covers
+     * Mark a generation prepared and switch it live: first every unit it is written for that no row of it covers
      * now is written (a product the preparation passed while another writer held it), a product whose pricing throws
      * left out with no figure; then, in one transaction, the live generation of the same context retired and this one
      * live, so a reader meets the old generation or the new one, never a mix. The retired generation's rows are removed
@@ -3426,7 +3426,7 @@ class PriceIndexSyncService
         ));
     }
 
-    // Generations (2.2.2)
+    // Generations
 
     /**
      * Start the next generation of some live contexts: beside each, a generation not yet live from its first product
@@ -3530,7 +3530,7 @@ class PriceIndexSyncService
     }
 
     /**
-     * Rewrite a context-wide scope as generations (2.2.2): a rule or a tax whose scope is more than one chunk and at
+     * Rewrite a context-wide scope as generations: a rule or a tax whose scope is more than one chunk and at
      * least half the published products, so its rows switch whole in each context instead of a chunk at a time. Every
      * live context gets its next generation, prepared now within the budget and continued by the jobs.
      *
@@ -4090,7 +4090,7 @@ class PriceIndexSyncService
     }
 
     /**
-     * The units of each product (2.2.2): its published combinations in the order the storefront lists them, or none
+     * The units of each product: its published combinations in the order the storefront lists them, or none
      * for a product priced at the item level (combination_id 0).
      *
      * @param int[] $itemIds The products.

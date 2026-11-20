@@ -391,7 +391,7 @@ class PriceDataLoader
     }
 
     /**
-     * The price rows of many combinations in one statement (2.2.2: the price index prices every published combination
+     * The price rows of many combinations in one statement (the price index prices every published combination
      * of a chunk from one load), under the same terms as {@see self::loadCombinationPriceRowsBatch()}, grouped by
      * combination.
      *

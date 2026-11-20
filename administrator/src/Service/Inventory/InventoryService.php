@@ -323,7 +323,7 @@ final class InventoryService
     private array $restoredMovements = [];
 
     /**
-     * The products this command changed a stock verdict input of (2.2.2): their opening combination
+     * The products this command changed a stock verdict input of: their opening combination
      * (#__alfa_items.opening_combination_id, the combination a listing card opens on) is decided again once the
      * command's transaction has committed, from what is committed then ({@see self::refreshOpenings()}). A command
      * refused before it registers its operation leaves its products here, and the next command decides them too, from
@@ -333,7 +333,7 @@ final class InventoryService
      */
     private array $openingItems = [];
 
-    /** Whether this command changed every product's stock verdict (a location's state, 2.2.2). */
+    /** Whether this command changed every product's stock verdict (a location's state). */
     private bool $openingAll = false;
 
     /**
@@ -7227,7 +7227,7 @@ final class InventoryService
                     );
                 }
 
-                // A location enabled or disabled changes the stock verdict of every unit stocked there (2.2.2): set
+                // A location enabled or disabled changes the stock verdict of every unit stocked there: set
                 // where the change is registered, so a write refused before it owes nothing.
                 $this->openingAll = true;
                 $this->recordOperation(
@@ -12279,7 +12279,7 @@ final class InventoryService
     }
 
     /**
-     * Decide again the opening combination of the products this command touched (2.2.2), once the command's outermost
+     * Decide again the opening combination of the products this command touched, once the command's outermost
      * transaction has committed: under each product's rebuild lock and from what is committed then, never from the
      * snapshot the command's transaction read in, which two commands on two combinations of one product would leave
      * stale (OpeningCombination::afterCommand()). A pointer that moves writes no price row. A command that changed every

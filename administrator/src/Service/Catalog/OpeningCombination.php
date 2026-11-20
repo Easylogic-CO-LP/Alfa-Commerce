@@ -22,7 +22,7 @@ use Joomla\Database\DatabaseDriver;
 use Throwable;
 
 /**
- * The combination a product's card opens on, stored as #__alfa_items.opening_combination_id (2.2.2): the price index
+ * The combination a product's card opens on, stored as #__alfa_items.opening_combination_id: the price index
  * keeps a row for every published combination, and a listing reads the row of this one by key.
  *
  * The pointer is decided by the card's own rule and by no other: the product's published combinations with the stock
@@ -131,7 +131,7 @@ final class OpeningCombination
     }
 
     /**
-     * Decide the pointers a stock command's change asks for, once its transaction has committed (2.2.2): each product
+     * Decide the pointers a stock command's change asks for, once its transaction has committed: each product
      * under its rebuild lock, read after the grant from what is committed, the way the price index writer reads (a
      * command's own snapshot may predate a concurrent command on another combination of the same product). A product
      * whose lock is not granted, or whose refresh fails, is owed to the catalogue job, which decides it again. A change

@@ -79,7 +79,7 @@ final class CatalogueRebuildJob implements JobHandler
         $marked = ProjectionManager::markedAfter(after: (int) ($run->checkpoint['after'] ?? 0), limit: $units);
 
         if ($marked === []) {
-            // The pass is over (2.2.2): while the storefront still reads the previous price index, the switch is asked
+            // The pass is over: while the storefront still reads the previous price index, the switch is asked
             // here, so the new index is read from the moment it is complete.
             self::finishPriceIndexBuild();
 
@@ -129,7 +129,7 @@ final class CatalogueRebuildJob implements JobHandler
     }
 
     /**
-     * The switch from the previous price index after the update (2.2.2), asked when a pass ends: made once the
+     * The switch from the previous price index after the update, asked when a pass ends: made once the
      * completeness count passes (a product whose pricing throws left out with no figure,
      * PriceIndexSyncService::finishBuild()), else the products it lacks are owed again and the next pass asks again. A
      * failure is logged; the storefront keeps reading the previous index.

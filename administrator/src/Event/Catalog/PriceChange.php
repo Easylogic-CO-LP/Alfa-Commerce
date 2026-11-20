@@ -12,8 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Event\Catalog;
 \defined('_JEXEC') or die;
 
 /**
- * One stored price index row that changed (2.2.0, {@see PricesChangedEvent}): the row's identity (the index's primary
- * key since 2.2.2: the pricing context, the product, the combination and valid_from; the context's currency class, the
+ * One stored price index row that changed ({@see PricesChangedEvent}): the row's identity (the index's primary
+ * key: the pricing context, the product, the combination and valid_from; the context's currency class, the
  * place it is priced at, its set of pricing groups and its customer beside it), its window's end, and its final price
  * before and after, as the column's exact decimal text. No old price: the row is new, or had no valid price (a NULL
  * row); no new price: the row is removed, or has no valid price now.
@@ -33,8 +33,8 @@ final readonly class PriceChange
      *                                row).
      * @param string|null $oldFinalPrice The final price before, as the column's text; null for a new row.
      * @param string|null $newFinalPrice The final price after, as the column's text; null for a removed row.
-     * @param int $contextId The pricing context (#__alfa_price_contexts.id, 2.2.2).
-     * @param int $userId The context's customer (2.2.2); 0 for a context of a set of pricing groups.
+     * @param int $contextId The pricing context (#__alfa_price_contexts.id).
+     * @param int $userId The context's customer; 0 for a context of a set of pricing groups.
      *
      * @since  2.2.0
      */

@@ -803,7 +803,7 @@ class ItemModel extends AlfaAdminModel
             }
         }
 
-        // A price is stored exactly as typed (2.2.2): a row whose figure is not a number, or has more decimals or digits
+        // A price is stored exactly as typed: a row whose figure is not a number, or has more decimals or digits
         // than the column holds, is refused here, naming the row, before anything is written.
         $priceRefusals = self::priceRefusals(rows: \is_array($data['prices'] ?? null) ? $data['prices'] : []);
 
@@ -2835,7 +2835,7 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
-     * The posted price rows whose price or custom discount the DECIMAL(24,8) columns cannot store (2.2.2): not a number,
+     * The posted price rows whose price or custom discount the DECIMAL(24,8) columns cannot store: not a number,
      * more than eight decimals, or more than sixteen digits before the point. Each named by its row and what was typed.
      *
      * @param array $rows jform[prices].
@@ -3558,7 +3558,7 @@ class ItemModel extends AlfaAdminModel
             $priceObject = new stdClass();
             $priceObject->id = isset($price['id']) ? intval($price['id']) : 0;
             $priceObject->item_id = $productId;
-            // Exact decimal text for the DECIMAL(24,8) columns (2.2.2): the typed figure on its digits, never
+            // Exact decimal text for the DECIMAL(24,8) columns: the typed figure on its digits, never
             // through a float; a value that is not a number, or is finer or larger than the column holds, is refused.
             $priceObject->value = StoredDecimal::ofTyped($price['value'] ?? null) ?? StoredDecimal::of(ExactAmount::of('0'));
             $priceObject->override_value = StoredDecimal::ofTyped($price['override_value'] ?? null);

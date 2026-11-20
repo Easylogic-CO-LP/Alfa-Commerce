@@ -972,7 +972,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * The shop-wide stock settings saved with other values (2.2.2): the stock action, the backorder default or the
+     * The shop-wide stock settings saved with other values: the stock action, the backorder default or the
      * safety floor decide which combination a listing card opens on, so every product's opening combination is
      * decided again (the price index reads its row by it; no price row is written); a failure owes every item to the
      * catalogue job instead. Never breaks the save.

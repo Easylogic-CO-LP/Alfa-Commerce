@@ -351,7 +351,7 @@ final class StockVisibilityPolicy
     }
 
     /**
-     * The shared stock rule of one combination (2.2.2): whether that unit can be bought now, the part of
+     * The shared stock rule of one combination: whether that unit can be bought now, the part of
      * {@see self::sellableExpression()} that judges each combination of a product. The opening combination's check
      * ({@see OpeningCombination::choiceSql()}) reads the same text.
      *

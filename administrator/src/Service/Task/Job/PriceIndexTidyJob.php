@@ -21,7 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\Database\DatabaseDriver;
 
 /**
- * Tidy the price index (2.2.2): the rows of a generation a newer one replaced, then that generation's context row, and
+ * Tidy the price index: the rows of a generation a newer one replaced, then that generation's context row, and
  * the periods that ended, a batch per chunk (PriceIndexSyncService::removeRetired() and removeEndedPeriods()). No
  * reader reads either: a retired generation is not live, an ended period does not hold the present.
  *

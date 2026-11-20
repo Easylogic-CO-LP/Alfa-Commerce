@@ -1903,7 +1903,7 @@ class com_alfaInstallerScript extends InstallerScript
             $this->correctPlacesSeed();
         }
 
-        // The web cron's key (2.2.0): made when none is kept; nobody sees it, staff make the one they copy in
+        // The web cron's key: made when none is kept; nobody sees it, staff make the one they copy in
         // Tools > Tasks. A failure is said, never a failed install: the web cron refuses every call until a key exists.
         try
         {
@@ -2104,7 +2104,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * From 2.2.1 a discount or a tax scoped to a place reaches every place inside it, and when several match, those of
+     * A discount or a tax scoped to a place reaches every place inside it, and when several match, those of
      * the nearer place apply first among the rules scoped to a place (rules with no place keep their order). The price
      * index of the version before was written with the place alone, so every product is marked owed a rebuild and the
      * catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may sort and filter a buyer below a
@@ -3266,8 +3266,8 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * The price rows hold their figures as exact decimals (2.2.2): #__alfa_items_prices.value and
-     * override_value, binary floats up to 2.2.1, become DECIMAL(24,8), on every install and update where they are still
+     * The price rows hold their figures as exact decimals: #__alfa_items_prices.value and
+     * override_value become DECIMAL(24,8) on every install and update where they are still binary
      * floats (the database's shape decides, never the version recorded). A stored float is read back at its eighth
      * place, so 175.004 kept as 175.00399999999999 is 175.00400000. A failure is said, never a failed install.
      *
@@ -3314,10 +3314,10 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * The price index of 2.2.2, on every install and update, by the
-     * shape of the database, never by the version recorded (a site that took an earlier 2.2.2 build runs no update file
+     * The price index, on every install and update, by the
+     * shape of the database, never by the version recorded (a site already recorded at this version runs no update file
      * again):
-     * - The index of 2.2.1 (the table with a place_id column) is renamed #__alfa_items_price_index_prev and stays
+     * - The previous index (the table with a place_id column) is renamed #__alfa_items_price_index_prev and stays
      *   readable, with its readers, while the new index is built: the flag prices.index_build is written first (before
      *   the rename), the new tables are made from this package's install SQL, every item is marked owed a rebuild and
      *   the catalogue job is enqueued, so the storefront keeps the previous prices until the new ones are complete, then
@@ -3379,7 +3379,7 @@ class com_alfaInstallerScript extends InstallerScript
 
             $this->priceIndexShape(db: $db);
             $hasPrevious = \in_array($previous, $tables, true);
-            // A switch made by a build of 2.2.2 that recorded none left rows in the new index and no flag.
+            // A switch that recorded nothing left rows in the new index and no flag.
             $switched = $service::switchedAt() !== null || ($service::buildStartedAt() === null
                 && (bool) $db->setQuery('SELECT 1 FROM ' . $db->quoteName($index), 0, 1)->loadResult());
 
@@ -3434,7 +3434,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * The price index tables of an earlier build of 2.2.2 brought to this package's shape (2.2.2), by the database's
+     * The price index tables brought to this package's shape, by the database's
      * shape: the contexts' generation columns and keys, every prepared context its live generation; the index's foreign
      * key to the contexts, its rows of a context no longer there removed first. Nothing when the shape is this one.
      *
@@ -3488,8 +3488,8 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Write the cursor of the announced price periods where it is missing (2.2.2; InstallSteps::seedPriceWindowsCursor()):
-     * an update from a release before 2.2.2 announces no period that began before it. A failure is said, never a
+     * Write the cursor of the announced price periods where it is missing (InstallSteps::seedPriceWindowsCursor()):
+     * an update from a release without the cursor announces no period that began before it. A failure is said, never a
      * failed install: the periods are then not announced, and the Clear everything checks name the missing row.
      *
      * @return  void

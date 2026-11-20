@@ -194,7 +194,7 @@ class PlaceModel extends AlfaAdminModel
     }
 
     /**
-     * Publish, unpublish, archive or trash places (2.2.2): a place prices a buyer only while it and every place above it
+     * Publish, unpublish, archive or trash places: a place prices a buyer only while it and every place above it
      * are published, so the price index's contexts priced at or below a place whose state changed are rewritten by the
      * catalogue job, and staff are told (PriceIndexSyncService::oweChainRebuild()).
      *
@@ -376,7 +376,7 @@ class PlaceModel extends AlfaAdminModel
             return parent::delete($requested);
         }
 
-        // The price index's contexts of the deleted places go with their rows, through the index's one writer (2.2.2).
+        // The price index's contexts of the deleted places go with their rows, through the index's one writer.
         // Every rule they scoped kept another place, so no other row moved.
         (new PriceIndexSyncService())->syncGroupSets();
 

@@ -273,7 +273,7 @@ class PriceCalculator
     }
 
     /**
-     * Price every unit of many products in one pass (2.2.2, the price index): a unit is a product's published
+     * Price every unit of many products in one pass (the price index): a unit is a product's published
      * combination, or the product itself when it has none. The base data loads once for the products and the price
      * rows of every combination once; each unit is then priced by the same path a chosen combination takes
      * ({@see self::computeVariantFromData()}), so the index holds what the card, the product page and the cart charge

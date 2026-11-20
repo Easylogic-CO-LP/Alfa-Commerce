@@ -21,9 +21,8 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 
 /**
- * Prepare the list prices of one pricing context of the price index (2.2.0 for a set of customer groups; 2.2.2 for a
- * context: a currency class, a place class, a set of customer groups and, for a customer named by their own prices,
- * that customer).
+ * Prepare the list prices of one pricing context of the price index (a currency class, a place class, a set of customer
+ * groups and, for a customer named by their own prices, that customer).
  *
  * One job per context, its scope the context's id. Each chunk writes the context's rows for the next published
  * products from the context's own checkpoint (prepared_through), through PriceIndexSyncService::prepareContextChunk();

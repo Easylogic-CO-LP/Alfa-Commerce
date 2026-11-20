@@ -1133,8 +1133,8 @@ class ItemsModel extends UrlListModel
             )
             ->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
 
-        // Architecture B price index subquery JOIN, added below once the read knows whether it filters by a price.
-        // Catalogue only (2.2.2): no price is read, so the index is not joined, and every price filter and sort below
+        // The price index subquery JOIN, added below once the read knows whether it filters by a price.
+        // Catalogue only: no price is read, so the index is not joined, and every price filter and sort below
         // is left out with it (the sale filter matches nothing).
         $sellsOnline = ShopMode::sellsOnline();
 
@@ -1460,7 +1460,7 @@ class ItemsModel extends UrlListModel
             }
         }
 
-        // The visitor's price from the index (2.2.2): a read that filters by a price (a price floor, ceiling or range, the
+        // The visitor's price from the index: a read that filters by a price (a price floor, ceiling or range, the
         // sale or a saving filter) lists only the products with a figure for the visitor; every other read, a sort by
         // price or by saving included, lists every product, one with no price shown with no price.
         if ($sellsOnline) {
@@ -1474,7 +1474,7 @@ class ItemsModel extends UrlListModel
 
     /**
      * Join the price index to the main query: the one place a read of the catalogue takes the visitor's price figures,
-     * and the rule on products without one, from (2.2.2).
+     * and the rule on products without one, from.
      *
      * The index holds a row per pricing context, product, combination and period (PriceIndexSyncService); the read
      * takes, by key, the row of the visitor's context ({@see PriceIndexSyncService::readContext()}) for the combination
@@ -1532,8 +1532,8 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * The read of the previous price index, while the new one is built after the update (2.2.2): the
-     * index of 2.2.1 under the name the update gave it, read as 2.2.1 read it, so a visitor meets the previous prices
+     * The read of the previous price index, while the new one is built after the update: the
+     * previous index under the name the update gave it, read as before, so a visitor meets the previous prices
      * until the new ones are complete. The subquery (alias pf) reduces it to one row per product for the visitor's
      * currency, place chain and set of pricing groups (one the previous index prepared), at this moment.
      *

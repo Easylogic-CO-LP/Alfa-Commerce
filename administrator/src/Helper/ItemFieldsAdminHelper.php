@@ -4622,7 +4622,7 @@ class ItemFieldsAdminHelper
         $hasDiscount = $row !== null && $row['override_value'] !== null;
         $rowId = $row === null ? 0 : (int) $row['id'];
 
-        // The typed figure as the DECIMAL(24,8) column stores it, on its digits, never through a float (2.2.2): a value
+        // The typed figure as the DECIMAL(24,8) column stores it, on its digits, never through a float: a value
         // that is not a number, or is finer or larger than the column holds, is refused.
         try {
             $value = $cell['value'] === '' ? null : StoredDecimal::ofTyped($cell['value']);
@@ -4727,7 +4727,7 @@ class ItemFieldsAdminHelper
             return $a === $b;
         }
 
-        // Compared exactly, on the digits (2.2.2).
+        // Compared exactly, on the digits.
         try {
             return ExactAmount::ofNumber($a)->compare(ExactAmount::ofNumber($b)) === 0;
         } catch (InvalidArgumentException) {
@@ -4839,7 +4839,7 @@ class ItemFieldsAdminHelper
     }
 
     /**
-     * The refusal of a grid price cell whose figure the price column cannot store (2.2.2): the combination and what was
+     * The refusal of a grid price cell whose figure the price column cannot store: the combination and what was
      * typed, in the operator's words.
      *
      * @param string $label The combination's label.
@@ -5362,7 +5362,7 @@ class ItemFieldsAdminHelper
                 'combination_id' => $combinationId,
                 'mode' => $mode,
                 'operation' => ($mode === 'adjust' && in_array($operation, ['+', '-', '%', '-%'], true)) ? $operation : null,
-                // Exact decimal text for the DECIMAL(24,8) columns (2.2.2), never through a float.
+                // Exact decimal text for the DECIMAL(24,8) columns, never through a float.
                 'value' => StoredDecimal::ofTyped($row['value']),
                 'override_value' => $mode === 'price' ? StoredDecimal::ofTyped($row['override_value'] ?? null) : null,
                 // For an adjust, override_type carries the net/gross target (a

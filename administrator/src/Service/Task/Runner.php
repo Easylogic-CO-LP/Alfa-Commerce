@@ -439,7 +439,7 @@ final class Runner
     }
 
     /**
-     * A waiting pricing context of the price index (2.2.2; a set of customer groups before) with no job of its scope,
+     * A waiting pricing context of the price index with no job of its scope,
      * pending, running or failed: a context whose job a hand deletion or a test's cleanup removed. A failed job stands
      * for staff (the attention notice) and is not replaced. The table is aliased s.
      *
@@ -477,9 +477,9 @@ final class Runner
      * The work a tick owes before it looks for due jobs: a job for each waiting price set with no job of its scope
      * (one whose job failed is not among them), the drain while movements are owed, the catalogue job for a rebuild
      * mark older than the grace that no job was asked for, the prune of finished tasks once an hour
-     * (TasksPruneJob::owe()), the tidy of the price index once a day (PriceIndexTidyJob::owe(), 2.2.2), and the
+     * (TasksPruneJob::owe()), the tidy of the price index once a day (PriceIndexTidyJob::owe()), and the
      * announcement of the stored price periods that began
-     * (PriceIndexSyncService::announceOpenedWindows(), 2.2.2). Each is logged and left on a failure: the tick goes on.
+     * (PriceIndexSyncService::announceOpenedWindows()). Each is logged and left on a failure: the tick goes on.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -702,9 +702,9 @@ final class Runner
             Job\SearchRebuildJob::NAME => Job\SearchRebuildJob::class,
             Job\CatalogueRebuildJob::NAME => Job\CatalogueRebuildJob::class,
             Job\TasksPruneJob::NAME => Job\TasksPruneJob::class,
-            // The price index's retired generations and ended periods, removed (2.2.2).
+            // The price index's retired generations and ended periods, removed.
             Job\PriceIndexTidyJob::NAME => Job\PriceIndexTidyJob::class,
-            // The gallery's thumbnails, recreated from Tools > Media (2.2.0, part C21).
+            // The gallery's thumbnails, recreated from Tools > Media.
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
         ];
     }

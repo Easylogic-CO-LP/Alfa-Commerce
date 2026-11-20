@@ -252,7 +252,7 @@ final class TaskStaff
             }
         }
 
-        // A preparation job's scope names its pricing context (2.2.2): the groups shown are the context's set's.
+        // A preparation job's scope names its pricing context: the groups shown are the context's set's.
         $contextIds = array_values(array_unique(array_filter($contextIds)));
         $lists = $contextIds === [] ? [] : ($db->setQuery(
             'SELECT c.id, s.group_list FROM ' . $db->quoteName('#__alfa_price_contexts', 'c')

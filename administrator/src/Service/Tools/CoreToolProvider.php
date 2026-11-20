@@ -228,7 +228,7 @@ final class CoreToolProvider
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_PROJECTIONS_DESC');
 
-        // THE PRICE INDEX BUILT AFTER THE UPDATE (2.2.2): while the storefront reads the previous index,
+        // THE PRICE INDEX BUILT AFTER THE UPDATE: while the storefront reads the previous index,
         // the card says how far the build is; the catalogue job does it, and the button works it now.
         $build = $this->priceIndexBuildState();
 
@@ -236,7 +236,7 @@ final class CoreToolProvider
             $projections->meta('notice', $build);
         }
 
-        // THE PRICE INDEX CHECKED (2.2.2): the completeness count of every pricing context, the periods' tiling, and
+        // THE PRICE INDEX CHECKED: the completeness count of every pricing context, the periods' tiling, and
         // each product's opening combination against the same choice made in SQL. Reads only.
         $event->add(self::ID, 'pricing.check', 'COM_ALFA_TOOLS_PRICE_INDEX_CHECK_TITLE')
             ->icon('search')
@@ -245,7 +245,7 @@ final class CoreToolProvider
             ->meta('surface', 'dbsync')
             ->meta('description', 'COM_ALFA_TOOLS_PRICE_INDEX_CHECK_DESC');
 
-        // THE GALLERY'S THUMBNAILS RECREATED (2.2.0): one job, two modes, on the Media tab. "Missing" first, the
+        // THE GALLERY'S THUMBNAILS RECREATED: one job, two modes, on the Media tab. "Missing" first, the
         // everyday and safer one, for the images that have none, whose thumbnail is the full image, or whose thumbnail is
         // smaller than the size allows; "all" after a change of the thumbnail size, asked first (UX-19, UX-91). Each
         // button queues the job and opens its progress page.
@@ -597,7 +597,7 @@ final class CoreToolProvider
     }
 
     /**
-     * Check the price index (2.2.2): one count per pricing context against the units it is written for, the rows of
+     * Check the price index: one count per pricing context against the units it is written for, the rows of
      * units no longer published, the gaps in the periods, the opening combinations that differ from the choice in SQL
      * (the first of them named), and the products left out with no price (named). Changes nothing; during the build
      * after the update it says so.
@@ -648,7 +648,7 @@ final class CoreToolProvider
     }
 
     /**
-     * What the Rebuild catalogue projections card says while the price index is built after the update (2.2.2): since
+     * What the Rebuild catalogue projections card says while the price index is built after the update: since
      * when, how many items are still owed a rebuild, and the products left out with no price. Empty when the storefront
      * reads the price index.
      *
@@ -676,7 +676,7 @@ final class CoreToolProvider
     }
 
     /**
-     * Recreate the gallery's thumbnails in a mode (2.2.0): the plan asks for the job
+     * Recreate the gallery's thumbnails in a mode: the plan asks for the job
      * (ThumbnailRecreation::request(), "all" winning over "missing") and opens its progress page; each step works the
      * job for a moment ({@see self::stepJob()}), its report the message when it is done.
      *

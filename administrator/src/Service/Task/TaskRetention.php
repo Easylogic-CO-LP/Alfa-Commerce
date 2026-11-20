@@ -100,7 +100,7 @@ final class TaskRetention
         SearchRebuildJob::NAME,
         TasksPruneJob::NAME,
         PriceIndexTidyJob::NAME,
-        // Its last run's report (2.2.0, part C21).
+        // Its last run's report.
         ThumbnailsRecreateJob::NAME,
     ];
 

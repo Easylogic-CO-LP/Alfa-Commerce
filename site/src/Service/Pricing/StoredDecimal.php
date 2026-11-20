@@ -127,7 +127,7 @@ final class StoredDecimal
     }
 
     /**
-     * The text a DECIMAL(24,8) column is handed for a typed figure (2.2.2): the posted text read on its digits, never
+     * The text a DECIMAL(24,8) column is handed for a typed figure: the posted text read on its digits, never
      * through a float, so 175.0040 is stored as 175.00400000. A number that arrives as a PHP number is read at the
      * digits Money reads one at.
      *
