@@ -31,6 +31,8 @@ final class ApiAddress
      * @param bool $declared Whether its controller declares what it asks; false for a task no Alfa check maps.
      * @param list<array{id: int, title: string, superUsers: bool, apiLogin: bool, tokenGroup: bool, accounts: list<array{id: int, name: string, username: string, superUser: bool}>}> $groups The groups that hold every permission ({@see ApiPermissionHolders::groupsHolding()}).
      * @param list<array{id: int, name: string, username: string, superUser: bool}> $accounts The accounts in those groups with an enabled token, each once.
+     * @param string $mediaType The one media type it answers.
+     * @param int|null $maxBody The largest body it takes, in bytes; null when the server's own limit applies.
      *
      * @since  2.2.2
      */
@@ -45,6 +47,8 @@ final class ApiAddress
         public readonly bool $declared,
         public readonly array $groups,
         public readonly array $accounts,
+        public readonly string $mediaType,
+        public readonly ?int $maxBody,
     ) {
     }
 

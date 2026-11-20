@@ -50,10 +50,10 @@ final class ApiAddressListing
     /**
      * Read every address: core's in the webservices plugin's order, then each plugin's; the declarations core refused
      * and the plugins that cannot be loaded; the permissions' titles; whether the token's sign-in and the webservices
-     * plugin are enabled. Building it boots the webservices plugin, the REST controllers and the alfa plugins that
-     * declare routes, on this screen only.
+     * plugin are enabled, and the groups the token's sign-in takes. Building it boots the webservices plugin, the REST
+     * controllers and the alfa plugins that declare routes, on this screen only.
      *
-     * @return array{addresses: list<ApiAddress>, refused: list<array{name: string, refusal: ApiRouteRefusal}>, unavailable: list<array{name: string, reason: string}>, titles: array<string, string>, tokenPlugin: bool, webservices: bool}
+     * @return array{addresses: list<ApiAddress>, refused: list<array{element: string, name: string, refusal: ApiRouteRefusal}>, unavailable: list<array{element: string, name: string, reason: string}>, titles: array<string, string>, tokenPlugin: bool, webservices: bool, tokenGroups: array{every: bool, titles: list<string>}}
      *
      * @since  2.2.2
      */
@@ -79,6 +79,8 @@ final class ApiAddressListing
                 declared: $access !== null,
                 groups: $groups,
                 accounts: self::accounts(groups: $groups),
+                mediaType: ApiRouteRegistrar::JSONAPI,
+                maxBody: null,
             );
         }
 
@@ -89,13 +91,13 @@ final class ApiAddressListing
             AlfaHelper::loadPluginLanguage(group: PanelDispatcher::PLATFORM_GROUP, element: $plugin['element']);
 
             if ($plugin['unavailable'] !== '') {
-                $unavailable[] = ['name' => $plugin['name'], 'reason' => $plugin['unavailable']];
+                $unavailable[] = ['element' => $plugin['element'], 'name' => $plugin['name'], 'reason' => $plugin['unavailable']];
 
                 continue;
             }
 
             foreach ($plugin['refused'] as $refusal) {
-                $refused[] = ['name' => $plugin['name'], 'refusal' => $refusal];
+                $refused[] = ['element' => $plugin['element'], 'name' => $plugin['name'], 'refusal' => $refusal];
             }
 
             foreach ($plugin['accepted'] as $declaration) {
@@ -111,6 +113,8 @@ final class ApiAddressListing
                     declared: true,
                     groups: $groups,
                     accounts: self::accounts(groups: $groups),
+                    mediaType: $declaration->mediaType,
+                    maxBody: $declaration->maxBody,
                 );
             }
         }
@@ -124,7 +128,90 @@ final class ApiAddressListing
             'titles' => self::titles(addresses: $addresses),
             'tokenPlugin' => $plugins->isAvailable(PluginId::from('api-authentication', 'token')),
             'webservices' => $plugins->isAvailable(PluginId::from('webservices', ApiRouteRegistrar::WEBSERVICES_PLUGIN)),
+            'tokenGroups' => $holders->tokenGroups(),
         ];
+    }
+
+    /**
+     * The card's sections: Alfa Commerce's own endpoints, and each extension's, in their order, with the endpoints the
+     * filters keep, the declarations core refused and whether the extension can answer now. An extension that adds no
+     * endpoint still has its section when a declaration of it was refused or it cannot be loaded.
+     *
+     * @param list<ApiAddress> $addresses Every endpoint.
+     * @param list<ApiAddress> $shown The endpoints the filters keep.
+     * @param list<array{element: string, name: string, refusal: ApiRouteRefusal}> $refused The declarations core refused.
+     * @param list<array{element: string, name: string, reason: string}> $unavailable The extensions that cannot be loaded.
+     *
+     * @return array{core: array{all: int, shown: list<ApiAddress>}, extensions: list<array{source: string, name: string, all: int, shown: list<ApiAddress>, refused: list<ApiRouteRefusal>, unavailable: string}>}
+     *
+     * @since  2.2.2
+     */
+    public static function sections(array $addresses, array $shown, array $refused, array $unavailable): array
+    {
+        $core = ['all' => 0, 'shown' => []];
+        $extensions = [];
+        $extension = static function (string $source, string $name) use (&$extensions): void {
+            $extensions[$source] ??= ['source' => $source, 'name' => $name, 'all' => 0, 'shown' => [], 'refused' => [], 'unavailable' => ''];
+        };
+
+        foreach ($addresses as $address) {
+            if (!$address->fromPlugin()) {
+                $core['all']++;
+
+                continue;
+            }
+
+            $extension($address->source, $address->sourceName);
+            $extensions[$address->source]['all']++;
+        }
+
+        foreach ($shown as $address) {
+            if ($address->fromPlugin()) {
+                $extensions[$address->source]['shown'][] = $address;
+            } else {
+                $core['shown'][] = $address;
+            }
+        }
+
+        foreach ($refused as $entry) {
+            $extension(self::SOURCE_PLUGIN . $entry['element'], $entry['name']);
+            $extensions[self::SOURCE_PLUGIN . $entry['element']]['refused'][] = $entry['refusal'];
+        }
+
+        foreach ($unavailable as $entry) {
+            $extension(self::SOURCE_PLUGIN . $entry['element'], $entry['name']);
+            $extensions[self::SOURCE_PLUGIN . $entry['element']]['unavailable'] = $entry['reason'];
+        }
+
+        return ['core' => $core, 'extensions' => array_values($extensions)];
+    }
+
+    /**
+     * Who holds what the endpoints ask: one entry for each permission, or set of permissions an endpoint asks
+     * together, in the endpoints' order, with how many of them ask it, the groups that hold it and their accounts with
+     * an enabled token. An endpoint that decides per record, or declares nothing, has no entry.
+     *
+     * @param list<ApiAddress> $addresses The endpoints.
+     *
+     * @return list<array{permissions: list<string>, endpoints: int, groups: list<array{id: int, title: string, superUsers: bool, apiLogin: bool, tokenGroup: bool, accounts: list<array{id: int, name: string, username: string, superUser: bool}>}>, accounts: list<array{id: int, name: string, username: string, superUser: bool}>}>
+     *
+     * @since  2.2.2
+     */
+    public static function holders(array $addresses): array
+    {
+        $holders = [];
+
+        foreach ($addresses as $address) {
+            if (!$address->declared || $address->perRecord || $address->permissions === []) {
+                continue;
+            }
+
+            $key = implode(' ', $address->permissions);
+            $holders[$key] ??= ['permissions' => $address->permissions, 'endpoints' => 0, 'groups' => $address->groups, 'accounts' => $address->accounts];
+            $holders[$key]['endpoints']++;
+        }
+
+        return array_values($holders);
     }
 
     /**

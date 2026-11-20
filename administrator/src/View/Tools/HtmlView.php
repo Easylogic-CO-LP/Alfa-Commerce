@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Helper\RequestValueRefused;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiAddress;
@@ -44,6 +45,13 @@ use Throwable;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * Where the user's filters of the endpoints' card are kept between visits, as a Joomla list keeps its own.
+     *
+     * @since  2.2.2
+     */
+    private const API_FILTER_STATE = 'com_alfa.tools.apiroutes.filter';
+
     /**
      * Libraries declared in the manifest, for the package-export card's "add these
      * manually for an installable build" note. Each entry: folder, libraryname,
@@ -109,17 +117,18 @@ class HtmlView extends BaseHtmlView
     public string $integrityHtml = '';
 
     /**
-     * The table of every REST API address and who may call it ({@see ApiAddressListing::read()}), for Tools, Security:
-     * every address, the ones the filters keep, the summary's counts, the declarations core refused, the plugins that
-     * cannot be loaded, the permissions' titles, the sources, and whether the token's sign-in and the webservices
-     * plugin are enabled. Drawn from a fixed-path partial, as the integrity verdict is.
+     * Every Alfa Commerce endpoint and who may call it ({@see ApiAddressListing::read()}), for Tools, Security: the
+     * endpoints the filters keep in their sections (Alfa Commerce's, each extension's), the summary's counts, who holds
+     * each permission, the permissions' titles, the sources, the token's sign-in groups, and whether the token's
+     * sign-in and the webservices plugin are enabled. Drawn from a fixed-path partial, as the integrity verdict is.
      *
-     * @var array{addresses: list<ApiAddress>, shown: list<ApiAddress>, filtered: bool, summary: array{addresses: int, plugins: int, accounts: int, superUsers: int}, refused: list<array{name: string, refusal: \Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRefusal}>, unavailable: list<array{name: string, reason: string}>, titles: array<string, string>, sources: array<string, string>, tokenPlugin: bool, webservices: bool, unreadable: bool}
+     * @var array{shown: list<ApiAddress>, filtered: bool, summary: array{addresses: int, plugins: int, accounts: int, superUsers: int}, sections: array{core: array{all: int, shown: list<ApiAddress>}, extensions: list<array{source: string, name: string, all: int, shown: list<ApiAddress>, refused: list<\Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRefusal>, unavailable: string}>}, holders: list<array{permissions: list<string>, endpoints: int, groups: list<array<string, mixed>>, accounts: list<array<string, mixed>>}>, titles: array<string, string>, sources: array<string, string>, tokenGroups: array{every: bool, titles: list<string>}, tokenPlugin: bool, webservices: bool, unreadable: bool}
      * @since  2.2.2
      */
     public array $apiRoutes = [
-        'addresses' => [], 'shown' => [], 'filtered' => false, 'summary' => ['addresses' => 0, 'plugins' => 0, 'accounts' => 0, 'superUsers' => 0],
-        'refused' => [], 'unavailable' => [], 'titles' => [], 'sources' => [], 'tokenPlugin' => false, 'webservices' => false, 'unreadable' => false,
+        'shown' => [], 'filtered' => false, 'summary' => ['addresses' => 0, 'plugins' => 0, 'accounts' => 0, 'superUsers' => 0],
+        'sections' => ['core' => ['all' => 0, 'shown' => []], 'extensions' => []], 'holders' => [], 'titles' => [], 'sources' => [],
+        'tokenGroups' => ['every' => false, 'titles' => []], 'tokenPlugin' => false, 'webservices' => false, 'unreadable' => false,
     ];
 
     /**
@@ -224,8 +233,8 @@ class HtmlView extends BaseHtmlView
         include __DIR__ . '/_integrity.php';
         $this->integrityHtml = ob_get_clean();
 
-        // Every address of the REST API and who may call it, from a fixed-path partial too: what an override draws
-        // cannot hide an address or a token holder.
+        // Every Alfa Commerce endpoint and who may call it, from a fixed-path partial too: what an override draws
+        // cannot hide an endpoint or a token holder.
         $this->apiRoutes = $this->apiRoutes();
         ob_start();
         include __DIR__ . '/_apiroutes.php';
@@ -297,11 +306,12 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Every address of the REST API and who may call it, for Tools, Security, and the ones the request's
-     * filters keep (filter[source], filter[permission], filter[search]); the filter form with the sources and the
-     * permissions the table has. A reading that fails costs this card only.
+     * Every Alfa Commerce endpoint and who may call it, for Tools, Security, and the ones the filters keep
+     * (filter[source], filter[permission], filter[search]), remembered for the user as Joomla's lists remember theirs;
+     * the filter form with the sources and the permissions the endpoints have. A reading that fails costs this card
+     * only.
      *
-     * @return array{addresses: list<ApiAddress>, shown: list<ApiAddress>, filtered: bool, summary: array{addresses: int, plugins: int, accounts: int, superUsers: int}, refused: list<array{name: string, refusal: \Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRefusal}>, unavailable: list<array{name: string, reason: string}>, titles: array<string, string>, sources: array<string, string>, tokenPlugin: bool, webservices: bool, unreadable: bool}
+     * @return array{shown: list<ApiAddress>, filtered: bool, summary: array{addresses: int, plugins: int, accounts: int, superUsers: int}, sections: array{core: array{all: int, shown: list<ApiAddress>}, extensions: list<array{source: string, name: string, all: int, shown: list<ApiAddress>, refused: list<\Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRefusal>, unavailable: string}>}, holders: list<array{permissions: list<string>, endpoints: int, groups: list<array<string, mixed>>, accounts: list<array<string, mixed>>}>, titles: array<string, string>, sources: array<string, string>, tokenGroups: array{every: bool, titles: list<string>}, tokenPlugin: bool, webservices: bool, unreadable: bool}
      *
      * @since  2.2.2
      */
@@ -317,25 +327,37 @@ class HtmlView extends BaseHtmlView
             return ['unreadable' => true] + $empty;
         }
 
-        $filters = (array) Factory::getApplication()->getInput()->get('filter', [], 'array');
-        $chosen = [
-            'search' => trim((string) RequestScalar::member($filters, 'search', 'STRING', 'filter')),
-            'source' => (string) RequestScalar::member($filters, 'source', 'CMD', 'filter'),
-            'permission' => (string) RequestScalar::member($filters, 'permission', 'CMD', 'filter'),
-        ];
+        // The user's last filters, as a Joomla list keeps them: the request's when it sends them, else the stored ones.
+        $app = Factory::getApplication();
+        $filters = (array) $app->getUserStateFromRequest(self::API_FILTER_STATE, 'filter', [], 'array');
+
+        try {
+            $chosen = [
+                'search' => trim((string) RequestScalar::member($filters, 'search', 'STRING', 'filter')),
+                'source' => (string) RequestScalar::member($filters, 'source', 'CMD', 'filter'),
+                'permission' => (string) RequestScalar::member($filters, 'permission', 'CMD', 'filter'),
+            ];
+        } catch (RequestValueRefused $e) {
+            // A refused value is never kept: the next visit opens with no filter.
+            $app->setUserState(self::API_FILTER_STATE, []);
+
+            throw $e;
+        }
+
         $sources = ApiAddressListing::sources(addresses: $listing['addresses']);
         $this->activeFilters = array_filter($chosen, static fn (string $value): bool => $value !== '');
         $this->filterForm = $this->apiRoutesFilterForm(sources: $sources, titles: $listing['titles'], chosen: $chosen);
+        $shown = ApiAddressListing::filter(addresses: $listing['addresses'], source: $chosen['source'], permission: $chosen['permission'], search: $chosen['search']);
 
         return [
-            'addresses' => $listing['addresses'],
-            'shown' => ApiAddressListing::filter(addresses: $listing['addresses'], source: $chosen['source'], permission: $chosen['permission'], search: $chosen['search']),
+            'shown' => $shown,
             'filtered' => $this->activeFilters !== [],
             'summary' => ApiAddressListing::summary(addresses: $listing['addresses']),
-            'refused' => $listing['refused'],
-            'unavailable' => $listing['unavailable'],
+            'sections' => ApiAddressListing::sections(addresses: $listing['addresses'], shown: $shown, refused: $listing['refused'], unavailable: $listing['unavailable']),
+            'holders' => ApiAddressListing::holders(addresses: $shown),
             'titles' => $listing['titles'],
             'sources' => $sources,
+            'tokenGroups' => $listing['tokenGroups'],
             'tokenPlugin' => $listing['tokenPlugin'],
             'webservices' => $listing['webservices'],
             'unreadable' => false,
