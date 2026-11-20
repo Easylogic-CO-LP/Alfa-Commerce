@@ -16018,6 +16018,136 @@ class PaymentLedger
     }
 
     /**
+     * Move a payment to another transaction_status as staff, exactly once: the settle the REST verb and an
+     * extension make, with every rule of it here, so no door keeps one of its own.
+     *
+     * In order: a reversal or a chargeback is a provider's fact and has no status to settle; the status asked must be
+     * a payment status; refunded is never a status write (money is returned by the refund, which links it); a
+     * from_status the caller states must be the payment's own (checked before the idempotent answer, so a caller told
+     * one thing never reads success when the payment is in another); a payment already in the status asked is settled;
+     * a failed or cancelled refund brought back waits while the refund block holds and never takes what the order's
+     * pending provider refunds reserve. The write is held to the ledger's staff guard: a payment through the
+     * compare-and-set on its current status, a refund through update(), the order screen's door. processed_at is
+     * stamped on a move to completed; a transaction id and a note are written only when given.
+     *
+     * @api WRITE: settle a payment as staff (to_status, an optional expected from_status, transaction id and note); the
+     *      result says whether it is settled and, when refused, why, in one sentence.
+     *
+     * @param object $payment The payment row (PaymentLedger::get()), of the order given.
+     * @param int $orderId The order it belongs to.
+     * @param string $toStatus The status asked.
+     * @param string $fromStatus The status the caller says the payment is in; '' to state none.
+     * @param string|null $transactionId The provider's transaction id to write, or null to keep it.
+     * @param string|null $note The note to write, or null to keep it.
+     *
+     * @since  2.2.2
+     */
+    public static function staffSettle(object $payment, int $orderId, string $toStatus, string $fromStatus = '', ?string $transactionId = null, ?string $note = null): StaffSettleResult
+    {
+        // A reversal or a chargeback is a provider fact, born completed and never moved.
+        if (\in_array((string) $payment->payment_type, self::FACT_TYPES, true)) {
+            return new StaffSettleResult(
+                StaffSettleResult::FACT,
+                sprintf('payment %d is a %s recorded from the provider; it has no status to settle', (int) $payment->id, (string) $payment->payment_type),
+            );
+        }
+
+        if (!\in_array($toStatus, self::allStatuses(), true)) {
+            return new StaffSettleResult(StaffSettleResult::UNKNOWN_STATUS, 'to_status must be one of: ' . implode(', ', self::allStatuses()));
+        }
+
+        // Refunding is not a status write. Flipping the column here would drop the money out of the paid total with
+        // no linked refund row, leaving the same money refundable a second time.
+        if ($toStatus === self::STATUS_REFUNDED) {
+            return new StaffSettleResult(StaffSettleResult::REFUND_VERB, 'Use POST /orders/:id/payments/:paymentId/refund to return money');
+        }
+
+        $current = (string) $payment->transaction_status;
+
+        // The precondition is checked BEFORE the idempotent short-circuit: a caller who states from_status is asking
+        // to be told when reality disagrees, and answering success would hide exactly that.
+        if ($fromStatus !== '' && $fromStatus !== $current) {
+            return new StaffSettleResult(StaffSettleResult::STALE, sprintf('payment %d is %s, not %s', (int) $payment->id, $current, $fromStatus));
+        }
+
+        // Already there. An identical-value conditional write affects 0 rows and would read as a lost race.
+        if ($current === $toStatus) {
+            return new StaffSettleResult(StaffSettleResult::SETTLED);
+        }
+
+        // THE REFUND BLOCK. A failed or cancelled refund brought back into the books is a refund typed by staff: while
+        // a provider has reported a refund on this order that the books do not hold, it waits; and it never takes what
+        // the order's pending provider refunds reserve.
+        $refusal = self::staffRefundRefusal(stored: $payment, data: ['transaction_status' => $toStatus], orderId: $orderId)
+            ?? self::staffRefundReservedRefusal(stored: $payment, data: ['transaction_status' => $toStatus], orderId: $orderId);
+
+        if ($refusal !== null) {
+            return new StaffSettleResult(StaffSettleResult::REFUND_BLOCKED, $refusal);
+        }
+
+        $write = self::load((int) $payment->id)
+            ->asStaff()
+            ->set('transaction_status', $toStatus);
+
+        if ((string) $payment->payment_type !== self::TYPE_REFUND) {
+            $write->expectStatus($current);
+        }
+
+        // processed_at is auto-stamped only when a completed payment is CREATED; the update paths never touch it.
+        if ($toStatus === self::STATUS_COMPLETED) {
+            $write->processedAt(Factory::getDate()->toSql());
+        }
+
+        // Only when supplied: the ledger writes its data straight through, so an unconditional key would blank the
+        // stored gateway reference.
+        if ($transactionId !== null) {
+            $write->transactionId($transactionId);
+        }
+
+        if ($note !== null) {
+            $write->note($note);
+        }
+
+        // What the ledger tells about a write it refuses is queued; only what this write adds is read.
+        $app = Factory::getApplication();
+        $told = \count($app->getMessageQueue());
+
+        return match ($write->saveVerdict()) {
+            self::WRITE_OK => new StaffSettleResult(StaffSettleResult::SETTLED),
+            self::WRITE_RACED => new StaffSettleResult(
+                StaffSettleResult::RACED,
+                sprintf('Payment %d was changed by another writer; re-read and retry', (int) $payment->id),
+            ),
+            default => new StaffSettleResult(
+                StaffSettleResult::REFUSED,
+                self::queuedRefusal(app: $app, told: $told) ?: sprintf('The ledger refused the settle of payment %d; see the com_alfa.orders log', (int) $payment->id),
+            ),
+        };
+    }
+
+    /**
+     * The sentence the ledger queued about a write it just refused, as plain text: the last error queued after $told,
+     * unescaped, or '' when it queued none.
+     *
+     * @param \Joomla\CMS\Application\CMSApplicationInterface $app The application.
+     * @param int $told How many messages were queued before the write.
+     *
+     * @since  2.2.2
+     */
+    private static function queuedRefusal(\Joomla\CMS\Application\CMSApplicationInterface $app, int $told): string
+    {
+        $refusal = '';
+
+        foreach (\array_slice($app->getMessageQueue(), $told) as $message) {
+            if ((string) ($message['type'] ?? '') === 'error') {
+                $refusal = html_entity_decode(strip_tags((string) ($message['message'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
+        return $refusal;
+    }
+
+    /**
      * Why a refund written by staff may not enter the books now, or null.
      *
      * While the refund block holds ({@see self::refundStartRefusal()}), no write

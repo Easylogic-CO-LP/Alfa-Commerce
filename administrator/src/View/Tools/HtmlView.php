@@ -14,14 +14,21 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Helper\RequestValueRefused;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiAddress;
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiAddressListing;
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRegistrar;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerCronKey;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Form\Field\ListField;
+use Joomla\CMS\Form\Form;
+use Joomla\CMS\Form\FormFactoryInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
@@ -38,6 +45,13 @@ use Throwable;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * Where the user's filters of the endpoints' card are kept between visits, as a Joomla list keeps its own.
+     *
+     * @since  2.2.2
+     */
+    private const API_FILTER_STATE = 'com_alfa.tools.apiroutes.filter';
+
     /**
      * Libraries declared in the manifest, for the package-export card's "add these
      * manually for an installable build" note. Each entry: folder, libraryname,
@@ -101,6 +115,43 @@ class HtmlView extends BaseHtmlView
      * @since  1.0.0
      */
     public string $integrityHtml = '';
+
+    /**
+     * Every Alfa Commerce endpoint and who may call it ({@see ApiAddressListing::read()}), for Tools, Security: the
+     * endpoints the filters keep in their sections (Alfa Commerce's, each extension's), the summary's counts, who holds
+     * each permission, the permissions' titles, the sources, the token's sign-in groups, and whether the token's
+     * sign-in and the webservices plugin are enabled. Drawn from a fixed-path partial, as the integrity verdict is.
+     *
+     * @var array{shown: list<ApiAddress>, filtered: bool, summary: array{addresses: int, plugins: int, accounts: int, superUsers: int}, sections: array{core: array{all: int, shown: list<ApiAddress>}, extensions: list<array{source: string, name: string, all: int, shown: list<ApiAddress>, refused: list<\Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRefusal>, unavailable: string}>}, holders: list<array{permissions: list<string>, endpoints: int, groups: list<array<string, mixed>>, accounts: list<array<string, mixed>>}>, titles: array<string, string>, sources: array<string, string>, tokenGroups: array{every: bool, titles: list<string>}, tokenPlugin: bool, webservices: bool, unreadable: bool}
+     * @since  2.2.2
+     */
+    public array $apiRoutes = [
+        'shown' => [], 'filtered' => false, 'summary' => ['addresses' => 0, 'plugins' => 0, 'accounts' => 0, 'superUsers' => 0],
+        'sections' => ['core' => ['all' => 0, 'shown' => []], 'extensions' => []], 'holders' => [], 'titles' => [], 'sources' => [],
+        'tokenGroups' => ['every' => false, 'titles' => []], 'tokenPlugin' => false, 'webservices' => false, 'unreadable' => false,
+    ];
+
+    /**
+     * The filters of the REST API addresses' table (forms/filter_apiroutes.xml), drawn by Joomla's search tools.
+     *
+     * @since  2.2.2
+     */
+    public ?Form $filterForm = null;
+
+    /**
+     * The filters of that table a request sets: name => value.
+     *
+     * @var array<string, string>
+     * @since  2.2.2
+     */
+    public array $activeFilters = [];
+
+    /**
+     * The card of the REST API addresses, pre-rendered from a fixed-path partial.
+     *
+     * @since  2.2.2
+     */
+    public string $apiRoutesHtml = '';
 
     /**
      * The Tasks tab: the failed and held tasks ({@see TaskStaff::attentionRows()}), their number, and the names of
@@ -182,6 +233,13 @@ class HtmlView extends BaseHtmlView
         include __DIR__ . '/_integrity.php';
         $this->integrityHtml = ob_get_clean();
 
+        // Every Alfa Commerce endpoint and who may call it, from a fixed-path partial too: what an override draws
+        // cannot hide an endpoint or a token holder.
+        $this->apiRoutes = $this->apiRoutes();
+        ob_start();
+        include __DIR__ . '/_apiroutes.php';
+        $this->apiRoutesHtml = ob_get_clean();
+
         $this->tasks = $this->tasks();
         $this->jobs = $this->jobs();
         $this->runner = $this->runner();
@@ -245,6 +303,115 @@ class HtmlView extends BaseHtmlView
         }
 
         return ['rows' => $rows, 'total' => $total, 'users' => $users, 'unreadable' => false];
+    }
+
+    /**
+     * Every Alfa Commerce endpoint and who may call it, for Tools, Security, and the ones the filters keep
+     * (filter[source], filter[permission], filter[search]), remembered for the user as Joomla's lists remember theirs;
+     * the filter form with the sources and the permissions the endpoints have. A reading that fails costs this card
+     * only.
+     *
+     * @return array{shown: list<ApiAddress>, filtered: bool, summary: array{addresses: int, plugins: int, accounts: int, superUsers: int}, sections: array{core: array{all: int, shown: list<ApiAddress>}, extensions: list<array{source: string, name: string, all: int, shown: list<ApiAddress>, refused: list<\Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRefusal>, unavailable: string}>}, holders: list<array{permissions: list<string>, endpoints: int, groups: list<array<string, mixed>>, accounts: list<array<string, mixed>>}>, titles: array<string, string>, sources: array<string, string>, tokenGroups: array{every: bool, titles: list<string>}, tokenPlugin: bool, webservices: bool, unreadable: bool}
+     *
+     * @since  2.2.2
+     */
+    private function apiRoutes(): array
+    {
+        $empty = $this->apiRoutes;
+
+        try {
+            $listing = ApiAddressListing::read();
+        } catch (Throwable $e) {
+            Log::add('Tools: the REST API addresses could not be read: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, ApiRouteRegistrar::LOG);
+
+            return ['unreadable' => true] + $empty;
+        }
+
+        // The user's last filters, as a Joomla list keeps them: the request's when it sends them, else the stored ones.
+        $app = Factory::getApplication();
+        $filters = (array) $app->getUserStateFromRequest(self::API_FILTER_STATE, 'filter', [], 'array');
+
+        try {
+            $chosen = [
+                'search' => trim((string) RequestScalar::member($filters, 'search', 'STRING', 'filter')),
+                'source' => (string) RequestScalar::member($filters, 'source', 'CMD', 'filter'),
+                'permission' => (string) RequestScalar::member($filters, 'permission', 'CMD', 'filter'),
+            ];
+        } catch (RequestValueRefused $e) {
+            // A refused value is never kept: the next visit opens with no filter.
+            $app->setUserState(self::API_FILTER_STATE, []);
+
+            throw $e;
+        }
+
+        $sources = ApiAddressListing::sources(addresses: $listing['addresses']);
+        $this->activeFilters = array_filter($chosen, static fn (string $value): bool => $value !== '');
+        $this->filterForm = $this->apiRoutesFilterForm(sources: $sources, titles: $listing['titles'], chosen: $chosen);
+        $shown = ApiAddressListing::filter(addresses: $listing['addresses'], source: $chosen['source'], permission: $chosen['permission'], search: $chosen['search']);
+
+        return [
+            'shown' => $shown,
+            'filtered' => $this->activeFilters !== [],
+            'summary' => ApiAddressListing::summary(addresses: $listing['addresses']),
+            'sections' => ApiAddressListing::sections(addresses: $listing['addresses'], shown: $shown, refused: $listing['refused'], unavailable: $listing['unavailable']),
+            'holders' => ApiAddressListing::holders(addresses: $shown),
+            'titles' => $listing['titles'],
+            'sources' => $sources,
+            'tokenGroups' => $listing['tokenGroups'],
+            'tokenPlugin' => $listing['tokenPlugin'],
+            'webservices' => $listing['webservices'],
+            'unreadable' => false,
+        ];
+    }
+
+    /**
+     * The filter form of the addresses' table: forms/filter_apiroutes.xml with an option for each source and each
+     * permission the table has (a permission named with its title), bound to the request's filters.
+     *
+     * @param array<string, string> $sources Source => name.
+     * @param array<string, string> $titles Permission => title.
+     * @param array{search: string, source: string, permission: string} $chosen The request's filters.
+     *
+     * @since  2.2.2
+     */
+    private function apiRoutesFilterForm(array $sources, array $titles, array $chosen): ?Form
+    {
+        try {
+            $form = Factory::getContainer()->get(FormFactoryInterface::class)->createForm('com_alfa.tools.apiroutes.filter', ['control' => '']);
+            $form->loadFile(JPATH_ADMINISTRATOR . '/components/com_alfa/forms/filter_apiroutes.xml');
+        } catch (Throwable $e) {
+            Log::add('Tools: the filters of the REST API addresses could not be built: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, ApiRouteRegistrar::LOG);
+
+            return null;
+        }
+
+        $option = static fn (string $text): string => htmlspecialchars($text, ENT_XML1 | ENT_NOQUOTES, 'UTF-8');
+        $sourceField = $form->getField('source', 'filter');
+        $permissionField = $form->getField('permission', 'filter');
+
+        if ($sourceField instanceof ListField) {
+            foreach ($sources as $value => $name) {
+                $sourceField->addOption($option($name), ['value' => $value]);
+            }
+        }
+
+        if ($permissionField instanceof ListField) {
+            $labels = [];
+
+            foreach ($titles as $name => $title) {
+                $labels[$name] = $title !== '' ? $title . ' (' . $name . ')' : $name;
+            }
+
+            natcasesort($labels);
+
+            foreach ($labels as $name => $label) {
+                $permissionField->addOption($option($label), ['value' => (string) $name]);
+            }
+        }
+
+        $form->bind(['filter' => $chosen]);
+
+        return $form;
     }
 
     /**

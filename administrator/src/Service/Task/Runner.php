@@ -640,7 +640,7 @@ final class Runner
 
     /**
      * A job handler by name, made once per request; null when this version has none of that name. The registry is
-     * closed in 2.2.0: core's handlers only.
+     * closed: core's handlers only; a plugin's work runs through extension.job.
      *
      * @param string $name The handler's name.
      *
@@ -696,6 +696,8 @@ final class Runner
             Job\TasksPruneJob::NAME => Job\TasksPruneJob::class,
             // The gallery's thumbnails, recreated from Tools > Media (2.2.0, part C21).
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
+            // The background work an alfa plugin owes, handed back to it.
+            Job\ExtensionJob::NAME => Job\ExtensionJob::class,
         ];
     }
 

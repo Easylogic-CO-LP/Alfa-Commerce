@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
 use Joomla\CMS\Document\JsonapiDocument;
+use Joomla\CMS\Document\JsonDocument;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
 
@@ -79,6 +80,10 @@ final class Dispatcher extends ComponentDispatcher
 
             if ($document instanceof JsonapiDocument) {
                 $document->setErrors([['code' => 503, 'title' => Text::_('COM_ALFA_MAINTENANCE_API')]]);
+            } elseif ($document instanceof JsonDocument) {
+                // A route of an extension that answers plain JSON: the same error, in the body the
+                // component's output becomes.
+                echo json_encode(['errors' => [['code' => 503, 'title' => Text::_('COM_ALFA_MAINTENANCE_API')]]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }
 
             return;

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
 
@@ -25,16 +26,6 @@ class ItemsController extends ApiController
     use HasApiGuards {
         preprocessSaveData as private guardedPreprocessSaveData;
     }
-
-    /**
-     * Body keys that state a stock figure. Core backfills every table column a
-     * PATCH omits, so an omitted `stock` would come back as the stored projection
-     * and read as a figure the client never sent.
-     *
-     * @var string[]
-     * @since  2.0.0
-     */
-    private const STOCK_INTENT_KEYS = ['stock', 'inventory_stock'];
 
     /**
      * The content type of the item.
@@ -202,15 +193,8 @@ class ItemsController extends ApiController
      */
     protected function preprocessSaveData(array $data): array
     {
-        $body = $this->requestBody();
-
-        foreach (self::STOCK_INTENT_KEYS as $key) {
-            if (!\array_key_exists($key, $body)) {
-                unset($data[$key]);
-            }
-        }
-
-        unset($data['available_quantity'], $data['inventory_stock_baseline']);
+        // The item model's own rule: a stock figure counts only when the body names it.
+        $data = AdminItemModel::withoutUnsentStock(data: $data, sent: array_keys($this->requestBody()));
 
         return $this->guardedPreprocessSaveData(data: $data);
     }
