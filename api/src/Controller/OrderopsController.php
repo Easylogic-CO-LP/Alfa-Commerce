@@ -67,6 +67,14 @@ class OrderopsController extends OrdersController
     private const STATUS_TASK = 'changeStatus';
 
     /**
+     * What a payment's change takes: its method, the provider's reference and the note, as the payment window changes
+     * them; its amount and status move only through the settle and the refund.
+     *
+     * @since  2.2.2
+     */
+    private const PAYMENT_CHANGES = ['id_payment_method', 'transaction_id', 'note'];
+
+    /**
      * Every operation here mutates an existing order, so they gate on the order
      * EDIT permission rather than create/delete, except moving the order between
      * statuses, which asks Change State instead of edit, plus view.
@@ -540,6 +548,152 @@ class OrderopsController extends OrdersController
             throw new Save('note cannot be written through the API: a parcel keeps no note. Write the order\'s note to the'
                 . ' customer through PATCH v1/alfa/orders/:id (customer_note), or a status change\'s note through POST'
                 . ' v1/alfa/orders/:id/status. Nothing was saved.', 422);
+        }
+    }
+
+    /**
+     * Change a payment, as the payment window of the order screen changes one.
+     *
+     * PATCH v1/alfa/orders/:id/payments/:paymentId
+     * {id_payment_method?, transaction_id?, note?}
+     *
+     * Written by the order model's saveOrderPayment(), the screen's own save, with its rules: the staff guard keeps the
+     * method and the provider's transaction id of a payment its gateway collected, a payment that live refunds or
+     * provider facts name keeps its method, and the order's payment method follows its latest live payment. The amount
+     * and the status are not changed here: a payment is settled with POST .../settle and money is returned with POST
+     * .../refund; any other key is refused with 422. A refusal answers 409 with the ledger's sentence.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function updatePayment()
+    {
+        $orderId = $this->requireOrderId();
+        $payment = $this->requireOwnedPayment($orderId);
+        $body = $this->body();
+        $other = array_values(array_diff(array_map('strval', array_keys($body)), self::PAYMENT_CHANGES));
+
+        if ($other !== []) {
+            throw new Save(implode(', ', array_map(fn (string $key): string => $this->shownKey(key: $key), $other))
+                . ' cannot be changed on a payment: send id_payment_method, transaction_id or note. A payment is settled with'
+                . ' POST v1/alfa/orders/:id/payments/:paymentId/settle and money is returned with .../refund. Nothing was saved.', 422);
+        }
+
+        $data = ['id' => (int) $payment->id, 'id_order' => $orderId];
+
+        if (\array_key_exists('id_payment_method', $body)) {
+            $data['id_payment_method'] = $this->paymentMethodId(value: $body['id_payment_method']);
+        }
+
+        foreach (['transaction_id', 'note'] as $key) {
+            if (\array_key_exists($key, $body)) {
+                if ($body[$key] !== null && !\is_string($body[$key])) {
+                    throw new Save($key . ' must be text. Nothing was saved.', 422);
+                }
+
+                $data[$key] = (string) $body[$key];
+            }
+        }
+
+        $this->runOrderWrite('saveOrderPayment', $data);
+
+        return $this->displayItem($orderId);
+    }
+
+    /**
+     * Remove a payment, as the order screen removes one.
+     *
+     * DELETE v1/alfa/orders/:id/payments/:paymentId
+     *
+     * Through the order model's deleteOrderPayment(), the screen's own delete: only a payment that moved no money goes
+     * (pending, authorized, failed or cancelled); a completed or refunded payment, a refund that reserves its amount, a
+     * provider's report and a payment one of them names are refused with 409 and the ledger's sentence. The order's
+     * history records the removal, and the answer is the order as it now stands.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function removePayment()
+    {
+        $orderId = $this->requireOrderId();
+        $payment = $this->requireOwnedPayment($orderId);
+        $this->runOrderRemoval('deleteOrderPayment', (int) $payment->id, $orderId);
+
+        return $this->displayItem($orderId);
+    }
+
+    /**
+     * Remove a parcel, as the order screen removes one.
+     *
+     * DELETE v1/alfa/orders/:id/shipments/:shipmentId
+     *
+     * Through the order model's deleteOrderShipment(), the screen's own delete: the parcel's lines are released, so
+     * they may go in another parcel, and the order's history records the removal; the order's shipping method follows
+     * its latest live parcel. The carrier is not asked: a parcel booked with a carrier is removed from the order only.
+     * The answer is the order as it now stands.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function removeShipment()
+    {
+        $orderId = $this->requireOrderId();
+        $shipment = $this->requireOwnedShipment($orderId);
+        $this->runOrderRemoval('deleteOrderShipment', (int) $shipment->id, $orderId);
+
+        return $this->displayItem($orderId);
+    }
+
+    /**
+     * A payment method's id from the body: a whole number that names a payment method of the shop.
+     *
+     * @param mixed $value The body's id_payment_method.
+     *
+     * @throws Save When it names no payment method (422).
+     *
+     * @since  2.2.2
+     */
+    private function paymentMethodId(mixed $value): int
+    {
+        $id = \is_int($value) ? $value : (\is_string($value) && preg_match('/^[1-9][0-9]{0,9}$/D', $value) === 1 ? (int) $value : 0);
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $found = $id > 0 && $id <= 2147483647 && (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_payments'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $id, ParameterType::INTEGER),
+        )->loadResult() > 0;
+
+        if (!$found) {
+            throw new Save('id_payment_method must be the id of a payment method of the shop. Nothing was saved.', 422);
+        }
+
+        return $id;
+    }
+
+    /**
+     * Run a removal on the order model, a refusal answered as runOrderWrite() answers one: 409 with the model's error,
+     * else the sentence the ledger told staff.
+     *
+     * @param string $method deleteOrderPayment or deleteOrderShipment.
+     * @param int $rowId The payment or the parcel.
+     * @param int $orderId The order it belongs to.
+     *
+     * @throws Save When the model refuses the removal (409).
+     *
+     * @since  2.2.2
+     */
+    private function runOrderRemoval(string $method, int $rowId, int $orderId): void
+    {
+        $model = $this->orderModel();
+        $told = \count($this->app->getMessageQueue());
+
+        if (!$model->$method($rowId, $orderId)) {
+            throw new Save($this->modelError($model, PaymentLedger::queuedRefusal(app: $this->app, told: $told) ?: 'The order could not be updated'), 409);
         }
     }
 
