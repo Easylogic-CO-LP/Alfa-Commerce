@@ -90,6 +90,78 @@ final class CategoryAncestry
     }
 
     /**
+     * How many products each category holds, its own and with its sub-categories': for each category asked,
+     * own (the products assigned to the category itself, as the categories list's item_count counts them) and
+     * descendants (the products assigned to it or to any category below it, at any depth, each product once however
+     * many of them it is in). The products counted are those the back office lists by default, published and
+     * unpublished; trashed and archived ones are not. One statement for every category asked, never one per category:
+     * the sub-trees are walked in PHP from the request's one read of the categories ({@see self::all()}).
+     *
+     * @param int[] $categoryIds The categories.
+     *
+     * @return array<int, array{own: int, descendants: int}> By category id; a category that does not exist counts 0.
+     *
+     * @since  2.2.2
+     */
+    public static function productCounts(array $categoryIds): array
+    {
+        $categoryIds = array_values(array_unique(array_filter(array_map('intval', $categoryIds), static fn (int $id): bool => $id > 0)));
+
+        if ($categoryIds === []) {
+            return [];
+        }
+
+        $children = [];
+
+        foreach (self::all() as $id => [$parentId]) {
+            $children[$parentId][] = $id;
+        }
+
+        // Each category's sub-tree: itself and every category below it, each once even where the tree loops.
+        $trees = [];
+
+        foreach ($categoryIds as $root) {
+            $tree = [$root => true];
+            $queue = [$root];
+
+            while ($queue !== []) {
+                foreach ($children[array_shift($queue)] ?? [] as $child) {
+                    if (!isset($tree[$child])) {
+                        $tree[$child] = true;
+                        $queue[] = $child;
+                    }
+                }
+            }
+
+            $trees[$root] = array_keys($tree);
+        }
+
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $query = $db->getQuery(true)
+            ->from($db->quoteName('#__alfa_items_categories', 'ic'))
+            ->join('INNER', $db->quoteName('#__alfa_items', 'ci'), $db->quoteName('ci.id') . ' = ' . $db->quoteName('ic.item_id'))
+            ->whereIn($db->quoteName('ic.category_id'), array_values(array_unique(array_merge(...array_values($trees)))))
+            ->whereIn($db->quoteName('ci.state'), [0, 1]);
+
+        // COUNT(DISTINCT): a product assigned to a category and to one below it is one product of the sub-tree.
+        foreach ($trees as $root => $tree) {
+            $query->select('COUNT(DISTINCT CASE WHEN ' . $db->quoteName('ic.category_id') . ' = ' . $root . ' THEN '
+                . $db->quoteName('ic.item_id') . ' END) AS ' . $db->quoteName('own_' . $root));
+            $query->select('COUNT(DISTINCT CASE WHEN ' . $db->quoteName('ic.category_id') . ' IN (' . implode(',', $tree) . ') THEN '
+                . $db->quoteName('ic.item_id') . ' END) AS ' . $db->quoteName('all_' . $root));
+        }
+
+        $row = $db->setQuery($query)->loadAssoc() ?: [];
+        $counts = [];
+
+        foreach ($categoryIds as $root) {
+            $counts[$root] = ['own' => (int) ($row['own_' . $root] ?? 0), 'descendants' => (int) ($row['all_' . $root] ?? 0)];
+        }
+
+        return $counts;
+    }
+
+    /**
      * Every category, read once per request and language.
      *
      * @return array<int, array{0: int, 1: int, 2: string, 3: string}>
