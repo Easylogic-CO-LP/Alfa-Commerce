@@ -340,7 +340,7 @@ final class UnitBatch
 
             return match (true) {
                 $e instanceof UnitBatchRefusal => $refused($at, $e->status, $e->getMessage()),
-                $e instanceof PricesStateChanged => $refused($pointer . '/prices_state', 409, $e->getMessage()),
+                $e instanceof PricesStateChanged => $refused($pointer . '/prices_state', 409, 'the unit\'s prices changed since you read them (prices_state). Read them again.'),
                 $e instanceof InventoryReservedFloorException, $e instanceof InventoryIntegrityException => $refused($at, 409, $e->operatorMessage()),
                 $e instanceof InventoryUnitException => $refused($at, 422, $combinationId > 0 ? 'this combination does not track stock.' : 'this product does not track stock.'),
                 $e instanceof InventoryProjectionMismatchException => $refused($at, 409, 'the unit\'s stock figures disagree with its stock records; the shop repairs them first.'),
