@@ -2619,6 +2619,18 @@ class com_alfaInstallerScript extends InstallerScript
             // earlier release installed (PackageHelper::contentHash()).
             'plugins/alfa-payments/standard/tmpl/default_item_view.php' => ['031d61b4d1714c3dd1a10bed3325a62f31987a41d4dedc422b1e43d1b725d203'],
             'plugins/alfa-shipments/standard/tmpl/default_item_view.php' => ['031d61b4d1714c3dd1a10bed3325a62f31987a41d4dedc422b1e43d1b725d203'],
+            // The order builder is one page: its Items tab and its Summary tab's statement became one Items section
+            // (default_lines.php), and a line's configuration is the layout cart.line_selection. The copies
+            // earlier releases installed (PackageHelper::contentHash()).
+            'administrator/components/com_alfa/tmpl/cart/default_items.php' => [
+                '7a50f5b9ab44059ac470c04d6c75d55e6966cc91e221e6df07161c661de52601',
+                '5188c66fcf94f28d0fc5e523246827a31ef6e9531b017fc339fde9fc05a98b2a',
+            ],
+            'administrator/components/com_alfa/tmpl/cart/default_selection.php' => ['8bfa46369537b53f113a107b10fc4fa52430778d69ce3fc9dff1dcfe1059dc5b'],
+            'administrator/components/com_alfa/tmpl/cart/default_statement.php' => [
+                'a00c9b565e9326cc40b4ee5dcb58955184cc0d4d835a4a51141fb6dde27d3f98',
+                '1973f719187f72909afa7acab951ea8c72a91babe7b03ea50fc44632a52fcb83',
+            ],
         ],
     ];
 

@@ -615,3 +615,16 @@ tr.alfa-row-refund > * {
         color: var(--secondary-color, #6c757d);
     }
 }
+
+/* Order builder: one page of sections. Each section stands apart from the next by
+   space and a rule, and an address with a section's id (the page reopens at the
+   section a form posted from) lands below the sticky toolbar, not under it. */
+.alfa-builder-section {
+    margin-bottom: 2rem;
+    scroll-margin-top: var(--alfa-builder-anchor-offset, 6rem);
+}
+
+.alfa-builder-section + .alfa-builder-section {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--template-bg-dark-7, var(--bs-border-color));
+}

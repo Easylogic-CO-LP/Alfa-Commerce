@@ -8,14 +8,14 @@
  */
 
 /**
- * The builder's Customer & addresses tab.
+ * The builder's Customer & addresses section.
  *
  * Three things live here, and each belongs to somebody else:
  *
  *  - WHO the cart is for. Read from the cart ROW and shown, never edited. A
  *    cart's customer is the axis its prices, rules, coupons, credit and offered
  *    methods were all computed on, and there is no operation in this component
- *    that moves a cart between customers, so this tab does not pretend there
+ *    that moves a cart between customers, so this section does not pretend there
  *    is one. Selling to somebody else means starting that customer's own cart.
  *
  *  - The customer's ADDRESS BOOK, owned by UserInfo. Rows are listed, labelled,
@@ -226,6 +226,7 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
 
                         <input type="hidden" name="task" value="cart.pointAddress">
                         <input type="hidden" name="form" value="page">
+                        <input type="hidden" name="section" value="customer">
                         <input type="hidden" name="cart_id" value="<?php echo $cartId; ?>">
                         <?php echo HTMLHelper::_('form.token'); ?>
                     </form>

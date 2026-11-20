@@ -8,11 +8,11 @@
  */
 
 /**
- * The builder's Shipment & payment tab.
+ * The builder's Shipment & payment section.
  *
  * A READING, not a decision. Every method on this screen is one the ENGINE
  * offered for THIS cart ({@see \Alfa\Component\Alfa\Site\Service\Cart\CartMethods},
- * settled through CheckoutCart), and the tab renders that answer without asking
+ * settled through CheckoutCart), and the section renders that answer without asking
  * a question of its own. It runs no query, consults no plugin table, and repeats
  * none of the eligibility rules: published is not eligible, and a back office
  * that decided otherwise would be a second engine disagreeing with the shop.
@@ -153,7 +153,7 @@ $section = function (
                     <?php endforeach; ?>
 
                     <?php // Choosing a method is a builder mutation; the radios stay so
-                          // the tab still reads as a statement of what the cart holds. ?>
+                          // the section still reads as a statement of what the cart holds. ?>
                     <?php if ($this->canOperate) : ?>
                         <button type="submit" class="btn btn-primary">
                             <span class="icon-checkbox" aria-hidden="true"></span>
@@ -163,6 +163,7 @@ $section = function (
 
                     <input type="hidden" name="task" value="<?php echo $task; ?>">
                     <input type="hidden" name="form" value="page">
+                    <input type="hidden" name="section" value="methods">
                     <input type="hidden" name="cart_id" value="<?php echo $cartId; ?>">
                     <?php echo HTMLHelper::_('form.token'); ?>
                 </form>
@@ -211,7 +212,7 @@ $section = function (
       // effective carrier is priced, by its own plugin, and the answer lands on
       // the settled totals. So it is stated once, here, rather than guessed per
       // row: a per-method price would have to be invented, and inventing it is
-      // exactly the second engine this tab exists to avoid. ?>
+      // exactly the second engine this section exists to avoid. ?>
 <?php if ($offers->selectedShipmentId > 0) : ?>
     <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center">

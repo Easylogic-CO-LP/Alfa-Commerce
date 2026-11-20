@@ -11,8 +11,8 @@
  * The builder's placement card: what will be placed, and the intent to place it.
  *
  * EVERYTHING COMMERCIAL WAS ALREADY DECIDED. The items, the customer, the two
- * addresses and the two methods belong to the live cart, chosen on the tabs
- * beside this one and settled by the engine. This card STATES them so an
+ * addresses and the two methods belong to the live cart, chosen in the sections
+ * above this one and settled by the engine. This card STATES them so an
  * operator can check what they are about to commit, and it offers as INPUT only
  * the two things that are genuinely placement intent: the status the order
  * should land in, and whether to spend the customer's credit.

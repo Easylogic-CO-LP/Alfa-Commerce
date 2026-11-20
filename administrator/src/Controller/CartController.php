@@ -81,9 +81,9 @@ class CartController extends BaseController
      * admin key that says the same thing to the operator placing the cart.
      *
      * The storefront keeps its wording; only this screen reads these keys.
-     * They are distinct names because checkout() loads the site catalogue
-     * after the admin one, and a shared key would come back in the shopper's
-     * words. Each takes the same parameters as the code it replaces. A plugin's
+     * They are distinct names because the code is the storefront's key, which
+     * only the storefront's file words, and for the shopper. Each takes the
+     * same parameters as the code it replaces. A plugin's
      * veto, which only the plugin can word, is framed for the operator with its
      * words inside. A plugin whose check failed is named to the operator: the
      * failure carries the plugin's name, which the shopper's sentence leaves out.
@@ -102,6 +102,14 @@ class CartController extends BaseController
         'COM_ALFA_ORDER_PLACE_PLUGIN_REFUSED' => 'COM_ALFA_CART_CHECKOUT_PLUGIN_REFUSED',
         'COM_ALFA_ORDER_PLACE_PLUGIN_FAILED' => 'COM_ALFA_CART_CHECKOUT_PLUGIN_FAILED',
     ];
+
+    /**
+     * The builder page's sections a form may name for its reply to land on (the page's ids are alfa-builder-<name>).
+     *
+     * @var string[]
+     * @since  2.3.0
+     */
+    private const BUILDER_SECTIONS = ['customer', 'lines', 'methods'];
 
     /**
      * @var CartSource|null The source of the cart the request names, once a guard
@@ -182,8 +190,8 @@ class CartController extends BaseController
 
         // THE METHODS ARE THE CART'S, NOT THE FORM'S.
         //
-        // The operator chose a carrier and a gateway on the Shipment & payment
-        // tab, and that choice was written to the cart and reconciled against
+        // The operator chose a carrier and a gateway in the Shipment & payment
+        // section, and that choice was written to the cart and reconciled against
         // what the engine actually offers. Reading the ids back off a POST would
         // make the last page the operator happened to be looking at the
         // authority, and a crafted one, naming a method the cart never
@@ -1237,7 +1245,9 @@ class CartController extends BaseController
                 $this->app->enqueueMessage($message, $error ? 'error' : 'message');
             }
 
-            $this->setRedirect(Route::_('index.php?option=com_alfa&view=cart&id=' . $cartId, false));
+            $this->setRedirect(
+                Route::_('index.php?option=com_alfa&view=cart&id=' . $cartId, false) . $this->sectionAnchor(),
+            );
 
             return;
         }
@@ -1276,6 +1286,25 @@ class CartController extends BaseController
     }
 
     /**
+     * Where on the builder page a form's reply lands: the section the form belongs to, so the operator goes on where
+     * they were. When the act left a message, the page opens at the top instead, where Joomla prints it.
+     *
+     * @return string The address fragment, '#alfa-builder-<section>', or '' for the top of the page.
+     *
+     * @since  2.3.0
+     */
+    private function sectionAnchor(): string
+    {
+        $section = (string) RequestScalar::read($this->input, 'section', '', 'word');
+
+        if (!\in_array($section, self::BUILDER_SECTIONS, true) || $this->app->getMessageQueue() !== []) {
+            return '';
+        }
+
+        return '#alfa-builder-' . $section;
+    }
+
+    /**
      * A refusal with no cart to describe.
      *
      * @param string $messageKey A language key for the reason.
@@ -1295,7 +1324,7 @@ class CartController extends BaseController
      * A cart snapshot as a stable data projection for the builder screen.
      *
      * Every money figure and every offered method is copied straight off the
-     * settled snapshot (nothing is recomputed here), so the number a tab shows
+     * settled snapshot (nothing is recomputed here), so the number a section shows
      * is the number the engine reached.
      *
      * @param CartSnapshot $snapshot The settled reading.

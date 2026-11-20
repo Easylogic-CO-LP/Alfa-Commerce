@@ -793,7 +793,7 @@ class CartModel extends ItemModel
     }
 
     /**
-     * The priced snapshot the builder renders its Items tab from: the SAME
+     * The priced snapshot the builder renders its Items section from: the SAME
      * authoritative reading the request seam returns, built for the cart's own
      * customer with this operator as actor.
      *
