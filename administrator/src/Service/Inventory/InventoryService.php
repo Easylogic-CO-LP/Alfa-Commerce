@@ -26,6 +26,7 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Joomla\CMS\Component\ComponentHelper;
@@ -6353,8 +6354,10 @@ final class InventoryService
     ): void {
         $facts ??= $this->stockRowFacts(stockId: $stockId);
 
-        $move = function (string $table, int $rowId, float $physical, float $salable): void {
-            if (abs($physical) <= self::EPS && abs($salable) <= self::EPS) {
+        // The product's row also records when its stock last changed (CommerceChange), in the statement that moves its
+        // figures; a combination's move marks its product even when the product's own figures do not move.
+        $move = function (string $table, int $rowId, float $physical, float $salable, bool $changed = false): void {
+            if (!$changed && abs($physical) <= self::EPS && abs($salable) <= self::EPS) {
                 return;
             }
 
@@ -6362,9 +6365,11 @@ final class InventoryService
                 'UPDATE ' . $this->db->quoteName($table)
                 . ' SET ' . $this->db->quoteName('stock') . ' = COALESCE(' . $this->db->quoteName('stock') . ', 0) + ' . self::sqlNumber(value: $physical)
                 . ', ' . $this->db->quoteName('available_quantity') . ' = COALESCE(' . $this->db->quoteName('available_quantity') . ', 0) + ' . self::sqlNumber(value: $salable)
+                . ($changed ? ', ' . $this->db->quoteName(CommerceChange::COLUMN) . ' = ' . $this->db->quote(CommerceChange::now()) : '')
                 . ' WHERE ' . $this->db->quoteName('id') . ' = ' . $rowId,
             )->execute();
         };
+        $moved = static fn (float ...$deltas): bool => array_filter($deltas, static fn (float $delta): bool => abs($delta) > self::EPS) !== [];
 
         if ($facts->combinationId > 0) {
             if (!$facts->combinationExists) {
@@ -6372,7 +6377,7 @@ final class InventoryService
             }
 
             $move('#__alfa_item_combinations', $facts->combinationId, $unitPhysicalDelta, $unitSalableDelta);
-            $move('#__alfa_items', $facts->itemId, $parentPhysicalDelta, $parentSalableDelta);
+            $move('#__alfa_items', $facts->itemId, $parentPhysicalDelta, $parentSalableDelta, $moved($unitPhysicalDelta, $unitSalableDelta, $parentPhysicalDelta, $parentSalableDelta));
 
             return;
         }
@@ -6381,7 +6386,7 @@ final class InventoryService
             return;
         }
 
-        $move('#__alfa_items', $facts->itemId, $unitPhysicalDelta, $unitSalableDelta);
+        $move('#__alfa_items', $facts->itemId, $unitPhysicalDelta, $unitSalableDelta, $moved($unitPhysicalDelta, $unitSalableDelta));
     }
 
     /**

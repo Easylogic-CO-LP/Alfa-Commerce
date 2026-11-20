@@ -29,6 +29,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
@@ -1019,6 +1020,10 @@ class ItemModel extends AlfaAdminModel
             // straight into the API's JSON response.
             $this->setPrices($currentId, $data['prices'] ?? null);
 
+            // What the product sells for or has to sell may have changed with this save (its prices, its own fields,
+            // its combinations): recorded in the save's transaction, for the REST API's filter[changed_since].
+            CommerceChange::mark(db: $db, itemIds: [$currentId]);
+
             // Step 3: save all associations
             // Get old categories BEFORE overwriting so we can clear their cache too
             $oldCategories = AlfaHelper::getAssocsFromDb($currentId, '#__alfa_items_categories', 'item_id', 'category_id');
@@ -1371,6 +1376,11 @@ class ItemModel extends AlfaAdminModel
                     $this->markChanging(ids: $ids, value: $value);
                     // Let Joomla handle the actual state change in the database
                     $result = parent::publish(pks: $pks, value: $value);
+
+                    // Whether the products sell changed with their state (filter[changed_since]).
+                    if ($result) {
+                        CommerceChange::mark(db: $db, itemIds: $ids);
+                    }
                 }
 
                 TransactionState::commitLevel(db: $db);

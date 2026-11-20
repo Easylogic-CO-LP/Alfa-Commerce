@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
@@ -4989,6 +4990,10 @@ class ItemFieldsAdminHelper
 
             self::saveCombinationTranslations(combinationId: $combinationId, row: $row);
             self::syncCombinationPrices(itemId: $itemId, combinationId: $combinationId, rows: $priceRows);
+
+            // The combination's prices and its sale rules are its product's: recorded in this transaction, for the
+            // REST API's filter[changed_since].
+            CommerceChange::mark(db: $db, itemIds: [$itemId]);
 
             // What the inventory service announces for this save waits for this commit.
             TransactionState::commitLevel(db: $db);

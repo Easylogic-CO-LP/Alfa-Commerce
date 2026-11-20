@@ -1154,6 +1154,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `checked_out_time` datetime DEFAULT NULL,
   `created_by` int(11) DEFAULT 0,
   `modified` datetime NOT NULL,
+  `commerce_changed_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]',
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   `projection_dirty_at` datetime(6) NULL DEFAULT NULL COMMENT 'When a rebuild of this item projections was found owed and not yet done; NULL = current',
@@ -1163,7 +1164,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
-  KEY `idx_projection_dirty` (`projection_dirty_at`)
+  KEY `idx_projection_dirty` (`projection_dirty_at`),
+  -- The products changed since a time (the REST API filter[changed_since]): a range read on this key.
+  KEY `idx_commerce_changed` (`commerce_changed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

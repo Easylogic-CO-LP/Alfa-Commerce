@@ -79,6 +79,7 @@ class JsonApiView extends BaseApiView
         'publish_down',
         'created_by',
         'modified',
+        'commerce_changed_at',
         'modified_by',
         'ordering',
     ];
@@ -109,6 +110,8 @@ class JsonApiView extends BaseApiView
         'publish_up',
         'publish_down',
         'modified',
+        // When the product's stock, prices or own fields last changed (UTC, to the microsecond): filter[changed_since].
+        'commerce_changed_at',
         'ordering',
     ];
 

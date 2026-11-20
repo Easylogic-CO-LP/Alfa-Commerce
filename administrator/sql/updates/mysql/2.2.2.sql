@@ -36,3 +36,17 @@ ALTER TABLE `#__alfa_orders` ADD UNIQUE KEY `idx_external_reference` (`external_
 -- stored are kept, and the statement can run again. The install SQL has the same width.
 
 ALTER TABLE `#__alfa_orders` MODIFY `source` varchar(32) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api, or the channel a REST API client names (lower-case letters, digits, _ and -)';
+
+-- When a product stock or prices last changed
+--
+-- A stock move or a price row written does not touch a product modified time, so an integrator that keeps stock and
+-- prices in step had to read every product. commerce_changed_at records, in UTC to the microsecond, when the product
+-- stock, its price rows, a price period that began, or the product itself last changed, written in the same
+-- transaction as the change; the REST API filter[changed_since] reads it on its key. The two additions carry the CAN
+-- FAIL marker, so an update run again finds them and goes on. The products already in the shop are then marked changed
+-- at the moment of the update, once: a client that reads the changes since a time before the update reads every
+-- product once, and none is missed. The install SQL creates the same column and key.
+
+ALTER TABLE `#__alfa_items` ADD COLUMN `commerce_changed_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]' AFTER `modified` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_items` ADD KEY `idx_commerce_changed` (`commerce_changed_at`) /** CAN FAIL **/;
+UPDATE `#__alfa_items` SET `commerce_changed_at` = UTC_TIMESTAMP(6) WHERE `commerce_changed_at` IS NULL;

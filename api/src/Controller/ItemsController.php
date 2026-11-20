@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
@@ -113,6 +114,18 @@ class ItemsController extends ApiController
 
         if (\array_key_exists('fields', $apiFilterInfo)) {
             $this->modelState->set('filter.fields', $this->fieldsFilter($apiFilterInfo['fields']));
+        }
+
+        // The products whose stock, prices or own fields changed at or after a time (commerce_changed_at): UTC, as every
+        // date the API publishes, a bound with Z or an offset in its own zone.
+        if (\array_key_exists('changed_since', $apiFilterInfo)) {
+            $bound = CommerceChange::bound(bound: (string) RequestScalar::member($apiFilterInfo, 'changed_since', 'STRING', 'filter'));
+
+            if ($bound === null) {
+                throw new Save('filter[changed_since] must be a date and time, 2026-11-20T10:00:00Z (UTC when it states no zone).', 400);
+            }
+
+            $this->modelState->set('filter.changed_since', $bound);
         }
 
         $apiListInfo = $this->input->get('list', [], 'array');
