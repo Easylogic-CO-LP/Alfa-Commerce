@@ -126,31 +126,36 @@ final class PricesState
     }
 
     /**
-     * Refuse a write of a product's own prices made on a state that is no longer stored: the rows are read under a
-     * lock the caller's transaction holds until it commits, so no other write of them can come between this check and
-     * the caller's write.
+     * Refuse a write of a unit's own prices made on a state that is no longer stored: the rows are read under a lock
+     * the caller's transaction holds until it commits, so no other write of them can come between this check and the
+     * caller's write.
      *
      * @param DatabaseDriver $db The connection, inside the write's transaction.
      * @param int $itemId The product.
      * @param string $expected The state the writer read.
+     * @param int $combinationId The combination whose rows are written; 0 for the product's own rows.
      *
      * @throws PricesStateChanged When the stored rows have another state.
      *
      * @since  2.2.2
      */
-    public static function assertUnchanged(DatabaseDriver $db, int $itemId, string $expected): void
+    public static function assertUnchanged(DatabaseDriver $db, int $itemId, string $expected, int $combinationId = 0): void
     {
-        $rows = $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName(ItemFieldsAdminHelper::PRICE_ROW_COLUMNS))
-                ->from($db->quoteName('#__alfa_items_prices'))
-                ->where($db->quoteName('item_id') . ' = ' . $itemId)
-                ->where($db->quoteName('combination_id') . ' IS NULL')
-                ->order($db->quoteName('id') . ' ASC') . ' FOR UPDATE',
-        )->loadAssocList() ?: [];
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(ItemFieldsAdminHelper::PRICE_ROW_COLUMNS))
+            ->from($db->quoteName('#__alfa_items_prices'));
+
+        if ($combinationId > 0) {
+            $query->where($db->quoteName('combination_id') . ' = ' . $combinationId);
+        } else {
+            $query->where($db->quoteName('item_id') . ' = ' . $itemId)
+                ->where($db->quoteName('combination_id') . ' IS NULL');
+        }
+
+        $rows = $db->setQuery($query->order($db->quoteName('id') . ' ASC') . ' FOR UPDATE')->loadAssocList() ?: [];
 
         if (!hash_equals(ItemFieldsAdminHelper::priceRowsState(rows: $rows), $expected)) {
-            throw new PricesStateChanged(itemId: $itemId);
+            throw new PricesStateChanged(itemId: $itemId, combinationId: $combinationId);
         }
     }
 

@@ -14,8 +14,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 use RuntimeException;
 
 /**
- * A write of a product's own prices refused because the prices it was made on changed since they were read
- * ({@see PricesState::assertUnchanged()}): nothing of the write is kept, and the writer reads the prices again.
+ * A write of a unit's own prices (a product's, or a combination's) refused because the prices it was made on changed
+ * since they were read ({@see PricesState::assertUnchanged()}): nothing of the write is kept, and the writer reads the
+ * prices again.
  *
  * @since  2.2.2
  */
@@ -23,11 +24,14 @@ final class PricesStateChanged extends RuntimeException
 {
     /**
      * @param int $itemId The product.
+     * @param int $combinationId The combination whose prices were written; 0 for the product's own.
      *
      * @since  2.2.2
      */
-    public function __construct(public readonly int $itemId)
+    public function __construct(public readonly int $itemId, public readonly int $combinationId = 0)
     {
-        parent::__construct('prices: the product\'s prices changed since you read them (prices_state). Read it again. Nothing was saved.');
+        parent::__construct($combinationId > 0
+            ? 'prices: the combination\'s prices changed since you read them (prices_state). Read it again. Nothing was saved.'
+            : 'prices: the product\'s prices changed since you read them (prices_state). Read it again. Nothing was saved.');
     }
 }

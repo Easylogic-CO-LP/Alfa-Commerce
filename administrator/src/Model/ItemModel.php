@@ -2914,7 +2914,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @since  2.2.2
      */
-    private static function priceRefusals(array $rows): array
+    public static function priceRefusals(array $rows): array
     {
         $refusals = [];
         $position = 0;

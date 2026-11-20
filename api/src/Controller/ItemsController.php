@@ -16,11 +16,15 @@ use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\UnitBatch;
+use Joomla\CMS\Document\JsonapiDocument;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
 use Joomla\CMS\MVC\Controller\Exception\Save;
+use Joomla\CMS\Serializer\JoomlaSerializer;
 use Joomla\Database\DatabaseInterface;
+use Tobscure\JsonApi\Collection;
 
 /**
  * The Items controller
@@ -32,6 +36,7 @@ class ItemsController extends ApiController
     use HasApiGuards {
         preprocessSaveData as private guardedPreprocessSaveData;
         refuseUnwrittenKeys as private guardedRefuseUnwrittenKeys;
+        taskActions as private crudTaskActions;
     }
 
     /**
@@ -56,6 +61,65 @@ class ItemsController extends ApiController
      * @since  2.2.2
      */
     private ?string $pricesState = null;
+
+    /**
+     * The tasks of the items and what each asks: the batch of units writes prices and stock, so it asks edit, as a
+     * product's write does.
+     *
+     * @return array<string, list<string>>
+     *
+     * @since  2.2.2
+     */
+    protected function taskActions(): array
+    {
+        return ['units' => ['edit']] + $this->crudTaskActions();
+    }
+
+    /**
+     * PATCH v1/alfa/items/units: the prices and stock of many units, products without combinations and combinations,
+     * in one request ({@see UnitBatch}). Each unit is written in its own transaction and answered on its own, in the
+     * request's order: 200 with its prices_state, stock and available_quantity, or the status it was refused with and
+     * why, named by its JSON pointer (/units/3/prices_state); the other units are written. The answer is 200 whenever
+     * the request could be read, each unit's status in its answer; a body that is not {"units": [...]} of 1 to
+     * UnitBatch::MAX_UNITS units is refused 422 whole, nothing written.
+     *
+     * @return static
+     *
+     * @throws Save When the body is not a list of 1 to UnitBatch::MAX_UNITS units (422).
+     *
+     * @since  2.2.2
+     */
+    public function units()
+    {
+        $body = $this->requestBody();
+        $units = $body['units'] ?? null;
+
+        if (array_diff(array_keys($body), ['units']) !== [] || !\is_array($units) || !array_is_list($units) || $units === []) {
+            throw new Save('units: send {"units": [...]}, a list of units, each {"item_id": 12, "combination_id": 0, "prices": [...], "prices_state": "...", "stock": "5"}. Nothing was saved.', 422);
+        }
+
+        if (\count($units) > UnitBatch::MAX_UNITS) {
+            throw new Save('units: send at most ' . UnitBatch::MAX_UNITS . ' units a request; ' . \count($units) . ' were sent. Nothing was saved.', 422);
+        }
+
+        $answers = (new UnitBatch())->write(units: $units);
+        $document = $this->app->getDocument();
+
+        if (!$document instanceof JsonapiDocument) {
+            throw new Save('The answer could not be written. The units were written as their answers would have said.', 500);
+        }
+
+        $rows = [];
+
+        foreach ($answers as $index => $answer) {
+            $rows[] = (object) (['id' => (string) $index] + $answer);
+        }
+
+        $document->setData(new Collection($rows, new JoomlaSerializer('units')));
+        $this->app->setHeader('status', '200', true);
+
+        return $this;
+    }
 
     /**
      * Relations the admin model clears when the key is absent from a PATCH.

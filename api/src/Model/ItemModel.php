@@ -142,6 +142,16 @@ class ItemModel extends AdminItemModel
             $data->combinations ?? [],
         ));
 
+        // Each combination's prices_state, the state of its own price rows, which a write of its prices in a batch of
+        // units sends back to be refused when they changed since.
+        $states = PricesState::ofUnits(units: [(int) $item->id => array_fill_keys(array_column($item->combinations, 'id'), true)]);
+
+        foreach ($item->combinations as &$combination) {
+            $combination['prices_state'] = $states[(int) $item->id . ':' . $combination['id']] ?? null;
+        }
+
+        unset($combination);
+
         $item->options = array_values(array_map(
             static fn ($o): array => [
                 'id' => (int) ($o->id ?? 0),

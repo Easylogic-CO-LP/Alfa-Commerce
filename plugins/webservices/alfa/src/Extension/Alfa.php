@@ -145,6 +145,9 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             // with no client opt-in.
             new Route(['POST'], 'v1/alfa/orders/:id/status', 'orderops.changeStatus', ['id' => '\d+'], $defaults),
 
+            // The prices and stock of many units in one request, each unit written and answered on its own.
+            new Route(['PATCH'], 'v1/alfa/items/units', 'items.units', [], $defaults),
+
             // Storefront catalogue (the SITE models' view of a product): only
             // published, in-window, access-allowed items, priced and variant
             // resolved. READ ONLY by design; back-office editing is v1/alfa/items.

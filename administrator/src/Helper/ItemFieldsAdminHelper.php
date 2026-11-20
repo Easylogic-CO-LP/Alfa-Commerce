@@ -5396,6 +5396,32 @@ class ItemFieldsAdminHelper
     }
 
     /**
+     * Replace a combination's own price rows with the rows given, in the caller's transaction: the rows the
+     * combination's price editor writes ({@see self::syncCombinationPrices()}), each row of the price mode or the
+     * adjust mode, kept by id, the rows not given removed. The product's catalogue is the caller's to rebuild.
+     *
+     * @param int $itemId The owning product.
+     * @param int $combinationId The combination.
+     * @param array $rows The price rows, as the editor posts them ({_mode, value, currency_id, ...}).
+     *
+     * @return bool False when the combination is not a current combination of the product; nothing is written.
+     *
+     * @throws RuntimeException When a row names a place deleted since (the editor's own refusal).
+     *
+     * @since  2.2.2
+     */
+    public static function replaceCombinationPrices(int $itemId, int $combinationId, array $rows): bool
+    {
+        if (!isset(self::loadCombinationRows(itemId: $itemId)[$combinationId])) {
+            return false;
+        }
+
+        self::syncCombinationPrices(itemId: $itemId, combinationId: $combinationId, rows: $rows);
+
+        return true;
+    }
+
+    /**
      * The item's current combination rows keyed by id. Archived rows (kept only
      * as the stock identity of order history) are not part of the catalogue and
      * never reach the grid, the Studio, the save or the generator.
