@@ -254,6 +254,7 @@ class OrdersController extends ApiController
             throw new Save('state cannot be changed via PATCH: over the API an order has no trash step and is deleted in one call (DELETE v1/alfa/orders/:id); its status changes through POST v1/alfa/orders/:id/status.', 422);
         }
 
+        $this->refuseUnshapedDetails();
         $this->refuseUnstatedInvoice();
 
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
@@ -302,6 +303,7 @@ class OrdersController extends ApiController
             throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
         }
 
+        $this->refuseUnshapedDetails();
         $this->refuseUnstatedInvoice();
 
         $carried = array_values(array_intersect(self::NOT_CREATED, array_keys($this->requestBody())));
@@ -398,6 +400,27 @@ class OrdersController extends ApiController
         }
 
         return null;
+    }
+
+    /**
+     * Answer 400 naming the section when the body sends the delivery or the invoice details as anything but an object
+     * of field name to value: null or a string would otherwise be read as no details at all. A section left out keeps
+     * the order's details; {} changes nothing.
+     *
+     * @throws Save When a section is sent in another shape (400).
+     *
+     * @since  2.3.0
+     */
+    private function refuseUnshapedDetails(): void
+    {
+        $body = $this->requestBody();
+
+        foreach ([FieldsHelper::FIELDS_KEY, FieldsHelper::BILLING_FIELDS_KEY] as $section) {
+            if (\array_key_exists($section, $body) && !\is_array($body[$section])) {
+                throw new Save($section . ': send an object of field name to value, {"city": "Larisa"}, or leave it out to keep'
+                    . ' the details as they are. Nothing was saved.', 400);
+            }
+        }
     }
 
     /**
