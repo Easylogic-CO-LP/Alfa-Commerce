@@ -36,11 +36,11 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodRequirement;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 
 $snapshot = $this->builderSnapshot;
@@ -176,43 +176,23 @@ $notLoaded = array_map(
             <?php // THE MERCHANT'S CHECKOUT FIELDS. Placement freezes the address
                   // from these buckets, and they arrive seeded from the rows the
                   // cart points at, which is what carries the operator's choice
-                  // into the order. Rendered through the one renderer, so a
-                  // merchant's own field appears without this template changing. ?>
-            <?php
-            $deliveryHtml = $this->checkoutForm !== null
-                ? FieldsHelper::renderFieldset($this->checkoutForm, 'user_details')
-                : '';
-            $billingHtml = $this->checkoutForm !== null
-                ? FieldsHelper::renderFieldset($this->checkoutForm, 'user_details_billing')
-                : '';
-            $invoiceDiffers = !$customer->sameAddress;
-            ?>
-
-            <?php if (trim($deliveryHtml) !== '') : ?>
-                <fieldset class="adminform">
-                    <legend><?php echo Text::_('COM_ALFA_FIELDSET_USER_DETAILS'); ?></legend>
-                    <?php echo $deliveryHtml; ?>
-                </fieldset>
-            <?php endif; ?>
-
-            <?php if (trim($billingHtml) !== '') : ?>
-                <?php // An UNTICKED toggle is a meaningful value: invoice to the
-                      // delivery address. The engine parks the hidden section's
-                      // inputs, so the billing bucket then arrives empty and
-                      // placement resolves the invoice to the delivery record. ?>
-                <div class="form-check mb-2" data-showon-name="invoice_differs">
-                    <input type="checkbox" class="form-check-input" id="alfa-checkout-invoice-differs"
-                           name="invoice_differs" value="1"<?php echo $invoiceDiffers ? ' checked' : ''; ?>>
-                    <label class="form-check-label" for="alfa-checkout-invoice-differs">
-                        <?php echo Text::_('COM_ALFA_CART_INVOICE_DIFFERS'); ?>
-                    </label>
-                </div>
-
-                <fieldset class="adminform" data-showon-scope<?php echo $invoiceDiffers ? '' : ' hidden'; ?>
-                          data-showon-rule='{"match":"all","rules":[{"operand":"invoice_differs.value","operator":"=","value":"1"}],"action":"show"}'>
-                    <legend><?php echo Text::_('COM_ALFA_FORM_BILLING_DETAILS'); ?></legend>
-                    <?php echo $billingHtml; ?>
-                </fieldset>
+                  // into the order. Printed by the layout the order screen prints
+                  // them with, so a merchant's own field appears without this
+                  // template changing. An unticked toggle invoices the delivery
+                  // record: the billing bucket then arrives empty and placement
+                  // resolves the invoice to it. ?>
+            <?php if ($this->checkoutForm !== null) : ?>
+                <?php echo LayoutHelper::render(
+                    'order.checkout_details',
+                    [
+                        'form'           => $this->checkoutForm,
+                        'invoiceDiffers' => !$customer->sameAddress,
+                        'toggleName'     => 'invoice_differs',
+                        'toggleId'       => 'alfa-checkout-invoice-differs',
+                    ],
+                    null,
+                    ['component' => 'com_alfa', 'client' => 1],
+                ); ?>
             <?php endif; ?>
 
             <hr>

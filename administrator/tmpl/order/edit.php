@@ -24,9 +24,9 @@
 
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Language\Text;
 
@@ -60,50 +60,24 @@ HTMLHelper::_('bootstrap.tooltip');
 
     <div class="row">
         <?php
-        // Customer details render only when there is content: a guest order
-        // drops the empty account fields. The dynamic checkout groups carry
-        // their OWN fieldset+legend, so the outer "Customer Details" wrapper is
-        // added only when the loose account fields exist (registered orders),
-        // never a fieldset nested directly inside another.
-        $userDetailsHtml = FieldsHelper::renderFieldset($this->form, 'user_details');
-        $hasAccountFields = $this->form->getField('user_email') !== false;
-
-        // Invoice section: the backend twin of the checkout's "different
-        // details". Opening an order shows the choice it was saved with; the
-        // redisplay after a reload or a refused save shows what the operator
-        // left, like the fields it refills (the model decides which).
-        $billingHtml = FieldsHelper::renderFieldset($this->form, 'user_details_billing');
-        $invoiceDiffers = $this->getModel()->invoiceDiffersOnForm();
+        // The checkout's address groups, in its order and under its names, through the layout the order builder's
+        // placement form prints too. Opening an order ticks the invoice choice it was saved with; the redisplay after
+        // a reload or a refused save ticks what the operator left, like the fields it refills (the model decides).
+        $addressesHtml = LayoutHelper::render(
+            'order.checkout_details',
+            [
+                'form'           => $this->form,
+                'invoiceDiffers' => $this->getModel()->invoiceDiffersOnForm(),
+                'toggleName'     => 'jform[invoice_differs]',
+                'toggleId'       => 'invoice_differs',
+            ],
+            null,
+            ['component' => 'com_alfa', 'client' => 1],
+        );
         ?>
-        <?php if (trim($userDetailsHtml) !== '' || trim($billingHtml) !== ''): ?>
+        <?php if (trim($addressesHtml) !== ''): ?>
         <div class="col-md-6">
-            <?php if ($hasAccountFields): ?>
-            <fieldset class="adminform">
-                <legend><?php echo Text::_('COM_ALFA_FIELDSET_USER_DETAILS'); ?></legend>
-                <?php echo $userDetailsHtml; ?>
-            </fieldset>
-            <?php else: ?>
-                <?php echo $userDetailsHtml; ?>
-            <?php endif; ?>
-
-            <?php if (trim($billingHtml) !== ''): ?>
-                <div class="order-invoice-toggle form-check mb-2" data-showon-name="invoice_differs">
-                    <input type="checkbox" class="form-check-input" id="invoice_differs"
-                           name="jform[invoice_differs]" value="1"<?php echo $invoiceDiffers ? ' checked' : ''; ?>>
-                    <label class="form-check-label" for="invoice_differs">
-                        <?php echo Text::_('COM_ALFA_CART_INVOICE_DIFFERS'); ?>
-                    </label>
-                </div>
-
-                <!-- data-showon-scope: the invoice fields repeat the delivery field
-                     NAMES, so they answer in their own scope; otherwise one
-                     section's values would drive the other's visibility. -->
-                <fieldset class="adminform" data-showon-scope<?php echo $invoiceDiffers ? '' : ' hidden'; ?>
-                          data-showon-rule='{"match":"all","rules":[{"operand":"invoice_differs.value","operator":"=","value":"1"}],"action":"show"}'>
-                    <legend><?php echo Text::_('COM_ALFA_FORM_BILLING_DETAILS'); ?></legend>
-                    <?php echo $billingHtml; ?>
-                </fieldset>
-            <?php endif; ?>
+            <?php echo $addressesHtml; ?>
         </div>
         <?php endif; ?>
         <div class="col-md-6">
@@ -118,17 +92,19 @@ HTMLHelper::_('bootstrap.tooltip');
 
 	<?php if (!empty($this->order->id)): ?>
 
-		<?php echo $this->loadTemplate('payments'); ?>
-
-		<?php echo $this->loadTemplate('shipments'); ?>
-
+		<?php // The checkout's order below the addresses: the lines and their totals, the shipment, then the
+		      // payment (the payment methods offered depend on the shipping method), then the documents. ?>
 		<?php echo $this->loadTemplate('order_items'); ?>
-
-        <!-- Sales documents: legal records + Issue modal -->
-		<?php echo $this->loadTemplate('documents'); ?>
 
         <!-- Financial summary (products + shipping - discounts = total, paid, balance) -->
 		<?php echo $this->loadTemplate('totals'); ?>
+
+		<?php echo $this->loadTemplate('shipments'); ?>
+
+		<?php echo $this->loadTemplate('payments'); ?>
+
+        <!-- Sales documents: legal records + Issue modal -->
+		<?php echo $this->loadTemplate('documents'); ?>
 
 		<?php echo $this->loadTemplate('reconciliation'); ?>
 
@@ -160,7 +136,7 @@ HTMLHelper::_('bootstrap.tooltip');
 // onAlfaAdminForm gets it rendered here as its own tab. Two families are skipped because
 // this template already renders them itself: the form's OWN fieldsets, and the Alfa
 // checkout-field groups (FieldsHelper injects them with a `target` attribute and the
-// user_details block above emits them inline; see FieldsHelper::renderFieldset).
+// address layout above emits them inline; see FieldsHelper::renderFieldset).
 $ownFieldsets = ['user_details', 'order_details'];
 foreach ($this->form->getFieldsets() as $fieldsetName => $fieldset) {
 	if (in_array($fieldsetName, $ownFieldsets, true) || !empty($fieldset->target)) {
