@@ -109,6 +109,10 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             // read ($matches[$i + 1]) then hands the SECOND variable the first
             // one's value. With '(\d+)' on both, /orders/5/lines/7 resolved
             // lineId to 5 and silently edited the wrong line.
+            // An order's payments and shipments read as lists of their own, the order read's values, under the order's
+            // view permission.
+            new Route(['GET'], 'v1/alfa/orders/:id/payments', 'orderpayments.displayList', ['id' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/orders/:id/shipments', 'ordershipments.displayList', ['id' => '\d+'], $defaults),
             new Route(['POST'], 'v1/alfa/orders/:id/lines', 'orderops.addLine', ['id' => '\d+'], $defaults),
             new Route(['PATCH'], 'v1/alfa/orders/:id/lines/:lineId', 'orderops.updateLine', ['id' => '\d+', 'lineId' => '\d+'], $defaults),
             new Route(['DELETE'], 'v1/alfa/orders/:id/lines/:lineId', 'orderops.removeLine', ['id' => '\d+', 'lineId' => '\d+'], $defaults),
