@@ -96,10 +96,13 @@ class CartrulesModel extends AlfaListModel
             fields:            ['name'],
         );
 
+        // The list shows published and unpublished rules; the trash shows its own (-2), and '*' shows every rule.
         $state = $this->getState('filter.state');
 
         if (is_numeric($state)) {
             $query->where($db->quoteName('a.state') . ' = ' . (int) $state);
+        } elseif ($state !== '*') {
+            $query->where($db->quoteName('a.state') . ' IN (0, 1)');
         }
 
         // Activation filter: coupons (with code) vs automatic rules.
