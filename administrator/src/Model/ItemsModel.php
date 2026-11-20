@@ -466,6 +466,14 @@ class ItemsModel extends AlfaListModel
             $query->where($db->quoteName('a.commerce_changed_at') . ' >= ' . $db->quote($changedSince));
         }
 
+        // One product by its own SKU, exactly (the REST API's filter[sku]): equal in the column's collation, so
+        // letter case does not count, and never a part of another SKU as the search's match is.
+        $sku = trim((string) $this->getState('filter.sku', ''));
+
+        if ($sku !== '') {
+            $query->where($db->quoteName('a.sku') . ' = ' . $db->quote($sku));
+        }
+
         // Filter by category (multi-select, many-to-many). Matches the selected
         // categories exactly: no subcategory expansion. Subquery keeps the main
         // query shape (no JOIN, no GROUP BY needed).

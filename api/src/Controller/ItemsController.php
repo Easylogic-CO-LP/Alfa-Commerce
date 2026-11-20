@@ -153,6 +153,16 @@ class ItemsController extends ApiController
             $this->modelState->set('filter.state', RequestScalar::member($apiFilterInfo, 'state', 'INT', 'filter'));
         }
 
+        if (\array_key_exists('sku', $apiFilterInfo)) {
+            $sku = trim((string) RequestScalar::member($apiFilterInfo, 'sku', 'STRING', 'filter'));
+
+            if ($sku === '' || mb_strlen($sku) > 255 || preg_match('/[\x00-\x1F\x7F]/', $sku) === 1) {
+                throw new Save('filter[sku] must be a SKU of 1 to 255 characters without control characters.', 400);
+            }
+
+            $this->modelState->set('filter.sku', $sku);
+        }
+
         if (\array_key_exists('category', $apiFilterInfo)) {
             $this->modelState->set('filter.category', $filter->clean($apiFilterInfo['category'], 'INT'));
         }
