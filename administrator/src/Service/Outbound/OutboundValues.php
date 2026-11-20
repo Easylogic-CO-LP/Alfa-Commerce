@@ -79,7 +79,7 @@ final class OutboundValues
             };
         }
 
-        $units = self::units(db: $db, units: array_replace_recursive($stockUnits, $priceUnits));
+        $units = $stockUnits === [] && $priceUnits === [] ? [] : self::units(db: $db, units: array_replace_recursive($stockUnits, $priceUnits));
         $prices = $priceUnits === [] ? [] : self::prices(db: $db, units: $priceUnits);
         $states = $priceUnits === [] ? [] : PricesState::ofUnits(units: $priceUnits);
         $statuses = $orders === [] ? [] : self::orderStatuses(db: $db, orderIds: array_keys($orders));
