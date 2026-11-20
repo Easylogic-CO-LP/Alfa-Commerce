@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
 
 /**
  * Cart totals collection event (onCartTotals): ONE event for the whole sequence, delivered in turn to
- * each `alfa` plugin the CUSTOMER's view levels admit, in their order, through the plugin's own targeted declaration
+ * each `alfa` plugin the CUSTOMER's view levels admit, in their order, through the plugin's method onCartTotals()
  * (never the shared dispatcher), so a cart costs the same whoever operates it. A plugin contributes declarative
  * CART-level charges, each naming the plugin (never HTML, never a computed total, no artifact imports):
  *

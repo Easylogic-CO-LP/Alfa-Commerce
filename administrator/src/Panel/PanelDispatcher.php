@@ -58,8 +58,8 @@ final class PanelDispatcher
      *
      * @param PanelIdentity $identity The resolved owner.
      * @param AbstractEvent $event The event to hand it.
-     * @param string $method The event's name (e.g. onAlfaPanelSave), named in the log; the plugin's declaration maps it
-     *                       to its handler.
+     * @param string $method The event's name (e.g. onAlfaPanelSave), named in the log: the owner's handler is its
+     *                       public method of that name.
      * @param bool $silent Whether to absorb a plugin exception. DISPLAY calls
      *                     (menu, view) pass true so a broken plugin can never blank
      *                     a page; MUTATION calls (save, delete, task) pass false so
@@ -74,8 +74,8 @@ final class PanelDispatcher
      */
     public static function toOwner(PanelIdentity $identity, AbstractEvent $event, string $method, bool $silent = true): AbstractEvent
     {
-        // The panel's owner alone, through the plugin helper (targeted): its own declaration of the event. A
-        // display asks first and skips an owner without the hook; a mutation addressed to an owner that declares no
+        // The panel's owner alone, through the plugin helper (targeted): its own method of the event's name. A
+        // display asks first and skips an owner without the hook; a mutation addressed to an owner that has no
         // handler is the helper's NO_HANDLER, an error the controller shows, never a silent success. The
         // handler's failure is absorbed for a display and propagates for a mutation.
         try {

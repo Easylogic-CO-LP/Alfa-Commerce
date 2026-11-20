@@ -939,7 +939,8 @@ class OrderPlacement
     }
 
     /**
-     * Run one selected plugin's targeted handler: the plugin declares it, or it takes no part.
+     * Run one selected plugin's targeted handler, its public method of the event's name: the plugin has it, or it takes
+     * no part.
      *
      * @param LoadedPlugin $plugin The plugin, from methodPlugin().
      * @param EventInterface $event The event.
@@ -1191,7 +1192,7 @@ class OrderPlacement
 
             // Feature-plugin checkout validation (onOrderPlaceValidate): each
             // `alfa` plugin the customer's view levels admit, in their order,
-            // once, through its own targeted declaration; a
+            // once, through its own onOrderPlaceValidate() method; a
             // plugin may veto the placement with customer-facing messages, and
             // one that throws refuses it. Rejections accumulate on one shared
             // event and abort before anything is written.

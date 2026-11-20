@@ -319,9 +319,9 @@ final class JoomlaPluginLayer
     }
 
     /**
-     * The events a booted plugin puts on the shared dispatcher when imported, for the two-registries check: a
-     * subscriber's map; for any other plugin, the given names it has as public methods (Joomla registers every public
-     * on* method of a plugin that is not a subscriber).
+     * The events a booted plugin puts on the shared dispatcher when imported, for the one-path check of a targeted
+     * event: a subscriber's map; for any other plugin, the given names it has as public methods (Joomla registers every
+     * public on* method of a plugin that is not a subscriber).
      *
      * @param PluginInterface $plugin The booted plugin.
      * @param string[] $names The names to check against.

@@ -37,7 +37,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * first (core's own tools as core.com_alfa): attribution, never an authorisation.
  * That is what lets {@see \Alfa\Component\Alfa\Administrator\Helper\ToolRegistry}
  * run the action on exactly ONE plugin, the one that listed it, through that
- * plugin's own declaration of onExecuteToolAction.
+ * plugin's own onExecuteToolAction() method.
  *
  * CORE'S OWN TOOLS COME THROUGH HERE TOO. An extension point the host does not use
  * itself becomes second-class and rots: the admin column builder says it serves

@@ -22,7 +22,6 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Tools\CoreToolProvider;
 use InvalidArgumentException;
 use Joomla\CMS\Log\Log;
-use LogicException;
 use RuntimeException;
 
 /**
@@ -271,10 +270,10 @@ final class ToolRegistry
      * and passes it back; it never decides whether the action may run: the action must
      * be one the named plugin listed for itself in this request's collection (every
      * action names its plugin), enabled, and it then runs on that plugin alone,
-     * through its own declaration of onExecuteToolAction. A HINTED RUN NEVER FALLS BACK:
+     * through its own onExecuteToolAction() method. A HINTED RUN NEVER FALLS BACK:
      * a hint under which this request's collection holds no such
      * action is refused, naming the hinted plugin and why (its own listing failed, it is
-     * unavailable, it declares no handler, or it does not list the action), and no other
+     * unavailable, it has no handler, or it does not list the action), and no other
      * plugin's action of the same id runs, whatever a stale page or a failed listing
      * left. Only a run without a hint is looked up by id across the collection.
      *
@@ -341,7 +340,7 @@ final class ToolRegistry
         ]);
 
         // Core is not a plugin and must never be booted as one. A plugin's tool runs on that plugin alone (targeted):
-        // booted through Joomla's list, its own declaration of onExecuteToolAction; a handler's exception is the
+        // booted through Joomla's list, its own onExecuteToolAction() method; a handler's exception is the
         // operation's and reaches the caller.
         if ($group === CoreToolProvider::OWNER_GROUP) {
             (new CoreToolProvider())->onExecuteToolAction($event);
@@ -529,7 +528,7 @@ final class ToolRegistry
 
     /**
      * The answer a refused run gives, by why: 403 not listed, 503 its owner unavailable, 500 its owner's listing
-     * failed or it declares no handler.
+     * failed or it has no handler.
      *
      * @param string $why unlisted, unavailable, failed or nohandler.
      *
@@ -586,9 +585,8 @@ final class ToolRegistry
 
         try {
             $failure = $plugins->askSubscriber($plugin, $answer);
-        } catch (PluginUnavailable|LogicException $e) {
-            // Not a subscriber, its map naming nothing for the event, or the name declared as a targeted handler: it
-            // lists no tool itself.
+        } catch (PluginUnavailable $e) {
+            // Not a subscriber, or its map naming nothing for the event: it lists no tool itself.
             return ['actions' => [], 'why' => 'unlisted', 'text' => $e->getMessage()];
         }
 

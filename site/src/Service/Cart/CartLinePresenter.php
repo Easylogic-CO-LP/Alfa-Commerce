@@ -144,7 +144,7 @@ final class CartLinePresenter
 
         // Feature plugins (onCartItemDisplay): one event for the line, each
         // `alfa` plugin the customer's view levels admit called once, in their order, through
-        // its own targeted declaration; a plugin that throws is logged and the next one runs.
+        // its own onCartItemDisplay() method; a plugin that throws is logged and the next one runs.
         $plugins = AlfaPluginHelper::get();
         $displayEvent = new CartItemDisplayEvent('onCartItemDisplay', [
             'line' => $cartItem,

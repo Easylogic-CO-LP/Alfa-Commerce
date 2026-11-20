@@ -58,7 +58,7 @@ defined('_JEXEC') or die;
  *
  * @since  2.0.0
  */
-abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterface, TargetedHandlersInterface
+abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterface
 {
     /**
      * The rebuild card is rendered from string keys; without this the merchant reads
@@ -83,9 +83,10 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
     abstract protected function engine(): SearchEngineInterface;
 
     /**
-     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the
-     * shared dispatcher, never in getSubscribedEvents(). onAlfaSearchInputLayout reaches the configured engine's
-     * plugin only.
+     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the shared dispatcher, never
+     * in getSubscribedEvents(). The core calls the plugin's public method of the event's name with the event when its
+     * class has one; a plugin without it takes no part in that event. onAlfaSearchInputLayout reaches the configured
+     * engine's plugin only.
      *
      * @since  2.2.0
      */
@@ -113,28 +114,6 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
         return [
             'onCollectSearchEngines' => 'onCollectSearchEngines',
         ];
-    }
-
-    /**
-     * Alfa's targeted-handler declaration: each event of TARGETED_EVENTS this plugin
-     * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
-     * shared dispatcher.
-     *
-     * @return array<string, string>
-     *
-     * @since  2.2.0
-     */
-    public function getTargetedHandlers(): array
-    {
-        $handlers = [];
-
-        foreach (static::TARGETED_EVENTS as $event) {
-            if (\is_callable([$this, $event])) {
-                $handlers[$event] = $event;
-            }
-        }
-
-        return $handlers;
     }
 
     /**

@@ -269,7 +269,7 @@ final class CartPluginDispatch
      * [contributor (group.element), CartContribution] pairs, in delivery order.
      * One event for the whole sequence, each `alfa` plugin
      * the customer's view levels admit called once, in their order, through its
-     * own targeted declaration; a plugin that throws is logged and the next one
+     * own onCartTotals() method; a plugin that throws is logged and the next one
      * runs. Folding the charges into money is the computation's business, and
      * the pricing engine's.
      *

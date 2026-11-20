@@ -42,11 +42,14 @@ use Throwable;
  * listener run; stopPropagation() stops the rest, as in Joomla; an exception alone never does, except one that ended the
  * caller's database transaction, which reaches the caller.
  *
- * Targeted: one selected plugin, booted through Joomla's own lifecycle, its handler found in Alfa's
- * targeted-handler declaration (TargetedHandlersInterface, or a family base class's TARGETED_EVENTS) and called with
- * the event; never the shared dispatcher, never a method called because of its name, no reflection. A plugin that is
- * missing, disabled or cannot be booted is PluginUnavailable, each caller mapping it to its own contract; there is no
- * fallback to another plugin.
+ * Targeted: one selected plugin, booted through Joomla's own lifecycle, its handler the public method of its class
+ * that has the event's name (onClearData handles onClearData), called on that instance with the event; never the
+ * shared dispatcher, no declaration, no reflection. A plugin whose class has no such method takes no part. A plugin
+ * that is missing, disabled or cannot be booted is PluginUnavailable, each caller mapping it to its own contract; there
+ * is no fallback to another plugin. A plugin that takes targeted events is a SubscriberInterface plugin that leaves
+ * them out of getSubscribedEvents(): Joomla registers every public on* method of any other plugin on the shared
+ * dispatcher, so its handler would hear a broadcast of the same name too, logged as an ERROR when the event is
+ * addressed to it.
  *
  * Targeted, for a named customer: the commercial plugins of a cart are the ones its customer's view levels admit
  * (admitted()), whoever operates it. A member of staff placing an order for a customer may not hold a plugin's Access
@@ -105,10 +108,10 @@ final class AlfaPluginHelper
     private array $booted = [];
 
     /**
-     * @var array<string, true> The plugins whose two registries were checked, by identity.
+     * @var array<string, true> The plugins checked for a second path of a targeted event, by identity and event.
      * @since  2.2.0
      */
-    private array $checked = [];
+    private array $pathsChecked = [];
 
     /**
      * @var array<string, true> The plugins whose import failed in this request, by identity: their listeners cannot be
@@ -319,8 +322,7 @@ final class AlfaPluginHelper
      * Ask ONE booted plugin for its own answer to a broadcast question, through the plugin's public
      * Joomla subscriber map: getSubscribedEvents() names its method for the event (an entry is the method's name, or
      * the method's name and its priority), and that method is called on the booted instance with the event. No
-     * dispatcher is read and nothing is reflected, so only the plugin's own declared answer is heard. A name the plugin
-     * declares as a targeted handler is never delivered here: dispatchTo() delivers it.
+     * dispatcher is read and nothing is reflected, so only the plugin's own declared answer is heard.
      *
      * @param LoadedPlugin $plugin The plugin, from bootSingle().
      * @param EventInterface $event The event.
@@ -330,7 +332,6 @@ final class AlfaPluginHelper
      *
      * @throws PluginUnavailable NO_HANDLER when the plugin is not a subscriber or its map does not name the event (it
      *                           lists nothing for it).
-     * @throws LogicException When the event is a name in the plugin's targeted declaration.
      *
      * @since  2.2.0
      */
@@ -338,11 +339,6 @@ final class AlfaPluginHelper
     {
         $instance = $this->instanceOf($plugin);
         $name = $event->getName();
-
-        if (isset(self::declarationOf($instance)[$name])) {
-            throw new LogicException('The plugin ' . $plugin->id . ' declares ' . $name . ' as a targeted handler: it is delivered with dispatchTo(), never asked as a broadcast.');
-        }
-
         $entry = $instance instanceof SubscriberInterface ? ($instance::getSubscribedEvents()[$name] ?? null) : null;
         $method = \is_array($entry) ? ($entry[0] ?? null) : $entry;
 
@@ -501,7 +497,6 @@ final class AlfaPluginHelper
         }
 
         $this->booted[$id->key()] = $plugin;
-        $this->checkRegistries($id, $plugin);
 
         return new LoadedPlugin($id);
     }
@@ -510,8 +505,8 @@ final class AlfaPluginHelper
      * Boot an installed plugin whether it is enabled or not, for maintenance alone (Clear Data): never a way
      * around bootSingle(). Asked only while the maintenance lock is held (MaintenanceState::lock(), on the connection
      * given); without it, it throws and nothing is booted. A disabled plugin is given the name, group and params Joomla
-     * gives an enabled one (from its row), so its onClearData may run while it is disabled. The family is checked; the
-     * plugin's own declaration is then asked with declares() and its handler run with dispatchTo(), as everywhere.
+     * gives an enabled one (from its row), so its onClearData may run while it is disabled. The family is checked;
+     * whether it has the handler is then asked with declares() and the handler run with dispatchTo(), as everywhere.
      *
      * @param PluginId $id The plugin.
      * @param DatabaseInterface $db The connection that holds the maintenance lock.
@@ -548,7 +543,6 @@ final class AlfaPluginHelper
         }
 
         $this->booted[$id->key()] = $plugin;
-        $this->checkRegistries($id, $plugin);
 
         return new LoadedPlugin($id);
     }
@@ -560,8 +554,8 @@ final class AlfaPluginHelper
      * and the plugin is one admitted() lists for its customer in the plugin's group; otherwise the plugin stays
      * NOT_LOADED. The plugin is given the name, group and params Joomla gives one it loads, from its own row (its
      * provider leaves them out for a plugin Joomla does not list), so it prices and checks with its own configuration,
-     * never another one's and never the staff member's. Its family is checked; the selection then asks its declaration
-     * and runs its handler, as everywhere.
+     * never another one's and never the staff member's. Its family is checked; the selection then asks whether it has
+     * the handler and runs it, as everywhere.
      *
      * @param PluginId $id The plugin.
      * @param CartSubject $subject The cart's subject.
@@ -624,7 +618,6 @@ final class AlfaPluginHelper
 
         $this->booted[$id->key()] = $plugin;
         $this->forCustomer[$id->key()] = $params;
-        $this->checkRegistries($id, $plugin);
         Log::add('Plugins: ' . $id . ' booted for the customer #' . (int) $subject->customer()->id . ' of an operator placement by #' . (int) $subject->actor()->id . ' (its Access is a level the member of staff does not hold).', Log::DEBUG, self::LOG);
 
         return new LoadedPlugin($id);
@@ -659,15 +652,12 @@ final class AlfaPluginHelper
         }
 
         $this->layer->import($id);
-
-        if (!isset($this->checked[$id->key()])) {
-            $this->checkRegistries($id, $this->layer->boot($app, $id));
-        }
     }
 
     /**
-     * Whether the selected plugin declares a targeted handler for the event: a caller that tolerates a plugin with no
-     * handler asks this first, so that anything leaving dispatchTo() afterwards is the handler's own failure.
+     * Whether the selected plugin has a handler for the event, a public method of its class named as the event
+     * ({@see self::handles()}): a caller that tolerates a plugin with no handler asks this first, so that anything
+     * leaving dispatchTo() afterwards is the handler's own failure.
      *
      * @param LoadedPlugin $plugin The plugin, from bootSingle() or resolve().
      * @param string $eventName The event.
@@ -676,31 +666,32 @@ final class AlfaPluginHelper
      */
     public function declares(LoadedPlugin $plugin, string $eventName): bool
     {
-        return isset(self::declarationOf($this->instanceOf($plugin))[$eventName]);
+        return self::handles($this->instanceOf($plugin), $eventName);
     }
 
     /**
-     * Deliver the event to the selected plugin's declared handler; the handler's exception propagates (the operation's
-     * own contract), a PluginUnavailable it throws included: that is the handler's failure, never the helper's answer.
+     * Call the selected plugin's method of the event's name with the event; the handler's exception propagates (the
+     * operation's own contract), a PluginUnavailable it throws included: that is the handler's failure, never the
+     * helper's answer.
      *
      * @param LoadedPlugin $plugin The plugin, from bootSingle() or resolve().
      * @param EventInterface $event The event.
      *
-     * @throws PluginUnavailable NO_HANDLER when the plugin declares no handler for the event (ask declares() first).
+     * @throws PluginUnavailable NO_HANDLER when the plugin has no handler for the event (ask declares() first).
      *
      * @since  2.2.0
      */
     public function dispatchTo(LoadedPlugin $plugin, EventInterface $event): EventInterface
     {
-        [$instance, $method] = $this->targetedHandler($plugin, $event);
+        $name = $event->getName();
 
-        $instance->{$method}($event);
+        $this->handlerOf($plugin, $name)->{$name}($event);
 
         return $event;
     }
 
     /**
-     * Deliver the event to the selected plugin's declared handler, isolated: the handler's Throwable is
+     * Call the selected plugin's method of the event's name with the event, isolated: the handler's Throwable is
      * logged, once per plugin and event in the request, with what the plugin was asked for, and answered false, so the
      * caller goes on without that plugin's part (a display that drops one field, never the page). As in
      * dispatchToEachIsolated(), a failure that ended the caller's transaction is never hidden: it reaches the caller.
@@ -711,20 +702,21 @@ final class AlfaPluginHelper
      *
      * @return bool True when the handler ran through; false when it failed (logged).
      *
-     * @throws PluginUnavailable NO_HANDLER when the plugin was not booted through the helper or declares no handler for
-     *                           the event (ask declares() first): core's lookup, refused as dispatchTo() refuses it,
-     *                           never isolated.
+     * @throws PluginUnavailable NO_HANDLER when the plugin was not booted through the helper or has no handler for the
+     *                           event (ask declares() first): core's lookup, refused as dispatchTo() refuses it, never
+     *                           isolated.
      *
      * @since  2.2.1
      */
     public function dispatchToIsolated(LoadedPlugin $plugin, EventInterface $event, string $for): bool
     {
-        // Core's own lookups stay outside the isolation: a plugin not booted through the helper, or an event it declares
-        // no handler for, is the caller's fault and is refused as dispatchTo() refuses it, never logged as the plugin's.
-        [$instance, $method] = $this->targetedHandler($plugin, $event);
+        // Core's own lookups stay outside the isolation: a plugin not booted through the helper, or an event it has no
+        // handler for, is the caller's fault and is refused as dispatchTo() refuses it, never logged as the plugin's.
+        $name = $event->getName();
+        $instance = $this->handlerOf($plugin, $name);
 
         try {
-            $instance->{$method}($event);
+            $instance->{$name}($event);
         } catch (Throwable $e) {
             $this->rethrowWhenTransactionEnded($e);
             $key = $plugin->id->key() . '|' . $event->getName();
@@ -831,10 +823,10 @@ final class AlfaPluginHelper
     // Targeted, over a selection.
 
     /**
-     * One event object to each plugin in the order given, each once, each through its own declaration; a plugin that is
-     * unavailable or declares no handler takes no part; a handler's exception propagates and the rest do not run; stops
-     * when the event is stopped. A selected plugin Joomla does not load for the request's user (NOT_LOADED) cannot take
-     * its part, so nothing runs: the selection is refused before the first handler.
+     * One event object to each plugin in the order given, each once, each through its method of the event's name; a
+     * plugin that is unavailable or has no such method takes no part; a handler's exception propagates and the rest do
+     * not run; stops when the event is stopped. A selected plugin Joomla does not load for the request's user
+     * (NOT_LOADED) cannot take its part, so nothing runs: the selection is refused before the first handler.
      *
      * @param iterable<PluginId> $plugins The selection.
      * @param EventInterface $event The event.
@@ -869,7 +861,7 @@ final class AlfaPluginHelper
 
     /**
      * The plugins of a selection that take part in the event, in the order given, each once, with no handler run: those
-     * booted that declare a handler for it. A selected plugin Joomla does not load for the request's user (NOT_LOADED)
+     * booted that have a handler for it. A selected plugin Joomla does not load for the request's user (NOT_LOADED)
      * refuses the selection, as dispatchToEach() refuses it before its first handler. A caller that then delivers the
      * event to them one at a time (to name the plugin whose handler threw) keeps that order: the refusal comes before
      * any plugin is asked.
@@ -945,19 +937,21 @@ final class AlfaPluginHelper
      * Run each selected plugin's handler, in order, a handler's exception reaching the caller; stops when the event is
      * stopped.
      *
-     * @param list<array{0: PluginId, 1: PluginInterface, 2: string}> $selected What loadedSelection() answered.
+     * @param list<array{0: PluginId, 1: PluginInterface}> $selected What loadedSelection() answered.
      * @param EventInterface $event The event.
      *
      * @since  2.2.1
      */
     private function deliverToEach(array $selected, EventInterface $event): EventInterface
     {
-        foreach ($selected as [$id, $instance, $method]) {
+        $name = $event->getName();
+
+        foreach ($selected as [$id, $instance]) {
             if ($event->isStopped()) {
                 break;
             }
 
-            $this->callFor($id, $event, static fn () => $instance->{$method}($event));
+            $this->callFor($id, $event, static fn () => $instance->{$name}($event));
         }
 
         return $event;
@@ -967,7 +961,7 @@ final class AlfaPluginHelper
      * Run each selected plugin's handler, in order, each one's Throwable logged and answered as its failure; the plugins
      * that could not take their part answered first, as failures of their own.
      *
-     * @param array{0: list<array{0: PluginId, 1: PluginInterface, 2: string}>, 1: list<PluginUnavailable>} $selection What selection() answered.
+     * @param array{0: list<array{0: PluginId, 1: PluginInterface}>, 1: list<PluginUnavailable>} $selection What selection() answered.
      * @param EventInterface $event The event.
      *
      * @return ListenerFailure[]
@@ -977,19 +971,20 @@ final class AlfaPluginHelper
     private function deliverToEachIsolated(array $selection, EventInterface $event): array
     {
         $failures = [];
+        $name = $event->getName();
         [$selected, $notLoaded] = $selection;
 
         foreach ($notLoaded as $unavailable) {
             $failures[] = new ListenerFailure(listener: (string) $unavailable->plugin?->key(), error: $unavailable);
         }
 
-        foreach ($selected as [$id, $instance, $method]) {
+        foreach ($selected as [$id, $instance]) {
             if ($event->isStopped()) {
                 break;
             }
 
             try {
-                $this->callFor($id, $event, static fn () => $instance->{$method}($event));
+                $this->callFor($id, $event, static fn () => $instance->{$name}($event));
             } catch (Throwable $e) {
                 $this->rethrowWhenTransactionEnded($e);
                 Log::add('Plugins: ' . $event->getName() . ': the plugin ' . $id . ' failed (' . $e::class . ': ' . $e->getMessage() . '); the next plugins run.', Log::ERROR, self::LOG);
@@ -1015,7 +1010,7 @@ final class AlfaPluginHelper
     // Inside.
 
     /**
-     * The selection's plugins that take part: each identity once, booted, with its declared handler for the event; and
+     * The selection's plugins that take part: each identity once, booted, that has a handler for the event; and
      * apart, the selected plugins Joomla does not load for the request's user (NOT_LOADED), which cannot take part and
      * must not be left out silently. A plugin missing or unloadable takes no part, logged at WARNING; any other
      * unavailable one at DEBUG. Given a cart's subject, a plugin Joomla does not load for the request's user is booted
@@ -1025,7 +1020,7 @@ final class AlfaPluginHelper
      * @param EventInterface $event The event.
      * @param CartSubject|null $subject The cart's subject, for the methods given one; null for the others.
      *
-     * @return array{0: list<array{0: PluginId, 1: PluginInterface, 2: string}>, 1: list<PluginUnavailable>}
+     * @return array{0: list<array{0: PluginId, 1: PluginInterface}>, 1: list<PluginUnavailable>}
      *
      * @since  2.2.0
      */
@@ -1046,12 +1041,10 @@ final class AlfaPluginHelper
                 $instance = $this->instanceOf($this->bootSelected($id, $subject));
             } catch (PluginUnavailable $unavailable) {
                 if ($unavailable->reason === PluginUnavailable::NOT_LOADED) {
-                    // Only a plugin that declares the event has a part to take: one that does not takes no
+                    // Only a plugin that has a handler for the event has a part to take: one that does not takes no
                     // part, silently, whoever operates the cart.
-                    $declared = $this->declarationOfUnloaded($id);
-
-                    if ($declared !== null && !isset($declared[$event->getName()])) {
-                        Log::add('Plugins: ' . $event->getName() . ': ' . $id . ' is not loaded for this request\'s user and declares no handler for the event; it takes no part.', Log::DEBUG, self::LOG);
+                    if ($this->handlesUnloaded($id, $event->getName()) === false) {
+                        Log::add('Plugins: ' . $event->getName() . ': ' . $id . ' is not loaded for this request\'s user and has no handler for the event; it takes no part.', Log::DEBUG, self::LOG);
 
                         continue;
                     }
@@ -1068,10 +1061,9 @@ final class AlfaPluginHelper
                 continue;
             }
 
-            $method = self::declarationOf($instance)[$event->getName()] ?? null;
-
-            if ($method !== null) {
-                $out[] = [$id, $instance, $method];
+            if (self::handles($instance, $event->getName())) {
+                $this->checkOnePath($id, $instance, $event->getName());
+                $out[] = [$id, $instance];
             }
         }
 
@@ -1086,7 +1078,7 @@ final class AlfaPluginHelper
      * @param EventInterface $event The event.
      * @param CartSubject|null $subject The cart's subject, for the methods given one; null for the others.
      *
-     * @return list<array{0: PluginId, 1: PluginInterface, 2: string}>
+     * @return list<array{0: PluginId, 1: PluginInterface}>
      *
      * @throws PluginUnavailable NOT_LOADED, naming the first such plugin.
      *
@@ -1129,19 +1121,18 @@ final class AlfaPluginHelper
     }
 
     /**
-     * The targeted declaration of a plugin Joomla does not load for the request's user, read from an instance built
-     * without its parameters (Joomla's own boot, as its provider builds it from an empty list entry), or from the one
-     * already built. Only the declaration is read: no handler of that instance is ever called, it is not kept as this
+     * Whether a plugin Joomla does not load for the request's user has a handler for the event, read from an instance
+     * built without its parameters (Joomla's own boot, as its provider builds it from an empty list entry), or from the
+     * one already built. Only its class is read: no handler of that instance is ever called, it is not kept as this
      * helper's instance, and it never replaces one already built. Null when it cannot be read (the selection then keeps
      * the refusal).
      *
      * @param PluginId $id The plugin.
-     *
-     * @return array<string, string>|null
+     * @param string $eventName The event.
      *
      * @since  2.2.0
      */
-    private function declarationOfUnloaded(PluginId $id): ?array
+    private function handlesUnloaded(PluginId $id, string $eventName): ?bool
     {
         $app = $this->layer->application();
 
@@ -1155,7 +1146,7 @@ final class AlfaPluginHelper
             return null;
         }
 
-        return $this->layer->isPlaceholder($instance) ? null : self::declarationOf($instance);
+        return $this->layer->isPlaceholder($instance) ? null : self::handles($instance, $eventName);
     }
 
     /**
@@ -1205,29 +1196,28 @@ final class AlfaPluginHelper
     }
 
     /**
-     * The booted instance of a loaded plugin and its declared handler for the event, for dispatchTo() and
+     * The booted instance of a loaded plugin that has a handler for the event, for dispatchTo() and
      * dispatchToIsolated() alike.
      *
      * @param LoadedPlugin $plugin The plugin.
-     * @param EventInterface $event The event.
+     * @param string $eventName The event.
      *
-     * @return array{0: PluginInterface, 1: string}
-     *
-     * @throws PluginUnavailable NO_HANDLER when the plugin was not booted through the helper, or declares no handler for
-     *                           the event.
+     * @throws PluginUnavailable NO_HANDLER when the plugin was not booted through the helper, or has no handler for the
+     *                           event.
      *
      * @since  2.2.1
      */
-    private function targetedHandler(LoadedPlugin $plugin, EventInterface $event): array
+    private function handlerOf(LoadedPlugin $plugin, string $eventName): PluginInterface
     {
         $instance = $this->instanceOf($plugin);
-        $method = self::declarationOf($instance)[$event->getName()] ?? null;
 
-        if ($method === null) {
-            throw new PluginUnavailable(PluginUnavailable::NO_HANDLER, $plugin->id, 'The plugin ' . $plugin->id . ' declares no targeted handler for ' . $event->getName() . '.');
+        if (!self::handles($instance, $eventName)) {
+            throw new PluginUnavailable(PluginUnavailable::NO_HANDLER, $plugin->id, 'The plugin ' . $plugin->id . ' has no public method ' . $eventName . '() for the event.');
         }
 
-        return [$instance, $method];
+        $this->checkOnePath($plugin->id, $instance, $eventName);
+
+        return $instance;
     }
 
     /**
@@ -1246,60 +1236,42 @@ final class AlfaPluginHelper
     }
 
     /**
-     * A plugin's targeted-handler declaration, event => its method: the ONE reader, used by
-     * declares(), dispatchTo(), the selection loops, the maintenance boot's sites and the gates. A plugin that
-     * implements TargetedHandlersInterface (every plugin of an Alfa group, a family base's TARGETED_EVENTS among them)
-     * answers through it. A plugin of a group Joomla loads itself (task, system, user, content and the others) may
-     * declare with a public getTargetedHandlers() of the same shape alone, so its class names no Alfa interface and
-     * still loads when Alfa Commerce is not installed. Nothing else is read: a plugin without either declares nothing.
-     * Only string event names mapped to string method names are kept.
+     * Whether a plugin handles a targeted event: its class has a public method named as the event, the handler the
+     * core calls with the event. The ONE reader, used by declares(), dispatchTo(), the selection loops and the
+     * maintenance boot's sites. A method reached only through __call(), or not public, is no handler.
      *
      * @param PluginInterface $plugin The plugin.
-     *
-     * @return array<string, string>
+     * @param string $eventName The event.
      *
      * @since  2.2.0
      */
-    public static function declarationOf(PluginInterface $plugin): array
+    public static function handles(PluginInterface $plugin, string $eventName): bool
     {
-        $reader = [$plugin, 'getTargetedHandlers'];
-
-        if (!$plugin instanceof TargetedHandlersInterface && !\is_callable($reader)) {
-            return [];
-        }
-
-        $declared = $reader();
-
-        $handlers = [];
-
-        foreach (\is_array($declared) ? $declared : [] as $event => $method) {
-            if (\is_string($event) && $event !== '' && \is_string($method) && $method !== '') {
-                $handlers[$event] = $method;
-            }
-        }
-
-        return $handlers;
+        return $eventName !== '' && method_exists($plugin, $eventName) && \is_callable([$plugin, $eventName]);
     }
 
     /**
-     * Log an ERROR naming the plugin and the event when a name is in both of its registries (a handler runs
-     * through one path only).
+     * Log an ERROR, once per plugin and event in the request, when a plugin given a targeted event also puts that
+     * event on the shared dispatcher (its subscriber map names it, or, not being a subscriber, Joomla registers its
+     * public method): its handler would run through two paths.
      *
      * @param PluginId $id The plugin.
      * @param PluginInterface $plugin Its instance.
+     * @param string $eventName The targeted event.
      *
      * @since  2.2.0
      */
-    private function checkRegistries(PluginId $id, PluginInterface $plugin): void
+    private function checkOnePath(PluginId $id, PluginInterface $plugin, string $eventName): void
     {
-        $this->checked[$id->key()] = true;
-        $targeted = array_keys(self::declarationOf($plugin));
+        $key = $id->key() . '|' . $eventName;
 
-        if ($targeted === []) {
+        if (isset($this->pathsChecked[$key])) {
             return;
         }
 
-        foreach ($this->layer->sharedNames($plugin, $targeted) as $event) {
+        $this->pathsChecked[$key] = true;
+
+        foreach ($this->layer->sharedNames($plugin, [$eventName]) as $event) {
             Log::add('Plugins: ' . $id . ' lists ' . $event . ' both as a targeted handler and on the shared dispatcher; a handler runs through one path only.', Log::ERROR, self::LOG);
         }
     }

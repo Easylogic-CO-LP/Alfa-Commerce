@@ -62,11 +62,12 @@ use Joomla\Registry\Registry;
  *
  * @since  2.0.0
  */
-abstract class ItemFieldsPlugin extends Plugin implements TargetedHandlersInterface
+abstract class ItemFieldsPlugin extends Plugin
 {
     /**
-     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the
-     * shared dispatcher, never in getSubscribedEvents().
+     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the shared dispatcher, never
+     * in getSubscribedEvents(). The core calls the plugin's public method of the event's name with the event when its
+     * class has one; a plugin without it takes no part in that event.
      *
      * @since  2.2.0
      */
@@ -97,28 +98,6 @@ abstract class ItemFieldsPlugin extends Plugin implements TargetedHandlersInterf
         return [
             'onItemsListPrepare' => 'onItemsListPrepare',
         ];
-    }
-
-    /**
-     * Alfa's targeted-handler declaration: each event of TARGETED_EVENTS this plugin
-     * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
-     * shared dispatcher.
-     *
-     * @return array<string, string>
-     *
-     * @since  2.2.0
-     */
-    public function getTargetedHandlers(): array
-    {
-        $handlers = [];
-
-        foreach (static::TARGETED_EVENTS as $event) {
-            if (\is_callable([$this, $event])) {
-                $handlers[$event] = $event;
-            }
-        }
-
-        return $handlers;
     }
 
     //  SURFACE HOOKS: no-op defaults; concrete plugins override

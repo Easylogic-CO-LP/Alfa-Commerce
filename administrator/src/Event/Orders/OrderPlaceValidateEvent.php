@@ -21,7 +21,7 @@ defined('_JEXEC') or die;
 /**
  * Checkout validation event (`onOrderPlaceValidate`), before the order draft is
  * built: delivered in turn to each `alfa` plugin the CUSTOMER's view levels
- * admit, in their order, through the plugin's own targeted declaration, never
+ * admit, in their order, through the plugin's method onOrderPlaceValidate(), never
  * the shared dispatcher. A plugin may VETO the placement with a customer-facing message, naming itself; the checkout aborts and shows every
  * collected rejection, and a plugin that throws refuses the placement too:
  *

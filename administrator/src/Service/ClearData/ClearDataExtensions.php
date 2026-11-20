@@ -44,10 +44,9 @@ use Throwable;
  * its manifest bundles, and add every plugin of another group, whatever its namespace, that declares onClearData
  * ({@see self::declaredElsewhere()}): the contract invites a system, task, user or content plugin to declare it.
  *
- * WHO SUPPORTS CLEAR DATA. A plugin that declares onClearData(ClearDataEvent $event): void as a targeted handler (its
- * declaration as the plugin helper reads it: TargetedHandlersInterface, its family's constant, or, for a plugin of a
- * group Joomla loads itself, a public getTargetedHandlers() alone), asked of the plugin booted, enabled or not,
- * through the plugin helper's maintenance boot. A plugin without it: "Automatic Clear Data not
+ * WHO SUPPORTS CLEAR DATA. A plugin whose class has a public method onClearData(ClearDataEvent $event): void, the
+ * targeted handler the plugin helper calls by the event's name, asked of the plugin booted, enabled or not, through
+ * the plugin helper's maintenance boot. A plugin without it: "Automatic Clear Data not
  * supported", none of its data is touched. A module is not part of Clear Data: it can only be removed. A package is one row; its Clear Data is its
  * plugins' own, each called the same way. Even this question is asked under THE lock, the plugin marked `loading`
  * before it is booted ({@see self::support()}): a plugin whose code cannot be loaded (a parse error is caught; a fatal
@@ -337,7 +336,7 @@ final class ClearDataExtensions
 
         ClearDataStatus::loading(key: $key, loading: true);
 
-        // The plugin's own declaration decides (targeted, through the helper's maintenance boot).
+        // The plugin's own onClearData() method decides (targeted, through the helper's maintenance boot).
         try {
             $plugin = $this->boot(entry: $entry);
             $support = AlfaPluginHelper::get()->declares($plugin, 'onClearData')
@@ -483,7 +482,7 @@ final class ClearDataExtensions
         ClearDataStatus::loading(key: $key, loading: true);
 
         // Through the helper's maintenance boot: booted enabled or not, given the name, group and params
-        // from its row, its family checked; then its own declaration of onClearData, as everywhere (targeted).
+        // from its row, its family checked; then its own onClearData() method, as everywhere (targeted).
         $plugins = AlfaPluginHelper::get();
 
         try {
@@ -1034,18 +1033,18 @@ final class ClearDataExtensions
 
     /**
      * The plugins of a group Joomla loads itself (system, task, user, content and the others), whatever their
-     * namespace, that declare onClearData as a targeted handler, the way the plugin helper's TargetedHandlersInterface
-     * invites them to: Tools > Extensions lists them and Clear everything calls them, as it does the Alfa plugins.
+     * namespace, whose class has a public onClearData() method, the targeted handler the plugin helper calls by the
+     * event's name: Tools > Extensions lists them and Clear everything calls them, as it does the Alfa plugins.
      * Options > About and the uninstall warning keep to the Alfa extensions ({@see self::installed()}). Joomla's own
-     * plugins never declare it and are not asked. Each other plugin, enabled or not, is asked its declaration booted
+     * plugins never have it and are not asked. Each other plugin, enabled or not, is asked whether it has it, booted
      * through the plugin helper's maintenance boot under THE lock, marked `loading` while it loads, as
-     * {@see self::support()} asks, every Throwable of its boot and of its declaration caught. A plugin whose code could
-     * not be read (it threw now, and the maintenance log says why; or a request died while loading it, its mark left)
-     * is listed with `elsewhere` `unread` (`stale` with the mark, for Try loading again): shown as could not be read,
-     * never a unit of Clear Data or Clear everything. A plugin with no code to run (its files are gone) is not listed:
-     * nothing of it can declare anything. One that declares it has `elsewhere` `declares`. THE lock is
-     * never waited for: while another request holds it (Clear everything or a Clear Data at work) none is asked and
-     * none is listed, and {@see self::busy()} says so for the page.
+     * {@see self::support()} asks, every Throwable of its boot caught. A plugin whose code could not be read (it threw
+     * now, and the maintenance log says why; or a request died while loading it, its mark left) is listed with
+     * `elsewhere` `unread` (`stale` with the mark, for Try loading again): shown as could not be read, never a unit of
+     * Clear Data or Clear everything. A plugin with no code to run (its files are gone) is not listed: nothing of it can
+     * handle anything. One that has the method has `elsewhere` `declares`. THE lock is never waited for: while another
+     * request holds it (Clear everything or a Clear Data at work) none is asked and none is listed, and
+     * {@see self::busy()} says so for the page.
      *
      * @return list<array<string, mixed>> Listing entries, as {@see self::installed()} gives them, with `elsewhere`.
      *

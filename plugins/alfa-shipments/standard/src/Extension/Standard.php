@@ -644,10 +644,9 @@ final class Standard extends ShipmentsPlugin
     //  1. The carrier hooks (onCartViewAssets(), onOrderAfterPlace(),
     //     onGetActions(), onExecuteAction(), onShipmentWebhook() and the rest
     //     of ShipmentsPlugin::TARGETED_EVENTS) are addressed to this plugin
-    //     alone by Alfa's targeted dispatch: the base class's
-    //     getTargetedHandlers() declares each of those events this class has a
-    //     method of the same name for, and the component asks only the method
-    //     it is about. Writing the method IS the subscription; nothing is put
+    //     alone by Alfa's targeted dispatch: the component calls this class's
+    //     public method of the event's name, when it has one, and only the
+    //     method it is about. Writing the method IS the subscription; nothing is put
     //     on Joomla's dispatcher for it (getSubscribedEvents() answers none).
     //
     //  2. Anything that travels through Joomla's DISPATCHER (a system event

@@ -122,7 +122,7 @@ use Throwable;
 
 defined('_JEXEC') or die;
 
-abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, TargetedHandlersInterface
+abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
 {
     use HasActionLogTrait;
     use HasOrderContextTrait;
@@ -335,9 +335,11 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected string $processPageUrl;
 
     /**
-     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the
-     * shared dispatcher, never in getSubscribedEvents(). onPaymentStoreReference and onPaymentChargeReference
-     * are addressed by an extension's billing engine (a subscriptions extension); core dispatches neither.
+     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the shared dispatcher, never
+     * in getSubscribedEvents(). The core calls the plugin's public method of the event's name with the event when its
+     * class has one; a plugin without it takes no part in that event. onPaymentStoreReference and
+     * onPaymentChargeReference are addressed by an extension's billing engine (a subscriptions extension); core
+     * dispatches neither.
      *
      * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
      *      answered through the event.
@@ -374,28 +376,6 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         // Every Alfa event a gateway handles is addressed to it alone (TARGETED_EVENTS); a gateway that needs
         // an ambient Joomla event merges its own map.
         return [];
-    }
-
-    /**
-     * Alfa's targeted-handler declaration: each event of TARGETED_EVENTS this plugin
-     * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
-     * shared dispatcher.
-     *
-     * @return array<string, string>
-     *
-     * @since  2.2.0
-     */
-    public function getTargetedHandlers(): array
-    {
-        $handlers = [];
-
-        foreach (static::TARGETED_EVENTS as $event) {
-            if (\is_callable([$this, $event])) {
-                $handlers[$event] = $event;
-            }
-        }
-
-        return $handlers;
     }
 
     /**

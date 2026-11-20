@@ -40,7 +40,7 @@ final class PluginUnavailable extends RuntimeException
     /** Booted, but not of the family its group requires. */
     public const WRONG_FAMILY = 'wrong_family';
 
-    /** Booted, but it declares no targeted handler for the event or operation. */
+    /** Booted, but it has no handler for the event (no public method of its name) or no such operation. */
     public const NO_HANDLER = 'no_handler';
 
     /** No Joomla application in this process. */
