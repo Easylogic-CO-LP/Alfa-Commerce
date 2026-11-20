@@ -263,27 +263,6 @@ trait HasApiGuards
     }
 
     /**
-     * Require alfa.<section>.<action>: the resource's own permission, through the one Alfa
-     * check. Nothing Joomla's core rights grant counts: a Super User passes, everyone else
-     * needs what a Super User granted in Options -> Permissions.
-     *
-     * @param string $action view|create|edit|edit.state|delete
-     *
-     *
-     * @throws NotAllowed When the identity does not hold the permission.
-     *
-     * @since  2.0.0
-     */
-    protected function assertAuthorised(string $action): void
-    {
-        if (AlfaHelper::can(section: $this->aclSection(), action: $action, user: $this->app->getIdentity())) {
-            return;
-        }
-
-        throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
-    }
-
-    /**
      * Method to allow extended classes to check the create permission.
      *
      * @param array $data The data to create.

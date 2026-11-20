@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Helper\UserGroupsHelper;
 use Joomla\CMS\User\UserFactoryInterface;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -39,12 +40,20 @@ final class ApiPermissionHolders
     private array $groups;
 
     /**
-     * The groups the token's sign-in takes: the Allowed User Groups of the plugin User - Joomla API Token.
+     * The groups the token's sign-in takes: the Allowed User Groups of the plugin User - Joomla API Token, as Joomla
+     * reads them (Super Users when the plugin is not enabled or names none; an empty list stored means every group).
      *
      * @var list<int>
      * @since  2.2.2
      */
     private array $tokenGroups;
+
+    /**
+     * Whether the token's sign-in takes every group: the plugin's list is stored empty.
+     *
+     * @since  2.2.2
+     */
+    private bool $everyGroup;
 
     /**
      * Each group's facts once read: title, superUsers, apiLogin, tokenGroup, accounts.
@@ -87,9 +96,33 @@ final class ApiPermissionHolders
         )->loadAssocList('id', 'title') ?: []);
 
         // The token's sign-in (API Authentication - Web Services Joomla Token) reads the allowed groups from the plugin
-        // User - Joomla API Token, Super Users by default.
+        // User - Joomla API Token: Super Users when the plugin is not enabled or the setting is absent, every group when
+        // it is stored empty, else the groups named (an account's own groups and every group above them count).
         $settings = AlfaPluginHelper::get()->params(PluginId::from('user', 'token')) ?? new Registry();
-        $this->tokenGroups = array_values(array_map('intval', (array) $settings->get('allowedUserGroups', [8])));
+        $stored = $settings->exists('allowedUserGroups') ? $settings->get('allowedUserGroups') : [8];
+        $this->tokenGroups = array_values(array_filter(array_map('intval', \is_array($stored) ? $stored : ($stored === null || $stored === '' ? [] : [$stored]))));
+        $this->everyGroup = $this->tokenGroups === [];
+    }
+
+    /**
+     * The token's sign-in groups as the card says them: whether every group may sign in, else the titles of the groups
+     * named, in the tree's order.
+     *
+     * @return array{every: bool, titles: list<string>}
+     *
+     * @since  2.2.2
+     */
+    public function tokenGroups(): array
+    {
+        $titles = [];
+
+        foreach ($this->groups as $id => $title) {
+            if (\in_array((int) $id, $this->tokenGroups, true)) {
+                $titles[] = $title;
+            }
+        }
+
+        return ['every' => $this->everyGroup, 'titles' => $titles];
     }
 
     /**
@@ -163,14 +196,33 @@ final class ApiPermissionHolders
             'title' => $this->groups[$id] ?? (string) $id,
             'superUsers' => $superUsers,
             'apiLogin' => $superUsers || Access::checkGroup($id, 'core.login.api') === true,
-            'tokenGroup' => \in_array($id, $this->tokenGroups, true),
+            'tokenGroup' => $this->inTokenGroups(groupId: $id),
             'accounts' => $this->tokenHolders(groupId: $id),
         ];
     }
 
     /**
-     * The accounts directly in a group, not blocked, with an enabled Joomla API token, each marked when it is a Super
-     * User.
+     * Whether the token's sign-in takes an account of this group: every group is taken, or the group or a group above
+     * it is named.
+     *
+     * @param int $groupId The group.
+     *
+     * @since  2.2.2
+     */
+    private function inTokenGroups(int $groupId): bool
+    {
+        if ($this->everyGroup) {
+            return true;
+        }
+
+        $path = UserGroupsHelper::getInstance()->get($groupId)->path ?? [$groupId];
+
+        return array_intersect(array_map('intval', (array) $path), $this->tokenGroups) !== [];
+    }
+
+    /**
+     * The accounts directly in a group that the token's sign-in takes: not blocked, no activation pending, no password
+     * reset required, with an enabled Joomla API token, each marked when it is a Super User.
      *
      * @param int $groupId The group.
      *
@@ -193,6 +245,8 @@ final class ApiPermissionHolders
                     . ' AND ' . $db->quoteName('t.profile_key') . ' = ' . $db->quote('joomlatoken.token'))
                 ->where($db->quoteName('m.group_id') . ' = :group')
                 ->where($db->quoteName('u.block') . ' = 0')
+                ->where('(' . $db->quoteName('u.activation') . ' IS NULL OR TRIM(' . $db->quoteName('u.activation') . ') IN (' . $db->quote('') . ', ' . $db->quote('0') . '))')
+                ->where($db->quoteName('u.requireReset') . ' = 0')
                 ->bind(':group', $groupId, ParameterType::INTEGER)
                 ->order($db->quoteName('u.username')),
         )->loadObjectList() ?: [];
