@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\MediaFetchJob;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\User\User;
@@ -62,6 +63,7 @@ final class TaskDocument
     public const COLUMNS = [
         'id', 'type', 'handler', 'state', 'subject_type', 'subject_id', 'scope_key', 'done_units', 'total_units',
         'run_after', 'created_at', 'started_at', 'finished_at', 'updated_at', 'origin', 'last_error', 'created_by',
+        'checkpoint',
     ];
 
     /**
@@ -121,8 +123,25 @@ final class TaskDocument
             'origin' => (string) $row['origin'],
             // Said in the reader's language when it is a failure of the work's own (UX-09).
             'last_error' => $withError ? self::shortError(error: Tasks::errorText((string) $row['last_error'])) : null,
-            'result' => null,
+            // The images a write gave as addresses and what became of each (media.fetch); none for other work.
+            'result' => (string) $row['handler'] === MediaFetchJob::NAME ? MediaFetchJob::result(checkpoint: self::checkpointOf(row: $row)) : null,
         ];
+    }
+
+    /**
+     * A task's checkpoint as its handler wrote it, null for none.
+     *
+     * @param array<string, mixed> $row The row.
+     *
+     * @return array<string, mixed>|null
+     *
+     * @since  2.2.2
+     */
+    private static function checkpointOf(array $row): ?array
+    {
+        $checkpoint = json_decode((string) ($row['checkpoint'] ?? ''), true);
+
+        return \is_array($checkpoint) ? $checkpoint : null;
     }
 
     /**
