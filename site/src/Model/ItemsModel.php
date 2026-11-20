@@ -1137,8 +1137,8 @@ class ItemsModel extends UrlListModel
             )
             ->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
 
-        // Architecture B price index subquery JOIN, added below once the read knows whether it filters by a price.
-        // Catalogue only (2.2.2): no price is read, so the index is not joined, and every price filter and sort below
+        // The price index subquery JOIN, added below once the read knows whether it filters by a price.
+        // Catalogue only: no price is read, so the index is not joined, and every price filter and sort below
         // is left out with it (the sale filter matches nothing).
         $sellsOnline = ShopMode::sellsOnline();
 
@@ -1464,7 +1464,7 @@ class ItemsModel extends UrlListModel
             }
         }
 
-        // The visitor's price from the index (2.2.2): a read that filters by a price (a price floor, ceiling or range, the
+        // The visitor's price from the index: a read that filters by a price (a price floor, ceiling or range, the
         // sale or a saving filter) lists only the products with a figure for the visitor; every other read, a sort by
         // price or by saving included, lists every product, one with no price shown with no price.
         if ($sellsOnline) {

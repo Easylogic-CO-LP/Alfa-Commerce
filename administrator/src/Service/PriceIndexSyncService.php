@@ -281,7 +281,7 @@ class PriceIndexSyncService
      */
     private static ?array $previousPricing = null;
 
-    /** Whether $previousPricing was read for this process (2.2.2). */
+    /** Whether $previousPricing was read for this process. */
     private static bool $previousRead = false;
 
     // Dependencies
