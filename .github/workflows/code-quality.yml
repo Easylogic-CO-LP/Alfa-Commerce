@@ -65,6 +65,12 @@ jobs:
       - name: Run the docblock lint
         run: php scripts/docblock-lint/docblock-lint.php
 
+      # Every shipped stylesheet and script is there as its source, its .min twin and the gzip of the .min, is
+      # registered by its .min name, and each .min is the one php build/media-min/build.php made from the source as it
+      # is now (the rules are in the suite's docblock).
+      - name: Run the media forms suite
+        run: php scripts/media-forms/media-forms-suite.php .
+
   phpstan:
     name: PHPStan
     runs-on: ubuntu-latest
