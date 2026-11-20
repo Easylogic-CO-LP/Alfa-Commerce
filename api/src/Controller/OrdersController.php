@@ -20,6 +20,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
+use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use RuntimeException;
@@ -209,11 +210,13 @@ class OrdersController extends ApiController
             throw new Save('id_order_status cannot be changed via PATCH; use POST v1/alfa/orders/:id/status.', 422);
         }
 
-        // The resource publishes state, the order row's trash flag. Only the administrator's Orders list moves an order
-        // to the trash; over the API an order has no trash step and is deleted in one call, and the order form has no
-        // such field, so a PATCH of it was answered 200 and not written. Refused, as the status is.
+        // The resource publishes state, the order row's trash flag: a PATCH of it moves the order to the trash (-2) or
+        // back (1), as the administrator's Orders list does, and changes nothing else.
         if (array_key_exists('state', $rawBody) || array_key_exists('state', $bodyData)) {
-            throw new Save('state cannot be changed via PATCH: over the API an order has no trash step and is deleted in one call (DELETE v1/alfa/orders/:id); its status changes through POST v1/alfa/orders/:id/status.', 422);
+            return $this->changeTrashState(
+                orderId: (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int')),
+                body:    array_key_exists('state', $bodyData) ? $bodyData : $rawBody,
+            );
         }
 
         $this->refuseUnstatedInvoice();
@@ -368,6 +371,78 @@ class OrdersController extends ApiController
 
             throw $e;
         }
+    }
+
+    /**
+     * Move an order to the trash (-2) or take it out (1), as the administrator's Orders list does: the state alone, with
+     * the edit.state permission; Joomla changes no order another user has open (409). Stock, payments, shipments and
+     * documents stay as they are; a trashed order is left out of the order list unless filter[show_trashed] asks for
+     * the trash, and only a trashed order is deleted.
+     *
+     * @param int $orderId The order id.
+     * @param array $body The PATCH's attributes.
+     *
+     * @return mixed The order, as a GET answers it.
+     *
+     * @throws Save When the state is not -2 or 1, comes with other attributes (422), or was not changed (409).
+     *
+     * @since  2.3.0
+     */
+    private function changeTrashState(int $orderId, array $body)
+    {
+        $state = $body['state'];
+
+        if (!\in_array($state, [-2, 1, '-2', '1'], true)) {
+            throw new Save('state takes -2 (moves the order to the trash) or 1 (takes it out of the trash).', 422);
+        }
+
+        $others = array_diff(array_keys($body), ['state', 'id', 'type']);
+
+        if ($others !== []) {
+            throw new Save('state is changed on its own: send it alone, then the other attributes in a PATCH of their own ('
+                . implode(', ', $others) . ').', 422);
+        }
+
+        $this->assertAuthorised('edit.state');
+        $this->refuseMissingOrder(orderId: $orderId);
+
+        $model = $this->getModel('order', '', ['ignore_request' => true]);
+
+        if (!$model instanceof AdminModel) {
+            throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_MODEL_CREATE'));
+        }
+
+        $pks = [$orderId];
+        $model->publish($pks, (int) $state);
+
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $now = (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('state'))
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadResult();
+
+        // Joomla changes no row that another user has open (checked out): the order keeps its state.
+        if ($now !== (int) $state) {
+            $reason = (string) $model->getError();
+
+            throw new Save('The order\'s state was not changed' . ($reason !== '' ? ': ' . $reason : ': it is open for editing by another user.'), 409);
+        }
+
+        return $this->displayItem($orderId);
+    }
+
+    /**
+     * An order is deleted from the trash only, as the administrator's Orders list deletes it (Empty trash): a DELETE of
+     * an order that is not in the trash answers 409; a PATCH of state -2 moves it there first.
+     *
+     * @since  2.3.0
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
     }
 
     /**

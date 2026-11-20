@@ -115,7 +115,8 @@ final class OrderConfirmation
     }
 
     /**
-     * Whether a visitor may see an order opened by its keyed address.
+     * Whether a visitor may see an order opened by its keyed address. An order in the trash is refused like an order
+     * that is not there: staff have taken it off the shop.
      *
      * @param int $orderId The order id the address carries.
      * @param string $key The key the address carries.
@@ -138,6 +139,7 @@ final class OrderConfirmation
                 ->from($db->quoteName('#__alfa_orders', 'o'))
                 ->join('LEFT', $db->quoteName('#__users', 'u'), $db->quoteName('u.id') . ' = ' . $db->quoteName('o.id_user'))
                 ->where($db->quoteName('o.id') . ' = :id')
+                ->where($db->quoteName('o.state') . ' != -2')
                 ->bind(':id', $orderId, ParameterType::INTEGER),
         )->loadObject();
 

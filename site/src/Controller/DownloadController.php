@@ -241,7 +241,8 @@ class DownloadController extends BaseController
     }
 
     /**
-     * Minimal order row for the gates (status, owner, guest key).
+     * Minimal order row for the gates (status, owner, guest key); none for an order in the trash, whose files are no
+     * longer served.
      *
      * @param int $orderId Order PK.
      *
@@ -255,6 +256,7 @@ class DownloadController extends BaseController
             ->select($db->quoteName(['id', 'id_user', 'id_order_status', 'secure_key']))
             ->from($db->quoteName('#__alfa_orders'))
             ->where($db->quoteName('id') . ' = :id')
+            ->where($db->quoteName('state') . ' != -2')
             ->bind(':id', $orderId);
 
         $db->setQuery(query: $query);
