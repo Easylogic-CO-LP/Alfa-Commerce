@@ -26,7 +26,6 @@ use Joomla\CMS\Event\Application\BeforeApiRouteEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\ApiRouter;
-use Joomla\Event\SubscriberInterface;
 use Joomla\Router\Route;
 use RuntimeException;
 use Throwable;
@@ -292,28 +291,33 @@ final class ApiRouteRegistrar
      * router serves; each route with what its controller's task asks ({@see ApiTaskAccess}, the declaration the
      * controller's own check enforces), null for a task the controller does not map.
      *
-     * Building it boots that plugin and makes each REST controller once, on that screen only; no route under
-     * v1/alfa/ext/ is in it (the request is not one).
+     * Building it boots that plugin through the plugin helper and makes each REST controller once, on that screen
+     * only; no route under v1/alfa/ext/ is in it (the request is not one). While the plugin is not enabled no core
+     * address answers, and none is listed.
      *
      * @return list<array{route: Route, access: ApiTaskAccess|null}>
      *
-     * @throws RuntimeException When the webservices plugin does not register routes.
+     * @throws RuntimeException When the webservices plugin cannot be loaded, maps no onBeforeApiRoute handler, or its
+     *                          handler fails.
      *
      * @since  2.2.2
      */
     public static function collectCore(): array
     {
         $app = Factory::getApplication();
-        $plugin = $app->bootPlugin(self::WEBSERVICES_PLUGIN, 'webservices');
-        $handler = $plugin instanceof SubscriberInterface ? ($plugin::getSubscribedEvents()['onBeforeApiRoute'] ?? null) : null;
-        $handler = \is_array($handler) ? ($handler[0] ?? null) : $handler;
+        $plugins = AlfaPluginHelper::get();
+        $id = PluginId::from('webservices', self::WEBSERVICES_PLUGIN);
 
-        if (!\is_string($handler) || !method_exists($plugin, $handler)) {
-            throw new RuntimeException('The plugin webservices/' . self::WEBSERVICES_PLUGIN . ' does not register the REST API routes.');
+        if (!$plugins->isAvailable($id)) {
+            return [];
         }
 
         $router = new ApiRouter($app);
-        $plugin->$handler(new BeforeApiRouteEvent('onBeforeApiRoute', ['subject' => $app, 'router' => $router]));
+        $failure = $plugins->askSubscriber($plugins->bootSingle($id), new BeforeApiRouteEvent('onBeforeApiRoute', ['subject' => $app, 'router' => $router]));
+
+        if ($failure !== null) {
+            throw new RuntimeException('The plugin ' . $id . ' could not register the REST API routes: ' . $failure->listener . ': ' . $failure->error->getMessage(), 0, $failure->error);
+        }
 
         $factory = $app->bootComponent('com_alfa')->getMVCFactory();
         $controllers = [];

@@ -15,10 +15,11 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 use Alfa\Component\Alfa\Administrator\Event\Access\GetAccessActionsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 
@@ -114,13 +115,15 @@ final class ApiAddressListing
             }
         }
 
+        $plugins = AlfaPluginHelper::get();
+
         return [
             'addresses' => $addresses,
             'refused' => $refused,
             'unavailable' => $unavailable,
             'titles' => self::titles(addresses: $addresses),
-            'tokenPlugin' => PluginHelper::isEnabled('api-authentication', 'token'),
-            'webservices' => PluginHelper::isEnabled('webservices', ApiRouteRegistrar::WEBSERVICES_PLUGIN),
+            'tokenPlugin' => $plugins->isAvailable(PluginId::from('api-authentication', 'token')),
+            'webservices' => $plugins->isAvailable(PluginId::from('webservices', ApiRouteRegistrar::WEBSERVICES_PLUGIN)),
         ];
     }
 

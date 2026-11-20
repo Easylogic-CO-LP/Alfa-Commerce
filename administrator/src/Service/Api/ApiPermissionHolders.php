@@ -12,9 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\User\UserFactoryInterface;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -87,8 +88,8 @@ final class ApiPermissionHolders
 
         // The token's sign-in (API Authentication - Web Services Joomla Token) reads the allowed groups from the plugin
         // User - Joomla API Token, Super Users by default.
-        $userToken = PluginHelper::getPlugin('user', 'token');
-        $this->tokenGroups = array_values(array_map('intval', (array) (new Registry(\is_object($userToken) ? (string) ($userToken->params ?? '') : ''))->get('allowedUserGroups', [8])));
+        $settings = AlfaPluginHelper::get()->params(PluginId::from('user', 'token')) ?? new Registry();
+        $this->tokenGroups = array_values(array_map('intval', (array) $settings->get('allowedUserGroups', [8])));
     }
 
     /**
