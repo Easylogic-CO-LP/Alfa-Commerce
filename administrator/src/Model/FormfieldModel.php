@@ -27,6 +27,7 @@ use Joomla\CMS\Language\LanguageFactoryInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Table\Table;
+use Joomla\Database\ParameterType;
 use Joomla\String\StringHelper;
 use RuntimeException;
 
@@ -432,6 +433,19 @@ class FormfieldModel extends AlfaAdminModel
             return false;
         }
 
+        // A new name for a field the shop names elsewhere (another field's visibility rule, a status e-mail's
+        // {field_<name>}) is refused, naming every place: those settings are the merchant's own and change only by his
+        // hand, and the rename itself renames a column, which no transaction takes back.
+        if ($stored !== null && $data['field_name'] !== (string) $stored->field_name) {
+            $uses = $this->usesOfName(name: (string) $stored->field_name, fieldId: (int) $stored->id);
+
+            if ($uses !== []) {
+                $this->setError(Text::sprintf('COM_ALFA_FORMFIELD_RENAME_IN_USE', $stored->field_name, $data['field_name'], implode('; ', $uses)));
+
+                return false;
+            }
+        }
+
         // SHOWON: the standalone `showon` field carries the builder's
         // canonical JSON. Fold it into formfieldsparams so it persists in the
         // params JSON (FormFieldsPlugin reads params->get('showon')); no DB
@@ -737,6 +751,101 @@ class FormfieldModel extends AlfaAdminModel
         }
 
         return array_values(array_diff($pks, $locked));
+    }
+
+    /**
+     * Where the shop's settings name a checkout field by its name: the visibility rules of the other checkout fields
+     * (an operand <name>.value, at any depth of the rule) and the customer and administrator e-mails of every status
+     * in every language ({field_<name>} in their texts), each as a phrase staff recognise.
+     *
+     * @param string $name The field's name.
+     * @param int $fieldId The field, whose own rule is not counted.
+     *
+     * @return list<string> The places; empty when nothing names it.
+     *
+     * @since  2.2.2
+     */
+    private function usesOfName(string $name, int $fieldId): array
+    {
+        $db = $this->getDatabase();
+        $uses = [];
+        $query = $db->getQuery(true)
+            ->select([$db->quoteName('a.id'), $db->quoteName('a.field_name'), $db->quoteName('a.params')])
+            ->from($db->quoteName('#__alfa_form_fields', 'a'))
+            ->where($db->quoteName('a.id') . ' <> :id')
+            ->bind(':id', $fieldId, ParameterType::INTEGER)
+            ->order($db->quoteName('a.ordering'));
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_form_fields',
+            langPrimaryColumn: 'id_formfield',
+            fields:            ['name'],
+        );
+
+        foreach ($db->setQuery($query)->loadObjectList() ?: [] as $field) {
+            $params = json_decode((string) ($field->params ?? ''), true);
+            $rule = \is_array($params) ? json_decode((string) ($params['showon'] ?? ''), true) : null;
+
+            if (\is_array($rule) && self::ruleNames(group: $rule, name: $name)) {
+                $uses[] = Text::sprintf('COM_ALFA_FORMFIELD_RENAME_USED_BY_FIELD', trim((string) ($field->name ?? '')) ?: (string) $field->field_name);
+            }
+        }
+
+        $token = '{field_' . $name . '}';
+        $tables = array_map('strtolower', $db->getTableList());
+
+        foreach (MultilingualHelper::getLanguageTags() as $tag) {
+            $table = '#__alfa_orders_statuses_' . MultilingualHelper::normaliseTag($tag);
+
+            if (!\in_array(strtolower($db->replacePrefix($table)), $tables, true)) {
+                continue;
+            }
+
+            $rows = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['name', 'email_positions_customer', 'email_positions_admin']))
+                    ->from($db->quoteName($table)),
+            )->loadObjectList() ?: [];
+
+            foreach ($rows as $status) {
+                foreach (['email_positions_customer' => 'COM_ALFA_FORMFIELD_RENAME_USED_BY_EMAIL_CUSTOMER', 'email_positions_admin' => 'COM_ALFA_FORMFIELD_RENAME_USED_BY_EMAIL_ADMIN'] as $column => $key) {
+                    if (str_contains((string) ($status->{$column} ?? ''), $token)) {
+                        $uses[] = Text::sprintf($key, (string) ($status->name ?? ''), $tag);
+                    }
+                }
+            }
+        }
+
+        return $uses;
+    }
+
+    /**
+     * Whether a visibility rule, or a group nested in it, has an operand of the field: <name>.value.
+     *
+     * @param array<mixed> $group The rule's group: its rules, each an operand or a nested group.
+     * @param string $name The field's name.
+     *
+     * @since  2.2.2
+     */
+    private static function ruleNames(array $group, string $name): bool
+    {
+        foreach ((array) ($group['rules'] ?? []) as $rule) {
+            if (!\is_array($rule)) {
+                continue;
+            }
+
+            $names = isset($rule['rules'])
+                ? self::ruleNames(group: $rule, name: $name)
+                : explode('.', (string) ($rule['operand'] ?? ''), 2)[0] === $name;
+
+            if ($names) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
