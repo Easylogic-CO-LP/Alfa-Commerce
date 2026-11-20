@@ -598,9 +598,11 @@ final class CoreToolProvider
 
     /**
      * Check the price index: one count per pricing context against the units it is written for, the rows of
-     * units no longer published, the gaps in the periods, the opening combinations that differ from the choice in SQL
-     * (the first of them named), and the products left out with no price (named). Changes nothing; during the build
-     * after the update it says so.
+     * units no longer published or no longer with prices of their own, the gaps in the periods, the opening and price
+     * combinations that differ from the choice in SQL (the first of them named), the products left out with no price
+     * (named), and the index's size: its rows and bytes, which grow with the products, the combinations that carry
+     * prices of their own, the pricing contexts and the periods. Changes nothing; during the build after the update it
+     * says so.
      *
      * @param ExecuteToolActionEvent $event The tool request.
      *
@@ -629,6 +631,10 @@ final class CoreToolProvider
                     $check['pointers']['count'],
                     implode(', ', $check['pointers']['items']) ?: '-',
                 );
+
+            // The index's size: its rows, and its data and keys as the database reports them.
+            $size = PriceIndexSyncService::size();
+            $message .= ' ' . Text::sprintf('COM_ALFA_TOOLS_PRICE_INDEX_CHECK_SIZE', $size['rows'], number_format($size['bytes'] / 1048576, 1));
 
             // The products whose pricing throws, listed with no price until a write can price them.
             if ($check['leftOut'] !== []) {

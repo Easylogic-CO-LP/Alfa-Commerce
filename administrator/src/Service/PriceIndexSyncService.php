@@ -137,6 +137,7 @@ use Throwable;
  *   isBuilding()                   - whether the storefront still reads the previous index (the read side)
  *   completeness()                 - the completeness count, the tiling and the pointers (Tools, the switch)
  *   analyze()                      - the index's statistics refreshed after a full rebuild
+ *   size()                         - the index's rows and bytes (Tools)
  *   finishBuild()                  - the switch from the previous index, when the new one is complete
  *   pricingGroups(), slotKey()     - the groups that change a price; the set of one visitor
  *   readableSetKey(), slotSetJoin(), slotPlaces(), slotRanking() - the previous index's reader, kept for the build
@@ -4152,6 +4153,26 @@ class PriceIndexSyncService
             . ' UNION ALL SELECT oc.item_id, oc.id FROM ' . $this->db->quoteName('#__alfa_item_combinations') . ' AS oc'
             . ' INNER JOIN ' . $items . ' AS a ON a.id = oc.item_id AND a.state = 1'
             . ' WHERE oc.state = 1 AND ' . self::ownPriceSql(combinationAlias: 'oc') . $in . ')';
+    }
+
+    /**
+     * The index's size: its rows, and its data and keys in bytes as the database reports them (Tools' check).
+     *
+     * @return array{rows: int, bytes: int}
+     *
+     * @since  2.2.2
+     */
+    public static function size(): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        return [
+            'rows' => (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName(self::INDEX_TABLE))->loadResult(),
+            'bytes' => (int) $db->setQuery(
+                'SELECT DATA_LENGTH + INDEX_LENGTH FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '
+                . $db->quote($db->replacePrefix(self::INDEX_TABLE)),
+            )->loadResult(),
+        ];
     }
 
     /**
