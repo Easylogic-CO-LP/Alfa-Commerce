@@ -239,8 +239,8 @@ class PriceCalculator
         $results = [];
 
         foreach ($itemIds as $itemId) {
-            // normalizeQuantities() names every id: a map with a whole quantity of at least 1, or it refused the map
-            // (2.2.1); a single quantity given for all is taken as at least 1.
+            // normalizeQuantities() names every id: a map with a whole quantity of at least 1, or it refused the map;
+            // a single quantity given for all is taken as at least 1.
             $quantity = max(1, (int) $quantities[$itemId]);
             $selection = $selections[$itemId] ?? null;
 
@@ -318,12 +318,12 @@ class PriceCalculator
         // Nothing shifts the price -> feed the base rows straight to the engine, so
         // a combination's (or the item's) OWN sale/override renders exactly like
         // the main product: strikethrough base, - sale amount, savings percent.
-        // When no row applies, the engine says so itself on this path too (2.2.2).
+        // When no row applies, the engine says so itself on this path too.
         if ($adjustRow === null && $optionDeltas === [] && $contributions === []) {
             return $this->calculator->compute($itemId, $quantity, $baseRows, $discounts, $taxes, $context, $price);
         }
 
-        // NO BASE, NO PRICE (2.2.2). The base is chosen here, from the combination's price rows else the item's. When
+        // NO BASE, NO PRICE. The base is chosen here, from the combination's price rows else the item's. When
         // none applies, a combination's adjust, an option's delta or a contribution shifts nothing: the product is not
         // priced, and the engine says so from the rows themselves. With an operator's explicit price and no row, the
         // line is the operator's price and the deltas price nothing. Only a contribution that states it supplies the
@@ -586,7 +586,7 @@ class PriceCalculator
      * Expand a quantity argument into a per-product-id quantity map.
      *
      * @param int[] $productIds The product ids.
-     * @param int|int[] $quantities A single quantity for all ids, or a per-id map that names every id (2.2.1: a map
+     * @param int|int[] $quantities A single quantity for all ids, or a per-id map that names every id (a map
      *                              that lacks one is refused, {@see self::mappedQuantity()}).
      *
      * @return array The quantity map keyed by product id.
@@ -608,10 +608,9 @@ class PriceCalculator
     }
 
     /**
-     * The quantity a per-product map gives one product (2.2.1): a whole number of at least 1. A map that names no
+     * The quantity a per-product map gives one product: a whole number of at least 1. A map that names no
      * such quantity for it (none, 0, a negative one, a fraction, or not a number) is the caller's mistake: refused with
-     * the product named, never priced at a quantity the caller did not ask for (2.2.0 met a TypeError in calculate(),
-     * priced 1 in calculateBatch(), and priced 2.5 as 2).
+     * the product named, never priced at a quantity the caller did not ask for.
      *
      * @param array $quantities The per-product-id quantity map.
      * @param int $productId The product.

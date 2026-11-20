@@ -91,7 +91,7 @@ class FormfieldsController extends ApiController
     }
 
     /**
-     * A form field is deleted from the trash only, as the administrator's list of form fields deletes it (2.2.1).
+     * A form field is deleted from the trash only, as the administrator's list of form fields deletes it.
      *
      * @since  2.2.1
      */

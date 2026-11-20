@@ -126,8 +126,8 @@ final class CartTotals
 
     /**
      * What catalogue discounts already took off the lines, tax included: the sum of each line's
-     * PriceResult::getSavingsTotalWithTax(), the saving the cart line prints beside its struck total (2.2.0,
-     * A-C16-11). The cart is tax included, so a discount applied before tax states the tax it took off with it.
+     * PriceResult::getSavingsTotalWithTax(), the saving the cart line prints beside its struck total.
+     * The cart is tax included, so a discount applied before tax states the tax it took off with it.
      *
      * @since  2.0.0
      */

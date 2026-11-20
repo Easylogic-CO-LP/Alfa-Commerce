@@ -107,7 +107,7 @@ class ShipmentmethodsController extends ApiController
     }
 
     /**
-     * A shipping method is deleted from the trash only, as the administrator's list of shipping methods deletes it (2.2.1).
+     * A shipping method is deleted from the trash only, as the administrator's list of shipping methods deletes it.
      *
      * @since  2.2.1
      */

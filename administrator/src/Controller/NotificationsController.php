@@ -72,7 +72,7 @@ class NotificationsController extends BaseController
         InventoryEffectOutbox::syncNotice();
 
         // And for work a save owes and its request did not finish: its attention notice every few minutes, and the
-        // background work's health notice (2.2.0); the work itself runs in the bell's tick below. Finished tasks are
+        // background work's health notice; the work itself runs in the bell's tick below. Finished tasks are
         // pruned at most once an hour.
         Tasks::recoverThrottled();
         RunnerHealth::sync();
@@ -93,7 +93,7 @@ class NotificationsController extends BaseController
 
         echo NotificationHelper::renderBadge((bool) RequestScalar::int($this->input, 'open'));
 
-        // Then, when work is due, the bell's tick (2.2.0, design 2.7): the request every Alfa Commerce page already
+        // Then, when work is due, the bell's tick: the request every Alfa Commerce page already
         // makes, so the background work keeps running while Alfa Sync is disabled. The badge is answered first and the
         // response finished where the server allows; otherwise the badge waits at most the tick.
         if (Runner::due()) {

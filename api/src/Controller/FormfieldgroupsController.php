@@ -84,7 +84,7 @@ class FormfieldgroupsController extends ApiController
     }
 
     /**
-     * A form field group is deleted from the trash only, as the administrator's list of form field groups deletes it (2.2.1).
+     * A form field group is deleted from the trash only, as the administrator's list of form field groups deletes it.
      *
      * @since  2.2.1
      */

@@ -106,7 +106,7 @@ class PaymentmethodsController extends ApiController
     }
 
     /**
-     * A payment method is deleted from the trash only, as the administrator's list of payment methods deletes it (2.2.1).
+     * A payment method is deleted from the trash only, as the administrator's list of payment methods deletes it.
      *
      * @since  2.2.1
      */

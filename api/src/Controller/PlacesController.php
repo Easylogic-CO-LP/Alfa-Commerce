@@ -72,7 +72,7 @@ class PlacesController extends ApiController
     }
 
     /**
-     * A place is deleted from the trash only, as the administrator's list of places deletes it (2.2.1).
+     * A place is deleted from the trash only, as the administrator's list of places deletes it.
      *
      * @since  2.2.1
      */

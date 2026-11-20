@@ -220,7 +220,7 @@ final class ResetToDefault
 
         ComponentOptions::forgetCachedRecords();
 
-        // Online sales back to their default (2.2.2): the stored pages follow, as after any write of the Options.
+        // Online sales back to their default: the stored pages follow, as after any write of the Options.
         ComponentOptions::followOnlineSales(before: $storedBefore, after: $target);
 
         $groups = $before['groups'] === [] ? 0 : SyncHelper::applyDefaultPricesDisplay(db: $this->db, sourceParams: ComponentOptions::DEFAULTS);

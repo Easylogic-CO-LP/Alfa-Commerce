@@ -22,10 +22,10 @@ use Throwable;
 /**
  * Carts list: what shoppers are assembling right now, and what has gone quiet.
  *
- * READ-ONLY by design in this slice. A cart is the shopper's own working
- * document; the merchant's job here is to see it, not to reach into it. Every
- * mutating surface (edit lines, apply a concession, check out on behalf) is a
- * later, deliberate step with its own ACL and audit trail.
+ * READ-ONLY by design. A cart is the shopper's own working document; the
+ * merchant's job here is to see it, not to reach into it. Every mutating
+ * surface (edit lines, apply a concession, check out on behalf) needs its own
+ * ACL and audit trail.
  *
  * ONLY OPERATIONAL CARTS EXIST HERE. A cart that becomes an order is deleted
  * inside the placement transaction: the order is a complete, self-contained
@@ -196,7 +196,7 @@ class CartsModel extends AlfaListModel
                 : "'' AS " . $db->quoteName('guest_email'),
         );
 
-        // Date window on last activity: the column this slice made truthful.
+        // Date window on last activity.
         AlfaHelper::applyDateRange(
             query:      $query,
             column:     'a.updated',

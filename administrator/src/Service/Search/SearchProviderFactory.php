@@ -51,7 +51,7 @@ class SearchProviderFactory
 
     /**
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
-     * @param SearchEngineRegistry|null $registry Injected for testing; by default the request's own (2.2.0: the engines
+     * @param SearchEngineRegistry|null $registry Injected for testing; by default the request's own (the engines
      *                                            are discovered once per request, whoever asks).
      *
      * @since  2.0.0
@@ -90,7 +90,7 @@ class SearchProviderFactory
         // nothing.
         $engine = $this->registry->active();
 
-        // The readiness asked through the registry's guarded probe (2.2.1): an engine that throws while
+        // The readiness asked through the registry's guarded probe: an engine that throws while
         // reporting its health is not ready, and the live tables answer.
         $provider = $engine !== null && $this->registry->readyOrFalse($engine, $this->registry->configuredKey())
             ? $engine->provider()

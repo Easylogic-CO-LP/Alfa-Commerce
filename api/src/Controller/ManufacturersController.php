@@ -86,7 +86,7 @@ class ManufacturersController extends ApiController
     }
 
     /**
-     * A manufacturer is deleted from the trash only, as the administrator's list of manufacturers deletes it (2.2.1).
+     * A manufacturer is deleted from the trash only, as the administrator's list of manufacturers deletes it.
      *
      * @since  2.2.1
      */

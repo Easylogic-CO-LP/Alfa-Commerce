@@ -266,7 +266,7 @@ class PanelController extends BaseController
      * @param string $back The URL to return to (edit for save, list otherwise).
      * @param bool $keepInput Whether to stash the POST so the edit form restores it.
      * @param Throwable|null $why What failed: an owner that declares no handler for the mutation (the helper's
-     *                            NO_HANDLER) is said as such (2.2.0, A-C14B-12).
+     *                            NO_HANDLER) is said as such.
      *
      * @since  2.0.0
      */

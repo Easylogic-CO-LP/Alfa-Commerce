@@ -654,8 +654,8 @@ final class DocumentRenderer
      * A summary row is the lines of one rate and VAT category, summed at issue
      * (DocumentIssuer::buildTaxSummary()). Its `tax_names` are the distinct
      * names those same lines froze, in the order the lines print, so two rules
-     * at one rate print apart; a row whose lines froze none (every document
-     * issued before 2.2.0) has none and prints its rate alone. Read from the
+     * at one rate print apart; a row whose lines froze none
+     * has none and prints its rate alone. Read from the
      * frozen lines only: a rule renamed since never reaches a document.
      *
      * @param object[] $taxes The frozen summary rows.

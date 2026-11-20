@@ -83,7 +83,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
     abstract protected function engine(): SearchEngineInterface;
 
     /**
-     * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
+     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the
      * shared dispatcher, never in getSubscribedEvents(). onAlfaSearchInputLayout reaches the configured engine's
      * plugin only.
      *
@@ -116,7 +116,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
     }
 
     /**
-     * Alfa's targeted-handler declaration (2.2.0, design 2.15.2): each event of TARGETED_EVENTS this plugin
+     * Alfa's targeted-handler declaration: each event of TARGETED_EVENTS this plugin
      * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
      * shared dispatcher.
      *

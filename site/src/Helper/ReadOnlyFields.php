@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 defined('_JEXEC') or die;
 
 /**
- * The product fields as plain read-only lists, in place of the buy form, in catalogue-only mode (2.2.2).
+ * The product fields as plain read-only lists, in place of the buy form, in catalogue-only mode.
  *
  * The models call it as core's last word, after every pass that can change the buy area (the field events, the page's
  * feature plugins, a listing's whole-page pass): every surface in the buy form's slots is dropped, whatever it declares

@@ -78,7 +78,7 @@ final class CoreCardProvider
     public const OWNER_NAME = 'com_alfa';
 
     /**
-     * Core's contributor identity, group.element (2.2.0): the reserved owner, never booted as a plugin.
+     * Core's contributor identity, group.element: the reserved owner, never booted as a plugin.
      *
      * @since  2.2.0
      */
@@ -91,20 +91,20 @@ final class CoreCardProvider
     private const LATEST_ROWS = 5;
 
     /**
-     * The most jobs the background-work card lists while they run or wait (NEW-7).
+     * The most jobs the background-work card lists while they run or wait.
      *
      * @since  2.2.0
      */
     private const ACTIVE_JOBS = 5;
 
     /**
-     * @var string The background-work card's title, on the Dashboard and in its refresh by the staff kick (entry 27).
+     * @var string The background-work card's title, on the Dashboard and in its refresh by the staff kick.
      * @since  2.2.0
      */
     public const BACKGROUND_TITLE = 'COM_ALFA_DASHCARD_RUNNER_HEALTH';
 
     /**
-     * @var string The background-work card's layout, on the Dashboard and in its refresh by the staff kick (entry 27).
+     * @var string The background-work card's layout, on the Dashboard and in its refresh by the staff kick.
      * @since  2.2.0
      */
     public const BACKGROUND_LAYOUT = 'card.health';
@@ -227,11 +227,11 @@ final class CoreCardProvider
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => $this->attentionCard());
 
-        // The background work (2.2.0), in the same strip, to a user who may use Tools: its health notice while it
+        // The background work, in the same strip, to a user who may use Tools: its health notice while it
         // stands, and one line for each job running or waiting, with its progress and a link to its progress page
-        // (NEW-7; read at page load). While neither is there its data is empty and the card is not shown (entry 27).
+        // (read at page load). While neither is there its data is empty and the card is not shown.
         $event->top(self::ID, 'runner.health', self::BACKGROUND_TITLE)
-            // Live: its job lines change while a job runs, so it is never served from the Dashboard's cache (entry 27).
+            // Live: its job lines change while a job runs, so it is never served from the Dashboard's cache.
             ->live()
             ->ordering(90)
             ->setLayout(self::BACKGROUND_LAYOUT)
@@ -242,7 +242,7 @@ final class CoreCardProvider
 
     /**
      * The background-work card's data, the one source of the card on the Dashboard and of its refresh by the staff kick
-     * (TasksController::backgroundCard(), entry 27): the health notice's sentence while it stands, and the jobs running
+     * (TasksController::backgroundCard()): the health notice's sentence while it stands, and the jobs running
      * or waiting. Empty while neither is there.
      *
      * @return array{text?: string, url?: string, jobs?: list<array{text: string, url: string}>}
@@ -258,7 +258,7 @@ final class CoreCardProvider
             $lastRun = RunnerHealth::lastRun();
             $at = static fn (string $utc): string => HTMLHelper::_('date', $utc, Text::_('DATE_FORMAT_LC5'));
 
-            // The notice's own sentence, its three values given, the times in the reader's zone (UX-30).
+            // The notice's own sentence, its three values given, the times in the reader's zone.
             $health = $waiting['count'] === 0 ? [] : [
                 'text' => Text::sprintf('COM_ALFA_NOTIFY_RUNNER_HEALTH_MSG', $at($waiting['since']), $waiting['count'], $at($lastRun['at'] ?? $waiting['since'])),
                 'url' => Route::_(RunnerHealth::URL, false),
@@ -271,7 +271,7 @@ final class CoreCardProvider
     }
 
     /**
-     * The jobs running or waiting, as the Dashboard's background-work card lists them (NEW-7): the job's label and how
+     * The jobs running or waiting, as the Dashboard's background-work card lists them: the job's label and how
      * far it is ("Recreate thumbnails: 640 of 1500 (42%)", "Not counted yet" for a total not counted), and its progress
      * page; read from the jobs list of Tools > Tasks, running first. A failed read lists none, logged.
      *

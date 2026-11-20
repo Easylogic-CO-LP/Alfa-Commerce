@@ -10,7 +10,7 @@
  *
  * Cleanup hook fired before the component removes the files of deleted media
  * rows, so a plugin can purge generated derivatives. Notification only: no
- * outputs. Raised on every delete path (2.2.1): Tools > Media, an image removed
+ * outputs. Raised on every delete path: Tools > Media, an image removed
  * in a form or the API, and an entity (product, category, manufacturer,
  * variant) deleted with its gallery. A delete made inside a transaction (a
  * save) raises it once that has committed, the rows then already gone from the
@@ -46,7 +46,7 @@ class BeforeDeleteEvent extends AbstractImmutableEvent
     /**
      * Get the media rows being deleted: each with its id, path and thumbnail. From Tools > Media the rows are still in
      * the table; from a save (an image removed) or an entity deleted with its gallery, the event comes once the
-     * transaction has committed and the rows are already gone (2.2.1), so act on the values carried here, not on a
+     * transaction has committed and the rows are already gone, so act on the values carried here, not on a
      * read of #__alfa_media by these ids.
      *
      *

@@ -163,7 +163,7 @@ final class LanguagePacks
      * installed manifest, and the files stay. So the files are read from the file extensions' manifests first and
      * looked for afterwards: a pack whose rows are gone but whose files stayed, or could not be listed, is uninstalled
      * with files left. A pack Joomla did not uninstall is not uninstalled; a pack row with no readable package manifest
-     * is not attempted (Joomla cannot uninstall it either) and is reported apart (since 2.1.4).
+     * is not attempted (Joomla cannot uninstall it either) and is reported apart.
      *
      * @return array{removed: string[], files_left: string[], failed: string[], no_manifest: string[], reasons: array<string, string[]>} By outcome.
      *

@@ -6,7 +6,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * A payment or shipping method's image, the one the shop set on the method's Image tab (2.2.2): its thumbnail, its alt
+ * A payment or shipping method's image, the one the shop set on the method's Image tab: its thumbnail, its alt
  * text the image's own when the shop wrote one on the tile, else the method's title. Draws nothing for a method with
  * no image, so such a method shows as it always has. Pure markup; the box's size cap is the stylesheet's.
  *

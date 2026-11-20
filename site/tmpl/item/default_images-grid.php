@@ -8,7 +8,7 @@
  */
 
 /**
- * The product's images as a grid (a variant of the "images" slot, 2.2.1): every image at once, in as many columns as
+ * The product's images as a grid (a variant of the "images" slot): every image at once, in as many columns as
  * "Grid Columns" says (the item's, else its default category's, else the menu item's or the Options'), each opening the
  * gallery's lightbox; on a phone at most two columns. A variant with a gallery of its own swaps its grid in, as it
  * swaps the slider (item.js binds the lightbox again).

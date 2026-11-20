@@ -61,7 +61,7 @@ class HtmlView extends BaseHtmlView
     protected $imagesTpl = 'images';
 
     /**
-     * @var int How many columns the images grid (default_images-grid.php) has on a wide screen, 2 to 4 (2.2.1): the
+     * @var int How many columns the images grid (default_images-grid.php) has on a wide screen, 2 to 4: the
      *          item's, else its default category's, else the menu item's or the Options'
      */
     protected int $imagesGridColumns = 2;
@@ -72,11 +72,11 @@ class HtmlView extends BaseHtmlView
     /** @var string Resolved sub-template for the "categories" slot */
     protected $categoriesTpl = 'categories';
 
-    /** @var string Resolved sub-template for the "related" slot (2.2.2): the product's related products */
+    /** @var string Resolved sub-template for the "related" slot: the product's related products */
     protected string $relatedTpl = 'related';
 
     /**
-     * @var array<int, string> The related products' cards (2.2.2), the listing's own, in the order staff set and by
+     * @var array<int, string> The related products' cards, the listing's own, in the order staff set and by
      *                         product id: only the products the visitor may see, at most the count; empty for none
      */
     protected array $relatedCards = [];
@@ -100,7 +100,7 @@ class HtmlView extends BaseHtmlView
 
         // A PRODUCT PAGE OPENED TO CHANGE A CART LINE (edit_line, linked from every line of the cart) draws that line's
         // choices and the visitor's Update form at an address every visitor can ask: never stored in Joomla's page cache,
-        // whatever plugin is enabled (2.2.1). Any edit_line, the visitor's own or not: a plain copy stored at that
+        // whatever plugin is enabled. Any edit_line, the visitor's own or not: a plain copy stored at that
         // address would be served to the line's owner, before this view runs, in place of the edit form.
         if (RequestScalar::int($input, 'edit_line', 0) > 0) {
             PageCache::excludeResponse();
@@ -140,7 +140,7 @@ class HtmlView extends BaseHtmlView
             slot: 'images',
             layout: $this->getLayout(),
         );
-        // The grid's columns (2.2.1), through the same chain; the grid draws them as a class, 2 to 4.
+        // The grid's columns, through the same chain; the grid draws them as a class, 2 to 4.
         $this->imagesGridColumns = min(4, max(2, (int) (($own['images_grid_columns'] ?? '') ?: ($cat['images_grid_columns'] ?? '') ?: $this->params->get('item_images_grid_columns', 2))));
         $this->manufacturersTpl = SlotResolver::resolve(
             value: ($own['manufacturers'] ?? '') ?: ($cat['manufacturers'] ?? '') ?: (string) $this->params->get('item_manufacturers_layout', ''),
@@ -155,7 +155,7 @@ class HtmlView extends BaseHtmlView
             layout: $this->getLayout(),
         );
 
-        // THE RELATED PRODUCTS (2.2.2): the part and how many it shows, through the page's chain (the product, its
+        // THE RELATED PRODUCTS: the part and how many it shows, through the page's chain (the product, its
         // default category, the menu item, the Options; 0 shows none). Not on the buy-form reload (tmpl=component):
         // the part sits after the product's container, which is all a variant change replaces.
         $this->relatedTpl = SlotResolver::resolve(
@@ -182,11 +182,11 @@ class HtmlView extends BaseHtmlView
         // (their hooks can issue a redirect, so they stay in the view layer). What
         // they produce is aggregated into the SAME $item->surfaces container as the
         // item fields: one source-agnostic render model, insertion order preserved.
-        // Collected here and handed to the item as a read-only map after each method
-        // (2.2.1), as the model hands the fields' surfaces.
+        // Collected here and handed to the item as a read-only map after each method,
+        // as the model hands the fields' surfaces.
         $slots = (array) ($this->item->surfaces ?? []);
 
-        // Each method is drawn by core first, in the order every method keeps (2.2.2): its image when the shop set
+        // Each method is drawn by core first, in the order every method keeps: its image when the shop set
         // one, its title, its description (the layout methods.item), then what its plugin adds. The images of the
         // methods shown are read in one call per kind.
         $images = [
@@ -293,7 +293,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * A product's related products as the listing's cards (2.2.2): the products the visitor may see
+     * A product's related products as the listing's cards: the products the visitor may see
      * ({@see RelatedProducts::visible()}), drawn by the listing's own view
      * ({@see \Alfa\Component\Alfa\Site\View\Items\HtmlView::cardsFor()}).
      *
@@ -321,8 +321,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The images of the methods shown on the product page, by method id: the first media row of each, read in one call
-     * (2.2.2).
+     * The images of the methods shown on the product page, by method id: the first media row of each, read in one call.
      *
      * @param string $kind 'payment' or 'shipment'.
      * @param array<object> $methods The methods of that kind.
@@ -353,7 +352,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Core's own entry for one method in its slot of the product page (2.2.2): the layout methods.item, drawn before
+     * Core's own entry for one method in its slot of the product page: the layout methods.item, drawn before
      * the method's plugin adds anything.
      *
      * @param object $method The method.
@@ -377,7 +376,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Ask one method's plugin for its product page surface (2.2.0, mode B): booted through the plugin helper, its
+     * Ask one method's plugin for its product page surface (targeted): booted through the plugin helper, its
      * ambient subscriptions engaged through Joomla's own import, the event delivered to its declared handler. A plugin
      * unavailable, without the handler or failing contributes nothing (logged) and the page renders.
      *

@@ -1,5 +1,3 @@
--- Alfa Commerce 2.0.1
---
 -- Every link table (two ids per row, one row per link) gets a primary key on its pair of ids, so the
 -- database itself refuses a pair written twice. Before this a repeated id could add a second, identical
 -- row. The install script reduces such pairs to one row before Joomla runs this file, table by table
@@ -9,8 +7,8 @@
 -- The key statements may fail so that this file can run again after an interruption: a key that
 -- already exists, or a plain key already dropped, is not an error. The install script adds anything
 -- this file could not and names what is still missing. Joomla reads the may-fail marker only
--- directly before the closing semicolon of its statement (Installer::splitSql()). 2.1.0 moved every marker
--- there: as released in 2.0.1 they opened their statements, so every statement ran strict.
+-- directly before the closing semicolon of its statement (Installer::splitSql()), so every marker stands
+-- there.
 --
 -- A plain key that the primary key makes redundant (the same columns, or its first column alone) is
 -- dropped. Keys on the second column stay: they serve the lookups by that id.

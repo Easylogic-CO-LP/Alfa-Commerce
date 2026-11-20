@@ -8,9 +8,8 @@
  * The proposed incremental correction, previewed: rendered inside a modal
  * iframe, the same shell every other order popup uses.
  *
- * The document reconciliation contract, section 6: "Before
- * committing any document reconciliation, show the exact proposed result...
- * No client-side financial approximation." Every figure on this page came from
+ * Before any document reconciliation is committed, the exact proposed result is
+ * shown, with no client-side financial approximation. Every figure on this page came from
  * DocumentIssuer::preview(), which is the issuer's own calculator; this
  * template performs no arithmetic of any kind.
  *
@@ -65,7 +64,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
                 class="form-validate">
 
 			<?php if (!$proposal->available) : ?>
-				<?php // section 5: the operator is told WHY, in the words of whatever
+				<?php // The operator is told WHY, in the words of whatever
 				      // refused it: the strategy engine, the issuer, or the
 				      // fact that there is simply nothing to correct. ?>
                 <div class="alert alert-info">
@@ -197,7 +196,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 			<?php endif; ?>
 
 			<?php if (!empty($this->strategies)) : ?>
-				<?php // section 5: every strategy for this document, available or not, and
+				<?php // Every strategy for this document, available or not, and
 				      // why; the operator is never left to wonder where one went. ?>
                 <h4 class="h6 mt-4"><?php echo Text::_('COM_ALFA_CORRECTION_STRATEGIES_HEADING'); ?></h4>
                 <table class="table table-sm w-auto" data-alfa-strategies>

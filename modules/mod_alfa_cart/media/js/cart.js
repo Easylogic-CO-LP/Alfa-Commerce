@@ -291,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cartOuter.querySelector('[data-cart-items]').outerHTML = payload.tmpl;
 
         // What the counter counts, as the module's layout printed it on the toggler. A
-        // layout that names no mode (an override older than 2.2.0) keeps the counter it
+        // layout that names no mode (an older override) keeps the counter it
         // printed: the script never guesses what the counter counts.
         const mode = cartToggler.getAttribute('data-counter-mode');
 

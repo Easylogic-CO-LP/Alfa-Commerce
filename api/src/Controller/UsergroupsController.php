@@ -41,7 +41,7 @@ class UsergroupsController extends ApiController
 
     /**
      * A PATCH that names some price display settings changes those and keeps
-     * the group's others (2.2.1).
+     * the group's others.
      *
      * @return string[]
      *

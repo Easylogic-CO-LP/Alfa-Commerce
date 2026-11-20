@@ -86,7 +86,7 @@ trait ProjectsMoney
      * scale: `amount` is the rate itself, never
      * quantised, `formatted` shows its own decimals, and `minor_units` is null
      * for a finer rate, which has no whole number of minor units (a rounded
-     * one would be the 0.13 the ruling forbids for 0.125). At the currency's
+     * one would turn 0.125 into 0.13). At the currency's
      * scale it answers exactly what {@see self::money()} answers. No key is
      * added: a new REST field is an API-contract item.
      *

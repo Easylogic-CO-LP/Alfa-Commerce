@@ -29,12 +29,12 @@ use Alfa\Component\Alfa\Administrator\Event\General\LayoutEvent;
  * {@see \Alfa\Component\Alfa\Site\Helper\Layout::pluginLayout()}, a template may override
  * it at `html/plg_alfa-search_<element>/<layout>.php` like any other plugin layout. It
  * renders the input only: an engine's consumer of the result set's attribution loads when
- * the items view announces the result set ({@see ResultSetRenderEvent}, 2.2.0).
+ * the items view announces the result set ({@see ResultSetRenderEvent}).
  *
  * Arguments: `subject` = the list view (exposes `filterForm` and the document); `method` =
  * the CONFIGURED engine key, read straight from the component's global configuration
  * through SearchEngineRegistry::configuredKey() (never discovered; '' for the database
- * search, 2.2.1: before, 'database'), playing the role a payment method plays in the payments group:
+ * search), playing the role a payment method plays in the payments group:
  * "which one of you is being asked". A listener claims the input ONLY when the key is its
  * own, so exactly one engine ever owns the input and an enabled-but-not-configured engine
  * stays silent. `context` = which surface is rendering the input (`com_alfa.items`,

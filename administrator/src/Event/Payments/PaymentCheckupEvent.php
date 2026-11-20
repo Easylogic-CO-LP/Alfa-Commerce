@@ -237,8 +237,8 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * A sandbox or live card prints the address of its own set, which names
      * that set; a card without a set prints the plain address.
      *
-     * The plain form of the payment plugins' own address (2.2.1,
-     * PaymentsPlugin::webhookUrlFor()): the site root and index.php with the
+     * The plain form of the payment plugins' own address
+     * (PaymentsPlugin::webhookUrlFor()): the site root and index.php with the
      * task, never a language or a SEF path, so the card prints what the
      * gateway's own plugin sends.
      *
@@ -307,7 +307,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      */
     private static function languagePrefix(): string
     {
-        // The language filter's configuration as Joomla lists it, through the plugin helper (2.2.0); null when it is off.
+        // The language filter's configuration as Joomla lists it, through the plugin helper; null when it is off.
         $params = AlfaPluginHelper::get()->params(PluginId::from('system', 'languagefilter'));
 
         if ($params === null) {

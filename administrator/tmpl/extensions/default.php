@@ -35,7 +35,7 @@ $clearData = function (array $entry): string {
     $html = match ($support['status']) {
         'supported' => '<span class="badge bg-success">' . Text::_('COM_ALFA_EXTENSIONS_SUPPORTED') . '</span>',
         'unsupported' => '<span class="badge bg-warning text-dark">' . Text::_('COM_ALFA_EXTENSIONS_UNSUPPORTED') . '</span>',
-        // An Alfa plugin that could not be loaded, or a plugin of another group that could not be read (2.2.1).
+        // An Alfa plugin that could not be loaded, or a plugin of another group that could not be read.
         'failed', 'unread' => '<span class="badge ' . ($support['status'] === 'failed' ? 'bg-danger' : 'bg-secondary') . '">'
             . Text::_($support['status'] === 'failed' ? 'COM_ALFA_EXTENSIONS_NOT_LOADED' : 'COM_ALFA_EXTENSIONS_NOT_READ') . '</span>'
             . '<div class="small">' . $this->escape((string) $support['message']) . '</div>'
@@ -123,7 +123,7 @@ $clearData = function (array $entry): string {
                                 ? '<span class="badge bg-success">' . Text::_('COM_ALFA_EXTENSIONS_STATE_ENABLED') . '</span>'
                                 : '<span class="badge bg-secondary">' . Text::_('COM_ALFA_EXTENSIONS_STATE_DISABLED') . '</span>'; ?></td>
                             <td><?php if ($row['type'] === 'package' && $row['support']['status'] === 'remove_only') : ?>
-                                <?php // A language pack holds no data; it goes when Alfa Commerce is uninstalled (2.2.1). ?>
+                                <?php // A language pack holds no data; it goes when Alfa Commerce is uninstalled. ?>
                                 <?php echo $row['language_pack'] ? '<span class="small text-muted">' . Text::_('COM_ALFA_EXTENSIONS_LANGUAGE_PACK') . '</span>' : ''; ?>
                             <?php else : ?>
                                 <?php echo $clearData($row); ?>

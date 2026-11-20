@@ -154,7 +154,7 @@ class ManufacturerModel extends AlfaAdminModel
             return false;
         }
 
-        // A thumbnail the gallery names must be an image file of the media folders (2.2.1, MediaHelper::thumbnailRefusals()):
+        // A thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()):
         // a save naming any other is refused before anything is written, from the form and the API alike, so the
         // gallery keeps the thumbnails it stores.
         $thumbnailRefusals = MediaHelper::thumbnailRefusals(mediaData: (array) ($data['media'] ?? []));
@@ -296,7 +296,7 @@ class ManufacturerModel extends AlfaAdminModel
         // leaves every row where it was.
         $requested = $pks;
 
-        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks: no plugin code
         // runs under them.
         if (!$this->alfaAskBeforeDelete(pks: (array) $pks)) {
             return false;

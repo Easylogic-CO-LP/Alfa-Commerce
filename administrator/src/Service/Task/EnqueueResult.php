@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 \defined('_JEXEC') or die;
 
 /**
- * The job an enqueue wrote or joined (2.2.0, design 2.4).
+ * The job an enqueue wrote or joined.
  *
  * @since  2.2.0
  */

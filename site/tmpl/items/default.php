@@ -20,7 +20,7 @@ $wa->useStyle('com_alfa.list')
     ->useScript('com_alfa.list')
     ->useStyle('com_alfa.item');
 
-// The buying scripts only for cards that sell: in catalogue-only mode (2.2.2) a card has no buy form, as its item says
+// The buying scripts only for cards that sell: in catalogue-only mode a card has no buy form, as its item says
 // ($item->sellsOnline, the first card answering for the page); a page with no card asks the shop's switch.
 $firstCard = \is_array($this->items) && $this->items !== [] ? reset($this->items) : null;
 
@@ -79,18 +79,18 @@ $titleTag = $this->showPageHeading ? 'h2' : 'h1';
 <?php echo Layout::render('list.filter_form', ['view' => $this]); ?>
 <?php endif; ?>
 
-<?php // THE RESULTS REGION (2.2.0, design 2.20): the pagination and the list. Focusable by its markup (tabindex -1),
+<?php // THE RESULTS REGION: the pagination and the list. Focusable by its markup (tabindex -1),
       // which an override keeps or drops; list-form.js brings it into view and focuses it after a filter swap
       // (alfa:results:updated) and on a page the view marks (data-results-reveal: a later page, a submitted filter).
-      // Named by the results counter (UX-53), so the focus announces how many products show. ?>
+      // Named by the results counter, so the focus announces how many products show. ?>
 <section data-results tabindex="-1"<?php echo $this->resultsCounter !== '' ? ' aria-labelledby="alfa-results-counter"' : ''; ?><?php echo $this->revealResults ? ' data-results-reveal' : ''; ?>>
     <?php if ($this->resultsCounter !== '') : ?>
     <span id="alfa-results-counter" hidden><?php echo $this->escape($this->resultsCounter); ?></span>
     <?php endif; ?>
     <?php echo $this->pagination->getListFooter(); ?>
     <?php
-    // CLICK ATTRIBUTION IS DECLARED, NEVER INFERRED, and only through the view's two calls
-    // (2.2.0): resultSetAttributes() on the container (the handle and the shown order, once for
+    // CLICK ATTRIBUTION IS DECLARED, NEVER INFERRED, and only through the view's two calls:
+    // resultSetAttributes() on the container (the handle and the shown order, once for
     // the result set), resultAttributes() on each card (its global position). With no handle
     // neither renders anything. An override keeps these two calls.
     //

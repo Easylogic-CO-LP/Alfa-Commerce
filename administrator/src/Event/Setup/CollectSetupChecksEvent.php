@@ -22,7 +22,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *
  * Core's checks are in the event first, through its constructor ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\CoreSetupProvider::checks()}),
  * then the event is raised on the shared dispatcher once the `alfa` PLATFORM
- * group is imported, so every loaded listener answers (2.2.0); capability groups
+ * group is imported, so every loaded listener answers; capability groups
  * (alfa-payments, alfa-search, ...) are not imported for it, and are represented
  * by their platform adapter. Each plugin names itself as the check's
  * contributor (attribution, never an authorisation), so a check always knows who
@@ -54,7 +54,7 @@ class CollectSetupChecksEvent extends AbstractEvent
 
     /**
      * The event, holding the component's own checks (the coreChecks argument: SetupCheck[], each owned by
-     * core.com_alfa) before any plugin is asked, as the menu's core entries enter it (2.2.0); every later check comes
+     * core.com_alfa) before any plugin is asked, as the menu's core entries enter it; every later check comes
      * through add(), under its contributor.
      *
      * @param string $name The event name.
@@ -84,7 +84,7 @@ class CollectSetupChecksEvent extends AbstractEvent
      * Register one check, owned by the plugin that names itself, and hand it back for fluent completion. The
      * contributor is required: core's own checks enter through the constructor.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $id Stable check id, e.g. `payments.active`.
      * @param string $label Language key for the checklist row label.
      *

@@ -195,7 +195,7 @@ final class CardRegistry
         $key = $surface instanceof DashboardSurface ? $surface->value : $surface;
         $entry = self::cached(screen: $screen, scope: $scope);
 
-        // Only this surface's live cards are resolved: a screen asks once per surface (2.2.0, entry 27).
+        // Only this surface's live cards are resolved: a screen asks once per surface.
         $cards = self::withLive(cards: $entry['cards'], screen: $screen, surfaces: array_values(array_intersect($entry['live'], [$key])));
         self::loadOwnerLanguages($cards);
 
@@ -225,7 +225,7 @@ final class CardRegistry
     /**
      * What the cache keeps for a screen (the callback of forScreen()'s cache read): every card resolved and placed
      * except the live ones ({@see AdminCard::$live}), and the surfaces that hold a live card, which are resolved after
-     * the cache read on every request, whether or not they showed anything when the entry was made (2.2.0, entry 27).
+     * the cache read on every request, whether or not they showed anything when the entry was made.
      *
      * @param string $screen Screen id.
      *
@@ -252,7 +252,7 @@ final class CardRegistry
     }
 
     /**
-     * Cached cards with the live cards of the given surfaces resolved now and placed among them (2.2.0, entry 27).
+     * Cached cards with the live cards of the given surfaces resolved now and placed among them.
      *
      * @param array<string, array[]> $cards The cached cards, by surface.
      * @param string $screen Screen id.
@@ -356,7 +356,7 @@ final class CardRegistry
         // exercised on every page load rather than only when a plugin is installed.
         (new CoreCardProvider())->onAlfaCollectCards($event);
 
-        // Every listener on the shared dispatcher (2.2.0, design 2.15.3: mode A, a display phase, isolated), the
+        // Every listener on the shared dispatcher (broadcast, a display phase, isolated), the
         // platform group imported first; each card names its plugin, and a contributor loads its own language.
         $plugins = AlfaPluginHelper::get();
         $plugins->importGroup(PanelDispatcher::PLATFORM_GROUP);
@@ -391,7 +391,7 @@ final class CardRegistry
     /**
      * Load the language of every contributor represented in a resolved card list.
      *
-     * The one host load of a contributor's strings kept in 2.2.0: the cards are cached across requests, so a
+     * The one host load of a contributor's strings: the cards are cached across requests, so a
      * contributor's handler (where it loads its own language) does not run on every page that draws its cached card.
      *
      * @param array<string, array<int, array<string, mixed>>> $cards Cards keyed by surface.

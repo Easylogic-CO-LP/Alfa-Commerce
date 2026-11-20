@@ -42,7 +42,7 @@ $cartId    = (int) $this->builderCartId;
 $badge     = ['active' => 'bg-primary', 'abandoned' => 'bg-warning text-dark', 'empty' => 'bg-light text-dark border'];
 $statusKey = ['active' => 'COM_ALFA_CARTS_STATUS_ACTIVE', 'abandoned' => 'COM_ALFA_CARTS_STATUS_ABANDONED', 'empty' => 'COM_ALFA_CARTS_STATUS_EMPTY'];
 
-// A tab whose interior arrives in a later increment: a stable mount point the
+// A tab whose interior is not built yet: a stable mount point the
 // builder script fills, carrying the cart id every endpoint is scoped to.
 $pending = static function (string $region) use ($cartId): string {
     return '<div class="alfa-builder-region" data-region="' . $region . '" data-cart-id="' . $cartId . '">'

@@ -85,7 +85,7 @@
 
     /**
      * Whether a node is the product page's own product (its .item-container), not
-     * a card: a related product's card on the product page (2.2.2) is a card too.
+     * a card: a related product's card on the product page is a card too.
      */
     function isPageProduct(node) {
         var app = node.closest('#alfa-app');

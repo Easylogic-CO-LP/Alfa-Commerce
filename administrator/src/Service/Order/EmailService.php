@@ -46,11 +46,11 @@ use Throwable;
  *   EmailService::deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome): void
  *     one recipient at a time, each recipient's outcome reported as it comes (sent, failed before or at the
  *     server's answer, or unknown: handed over with no answer). The order's status e-mail and placement e-mail
- *     tasks send through it (2.1.4).
+ *     tasks send through it.
  *   EmailService::sendForStatusChange(int $orderId, int $newStatusId): void
  *     every recipient at once, failures logged only.
  *
- * A status change queues the order.status_email task (2.1.4), which sends
+ * A status change queues the order.status_email task, which sends
  * through deliverForStatus() once the change has committed; a mail failure is
  * recorded on that task and never touches the order.
  *
@@ -114,7 +114,7 @@ class EmailService
      * 'default' is the shipped one. Override via
      *   administrator/templates/<the default administrator template>/html/layouts/com_alfa/emails/order/default.php
      * when a site needs custom branding: the one template every mail reads, whatever application sends it
-     * ({@see EmailLayouts}, 2.2.1).
+     * ({@see EmailLayouts}).
      */
     private const LAYOUT_ID = 'emails.order.default';
 
@@ -283,10 +283,9 @@ class EmailService
      * The number an order is known by to its customer: its id.
      *
      * The confirmation e-mail's {order_number}, the fallback subject of the status e-mails, the order-complete page and
-     * the order picker of the test e-mail all show it. Up to 2.2.0 an invoice number was preferred; nothing wrote one,
-     * and 2.2.1 drops the column.
+     * the order picker of the test e-mail all show it.
      *
-     * Two forms of the one argument (2.2.2). A plugin passes the Order reader it was handed (Order); that is the form of
+     * Two forms of the one argument. A plugin passes the Order reader it was handed (Order); that is the form of
      * the plugin-facing API, and a plugin never reaches for Order::row() to call this. Core's own code passes the order
      * row as it loaded it (a stdClass).
      *
@@ -808,10 +807,10 @@ class EmailService
      * Whether entering a status sends anything: the status tells the customer, or has an administrator recipient who
      * may receive mail (not blocked, an address set). The two facts {@see self::deliverForStatus()} returns on at once
      * when both are missing, read in one statement: what a status change reads to decide whether its e-mail single has
-     * work (2.2.0).
+     * work.
      *
      * @param int $statusId The status entered.
-     * @param bool $customer Whether the customer may be told; false for a change made silent for the customer (2.2.1),
+     * @param bool $customer Whether the customer may be told; false for a change made silent for the customer,
      *                       when only the administrator recipients count.
      *
      * @since  2.2.0
@@ -857,7 +856,7 @@ class EmailService
      * @param callable(string): bool $attempt Whether to send to a recipient, by unit.
      * @param callable(string, string, string): void $outcome A recipient's unit, outcome and error.
      * @param bool $customer Whether the customer is told when the status says so; false for a change made silent for the
-     *                       customer (2.2.1), whose e-mail goes to the administrator recipients alone.
+     *                       customer, whose e-mail goes to the administrator recipients alone.
      *
      * @throws Throwable When the order or its data cannot be read (nothing was sent).
      *
@@ -905,7 +904,7 @@ class EmailService
         $tokens = self::buildTokens(order: $order, status: $status, langTag: $langTag);
 
         // Mail switched off for the site: nothing is sent, and no download link is minted for the customer. Each
-        // recipient is logged as a failed send, as Joomla's refusal was before 2.1.4.
+        // recipient is logged as a failed send.
         $mailOff = !Factory::getApplication()->get('mailonline', 1);
         $offError = 'Sending mail is switched off for the site (Global Configuration, Send Mail: No).';
         $notSent = static function (string $unit) use ($outcome, $offError, $orderId, $statusId): void {
@@ -1120,7 +1119,7 @@ class EmailService
                 $mailer->addStringAttachment($attachment['bytes'], $attachment['name']);
             }
 
-            // What the server was handed and answered decides a failure's kind (2.1.4).
+            // What the server was handed and answered decides a failure's kind.
             $watch = $mailer instanceof Mail ? MailHandover::watch(mailer: $mailer) : null;
             $sent = $mailer->Send() !== false;
 
@@ -2322,7 +2321,7 @@ class EmailService
 
             $incl = (float) ($row->value_tax_incl ?? 0);
 
-            // Rows frozen before 1.9.0 carry no inclusive figure.
+            // A row frozen without an inclusive figure takes the excl one.
             if ($incl <= 0.0) {
                 $incl = (float) ($row->value_tax_excl ?? 0);
             }

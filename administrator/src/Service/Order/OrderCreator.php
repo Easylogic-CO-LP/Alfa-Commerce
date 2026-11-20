@@ -63,7 +63,7 @@ final class OrderCreator
 
     /**
      * The width clampTaxName() fits a name to: a catalogue tax name's own width (the per-language name column is
-     * VARCHAR(255)). For a plugin's column of that width; core's order line keeps the name whole (2.2.0).
+     * VARCHAR(255)). For a plugin's column of that width; core's order line keeps the name whole.
      *
      * @since  2.0.0
      */
@@ -82,7 +82,7 @@ final class OrderCreator
      *   shipment_method_name  string Frozen label ('' = none).
      *   id_address_delivery   int    Existing #__alfa_user_info id: required when
      *                                the draft names a shipping method (refused
-     *                                otherwise, 2.2.1); 0 = none for an order with
+     *                                otherwise); 0 = none for an order with
      *                                no shipping method (a virtual order).
      *   id_address_invoice    int    Existing #__alfa_user_info id (0 = none).
      *   id_order_status       int    0/absent = the is_initial status.
@@ -108,7 +108,7 @@ final class OrderCreator
      *     unit_price_tax_excl / unit_price_tax_incl (required),
      *     total_price_tax_excl / total_price_tax_incl (required: the line's
      *     whole amounts as charged; a line is never priced as its unit times
-     *     its quantity, 2.2.1),
+     *     its quantity),
      *     original_product_price (absent = unit_price_tax_excl),
      *     tax_rate, tax_name, discount_percent,
      *     discount_amount_tax_excl / _incl, id_shipment_method.
@@ -130,9 +130,9 @@ final class OrderCreator
     {
         // WHO PLACED THIS ORDER IS NOT A DEFAULT. The column documents exactly
         // four origins (storefront | admin | renewal | api) and every real
-        // caller passes one, but the two `?? 'service'` fallbacks this replaces
-        // wrote an undocumented fifth word for any caller that forgot: 12,845
-        // of them on the demo, indistinguishable afterwards from real sales.
+        // caller passes one; a default would write an undocumented fifth word
+        // for any caller that forgot, indistinguishable afterwards from real
+        // sales.
         // PRESENCE only, never a vocabulary check: validating the value here
         // would fatal a live checkout the first time a plugin supplies a word
         // this list has not heard of.
@@ -162,7 +162,7 @@ final class OrderCreator
                 throw new RuntimeException("OrderCreator: line {$i} needs explicit unit prices (the service never re-prices).");
             }
 
-            // A line states what was charged for it, whole (2.2.1): a rounded unit times the quantity can differ by cents
+            // A line states what was charged for it, whole: a rounded unit times the quantity can differ by cents
             // from it, so a line without its totals is refused, never priced from its unit.
             $missing = array_values(array_filter(
                 ['total_price_tax_excl', 'total_price_tax_incl'],
@@ -176,9 +176,9 @@ final class OrderCreator
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
-        // An order that is shipped is shipped somewhere (2.2.1): a draft that names a shipping method names an existing
+        // An order that is shipped is shipped somewhere: a draft that names a shipping method names an existing
         // delivery record, or it is refused before anything is written; a virtual order (no shipping method) needs
-        // none. 2.2.0 wrote such an order with no delivery record at all.
+        // none.
         if ((int) ($draft['id_shipment_method'] ?? 0) > 0) {
             $deliveryId = (int) ($draft['id_address_delivery'] ?? 0);
             $delivery = $deliveryId > 0 ? (int) $db->setQuery(
@@ -583,7 +583,7 @@ final class OrderCreator
         $row->unit_price_tax_excl = $unit($unitExcl);
         $row->unit_price_tax_incl = $unit($unitIncl);
 
-        // The line's whole amounts as the caller stated them (create() refuses a line without them, 2.2.1).
+        // The line's whole amounts as the caller stated them (create() refuses a line without them).
         $row->total_price_tax_excl = $money($line['total_price_tax_excl']);
         $row->total_price_tax_incl = $money($line['total_price_tax_incl']);
         $row->original_product_price = $unit($line['original_product_price'] ?? $unitExcl);
@@ -593,8 +593,8 @@ final class OrderCreator
         // NULL means "this row has no Item 3 authority" and 0.00 means "the
         // authority says zero". Writing 0 for the first would be fabricating
         // financial truth, and no consumer could tell it from the second.
-        // The custom price travels with its own whole line (custom_total_tax_*,
-        // lane CT): a placed custom-priced line keeps what a manual discount
+        // The custom price travels with its own whole line (custom_total_tax_*): a
+        // placed custom-priced line keeps what a manual discount
         // on it must later be taken off.
         foreach ([
             'base_total_tax_excl',
@@ -613,7 +613,7 @@ final class OrderCreator
         // caller carries no PriceResult.
         $row->payable_unit = isset($line['payable_unit']) ? $unit($line['payable_unit']) : null;
         $row->tax_rate = (float) ($line['tax_rate'] ?? 0);
-        // The applied tax's name, whole (2.2.0: the column is text): a combined rules' name joined with ' + ' can
+        // The applied tax's name, whole (the column is text): a combined rules' name joined with ' + ' can
         // pass 255 characters, and a name on a fiscal document is never shortened.
         $row->tax_name = (string) ($line['tax_name'] ?? '');
         $row->discount_percent = (float) ($line['discount_percent'] ?? 0);
@@ -629,7 +629,7 @@ final class OrderCreator
      * Fit an applied-tax name to a column of TAX_NAME_MAX characters, and say so when it did not fit: a helper for a
      * plugin that keeps a copy of the name in a column of its own of that width (the Subscriptions plugin does).
      *
-     * Core no longer calls it (2.2.0): the order line's tax name is text and every core writer stores the name whole,
+     * Core no longer calls it: the order line's tax name is text and every core writer stores the name whole,
      * because a combined rules' name joined with ' + ' (PriceComputationEngine::processTaxes()) can pass 255
      * characters and a name on a fiscal document is never shortened. The name is cut only when it cannot fit, and the
      * cut is logged with enough of the original to identify the rule that produced it; log only, never

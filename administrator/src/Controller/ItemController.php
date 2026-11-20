@@ -1185,7 +1185,7 @@ class ItemController extends FormController
                 throw new RuntimeException(Text::_('COM_ALFA_PANEL_TASK_POST_ONLY'), 405);
             }
 
-            // The field's own plugin, through the plugin helper (2.2.0, mode B): unavailable or without the hook, the
+            // The field's own plugin, through the plugin helper (targeted): unavailable or without the hook, the
             // action is refused; its handler's exception is the action's failure.
             $plugins = AlfaPluginHelper::get();
 
@@ -1560,7 +1560,7 @@ class ItemController extends FormController
         // service would refuse. A refused save writes no column, no media and no
         // stock, and says what is required. A thumbnail of the variant's gallery
         // that is not an image file of the media folders is one such refusal
-        // (2.2.1, MediaHelper::thumbnailRefusals()).
+        // (MediaHelper::thumbnailRefusals()).
         $plan = ItemFieldsAdminHelper::studioStockPlan(
             itemId:         $itemId,
             combinationId:  $combinationId,

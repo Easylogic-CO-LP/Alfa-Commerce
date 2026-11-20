@@ -229,11 +229,11 @@ class ItemModel extends BaseItemModel
                 $data->editLine = $editLine; // wrapper: "Update" + hidden edit_line
             }
 
-            // Catalogue only (2.2.2): the storefront sells nothing, so no price is computed and the item says so; every
+            // Catalogue only: the storefront sells nothing, so no price is computed and the item says so; every
             // template reads $data->sellsOnline, never a view (the cards carry it too).
             $data->sellsOnline = ShopMode::sellsOnline();
 
-            // The quantity the page opens with (2.2.2): the product's minimum, as a listing card prices it, or the quantity
+            // The quantity the page opens with: the product's minimum, as a listing card prices it, or the quantity
             // the request states (recalculate() sets it), never under the minimum. The item says it ($data->pricedQuantity)
             // for a caller that draws beside the price (recalculate()'s stock line).
             $opening = Pricing\PricingIntent::catalog()->getQuantityForItem($data);
@@ -322,8 +322,8 @@ class ItemModel extends BaseItemModel
      * listing card does the same in ItemsModel via onItemListPrepare; this is the
      * product-page (onItemView) twin. A plain field's handler is a no-op. The
      * cart region and its children are kept here, changed only from the setters
-     * of a field event that succeeded, and handed to the item after each field
-     * (2.2.2): a write to $item->cart or $item->cartChildren from onItemView is not
+     * of a field event that succeeded, and handed to the item after each field:
+     * a write to $item->cart or $item->cartChildren from onItemView is not
      * kept, and a plugin that throws loses what it set.
      *
      * @param object $item The loaded item (carries ->fields).
@@ -332,7 +332,7 @@ class ItemModel extends BaseItemModel
      */
     protected function dispatchFieldSurfaces(object $item): void
     {
-        // A product with no price applying offers no add to cart (2.2.2): core's main slot is no layout, which the
+        // A product with no price applying offers no add to cart: core's main slot is no layout, which the
         // wrapper renders as nothing. One priced from a larger quantity keeps it, and the cart says from which quantity.
         // A field plugin that sets its own slot decides for itself, and the cart refuses the add in any case.
         $cart = [
@@ -345,8 +345,8 @@ class ItemModel extends BaseItemModel
         $item->cart = $cart;
         $item->cartChildren = $cartChildren;
 
-        // The page's surfaces are collected here and handed to the item as a read-only map after each contribution
-        // (2.2.1): a plugin holding the item reads what the others contributed and cannot change it.
+        // The page's surfaces are collected here and handed to the item as a read-only map after each contribution:
+        // a plugin holding the item reads what the others contributed and cannot change it.
         $slots = [];
         $item->surfaces = new SurfaceMap();
 
@@ -355,7 +355,7 @@ class ItemModel extends BaseItemModel
         // engine then owns every live toggle from the identical rule + state.
         $showonBag = StateBagBuilder::fromItem($item);
 
-        // Each field's own plugin, through the plugin helper (2.2.0, mode B): booted through Joomla's list (a disabled
+        // Each field's own plugin, through the plugin helper (targeted): booted through Joomla's list (a disabled
         // or missing one, or another family's, takes no part), asked only when it declares the hook.
         $plugins = AlfaPluginHelper::get();
 
@@ -377,10 +377,10 @@ class ItemModel extends BaseItemModel
                 'selections' => $item->fieldSelections ?? [],
             ]);
 
-            // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
+            // Isolated: a plugin whose handler throws loses this field's part, logged once, and the
             // product page renders without it.
             if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') on the product page')) {
-                // What the failed plugin wrote on the item's cart is not kept (2.2.2).
+                // What the failed plugin wrote on the item's cart is not kept.
                 $item->cart = $cart;
                 $item->cartChildren = $cartChildren;
 
@@ -416,7 +416,7 @@ class ItemModel extends BaseItemModel
                 ];
             }
 
-            // Handed after each field (2.2.2): what a plugin wrote on the item's cart outside the setters is not kept.
+            // Handed after each field: what a plugin wrote on the item's cart outside the setters is not kept.
             $item->cart = $cart;
             $item->cartChildren = $cartChildren;
 
@@ -434,8 +434,8 @@ class ItemModel extends BaseItemModel
             $item->surfaces = new SurfaceMap($slots);
         }
 
-        // Feature plugins (onItemDisplay, 2.2.0): one event on the shared dispatcher after the
-        // field surfaces (mode A, a display phase, isolated), so their contributions land on
+        // Feature plugins (onItemDisplay): one event on the shared dispatcher after the
+        // field surfaces (broadcast, a display phase, isolated), so their contributions land on
         // the same slot map, each owner defaulted to the plugin it names.
         $plugins = AlfaPluginHelper::get();
         $plugins->importGroup('alfa');
@@ -449,7 +449,7 @@ class ItemModel extends BaseItemModel
         // known (set by resolveAndPrice before this runs).
         SaleTag::contribute($item, false);
 
-        // Catalogue only (2.2.2), core's last word, after every pass that can change the buy area (the field events, the
+        // Catalogue only, core's last word, after every pass that can change the buy area (the field events, the
         // feature plugins, the badges): the buy form's slots hold only plain read-only lists of the fields that drew a
         // surface there, whoever else contributed to them, and the cart main slot is none, whatever a plugin set.
         if (!($item->sellsOnline ?? true)) {

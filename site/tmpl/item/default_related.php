@@ -8,7 +8,7 @@
  */
 
 /**
- * The product's related products (the "related" slot, 2.2.2): a part of the page of its own, after the product's
+ * The product's related products (the "related" slot): a part of the page of its own, after the product's
  * container, so a variant change of the product (which replaces that container) leaves it as it is. The cards are the
  * listing's own (html/com_alfa/items/default_item.php when the template overrides it), in the order staff set, only the
  * products the visitor may see, at most the count of the product, its category, the menu item or the Options. Nothing

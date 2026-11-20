@@ -13,7 +13,7 @@ defined('_JEXEC') or die;
 
 /**
  * WHAT KIND of catalogue thing a search names: the one spelling of entity identity
- * shared by queries, results, hits, suggestions and (from Phase B) the index itself.
+ * shared by queries, results, hits, suggestions and the index itself.
  *
  * THE BACKED VALUES ARE {@see DocumentId} TYPE SEGMENTS. `DocumentId::TYPE_ITEM`
  * reserved the `type` key segment precisely so more document kinds could arrive

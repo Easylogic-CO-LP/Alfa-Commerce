@@ -137,7 +137,7 @@ class RegistrationModel extends FormModel
      *
      * The details stored are the ones validate() answered: filtered by each field, checked by its rules and pruned of
      * every field a ShowOn rule hides. The raw request is never read here, and no other user save writes customer
-     * details (2.2.1).
+     * details.
      *
      * @param array $data Validated form data.
      *

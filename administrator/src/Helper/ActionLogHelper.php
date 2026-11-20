@@ -23,8 +23,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * One row in Joomla's User Actions Log, written the way core's own rows are, and the answer whether it is there
- * (2.2.1).
+ * One row in Joomla's User Actions Log, written the way core's own rows are, and the answer whether it is there.
  *
  * The one place an Alfa Commerce extension writes Joomla's action log through: a payment or shipping plugin calls it
  * with recordActionLog() on its base class. The row is inserted directly rather than through

@@ -30,13 +30,13 @@ INSERT INTO `#__alfa_meta` (`name`, `value`)
 SELECT 'schema_version', '2.2.2' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'schema_version');
 
--- How far the stored price periods that began are announced (onAlfaPricesChanged, cause window, 2.2.2): from the
+-- How far the stored price periods that began are announced (onAlfaPricesChanged, cause window): from the
 -- moment of install, so nothing before it is announced. The installer's update writes it where it is missing.
 INSERT INTO `#__alfa_meta` (`name`, `value`)
 SELECT 'prices.windows_announced_until', DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%d %H:%i:%s') FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'prices.windows_announced_until');
 
--- Begin of the Clear everything block, added in 2.1.0. Keep it whole and apart from other tables.
+-- Begin of the Clear everything block. Keep it whole and apart from other tables.
 --
 -- The durable state of Clear everything (Tools > Reset and clear), in one row: the run at work,
 -- paused or failed; what the last finished one left on record; and the outcome of each Alfa
@@ -544,8 +544,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
   -- through RoleRegistry instead of guessing by field_name. One row per role.
   -- name | email = the customer's identity (system rows, always present);
   -- phone = the customer's phone (a default row the merchant may drop).
-  -- address | city | postcode = the delivery address a new shop ships (2.2.1;
-  -- default rows, not identity: RoleRegistry::identityRoles()).
+  -- address | city | postcode = the delivery address a new shop ships
+  -- (default rows, not identity: RoleRegistry::identityRoles()).
   `role` varchar(32) DEFAULT NULL,
   -- SYSTEM ROW. The product owns the definition (type, column, role; never
   -- deleted, never unpublished); the merchant owns position, group, label and
@@ -578,7 +578,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
 -- account's address is used). `phone` and `country` are DEFAULT rows: shipped
 -- so a fresh store captures what couriers, gateways and shipping zones need,
 -- but the merchant may unpublish, regroup or delete them like any own field.
--- `address`, `city` and `postcode` (2.2.1) are default rows too: what a courier
+-- `address`, `city` and `postcode` are default rows too: what a courier
 -- and a sales document need, required in the delivery section, optional at
 -- registration and in the invoice section. A new shop only: an update adds no
 -- field. Their #__alfa_user_info columns are part of that table's CREATE below.
@@ -1494,7 +1494,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   KEY `modified_by` (`modified_by`),
   KEY `created_by` (`created_by`),
   KEY `idx_id_user` (`id_user`),
-  -- The orders of one customer by the e-mail on the order (the REST API's filter[email], 2.2.1), a guest's included.
+  -- The orders of one customer by the e-mail on the order (the REST API's filter[email]), a guest's included.
   KEY `idx_customer_email` (`customer_email`),
   KEY `idx_date_add` (`created`),
   -- "Waiting for you" counts every order still in the initial status, with no date
@@ -1685,7 +1685,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_downloads` (
   -- entitlement permits. 0 = unlimited, which is a real business meaning and not
   -- an absent value.
   --
-  -- MONOTONIC DOWNWARD ONLY (pre-v1 policy): reconciliation may REDUCE it when
+  -- MONOTONIC DOWNWARD ONLY: reconciliation may REDUCE it when
   -- eligibility shrinks, and may never raise it. An ordinary edit to a mutable
   -- order or catalogue is not proof of entitlement, so no edit, re-sync, re-grant
   -- or status flip can enlarge what was granted.
@@ -1889,7 +1889,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
 --
 -- Table structure for table `#__alfa_refund_report_outcomes`
 --
--- The outcome of each refund a payment provider reported as made outside Alfa (2.1.0):
+-- The outcome of each refund a payment provider reported as made outside Alfa:
 -- booked by Record this refund (with the provider figures, or an amount an authorised
 -- user typed), reconciled to a refund already in the books, or resolved as a duplicate
 -- or invalid report. One row per report of a gateway and payment; every gateway answer
@@ -3284,11 +3284,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_action_once` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='One-time action keys already used, per user';
 
 --
--- The tasks table (2.1.4): a single is one thing a change owes after its commit (an e-mail, a
+-- The tasks table: a single is one thing a change owes after its commit (an e-mail, a
 -- plugin's reaction, a notice), written in the change's own transaction and run once the outermost
 -- transaction has committed and Alfa's named locks are released; a job is long work with steps and a
--- checkpoint (from 2.2.0, whose columns are here already). The slots table holds the concurrency
--- classes of jobs (one heavy job at a time), used from 2.2.0.
+-- checkpoint. The slots table holds the concurrency classes of jobs (one heavy job at a time).
 --
 CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -3339,8 +3338,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_task_slots` (
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Concurrency slots of jobs: one heavy job at a time';
 
--- The slot rows are data (2.2.0): the heavy class of jobs and the three trigger gates, written into the empty table
--- (an update writes the same rows with INSERT IGNORE, 2.2.0.sql); a second run changes nothing.
+-- The slot rows are data: the heavy class of jobs and the three trigger gates, written into the empty table
+-- (an update writes the same rows with INSERT IGNORE); a second run changes nothing.
 INSERT INTO `#__alfa_task_slots` (`name`)
 SELECT * FROM (
             SELECT 'heavy' AS `name`

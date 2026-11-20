@@ -19,7 +19,7 @@ use Joomla\CMS\Event\AbstractEvent;
 /**
  * onCollectDocumentTypeProviders: the typed collection event of the
  * provider discovery. Package plugins contribute their providers through
- * addProvider(), naming themselves as group.element (2.2.0):
+ * addProvider(), naming themselves as group.element:
  *
  *     public function onCollectDocumentTypeProviders(
  *         CollectDocumentTypeProvidersEvent $event
@@ -28,8 +28,8 @@ use Joomla\CMS\Event\AbstractEvent;
  *     }
  *
  * The registry keeps a provider's types under Joomla's name for the plugin,
- * plg_<group>_<element> (plg_alfa_mypack), as before 2.2.0, so the types a
- * provider registered then stay its own.
+ * plg_<group>_<element> (plg_alfa_mypack), so the types a
+ * provider registered earlier stay its own.
  *
  * The typed signature IS the developer contract: no argument-array
  * shapes to remember, and a wrong provider type fails loudly at the
@@ -58,7 +58,7 @@ class CollectDocumentTypeProvidersEvent extends AbstractEvent
      * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
      *
      * @param DocumentTypeProviderInterface $provider The provider instance.
-     * @param string $contributor The contributing plugin, group.element (2.2.0; in place of the extension name; attribution,
+     * @param string $contributor The contributing plugin, group.element (in place of the extension name; attribution,
      *                            never an authorisation).
      * @param string $version The package version.
      *

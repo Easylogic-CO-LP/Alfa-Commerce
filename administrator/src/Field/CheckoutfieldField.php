@@ -32,14 +32,14 @@ use Throwable;
  * reads it off the cart. It lives in the component because the need is not one
  * plugin's, and none of them should ship their own copy of this dropdown.
  *
- * A STARTING CHOICE BY ROLE (2.2.1). `defaultrole="postcode"` starts a setting
+ * A STARTING CHOICE BY ROLE. `defaultrole="postcode"` starts a setting
  * that was never saved on the field carrying that role (RoleRegistry), when the
  * picker offers it: a new shop ships its address fields with their roles, so a
  * new carrier method starts on the shop's own postcode field. A saved setting
  * is never changed, an empty choice ("None") included, and a field the picker
  * does not offer (unpublished, of another type or out of its sections) is not
- * taken. A shop with no field of that role (one installed before 2.2.1) starts
- * on nothing, as before.
+ * taken. A shop with no field of that role starts
+ * on nothing.
  *
  * IT SAVES THE FIELD'S ID, NOT ITS COLUMN NAME. Renaming a field rewrites the
  * name and ALTERs the column; an id does not move. Read the value back with
@@ -91,7 +91,7 @@ class CheckoutfieldField extends ListField
 
     /**
      * Set the field up; a setting that was never saved starts on the field carrying the `defaultrole` attribute's
-     * role, when the picker offers it (2.2.1).
+     * role, when the picker offers it.
      *
      * @param SimpleXMLElement $element The field's XML element.
      * @param mixed $value The value, or null.

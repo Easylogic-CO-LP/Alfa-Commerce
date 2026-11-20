@@ -21,7 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 
 /**
- * Apply the stock movements orders and documents still owe (2.2.0): the stock effect outbox drained.
+ * Apply the stock movements orders and documents still owe: the stock effect outbox drained.
  *
  * InventoryEffectOutbox::drain() keeps its own transactions and claims, so a second run of an obligation is impossible
  * and the runner's chunk carries only the progress. A chunk that settles nothing (applies nothing and refuses nothing)

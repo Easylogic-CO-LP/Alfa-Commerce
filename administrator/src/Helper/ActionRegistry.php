@@ -500,7 +500,7 @@ class ActionRegistry
                     return self::refusedPage(group: $group, type: (string) $field->type, event: $event, messageKey: 'COM_ALFA_ACTION_REFUSED_REPEATED', reason: $refusal);
                 }
 
-                // The field's own plugin, through the plugin helper (2.2.0, mode B): unavailable or without the hook,
+                // The field's own plugin, through the plugin helper (targeted): unavailable or without the hook,
                 // refused; its handler's exception is the action's failure.
                 $plugins = AlfaPluginHelper::get();
 
@@ -532,7 +532,7 @@ class ActionRegistry
                 // ledger's verbs and never boot a plugin, and the ledger acts only
                 // on a report it lists for this payment, so staff always have a
                 // way out of the refund block such a payment's kept provider
-                // refund holds (since 2.1.1).
+                // refund holds.
                 $type = self::methodType($payment, 'payment_method_type');
                 $actionId = RequestScalar::cmd($input, 'action');
 
@@ -587,7 +587,7 @@ class ActionRegistry
                 $reportAction = self::isReportAction(actionId: $actionId);
                 $gateway = null;
 
-                // THE PLUGIN OF RECORD (2.2.0, design 2.15.5): a gateway action runs on the plugin that took the
+                // THE PLUGIN OF RECORD: a gateway action runs on the plugin that took the
                 // payment or not at all; while that plugin is disabled, missing or cannot be loaded, the action is
                 // refused with its name and how to restore it. The ledger's and the reports' own actions call no
                 // gateway and stay available.
@@ -679,7 +679,7 @@ class ActionRegistry
                     'data' => [],
                 ]);
 
-                // The carrier of record, or no action (2.2.0, design 2.15.5).
+                // The carrier of record, or no action.
                 $carrier = self::pluginOfRecord(group: 'alfa-shipments', type: $type);
 
                 if (!$carrier instanceof LoadedPlugin) {
@@ -1016,7 +1016,7 @@ class ActionRegistry
      * created and survives the method being deleted, which is the whole point
      * of having it. A row that records none (written before the snapshot
      * existed) is UNKNOWN: its type is never inferred from the live method,
-     * which may have been edited or replaced since (no fallbacks, since 2.1.1).
+     * which may have been edited or replaced since (no fallbacks).
      *
      * Returns '' when the row records none. '' means UNKNOWN: no caller assumes
      * a plugin for it, never "standard" (a wrong plugin booted against a real
@@ -1203,7 +1203,7 @@ class ActionRegistry
      * own reports (money a provider moved that the core keeps for staff,
      * REPORT_RESERVATION_PREFIX ids) are offered on every payment row, whatever
      * it records as its type (none, the customer's credit), so staff always
-     * have a way out of the refund block they hold (since 2.1.1). Per report,
+     * have a way out of the refund block they hold. Per report,
      * those that hold the refund block first, then those that reserve their
      * amount, each in the order listed: Record this refund for a settled report
      * with an exact amount (orders: edit); for an operator who may resolve reports,
@@ -1734,7 +1734,7 @@ class ActionRegistry
         $fieldId = $field->id ?? '?';
 
         try {
-            // The field's own plugin, through the plugin helper (2.2.0, mode B).
+            // The field's own plugin, through the plugin helper (targeted).
             $plugins = AlfaPluginHelper::get();
             $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
 
@@ -1822,13 +1822,13 @@ class ActionRegistry
 
             self::trace("{$label} #{$entityId}: type = \"{$pluginType}\"");
 
-            // Step 2: the plugin of record, through the plugin helper (2.2.0): unavailable, one refusal naming it and
+            // Step 2: the plugin of record, through the plugin helper: unavailable, one refusal naming it and
             // how to restore it, and nothing offered from any other plugin.
             $plugin = self::pluginOfRecord(group: $pluginGroup, type: $pluginType);
 
             if (!$plugin instanceof LoadedPlugin) {
                 // Not enqueued: the order page says it at its top and in the row's Actions cell ({@see self::refusal()}),
-                // and a delete that reads the order says nothing of it (UX-33, UX-35, UX-36).
+                // and a delete that reads the order says nothing of it.
                 return [];
             }
 
@@ -1871,7 +1871,7 @@ class ActionRegistry
 
     /**
      * Why a payment's or a shipment's actions are not offered because its plugin of record cannot be used, or '' when
-     * they are (or the row has no plugin): the order page says it at its top and in the row's Actions cell (UX-35).
+     * they are (or the row has no plugin): the order page says it at its top and in the row's Actions cell.
      * Read from the plugin helper each time, the one source of the plugin's state.
      *
      * @param object $entity The payment or shipment row.
@@ -1894,7 +1894,7 @@ class ActionRegistry
 
     /**
      * The sentence staff read when a row's plugin of record cannot be used: the plugin by the name Extensions: Plugins
-     * shows and why (UX-25, UX-27, UX-35); for a plugin Joomla does not load for this account, its own sentence.
+     * shows and why; for a plugin Joomla does not load for this account, its own sentence.
      *
      * @param string $group alfa-payments or alfa-shipments.
      * @param string $type The row's own method type.
@@ -1924,7 +1924,7 @@ class ActionRegistry
     }
 
     /**
-     * A row's plugin of record, booted through the plugin helper (2.2.0, design 2.15.5); the reason when it cannot be.
+     * A row's plugin of record, booted through the plugin helper; the reason when it cannot be.
      *
      * @param string $group The plugin group.
      * @param string $type The row's own method type.
@@ -1945,7 +1945,7 @@ class ActionRegistry
     }
 
     /**
-     * Show a warning: ALWAYS visible, as staff read any other warning (no debug tag, A-UX-1; trace() keeps its own).
+     * Show a warning: ALWAYS visible, as staff read any other warning (no debug tag; trace() keeps its own).
      *
      * Used for actual errors that prevent actions from working.
      * Admin must see these regardless of debug mode.

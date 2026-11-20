@@ -72,7 +72,7 @@ class CurrenciesController extends ApiController
     }
 
     /**
-     * A currency is deleted from the trash only, as the administrator's list of currencies deletes it (2.2.1).
+     * A currency is deleted from the trash only, as the administrator's list of currencies deletes it.
      *
      * @since  2.2.1
      */

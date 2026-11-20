@@ -249,7 +249,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * The jobs for the Tasks tab, as the jobs card draws them ({@see TaskStaff::jobsCard()}): the same data the card's
-     * own refresh on the progress page draws (UX-84). This page follows the job of &job=N when it is a progress page.
+     * own refresh on the progress page draws. This page follows the job of &job=N when it is a progress page.
      *
      * @return array{rows: list<array<string, mixed>>, groups: array<int, string>, engines: array<string, string>, thumbnailsMode: string|null, followedJob: int, failedJobs: int, unreadable: bool}
      *

@@ -27,8 +27,8 @@ use Joomla\CMS\Uri\Uri;
  * onOrderProcessView(), which causes the HtmlView to skip this page
  * and redirect straight to default_order_completed. When the order's
  * gateway of record cannot be loaded, or its handler fails, the page
- * shows a neutral line instead and never moves on (2.2.0); never a dead
- * end either (UX-72): the order's number above the line, and under it
+ * shows a neutral line instead and never moves on; never a dead
+ * end either: the order's number above the line, and under it
  * Try again (this same address, which asks the gateway again) and
  * Continue shopping, in the order pages' look.
  */

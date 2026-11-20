@@ -39,7 +39,7 @@ final class CartTotalsView
      * @param Money $grandExcl The same, tax excluded.
      * @param string[] $contributionsNotLoaded The plugins (group.element) the customer's view levels admit that Joomla
      *                                         does not load for the request's user: their charges are missing and the
-     *                                         placement refuses (2.2.0).
+     *                                         placement refuses.
      *
      * @since  2.0.0
      */

@@ -33,7 +33,7 @@ use Throwable;
  * so a copy of a shop kept with mail off sends nothing late. An order's e-mails go in the order they were written
  * (the sequence order.email), and each names the status it was made for.
  *
- * Who an e-mail reached outlives its task (2.2.0): a done run writes 'order.email_sent' on the order's timeline in the
+ * Who an e-mail reached outlives its task: a done run writes 'order.email_sent' on the order's timeline in the
  * transaction that settles it, and a failed or held run's record lists the recipients already sent.
  *
  * @since  2.1.4
@@ -93,8 +93,8 @@ class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
             EmailService::deliverForStatus(
                 orderId: $run->subjectId(),
                 statusId: (int) ($run->payload()['status'] ?? 0),
-                // false for a change made silent for the customer (2.2.1); a single written before 2.2.1 carries no
-                // such key and tells the customer, as it did when it was written.
+                // false for a change made silent for the customer; a single that carries no such key tells
+                // the customer.
                 customer: ($run->payload()['customer'] ?? true) !== false,
                 attempt: static fn (string $unit): bool => $run->shouldAttempt(unit: $unit),
                 outcome: static function (string $unit, string $outcome, string $error) use ($run, &$failed, &$unknown, &$off): void {
@@ -127,7 +127,7 @@ class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
             throw TaskFailure::unknown(message: 'Handed over with no answer: ' . implode(', ', $unknown) . '.');
         }
 
-        // A final failure at once (s68): never retried by itself, so nothing goes out late once mail is on.
+        // A final failure at once: never retried by itself, so nothing goes out late once mail is on.
         if ($off !== []) {
             throw TaskFailure::failed(message: self::MAIL_OFF . ', so nothing was sent to ' . implode(', ', $off) . '. Resend it once mail is on.');
         }

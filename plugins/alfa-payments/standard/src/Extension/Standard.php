@@ -241,7 +241,7 @@
  *   3. reads $params['status_on_' . $newStatus]
  *   4. runs Transition::for($orderId)->to($target)->byPlugin($type)->save()
  *
- * Since 2.2.0 steps 2 to 4 run from the payment.automation task the write
+ * Steps 2 to 4 run from the payment.automation task the write
  * records with the row, in the same transaction: the move itself runs once
  * that transaction has committed and after any money lock you hold is
  * released (OrderMoneyLock::run()). At the top level, as here, that is
@@ -653,7 +653,7 @@ final class Standard extends PaymentsPlugin
     /**
      * Product page: what the method adds below itself (e.g. "Pay in installments").
      *
-     * Core draws every method there first (2.2.2): its image when the shop set one,
+     * Core draws every method there first: its image when the shop set one,
      * its title and its description (layout methods.item). A plugin's layout adds
      * only its own content below them, never a logo, the title or the description.
      *
@@ -854,7 +854,7 @@ final class Standard extends PaymentsPlugin
     //     onPaymentResponse(), onPaymentWebhook(), onGetActions(),
     //     onExecuteAction(), onPaymentCheckup() and the rest of
     //     PaymentsPlugin::TARGETED_EVENTS) are addressed to this plugin alone by
-    //     Alfa's targeted dispatch (2.2.0): the base class's
+    //     Alfa's targeted dispatch: the base class's
     //     getTargetedHandlers() declares each of those events this class has a
     //     method of the same name for, and the component asks only the method
     //     it is about. Writing the method IS the subscription; nothing is put
@@ -1095,7 +1095,7 @@ final class Standard extends PaymentsPlugin
             return;
         }
 
-        // Only an order this plugin takes (2.2.0): the order's recorded method type is this plugin's and its method is
+        // Only an order this plugin takes: the order's recorded method type is this plugin's and its method is
         // still one of this plugin's. Another gateway's order gets no row from here.
         if ($this->getPaymentMethod(orderId: (int) $order->id()) === null) {
             return;
@@ -1366,7 +1366,7 @@ final class Standard extends PaymentsPlugin
      */
     public function onExecuteAction($event): void
     {
-        // Every action that writes acts only on a payment this plugin wrote (2.2.0): a row of another gateway, or one
+        // Every action that writes acts only on a payment this plugin wrote: a row of another gateway, or one
         // this plugin's name was never recorded on, is refused before anything is read or written.
         $payment = $event->getPayment();
 
@@ -1440,7 +1440,7 @@ final class Standard extends PaymentsPlugin
         // what you set), diffs old vs new to build the activity-log entry,
         // writes #__alfa_order_activity_log, and (because this is the
         // UPDATE path) grants download entitlements and runs the method's
-        // status_on_<status> order transition; since 2.2.0 those run from
+        // status_on_<status> order transition; those run from
         // tasks after the commit (no money lock is held here, so before
         // save() returns).
         $result = $this->paymentUpdate((int) $payment->id)
@@ -1636,16 +1636,14 @@ final class Standard extends PaymentsPlugin
         // the original through the CAS once its settled refunds cover it; a
         // refused row changes nothing.
         //
-        // This handler used to do those two steps by hand, and step 1 was a
-        // plain paymentUpdate()->refunded()->save() with no expected status,
-        // so it took the ordinary update() path and two admins clicking
-        // Refund BOTH passed it. The ledger then correctly refused the
-        // loser's audit row over the linked cap, and the loser's own
-        // compensation flipped the original back to 'completed' on top of the
-        // winner's committed, settled full refund: the order counted the
-        // money as collected and returned at the same time, and
-        // status_on_completed re-fired across it. Measured 6 rounds out of 6
-        // before this change.
+        // The two steps are never done by hand: a plain
+        // paymentUpdate()->refunded()->save() with no expected status takes
+        // the ordinary update() path, so two admins clicking Refund would BOTH
+        // pass it. The ledger would refuse the loser's audit row over the
+        // linked cap, and the loser's own compensation would flip the original
+        // back to 'completed' on top of the winner's committed, settled full
+        // refund: the order would count the money as collected and returned
+        // at the same time, and status_on_completed would fire again across it.
         //
         // The amount is deliberately NOT passed. null means "the refundable
         // remainder", which the ledger recomputes INSIDE its own lock; the
@@ -1754,7 +1752,7 @@ final class Standard extends PaymentsPlugin
     private function handleRefundPartialForm($event): void
     {
         $payment = $event->getPayment();
-        // The form's maximum is the base class's one figure for it (2.2.1): what the payment may still refund AND what
+        // The form's maximum is the base class's one figure for it: what the payment may still refund AND what
         // the order may still give back, so a payment whose order settled a credit note to the customer's wallet offers
         // no figure the ledger's pool cap then refuses.
         $max = $this->refundFormMaximum(paymentId: (int) $payment->id);
@@ -1859,7 +1857,7 @@ final class Standard extends PaymentsPlugin
         }
 
         // A NEW REFUND START, decided as every other: through the ledger's
-        // refund verb, as handleRefund() books (since 2.1.0). refundPayment()
+        // refund verb, as handleRefund() books. refundPayment()
         // holds it to what the order and this payment have left once the
         // pending provider refunds are reserved, waits while the refund block
         // holds, and decides it again under the order's lock. The audit row it

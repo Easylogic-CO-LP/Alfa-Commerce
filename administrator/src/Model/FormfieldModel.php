@@ -46,7 +46,7 @@ class FormfieldModel extends AlfaAdminModel
     protected string $alfaEntity = 'formfield';
 
     /*
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - save() aborts BEFORE parent::save() when the derived field_name is empty or a
      *   posted value exceeds the field's maxlength, so the onAlfaAdminValidate /
      *   BeforeSave / AfterSave bracket fires only for saves that actually reach the

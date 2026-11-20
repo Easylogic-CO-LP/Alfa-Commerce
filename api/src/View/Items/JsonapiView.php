@@ -157,7 +157,7 @@ class JsonApiView extends BaseApiView
             }, $item->options);
         }
 
-        // The related products (2.2.2): their ids, in their order (the form's rows hold one {item_id} each).
+        // The related products: their ids, in their order (the form's rows hold one {item_id} each).
         if (isset($item->related) && \is_array($item->related)) {
             $item->related = RelatedItems::posted(posted: $item->related);
         }

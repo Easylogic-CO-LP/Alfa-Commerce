@@ -77,7 +77,7 @@ final class CartMethods
     private array $notices = ['shipment' => [], 'payment' => []];
 
     /**
-     * The carriers the offer read took off the list, by id: each one's answer (2.2.2).
+     * The carriers the offer read took off the list, by id: each one's answer.
      *
      * @var array<int, ShippingQuote>
      *
@@ -108,7 +108,7 @@ final class CartMethods
      * @param Closure $lineScopes (string $kind): array - per-line category/manufacturer scopes.
      * @param Closure $onForget (): void - told when the offered sets are dropped.
      * @param Closure|null $carrierAnswer (int $methodId): ShippingQuote - what a carrier answers for this cart as the
-     *                                    checkout stands (2.2.2): asked of every carrier the storefront would offer, so
+     *                                    checkout stands: asked of every carrier the storefront would offer, so
      *                                    none is offered that would refuse the shopper's first click. Null asks none.
      *
      * @since  2.0.0
@@ -225,7 +225,7 @@ final class CartMethods
     }
 
     /**
-     * The carriers of a scoped list that can carry the cart with what the checkout knows so far (2.2.2).
+     * The carriers of a scoped list that can carry the cart with what the checkout knows so far.
      *
      * A METHOD IS NEVER OFFERED AND THEN REFUSES THE FIRST CLICK. The storefront asks each carrier the question it is
      * asked once chosen, before offering it: one that answers a price is offered; one that refuses, or answers nothing,
@@ -267,7 +267,7 @@ final class CartMethods
     }
 
     /**
-     * The answer of a carrier the offer read withheld, or null when it was not withheld by its own answer (2.2.2).
+     * The answer of a carrier the offer read withheld, or null when it was not withheld by its own answer.
      *
      * @param int $id The method id.
      *
@@ -281,7 +281,7 @@ final class CartMethods
     }
 
     /**
-     * What the checkout has not given yet that a withheld carrier needs, in the order a shopper fills them (2.2.2):
+     * What the checkout has not given yet that a withheld carrier needs, in the order a shopper fills them:
      * 'country' and 'postcode'. The delivery country is also named when the place scopes alone keep carriers off a cart
      * with no destination, and the shop has a field the shopper can fill. Read by the lists only when nothing is left to
      * choose; empty when nothing is waiting for the shopper.
@@ -318,7 +318,7 @@ final class CartMethods
 
     /**
      * Whether a withheld carrier waits for a fact the checkout has not given yet (the country, the postcode), rather
-     * than refusing what it was given (2.2.2).
+     * than refusing what it was given.
      *
      * @param ShippingQuote $answer The carrier's answer.
      *
@@ -436,7 +436,7 @@ final class CartMethods
         $state = FieldsHelper::deliveryPlaceFieldState();
 
         if ($state === FieldsHelper::DESTINATION_CONFIGURED || $state === FieldsHelper::DESTINATION_INFERRED) {
-            // The storefront's list says what it needs itself, and only when nothing is left to choose (2.2.2):
+            // The storefront's list says what it needs itself, and only when nothing is left to choose:
             // shipmentNeeds(). The operator is told here; a distinct admin key, since the builder loads the site
             // catalogue after the admin one and a shared key would come back in the shopper's words.
             return ($this->isOperatorPlacement)() ? Text::_('COM_ALFA_CART_CHECKOUT_DESTINATION_NEEDED') : '';

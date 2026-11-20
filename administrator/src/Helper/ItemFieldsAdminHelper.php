@@ -5175,7 +5175,7 @@ class ItemFieldsAdminHelper
      *
      * DDL commits implicitly, so it runs before any transaction: the variant
      * saves call it before they open theirs, and the item save before it opens
-     * the one its grid edits run in (2.2.1).
+     * the one its grid edits run in.
      *
      * @since  2.0.0
      */
@@ -5256,7 +5256,7 @@ class ItemFieldsAdminHelper
      */
     protected static function syncCombinationPrices(int $itemId, int $combinationId, array $rows): void
     {
-        // A price row of a deleted place is never widened to every place (2.2.1): the grid edits are refused.
+        // A price row of a deleted place is never widened to every place: the grid edits are refused.
         $widened = PriceRowPlaces::widenedFromDeleted(itemId: $itemId, combinationId: $combinationId, rows: $rows);
 
         if ($widened !== []) {

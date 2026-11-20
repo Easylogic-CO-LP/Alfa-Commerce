@@ -65,12 +65,12 @@ class HtmlView extends BaseHtmlView
     protected bool $showPageHeading = false;
 
     /**
-     * @var ResultAttribution|null What the rendered result set carries (2.2.0): its handle (or none), its shown order;
+     * @var ResultAttribution|null What the rendered result set carries: its handle (or none), its shown order;
      *                             rendered only through resultSetAttributes() and resultAttributes()
      */
     protected ?ResultAttribution $resultAttribution = null;
 
-    /** @var int|null The position a single card's reload carried (2.2.0), at least 1; null for none */
+    /** @var int|null The position a single card's reload carried, at least 1; null for none */
     protected ?int $cardPosition = null;
 
     /** @var bool The category's title above the listing (show_category_title: category, then menu item, then global) */
@@ -83,16 +83,16 @@ class HtmlView extends BaseHtmlView
     protected bool $showCategoryDescription = false;
 
     /**
-     * @var bool Whether the page opens on its results (2.2.0, design 2.20): a later page reached by its link, or a
+     * @var bool Whether the page opens on its results: a later page reached by its link, or a
      *           request that submits a filter. The template marks the results region (data-results-reveal); list-form.js
      *           scrolls it into view and gives it the focus on load.
      */
     protected bool $revealResults = false;
 
     /**
-     * @var string The results region's name (2.2.0, UX-53): the counter Joomla's pagination prints ("1 - 25 / 132
+     * @var string The results region's name: the counter Joomla's pagination prints ("1 - 25 / 132
      *             items"), so the focus a filter gives the region announces how many products show; with no products
-     *             Joomla's sentence for none (2.2.2).
+     *             Joomla's sentence for none.
      */
     protected string $resultsCounter = '';
 
@@ -109,13 +109,13 @@ class HtmlView extends BaseHtmlView
     private array $cardCache = [];
 
     /**
-     * @var string Resolved default sub-template of the card's images (the "card_images" slot, 2.2.1) for rows without
+     * @var string Resolved default sub-template of the card's images (the "card_images" slot) for rows without
      *             their own: the menu item's, else the Options'
      */
     protected string $cardImagesTpl = 'card_images';
 
     /**
-     * @var int How many images a card's slider shows for rows without their own setting (2.2.1): the menu item's, else
+     * @var int How many images a card's slider shows for rows without their own setting: the menu item's, else
      *          the Options'; 0 for every image
      */
     protected int $cardImagesCount = 0;
@@ -124,7 +124,7 @@ class HtmlView extends BaseHtmlView
     private array $cardImagesCache = [];
 
     /**
-     * The reload context of a related product's card on a product page (2.2.2): its reload URL carries it, so the card
+     * The reload context of a related product's card on a product page: its reload URL carries it, so the card
      * is drawn again from the same levels it was drawn from ({@see self::cardsFor()}).
      *
      * @since  2.2.2
@@ -164,7 +164,7 @@ class HtmlView extends BaseHtmlView
             $itemsModel = $this->getModel();
             $related = RequestScalar::cmd($input, 'context', '') === self::CONTEXT_RELATED;
 
-            // A related product's card keeps its context in the URL it is drawn with again (2.2.2).
+            // A related product's card keeps its context in the URL it is drawn with again.
             if ($related) {
                 $itemsModel->setState('card.context', self::CONTEXT_RELATED);
             }
@@ -179,15 +179,15 @@ class HtmlView extends BaseHtmlView
             // joined the routed category's layouts (the reload URL carries
             // category_id): item -> category -> params. The JS swaps the whole
             // [data-item-id] (variant change) or only the inner [data-item-prices]
-            // (option change). A related product's card on a product page (2.2.2,
-            // context=related) takes the Options, as it was drawn (cardsFor()); a
+            // (option change). A related product's card on a product page
+            // (context=related) takes the Options, as it was drawn (cardsFor()); a
             // listing's card the menu item's, then the Options.
             $this->prepareCards(params: $related ? ComponentHelper::getParams('com_alfa') : $this->app->getParams('com_alfa'));
 
-            // THE CARD KEEPS ITS PLACE IN THE RESULT SET (2.2.0): the swap sends the position the card
+            // THE CARD KEEPS ITS PLACE IN THE RESULT SET: the swap sends the position the card
             // it replaces carried, and the card renders it back through the same call. Only a whole
             // number from 1 counts; anything else renders none. The handle stays on the container.
-            // A related product's card belongs to no result set (2.2.2): no position, no attribution and
+            // A related product's card belongs to no result set: no position, no attribution and
             // no announcement, as when it was first drawn.
             if (!$related) {
                 $position = trim(RequestScalar::string($input, 'position', ''));
@@ -304,14 +304,14 @@ class HtmlView extends BaseHtmlView
         // Resolve price settings once for all items
         $this->priceSettings = PriceSettings::get();
 
-        // THE SHOPPER ASKED FOR THE PRODUCTS (2.2.0, design 2.20): page 2 by its link, or a filter the request submits,
+        // THE SHOPPER ASKED FOR THE PRODUCTS: page 2 by its link, or a filter the request submits,
         // opens on the results rather than the page's top. The server decides, from what it already knows (the page the
         // state shows, the filter the request carries), so no address or filter name is parsed in JavaScript. A menu
         // item's preset filters are the page itself, not a submission.
         $this->revealResults = (int) $this->state->get('list.start', 0) > 0 || self::carriesValue(value: $input->get('filter', [], 'array'));
 
         // The region's name, in the words of the counter Joomla's pagination prints above the list; with no products,
-        // Joomla's own sentence for none (2.2.2), so the focus the region takes says how many products show either way.
+        // Joomla's own sentence for none, so the focus the region takes says how many products show either way.
         $total = (int) $this->pagination->total;
 
         if ($total > 0) {
@@ -331,7 +331,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The results container's attribution attributes (2.2.0): the handle and the shown order, only when a handle was
+     * The results container's attribution attributes: the handle and the shown order, only when a handle was
      * minted. The listing template's supported override contract, with resultAttributes().
      *
      * @return string The attributes, each preceded by a space; '' for none.
@@ -350,7 +350,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * A result's attribution attributes (2.2.0): its global position, only when the result set carries a handle, or,
+     * A result's attribution attributes: its global position, only when the result set carries a handle, or,
      * on a single card's reload, the position the reload carried.
      *
      * @param int|null $position The result's global position, from 1.
@@ -383,7 +383,7 @@ class HtmlView extends BaseHtmlView
      */
     private function announceResultSet(string $kind): void
     {
-        // A listener holds the view, and through its model the cards (2.2.1): the surfaces each card was handed are
+        // A listener holds the view, and through its model the cards: the surfaces each card was handed are
         // kept before the announcement and handed again after it, so a listener cannot replace or remove a card's.
         $handed = $this->cardSurfaces();
 
@@ -411,7 +411,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The surfaces each card of this response was handed (2.2.1): the listing's cards by their key, and the one card of
+     * The surfaces each card of this response was handed: the listing's cards by their key, and the one card of
      * a single-card reload; null for a card drawn without them.
      *
      * @return array{items: array<int|string, array<string, list<array<string, mixed>>>|null>, item?: array<string, list<array<string, mixed>>>|null}
@@ -436,7 +436,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Hand each card the surfaces {@see self::cardSurfaces()} kept (2.2.1): a new read-only map, or none for a card
+     * Hand each card the surfaces {@see self::cardSurfaces()} kept: a new read-only map, or none for a card
      * drawn without them.
      *
      * @param array{items: array<int|string, array<string, list<array<string, mixed>>>|null>, item?: array<string, list<array<string, mixed>>>|null} $handed What the cards were handed.
@@ -469,7 +469,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * A handle that belongs to this response alone is never shared through Joomla's page cache (2.2.0), through the
+     * A handle that belongs to this response alone is never shared through Joomla's page cache, through the
      * storefront's one way of saying so ({@see PageCache::excludeResponse()}).
      *
      * @since  2.2.0
@@ -484,8 +484,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The configured engine's key (the component option search_engine), from its one reader: '' for the database search
-     * (2.2.1).
+     * The configured engine's key (the component option search_engine), from its one reader: '' for the database search.
      *
      * @since  2.2.0
      */
@@ -517,7 +516,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The cards of these products as the listing draws them (2.2.2), for the product page's related products: each
+     * The cards of these products as the listing draws them, for the product page's related products: each
      * through the listing's own card template ({@see self::cardTplFor()}), its images part and its slider, price, stock
      * line and buy form, so a template's override of the card shows here too. A card's levels are the product's own,
      * then its default category's (stamped by the model, which reads these products with no category of its own), then
@@ -547,7 +546,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * What one card needs (2.2.2, the one preparation of the single-card reload and of cardsFor()): the parameters, the
+     * What one card needs (the one preparation of the single-card reload and of cardsFor()): the parameters, the
      * default card's sub-template, the card images' default and the slider's count, the price settings.
      *
      * @param Registry $params The parameters the card's defaults come from.
@@ -567,7 +566,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The sub-template of ONE card's images (the "card_images" slot, 2.2.1), for the card's template to load: the row's
+     * The sub-template of ONE card's images (the "card_images" slot), for the card's template to load: the row's
      * own preference (the item's, else its category's, stamped by the model as the card's is), else the menu item's or
      * the Options' ({@see self::decideCardImages()}). A card override that does not call it keeps its own image.
      *
@@ -589,7 +588,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The images ONE card's slider shows (2.2.1): the card's images that have a picture to show, in their order, the
+     * The images ONE card's slider shows: the card's images that have a picture to show, in their order, the
      * first N of them by "Images in the Card Slider" (the row's own setting, the item's else its category's, stamped
      * by the model; else the menu item's or the Options'); every one for All. A product whose variant has a gallery of
      * its own shows that gallery's, as its card does.
@@ -613,7 +612,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The menu item's or the Options' choice of the cards' images (2.2.1), for the rows that set none of their own: the
+     * The menu item's or the Options' choice of the cards' images, for the rows that set none of their own: the
      * sub-template of the "card_images" slot and how many images its slider shows (0 for all). The listing then
      * declares the slider's script: a card a filter or a variant change swaps in may be a slider card on a page that
      * drew none, and a page without one leaves it nothing to do.
@@ -758,7 +757,7 @@ class HtmlView extends BaseHtmlView
         $heading = trim((string) $this->params->get('page_heading', ''));
         $this->showPageHeading = (bool) $this->params->get('show_page_heading', 0) && $heading !== '';
 
-        // NEVER THE SAME HEADING TWICE (2.2.0, UX-52): under a page heading that reads as the category's name, the
+        // NEVER THE SAME HEADING TWICE: under a page heading that reads as the category's name, the
         // category's title would repeat it, so it prints only when it says something the heading does not.
         if ($this->showPageHeading && $heading === trim((string) ($this->category->name ?? ''))) {
             $this->showCategoryTitle = false;

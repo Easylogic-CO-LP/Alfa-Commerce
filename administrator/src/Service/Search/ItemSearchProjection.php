@@ -94,7 +94,7 @@ class ItemSearchProjection implements ProjectionInterface
     }
 
     /**
-     * Write the search entries of several items and let a failure reach the caller (2.2.0, the manager's rebuilds):
+     * Write the search entries of several items and let a failure reach the caller (the manager's rebuilds):
      * an engine that throws, or that refuses a document, fails the call, so the manager keeps the item marked and owes
      * its rebuild to the catalogue job instead of clearing a mark the engine never matched. A shop with no engine, or
      * an engine with no writable generation, has nothing to write an item into: logged, never a failure.

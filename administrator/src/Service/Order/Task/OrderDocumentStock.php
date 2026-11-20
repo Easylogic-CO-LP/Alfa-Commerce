@@ -20,7 +20,7 @@ use Joomla\CMS\Factory;
 use Joomla\Database\ParameterType;
 
 /**
- * A document's stock movement that a stock plugin refused, waiting for staff (2.2.1).
+ * A document's stock movement that a stock plugin refused, waiting for staff.
  *
  * The refusal is final for the automatic tries: the drain that met it writes this task for the document's order, and
  * its first run fails with the plugin's words, so it stands in Tools > Tasks with Run again. Staff run it again once
@@ -77,7 +77,7 @@ final class OrderDocumentStock extends OrderTaskHandler
 
         // A Run again that stopped part way (its lease passed) is run again by the recovery: when a drain met the
         // refusal meanwhile and wrote a task of its own for the document, that task carries the refusal and its Run
-        // again, so this run ends without asking the plugin and one task of the document stands (2.2.1).
+        // again, so this run ends without asking the plugin and one task of the document stands.
         if (self::newerTaskStands(documentId: $documentId, orderId: $run->subjectId(), runId: $run->id())) {
             return;
         }

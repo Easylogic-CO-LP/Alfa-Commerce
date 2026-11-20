@@ -27,7 +27,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * second path and no hard-coded card, so the route a plugin's card takes is
  * exercised on every dashboard load.
  *
- * A card is its owner plus its id (2.2.0): every way in takes the contributing
+ * A card is its owner plus its id: every way in takes the contributing
  * plugin as group.element first (core's own cards as core.com_alfa), checked for
  * its shape only, attribution and never an authorisation. Nothing is stamped
  * by the collector, so a broken contributor's half-made cards stay its own.
@@ -69,7 +69,7 @@ class CollectCardsEvent extends AbstractEvent
     /**
      * Full width, above everything.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -85,7 +85,7 @@ class CollectCardsEvent extends AbstractEvent
     /**
      * The row of figures.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -101,7 +101,7 @@ class CollectCardsEvent extends AbstractEvent
     /**
      * The wide column.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -117,7 +117,7 @@ class CollectCardsEvent extends AbstractEvent
     /**
      * The narrow column beside it.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -133,7 +133,7 @@ class CollectCardsEvent extends AbstractEvent
     /**
      * Full width at the end.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.
      *
@@ -150,7 +150,7 @@ class CollectCardsEvent extends AbstractEvent
      * Place a card on a named surface, owned by the plugin that names itself. The typed helpers above are the
      * readable way in; this is the same door when the surface is held in a variable.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param DashboardSurface $surface Where it goes.
      * @param string $id Stable id, unique within the contributor.
      * @param string $title Language key for the heading.

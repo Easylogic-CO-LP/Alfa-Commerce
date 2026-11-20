@@ -126,7 +126,7 @@ final class ComponentOptions
         'documents_issuer' => 'com_alfa',
 
         // Downloads: the store's folder ('' = alfa-downloads inside the site, which the installation
-        // provisions and records) and its direct-download protection check, on (2.2.1).
+        // provisions and records) and its direct-download protection check, on.
         'downloads_storage_path' => '',
         'downloads_protection_check' => 1,
 
@@ -146,7 +146,7 @@ final class ComponentOptions
         'final_price_show_label' => 1,
         'price_breakdown_show' => 0,
 
-        // Online sales: sell online (2.2.2). Catalogue only is a shop's own choice; an install, Clear
+        // Online sales: sell online. Catalogue only is a shop's own choice; an install, Clear
         // everything and Reset to default write Sell online.
         'catalogue_only' => 0,
 
@@ -306,7 +306,7 @@ final class ComponentOptions
     }
 
     /**
-     * The one rule for online sales switched by a write of the Options (2.2.2): when Online sales changed between the
+     * The one rule for online sales switched by a write of the Options: when Online sales changed between the
      * two, the pages Joomla's page cache stored are dropped ({@see PageCache::forget()}), so no stored guest page keeps
      * prices and buy buttons the shop no longer shows, or the reverse. Every path that writes the Options asks it: write()
      * (an install, an update, Clear everything), Reset to default, and a shop's own Options save, which Joomla writes

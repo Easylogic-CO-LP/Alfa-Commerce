@@ -151,8 +151,8 @@ $popupUrl = static fn (int $lineId): string => Route::_(sprintf(
                         <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotalWithTax()->format()); ?></span>
                     <?php elseif ($price->hasExplicitPrice()) : ?>
                         <?php // ITS OWN SURFACE, NOT THE DISCOUNT ONE. A negotiated
-                              // price is not a promotional adjustment, and the ruling
-                              // requires all three concepts to stay distinguishable:
+                              // price is not a promotional adjustment, and all three
+                              // concepts stay distinguishable:
                               // individual promotional adjustments, the price
                               // override, and the aggregate whole-line saving.
                               //

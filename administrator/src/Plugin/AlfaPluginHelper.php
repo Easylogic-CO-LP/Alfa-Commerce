@@ -30,10 +30,10 @@ use Throwable;
 \defined('_JEXEC') or die;
 
 /**
- * The single boundary between Alfa Commerce and Joomla's plugin system (2.2.0, design 2.15). Two explicit modes, a propagating and an isolating method in each; no method changes behaviour on an optional
- * argument.
+ * The single boundary between Alfa Commerce and Joomla's plugin system. Two explicit modes, broadcast and targeted,
+ * with a propagating and an isolating method in each; no method changes behaviour on an optional argument.
  *
- * Mode A, broadcast: Alfa raises its public events on the application's shared dispatcher, so every enabled plugin that
+ * Broadcast: Alfa raises its public events on the application's shared dispatcher, so every enabled plugin that
  * Joomla or Alfa has loaded and that registered a listener for the event receives it, whatever its group. Before-phase
  * events use Joomla's dispatch() unchanged (a listener's exception aborts the operation and reaches the caller).
  * After-phase and display events use Alfa's isolated execution policy over Joomla's shared listener registry: the same
@@ -42,13 +42,13 @@ use Throwable;
  * listener run; stopPropagation() stops the rest, as in Joomla; an exception alone never does, except one that ended the
  * caller's database transaction, which reaches the caller.
  *
- * Mode B, targeted: one selected plugin, booted through Joomla's own lifecycle, its handler found in Alfa's
+ * Targeted: one selected plugin, booted through Joomla's own lifecycle, its handler found in Alfa's
  * targeted-handler declaration (TargetedHandlersInterface, or a family base class's TARGETED_EVENTS) and called with
  * the event; never the shared dispatcher, never a method called because of its name, no reflection. A plugin that is
  * missing, disabled or cannot be booted is PluginUnavailable, each caller mapping it to its own contract; there is no
  * fallback to another plugin.
  *
- * Mode B for a named customer (2.2.1): the commercial plugins of a cart are the ones its customer's view levels admit
+ * Targeted, for a named customer: the commercial plugins of a cart are the ones its customer's view levels admit
  * (admitted()), whoever operates it. A member of staff placing an order for a customer may not hold a plugin's Access
  * level, and Joomla does not load the plugin for them. Inside an operator placement only ({@see CartSubject::operator()},
  * its actor holding {@see OperatorCheckout::PERMISSION}), such a plugin, when it is admitted for that customer, is
@@ -157,7 +157,7 @@ final class AlfaPluginHelper
 
     /**
      * The name of a plugin in every message staff read, a notice, a refusal, a History line, a locked field: the name
-     * Extensions: Plugins shows (UX-25, A-UX-1). A plugin that is not installed has no name there, so its element is
+     * Extensions: Plugins shows. A plugin that is not installed has no name there, so its element is
      * said. group.element is never staff text. Read once per plugin and request.
      *
      * @param PluginId $id The plugin.
@@ -178,7 +178,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * The mark a plugin's name takes where staff pick or read a plugin that is not enabled (UX-38): "disabled" when it
+     * The mark a plugin's name takes where staff pick or read a plugin that is not enabled: "disabled" when it
      * is installed and disabled, "not installed" when it is missing, '' when it is enabled.
      *
      * @param PluginId $id The plugin.
@@ -195,7 +195,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * Why a plugin of record cannot be used, as a phrase staff read after its name (UX-27, A-UX-2): it is disabled, it is
+     * Why a plugin of record cannot be used, as a phrase staff read after its name: it is disabled, it is
      * not installed, or it is installed but could not be loaded. Every other reason has its own message.
      *
      * @param string $reason A PluginUnavailable reason.
@@ -213,8 +213,8 @@ final class AlfaPluginHelper
 
     /**
      * The helper: com_alfa's shared service (booting the component, the same in site, administrator, API and CLI); in a
-     * process with no application, a helper on the container's dispatcher (mode A reaches the listeners already
-     * registered and imports nothing, mode B answers NO_APPLICATION).
+     * process with no application, a helper on the container's dispatcher (a broadcast reaches the listeners
+     * already registered and imports nothing, a targeted call answers NO_APPLICATION).
      *
      * @since  2.2.0
      */
@@ -232,7 +232,7 @@ final class AlfaPluginHelper
         return $component instanceof AlfaComponent ? $component->getPluginHelper() : (self::$bare ??= new self($layer));
     }
 
-    // Mode A: the shared dispatcher.
+    // Broadcast: the shared dispatcher.
 
     /**
      * Import every enabled plugin of a group onto the shared dispatcher, one plugin at a time, so one whose boot throws is
@@ -316,7 +316,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * Ask ONE booted plugin for its own answer to a broadcast question (2.2.0, A-C14B-7), through the plugin's public
+     * Ask ONE booted plugin for its own answer to a broadcast question, through the plugin's public
      * Joomla subscriber map: getSubscribedEvents() names its method for the event (an entry is the method's name, or
      * the method's name and its priority), and that method is called on the booted instance with the event. No
      * dispatcher is read and nothing is reflected, so only the plugin's own declared answer is heard. A name the plugin
@@ -430,7 +430,7 @@ final class AlfaPluginHelper
         $this->layer->removeListener($eventName, $listener);
     }
 
-    // Mode B: one selected plugin.
+    // Targeted: one selected plugin.
 
     /**
      * Whether the plugin is enabled for this request (PluginHelper::isEnabled(), the one authority: the list a plugin's
@@ -484,7 +484,7 @@ final class AlfaPluginHelper
             $plugin = $this->layer->boot($app, $id);
         } catch (Throwable $e) {
             // Remembered as importGroup() remembers a failed import: a second boot in this request would meet Joomla's
-            // placeholder and read as missing (A-C14A-30).
+            // placeholder and read as missing.
             $this->importFailed[$id->key()] = true;
 
             throw new PluginUnavailable(PluginUnavailable::UNLOADABLE, $id, 'The plugin ' . $id . ' could not be booted (' . $e::class . ': ' . $e->getMessage() . ').', $e);
@@ -507,7 +507,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * Boot an installed plugin whether it is enabled or not, for maintenance alone (Clear Data, A-C14B-1): never a way
+     * Boot an installed plugin whether it is enabled or not, for maintenance alone (Clear Data): never a way
      * around bootSingle(). Asked only while the maintenance lock is held (MaintenanceState::lock(), on the connection
      * given); without it, it throws and nothing is booted. A disabled plugin is given the name, group and params Joomla
      * gives an enabled one (from its row), so its onClearData may run while it is disabled. The family is checked; the
@@ -555,7 +555,7 @@ final class AlfaPluginHelper
 
     /**
      * Boot, for the customer of an operator placement, a plugin the customer's view levels admit that Joomla does not
-     * load for the member of staff placing the order (2.2.1): never a way around bootSingle(). Allowed only when the
+     * load for the member of staff placing the order: never a way around bootSingle(). Allowed only when the
      * subject is an operator placement ({@see CartSubject::operator()}), its actor holds {@see OperatorCheckout::PERMISSION}
      * and the plugin is one admitted() lists for its customer in the plugin's group; otherwise the plugin stays
      * NOT_LOADED. The plugin is given the name, group and params Joomla gives one it loads, from its own row (its
@@ -700,7 +700,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * Deliver the event to the selected plugin's declared handler, isolated (2.2.1): the handler's Throwable is
+     * Deliver the event to the selected plugin's declared handler, isolated: the handler's Throwable is
      * logged, once per plugin and event in the request, with what the plugin was asked for, and answered false, so the
      * caller goes on without that plugin's part (a display that drops one field, never the page). As in
      * dispatchToEachIsolated(), a failure that ended the caller's transaction is never hidden: it reaches the caller.
@@ -828,7 +828,7 @@ final class AlfaPluginHelper
         return array_map(static fn (string $element): PluginId => PluginId::from($group, $element), $this->layer->admittedElements($customer, $group));
     }
 
-    // Mode B over a selection.
+    // Targeted, over a selection.
 
     /**
      * One event object to each plugin in the order given, each once, each through its own declaration; a plugin that is
@@ -849,7 +849,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * dispatchToEach() over the plugins admitted for a cart's customer, given the cart's subject (2.2.1): inside an
+     * dispatchToEach() over the plugins admitted for a cart's customer, given the cart's subject: inside an
      * operator placement a selected plugin Joomla does not load for the member of staff is booted for the customer
      * ({@see self::bootForCustomer()}) and takes its part; where that boot is not allowed, it refuses the selection as
      * dispatchToEach() does.
@@ -872,7 +872,7 @@ final class AlfaPluginHelper
      * booted that declare a handler for it. A selected plugin Joomla does not load for the request's user (NOT_LOADED)
      * refuses the selection, as dispatchToEach() refuses it before its first handler. A caller that then delivers the
      * event to them one at a time (to name the plugin whose handler threw) keeps that order: the refusal comes before
-     * any plugin is asked (2.2.1).
+     * any plugin is asked.
      *
      * @param iterable<PluginId> $plugins The selection.
      * @param EventInterface $event The event.
@@ -889,7 +889,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * participants() over the plugins admitted for a cart's customer, given the cart's subject (2.2.1), as
+     * participants() over the plugins admitted for a cart's customer, given the cart's subject, as
      * dispatchToEachFor() selects them.
      *
      * @param CartSubject $subject The cart's subject.
@@ -925,7 +925,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * dispatchToEachIsolated() over the plugins admitted for a cart's customer, given the cart's subject (2.2.1), as
+     * dispatchToEachIsolated() over the plugins admitted for a cart's customer, given the cart's subject, as
      * dispatchToEachFor() selects them: a plugin that cannot take its part is a failure of its own, NOT_LOADED.
      *
      * @param CartSubject $subject The cart's subject.
@@ -1046,7 +1046,7 @@ final class AlfaPluginHelper
                 $instance = $this->instanceOf($this->bootSelected($id, $subject));
             } catch (PluginUnavailable $unavailable) {
                 if ($unavailable->reason === PluginUnavailable::NOT_LOADED) {
-                    // Only a plugin that declares the event has a part to take (A-C14A-28): one that does not takes no
+                    // Only a plugin that declares the event has a part to take: one that does not takes no
                     // part, silently, whoever operates the cart.
                     $declared = $this->declarationOfUnloaded($id);
 
@@ -1246,7 +1246,7 @@ final class AlfaPluginHelper
     }
 
     /**
-     * A plugin's targeted-handler declaration, event => its method: the ONE reader (2.2.0, A-C14B-15), used by
+     * A plugin's targeted-handler declaration, event => its method: the ONE reader, used by
      * declares(), dispatchTo(), the selection loops, the maintenance boot's sites and the gates. A plugin that
      * implements TargetedHandlersInterface (every plugin of an Alfa group, a family base's TARGETED_EVENTS among them)
      * answers through it. A plugin of a group Joomla loads itself (task, system, user, content and the others) may

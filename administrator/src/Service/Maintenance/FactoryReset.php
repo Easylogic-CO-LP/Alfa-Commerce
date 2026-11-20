@@ -899,7 +899,7 @@ final class FactoryReset
      *   V3 no object is left in the store, and no folder of it is unreadable (it may hold objects);
      *   V4 the recorded schema version is the installed schema's;
      *   V5 the identifier floors hold;
-     *   V6 the cursor of the announced price periods is there (2.2.2: the install SQL writes it, nothing at run time).
+     *   V6 the cursor of the announced price periods is there (the install SQL writes it, nothing at run time).
      *
      * @param CoreTables $core The declared set.
      * @param array<string, int> $floors The identifier floors.

@@ -257,8 +257,7 @@ final class CustomerCreditLedger
      * = identity of currency, never rate)".
      *
      * Both wallet guards used to read conversion_rate. Every writer hard-codes
-     * that column to 1.0 (on the reference database it is the ONLY value in
-     * #__alfa_orders), so neither guard could ever fire, while orders really
+     * that column to 1.0, so neither guard could ever fire, while orders really
      * denominated in another currency existed alongside them. A foreign order
      * could be paid from, or credited to, a wallet holding a different
      * currency, and the balance silently mixed the two.
@@ -562,7 +561,7 @@ final class CustomerCreditLedger
      *                                         the note, also what the order keeps for them and
      *                                         their numbers; when the order's pending provider
      *                                         refunds reserve part of what it collected, also
-     *                                         each reservation (since 2.1.0). Its hint is carried
+     *                                         each reservation. Its hint is carried
      *                                         apart from the reason.
      *
      * @since  2.0.0
@@ -1497,7 +1496,7 @@ final class CustomerCreditLedger
             // shipment row does not exist yet, so the DB recomputation is short
             // by shipping; the larger keeps this guard from rejecting a spend the
             // placement flow resolved from the in-memory cart total. Both are the
-            // order's Money (2.2.1), read with the order locked.
+            // order's Money, read with the order locked.
             $grand = \Alfa\Component\Alfa\Site\Service\Pricing\Money::max(
                 \Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper::getOrderTotal((int) $order->id),
                 \Alfa\Component\Alfa\Site\Service\Pricing\Money::of($grandTotalHint, $currency),

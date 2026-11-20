@@ -84,8 +84,8 @@ final class CartPluginDispatch
      * The inputs that cost something (the delivery places and the merchandise
      * total) are asked for only once a carrier is actually chosen.
      *
-     * ASKED FOR THE CHOSEN CARRIER AND FOR EACH ONE THE CHECKOUT WOULD LIST
-     * (2.2.2): the carrier reads which through its method's isSelected(), true
+     * ASKED FOR THE CHOSEN CARRIER AND FOR EACH ONE THE CHECKOUT WOULD LIST:
+     * the carrier reads which through its method's isSelected(), true
      * only for the one the cart has chosen (or placement assumes).
      *
      * THE CHARGE IS NORMALISED HERE, ONCE. What the carrier answered becomes
@@ -144,7 +144,7 @@ final class CartPluginDispatch
         // generic refusal here would replace a precise cause with a vague one.
         $asked = false;
 
-        // The cart's chosen carrier, through the plugin helper (2.2.0, mode B): disabled, missing or unloadable, not
+        // The cart's chosen carrier, through the plugin helper (targeted): disabled, missing or unloadable, not
         // asked; one that declares no quote handler, not asked either.
         $plugins = AlfaPluginHelper::get();
 
@@ -267,7 +267,7 @@ final class CartPluginDispatch
     /**
      * The charges the commercial plugins add, as they were contributed:
      * [contributor (group.element), CartContribution] pairs, in delivery order.
-     * One event for the whole sequence (2.2.0), each `alfa` plugin
+     * One event for the whole sequence, each `alfa` plugin
      * the customer's view levels admit called once, in their order, through its
      * own targeted declaration; a plugin that throws is logged and the next one
      * runs. Folding the charges into money is the computation's business, and
@@ -276,8 +276,8 @@ final class CartPluginDispatch
      * A PLUGIN THE CUSTOMER'S LEVELS ADMIT BUT JOOMLA DOES NOT LOAD FOR THE
      * REQUEST'S USER (staff lacking one of the customer's levels) adds its charges
      * when the cart is operated for the customer by staff allowed to place orders
-     * for customers: it is booted for the customer with its own configuration
-     * (2.2.1). Anywhere else it cannot: it is named in notLoaded, so the cart
+     * for customers: it is booted for the customer with its own configuration.
+     * Anywhere else it cannot: it is named in notLoaded, so the cart
      * carries the refusal beside its totals and the placement refuses, rather
      * than total the cart without it.
      *
@@ -340,7 +340,7 @@ final class CartPluginDispatch
             $type = (string) ($method->type ?? '');
             $methodId = (int) ($method->id ?? 0);
 
-            // Each offered method's plugin, through the plugin helper (2.2.0, mode B): its ambient subscriptions
+            // Each offered method's plugin, through the plugin helper (targeted): its ambient subscriptions
             // engaged once through Joomla's own import (in place of a second registration by hand), the view
             // delivered to its declared handler; a plugin unavailable, or with no view, draws nothing.
             try {
@@ -577,7 +577,7 @@ final class CartPluginDispatch
      * is being evaluated, and a facade that read the session on its own could
      * hand one plugin a different cart than the plugin beside it.
      *
-     * An operator placement reads none (2.2.1): the session's checkout values
+     * An operator placement reads none: the session's checkout values
      * are the storefront's, and with Joomla's Shared Sessions on they are the
      * staff member's own, never the customer's whose order the builder makes.
      *

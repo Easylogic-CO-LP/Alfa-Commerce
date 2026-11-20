@@ -29,7 +29,7 @@ use Joomla\CMS\Session\Session;
 class Dispatcher extends AbstractModuleDispatcher
 {
     /**
-     * Draw the cart, unless the shop shows its catalogue only (2.2.2): then the module draws nothing, reads no cart and
+     * Draw the cart, unless the shop shows its catalogue only: then the module draws nothing, reads no cart and
      * loads nothing.
      *
      * @since  2.2.2
@@ -64,13 +64,13 @@ class Dispatcher extends AbstractModuleDispatcher
         }
 
         // The module reads; it hands the layout a reading, not the cart: the plain one, lines and totals, no offers
-        // (2.2.2: the drawer shows no method, so no carrier is asked to quote for a list on every page). A visitor who cannot have a cart yet (no
+        // (the drawer shows no method, so no carrier is asked to quote for a list on every page). A visitor who cannot have a cart yet (no
         // account and no key of this browser) is handed none, and the layout draws the empty drawer: nothing is read
-        // for them, no query on any page (2.2.1).
+        // for them, no query on any page.
         $data['snapshot'] = CartService::ambient()->canHaveCart() ? CartService::ambient()->summary(CartResolution::Current) : null;
 
         // A cart that holds products is this visitor's own, on a page every visitor shares: that page is never stored
-        // in Joomla's page cache, whatever plugin is enabled (2.2.1). An empty cart shows nothing of the visitor, and
+        // in Joomla's page cache, whatever plugin is enabled. An empty cart shows nothing of the visitor, and
         // the page stays cacheable.
         if ($data['snapshot'] !== null && !$data['snapshot']->isEmpty()) {
             PageCache::excludeResponse();

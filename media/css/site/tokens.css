@@ -32,7 +32,7 @@
     --alfa-success-color: #15803d;
     --alfa-warning-color: #b45309;
     --alfa-info-color: #1d4ed8;
-    /* A payment or shipping method's image beside its title (2.2.2): the height it is held to. */
+    /* A payment or shipping method's image beside its title: the height it is held to. */
     --alfa-method-image-height: 2rem;
     /* A panel lifted off the page (a product card, a summary box) and the text
        on it. Both are needed: a card that keeps a white background on a dark page

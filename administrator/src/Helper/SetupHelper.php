@@ -649,7 +649,7 @@ final class SetupHelper
         $event = new CollectSetupChecksEvent(CollectSetupChecksEvent::NAME, ['coreChecks' => (new CoreSetupProvider())->checks()]);
         $skipped = [];
 
-        // Every listener on the shared dispatcher (2.2.0, design 2.15.3: mode A, a display phase, isolated), the
+        // Every listener on the shared dispatcher (broadcast, a display phase, isolated), the
         // platform group imported first (a plugin that cannot import is logged and the others are imported); each
         // check names its plugin.
         $plugins = AlfaPluginHelper::get();
@@ -776,7 +776,7 @@ final class SetupHelper
     /**
      * Which of the given guided-tour uids actually exist (published) and whether the
      * CURRENT user has already completed or skipped each: drives the tour-first
-     * button flip on checklist rows. Tours ship in a later slice, so an empty answer
+     * button flip on checklist rows. With no tours, an empty answer
      * simply renders plain CTAs: the card degrades, never breaks.
      *
      * @param string[] $uids Tour uids (`com_alfa.*`).
@@ -928,7 +928,7 @@ final class SetupHelper
 
     /**
      * The currently stored checklist notification title, for transition detection: its key and parameters, compared
-     * as such (since 2.1.4: the stored text is a snapshot in the shop's default administrator language).
+     * as such (the stored text is a snapshot in the shop's default administrator language).
      *
      * @return array{0: string, 1: list<mixed>} ['', []] when no row carries the key.
      *

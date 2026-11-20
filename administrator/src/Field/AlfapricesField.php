@@ -135,7 +135,7 @@ class AlfapricesField extends FormField
      * @param array{categories: string, manufacturers: string}|null $storedMemberships The item editor of a saved
      *                                                                                 item: its stored memberships,
      *                                                                                 which the editor compares
-     *                                                                                 with its form's (2.1.0).
+     *                                                                                 with its form's.
      *
      * @return string HTML
      *
@@ -175,7 +175,7 @@ class AlfapricesField extends FormField
      * @param int $itemId The item id.
      * @param int $combinationId The variant.
      *
-     * @return Money|null The price; null when no price applies to the variant at one unit (2.2.2).
+     * @return Money|null The price; null when no price applies to the variant at one unit.
      *
      * @since  2.0.0
      */
@@ -523,7 +523,7 @@ class AlfapricesField extends FormField
      * row's note.
      *
      * A held place that was DELETED is listed too, as "#<id> (deleted)" with its
-     * own note (2.2.1): the select keeps the row's place, so saving the
+     * own note: the select keeps the row's place, so saving the
      * form unchanged writes it back, and the row never becomes a price for every
      * place because its option was missing.
      *

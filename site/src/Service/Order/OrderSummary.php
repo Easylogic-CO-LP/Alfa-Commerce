@@ -70,7 +70,7 @@ final class OrderSummary
         ];
 
         // The lines' catalogue discounts, included in the subtotal: directly under it,
-        // with no sign, as the cart row states them (2.2.0, UX-75).
+        // with no sign, as the cart row states them.
         if (!$discount->isZero()) {
             $rows[] = new SummaryRow(
                 type: SummaryRow::DISCOUNT,

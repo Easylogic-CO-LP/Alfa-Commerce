@@ -49,8 +49,7 @@ use RuntimeException;
  *      re-inserting. An omitted key therefore reads as "remove them all".
  *      Same idea as com_content re-loading tags in preprocessSaveData().
  *      A PATCH also keeps the stored keys of a map it names only in part, and
- *      the stored translations of a required multilingual field it leaves out
- *      (2.2.1).
+ *      the stored translations of a required multilingual field it leaves out.
  *
  * @since  2.0.0
  */
@@ -73,7 +72,7 @@ trait HasApiGuards
     }
 
     /**
-     * Keyed maps a PATCH merges into the stored map (2.2.1): a key the body
+     * Keyed maps a PATCH merges into the stored map: a key the body
      * sends replaces that key, a key the body sends empty ('' or null) is
      * removed, and a key the body leaves out keeps its stored value. Each must
      * be readable back off getItem() under the same name, as an array.
@@ -88,7 +87,7 @@ trait HasApiGuards
     }
 
     /**
-     * Body keys this resource's write does not take (2.2.1). The admin models read more than their forms declare:
+     * Body keys this resource's write does not take. The admin models read more than their forms declare:
      * the jform bridge of {@see self::preprocessSaveData()} hands them the whole body, and
      * MultilingualHelper::mergeValidatedFormData() keeps every undeclared key, so a key the edit form's grids post
      * reaches the writer behind it from the API too. A POST or PATCH that carries one of these keys is refused with
@@ -114,7 +113,7 @@ trait HasApiGuards
     }
 
     /**
-     * Body keys this resource's update (PATCH) does not take, beyond {@see self::unwrittenKeys()} (2.2.1): where the
+     * Body keys this resource's update (PATCH) does not take, beyond {@see self::unwrittenKeys()}: where the
      * create and the update write different keys, the ones only the update leaves unwritten. A PATCH that carries one
      * is refused with 422 naming them, before anything is saved and before core's edit() checks the record out.
      *
@@ -128,7 +127,7 @@ trait HasApiGuards
     }
 
     /**
-     * Whether a record of this resource is deleted from the trash only (2.2.1): true where the
+     * Whether a record of this resource is deleted from the trash only: true where the
      * administrator's list moves a record to the trash before it deletes it, its Delete being the trashed view's Empty
      * trash. A DELETE of a record in any other state then answers 409 and deletes nothing; a PATCH of state -2 trashes
      * it first. Resources the administrator deletes without a trash step, and orders, keep their one-call delete.
@@ -260,7 +259,7 @@ trait HasApiGuards
     }
 
     /**
-     * Create an item: core's create, answered 201 Created with the new record's address in Location (2.2.1).
+     * Create an item: core's create, answered 201 Created with the new record's address in Location.
      *
      * Core answers a create with 200 and the record. The record in the body is the same; the status says that it
      * was created and the Location header where it now is (the collection's address and the new id).
@@ -290,7 +289,7 @@ trait HasApiGuards
     /**
      * Update a record: core's edit, refused first when the body carries a key the resource's update does not take
      * ({@see self::unwrittenKeys()}, {@see self::unwrittenOnUpdate()}), before core looks the record up and checks it
-     * out, so a refused PATCH leaves it as it was (2.2.1).
+     * out, so a refused PATCH leaves it as it was.
      *
      * @return static
      *
@@ -348,11 +347,11 @@ trait HasApiGuards
      * required again by the model's canDelete(); core's check would add a Global Configuration
      * right on top of both. Everything after that check is core's, except two answers: a
      * record of a resource deleted from the trash only that is not in the trash answers 409
-     * (2.2.1, {@see self::deletesFromTrash()}), and a delete the model refused by its own rule
+     * ({@see self::deletesFromTrash()}), and a delete the model refused by its own rule
      * (a category that still has children or is a product's default, an entity whose delete
      * would widen a discount, tax or cart rule) answers 409 with the refusal's sentence as text.
      * A delete the model reports done while it kept the record is answered with the record
-     * ({@see self::answerKept()}), never 204 (2.2.1).
+     * ({@see self::answerKept()}), never 204.
      *
      * @param int $id The primary key to delete item.
      *
@@ -424,7 +423,7 @@ trait HasApiGuards
         }
 
         // Done, and the record is not among the ids the model deleted: it kept it. The items model archives a product
-        // that order lines were sold as instead of deleting it (2.2.1).
+        // that order lines were sold as instead of deleting it.
         if ((int) $id > 0 && !\in_array((int) $id, array_map('intval', (array) $pks), true)) {
             $this->answerKept(id: (int) $id);
 
@@ -448,7 +447,7 @@ trait HasApiGuards
 
     /**
      * Answer a delete that kept its record: 200 with the record as it now stands and meta.note saying why
-     * ({@see self::keptNote()}), where a 204 would say it is gone (2.2.1).
+     * ({@see self::keptNote()}), where a 204 would say it is gone.
      *
      * @param int $id The record.
      *
@@ -636,7 +635,7 @@ trait HasApiGuards
         $alt = (string) ($row['alt'] ?? '');
 
         // The column holds 75 characters (MediaHelper::ALT_MAX_LENGTH): a longer description is refused in plain words
-        // before anything is saved, as the form's own input stops at that length (2.2.0).
+        // before anything is saved, as the form's own input stops at that length.
         if (StringHelper::strlen($alt) > MediaHelper::ALT_MAX_LENGTH) {
             throw new Save(Text::sprintf('COM_ALFA_MEDIA_ALT_TOO_LONG_API', MediaHelper::ALT_MAX_LENGTH), 400);
         }
@@ -735,7 +734,7 @@ trait HasApiGuards
     }
 
     /**
-     * Lay the keys of each map the body sends over the stored map (2.2.1).
+     * Lay the keys of each map the body sends over the stored map.
      *
      * PATCH only, for the maps mergeOnPatch() names: a body that names one
      * key of the map changes that key and keeps the others, and a key it sends
@@ -777,7 +776,7 @@ trait HasApiGuards
 
     /**
      * Keep the stored translations of every required multilingual field a
-     * PATCH leaves out (2.2.1).
+     * PATCH leaves out.
      *
      * The form's required rule reads the default language's value, which a
      * PATCH that changes only, say, the state does not send, so such a PATCH
@@ -850,7 +849,7 @@ trait HasApiGuards
 
     /**
      * The stored record a PATCH changes, read through the resource's edit
-     * model (2.2.1: shared by the steps that keep what the body leaves out).
+     * model (shared by the steps that keep what the body leaves out).
      *
      * @param array $data The incoming save data.
      *

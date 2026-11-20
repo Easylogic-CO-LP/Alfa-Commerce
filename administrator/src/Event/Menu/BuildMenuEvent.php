@@ -36,7 +36,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * Ordering is data, so a plugin can place its item first, second, wherever. The builder
  * filters by ACL and sorts; the plugin only declares.
  *
- * A PLUGIN WRITES ONLY ITS OWN ENTRIES (2.2.1). item() hands the plugin the entry it
+ * A PLUGIN WRITES ONLY ITS OWN ENTRIES. item() hands the plugin the entry it
  * just added; all() hands copies, so a listener that reads the menu and changes what it
  * read changes nothing: core's entries and another plugin's stay as they declared them.
  *
@@ -101,7 +101,7 @@ class BuildMenuEvent extends AbstractEvent
     /**
      * Add a new item and return it for fluent configuration.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $id Unique id within the menu.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.
@@ -120,7 +120,7 @@ class BuildMenuEvent extends AbstractEvent
     /**
      * Add a pre-built item.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param MenuItem $item The item.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.
@@ -141,7 +141,7 @@ class BuildMenuEvent extends AbstractEvent
      * First declaration wins: core places its own headings before any plugin is
      * asked, so a plugin can position the heading it owns but not move a core one.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $section The heading's language key, as items name it.
      * @param int $ordering Sort position among headings; core uses 100..900.
      *
@@ -185,7 +185,7 @@ class BuildMenuEvent extends AbstractEvent
     }
 
     /**
-     * A copy of every valid item added so far (2.2.1: copies, so changing one changes nothing in the menu).
+     * A copy of every valid item added so far (copies, so changing one changes nothing in the menu).
      *
      * @return MenuItem[]
      *

@@ -326,7 +326,7 @@ class PanelModel extends ListModel
     }
 
     /**
-     * Whether the current page of rows could not be read (2.2.1).
+     * Whether the current page of rows could not be read.
      *
      *
      * @since  2.2.1
@@ -335,8 +335,8 @@ class PanelModel extends ListModel
 
     /**
      * The current page of rows. A query error (native {@see ListModel::getItems} answers false and keeps the
-     * database's message as the model's error) reaches the layout as an empty list, never as one false row (2.2.1:
-     * the (array) cast made [false] of it); the message is logged, and {@see self::listFailed()} says so for
+     * database's message as the model's error) reaches the layout as an empty list, never as one false row (an
+     * (array) cast would make [false] of it); the message is logged, and {@see self::listFailed()} says so for
      * the view to tell staff, without the database's words.
      *
      * @return mixed[]

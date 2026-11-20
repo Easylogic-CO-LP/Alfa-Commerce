@@ -19,7 +19,7 @@ defined('_JEXEC') or die;
 
 /**
  * Product page render event for FEATURE plugins (onItemDisplay): raised once on the shared dispatcher after the item's
- * field surfaces (2.2.0, mode A, a display phase, isolated), so every enabled and loaded listener contributes to the
+ * field surfaces (broadcast, a display phase, isolated), so every enabled and loaded listener contributes to the
  * same event. The feature-plugin twin of the per-field onItemView: contributions land on the same page slots
  * (ItemSurface) and the same $item->surfaces map, never HTML, a layout name + display data, each naming its plugin:
  *

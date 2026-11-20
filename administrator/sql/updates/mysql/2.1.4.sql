@@ -1,15 +1,15 @@
--- Alfa Commerce 2.1.4: the tasks table, and when a notification was last written
+-- The tasks table, and when a notification was last written
 --
 -- One table for the work Alfa Commerce owes and runs outside the change that asked for it, by type:
 --   - single: one thing a change owes after its commit (an e-mail, a plugin's reaction, a notice). It is written in
 --     the change's own transaction, so a rollback removes it and a commit keeps it, and it runs as soon as the
 --     outermost transaction has committed and Alfa's named locks are released. A request that ends before running it
 --     leaves it here, and the next recovery runs it.
---   - job: long work with steps and a checkpoint (from 2.2.0). The job columns are here from 2.1.4, so 2.2.0 adds no
---     table and no column; until then no job row is written and nothing claims one.
--- The slots table holds the concurrency classes of jobs (one heavy job at a time), used from 2.2.0.
+--   - job: long work with steps and a checkpoint; its columns are here, so the job runner adds no table and no
+--     column.
+-- The slots table holds the concurrency classes of jobs (one heavy job at a time).
 --
--- The two tables are new in 2.1.4, empty on an updated site; the install SQL creates the same tables and this runs again
+-- The two tables are empty on an updated site; the install SQL creates the same tables and this runs again
 -- harmlessly over them.
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (

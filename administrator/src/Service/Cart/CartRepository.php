@@ -88,7 +88,7 @@ class CartRepository
     //  WRITING LINES: the line and the selections that describe it
 
     /**
-     * Add a line and the selections that configure it, in one transaction level (2.2.1): a selection that
+     * Add a line and the selections that configure it, in one transaction level: a selection that
      * cannot be written takes the line with it, so a cart never keeps a line without the choices that configure and
      * price it.
      *
@@ -137,7 +137,7 @@ class CartRepository
      * The quantity is SET, not summed: this is the shopper editing what they
      * already chose, not adding more of it.
      *
-     * ONE TRANSACTION LEVEL (2.2.1): a failure between dropping the old
+     * ONE TRANSACTION LEVEL: a failure between dropping the old
      * selection and writing the new one rolls the line back to the configuration
      * it had, never a line with none.
      *

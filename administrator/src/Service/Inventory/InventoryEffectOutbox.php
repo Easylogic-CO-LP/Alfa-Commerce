@@ -100,14 +100,14 @@ final class InventoryEffectOutbox
 
     /**
      * A claim older than this is assumed to belong to a process that died. A drain that meets one settles it as a failed
-     * try (2.2.1): its claim counted the try, and it is tried again under {@see self::MAX_ATTEMPTS} and the wait of its
+     * try: its claim counted the try, and it is tried again under {@see self::MAX_ATTEMPTS} and the wait of its
      * step, as any failure ({@see self::settleAbandoned()}).
      */
     public const STALE_CLAIM_SECONDS = DueRead::STALE_CLAIM_SECONDS;
 
     /**
      * How many times a failed movement is tried before it waits for staff, spaced as the task engine spaces the retries
-     * of a single (2.2.1): tried at once, then once after each wait of {@see Tasks::BACKOFF_SECONDS} (1 minute to
+     * of a single: tried at once, then once after each wait of {@see Tasks::BACKOFF_SECONDS} (1 minute to
      * 24 hours, about 33 hours in all), counted from its last failure. A movement at the cap is no longer claimed; its
      * order's or document's notice says so. Apply outstanding stock movements in Tools tries every failed movement at
      * once, and a new status of an order tries that order's own failed movement at once, whether it waits for its next
@@ -190,7 +190,7 @@ final class InventoryEffectOutbox
         // outbox is measured with: Factory::getDate() keeps the time of its
         // first call for the whole process, so an obligation recorded late in
         // a task run, a console command or a queue would look older by the
-        // run's age (2.2.1).
+        // run's age.
         $db->setQuery(
             'INSERT IGNORE INTO ' . $db->quoteName('#__alfa_inventory_effect_outbox')
             . ' (' . $db->quoteName('source_type') . ', ' . $db->quoteName('source_id') . ', '
@@ -226,7 +226,7 @@ final class InventoryEffectOutbox
         // again, due at once with a full set of tries: the new fact is a new
         // question, so the status change that states it tries it in its own
         // drain and says what happened, whatever wait a failure had left the
-        // row on (2.2.1). A row still pending or claimed is left exactly as it
+        // row on. A row still pending or claimed is left exactly as it
         // is: it is already outstanding, and resetting its claim would hand the
         // same work to a second worker.
         $db->setQuery(
@@ -313,7 +313,7 @@ final class InventoryEffectOutbox
      * document's notice, so it is announced whichever drain met it. A refusal
      * a stock before-event listener threw on purpose (InventoryRefusedException)
      * is one too; 'refusedByListener' names its source ids, and its notice asks
-     * staff to decide rather than to resolve an order line (2.2.1). A document's
+     * staff to decide rather than to resolve an order line. A document's
      * such refusal is also written as a task of its order that waits for staff
      * in Tools > Tasks, whose Run again tries the movement once the plugin allows
      * it ({@see OrderDocumentStock}); not when staff's own Run again met it.
@@ -325,7 +325,7 @@ final class InventoryEffectOutbox
      * than the stale window) is settled as a failed try first, and goes on as
      * one: tried again in this pass when the wait of its step has passed since
      * that try began, and named in 'exhausted', with its notice, when that try
-     * was the last the cap allows (2.2.1).
+     * was the last the cap allows.
      *
      * A fulfilment refused because other claims reserve the stock it needs is
      * settled 'failed' like every retryable failure. 'reservedFloor' carries
@@ -385,7 +385,7 @@ final class InventoryEffectOutbox
 
         foreach (self::candidates($db, $limit, $staleSeconds, $onlySourceId, $onlySourceType) as $row) {
             // A claim whose worker stopped: its try failed without a verdict. Settled as a failed try, it is claimed
-            // below only when the cap and the wait allow, as any failed movement (2.2.1).
+            // below only when the cap and the wait allow, as any failed movement.
             if ((string) $row->status === self::STATUS_CLAIMED && !self::settleAbandoned($db, $row, $staleSeconds, $summary)) {
                 continue;
             }
@@ -592,8 +592,8 @@ final class InventoryEffectOutbox
     }
 
     /**
-     * Settle a claim whose worker stopped before its verdict (a fatal error, a killed process) as a failed try
-     * (2.2.1). Its claim counted the try, so it becomes a failed movement like any other: tried again once the wait
+     * Settle a claim whose worker stopped before its verdict (a fatal error, a killed process) as a failed try.
+     * Its claim counted the try, so it becomes a failed movement like any other: tried again once the wait
      * of its step of the ladder has passed since that try began, and below {@see self::MAX_ATTEMPTS} only. Before,
      * it was claimed again every {@see self::STALE_CLAIM_SECONDS} with no limit. One that reaches the cap this way
      * waits for staff, and its order's or document's notice says so, as for a movement whose last try failed. The
@@ -717,7 +717,7 @@ final class InventoryEffectOutbox
     private static function classify(Throwable $failure): string
     {
         // A listener of a stock before-event that refused the movement on purpose: a retry meets the same answer, so
-        // staff decide (2.2.1).
+        // staff decide.
         if (InventoryRefusedException::in($failure) !== null) {
             return self::STATUS_REFUSED;
         }
@@ -860,7 +860,7 @@ final class InventoryEffectOutbox
      * the refusal then. A Run again in flight has read the refusal already and drains the movement itself
      * ({@see self::retryRefusedDocument()}): a drain that claimed the movement between that run's two statements
      * meets the refusal instead, and the run ends with nothing claimed, so the refusal is written as a task of its own,
-     * as when none stands (2.2.1). Advisory, as the notice: a task that cannot be written or told never changes the
+     * as when none stands. Advisory, as the notice: a task that cannot be written or told never changes the
      * verdict, unless its failure ended (or may have ended) the caller's transaction.
      *
      * @param object $row The obligation, as the drain read it.
@@ -1252,7 +1252,7 @@ final class InventoryEffectOutbox
      *
      * A movement a STOCK PLUGIN REFUSED is staff's to decide on the order itself (a new
      * status queues it again once the plugin allows it), so its notice links to the
-     * order, for the users who may edit orders (2.2.1). A document's movement so
+     * order, for the users who may edit orders. A document's movement so
      * refused waits as a task in Tools > Tasks, whose Run again tries it, so its
      * notice links there, for the users who may open Tools.
      *
@@ -1293,7 +1293,7 @@ final class InventoryEffectOutbox
      * Whether an order still owes a stock movement for its claim: its obligation pending, failed or claimed, the rows
      * a drain may yet apply (a refused one waits for the operator, an applied one is done). One read through
      * idx_source, inside the caller's transaction: what a status change reads to decide whether its stock single has
-     * work (2.2.0).
+     * work.
      *
      * @param int $orderId The order.
      *
@@ -1338,7 +1338,7 @@ final class InventoryEffectOutbox
 
     /**
      * How many obligations the shop still owes: every one not applied and not refused, a failed one waiting for its
-     * next try of the ladder or for staff included (2.2.1). What staff are told is owed; outstandingCount() is what a
+     * next try of the ladder or for staff included. What staff are told is owed; outstandingCount() is what a
      * drain would take now.
      *
      * @since  2.2.1
@@ -1441,7 +1441,7 @@ final class InventoryEffectOutbox
      * The uncached check behind {@see self::syncNotice()}.
      *
      * Warnings whose movement is no longer owed are retired first. A movement still
-     * owed gets the stock.effects.drain job (2.2.0), unless the caller is that job.
+     * owed gets the stock.effects.drain job, unless the caller is that job.
      * Then one notice states how many owed movements nothing is currently warning
      * about; a movement whose order or document already shows its own notice is not
      * counted twice.
@@ -1583,8 +1583,7 @@ final class InventoryEffectOutbox
      * {@see self::claim()} puts it inside its conditional UPDATE: that one
      * statement is the concurrency guard. A claim whose worker stopped is not
      * claimable as it stands: the drain settles it as a failed try first
-     * ({@see self::settleAbandoned()}), so the cap and the wait hold for it too
-     * (2.2.1).
+     * ({@see self::settleAbandoned()}), so the cap and the wait hold for it too.
      *
      * @param object $db Database driver.
      *
@@ -1637,8 +1636,8 @@ final class InventoryEffectOutbox
 
     /**
      * A new status of the order: its own failed stock claim is tried now, whether it waits for its next step of the
-     * ladder or reached the cap, with a full set of tries again, as {@see self::reopenFailed()} does for every one
-     * (2.2.1). A change that keeps the order's claim re-states nothing ({@see self::enqueue()}), so without this its
+     * ladder or reached the cap, with a full set of tries again, as {@see self::reopenFailed()} does for every one.
+     * A change that keeps the order's claim re-states nothing ({@see self::enqueue()}), so without this its
      * drain would claim nothing until the row's wait had passed. A row pending or claimed is left as it is: it is
      * already outstanding, or its worker holds it.
      *

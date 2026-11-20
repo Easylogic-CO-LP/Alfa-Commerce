@@ -123,8 +123,8 @@ $cartId = (int) $this->builderCartId;
                     <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotalWithTax()->format()); ?></span>
                 <?php elseif ($price->hasExplicitPrice()) : ?>
                     <?php // ITS OWN SURFACE, NOT THE DISCOUNT ONE. A negotiated
-                          // price is not a promotional adjustment, and the ruling
-                          // requires all three concepts to stay distinguishable:
+                          // price is not a promotional adjustment, and all three
+                          // concepts stay distinguishable:
                           // individual promotional adjustments, the price
                           // override, and the aggregate whole-line saving.
                           //
@@ -262,7 +262,7 @@ $cartId = (int) $this->builderCartId;
         <?php endforeach; ?>
 
         <?php // A plugin of the customer's that cannot run for this operator: its charges are missing from these totals
-              // and the placement refuses, so the operator reads why here, with the totals (2.2.0). ?>
+              // and the placement refuses, so the operator reads why here, with the totals. ?>
         <?php foreach ($totals->contributionsNotLoaded as $notLoaded) : ?>
             <tr class="table-warning">
                 <td colspan="<?php echo $labelSpan + 2; ?>"><?php echo Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR', $this->escape(AlfaPluginHelper::get()->name(PluginId::of((string) $notLoaded)))); ?></td>

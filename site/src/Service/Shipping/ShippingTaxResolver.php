@@ -38,11 +38,11 @@ defined('_JEXEC') or die;
  * destination inside it, and an unknown destination admits only rules that
  * name no place. A destination that may not price (an unpublished country, or
  * a place inside one: PlaceTree::eligible()) is the unknown destination here,
- * as the same buyer's place is for the goods (PriceContext, 2.2.0); the
+ * as the same buyer's place is for the goods (PriceContext); the
  * shipping zones keep the raw destination. Category and manufacturer scopes
  * describe goods; a shipping charge has neither, so they are not read. The
  * rules that match are put in the one order the goods' taxes of the same buyer
- * are put in (RulePrecedence, 2.2.1), and how they combine (only this,
+ * are put in (RulePrecedence), and how they combine (only this,
  * combined, one after another) is the pricing engine's own reading.
  *
  * @since  2.0.0

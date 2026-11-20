@@ -113,21 +113,21 @@ final class SetupCheck
     private $probe = null;
 
     /**
-     * @var callable|null What the reason names, as plain text: fn(): list<string>, the values of its placeholders
-     *                    (2.2.1). Asked only for a row that is not complete.
+     * @var callable|null What the reason names, as plain text: fn(): list<string>, the values of its placeholders.
+     *                    Asked only for a row that is not complete.
      * @since  2.2.1
      */
     private $reasonArguments = null;
 
     /**
-     * @var string The reason's key without placeholders, said when the values it names cannot be read (2.2.1).
+     * @var string The reason's key without placeholders, said when the values it names cannot be read.
      * @since  2.2.1
      */
     private string $reasonUnnamed = '';
 
     /**
      * @var callable|null A sentence the row says in every state, complete or not: fn(): string, a language key, or ''
-     *                    for none (2.2.2). For what the check leaves out on purpose, which a complete row would hide.
+     *                    for none. For what the check leaves out on purpose, which a complete row would hide.
      * @since  2.2.2
      */
     private $note = null;
@@ -187,7 +187,7 @@ final class SetupCheck
     }
 
     /**
-     * Name what the reason is about: its language string takes these values in its placeholders (2.2.1).
+     * Name what the reason is about: its language string takes these values in its placeholders.
      *
      * @param callable $arguments fn(): list<string>, plain text; the checklist escapes them.
      * @param string $unnamed The reason's key without placeholders, said when the values cannot be read (the probe
@@ -205,7 +205,7 @@ final class SetupCheck
 
     /**
      * The reason's key for the values read now: the reason, or its sentence without placeholders when it names values
-     * and none could be read (2.2.1).
+     * and none could be read.
      *
      * @param list<string> $arguments What {@see self::reasonArgumentsNow()} answered.
      *
@@ -217,7 +217,7 @@ final class SetupCheck
     }
 
     /**
-     * A sentence the row says in every state, complete or not, read when the checklist is evaluated (2.2.2): what the
+     * A sentence the row says in every state, complete or not, read when the checklist is evaluated: what the
      * check leaves out on purpose, which a complete row would otherwise hide.
      *
      * @param callable $note fn(): string, a language key, or '' when there is nothing to say.
@@ -232,7 +232,7 @@ final class SetupCheck
     }
 
     /**
-     * The note's language key now; '' when the row has none, says none now, or it cannot be read (2.2.2).
+     * The note's language key now; '' when the row has none, says none now, or it cannot be read.
      *
      * @since  2.2.2
      */
@@ -428,7 +428,7 @@ final class SetupCheck
 
     /**
      * Whether the merchant may ignore this step: a recommended or optional step may be, a required one never. The tier
-     * alone decides; a check needs nothing else for it (2.2.2).
+     * alone decides; a check needs nothing else for it.
      *
      *
      * @since  2.2.2

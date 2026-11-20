@@ -37,7 +37,7 @@ final class PriceContribution
      * @param string $target 'start' (apply on net) or 'final' (apply on gross).
      * @param int $sortOrder Fold order; lower folds first.
      * @param string $source Owning plugin element (the collector fills it when empty).
-     * @param bool $suppliesBase The plugin's contributions are the whole price of the product (2.2.2): a product with no
+     * @param bool $suppliesBase The plugin's contributions are the whole price of the product: a product with no
      *                           price row that applies is priced from them. Without it, a product with no price row is
      *                           not priced whatever its contributions add, as it is not priced whatever its options add.
      *

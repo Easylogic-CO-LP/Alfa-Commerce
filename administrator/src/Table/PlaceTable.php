@@ -46,7 +46,7 @@ class PlaceTable extends Table
     }
 
     /**
-     * The codes of a place, as its level allows (2.2.1).
+     * The codes of a place, as its level allows.
      *
      * A COUNTRY, a place with no parent, carries its ISO 3166-1 codes: two
      * letters in code2 and three in code3, stored in capitals, and no ISO

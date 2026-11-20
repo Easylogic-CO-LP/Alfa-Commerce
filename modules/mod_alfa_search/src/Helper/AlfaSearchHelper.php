@@ -282,7 +282,7 @@ class AlfaSearchHelper
     }
 
     /**
-     * One value of the request, through Joomla's filter, or null when the request sends a list in its place (2.2.1): a
+     * One value of the request, through Joomla's filter, or null when the request sends a list in its place: a
      * list handed on to a typed parameter fails with an error page that names a file of the site, so it is refused
      * before any use.
      *

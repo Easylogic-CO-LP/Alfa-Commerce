@@ -15,7 +15,7 @@ use Joomla\CMS\Language\Text;
 \defined('_JEXEC') or die;
 
 /**
- * A payment or shipping method's plugin is fixed once an order uses it (2.2.0, design 2.15.5):
+ * A payment or shipping method's plugin is fixed once an order uses it:
  * the type an order or a money or parcel row was taken with is its plugin of record, and changing the method's type
  * would point the method at another gateway or carrier. The form shows the type read-only with a note; a save that
  * changes it is refused. Deleting a referenced method was already refused.
@@ -74,7 +74,7 @@ trait LocksMethodTypeTrait
             return;
         }
 
-        // Read only, so not asked for: no required star (UX-38); the field names the plugin, marked when it is not enabled.
+        // Read only, so not asked for: no required star; the field names the plugin, marked when it is not enabled.
         $form->setFieldAttribute('type', 'readonly', 'true');
         $form->setFieldAttribute('type', 'required', 'false');
         $form->setFieldAttribute('type', 'description', 'COM_ALFA_METHOD_TYPE_LOCKED');

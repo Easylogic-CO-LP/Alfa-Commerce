@@ -52,7 +52,7 @@ class ShipmentController extends BaseController
      * buyer leaves the checkout, chooses on the carrier's page, and comes back
      * here. The plugin decides what that means and where they go next; a
      * handler that sets no redirect sends the buyer to the cart with a neutral
-     * message (2.2.1), never to an empty page.
+     * message, never to an empty page.
      *
      * @return void
      *
@@ -68,7 +68,7 @@ class ShipmentController extends BaseController
         // an order this controller has no business loading.
         $shipmentType = RequestScalar::cmd($this->input, 'method', '');
 
-        // The plugin the address names, booted through the plugin helper (2.2.0): never another one. A plugin that
+        // The plugin the address names, booted through the plugin helper: never another one. A plugin that
         // is disabled, missing or cannot be loaded is refused with a neutral message.
         $plugins = AlfaPluginHelper::get();
 
@@ -96,7 +96,7 @@ class ShipmentController extends BaseController
             return;
         }
 
-        // What leaves the handler is the handler's own failure (Joomla's error page, as before 2.2.0).
+        // What leaves the handler is the handler's own failure (Joomla's error page).
         $plugins->dispatchTo($shipmentPlugin, $shipmentEvent);
 
         if ($shipmentEvent->hasRedirect()) {
@@ -106,7 +106,7 @@ class ShipmentController extends BaseController
         }
 
         // A handler that names no page leaves the buyer somewhere defined: the cart, told that the choice could not
-        // be confirmed here (2.2.1).
+        // be confirmed here.
         $app->enqueueMessage(Text::_('COM_ALFA_SHIPMENT_RETURN_UNCONFIRMED'), 'warning');
         $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
     }
@@ -134,7 +134,7 @@ class ShipmentController extends BaseController
 
         $onWebhookShipmentEventName = 'onShipmentWebhook';
 
-        // A DISABLED plugin is refused at its sessionless endpoint (2.2.0: 503 with Retry-After, so the provider
+        // A DISABLED plugin is refused at its sessionless endpoint (503 with Retry-After, so the provider
         // retries once it is enabled again, and an alert for staff), never handed the delivery.
         // subject = null, ALWAYS. A static webhook URL names no parcel, and the
         // only thing that can prove a message is genuine is the carrier's own
@@ -144,7 +144,7 @@ class ShipmentController extends BaseController
             'method' => $shipmentType,
         ]);
 
-        // Delivered to the plugin of record only (2.2.0, design 2.15.5): unavailable, 503 with Retry-After and the
+        // Delivered to the plugin of record only: unavailable, 503 with Retry-After and the
         // alert; a handler that throws, 500; no webhook handler, 404. Never a 2xx for a delivery not processed.
         $this->deliverWebhook('alfa-shipments', $shipmentType, $shipmentEvent);
     }

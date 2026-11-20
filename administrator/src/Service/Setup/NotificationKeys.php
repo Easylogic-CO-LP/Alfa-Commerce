@@ -24,8 +24,8 @@ use Throwable;
 \defined('_JEXEC') or die;
 
 /**
- * The notifications written before 2.1.4 given their language keys and parameters, once, by the install script after
- * the SQL (2.1.4).
+ * The notifications stored as plain text given their language keys and parameters, once, by the install script after
+ * the SQL.
  *
  * A row is identified by its dedup key family, never by its text. Its stored title and message stay exactly as they are
  * and become its snapshot: they are never rendered again. The mapping only adds the keys, their parameters and the
@@ -95,7 +95,7 @@ final class NotificationKeys
             }
 
             // A family's own group key; else a group stored as a core group's text, matched exactly (a third party's row
-            // that took core's default group, translated, before 2.1.4).
+            // that took core's default group, translated).
             $group = $mapping['group'] ?? self::coreGroup(stored: (string) $row->notify_group);
             $grouped = $group !== null && $group !== (string) $row->notify_group;
 

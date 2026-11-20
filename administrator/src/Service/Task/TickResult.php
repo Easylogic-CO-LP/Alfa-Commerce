@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 \defined('_JEXEC') or die;
 
 /**
- * What one tick of the runner did (2.2.0, design 2.4).
+ * What one tick of the runner did.
  *
  * @since  2.2.0
  */

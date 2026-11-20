@@ -46,7 +46,7 @@ class GetAccessActionsEvent extends AbstractEvent
     /**
      * Contribute an ACL action.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $name The action (e.g. 'alfa.search.manage'), checked via authorise().
      * @param string $title A language key for the Permissions tab label.
      * @param string $description A language key for the tooltip; defaults to the title.

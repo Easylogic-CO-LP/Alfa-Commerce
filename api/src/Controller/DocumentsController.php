@@ -186,7 +186,7 @@ class DocumentsController extends ApiController
      * GET v1/alfa/documents/:id/pdf
      *
      * Without the dompdf library, which ships with the package (someone removed it, or a library it needs), the
-     * answer is 503 with the sentence that names it (2.2.1): the server lacks a part, the document is fine, and its
+     * answer is 503 with the sentence that names it: the server lacks a part, the document is fine, and its
      * HTML route still answers.
      *
      *

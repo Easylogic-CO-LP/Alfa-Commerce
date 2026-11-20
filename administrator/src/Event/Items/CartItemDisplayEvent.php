@@ -20,7 +20,7 @@ defined('_JEXEC') or die;
 
 /**
  * Cart line render event for FEATURE plugins (onCartItemDisplay), after the line's field surfaces are collected. One
- * event for the whole line (2.2.0): delivered in turn to each `alfa` plugin the CUSTOMER's view levels admit,
+ * event for the whole line: delivered in turn to each `alfa` plugin the CUSTOMER's view levels admit,
  * in their order, through the plugin's own targeted declaration, so the line reads the same whoever operates the cart;
  * a plugin that throws is logged and the next runs. Contributions land on the same cart-line slot map
  * ($cartItem->surfaces) the template already renders, never HTML, a layout name + display data, each naming its plugin:

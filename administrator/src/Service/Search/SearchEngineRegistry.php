@@ -45,10 +45,10 @@ use Throwable;
  * so it survives any entry point. Only engine discovery is not, because plugins are
  * not.
  *
- * Discovery is a broadcast on the shared dispatcher (2.2.0, design 2.15.3: mode A,
- * isolated), through the plugin helper, the `alfa-search` group imported first: every
+ * Discovery is a broadcast on the shared dispatcher (isolated),
+ * through the plugin helper, the `alfa-search` group imported first: every
  * listener may contribute an engine, each naming its plugin as group.element, and the
- * configured engine's plugin alone is then asked for the search input (mode B).
+ * configured engine's plugin alone is then asked for the search input (targeted).
  *
  * It deliberately does NOT boot the component to find a "core" engine. That was tried
  * and it fails under CLI (`bootComponent()` resolves the request URI and throws on a
@@ -96,7 +96,7 @@ final class SearchEngineRegistry
     private static ?self $bare = null;
 
     /**
-     * The request's registry (2.2.0): the component's, so the engines are discovered once per request whoever asks;
+     * The request's registry: the component's, so the engines are discovered once per request whoever asks;
      * a process the component cannot boot in has one of its own.
      *
      * @since  2.2.0
@@ -214,8 +214,8 @@ final class SearchEngineRegistry
         $this->engines = [];
         $this->owners = [];
 
-        // The `alfa-search` group imported, then the collection event raised on the shared dispatcher (2.2.0, design
-        // 2.15.3: mode A, isolated). Importing only this group means enabling a search engine never drags in unrelated
+        // The `alfa-search` group imported, then the collection event raised on the shared dispatcher (broadcast,
+        // isolated). Importing only this group means enabling a search engine never drags in unrelated
         // feature plugins; each engine names its plugin, and a listener that fails is logged while the others' engines
         // stand, so one broken package never takes search down for the whole site.
         $event = new CollectSearchEnginesEvent('onCollectSearchEngines', []);
@@ -296,7 +296,7 @@ final class SearchEngineRegistry
     }
 
     /**
-     * The plugin that registered the configured engine (2.2.0, design 2.15.3): onAlfaSearchInputLayout is addressed
+     * The plugin that registered the configured engine: onAlfaSearchInputLayout is addressed
      * to it alone. Null when the database search is configured, the configured engine is not installed, or its owner is
      * not an alfa-search plugin.
      *
@@ -310,7 +310,7 @@ final class SearchEngineRegistry
             return null;
         }
 
-        // The engine's contributor, group.element (2.2.0): asked only when it is an alfa-search plugin.
+        // The engine's contributor, group.element: asked only when it is an alfa-search plugin.
         try {
             $owner = PluginId::of((string) ($this->owners[$key] ?? ''));
         } catch (InvalidArgumentException) {
@@ -331,7 +331,7 @@ final class SearchEngineRegistry
      * never been built. Gating on active() would remove the button that fixes the
      * problem it is reporting.
      *
-     * THE ONE READER of the option (2.2.1): the listing, its result
+     * THE ONE READER of the option: the listing, its result
      * attribution and the search input's layout event read the key here, so every
      * reader says the same for the database search, the empty string the option
      * stores for it (before, three storefront readers said 'database').
@@ -353,7 +353,7 @@ final class SearchEngineRegistry
      * Readiness check that treats a throwing engine as not ready.
      *
      * An engine that explodes while reporting its own health must not be able to
-     * take the caller down with it. PUBLISHED (2.2.1): the Options field and
+     * take the caller down with it. PUBLISHED: the Options field and
      * the provider factory ask an engine through it, never isReady() bare, so a
      * throwing engine no longer breaks the Options screen.
      *

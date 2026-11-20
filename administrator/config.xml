@@ -306,7 +306,7 @@
     <fieldset name="cart" label="COM_ALFA_CONFIG_TAB_CART">
             <fieldset name="cart_checkout" label="COM_ALFA_CONFIG_FIELDSET_CHECKOUT">
 
-                <!-- ONLINE SALES (2.2.2). Read through ShopMode::sellsOnline(), from
+                <!-- ONLINE SALES. Read through ShopMode::sellsOnline(), from
                      these Options only: a menu item never switches selling back on.
                      Catalogue only: no prices, no buy form, no cart, no storefront
                      order; staff orders and orders already placed are not affected. -->
@@ -724,7 +724,7 @@
     </fieldset>
 
     <fieldset name="currencies" label="COM_ALFA_CONFIG_CURRENCIES_LABEL">
-        <!-- Published currencies only, and a saved value must be one of them (2.2.2): the shop's prices are in its
+        <!-- Published currencies only, and a saved value must be one of them: the shop's prices are in its
              default currency, which Currency::getDefault() resolves among the published currencies. The empty first
              option is what a stored default that is no longer published shows, so no currency is chosen for the
              merchant, and required refuses to save Options until one is (the sql field's header attribute draws

@@ -53,7 +53,7 @@ class OrderModel extends AdminOrderModel
     }
 
     /**
-     * A PATCH changes what it sends: a detail field it leaves out keeps its value (2.2.2). Without this the details a
+     * A PATCH changes what it sends: a detail field it leaves out keeps its value. Without this the details a
      * PATCH sent replaced the order's delivery record whole, so a city sent alone left a record with only the city, and
      * a guest order whose name was sent without the e-mail lost its customer e-mail.
      *
@@ -206,7 +206,7 @@ class OrderModel extends AdminOrderModel
         $item->conversion_rate = self::decimal(value: $item->conversion_rate ?? null);
 
         // How far the order has gone out, by the derivation the orders list reads, so one order and the list answer
-        // it alike (2.2.1).
+        // it alike.
         $fulfillment = OrderFulfillment::forOrder(orderId: (int) $item->id);
         $item->fulfillment_status = $fulfillment->status;
         $item->fulfillment_percentage = PublishedDecimal::percent((float) $fulfillment->percentage);
@@ -298,12 +298,12 @@ class OrderModel extends AdminOrderModel
                 'amount' => $amount($p->amount ?? null),
                 'conversion_rate' => self::decimal(value: $p->conversion_rate ?? null),
                 'refund_type' => $p->refund_type ?? null,
-                // The reason staff gave for a refund, as the order screen shows it (2.2.1).
+                // The reason staff gave for a refund, as the order screen shows it.
                 'refund_reason' => $p->refund_reason ?? null,
                 'note' => $p->note ?? null,
                 'id_document' => isset($p->id_document) ? (int) $p->id_document : null,
-                // When the payment was recorded: the row's own time column (2.2.1; the table has no `created`, which
-                // this entry published as null until then).
+                // When the payment was recorded: the row's own time column (the table has no
+                // `created`).
                 'added' => $p->added ?? null,
             ],
             $rows($item->payments ?? null),
@@ -319,12 +319,12 @@ class OrderModel extends AdminOrderModel
                 // The VAT rate the charge was taxed at, as its exact decimal text.
                 'shipping_tax_rate' => self::decimal(value: $s->shipping_tax_rate ?? null),
                 // What the costs were derived from (tax_included, tax_excluded or carrier_stated), and the tax rates the
-                // charge was calculated with, in the order they apply, each with the name of its rule (2.2.1).
+                // charge was calculated with, in the order they apply, each with the name of its rule.
                 'shipping_charge_basis' => $s->shipping_charge_basis ?? null,
                 'shipping_tax_chain' => isset($s->shipping_tax_chain) ? ShipmentLedger::chainEntries(stored: (string) $s->shipping_tax_chain) : null,
                 'weight' => isset($s->weight) ? (float) $s->weight : null,
-                // When the parcel was recorded: the row's own time column (2.2.1; the table has no `note` and no
-                // `created`, which this entry published as null until then).
+                // When the parcel was recorded: the row's own time column (the table has no `note` and no
+                // `created`).
                 'added' => $s->added ?? null,
             ],
             $rows($item->shipments ?? null),

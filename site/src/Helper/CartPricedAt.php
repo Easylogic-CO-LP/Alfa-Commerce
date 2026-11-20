@@ -15,7 +15,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 defined('_JEXEC') or die;
 
 /**
- * Where the cart page's prices are for (2.2.1).
+ * Where the cart page's prices are for.
  *
  * The cart prices its goods at its delivery place; the shop's other pages price the visitor at their own place. When
  * the two differ, the cart page names the delivery place (COM_ALFA_CART_PRICED_AT). A delivery place that may not

@@ -5,7 +5,7 @@
  * whose every call is a 2-second tick on this job (task=tasks.process), paced by the answer (the line under the bar
  * says why the page waits). Closing the page loses nothing: the job waits for the next run. When the job ends, one
  * sentence says how, coloured by it, a thumbnails job's report is printed here, and the jobs card below is drawn again
- * by its own layout (task=tasks.jobsCard; UX-84, UX-88). The script fills this layout's elements and swaps in the card
+ * by its own layout (task=tasks.jobsCard). The script fills this layout's elements and swaps in the card
  * the server drew.
  *
  * Available $displayData:
@@ -49,7 +49,7 @@ if (!is_array($job)) {
 
 Factory::getApplication()->getDocument()->getWebAssetManager()->useScript('com_alfa.admin.task-progress');
 $key = 'COM_ALFA_TASKS_JOB_STATE_' . strtoupper($job['state']);
-// How the job ended, said once and coloured by it, the bar solid in the same colour (UX-88); the script shows the same when
+// How the job ended, said once and coloured by it, the bar solid in the same colour; the script shows the same when
 // the job ends while the page is open.
 $ends = [
     Tasks::STATE_DONE => ['COM_ALFA_TASKS_PROGRESS_END_DONE', 'text-success', 'bg-success'],
@@ -74,7 +74,7 @@ $report = \is_array($job['report'] ?? null)
                 aria-valuenow="<?php echo (int) $job['percent']; ?>" aria-label="<?php echo $e(Text::_('COM_ALFA_TASKS_COL_PROGRESS')); ?>"></div>
         </div>
         <p class="mb-1">
-            <?php // The state alone when the total is 0 (UX-04, NEW-6), else the state and how far the job is. ?>
+            <?php // The state alone when the total is 0, else the state and how far the job is. ?>
             <?php $units = TaskStaff::unitsText(done: (int) $job['done'], total: (int) $job['total'], percent: (int) $job['percent']); ?>
             <strong data-alfa-job-state><?php echo Text::_($key) === $key ? $e($job['state']) : Text::_($key); ?></strong><span data-alfa-job-units-line<?php echo $units === '' ? ' hidden' : ''; ?>>,
             <span data-alfa-job-units><?php echo $e($units); ?></span></span>

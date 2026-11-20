@@ -26,9 +26,9 @@ use Throwable;
 /**
  * Carts: the shopping in progress, and what became of the rest.
  *
- * Read-only in this slice, and the toolbar says so by carrying no action: a
- * cart is the shopper's own working document. Reaching into one is a later
- * step with its own permission and its own audit trail.
+ * Read-only, and the toolbar says so by carrying no action: a cart is the
+ * shopper's own working document. Reaching into one is a separate step with
+ * its own permission and its own audit trail.
  *
  * @since  2.0.0
  */

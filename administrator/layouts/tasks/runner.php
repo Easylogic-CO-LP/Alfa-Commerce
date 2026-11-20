@@ -41,7 +41,7 @@ $trigger  = static function (string $code) use ($e): string {
         <p class="text-muted"><?php echo Text::_('COM_ALFA_TASKS_RUNNER_DESC'); ?></p>
         <p>
             <?php if (is_array($lastTick) && (string) ($lastTick['at'] ?? '') !== '') : ?>
-                <?php // When and how; the counts and the time it took in the line's title (UX-07). ?>
+                <?php // When and how; the counts and the time it took in the line's title. ?>
                 <span title="<?php echo $e(Text::sprintf('COM_ALFA_TASKS_RUNNER_LAST_DETAIL', (int) ($lastTick['singles'] ?? 0), (int) ($lastTick['chunks'] ?? 0), (int) ($lastTick['ms'] ?? 0))); ?>"><?php
                     echo Text::sprintf(
                         'COM_ALFA_TASKS_RUNNER_LAST',
@@ -55,7 +55,7 @@ $trigger  = static function (string $code) use ($e): string {
 
         <h3 class="h6"><?php echo Text::_('COM_ALFA_TASKS_CLI_TITLE'); ?></h3>
         <p class="small text-muted mb-1"><?php echo Text::_('COM_ALFA_TASKS_CLI_DESC'); ?></p>
-        <?php // The whole crontab line, every minute (UX-13). ?>
+        <?php // The whole crontab line, every minute. ?>
         <p><code><?php echo $e('* * * * * ' . ($displayData['cli'] ?? '')); ?></code></p>
 
         <h3 class="h6"><?php echo Text::_('COM_ALFA_TASKS_CRON_TITLE'); ?></h3>
@@ -72,7 +72,7 @@ $trigger  = static function (string $code) use ($e): string {
         <?php else : ?>
             <p><?php echo Text::_('COM_ALFA_TASKS_CRON_NONE'); ?></p>
         <?php endif; ?>
-        <?php // A new address stops the one a web-cron service may be calling: asked first when one exists (UX-11). ?>
+        <?php // A new address stops the one a web-cron service may be calling: asked first when one exists. ?>
         <form method="post" action="<?php echo Route::_('index.php?option=com_alfa&task=tasks.generateKey'); ?>"<?php
             echo empty($displayData['keyKept']) ? '' : ' data-alfa-confirm="' . $e(Text::_('COM_ALFA_TASKS_CRON_GENERATE_CONFIRM')) . '"'; ?>>
             <button type="submit" class="btn btn-secondary" title="<?php echo $e(Text::_('COM_ALFA_TASKS_CRON_GENERATE_DESC')); ?>">

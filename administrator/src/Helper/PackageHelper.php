@@ -1033,8 +1033,8 @@ class PackageHelper
      *     tree does not have ({@see self::census()}), which only a caller holding a
      *     built archive can ask for; pass $zipPath to run it.
      *
-     * There is deliberately no schema-update or obsolete-file finding. Alfa Commerce
-     * 2.0.0 is the schema baseline: an installation older than 2.0.0 is refused in the
+     * There is deliberately no schema-update or obsolete-file finding. An installation
+     * older than the schema baseline is refused in the
      * component's preflight, and a later schema change ships as an update file beside
      * the install SQL, which this report does not inspect.
      *

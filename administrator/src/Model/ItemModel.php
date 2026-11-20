@@ -100,7 +100,7 @@ class ItemModel extends AlfaAdminModel
     /**
      * The admin-contract entity of this screen.
      *
-     * ORDERING FACTS a contract handler must know (decided at migration):
+     * ORDERING FACTS a contract handler must know:
      * - onAlfaAdminBeforeSave fires AFTER this model's own pre-parent steps, which strip
      *   stock, available_quantity, inventory_stock, backorder and min_qty out of $data:
      *   a handler neither sees nor overrides those; they belong to the inventory domain.
@@ -256,7 +256,7 @@ class ItemModel extends AlfaAdminModel
             return true;
         }
 
-        // The batch rule (2.2.0): every item marked owed its rebuild by one statement and written in the same
+        // The batch rule: every item marked owed its rebuild by one statement and written in the same
         // transaction, so a catalogue job sees a mark only with its change; then rebuilt per chunk under its locks with
         // its mark cleared, so a request that stops after the commit leaves each item not yet rebuilt marked.
         $db = $this->alfaDriver();
@@ -324,7 +324,7 @@ class ItemModel extends AlfaAdminModel
             return false;
         }
 
-        // The batch rule (2.2.0), as batchManufacturer(): the marks by one statement, committed with the write.
+        // The batch rule, as batchManufacturer(): the marks by one statement, committed with the write.
         $db = $this->alfaDriver();
         $affectedCategories = [];
         $db->transactionStart(asSavepoint: true);
@@ -405,7 +405,7 @@ class ItemModel extends AlfaAdminModel
                 'itemId' => (int) ($data['id'] ?? $this->getState($this->getName() . '.id', 0)),
             ]);
 
-            // A display phase (2.2.0, mode A, isolated): a listener that throws is logged and the next one runs.
+            // A display phase (broadcast, isolated): a listener that throws is logged and the next one runs.
             $plugins = AlfaPluginHelper::get();
             $plugins->importGroup('alfa');
             $plugins->dispatchIsolated($event);
@@ -582,7 +582,7 @@ class ItemModel extends AlfaAdminModel
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id', 'user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
 
-            // The related products, in their order, as the Related tab's rows (2.2.2).
+            // The related products, in their order, as the Related tab's rows.
             $item->related = RelatedItems::rows(db: $this->getDatabase(), itemId: (int) $item->id);
 
             // get media origin (cat, man, item...)
@@ -605,13 +605,13 @@ class ItemModel extends AlfaAdminModel
      * CALL ORDER: the price index sync MUST be the very last step because
      * it reads all associated data committed in the steps before it:
      *
-     *   0. the item's lock and mark - the rebuild owed, recorded before any write (2.2.0)
+     *   0. the item's lock and mark - the rebuild owed, recorded before any write
      *   1. parent::save()           - writes the #__alfa_items row
      *   2. setPrices()              - writes #__alfa_items_prices rows
      *   3. setAssocsToDb() x 4     - writes categories, manufacturers, users, usergroups
      *   4. ProjectionManager        - reads everything above, writes every projection, clears the mark
      *
-     * ONE TRANSACTION (2.2.1): steps 1 to 3, with the translations, media,
+     * ONE TRANSACTION: steps 1 to 3, with the translations, media,
      * options, downloads, combinations, stock and the archive move, are committed
      * together, or rolled back together and the save answers false with the
      * sentence. Step 4, the category caches, the visibility event, onItemAfterSave
@@ -721,7 +721,7 @@ class ItemModel extends AlfaAdminModel
         unset($data['backorder'], $data['min_qty']);
 
         // A negative dimension or weight is stored as 0. One the save leaves out (a REST write that does not send
-        // it) is not touched: a new item takes the column's default, an existing one keeps what it has (2.2.1).
+        // it) is not touched: a new item takes the column's default, an existing one keeps what it has.
         foreach (['width', 'height', 'depth', 'weight'] as $measure) {
             if (isset($data[$measure]) && $data[$measure] < 0) {
                 $data[$measure] = 0;
@@ -755,7 +755,7 @@ class ItemModel extends AlfaAdminModel
             return $this->refuseSave(messages: [$categoryRefusal]);
         }
 
-        // RELATED PRODUCTS (2.2.2), judged before the transaction: the product itself, a product named twice or one that
+        // RELATED PRODUCTS, judged before the transaction: the product itself, a product named twice or one that
         // does not exist is refused and nothing is saved. A copy has no id yet, so none of its rows can name it. A form
         // with no row carries no list, which empties the links as it empties the other lists.
         $relatedIds = RelatedItems::posted(posted: $data['related'] ?? []);
@@ -765,7 +765,7 @@ class ItemModel extends AlfaAdminModel
             return $this->refuseSave(messages: $relatedRefusals);
         }
 
-        // A thumbnail the gallery names must be an image file of the media folders (2.2.1, MediaHelper::thumbnailRefusals()):
+        // A thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()):
         // a save naming any other is refused before anything is written, from the form and the API alike, so the
         // gallery keeps the thumbnails it stores.
         $thumbnailRefusals = MediaHelper::thumbnailRefusals(mediaData: (array) ($data['media'] ?? []));
@@ -791,7 +791,7 @@ class ItemModel extends AlfaAdminModel
             return $this->refuseSave(messages: $stockPlan['refusals']);
         }
 
-        // A price row of a deleted place is never widened to every place (2.2.1).
+        // A price row of a deleted place is never widened to every place.
         if ($pk > 0 && \is_array($data['prices'] ?? null)) {
             $widened = PriceRowPlaces::widenedFromDeleted(itemId: $pk, combinationId: null, rows: $data['prices']);
 
@@ -881,7 +881,7 @@ class ItemModel extends AlfaAdminModel
             $data['projection_dirty_at'] = ProjectionManager::markNow();
         }
 
-        // Alfa's before-save is asked before the item's lock and transaction (2.1.4, design 0.2), so its listeners run
+        // Alfa's before-save is asked before the item's lock and transaction, so its listeners run
         // under neither. Plugin code still runs inside the transaction: Joomla's onContentBeforeSave (in
         // AdminModel::save()), Joomla's Table events and the media plugins' events of the image writes
         // (onAlfaMediaValidate, onAlfaMediaBeforeProcess, onAlfaMediaAfterProcess). What such a listener writes on this
@@ -899,7 +899,7 @@ class ItemModel extends AlfaAdminModel
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_items', primaryColumnName: 'id_item', data: $data);
         ItemFieldsAdminHelper::ensureCombinationLangSchema();
 
-        // The rebuild this save owes is recorded before its first write (2.2.0): an existing item's mark in a
+        // The rebuild this save owes is recorded before its first write: an existing item's mark in a
         // statement of its own right before the transaction, a new item's in its insert. The item's lock is taken right
         // before the mark and held through the save's commit and the rebuild of step 4, so no other rebuild clears the
         // mark while this save is still to commit. A save that dies leaves the mark, which a tick turns into the
@@ -908,7 +908,7 @@ class ItemModel extends AlfaAdminModel
         $itemLock = new IndexRebuildLock();
         $locked = $pk > 0 ? array_keys($itemLock->acquire(itemIds: [$pk]), IndexRebuildLock::GRANTED, true) : [];
 
-        // ONE TRANSACTION for the whole save (2.2.1): the row, its translations, media, prices, categories,
+        // ONE TRANSACTION for the whole save: the row, its translations, media, prices, categories,
         // manufacturers, audiences, options, downloads, combinations, stock and archive move are committed together,
         // or none of them is. What follows a save (the catalogue rebuild, the category caches, the visibility event,
         // onItemAfterSave, and Joomla's and Alfa's after-save events) runs at its commit and never after a rollback.
@@ -1035,7 +1035,7 @@ class ItemModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
 
-            // The related products, in the posted order (2.2.2): each written only while its product exists, so a
+            // The related products, in the posted order: each written only while its product exists, so a
             // product deleted since the check above leaves no link.
             RelatedItems::replace(db: $db, itemId: (int) $currentId, ids: $relatedIds);
 
@@ -1219,7 +1219,7 @@ class ItemModel extends AlfaAdminModel
                 $archived = $this->publish(pks: $moved, value: $archiveMove);
             }
 
-            // What follows the save, once it has committed (2.2.1).
+            // What follows the save, once it has committed.
             PostCommit::defer(
                 db: $db,
                 label: 'the item save of #' . $currentId,
@@ -1258,7 +1258,7 @@ class ItemModel extends AlfaAdminModel
                             'isNew' => $pk <= 0,
                         ]);
 
-                        // An after phase (2.2.0, mode A, isolated).
+                        // An after phase (broadcast, isolated).
                         $plugins = AlfaPluginHelper::get();
                         $plugins->importGroup('alfa');
                         $plugins->dispatchIsolated($event);
@@ -1306,7 +1306,7 @@ class ItemModel extends AlfaAdminModel
      *
      * Non-fatal: sync failures are logged but never block the publish operation.
      *
-     * THE BATCH RULE (2.2.0). The products the write changes (those not in the target state yet) are marked owed
+     * THE BATCH RULE. The products the write changes (those not in the target state yet) are marked owed
      * their rebuild by one statement (per 1,000 ids) in the state write's transaction, then rebuilt or removed a chunk of 100 at a time under the items' locks, each mark cleared
      * by compare-and-set: a request that stops after the commit leaves every item not yet rebuilt marked for the
      * catalogue job. A batch takes no lock before its mark: it cannot hold a thousand locks.
@@ -1365,7 +1365,7 @@ class ItemModel extends AlfaAdminModel
                 $crossing = $this->archiveCrossing(ids: $ids, value: $value);
 
                 if ($crossing === []) {
-                    // The batch rule (2.2.0): the items marked owed their rebuild by one statement in the state
+                    // The batch rule: the items marked owed their rebuild by one statement in the state
                     // write's transaction, so the change is never committed unmarked.
                     $this->markChanging(ids: $ids, value: $value);
                     // Let Joomla handle the actual state change in the database
@@ -1513,9 +1513,7 @@ class ItemModel extends AlfaAdminModel
         // Cleared unconditionally rather than only for items that have
         // categories: clearCache() cleans the whole group in one call whatever
         // id it is given, over-invalidating is harmless, and under-invalidating
-        // is the defect being fixed. Measured on the demo: a trashed product
-        // kept being counted (34 served against 33 recomputed), and a DELETED
-        // one kept its place too.
+        // keeps a trashed or deleted product counted.
         CategoryHelper::clearCache();
 
         return true;
@@ -1721,7 +1719,7 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
-     * Mark owed their rebuild the products a state write is about to change (2.2.0, the batch rule): those whose state
+     * Mark owed their rebuild the products a state write is about to change (the batch rule): those whose state
      * is not the target yet, read in the write's transaction, by one statement per 1,000 ids. A product already in the
      * target state is left out of the write by the framework (AdminModel::publish()) and out of the rebuild after it,
      * so it is not marked either.
@@ -2993,7 +2991,7 @@ class ItemModel extends AlfaAdminModel
     /**
      * A product's name in the staff member's language, for a refusal that names it (UX-42); its number when it has none.
      * The one rule for naming a product to staff: the item's own refusals, the Related tab's refusals and the title of
-     * its product picker (2.2.2).
+     * its product picker.
      *
      * @param int $itemId The product.
      *
@@ -3177,13 +3175,13 @@ class ItemModel extends AlfaAdminModel
         // is kept.
         $deletePks = $existing === [] ? $pks : $existing;
 
-        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks: no plugin code
         // runs under them.
         if (!$this->alfaAskBeforeDelete(pks: (array) $deletePks)) {
             return false;
         }
 
-        // EACH PRODUCT'S REBUILD LOCK FIRST (2.2.0, A-C18-13), the one a save takes before its mark (C8), ascending and
+        // EACH PRODUCT'S REBUILD LOCK FIRST, the one a save takes before its mark, ascending and
         // with its wait, then the transaction, and the locks given back only once the transaction and what follows it
         // have ended: a rebuild or a save of a product being deleted waits for the delete and then finds the product
         // gone, at any isolation level. A lock not granted in its wait refuses the delete before anything is touched.
@@ -3227,10 +3225,10 @@ class ItemModel extends AlfaAdminModel
                     );
                 }
 
-                // THE PRICE INDEX ROWS GO THROUGH ITS WRITER, BEFORE THE PRODUCT ROWS (2.2.0, A-C18-5): the foreign key
+                // THE PRICE INDEX ROWS GO THROUGH ITS WRITER, BEFORE THE PRODUCT ROWS: the foreign key
                 // would otherwise take them with the product, and nothing would announce them. Inside this transaction, so
                 // the event follows its commit and a delete rolled back announces nothing.
-                // Its failure fails the delete (A-C18-14): nothing is removed behind the event's back.
+                // Its failure fails the delete: nothing is removed behind the event's back.
                 if ($existing !== []) {
                     try {
                         (new PriceIndexSyncService())->deleteForItems(
@@ -3308,7 +3306,7 @@ class ItemModel extends AlfaAdminModel
                 // on the server and in the driver's count.
                 TransactionState::rollBackLevel(db: $db, failure: $e);
 
-                // The removal met another writer (A-C18-14): nothing was deleted, and the merchant is told so.
+                // The removal met another writer: nothing was deleted, and the merchant is told so.
                 if ($e === $busyRemoval) {
                     Log::add('Item delete: the price index rows of item(s) ' . implode(', ', $existing) . ' could not be removed, nothing was deleted: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
                     $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
@@ -3353,7 +3351,7 @@ class ItemModel extends AlfaAdminModel
                 )->execute();
             }
 
-            // The related products (2.2.2), on both sides: the links the deleted products hold and the links other
+            // The related products, on both sides: the links the deleted products hold and the links other
             // products hold to them. One statement of its own: the list above maps each table to one column.
             RelatedItems::deleteFor(db: $db, itemIds: $pks);
 
@@ -3411,9 +3409,7 @@ class ItemModel extends AlfaAdminModel
             // Cleared unconditionally rather than only for items that have
             // categories: clearCache() cleans the whole group in one call whatever
             // id it is given, over-invalidating is harmless, and under-invalidating
-            // is the defect being fixed. Measured on the demo: a trashed product
-            // kept being counted (34 served against 33 recomputed), and a DELETED
-            // one kept its place too.
+            // keeps a trashed or deleted product counted.
             CategoryHelper::clearCache();
 
             return true;

@@ -18,7 +18,7 @@ use Joomla\Input\Input;
  * One value of a request, read through Joomla's input filters, and never a list where one value is meant.
  *
  * Joomla's filters keep a list a list: getInt() of id[]=5 answers [5], and the typed call it is handed to raises a
- * TypeError whose message, on the storefront's error page, names the server path of the file (2.2.1). Every
+ * TypeError whose message, on the storefront's error page, names the server path of the file. Every
  * storefront and REST read of a single value goes through here: a list is refused with a 400 and a neutral sentence
  * ({@see RequestValueRefused}) before any code receives it; an absent value is the default; a single value is what
  * Joomla's filter makes of it.

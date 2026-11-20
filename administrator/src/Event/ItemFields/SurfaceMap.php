@@ -18,7 +18,7 @@ use LogicException;
 defined('_JEXEC') or die;
 
 /**
- * The surfaces of a product page, a catalogue card or a cart line, by slot ($owner->surfaces, 2.2.1): the descriptors
+ * The surfaces of a product page, a catalogue card or a cart line, by slot ($owner->surfaces): the descriptors
  * every contributor's surface became, read-only once handed out.
  *
  * Core collects the contributions of each display phase in a list of its own and hands the result to the item or the

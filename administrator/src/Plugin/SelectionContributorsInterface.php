@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Plugin;
 \defined('_JEXEC') or die;
 
 /**
- * A collecting event delivered over a selection of plugins (2.2.0, design 2.15.4): the helper tells it which
+ * A collecting event delivered over a selection of plugins: the helper tells it which
  * plugin is answering, so a contribution that names another plugin is dropped and logged. A consistency check on
  * attribution, never an authorisation.
  *

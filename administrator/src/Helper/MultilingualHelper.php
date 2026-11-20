@@ -531,7 +531,7 @@ class MultilingualHelper
      * - A clash the save would CREATE goes under 'refuse': a typed or changed alias, a language
      *   left without an alias of its own, or a move to another scope. The caller refuses the save
      *   before it writes anything.
-     * - A clash that was already there (data from 2.1.0, say) goes under 'warn': the save goes
+     * - A clash that was already there (older data, say) goes under 'warn': the save goes
      *   ahead, nothing is renamed, and the caller shows the warning after it.
      *
      * Alfa generates and makes unique only an empty alias, and never rewrites one that is not.
@@ -1743,7 +1743,7 @@ class MultilingualHelper
 
     /**
      * The shop's default administrator language: the Language Manager's setting (com_languages "administrator"), read
-     * from its extension row, else en-GB. The language a notification's snapshot is written in (2.1.4).
+     * from its extension row, else en-GB. The language a notification's snapshot is written in.
      *
      * @since  2.1.4
      */

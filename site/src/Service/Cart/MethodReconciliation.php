@@ -71,7 +71,7 @@ final class MethodReconciliation
 
         if ($shipmentChoice->dropCurrent) {
             // A cart that stopped shipping drops its shipping method silently; so does a carrier the offer read
-            // withheld until the checkout gives a fact it needs (the country, the postcode: 2.2.2). One withheld for
+            // withheld until the checkout gives a fact it needs (the country, the postcode). One withheld for
             // its own answer about the destination the shopper gave is unchecked with that answer, as before.
             $withheld = $methods->withheld($chosenShipment);
 
@@ -107,7 +107,7 @@ final class MethodReconciliation
             $quote = $this->computation->shipmentQuote();
 
             if (!$quote->available) {
-                // A carrier that waits for a fact the checkout has not given is set aside without a word (2.2.2).
+                // A carrier that waits for a fact the checkout has not given is set aside without a word.
                 if (!CartMethods::waitsForFact($quote)) {
                     $methods->addNotice('shipment', self::refusalNotice($quote, $methods->name('shipment', $chosenShipment)));
                 }

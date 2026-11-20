@@ -91,14 +91,14 @@ final class CoreToolProvider
     public const OWNER_NAME = 'com_alfa';
 
     /**
-     * Core's contributor identity, group.element (2.2.0): the reserved owner, never booted as a plugin.
+     * Core's contributor identity, group.element: the reserved owner, never booted as a plugin.
      *
      * @since  2.2.0
      */
     public const ID = self::OWNER_GROUP . '.' . self::OWNER_NAME;
 
     /**
-     * The wall-clock budget of one step of a tool that works a job (2.2.0), in milliseconds: the 2,000 ms tick on that
+     * The wall-clock budget of one step of a tool that works a job, in milliseconds: the 2,000 ms tick on that
      * job the progress of a job is fed by.
      *
      * @var int
@@ -230,7 +230,7 @@ final class CoreToolProvider
 
         // THE GALLERY'S THUMBNAILS RECREATED (2.2.0): one job, two modes, on the Media tab. "Missing" first, the
         // everyday and safer one, for the images that have none, whose thumbnail is the full image, or whose thumbnail is
-        // smaller than the size allows; "all" after a change of the thumbnail size, asked first (UX-19, UX-91). Each
+        // smaller than the size allows; "all" after a change of the thumbnail size, asked first. Each
         // button queues the job and opens its progress page.
         $event->add(self::ID, 'media.thumbnails.missing', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_TITLE')
             ->icon('images')
@@ -252,11 +252,11 @@ final class CoreToolProvider
             ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_ALL_DESC');
 
         // THE LIST PRICES OF A NEW COMBINATION OF CUSTOMER GROUPS are prepared by its
-        // price.set.prepare job (2.2.0), never by the request that brought the combination. The
+        // price.set.prepare job, never by the request that brought the combination. The
         // card says what waits and how far each job is; its button works the waiting sets' jobs now.
         $priceSets = $this->priceSetsState();
 
-        // The card names what it is about; its button says what it does, with the run buttons' icon (UX-22).
+        // The card names what it is about; its button says what it does, with the run buttons' icon.
         $priceSetsAction = $event->add(self::ID, 'pricing.groupsets', 'COM_ALFA_TOOLS_PRICE_SETS_TITLE')
             ->icon('sync')
             ->meta('button_label', 'COM_ALFA_TOOLS_PRICE_SETS_BTN')
@@ -278,7 +278,7 @@ final class CoreToolProvider
         $stockOwed = false;
 
         try {
-            // Every movement still owed, one that waits for its next automatic try included (2.2.1).
+            // Every movement still owed, one that waits for its next automatic try included.
             $stockOwed = InventoryEffectOutbox::owedCount() > 0;
         } catch (Throwable) {
             // A count that fails must not remove the tool that fixes it.
@@ -321,7 +321,7 @@ final class CoreToolProvider
             $tasksAction->meta('notice', 'COM_ALFA_TOOLS_TASKS_RUN_OWED');
         }
 
-        // FINISHED TASKS DELETED NOW (2.2.0): what the runner's hourly prune deletes, by the same rules
+        // FINISHED TASKS DELETED NOW: what the runner's hourly prune deletes, by the same rules
         // (TaskRetention), until nothing they let go is left; the count of what went.
         $event->add(self::ID, 'tasks.prune', 'COM_ALFA_TOOLS_TASKS_PRUNE_TITLE')
             ->icon('trash')
@@ -405,7 +405,7 @@ final class CoreToolProvider
      * Apply every stock movement an order or a document still owes.
      *
      * This is what the notification centre sends the merchant to. The plan owes the
-     * stock.effects.drain job (2.2.0); each step works that job for a moment
+     * stock.effects.drain job; each step works that job for a moment
      * ({@see self::stepJob()}), whose own rules end the run (a chunk that settles nothing)
      * and retire the warnings whose movement is no longer owed.
      *
@@ -425,7 +425,7 @@ final class CoreToolProvider
         try {
             if ($event->isPlanning()) {
                 $joined = self::activeJob(scope: StockEffectsDrainJob::NAME) !== null;
-                // Staff asked: every failed movement is tried now, those waiting for their next automatic try included (2.2.1).
+                // Staff asked: every failed movement is tried now, those waiting for their next automatic try included.
                 InventoryEffectOutbox::reopenFailed();
                 StockEffectsDrainJob::enqueue();
                 $event->setTotal(max(1, InventoryEffectOutbox::outstandingCount()));
@@ -551,7 +551,7 @@ final class CoreToolProvider
      * asserting the same job, with a second engine adding a third.
      *
      * Every item is marked owed a rebuild (#__alfa_items.projection_dirty_at, ranges of
-     * 1,000 ids) and the catalogue.rebuild job is owed (2.2.0); each step works that job for
+     * 1,000 ids) and the catalogue.rebuild job is owed; each step works that job for
      * a moment ({@see self::stepJob()}). The job clears each mark as its item is rebuilt.
      *
      * @param ExecuteToolActionEvent $event The execution event.
@@ -658,7 +658,7 @@ final class CoreToolProvider
     }
 
     /**
-     * One step of a tool that works a job (2.2.0): a tick on the scope's newest job, then its progress for the bar.
+     * One step of a tool that works a job: a tick on the scope's newest job, then its progress for the bar.
      * The tool's request goes on while the job advances; it ends when the job is done (the message the tool gives),
      * failed, or could not advance now (its retry waits, or another tick holds it), each said in the message.
      *
@@ -802,7 +802,7 @@ final class CoreToolProvider
      * plain success: the tool is a manual catch-up, and the honest completion
      * message is the only scheduler it has.
      *
-     * THE PLAN MAKES THE MISSING LANGUAGE TABLES FIRST (2.1.0). A content language published
+     * THE PLAN MAKES THE MISSING LANGUAGE TABLES FIRST. A content language published
      * without the language sync (from the Content Languages list, or by a language pack) has no
      * language tables, and the fill leaves a language without them out: the run would say it
      * completed and fill nothing in that language. The plan therefore runs the language sync, as
@@ -1097,7 +1097,7 @@ final class CoreToolProvider
     }
 
     /**
-     * Rebuild the search index of the configured engine: the plan owes the search.rebuild job of that engine (2.2.0);
+     * Rebuild the search index of the configured engine: the plan owes the search.rebuild job of that engine;
      * each step works it for a moment ({@see self::stepJob()}). The job opens the new generation, walks the catalogue
      * into it and activates it once, in its last chunk.
      *
@@ -1137,9 +1137,9 @@ final class CoreToolProvider
 
     /**
      * Send the Tools screen to the progress page of the job just queued for a scope (Tools > Tasks, &job=N), whose
-     * 2-second ticks follow it to its end. A request that joined a job already waiting or running (2.6.4: it merges
-     * into that job) is told so, by the job's state, in the message area of the page that opens (2.2.0, entry 20, the
-     * owner's s118, UX-85 and UX-86): a button pressed again never just goes grey.
+     * 2-second ticks follow it to its end. A request that joined a job already waiting or running (it merges
+     * into that job) is told so, by the job's state, in the message area of the page that opens:
+     * a button pressed again never just goes grey.
      *
      * @param ExecuteToolActionEvent $event The tool request.
      * @param string $scope The job's scope.

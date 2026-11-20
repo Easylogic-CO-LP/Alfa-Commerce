@@ -29,7 +29,7 @@ use Joomla\Registry\Registry;
 \defined('_JEXEC') or die;
 
 /**
- * Every Joomla detail of Alfa's plugin integration, in one place (2.2.0, design 2.15.2): PluginHelper, the
+ * Every Joomla detail of Alfa's plugin integration, in one place: PluginHelper, the
  * application's bootPlugin() and its extension container, the shared dispatcher and its listener registry, the
  * view-level plugin lists. Built on Joomla's documented public APIs only; no second dispatcher, no reflection, no
  * private state of Joomla's. A Joomla upgrade is meant to change this class only.
@@ -161,7 +161,7 @@ final class JoomlaPluginLayer
 
     /**
      * The params of the plugin's enabled extension row, whatever the request's view levels: null when no enabled row
-     * exists (2.2.1, the customer boot of an operator placement).
+     * exists (the customer boot of an operator placement).
      *
      * @param PluginId $id The plugin.
      *
@@ -192,7 +192,7 @@ final class JoomlaPluginLayer
     /**
      * The plugin's name as Extensions: Plugins shows it: its extension row's name, translated through the plugin's own
      * .sys.ini; null when no row exists (the plugin is not installed). Read beside rowEnabled(), whatever the request's
-     * view levels (2.2.0, UX-25).
+     * view levels.
      *
      * @param PluginId $id The plugin.
      *
@@ -262,9 +262,9 @@ final class JoomlaPluginLayer
      * scope). Only what is empty is filled. A plugin that asks Joomla to load its language when it is built
      * (CMSPlugin's autoloadLanguage) found no name to load it by; once its name and group are filled, its language is
      * loaded, Joomla's own step (CMSPlugin::loadLanguage(): the administrator's language folder, then the plugin's own),
-     * so its texts and the labels it gives are translated (2.2.1). The helper asks this only for its maintenance boot,
+     * so its texts and the labels it gives are translated. The helper asks this only for its maintenance boot,
      * under the maintenance lock (Clear Data of a disabled plugin), and for its customer boot inside an operator
-     * placement (2.2.1).
+     * placement.
      *
      * @param CMSApplicationInterface $app The application.
      * @param PluginId $id The plugin.
@@ -340,7 +340,7 @@ final class JoomlaPluginLayer
     }
 
     /**
-     * The plugins of a group a NAMED person's view levels admit (2.2.0, design 2.15.3): Joomla's own filter
+     * The plugins of a group a NAMED person's view levels admit: Joomla's own filter
      * (enabled, a plugin, state 0 or 1, access in that person's view levels, by ordering), for that person rather than
      * the request's identity, so a cart operated by staff is priced by the customer's plugins.
      *

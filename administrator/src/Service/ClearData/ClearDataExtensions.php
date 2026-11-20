@@ -42,12 +42,12 @@ use Throwable;
  * too): Alfa Commerce, packages `pkg_alfa...`, plugins of a group `alfa...` or of an `Alfa\` namespace (the task
  * plugins), modules `mod_alfa...`. Tools > Extensions and Clear everything leave out Alfa Commerce and the extensions
  * its manifest bundles, and add every plugin of another group, whatever its namespace, that declares onClearData
- * ({@see self::declaredElsewhere()}, 2.2.1): the contract invites a system, task, user or content plugin to declare it.
+ * ({@see self::declaredElsewhere()}): the contract invites a system, task, user or content plugin to declare it.
  *
  * WHO SUPPORTS CLEAR DATA. A plugin that declares onClearData(ClearDataEvent $event): void as a targeted handler (its
  * declaration as the plugin helper reads it: TargetedHandlersInterface, its family's constant, or, for a plugin of a
  * group Joomla loads itself, a public getTargetedHandlers() alone), asked of the plugin booted, enabled or not,
- * through the plugin helper's maintenance boot (2.2.0, A-C14B-1). A plugin without it: "Automatic Clear Data not
+ * through the plugin helper's maintenance boot. A plugin without it: "Automatic Clear Data not
  * supported", none of its data is touched. A module is not part of Clear Data: it can only be removed. A package is one row; its Clear Data is its
  * plugins' own, each called the same way. Even this question is asked under THE lock, the plugin marked `loading`
  * before it is booted ({@see self::support()}): a plugin whose code cannot be loaded (a parse error is caught; a fatal
@@ -160,7 +160,7 @@ final class ClearDataExtensions
      * Alfa's.
      *
      * @param DatabaseInterface|null $db The connection; the container's by default.
-     * @param list<int> $ids Only these extensions (2.2.1); none: every one.
+     * @param list<int> $ids Only these extensions; none: every one.
      *
      * @return list<array{key: string, extension_id: int, package_id: int, type: string, element: string, folder: string, client_id: int, enabled: bool, locked: bool, name: string, version: string}>
      *
@@ -281,7 +281,7 @@ final class ClearDataExtensions
      * data), `unsupported` (Automatic Clear Data not supported: Remove extension only), `failed` (its code could not be
      * loaded: Remove extension only; `stale` when an earlier request died while loading it, and it is not booted
      * again), `unread` (a plugin of another group whose code could not be read: Remove extension only; `stale` as
-     * above; since 2.2.1), `remove_only` (a module, or a package without plugins). The caller holds THE lock: the plugin is marked
+     * above), `remove_only` (a module, or a package without plugins). The caller holds THE lock: the plugin is marked
      * `loading` before it is booted and the mark taken away after, so a request that dies while loading it leaves the
      * mark. Booting changes nothing.
      *
@@ -337,7 +337,7 @@ final class ClearDataExtensions
 
         ClearDataStatus::loading(key: $key, loading: true);
 
-        // The plugin's own declaration decides (2.2.0, mode B through the helper's maintenance boot, A-C14B-1).
+        // The plugin's own declaration decides (targeted, through the helper's maintenance boot).
         try {
             $plugin = $this->boot(entry: $entry);
             $support = AlfaPluginHelper::get()->declares($plugin, 'onClearData')
@@ -360,11 +360,11 @@ final class ClearDataExtensions
     /**
      * Every entry with its name, its description and what it allows, for a page (Tools > Extensions, the Clear
      * everything confirmation), a package's extensions in `children` the same way. Takes THE lock, waiting for a
-     * clear at work as long as the caller says (Tools > Extensions does not wait, since 2.2.1); when it cannot, nothing
+     * clear at work as long as the caller says (Tools > Extensions does not wait); when it cannot, nothing
      * is booted, each plugin answers `busy` and {@see self::busy()} says so.
      *
      * @param list<array<string, mixed>> $entries Rows of {@see self::rows()} or plugins of {@see self::plugins()}.
-     * @param int $wait Seconds to wait for THE lock (since 2.2.1); 10 by default.
+     * @param int $wait Seconds to wait for THE lock; 10 by default.
      *
      * @return list<array<string, mixed>> Each entry + label, description, support.
      *
@@ -482,8 +482,8 @@ final class ClearDataExtensions
         ClearDataStatus::mark(key: $key, status: 'clearing', source: $source);
         ClearDataStatus::loading(key: $key, loading: true);
 
-        // Through the helper's maintenance boot (A-C14B-1): booted enabled or not, given the name, group and params
-        // from its row, its family checked; then its own declaration of onClearData, as everywhere (2.2.0, mode B).
+        // Through the helper's maintenance boot: booted enabled or not, given the name, group and params
+        // from its row, its family checked; then its own declaration of onClearData, as everywhere (targeted).
         $plugins = AlfaPluginHelper::get();
 
         try {
@@ -999,7 +999,7 @@ final class ClearDataExtensions
      * The installed Alfa extensions but Alfa Commerce and what it bundles, by id.
      *
      * @param bool $elsewhere With the plugins of other groups that declare onClearData (Tools > Extensions and Clear
-     *                        everything; {@see self::declaredElsewhere()}), since 2.2.1.
+     *                        everything; {@see self::declaredElsewhere()}).
      *
      * @return array<int, array<string, mixed>>
      *
@@ -1248,7 +1248,7 @@ final class ClearDataExtensions
     }
 
     /**
-     * Boot a plugin enabled or not, through the plugin helper's maintenance boot (2.2.0, A-C14B-1: this connection holds
+     * Boot a plugin enabled or not, through the plugin helper's maintenance boot (this connection holds
      * the lock of Clear everything): the name, group and, from a fresh row, the params its provider leaves out are given
      * to it. Booting subscribes it to nothing. A plugin whose code threw while it loaded throws the same again for the
      * rest of the request ({@see self::$unloadable}).

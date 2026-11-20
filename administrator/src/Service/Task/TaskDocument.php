@@ -24,7 +24,7 @@ use Joomla\Database\ParameterType;
  * The owner is com_alfa and the result null for every task of this version; the fields are there so that a later
  * public task API fills them without changing the document. Times are UTC, as stored. The last error is staff's
  * information: shown, shortened, to callers with Tools only, and null to every other reader (the creator, the orders
- * view). It is stored without a database's text (Tasks::failureLine()); rows written before 2.2.0 may still hold one.
+ * view). It is stored without a database's text (Tasks::failureLine()); an older row may still hold one.
  * meta.tasks lists only the tasks its reader may read.
  *
  * @since  2.2.0
@@ -119,7 +119,7 @@ final class TaskDocument
             'finished_at' => $row['finished_at'] ?? null,
             'updated_at' => $row['updated_at'] ?? null,
             'origin' => (string) $row['origin'],
-            // Said in the reader's language when it is a failure of the work's own (UX-09).
+            // Said in the reader's language when it is a failure of the work's own.
             'last_error' => $withError ? self::shortError(error: Tasks::errorText((string) $row['last_error'])) : null,
             'result' => null,
         ];

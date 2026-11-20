@@ -44,7 +44,7 @@ use Joomla\CMS\Language\Text;
  * invoices; on a credit, every discount follows what is credited. Made
  * independently pickable, such a benefit could be left behind on the draft
  * that claimed what it reduces: permanently unclaimable, and the documents
- * would over-bill. Where an invoice issued before 2.2.1 already left one
+ * would over-bill. Where an invoice already left one
  * behind, the row says how much of it no sales document can claim.
  *
  * @since  2.0.0
@@ -261,7 +261,7 @@ class DocumentChargesField extends FormField
      * @param string $note Muted explanatory suffix, or empty.
      * @param float $amount The remaining amount, tax included.
      * @param string $sign Prefix for the amount, e.g. a minus for a discount.
-     * @param bool $open Whether money is left on the charge (since 2.0.0): a closed
+     * @param bool $open Whether money is left on the charge: a closed
      *                   row is rendered disabled.
      * @param bool $pickable False renders no checkbox: the row rides another one.
      * @param bool $ticked Whether the row arrives ticked while money is left on it.
@@ -269,10 +269,10 @@ class DocumentChargesField extends FormField
      * @param string $remaining A credit row's remaining at its document's scale, machine
      *                          formatted; set, the row carries an amount input.
      * @param array|null $kept The kept draft's charges when this row's group is the one it
-     *                         claimed (since 2.0.0): the tick and the typed amount are its.
-     * @param string|null $charged A credit row's charged figure (since 2.0.0); with $credited
+     *                         claimed: the tick and the typed amount are its.
+     * @param string|null $charged A credit row's charged figure; with $credited
      *                             set, the row prints both before its remaining.
-     * @param string|null $credited What credits already gave back of it (since 2.0.0).
+     * @param string|null $credited What credits already gave back of it.
      *
      * @return string The <tr>.
      *

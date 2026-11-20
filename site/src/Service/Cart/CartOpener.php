@@ -76,7 +76,7 @@ final class CartOpener
         $messaging = new CartMessaging($app);
         $configuration = new CartLineConfiguration($repository);
 
-        // Where the cart is delivered: one binding for its goods and its carriage (2.2.1).
+        // Where the cart is delivered: one binding for its goods and its carriage.
         $delivery = new DeliveryBinding();
         $hydrator = new CartHydrator(
             $repository,
@@ -116,7 +116,7 @@ final class CartOpener
         // cart is read, so what is read is what the rules left.
         $hydrator->begin($identity, $subject);
 
-        // ON THE STOREFRONT THE CART IS DELIVERED WHERE THE CHECKOUT SAYS (2.2.1): the place typed in this checkout,
+        // ON THE STOREFRONT THE CART IS DELIVERED WHERE THE CHECKOUT SAYS: the place typed in this checkout,
         // else a signed-in customer's saved address the checkout fills in, bound before the cart is read so its goods
         // and its carriage are priced there on every page that shows the cart (the cart page, its re-renders, the
         // cart module and the placement). A request that binds a place of its own (the checkout form, the submission)

@@ -83,7 +83,7 @@ class HtmlView extends BaseHtmlView
     protected $newBillingPicked = false;
 
     /**
-     * The order-completed page's order, the one read-only value its template reads (2.2.0, design 2.17); null when the
+     * The order-completed page's order, the one read-only value its template reads; null when the
      * order is not available to this visitor.
      *
      * @since  2.2.0
@@ -92,14 +92,14 @@ class HtmlView extends BaseHtmlView
 
     /**
      * Whether the order's gateway of record cannot be loaded now: the order pages show the neutral line and change
-     * nothing (2.2.0, design 2.15.5).
+     * nothing.
      *
      * @since  2.2.0
      */
     protected bool $providerUnavailable = false;
 
     /**
-     * The process page when the gateway of record cannot be loaded (2.2.0, UX-72): the number the customer quotes, and
+     * The process page when the gateway of record cannot be loaded: the number the customer quotes, and
      * the process address, which asks the gateway again (Try again). Empty on every other page.
      *
      * @since  2.2.0
@@ -110,7 +110,7 @@ class HtmlView extends BaseHtmlView
     protected string $retryUrl = '';
 
     /**
-     * The order-not-available page's Log in address for a visitor not logged in, back to this address (2.2.0, UX-57);
+     * The order-not-available page's Log in address for a visitor not logged in, back to this address;
      * empty for a logged-in customer.
      *
      * @since  2.2.0
@@ -118,7 +118,7 @@ class HtmlView extends BaseHtmlView
     protected string $loginUrl = '';
 
     /**
-     * The order-completed page's print view (2.2.0, UX-81), Joomla's own print pattern: the same keyed address with
+     * The order-completed page's print view, Joomla's own print pattern: the same keyed address with
      * tmpl=component and print=1 shows the order alone, and its root is marked for the page's script to print it.
      *
      * @since  2.2.0
@@ -161,13 +161,13 @@ class HtmlView extends BaseHtmlView
         $this->state = $model->getState();
         $this->params = $app->getParams('com_alfa');
 
-        // EVERY PAGE OF THIS VIEW IS ONE VISITOR'S OWN (2.2.1): the cart, the checkout details typed, the coupon and the
+        // EVERY PAGE OF THIS VIEW IS ONE VISITOR'S OWN: the cart, the checkout details typed, the coupon and the
         // methods chosen, the order of the session, at addresses every visitor shares. None is ever stored in Joomla's
         // page cache, whatever plugin is enabled. The empty cart too: a stored copy would be served to the next shopper
         // whose cart holds products, before this view runs, wherever System - Alfa Commerce Sync does not run.
         PageCache::excludeResponse();
 
-        // THE ORDER-COMPLETED PAGE (2.2.0, design 2.17): an order read by the site read service, never the cart, its
+        // THE ORDER-COMPLETED PAGE: an order read by the site read service, never the cart, its
         // form or the checkout's state.
         if ($this->_layout == 'default_order_completed') {
             $this->displayOrderCompleted($tpl);
@@ -175,7 +175,7 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        // CATALOGUE ONLY (2.2.2): the cart and the checkout show one sentence instead of the cart, HTTP 200 and no form,
+        // CATALOGUE ONLY: the cart and the checkout show one sentence instead of the cart, HTTP 200 and no form,
         // and no cart is read; a stored cart is kept untouched and comes back when selling is switched on again. The
         // order pages above and below go on for orders already placed.
         if (!ShopMode::sellsOnline() && \in_array($this->_layout, ['default', 'default_cart_empty'], true)) {
@@ -265,7 +265,7 @@ class HtmlView extends BaseHtmlView
                 $app->redirect(Uri::root());
             }
 
-            // ONLY AN ORDER THIS SESSION MAY SHOW (2.2.1): placed here, or a return a gateway authenticated. Any other
+            // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, or a return a gateway authenticated. Any other
             // id is one a request named, and the page would ask that order's gateway for a payment page; refused
             // before the order is read, with nothing of it shown.
             if (!SessionOrder::isEntitled($app, $orderId)) {
@@ -289,7 +289,7 @@ class HtmlView extends BaseHtmlView
             // Always present so the layout templates can safely check it.
             $this->event = new stdClass();
 
-            // THE GATEWAY OF RECORD (2.2.0, design 2.15.5): the order's own snapshot of the plugin
+            // THE GATEWAY OF RECORD: the order's own snapshot of the plugin
             // that took its payment, never the live method row, which staff may have edited.
             $selectedPayment = $orderData->selected_payment ?? null;
             $paymentType = (string) ($orderData->payment_method_type ?? '');
@@ -302,10 +302,10 @@ class HtmlView extends BaseHtmlView
             if ($paymentType !== '' && $this->askGatewayOfRecord($paymentType, $paymentEvent) !== 'asked') {
                 // The gateway of record cannot be loaded, or its handler failed: the page says so in
                 // neutral words and changes nothing; it never moves on to the completed page for it,
-                // which would read as a payment taken (2.2.0, s96).
+                // which would read as a payment taken.
                 $this->providerUnavailable = true;
                 $this->event->onOrderProcessView = $paymentEvent;
-                // Never a dead end (2.2.0, UX-72): the number the customer quotes, and this same address, which asks
+                // Never a dead end: the number the customer quotes, and this same address, which asks
                 // the gateway again.
                 $this->orderNumber = EmailService::orderNumber(order: $orderData);
                 $this->retryUrl = Route::_('index.php?option=com_alfa&view=cart&layout=default_order_process');
@@ -344,7 +344,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Ask the order's gateway of record for its page (2.2.0, mode B): its ambient subscriptions engaged, the view event
+     * Ask the order's gateway of record for its page (targeted): its ambient subscriptions engaged, the view event
      * delivered to its declared handler, the layout owner defaulted to it. A gateway with no handler for the page is
      * asked nothing. Any Throwable leaving the handler is its failure: logged, and the caller renders no plugin block
      * (the process page shows the neutral line and stays).
@@ -394,7 +394,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The order-completed page (2.2.0, design 2.17): two addresses, one page.
+     * The order-completed page: two addresses, one page.
      *
      * The ARRIVAL address (layout=default_order_completed, no id and no key) is where every gateway and the process
      * page land the buyer: it reads the order the checkout completed from the session, clears it (the page's one
@@ -428,7 +428,7 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        // The address's two values, read raw and judged here (A-C16-7): each one plain value, the id a positive whole
+        // The address's two values, read raw and judged here: each one plain value, the id a positive whole
         // number as the arrival writes it. Anything else (an array such as id[]=, a malformed number) is no order of
         // this visitor's and gets the page's own answer, never a thrown error page.
         $id = $input->get('id', null, 'raw');
@@ -460,7 +460,7 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        // THE GATEWAY'S BLOCK (mode B, design 2.15.5): the completion view goes to the order's gateway of record alone,
+        // THE GATEWAY'S BLOCK (targeted): the completion view goes to the order's gateway of record alone,
         // the plugin the order recorded, with the order's own row as its subject. A gateway that cannot be loaded or
         // whose handler throws leaves its block out, and the page says so in neutral words: never a word of payment
         // the order does not hold.
@@ -483,7 +483,7 @@ class HtmlView extends BaseHtmlView
 
         $this->event->onOrderCompleteView = $paymentEvent;
 
-        // PRINT, JOOMLA'S WAY (2.2.0, UX-81): the same keyed address with tmpl=component and print=1 is the print view,
+        // PRINT, JOOMLA'S WAY: the same keyed address with tmpl=component and print=1 is the print view,
         // which shows the order alone; the page's script opens it from the address it was asked by, so the key is
         // never written into the page.
         $this->print = RequestScalar::bool($input, 'print', false);
@@ -510,7 +510,7 @@ class HtmlView extends BaseHtmlView
     /**
      * The arrival address: the session's order, cleared once, then 303 to its keyed address. The query a gateway added
      * to the arrival address (a result flag its completion view reads) goes along, so no gateway changes. The order
-     * must be one this session placed or a gateway authenticated a return for (2.2.1): any other is refused, and the
+     * must be one this session placed or a gateway authenticated a return for: any other is refused, and the
      * visitor goes to the cart with the neutral message.
      *
      * @param string|null $tpl Template name.
@@ -531,7 +531,7 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        // ONLY AN ORDER THIS SESSION MAY SHOW (2.2.1): placed here, or a return a gateway authenticated. Any other id
+        // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, or a return a gateway authenticated. Any other id
         // is one a request named, and its keyed address would open that order's page to whoever sent it.
         if (!SessionOrder::isEntitled($app, $orderId)) {
             SessionOrder::refuse($app, $orderId, 'completed');
@@ -574,7 +574,7 @@ class HtmlView extends BaseHtmlView
         $this->confirmation = null;
 
         // A customer's order shows only to that customer logged in: a visitor not logged in is offered the login, back
-        // to this address (2.2.0, UX-57), as the keyed page sends one there itself.
+        // to this address, as the keyed page sends one there itself.
         if ($this->app->getIdentity()->guest) {
             $this->loginUrl = Route::_('index.php?option=com_users&view=login&return=' . base64_encode(Uri::getInstance()->toString()));
         }

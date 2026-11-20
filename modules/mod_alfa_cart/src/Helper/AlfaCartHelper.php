@@ -219,7 +219,7 @@ class AlfaCartHelper
     }
 
     /**
-     * One value of the request, through Joomla's filter, or null when the request sends a list in its place (2.2.1): a
+     * One value of the request, through Joomla's filter, or null when the request sends a list in its place: a
      * list handed on to a typed parameter fails with an error page that names a file of the site, so it is refused
      * before any use.
      *
@@ -240,7 +240,7 @@ class AlfaCartHelper
     }
 
     /**
-     * Answer 403 with the catalogue-only sentence when the shop shows its catalogue only (2.2.2): the drawer is not
+     * Answer 403 with the catalogue-only sentence when the shop shows its catalogue only: the drawer is not
      * drawn, so neither its reading nor its quantity change is served.
      *
      * @since  2.2.2
@@ -262,7 +262,7 @@ class AlfaCartHelper
 
     /**
      * Answer a request that sent a list where one value is expected: 400, with this module's sentence and no file of the
-     * site named (2.2.1).
+     * site named.
      *
      * @since  2.2.1
      */

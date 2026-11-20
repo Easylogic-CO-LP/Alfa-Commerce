@@ -7,15 +7,15 @@
  * plain form POST with the form token, answered by TasksController.
  *
  * Available $displayData (TaskStaff::jobsCard(), the one source of the Tools page and of the card's refresh on a
- * progress page, UX-84):
+ * progress page):
  *   - rows   (array)  TaskStaff::jobRows()
  *   - groups (array)  customer group id => title, for the price sets' jobs
- *   - engines (array) search engine key => its name, for the search rebuilds' jobs (UX-06)
- *   - failedJobs (int) how many of the rows failed (the attention card's, UX-02)
+ *   - engines (array) search engine key => its name, for the search rebuilds' jobs
+ *   - failedJobs (int) how many of the rows failed (the attention card's)
  *   - thumbnailsMode (string|null) the mode a thumbnails job without a report yet will walk in, read by the view
  *     (ThumbnailRecreation::MODE_ALL or MODE_MISSING; null when no such job is listed): this layout reads no database
  *   - followedJob (int) the job this page follows as its progress page (&job=N), 0 when none: its row links to the
- *     progress card above ("See above", UX-90), instead of a link to the page already open (entry 20)
+ *     progress card above ("See above"), instead of a link to the page already open
  *   - unreadable (bool) the jobs could not be read: one line instead of the list
  *
  * @package    Alfa Commerce
@@ -44,7 +44,7 @@ $groups = (array) ($displayData['groups'] ?? []);
 $engines = (array) ($displayData['engines'] ?? []);
 $followed = (int) ($displayData['followedJob'] ?? 0);
 $e      = static fn ($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
-// A date on one line at every width (UX-14); on a phone the row folds (A4), so the note around it wraps instead.
+// A date on one line at every width; on a phone the row folds, so the note around it wraps instead.
 $date   = static fn (?string $at): string => (string) $at === '' ? '' : '<span class="alfa-nowrap">' . HTMLHelper::_('date', (string) $at, Text::_('DATE_FORMAT_LC6')) . '</span>';
 $state  = static function (string $code) use ($e): string {
     $key = 'COM_ALFA_TASKS_JOB_STATE_' . strtoupper($code);
@@ -75,8 +75,8 @@ $search   = SearchRebuildJob::NAME . ':';
             <p class="mb-0"><?php echo Text::_('COM_ALFA_TASKS_JOBS_NONE'); ?></p>
         <?php else : ?>
             <?php // On a phone the job (with a failed job's reason under its name), its state and what to do; its progress from sm
-                  // up, what it covers and when it ran from md up (UX-01, NEW-2). Below 480 px the row folds: what to do
-                  // takes a line of its own under the job and its state (2.2.1, A4). ?>
+                  // up, what it covers and when it ran from md up. Below 480 px the row folds: what to do
+                  // takes a line of its own under the job and its state. ?>
             <div class="table-responsive">
             <table class="table table-sm align-top alfa-fold">
                 <thead>
@@ -94,7 +94,7 @@ $search   = SearchRebuildJob::NAME . ':';
                     <?php
                     $id = (int) $row['id'];
                     $scope = (string) $row['scope_key'];
-                    // A job being driven reads as running, between two of its steps too (entry 27).
+                    // A job being driven reads as running, between two of its steps too.
                     $shownState = $row['driven'] ? Tasks::STATE_RUNNING : (string) $row['state'];
                     $percent = TaskDocument::percent(row: $row);
 
@@ -105,7 +105,7 @@ $search   = SearchRebuildJob::NAME . ':';
                     } elseif (str_starts_with($scope, $search)) {
                         $covers = Text::sprintf('COM_ALFA_TASKS_COVERS_SEARCH', $e($engines[substr($scope, strlen($search))] ?? substr($scope, strlen($search))));
                     } elseif ($scope === ThumbnailsRecreateJob::NAME) {
-                        // The thumbnails job (2.2.0): its mode (a job still waiting has no report yet: the mode its walk
+                        // The thumbnails job: its mode (a job still waiting has no report yet: the mode its walk
                         // will read, which the view hands in), and what its walk did so far, the image files missing and the thumbnails not
                         // made with their reason, named by their media row.
                         $report = $row['report'] ?? null;
@@ -147,7 +147,7 @@ $search   = SearchRebuildJob::NAME . ':';
                         </td>
                         <td class="d-none d-sm-table-cell">
                             <?php // A total not counted yet has no bar: "Not counted yet" while it waits or runs, nothing once
-                                  // it ended (the state says how, UX-04). Each bar is named by its job (UX-73). ?>
+                                  // it ended (the state says how). Each bar is named by its job. ?>
                             <?php if ((int) $row['total_units'] === 0) : ?>
                                 <?php if (in_array($row['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) : ?>
                                     <?php echo Text::_('COM_ALFA_TASKS_PROGRESS_NOT_COUNTED'); ?>
@@ -174,10 +174,10 @@ $search   = SearchRebuildJob::NAME . ':';
                         <td class="alfa-fold-line">
                             <?php if (in_array($row['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) && $id === $followed) : ?>
                                 <?php // This page is the job's progress page: a link to the card above, which works it while the page
-                                      // is open; a link to the page already open would do nothing (entry 20, UX-90). ?>
+                                      // is open; a link to the page already open would do nothing. ?>
                                 <a class="small" href="#alfa-job-progress" data-alfa-job-followed><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_SEE_ABOVE'); ?></a>
                             <?php elseif ($row['driven']) : ?>
-                                <?php // Something drives it already: its progress page follows it (entry 27). ?>
+                                <?php // Something drives it already: its progress page follows it. ?>
                                 <a class="btn btn-sm btn-secondary" href="<?php echo Route::_('index.php?option=com_alfa&view=tools&job=' . $id) . '#tasks'; ?>"><?php echo Text::_('COM_ALFA_TASKS_FOLLOW'); ?></a>
                             <?php elseif (in_array($row['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) : ?>
                                 <a class="btn btn-sm btn-primary" href="<?php echo Route::_('index.php?option=com_alfa&view=tools&job=' . $id) . '#tasks'; ?>"
@@ -185,7 +185,7 @@ $search   = SearchRebuildJob::NAME . ':';
                             <?php elseif ($row['state'] === Tasks::STATE_FAILED) : ?>
                                 <?php echo $form('retry', $id, '<button type="submit" class="btn btn-sm btn-primary" title="'
                                     . $e(Text::_('COM_ALFA_TASKS_RETRY_DESC')) . '">' . Text::_('COM_ALFA_TASKS_RETRY') . '</button>'); ?>
-                                <?php // The reason field fills its cell; its own width is small, so the column fits a phone's card (NEW-2). ?>
+                                <?php // The reason field fills its cell; its own width is small, so the column fits a phone's card. ?>
                                 <?php echo $form('resolve', $id, '<label class="form-label small" for="alfa-job-reason-' . $id . '">'
                                     . Text::_('COM_ALFA_TASKS_REASON_LABEL') . '</label><input type="text" class="form-control form-control-sm mb-1"'
                                     . ' id="alfa-job-reason-' . $id . '" name="reason" required size="8" maxlength="' . TaskStaff::REASON_MAX . '">'

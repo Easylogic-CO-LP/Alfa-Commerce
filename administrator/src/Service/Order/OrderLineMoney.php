@@ -909,15 +909,14 @@ final class OrderLineMoney
      * Does this ROW carry Item 3's authoritative whole-line facts at all?
      *
      * The one test every consumer asks before it reads or aggregates a stored
-     * line. A row written before Item 3 has NULL here and its money cannot be
-     * compared with, or summed beside, a row written after it: the old columns
+     * line. A legacy row has NULL here and its money cannot be
+     * compared with, or summed beside, a current row: the old columns
      * held two different money spaces depending on the writer, so a legacy
      * figure is not merely imprecise, it is of unknown meaning.
      *
-     * Pre-v1 legacy rows are deliberately NOT backfilled: fabricating financial
+     * Legacy rows are deliberately NOT backfilled: fabricating financial
      * truth from an ambiguous figure is worse than reporting that there is
-     * none. The approved pre-v1 reset regenerates the corpus through these
-     * writers.
+     * none.
      *
      * @param object|array $row The stored order line.
      *

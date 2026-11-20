@@ -76,7 +76,7 @@ class ItemsController extends ApiController
      * Items list view amended to add filtering of data
      *
      * Each filter goes onto the model state under the name the items screen's filter form gives it, and the list
-     * model applies it as it does for the screen (2.2.1: stock, in, low or out, and fields, the item field values).
+     * model applies it as it does for the screen (stock, in, low or out, and fields, the item field values).
      *
      * @return static A BaseController object to support chaining.
      *
@@ -159,10 +159,10 @@ class ItemsController extends ApiController
     }
 
     /**
-     * An item's options, combinations, item field values and downloads, and its related products (`related`, 2.2.2, set on
+     * An item's options, combinations, item field values and downloads, and its related products (`related`, set on
      * the product's Related tab), which the API does not write: the four keys the item read publishes, then the keys the item edit form's grids post for the same writes and for the downloads
      * grid, which the item save reads from the request as the form posts them. A list sent in the read's shape was
-     * taken by its positions, as value or combination ids (2.2.1).
+     * taken by its positions, as value or combination ids.
      *
      * @return string[]
      *
@@ -218,7 +218,7 @@ class ItemsController extends ApiController
     /**
      * The note of a product the delete archived instead of deleting it: ItemModel::delete() archives a product that order
      * lines were sold as, whose orders are still fulfilled, cancelled and returned against its stock identity, and the
-     * delete answers 200 with the product, archived, and this note (2.2.1).
+     * delete answers 200 with the product, archived, and this note.
      *
      * @param int $id The product.
      *
@@ -231,7 +231,7 @@ class ItemsController extends ApiController
     }
 
     /**
-     * A product is deleted from the trash only, as the administrator's list of products deletes it (2.2.1).
+     * A product is deleted from the trash only, as the administrator's list of products deletes it.
      *
      * @since  2.2.1
      */

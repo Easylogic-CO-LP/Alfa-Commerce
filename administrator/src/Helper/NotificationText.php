@@ -21,7 +21,7 @@ use ValueError;
 \defined('_JEXEC') or die;
 
 /**
- * The text of a notification as a language key and its parameters, translated when it is shown (2.1.4).
+ * The text of a notification as a language key and its parameters, translated when it is shown.
  *
  * The key, its parameters and the text domain (the extension whose language files hold the key) are the notification.
  * The row's title and message keep a snapshot: the text rendered in the shop's default administrator language when the
@@ -233,8 +233,8 @@ final class NotificationText implements JsonSerializable
     }
 
     /**
-     * A time as a parameter, stored in UTC and said in the reader's time zone and short date and time format (2.2.0,
-     * UX-30; DATE_FORMAT_LC5 since NEW-5, a notice repeats its times), so a notice never prints a raw UTC time.
+     * A time as a parameter, stored in UTC and said in the reader's time zone and short date and time format
+     * (DATE_FORMAT_LC5, as a notice repeats its times), so a notice never prints a raw UTC time.
      *
      * @param string $utc The time, UTC, as the database gives it (Y-m-d H:i:s).
      *

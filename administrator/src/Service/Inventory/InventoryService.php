@@ -293,7 +293,7 @@ final class InventoryService
     private ?int $defaultLocation = null;
 
     /**
-     * The collected allocation provider chain of each connection, for the request (2.2.1): every InventoryService of
+     * The collected allocation provider chain of each connection, for the request: every InventoryService of
      * the request shares it, so onCollectStockAllocationProviders is raised once however many service objects the
      * callers build.
      *
@@ -312,7 +312,7 @@ final class InventoryService
     private array $policyMemo = [];
 
     /**
-     * What a restore() or a reverseRestores() moved, by operation, as appendMovement() writes it (2.2.1): the movements
+     * What a restore() or a reverseRestores() moved, by operation, as appendMovement() writes it: the movements
      * onInventoryRestored carries, net by item, combination and location, with no read of the ledger, which has no
      * index on its operation. Only those two commands collect; announceRestored() takes the operation's and forgets it,
      * and a command that fails forgets it at its rollback.
@@ -327,7 +327,7 @@ final class InventoryService
      * Static because every call site constructs its own service instance. Each key holds
      * the connection's rollback count when it was learnt
      * ({@see TransactionState::rollbacks()}): a rollback since may have undone the clear
-     * it remembers, so the key is read again (2.1.4).
+     * it remembers, so the key is read again.
      *
      * @var array<string, int>
      * @since  2.0.0
@@ -3184,7 +3184,7 @@ final class InventoryService
     }
 
     /**
-     * Announce stock put back, or taken off again by a reversal (2.2.1): onInventoryRestored after the commit, with
+     * Announce stock put back, or taken off again by a reversal: onInventoryRestored after the commit, with
      * what moved by item, combination and location, as the command wrote it ({@see self::$restoredMovements}: no
      * read of the ledger, which has no index on its operation). Nothing is announced when nothing moved.
      *
@@ -5406,7 +5406,7 @@ final class InventoryService
      * @param array $unit The unit.
      * @param float $quantity The quantity to place.
      * @param InventoryContext $context The command's context (who, why, which correlation), as the provider's
-     *                                  contract says (2.2.1: 2.2.0 handed every provider an empty one).
+     *                                  contract says.
      *
      * @return array<int, float> locationId => quantity
      *
@@ -5480,9 +5480,9 @@ final class InventoryService
      * The ordering is the shop's sourcing preference, and it lives here because
      * TWO paths need exactly the same answer: {@see self::defaultAllocation()}
      * when it reserves, and {@see self::lineLocations()} when it fulfils a line
-     * that never had a reservation. Those two disagreeing IS the LOC-2 defect:
-     * the reserve side spread across the shelves holding the goods while the
-     * fulfil side went to the default location alone, so the agreement is made
+     * that never had a reservation. Were the two to disagree, the reserve side
+     * would spread across the shelves holding the goods while the
+     * fulfil side goes to the default location alone, so the agreement is made
      * structural rather than restated in two queries that can drift apart.
      *
      * With $lock the rows are the unit's records as locked
@@ -5635,7 +5635,7 @@ final class InventoryService
     /**
      * The collected allocation provider chain, priority-ordered
      * (highest first), memoised per request: collected once for the
-     * connection, whichever service object asks first (2.2.1).
+     * connection, whichever service object asks first.
      *
      * @return array<int, array{provider: object, element: string, priority: int}>
      *
@@ -5654,8 +5654,8 @@ final class InventoryService
             [],
         );
 
-        // The `alfa-inventory` CAPABILITY group imported, then the event raised on the shared dispatcher (2.2.0, design
-        // 2.15.3: mode A, isolated): an allocation strategy is live checkout-path domain policy, so it ships as a
+        // The `alfa-inventory` CAPABILITY group imported, then the event raised on the shared dispatcher (broadcast,
+        // isolated): an allocation strategy is live checkout-path domain policy, so it ships as a
         // capability provider (like a search engine or payment method), imported only here. Each provider names its
         // plugin; one that fails is logged and the others answer. With no application, no contributed strategy:
         // defaultAllocation() remains in charge.
@@ -5690,7 +5690,7 @@ final class InventoryService
     }
 
     /**
-     * Raise a BEFORE inventory event on the shared dispatcher (2.2.0, mode A, a before phase), the alfa group imported
+     * Raise a BEFORE inventory event on the shared dispatcher (broadcast, a before phase), the alfa group imported
      * first: a listener vetoes by throwing, and that exception PROPAGATES (it is the contract). With no application the
      * event reaches the listeners already registered.
      *
@@ -5706,7 +5706,7 @@ final class InventoryService
     }
 
     /**
-     * Raise an AFTER inventory event (2.2.0, mode A, an after phase, isolated): a listener's failure is logged with its
+     * Raise an AFTER inventory event (broadcast, an after phase, isolated): a listener's failure is logged with its
      * name and the next listener runs; nothing reaches the command's caller.
      *
      * @param AbstractEvent $event The event.
@@ -6438,7 +6438,7 @@ final class InventoryService
 
         $this->db->insertObject('#__alfa_inventory_movements', $row, 'id');
 
-        // A restore's or a reversal's movement, net by unit and location, for its announcement (2.2.1).
+        // A restore's or a reversal's movement, net by unit and location, for its announcement.
         if (isset($this->restoredMovements[$operationId])) {
             $key = (int) $unit['item'] . ':' . (int) $unit['combination'] . ':' . $locationId;
             $this->restoredMovements[$operationId][$key] ??= ['itemId' => (int) $unit['item'], 'combinationId' => (int) $unit['combination'], 'locationId' => $locationId, 'quantity' => 0.0];
@@ -6703,7 +6703,7 @@ final class InventoryService
     /**
      * The label of one inventory unit, as a notice's parameter ({@see NotificationText}): the item's name in every
      * content language, with the combination's SKU so a variant notice names the variant rather than the product it
-     * belongs to. Each reader reads the name in their content language (since 2.1.4).
+     * belongs to. Each reader reads the name in their content language.
      *
      * @param int $itemId The owning item.
      * @param string|null $sku The combination SKU, or null for the item unit.
@@ -12042,12 +12042,12 @@ final class InventoryService
      * promise exists and the deduction is choosing a shelf now) is bound by
      * the state contract.
      *
-     * The fallback used to be a bare `[defaultLocationId()]`, and that was
-     * LOC-2: a two-location shop holding all of its stock at B had its
-     * fulfilment refused for a shortfall at A that did not exist shop-wide,
-     * and with negative_physical enabled it drove A's row arbitrarily negative
-     * while B sat untouched. It is the same asymmetry {@see self::defaultAllocation()}
-     * was fixed for on the reserve side, so it answers with the same ordering:
+     * A bare `[defaultLocationId()]` as the fallback would refuse, in a
+     * two-location shop holding all of its stock at B, its
+     * fulfilment for a shortfall at A that does not exist shop-wide,
+     * and with negative_physical enabled drive A's row arbitrarily negative
+     * while B sits untouched. It is the same asymmetry {@see self::defaultAllocation()}
+     * meets on the reserve side, so it answers with the same ordering:
      * the shelves that hold the goods, default first, then the best stocked.
      *
      * The fallback depends on what the unit's records hold when it is asked: a shelf

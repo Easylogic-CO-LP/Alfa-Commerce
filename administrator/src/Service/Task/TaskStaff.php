@@ -82,7 +82,7 @@ final class TaskStaff
 
     /**
      * How recently a waiting job must have advanced to read as running: the staff kick and the progress page drive a job
-     * in steps a few seconds apart, and between two of them its row waits (2.2.0, entry 27).
+     * in steps a few seconds apart, and between two of them its row waits.
      *
      * @since  2.2.0
      */
@@ -152,11 +152,11 @@ final class TaskStaff
 
     /**
      * What the Tasks tab's jobs card draws (layouts/tasks/jobs.php), the one source of the Tools page and of the card's
-     * refresh on a progress page (TasksController::jobsCard(), UX-84): the jobs, the names of the customer groups their
+     * refresh on a progress page (TasksController::jobsCard()): the jobs, the names of the customer groups their
      * price sets cover and of the search engines their rebuilds cover, the thumbnails mode a thumbnails job without a
      * report yet will walk in (each read once, and only when such a job is listed: the layout reads no database), how
-     * many jobs failed (the attention card says so when no single needs attention, UX-02), and the job a progress page
-     * follows (its row says where it is followed, entry 20).
+     * many jobs failed (the attention card says so when no single needs attention), and the job a progress page
+     * follows (its row says where it is followed).
      *
      * @param int $followedJob The job the page follows, 0 for none.
      *
@@ -235,7 +235,7 @@ final class TaskStaff
                 ->select('(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' OR (' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING)
                     . ' AND ' . $db->quoteName('started_at') . ' IS NOT NULL AND ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)'
                     . ' AND ' . $db->quoteName('updated_at') . ' >= UTC_TIMESTAMP(3) - INTERVAL ' . self::DRIVEN_SECONDS . ' SECOND)) AS ' . $db->quoteName('driven'))
-                // The thumbnails job's walk keeps its mode and its report in its checkpoint (2.2.0, part C21).
+                // The thumbnails job's walk keeps its mode and its report in its checkpoint.
                 ->select('CASE WHEN ' . $db->quoteName('handler') . ' = ' . $db->quote(Job\ThumbnailsRecreateJob::NAME) . ' THEN ' . $db->quoteName('checkpoint') . ' END AS ' . $db->quoteName('checkpoint'))
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
@@ -275,7 +275,7 @@ final class TaskStaff
 
     /**
      * A job's progress in words for its progress card: "640 of 1500 (43%)", or nothing when its total is 0, where the
-     * card says the state alone, as the jobs list does (UX-04, NEW-6).
+     * card says the state alone, as the jobs list does.
      *
      * @param int $done The units done.
      * @param int $total The units in all.
@@ -323,7 +323,7 @@ final class TaskStaff
 
     /**
      * A thumbnails job's report so far (made, kept, missing, not made), read from its own checkpoint, or null before its
-     * first step (UX-84: the progress card prints it).
+     * first step (the progress card prints it).
      *
      * @param int $id The job.
      *
@@ -345,7 +345,7 @@ final class TaskStaff
     }
 
     /**
-     * Process now on a job waiting out its backoff: due now, as staff asked (2.2.0). A job that is not waiting, or is
+     * Process now on a job waiting out its backoff: due now, as staff asked. A job that is not waiting, or is
      * due already, is left as it is.
      *
      * @param int $id The job.

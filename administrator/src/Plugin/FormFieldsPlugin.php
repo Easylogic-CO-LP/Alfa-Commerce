@@ -146,7 +146,7 @@ abstract class FormFieldsPlugin extends CMSPlugin implements SubscriberInterface
         // SHOWON: these params belong to the showon engine; never attributes.
         // 'showon_builder' is dead legacy data (old subform) still present in
         // pre-migration rows; never an attribute, always skip it. The Layout
-        // setting is how a stored value is shown, not the input (2.2.1).
+        // setting is how a stored value is shown, not the input.
         $showonParamKeys = ['showon', 'showon_builder', FieldsHelper::DISPLAY_LAYOUT];
 
         foreach ($params->toArray() as $key => $param) {

@@ -208,7 +208,7 @@ class OrderItemsField extends ListField
      * @param bool $showQuantity Append the available quantity
      * @param bool $showSku Append the SKU
      *
-     * @return array|null Options for the select field; null when the items cannot be read (since 2.1.0)
+     * @return array|null Options for the select field; null when the items cannot be read
      * @since  2.0.0
      */
     private function getShipmentOptions(

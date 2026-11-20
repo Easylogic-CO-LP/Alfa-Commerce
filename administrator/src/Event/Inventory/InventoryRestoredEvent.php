@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Inventory;
 \defined('_JEXEC') or die;
 
 /**
- * InventoryRestored after-event (onInventoryRestored, 2.2.1): stock was put back on the shelf, after the commit, side
+ * InventoryRestored after-event (onInventoryRestored): stock was put back on the shelf, after the commit, side
  * effects only, as the other after events. Raised by InventoryService::restore() (an order's cancellation or line cut,
  * a credit note's return) and by InventoryService::reverseRestores() (a credit note voided: what it put back is taken
  * off again, isReversal() true). Named arguments: sourceType and sourceId (the command's source), reversal, movements

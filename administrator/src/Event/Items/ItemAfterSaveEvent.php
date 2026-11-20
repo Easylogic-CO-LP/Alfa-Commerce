@@ -8,7 +8,7 @@
  *
  * Item After Save Event
  *
- * Dispatched once the whole admin item save has committed (2.2.1), never for a
+ * Dispatched once the whole admin item save has committed, never for a
  * save that was rolled back: feature plugins store their own injected-field
  * data here (subscription settings, bundle contents, ...) into their OWN
  * tables (`#__plg_<group>_<element>_*`).

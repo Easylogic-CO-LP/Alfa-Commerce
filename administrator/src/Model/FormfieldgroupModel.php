@@ -28,7 +28,7 @@ class FormfieldgroupModel extends AlfaAdminModel
     protected string $alfaEntity = 'formfieldgroup';
 
     /**
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - save() calls getForm() again (multilingual merge of the raw per-language keys)
      *   BEFORE parent::save(), so the main form's Form/PrepareData events fire a second
      *   time during a save request; same behavior as the other multilingual entities.

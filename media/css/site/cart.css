@@ -74,7 +74,7 @@
     margin-bottom: 1rem;
 }
 
-/* A payment or shipping method's image (2.2.2), before its title: held to the token's height, never wider than a
+/* A payment or shipping method's image, before its title: held to the token's height, never wider than a
    few words, its own proportions kept. */
 :where(.method-image) {
     display: inline-block;
@@ -137,7 +137,7 @@
     max-width: 280px;
 }
 
-/* Phones: the coupon's label above a full-width field, Apply beside it (2.2.0, UX-78). */
+/* Phones: the coupon's label above a full-width field, Apply beside it. */
 @media screen and (max-width: 600px) {
     .cart-coupon-form {
         flex-wrap: wrap;
@@ -187,7 +187,7 @@
     opacity: 1;
 }
 
-/* THE LINES AND THEIR TOTALS, on the cart page and on the order completed page (both .cart-lines; the owner's s117).
+/* THE LINES AND THEIR TOTALS, on the cart page and on the order completed page (both .cart-lines).
    The lines table (general.css) shares its width equally among its columns, --cart-lines-columns of them; the summary
    under it (layouts/cart/summary.php) is as wide as the table, its labels start where the table starts and its amounts
    end on the edge the table's last (Total) column ends on, with the table's hairlines, cell padding and text size; only

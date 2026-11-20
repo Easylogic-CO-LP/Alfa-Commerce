@@ -521,14 +521,14 @@ trait LedgerSupport
      *
      * The failure is answered, not told: the caller logs it, and decides who
      * reads it (saveToTable() through warn(); the payments ledger's create()
-     * and update() through their refusal, which queues no database text, 2.2.1).
+     * and update() through their refusal, which queues no database text).
      *
      * @param array $data Row data (by reference; PK back-filled on insert).
      *
      * @return array{detail: string, shown: string}|null Null when the row is
      *                                                   written; otherwise the failure's detail for the log (a
-     *                                                   driver's message included) and what staff read (2.2.2:
-     *                                                   never a driver's message).
+     *                                                   driver's message included) and what staff read (never a
+     *                                                   driver's message).
      *
      * @since  2.2.1
      */
@@ -604,8 +604,8 @@ trait LedgerSupport
      *
      * `transaction_id` is the one column a third party fills with a value we do
      * not control, and MySQL in strict mode rejects the whole INSERT when it
-     * overflows, which used to lose the payment attempt entirely (26 such
-     * losses on the demo before this guard). Truncating a reference degrades
+     * overflows, which would lose the payment attempt entirely. Truncating a
+     * reference degrades
      * lookup; dropping the row loses the money trail, so we truncate and warn.
      *
      * @param array $filtered Row about to be written (by reference).
@@ -697,7 +697,7 @@ trait LedgerSupport
             $db->setQuery($query);
             $db->execute();
         } catch (Exception $e) {
-            // A failure that ended the transaction the delete runs in reaches the caller (2.2.0: delete() has one).
+            // A failure that ended the transaction the delete runs in reaches the caller (delete() has one).
             if (TransactionState::endedBy($db, $e)) {
                 throw $e;
             }
@@ -859,7 +859,7 @@ trait LedgerSupport
                     $orderId,
                     $currency->getCode(),
                 ));
-                // The verdict's code (2.2.2): PaymentLedger::REFUSAL_AMOUNT_CURRENCY, written as its value because this trait
+                // The verdict's code: PaymentLedger::REFUSAL_AMOUNT_CURRENCY, written as its value because this trait
                 // serves the shipments ledger too.
                 self::noteVerdict(kind: 'refused', code: 'amount_currency', orderId: $orderId);
 
@@ -947,14 +947,14 @@ trait LedgerSupport
      * message is plain text: the log takes it as is, the message area escaped.
      * A sentence written for the operator names its call in the log only.
      *
-     * Queued for staff and API clients only, never on a storefront request
-     * (2.2.2): a shopper is told by the plugin, in its own words. What
+     * Queued for staff and API clients only, never on a storefront request:
+     * a shopper is told by the plugin, in its own words. What
      * is queued may be shorter than what is logged ($shown): a database
      * driver's text stays in the log.
      *
      * @param string $message Warning text (plain text, never markup)
      * @param string $context The call it concerns, for the log only ('create()'); empty when the message names it.
-     * @param string|null $shown What staff read, when it differs from the log line (2.2.2).
+     * @param string|null $shown What staff read, when it differs from the log line.
      *
      *
      * @since  1.0.0
@@ -982,7 +982,7 @@ trait LedgerSupport
 
     /**
      * Warn of a failure whose own text (a database driver's message, which can
-     * name a table) is for the log only (2.2.2): the log line is the message
+     * name a table) is for the log only: the log line is the message
      * and the failure's text, staff and API clients read the message alone.
      * The one place a ledger's failure warning keeps its text out of the queue.
      *
@@ -998,7 +998,7 @@ trait LedgerSupport
     }
 
     /**
-     * Note what a write did not do, for a verdict (2.2.2): the payments ledger keeps it
+     * Note what a write did not do, for a verdict: the payments ledger keeps it
      * ({@see PaymentLedger::noteVerdict()}, which replaces this one there); the shipments ledger answers
      * no verdict, so the note goes nowhere.
      *

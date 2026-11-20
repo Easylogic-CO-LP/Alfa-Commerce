@@ -1,5 +1,3 @@
--- Alfa Commerce 2.1.0
---
 -- Begin of the Clear everything block. Keep it whole and apart from other tables.
 --
 -- The durable state of Clear everything (Tools > Reset and clear), in one row: the run at work,
@@ -21,11 +19,11 @@ WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_maintenance` WHERE `id` = 1);
 
 -- End of the Clear everything block.
 
--- Alfa Commerce 2.1.0: the outcome of each provider refund report
+-- The outcome of each provider refund report
 --
 -- One row per refund a payment provider reported as made outside Alfa, once it is booked by
 -- Record this refund or resolved (reconciled to a refund already in the books, or a duplicate
--- or invalid report). Every gateway answer is read through it. New in 2.1.0, empty on an
+-- or invalid report). Every gateway answer is read through it. Empty on an
 -- updated site; the install SQL creates the same table and this runs again harmlessly over it.
 
 CREATE TABLE IF NOT EXISTS `#__alfa_refund_report_outcomes` (
@@ -54,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_refund_report_outcomes` (
   KEY `idx_order` (`id_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The outcome of each refund a payment provider reported outside Alfa: booked or resolved, once';
 
--- Alfa Commerce 2.1.0: indexes for the administrator pages
+-- Indexes for the administrator pages
 --
 -- The bell on every administrator page reads the distinct view rules of the notifications,
 -- the active ones newest first per severity, and its counts through these indexes; and the
@@ -67,12 +65,12 @@ ALTER TABLE `#__alfa_notifications` ADD INDEX `idx_active_counts` (`dismissed`, 
 ALTER TABLE `#__alfa_orders` ADD INDEX `idx_address_delivery` (`id_address_delivery`) /** CAN FAIL **/;
 ALTER TABLE `#__alfa_orders` ADD INDEX `idx_address_invoice` (`id_address_invoice`) /** CAN FAIL **/;
 
--- Alfa Commerce 2.1.0: each shipping method states what its entered prices mean
+-- Each shipping method states what its entered prices mean
 --
 -- Shipping prices entered (tax included or tax excluded) belongs to each shipping method, as its
 -- shipping taxes do; there is no shop default any more. The install script moves the two former
 -- Options onto every method after this file has run (ShippingOptionsMigration), and adds this
--- column itself on a site whose schema was already recorded as 2.1.0. It adds a column, not a key,
+-- column itself on a site whose schema already records this version. It adds a column, not a key,
 -- so it carries no may-fail marker: no statement after it may stop this file, so the file never
 -- runs again over a column already added.
 

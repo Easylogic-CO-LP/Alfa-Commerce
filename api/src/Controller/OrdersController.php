@@ -42,7 +42,7 @@ class OrdersController extends ApiController
     }
 
     /**
-     * The published attributes of an order that its update (PATCH) does not write (2.2.1): the order form
+     * The published attributes of an order that its update (PATCH) does not write: the order form
      * declares none of them, or drops them on an update (id_user, id_currency), so a PATCH of one answered 200 and the
      * order stayed as it was. They are worked out from the order's lines, payments and shipments, fixed when the order
      * is placed, or written by the order operations. id_order_status and state have refusals of their own (edit()).
@@ -85,7 +85,7 @@ class OrdersController extends ApiController
      * Orders list view amended to add filtering of data
      *
      * Each filter goes onto the model state under the name the orders screen's filter form gives it, and the list
-     * model applies it as it does for the screen (2.2.1: payment, fulfilment, waiting, reconciliation, overpaid, the
+     * model applies it as it does for the screen (payment, fulfilment, waiting, reconciliation, overpaid, the
      * order date window and item_id; and the customer, by account or by the order's e-mail). The date window's bounds
      * are shop-local times, as the screen's calendars hold them; the screen's date presets are not read here.
      *
@@ -211,7 +211,7 @@ class OrdersController extends ApiController
 
         // The resource publishes state, the order row's trash flag. Only the administrator's Orders list moves an order
         // to the trash; over the API an order has no trash step and is deleted in one call, and the order form has no
-        // such field, so a PATCH of it was answered 200 and not written (2.2.1). Refused, as the status is.
+        // such field, so a PATCH of it was answered 200 and not written. Refused, as the status is.
         if (array_key_exists('state', $rawBody) || array_key_exists('state', $bodyData)) {
             throw new Save('state cannot be changed via PATCH: over the API an order has no trash step and is deleted in one call (DELETE v1/alfa/orders/:id); its status changes through POST v1/alfa/orders/:id/status.', 422);
         }
@@ -247,8 +247,8 @@ class OrdersController extends ApiController
     }
 
     /**
-     * Answer 400 naming invoice_differs when the body sends invoice details (alfa_form_fields_billing) without it
-     * (2.2.2). The invoice details are written only by the choice invoice_differs states; details sent without it were
+     * Answer 400 naming invoice_differs when the body sends invoice details (alfa_form_fields_billing) without it.
+     * The invoice details are written only by the choice invoice_differs states; details sent without it were
      * dropped without a word, so a client was not told that its invoice details were not saved.
      *
      * @throws Save When the body sends the invoice details without invoice_differs (400).
@@ -267,7 +267,7 @@ class OrdersController extends ApiController
 
     /**
      * Answer 400 naming alfa_form_fields_billing when a PATCH states invoice_differs 1 without the invoice details and
-     * the order has no invoice details of its own (2.2.2). With its own invoice details the order keeps them whole, as a
+     * the order has no invoice details of its own. With its own invoice details the order keeps them whole, as a
      * section a PATCH does not send keeps its stored value; without them there is nothing to keep and nothing to write.
      *
      * @param int $orderId The order.
@@ -335,10 +335,10 @@ class OrdersController extends ApiController
      * ApiController::delete() as a 500, so the refusal has to be raised here to
      * come out as a 409 carrying the document numbers the operator needs. That
      * holds for a document issued while the delete ran, which the model refuses
-     * under its lock. An id that names no order answers 404 (2.2.0); an order
+     * under its lock. An id that names no order answers 404; an order
      * whose payment or shipping plugin of record cannot be asked is refused by
      * the model as a DeleteRefusedException, which the guards answer 409 with
-     * its sentence (2.2.0, A-E24-1).
+     * its sentence.
      *
      * @param int|null $id The record id.
      *
@@ -372,7 +372,7 @@ class OrdersController extends ApiController
 
     /**
      * Answer 404 when the id names no order (a second delete of the same order among them), as reading it would: the
-     * model's delete would read an order that is not there and answer 204 (2.2.0).
+     * model's delete would read an order that is not there and answer 204.
      *
      * @param int $orderId The order id.
      *

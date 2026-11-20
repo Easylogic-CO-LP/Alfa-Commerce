@@ -17,7 +17,7 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 
 /**
- * A price row of a deleted place is never widened to every place by a save (2.2.1).
+ * A price row of a deleted place is never widened to every place by a save.
  *
  * A place can be deleted while a price row still names it (PlaceModel::delete() strips the rules' scopes, not the
  * price rows). Such a row is inert: no buyer's place matches it. The prices editor lists the deleted place, so a form

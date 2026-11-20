@@ -45,7 +45,7 @@ final class TaskAttention
     public const URL = 'index.php?option=com_alfa&view=tools#tasks';
 
     /**
-     * The failed and held singles staff are to see, and the failed jobs (2.2.0), counted, and the notice's severity.
+     * The failed and held singles staff are to see, and the failed jobs, counted, and the notice's severity.
      *
      * @return array{failed: int, held: int, severity: string}
      *

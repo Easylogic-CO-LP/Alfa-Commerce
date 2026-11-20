@@ -48,15 +48,15 @@ use Throwable;
 use WeakMap;
 
 /**
- * The tasks of Alfa Commerce (#__alfa_tasks): what a change owes after its commit (a single) and, from 2.2.0, long
+ * The tasks of Alfa Commerce (#__alfa_tasks): what a change owes after its commit (a single) and long
  * work with steps (a job). This class writes and runs singles; jobs are written and claimed by the job runner
- * ({@see Runner}, 2.2.0).
+ * ({@see Runner}).
  *
  * A SINGLE is written inside the business change's own transaction ({@see self::single()}), so a rollback removes it
  * with the change and a commit keeps it: the row is the proof that the change committed and the record of what it
  * owes. Its normal path is its own request: the singles of one transaction (a batch) run in id order right after the
  * outermost commit and the release of Alfa's named locks ({@see PostCommit}); its notices (the notice journal,
- * {@see self::notice()}) are written at that commit itself, even while a named lock is held (s71). A request that ends
+ * {@see self::notice()}) are written at that commit itself, even while a named lock is held. A request that ends
  * first leaves them here, and recovery runs them later ({@see self::sweepSingles()}: the notification bell's background
  * refresh and Tools > Tasks). Recovery is never the normal path, and a single is never scheduled.
  *
@@ -85,7 +85,7 @@ final class Tasks
     public const TYPE_SINGLE = DueRead::TYPE_SINGLE;
 
     /**
-     * Long work with steps and a checkpoint (2.2.0).
+     * Long work with steps and a checkpoint.
      *
      * @since  2.1.4
      */
@@ -140,7 +140,7 @@ final class Tasks
 
     /**
      * The language keys of the work's own failures, stored as the key and its arguments and said at display in the
-     * reader's language ({@see self::errorKey()}, {@see self::errorText()}; UX-09). A plugin's or an exception's message is
+     * reader's language ({@see self::errorKey()}, {@see self::errorText()}). A plugin's or an exception's message is
      * stored as its text.
      *
      * @since  2.2.0
@@ -259,7 +259,7 @@ final class Tasks
     private static ?WeakMap $batches = null;
 
     /**
-     * What each connection's placements wrote in this request, by batch (2.2.0, design 2.3.1): each order's
+     * What each connection's placements wrote in this request, by batch: each order's
      * confirmation, and the singles of that order's payments written after it into the same batch (order.entitlements
      * {payment}, order.documents {current}, payment.automation). In memory only, so a recovery run keeps id order.
      *
@@ -271,7 +271,7 @@ final class Tasks
 
     /**
      * The run of each connection whose payment singles went first, and the batches whose runs left a single waiting
-     * for its sequence meanwhile: what that run runs once more at its end (2.2.0, design 2.3.1 item 4).
+     * for its sequence meanwhile: what that run runs once more at its end.
      *
      * @var WeakMap<DatabaseDriver, array{owner: string, batches: array<string, true>}>|null
      *
@@ -355,7 +355,7 @@ final class Tasks
             PostCommit::flush($db);
         } else {
             // The run's claim, made now: a commit while a lock scope or a hold keeps the run waiting reserves the
-            // batch under it (2.2.0, D7), and the run at the release claims what it reserved.
+            // batch under it, and the run at the release claims what it reserved.
             $lease = bin2hex(random_bytes(16));
             $reserved = false;
             PostCommit::deferToOutermost(
@@ -376,16 +376,16 @@ final class Tasks
     /**
      * Record a notification write raised inside the connection's transaction: a notice single in the transaction's
      * batch, and its entry in the notice journal ({@see PostCommit::journal()}). No run waits for it: the journal is
-     * written once the outermost transaction has committed, before any other work, even inside a lock scope or a hold
-     * (s71), and recovery writes what a request left. Until it is written every reader counts it
+     * written once the outermost transaction has committed, before any other work, even inside a lock scope or a hold,
+     * and recovery writes what a request left. Until it is written every reader counts it
      * ({@see NotificationHelper::exists()}). A failure to write the single reaches the caller, as a failure to write the
      * notification did.
      *
-     * One single per key per transaction (2.2.0, D4): a write of the key the transaction's latest notice is of is added
+     * One single per key per transaction: a write of the key the transaction's latest notice is of is added
      * to that notice's single in place, through its primary key (the transaction's own row), with when it was raised;
      * the notification row it leaves is the one the writes made one by one leave
      * ({@see NotificationHelper::applyJournal()}). A write after another key's keeps a single of its own, so the writes
-     * of one transaction, and their announcements, still go in the order raised across keys (2.1.4, REVIEW-C3 MINOR-2).
+     * of one transaction, and their announcements, still go in the order raised across keys.
      * The journal keeps every write, in order.
      *
      * @param DatabaseDriver $db The connection, with a transaction open.
@@ -516,7 +516,7 @@ final class Tasks
 
     /**
      * Write the notice journal of transactions that committed: what PostCommit runs first after the outermost commit,
-     * even while a lock scope or a hold is open (s71). The singles still pending, due and held by no run are claimed one
+     * even while a lock scope or a hold is open. The singles still pending, due and held by no run are claimed one
      * by one through their primary key and written together with the older notices of their keys
      * ({@see self::applyNotices()}); one a rollback removed, or another run holds, is left to it.
      *
@@ -567,7 +567,7 @@ final class Tasks
     /**
      * Claim one notice single for a run, through its primary key alone (an index hint, which MariaDB and MySQL accept on
      * an UPDATE): read through idx_due, a claim locked the pending notices of other requests claiming theirs at the
-     * same moment, and the two deadlocked (REVIEW-C3 MINOR-3).
+     * same moment, and the two deadlocked.
      *
      * @param DatabaseDriver $db The connection.
      * @param int $id The single.
@@ -621,9 +621,9 @@ final class Tasks
      * first: a notice is written once or not at all, and one whose row was written after it was raised is skipped
      * ({@see NotificationHelper::applyJournal()}).
      *
-     * One run writes a key at a time (REVIEW-C3 fix round, MAJOR-2): the run takes the named lock of each of its keys,
-     * in key order, and under them takes over every notice of those keys still owed, from any request (REVIEW-C3
-     * MAJOR-1), and writes them all in the order raised. A run that waits for a key's lock finds its notices written
+     * One run writes a key at a time: the run takes the named lock of each of its keys,
+     * in key order, and under them takes over every notice of those keys still owed, from any request,
+     * and writes them all in the order raised. A run that waits for a key's lock finds its notices written
      * by the run that held it, and has nothing left to write: losing them to that run is not a failure. A notice that
      * waits out its backoff is never taken over early: the run's notices of its key wait with it, written together when
      * it is due. A deadlock or a lock wait on a row is tried again; only a write that fails otherwise counts a failure,
@@ -983,8 +983,8 @@ final class Tasks
      * claim, and recovery gives them their first run in id order. Nothing runs while a transaction or a named lock is
      * open on the connection.
      *
-     * A run that a lock scope or a hold kept waiting was reserved at the commit, under the claim it was deferred with
-     * (2.2.0, D7): it runs what that claim holds, with any single no run holds reserved to it first.
+     * A run that a lock scope or a hold kept waiting was reserved at the commit, under the claim it was deferred with:
+     * it runs what that claim holds, with any single no run holds reserved to it first.
      *
      * @param DatabaseDriver $db The connection.
      * @param string $batch The batch.
@@ -1131,7 +1131,7 @@ final class Tasks
     }
 
     /**
-     * The bell's recovery, at most every few minutes: what the bell's background refresh calls. Since 2.2.0 it brings
+     * The bell's recovery, at most every few minutes: what the bell's background refresh calls. It brings
      * the attention notice up to date; the singles are run by the bell's tick (Runner::tick()).
      *
      * @since  2.1.4
@@ -1156,7 +1156,7 @@ final class Tasks
 
     /**
      * The uncached recovery behind {@see self::recoverThrottled()}: the attention notice brought up to date (the sweep
-     * of the singles is the bell's tick since 2.2.0). A failure is logged and never reaches the page.
+     * of the singles is the bell's tick). A failure is logged and never reaches the page.
      *
      * @return bool Always true, for the cache callback.
      *
@@ -1192,7 +1192,7 @@ final class Tasks
 
     /**
      * The bell's fallback prune, looked at most once an hour from its background refresh: it prunes, with a small
-     * budget, only when the runner's tasks.prune has not finished for a day (2.2.0).
+     * budget, only when the runner's tasks.prune has not finished for a day.
      *
      * @since  2.1.4
      */
@@ -1235,7 +1235,7 @@ final class Tasks
 
     /**
      * The single of a work that waits for staff (failed or held), told that the work failed again, in place of a second
-     * single of the same work (2.2.1): its failure line becomes the new one and its history records the failure, so
+     * single of the same work: its failure line becomes the new one and its history records the failure, so
      * staff read the latest cause where they act. Nothing when it no longer waits.
      *
      * @param int $id The single.
@@ -1530,8 +1530,8 @@ final class Tasks
      * The line a task's failure is stored as: its message, or its class when it has none. A database's exception, the
      * failure itself or one it was raised from, is stored as COM_ALFA_TASKS_ERROR_DATABASE and its class and full text
      * are logged with the task, so no stored line carries a schema, a table, a user or a host; a TaskError, the work's
-     * own failure, as its key and arguments (UX-09). The one writer of singles' and jobs' last errors and history
-     * entries (2.2.0).
+     * own failure, as its key and arguments. The one writer of singles' and jobs' last errors and history
+     * entries.
      *
      * @param Throwable $failure What failed.
      * @param int ...$taskIds The tasks it is stored for.
@@ -1561,7 +1561,7 @@ final class Tasks
     }
 
     /**
-     * A failure of the work's own, as stored: its language key and arguments (UX-09), said by {@see self::errorText()}.
+     * A failure of the work's own, as stored: its language key and arguments, said by {@see self::errorText()}.
      *
      * @param string $key A key of ERROR_KEY_PREFIX.
      * @param int|string ...$arguments Its arguments.
@@ -1773,7 +1773,7 @@ final class Tasks
                 $reserved = array_values(array_filter($reserved, static fn (array $single): bool => $single['handler'] !== NoticeTask::NAME));
             }
 
-            // A payment completed inside the placement's hold moves the order before its confirmation (2.3.1).
+            // A payment completed inside the placement's hold moves the order before its confirmation.
             [$reserved, $moved] = self::paymentsFirst(db: $db, batch: $batch, reserved: $reserved);
 
             if ($moved) {
@@ -1806,7 +1806,7 @@ final class Tasks
             }
 
             // The confirmation sent, what waited behind it in this run (the paid status's e-mail) runs once more: one
-            // pass, no wait; what still waits is recovery's (2.3.1 item 4).
+            // pass, no wait; what still waits is recovery's.
             foreach ($moved ? self::endSequenceWaits(db: $db, batch: $batch) : [] as $waiting) {
                 self::runBatch(db: $db, batch: $waiting, trigger: $trigger);
             }
@@ -1863,7 +1863,7 @@ final class Tasks
     }
 
     /**
-     * The order a batch's singles run in (2.2.0, design 2.3.1 items 1 and 2): when the batch holds an order's
+     * The order a batch's singles run in: when the batch holds an order's
      * confirmation (order.placement_email) and, written after it in this request, a pending payment.automation of the
      * same order, that payment's singles (order.entitlements {payment}, order.documents {current}, payment.automation,
      * in their own order) run just before the confirmation, so the order moves first and the confirmation reads it
@@ -2365,7 +2365,7 @@ final class Tasks
 
         $error = self::failureLine($failure, $id);
         // A failure the handler did not classify: safe to retry only when its work is idempotent; for any other the
-        // work may have taken effect before it threw, so the outcome is unknown (s55).
+        // work may have taken effect before it threw, so the outcome is unknown.
         $kind = $failure instanceof TaskFailure ? $failure->kind : ($policy->idempotent ? TaskFailure::RETRY : TaskFailure::UNKNOWN);
 
         if ($kind === TaskFailure::UNKNOWN || ($kind === TaskFailure::RETRY && $run->hasUnknownUnit())) {
@@ -2849,7 +2849,7 @@ final class Tasks
     }
 
     /**
-     * Where the request comes from: what a task row records as its origin (the jobs' too, 2.2.0).
+     * Where the request comes from: what a task row records as its origin (the jobs' too).
      *
      * @since  2.1.4
      */

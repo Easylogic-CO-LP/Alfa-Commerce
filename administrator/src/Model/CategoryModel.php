@@ -55,7 +55,7 @@ class CategoryModel extends AlfaAdminModel
     protected string $alfaEntity = 'category';
 
     /*
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - delete() guards (a child left behind, or a category still set as an item's
      *   DEFAULT category) return before parent::delete(), so the contract's delete
      *   bracket fires only when something actually reaches the table: nothing was
@@ -259,7 +259,7 @@ class CategoryModel extends AlfaAdminModel
             }
         }
 
-        // A thumbnail the gallery names must be an image file of the media folders (2.2.1, MediaHelper::thumbnailRefusals()):
+        // A thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()):
         // a save naming any other is refused before anything is written, from the form and the API alike, so the
         // gallery keeps the thumbnails it stores.
         $thumbnailRefusals = MediaHelper::thumbnailRefusals(mediaData: (array) ($data['media'] ?? []));
@@ -375,7 +375,7 @@ class CategoryModel extends AlfaAdminModel
 
         // AFTER the per-language rows are written (saveMultilingualData above) and the
         // items' documents are rebuilt (resyncAssignedItems()), and after the commit of
-        // any transaction the save runs in (2.2.1): a listener materialising this
+        // any transaction the save runs in: a listener materialising this
         // category re-reads names and descriptions, and one reading its items'
         // projection reads the audience the event describes. The visibility event is
         // the dangerous one: under inherit-from-default-category this changes the
@@ -1035,7 +1035,7 @@ class CategoryModel extends AlfaAdminModel
         $affectedItems = [];
         $requested = $pks;
 
-        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks: no plugin code
         // runs under them.
         if (!$this->alfaAskBeforeDelete(pks: (array) $pks)) {
             return false;
@@ -1125,7 +1125,7 @@ class CategoryModel extends AlfaAdminModel
         }
 
         if ($affectedItems !== []) {
-            // Both passes are one write of the price index as onAlfaPricesChanged announces it (2.2.0): one event.
+            // Both passes are one write of the price index as onAlfaPricesChanged announces it: one event.
             PriceIndexSyncService::announcing(
                 cause:   PricesChangedEvent::CAUSE_CATEGORY,
                 causeId: \count($pks) === 1 ? (int) reset($pks) : 0,

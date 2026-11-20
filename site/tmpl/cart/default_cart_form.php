@@ -52,7 +52,7 @@ Text::script('COM_ALFA_VALIDATE_FIELD_INVALID');
 				<?php echo $this->loadTemplate($this->selectUserInfoTpl); ?>
             <?php endif; ?>
 
-            <?php // The delivery fields: a change to any of them reads the offered methods again (2.2.2). ?>
+            <?php // The delivery fields: a change to any of them reads the offered methods again. ?>
             <div data-cart-delivery-fields>
 				<?php echo FieldsHelper::renderFieldset($this->form, 'cart'); ?>
             </div>

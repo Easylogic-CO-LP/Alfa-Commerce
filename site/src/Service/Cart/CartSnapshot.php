@@ -38,7 +38,7 @@ defined('_JEXEC') or die;
  *   selector templates read the graft back off them. Offers here are a read
  *   projection; a selector that needs the decorated ones still asks the cart.
  *
- *   OFFERS ON A PLAIN READING (2.2.2). The mini-cart's reading shows lines and
+ *   OFFERS ON A PLAIN READING. The mini-cart's reading shows lines and
  *   totals and no method, so its offers are null: no method list is read and
  *   no carrier is asked to quote for one. The chosen carrier is still asked for
  *   the shipping total.
@@ -91,7 +91,7 @@ final class CartSnapshot
 
     /**
      * Whether the cart needs carrying and no shipping method is chosen yet: its shipping is
-     * then a choice still to make, never a zero (2.2.0, UX-76). The cart page's summary and
+     * then a choice still to make, never a zero. The cart page's summary and
      * the cart module's drawer both read it here.
      *
      * @return bool True when shipping awaits the shopper's choice.

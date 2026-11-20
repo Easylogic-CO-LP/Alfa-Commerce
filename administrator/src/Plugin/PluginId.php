@@ -14,8 +14,8 @@ use InvalidArgumentException;
 \defined('_JEXEC') or die;
 
 /**
- * A plugin's identity: its group (the folder) and its element, both lower case, written `group.element` (2.2.0, design
- * 2.15.2). The identity a contributor names itself by and the one the helper boots a plugin by; attribution and routing,
+ * A plugin's identity: its group (the folder) and its element, both lower case, written `group.element`.
+ * The identity a contributor names itself by and the one the helper boots a plugin by; attribution and routing,
  * never an authorisation.
  *
  * @since  2.2.0

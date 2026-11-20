@@ -39,7 +39,7 @@
  *    $payments = $this->getPaymentsByOrder($orderId);
  *    $this->deletePayment($paymentId, $orderId);
  *
- *  THE GATEWAY'S BOOKS (since 2.2.0):
+ *  THE GATEWAY'S BOOKS:
  *    $due     = $this->orderBalance(orderId: $orderId);                          // signed Money: > 0 owed, < 0 overpaid
  *    $holders = $this->countReferenceHolders(reference: $txId, types: [self::TYPE_PAYMENT]);
  *    $rowId   = $this->findOwnRowByReference(reference: $refundId, types: [self::TYPE_REFUND]); // the one row, or null
@@ -47,13 +47,13 @@
  *    $mine    = $this->claimPendingAttempt(paymentId: $paymentId, reference: $sessionId); // one wins, the other is told false
  *    $first   = $this->firstMethodRow(methodId: $methodId, kind: self::FIRST_PAID); // a method's first settled payment
  *
- *  SINCE 2.2.1:
+ *  REFUNDS, OWN METHODS AND THE ACTIONS LOG:
  *    $ceiling = $this->bookedRefundable(orderId: $orderId);                     // Money: collected less returned
  *    $methods = $this->ownMethods();                                             // this plugin's published methods, by id
  *    $retry   = $this->failRefundAttempt($reservationId, $failedRefundId, $why); // keep the reservation for the retry
  *    $this->recordActionLog('PLG_ALFA_PAYMENTS_<YOU>_LOG_REFUND_STARTED', ['title' => '#12'], $orderId); // User Actions Log
  *
- *  SINCE 2.2.2, every write of a buyer's visit answers WHY (a PaymentWriteVerdict: decide on ->kind, then ->code):
+ *  WRITES OF A BUYER'S VISIT, each answering WHY (a PaymentWriteVerdict: decide on ->kind, then ->code):
  *    $open    = $this->latestPendingPayment($orderId);                           // 0. your own open attempt first: resume, claim or close it
  *    $verdict = $this->payment($order)->pending()->transactionId($minted)->saveWithVerdict(); // 1. the row first, a reference you minted
  *    // only VERDICT_WRITTEN goes on to the provider, with an idempotency key derived from $verdict->rowId or $minted;
@@ -160,7 +160,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     public const REFUND_FULL = PaymentLedger::REFUND_FULL;
     public const REFUND_PARTIAL = PaymentLedger::REFUND_PARTIAL;
 
-    // The kinds of firstMethodRow() (2.2.0): a method's first settled payment, its first refund.
+    // The kinds of firstMethodRow(): a method's first settled payment, its first refund.
     public const FIRST_PAID = 'paid';
     public const FIRST_REFUND = 'refund';
 
@@ -169,9 +169,10 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     public const WRITE_RACED = PaymentLedger::WRITE_RACED;
     public const WRITE_FAILED = PaymentLedger::WRITE_FAILED;
 
-    // The kinds and codes of a write's verdict (2.2.2): saveWithVerdict(), settleAttemptVerdict(),
+    // The kinds and codes of a write's verdict: saveWithVerdict(), settleAttemptVerdict(),
     // supersedeAttemptVerdict(), claimPendingAttemptVerdict(). A plugin decides by kind, and handles a code it does not
-    // know as its kind; a value never changes and is never reused in 2.x. Their meanings: PaymentLedger's constants.
+    // know as its kind; a value never changes and is never reused within the major version. Their meanings:
+    // PaymentLedger's constants.
     public const VERDICT_WRITTEN = PaymentLedger::VERDICT_WRITTEN;
     public const VERDICT_REFUSED = PaymentLedger::VERDICT_REFUSED;
     public const VERDICT_LOCK_NOT_TAKEN = PaymentLedger::VERDICT_LOCK_NOT_TAKEN;
@@ -334,7 +335,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     protected string $processPageUrl;
 
     /**
-     * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
+     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the
      * shared dispatcher, never in getSubscribedEvents(). onPaymentStoreReference and onPaymentChargeReference
      * are addressed by an extension's billing engine (a subscriptions extension); core dispatches neither.
      *
@@ -359,7 +360,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         'onPaymentCheckup',
         'onPaymentStoreReference',
         'onPaymentChargeReference',
-        // A gateway's own data (2.1.0's Clear Data), addressed to it alone (2.2.0, part C14b).
+        // A gateway's own data (Clear Data), addressed to it alone.
         'onClearData',
     ];
 
@@ -370,13 +371,13 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      */
     public static function getSubscribedEvents(): array
     {
-        // 2.2.0: every Alfa event a gateway handles is addressed to it alone (TARGETED_EVENTS); a gateway that needs
+        // Every Alfa event a gateway handles is addressed to it alone (TARGETED_EVENTS); a gateway that needs
         // an ambient Joomla event merges its own map.
         return [];
     }
 
     /**
-     * Alfa's targeted-handler declaration (2.2.0, design 2.15.2): each event of TARGETED_EVENTS this plugin
+     * Alfa's targeted-handler declaration: each event of TARGETED_EVENTS this plugin
      * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
      * shared dispatcher.
      *
@@ -471,7 +472,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     //  These return a PaymentLedger builder instance. The builder
     //  validates, auto-fills, and delegates to the ledger internally.
     //
-    //  The base-class API is the supported one (2.2.0): a gateway writes
+    //  The base-class API is the supported one: a gateway writes
     //  and reads its payments through this class (the builder wrappers,
     //  the intent verbs, the reads, and the books API: orderBalance(),
     //  countReferenceHolders(), refundTypeFor(), claimPendingAttempt()),
@@ -491,7 +492,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *   $paymentId = $this->payment($order)->authorized()->transactionId('ch_3M..')->save();
      *   $paymentId = $this->payment($order)->refund()->amount(50)->completed()->save();
      *
-     * The row records this plugin's element (2.2.0), never the live type of a
+     * The row records this plugin's element, never the live type of a
      * method row: the method it names (the order's, or ->method($id)) must be one
      * of this plugin's, and a refund or chargeback must return this plugin's own
      * money, or the save answers false and writes nothing.
@@ -554,7 +555,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * payment it is on: the order's pending provider refunds (see
      * unbookedProviderRefunds()) and its refunds in the books that are not
      * settled (pending or authorized refund rows, every refund reservation
-     * among them; since 2.1.0). It is a read: the decision to start a refund
+     * among them). It is a read: the decision to start a refund
      * is taken by reserveRefund(), under the order's lock, before your
      * provider is asked; never hold the booking of money the provider already
      * moved to this figure.
@@ -586,7 +587,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * provider refunds reserve (see unbookedProviderRefunds()) is not left on it
      * either, nor what its refund rows in the books that are not settled
      * (pending or authorized, its refund reservations among them) reserve: that
-     * money is held for them on this payment (since 2.1.0). A new refund is
+     * money is held for them on this payment. A new refund is
      * held to both figures by reserveRefund(). Never hold the booking of money
      * the provider already moved to it: settleRefund() and refundPayment() with
      * gateway_moved book against the books alone.
@@ -648,9 +649,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * block (settled, or pending with no exact amount in the order's currency,
      * or malformed), no new refund starts on any of them. A pending refund
      * with an exact amount does not refuse here: it reserves that amount
-     * ({@see self::refundableNow()}). A gateway that requires Alfa Commerce
-     * 2.1.0 or later declares its Refund and Partial refund actions with
-     * PluginAction::startsRefund() (the order screen then withholds them and the
+     * ({@see self::refundableNow()}). A gateway declares its Refund and
+     * Partial refund actions with PluginAction::startsRefund() (the order screen then withholds them and the
      * action page refuses them before this plugin runs); in its refund handler
      * reserveRefund() decides the start again under the order's lock, with this
      * refusal, and reserves it before anything is sent; it keeps no check of its
@@ -719,8 +719,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *                   reports are the same refund exactly when they are about
      *                   the same payment of the same gateway and their reportIds
      *                   are equal byte for byte. Valid UTF-8.
-     *                   A refund REQUEST this site sends is never listed
-     *                   (the former rule 4 is retired since 2.1.0): the core
+     *                   A refund REQUEST this site sends is never listed:
+     *                   the core
      *                   holds it as a reservation in the books, made before
      *                   the provider is asked (reserveRefund()). A reportId
      *                   that starts with REPORT_REQUEST_PREFIX is malformed
@@ -789,7 +789,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *   - empty for a payment that is not this plugin's, or that does not exist.
      *
      * The core's reading of these reports for one payment is
-     * unbookedProviderRefundsOfPayment() (2.2.2), never called from here: the
+     * unbookedProviderRefundsOfPayment(), never called from here: the
      * core refuses it with a LogicException and reads the payment as unread.
      *
      * This default answers empty: a payment method with no provider channel (the
@@ -822,11 +822,11 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      * A plugin's write carries no staff mark, inside a staff user's request or not: the ledger's staff guard (a
      * gateway payment's provider id, method and pending refunds, for the payment form and the REST API) never refuses
-     * it (since 2.1.0). Arm ->expectStatus() where a webhook and a return can race.
+     * it. Arm ->expectStatus() where a webhook and a return can race.
      *
      * The builder names this plugin as its writer, so save(), saveVerdict() and settleAttempt() alike write only a
      * payment recorded as this plugin's, and move it only to another method of this plugin; anything else is refused
-     * and nothing is written (2.2.0).
+     * and nothing is written.
      *
      * THE PAYMENT'S PLUGIN DATA. A payment reads its own payload, and a write goes back through this builder, which
      * merges:
@@ -902,7 +902,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * The builder names this gateway as its writer (paymentUpdate()), so the
      * compare-and-set holds the plain update's rule: only this gateway's own
      * rows, moved only to another method of its own; anything else is refused
-     * and answers WRITE_FAILED (2.2.0).
+     * and answers WRITE_FAILED.
      *
      * Usage:
      *   $write = $this->paymentUpdate((int) $payment->id)
@@ -956,7 +956,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     }
 
     /**
-     * Settle a verified attempt exactly once, and answer what the write did (2.2.2).
+     * Settle a verified attempt exactly once, and answer what the write did.
      *
      * The write settleAttempt() makes, answered as a verdict: written, raced (the other transport won: agree with it),
      * refused (a rule refused it: repeating the settle is useless; $code says which), lock_not_taken (the settle waits
@@ -1038,8 +1038,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * deciding reports WRITE_RACED and is left as the winner left it; treat
      * anything but WRITE_OK as "the ledger no longer says what I assumed",
      * and reload rather than hand the buyer to the gateway. Only this
-     * gateway's own attempts: another gateway's row is refused, WRITE_FAILED
-     * (2.2.0).
+     * gateway's own attempts: another gateway's row is refused, WRITE_FAILED.
      *
      * Usage:
      *   if ($this->supersedeAttempt((int) $payment->id, 'New gateway visit') !== self::WRITE_OK) {
@@ -1061,7 +1060,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     }
 
     /**
-     * Close a gateway attempt nobody is going to pay, and answer what the write did (2.2.2): the write
+     * Close a gateway attempt nobody is going to pay, and answer what the write did: the write
      * supersedeAttempt() makes, as a verdict. Written when this call closed it; raced when it was no longer pending;
      * refused with REFUSAL_ROW_MISSING (the row or its order is gone) or REFUSAL_NOT_WRITER (another gateway's row: a
      * gateway never closes another gateway's attempt); lock_not_taken; write_failed.
@@ -1112,7 +1111,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * A REFUND YOUR PLUGIN STARTS never comes here: reserveRefund() FIRST (it
      * decides and reserves under the order's lock), then the provider with the
      * reservation's key and no lock held, then settleRefund(), holdRefund() or
-     * releaseRefund() (since 2.1.0). This verb with 'gateway_moved' => true
+     * releaseRefund(). This verb with 'gateway_moved' => true
      * books money a provider moved that no reservation covers (a refund made
      * in the provider's portal, found by a check or a notification): the money
      * has already left, so when the books refuse the audit row the ledger
@@ -1125,7 +1124,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * plugin's: sent inside one, it is answered OUTCOME_FAILED and nothing is
      * written. The core's reads there would be your transaction's snapshot,
      * taken before the order's lock, and a delivery committed meanwhile could
-     * be booked a second time (since 2.1.1). Any transaction open on the
+     * be booked a second time. Any transaction open on the
      * connection counts, one held by the caller of your hook included: send
      * the word once that transaction has committed.
      *
@@ -1156,7 +1155,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *                       'plugin' is set to this plugin: a start on
      *                       another plugin's payment is refused
      *                       (OUTCOME_REFUSED); money moved on it is kept for
-     *                       staff (OUTCOME_UNRECONCILED) (since 2.1.0).
+     *                       staff (OUTCOME_UNRECONCILED).
      *
      * @return array ['outcome' => self::OUTCOME_*, 'refund_id' => int, 'reason' => string]
      *
@@ -1314,7 +1313,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
 
     /**
      * One attempt of a reserved refund failed at the provider and the request stands: keep the reservation for the
-     * retry ({@see PaymentLedger::failRefundAttempt()}, since 2.2.1).
+     * retry ({@see PaymentLedger::failRefundAttempt()}).
      *
      * For your provider's definite failure of the refund it held under $providerRefundId, when you will try again for
      * the same request. The reservation keeps its amount and is given a new key; send the retry with the answer's
@@ -1440,7 +1439,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Answer the provider 200 on OUTCOME_RECORDED, OUTCOME_DUPLICATE and
      * OUTCOME_NOTHING_LEFT; 200 and report on OUTCOME_REFUSED; 503 on
      * OUTCOME_FAILED so the provider redelivers. Never throws. Only this
-     * gateway's own rows: another gateway's row is refused (2.2.0).
+     * gateway's own rows: another gateway's row is refused.
      *
      * @api ANSWERS: ['outcome', 'row_id', 'reason', 'amount', 'reopened']; never throws; this plugin's own rows only.
      *
@@ -1462,8 +1461,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Record money the customer's bank took back from a completed payment of this gateway.
      *
      * Never capped, never flips the payment, never moves the order. Outcomes
-     * and options as recordReversal(); another gateway's payment is refused
-     * (2.2.0).
+     * and options as recordReversal(); another gateway's payment is refused.
      *
      * @api ANSWERS: ['outcome', 'row_id', 'reason', 'amount', 'reopened']; never capped, never moves the order; another
      *      gateway's payment is refused.
@@ -1732,7 +1730,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      * Delete an order payment record.
      *
      * Only a payment recorded as this plugin's: another plugin's row, or one that records no plugin, is refused and
-     * nothing is deleted (2.2.0).
+     * nothing is deleted.
      *
      * @param int $id Payment row PK
      * @param int $orderId Order PK (for activity log)
@@ -1765,7 +1763,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
      *
      *     $this->getPaymentMethod($orderId, (int) $payment->id_payment_method);
      *
-     * EXACT, NEVER A SIBLING (2.2.0): a method id asked is answered with that
+     * EXACT, NEVER A SIBLING: a method id asked is answered with that
      * method, while it is one of this plugin's, or with nothing; it never falls
      * back to the order's chosen method or to another of this plugin's methods,
      * which may hold other credentials. Asked by order alone, the answer is the
@@ -1981,7 +1979,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     }
 
     /**
-     * Point the visitor's session at an order whose browser return this gateway has authenticated (2.2.1).
+     * Point the visitor's session at an order whose browser return this gateway has authenticated.
      *
      * The process page and the completed page's arrival show the session's order only when this session placed it
      * or a gateway said, through this method, that it authenticated a return for it. A browser return is a request
@@ -2236,7 +2234,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
         return PaymentLedger::getByOrder($orderId);
     }
 
-    //  THE GATEWAY'S BOOKS (2.2.0)
+    //  THE GATEWAY'S BOOKS
     //
     //  What a gateway asks of the books beyond the builder and the intent
     //  verbs: the order's signed balance, how many of its own rows hold a
@@ -2617,7 +2615,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface, Tar
     }
 
     /**
-     * Claim one of this gateway's pending attempts for a provider reference, and answer what the write did (2.2.2):
+     * Claim one of this gateway's pending attempts for a provider reference, and answer what the write did:
      * the claim claimPendingAttempt() makes, as a verdict. Written when this call claimed it; raced when it is
      * this gateway's but no longer a pending attempt without a reference (another visit or delivery owns it: agree with
      * the winner); refused with REFUSAL_ROW_MISSING (the row or its order is gone) or REFUSAL_NOT_WRITER (another

@@ -43,9 +43,9 @@ final class InstallSteps
     }
 
     /**
-     * Write the cursor of the announced price periods (`#__alfa_meta` DueRead::META_WINDOWS, 2.2.2) where it is missing,
+     * Write the cursor of the announced price periods (`#__alfa_meta` DueRead::META_WINDOWS) where it is missing,
      * at this moment, so no period that began before the install or the update is announced. A row that exists is
-     * kept as it is. The install SQL writes it for a new shop; an update from a release before 2.2.2 gets it here.
+     * kept as it is. The install SQL writes it for a new shop; an update gets it here.
      *
      * @since  2.2.2
      */

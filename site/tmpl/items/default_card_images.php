@@ -8,7 +8,7 @@
  */
 
 /**
- * The card's images (the "card_images" slot of the listing's card, 2.2.1): the product's first image, as the card has
+ * The card's images (the "card_images" slot of the listing's card): the product's first image, as the card has
  * always drawn it. Chosen per item, per category, per menu item or in the Options (Items List Item Images); a variant
  * such as default_card_images-slider.php draws more than one.
  *

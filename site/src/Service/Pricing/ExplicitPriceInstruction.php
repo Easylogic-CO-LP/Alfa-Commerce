@@ -58,10 +58,10 @@ final class ExplicitPriceInstruction
     }
 
     /**
-     * The one shape the rulings name: a tax-inclusive UNIT price.
+     * The one shape there is: a tax-inclusive UNIT price.
      *
      * A net-space or whole-line sibling is one named constructor here and one
-     * branch in the engine's override stage, added when a ruling asks for one.
+     * branch in the engine's override stage, added when one is needed.
      * Unbuilt enum cases are unrequested mechanism, so there are none.
      *
      * A UNIT RATE KEEPS ITS OWN PRECISION.

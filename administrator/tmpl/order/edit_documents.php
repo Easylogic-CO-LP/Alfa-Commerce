@@ -225,7 +225,7 @@ $escape = fn ($value): string => $this->escape((string) $value);
 <?php if (empty($documents)) : ?>
     <div class="alert alert-info"><?php echo Text::_('COM_ALFA_DOCUMENTS_NONE_YET'); ?></div>
 <?php else : ?>
-    <?php // Below 480 px a row folds (alfa-fold, 2.2.1 A4): its cells wrap, each named by its column, the actions on a
+    <?php // Below 480 px a row folds (alfa-fold): its cells wrap, each named by its column, the actions on a
           // line of their own. ?>
     <table class="table table-striped table-bordered alfa-fold">
 

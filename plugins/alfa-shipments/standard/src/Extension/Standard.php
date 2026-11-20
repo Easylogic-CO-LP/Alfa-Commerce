@@ -30,9 +30,7 @@
  * |   `-- default_order_logs_view.php   <- Admin: plugin logs modal
  * `-- services/provider.php             <- Joomla DI service provider
  *
- * Every template here answers a setLayout() call in this file. Three stubs
- * that answered nothing - default_empty.php, default_order_view.php and
- * standard.php (form-field skeleton residue) - were deleted in 1.9.1.
+ * Every template here answers a setLayout() call in this file.
  *
  * Language files are packaged under language/en-GB/ in the plugin's own
  * ZIP but INSTALL to administrator/language/en-GB/, which is where they
@@ -378,7 +376,7 @@ final class Standard extends ShipmentsPlugin
     /**
      * Product page: what the method adds below itself (e.g. "Ships in 2 days").
      *
-     * Core draws every method there first (2.2.2): its image when the shop set one,
+     * Core draws every method there first: its image when the shop set one,
      * its title and its description (layout methods.item). A plugin's layout adds
      * only its own content below them, never a logo, the title or the description.
      *
@@ -502,7 +500,7 @@ final class Standard extends ShipmentsPlugin
 
     /**
      * The postcode this carrier prices by: its field's value, '' while that field is unanswered, or null when the method
-     * names no postcode field (2.2.2), so an unanswered field is told apart from one the carrier never reads.
+     * names no postcode field, so an unanswered field is told apart from one the carrier never reads.
      *
      * @param Method $method The carrier being asked.
      * @param Cart $cart The cart being quoted.
@@ -646,7 +644,7 @@ final class Standard extends ShipmentsPlugin
     //  1. The carrier hooks (onCartViewAssets(), onOrderAfterPlace(),
     //     onGetActions(), onExecuteAction(), onShipmentWebhook() and the rest
     //     of ShipmentsPlugin::TARGETED_EVENTS) are addressed to this plugin
-    //     alone by Alfa's targeted dispatch (2.2.0): the base class's
+    //     alone by Alfa's targeted dispatch: the base class's
     //     getTargetedHandlers() declares each of those events this class has a
     //     method of the same name for, and the component asks only the method
     //     it is about. Writing the method IS the subscription; nothing is put
@@ -925,7 +923,7 @@ final class Standard extends ShipmentsPlugin
      */
     public function onExecuteAction($event): void
     {
-        // Every action that writes acts only on a shipment this plugin wrote (2.2.0): a parcel of another carrier, or
+        // Every action that writes acts only on a shipment this plugin wrote: a parcel of another carrier, or
         // one this plugin's name was never recorded on, is refused before anything is read or written.
         $shipment = $event->getShipment();
 

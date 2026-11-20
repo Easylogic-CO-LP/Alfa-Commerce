@@ -1,9 +1,9 @@
--- Alfa Commerce 2.2.2: related products
+-- Related products
 --
 -- The products a product's page shows as related, in the order staff set on the product's Related tab. A link goes
 -- one way: a row from A to B shows B on A's page and nothing on B's. link_type names the kind of link: related is the
--- one kind core writes and reads; the column is there so that a further kind needs no schema change. The table is new
--- in 2.2.2 and empty on an updated site; the install SQL creates the same table, and this runs again harmlessly over
+-- one kind core writes and reads; the column is there so that a further kind needs no schema change. The table is empty
+-- on an updated site; the install SQL creates the same table, and this runs again harmlessly over
 -- it (an update run again, a table an uninstall kept).
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (

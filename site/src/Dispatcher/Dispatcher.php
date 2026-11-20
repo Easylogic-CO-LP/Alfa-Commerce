@@ -41,7 +41,7 @@ class Dispatcher extends ComponentDispatcher
 
         // Register the item-fields plugins' getSubscribedEvents maps (their ambient
         // events: onBeforeRender, onBeforeCompileHead, ...) with the shared
-        // dispatcher through the plugin helper (2.2.0), one plugin at a time, so a
+        // dispatcher through the plugin helper, one plugin at a time, so a
         // configurator fires on every com_alfa page; its field hooks are addressed
         // to it alone and never listed there.
         AlfaPluginHelper::get()->importGroup('alfa-item-fields');

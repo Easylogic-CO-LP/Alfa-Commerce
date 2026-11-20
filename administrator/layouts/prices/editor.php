@@ -24,7 +24,7 @@ use Joomla\CMS\Layout\FileLayout;
  *   - array  $options     Select option lists (currencies/places/usergroups/users; placeNotes, the held places
  *                that are not published or were deleted, each with the language key of its rows' note)
  *   - array|null $storedMemberships The item editor of a saved item: the categories and manufacturers it has
- *                stored (ids ascending, comma-separated), which prices.js compares with its form's (2.1.0)
+ *                stored (ids ascending, comma-separated), which prices.js compares with its form's
  */
 $controlBase = (string) $displayData['controlBase'];
 $rows = (array) $displayData['rows'];

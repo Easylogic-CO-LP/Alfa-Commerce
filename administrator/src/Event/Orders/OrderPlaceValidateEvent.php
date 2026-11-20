@@ -21,8 +21,8 @@ defined('_JEXEC') or die;
 /**
  * Checkout validation event (`onOrderPlaceValidate`), before the order draft is
  * built: delivered in turn to each `alfa` plugin the CUSTOMER's view levels
- * admit, in their order, through the plugin's own targeted declaration (2.2.0), never the shared dispatcher. A plugin may VETO the placement with
- * a customer-facing message, naming itself; the checkout aborts and shows every
+ * admit, in their order, through the plugin's own targeted declaration, never
+ * the shared dispatcher. A plugin may VETO the placement with a customer-facing message, naming itself; the checkout aborts and shows every
  * collected rejection, and a plugin that throws refuses the placement too:
  *
  *   public function onOrderPlaceValidate(OrderPlaceValidateEvent $event): void
@@ -37,7 +37,7 @@ defined('_JEXEC') or die;
  *
  * A listener that would rather throw refuses with words by throwing
  * {@see OrderPlaceRefusedException} with the shopper's sentence, read as a
- * rejection is (2.2.1). Any other exception refuses the placement as a check
+ * rejection is. Any other exception refuses the placement as a check
  * that could not run: the shopper is told which plugin's check, and its own
  * words stay in the log.
  *
@@ -74,7 +74,7 @@ class OrderPlaceValidateEvent extends AbstractImmutableEvent implements Selectio
     /**
      * Veto the placement with a customer-facing message.
      *
-     * @param string $contributor The refusing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The refusing plugin, group.element (attribution, never an authorisation).
      * @param string $message Translated message shown to the customer.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.

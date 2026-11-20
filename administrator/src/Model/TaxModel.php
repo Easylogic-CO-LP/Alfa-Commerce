@@ -63,7 +63,7 @@ class TaxModel extends AlfaAdminModel
     protected string $alfaEntity = 'tax';
 
     /*
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - save()/delete() extend the parent mid-method (price index sync + pivot
      *   cascade around parent::save()/parent::delete()), with no early return
      *   before the parent call; the contract's Validate/BeforeSave/AfterSave
@@ -185,7 +185,7 @@ class TaxModel extends AlfaAdminModel
      *   1. parent::save()           - writes the #__alfa_taxes row
      *   2. setAssocsToDb() x 5     - writes categories, manufacturers, places, users, usergroups
      *      (1 and 2, with the translations, in ONE transaction: committed together, and
-     *      onAlfaAdminAfterSave announced at that commit; 2.2.1)
+     *      onAlfaAdminAfterSave announced at that commit)
      *   3. PriceIndexSyncService   - reads the scope above, re-indexes affected items
      *
      * @param array $data The form data.
@@ -221,7 +221,7 @@ class TaxModel extends AlfaAdminModel
             return false;
         }
 
-        // Alfa's before-save is asked before the transaction (2.1.4, design 0.2): no plugin code runs under it.
+        // Alfa's before-save is asked before the transaction: no plugin code runs under it.
         $asked = $this->alfaAskSave(data: $data);
 
         if ($asked === null) {
@@ -262,7 +262,7 @@ class TaxModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_taxes', primaryColumnName: 'id_tax', data: $data);
 
-        // ONE TRANSACTION for the tax's row as well (2.2.1): onAlfaAdminAfterSave and onContentAfterSave
+        // ONE TRANSACTION for the tax's row as well: onAlfaAdminAfterSave and onContentAfterSave
         // wait for its commit, so a listener reads the tax as saved, scope included, and a failure anywhere leaves
         // nothing of the save.
         $db = $this->alfaDriver();

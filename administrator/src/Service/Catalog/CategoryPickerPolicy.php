@@ -30,7 +30,7 @@ use Throwable;
  *
  * The storefront has its own narrowing (published categories the visitor may see) and does not use this.
  *
- * PLACES follow the market rule (2.2.0): a place is offered only when it and every parent place are published; a place
+ * PLACES follow the market rule: a place is offered only when it and every parent place are published; a place
  * a record already holds is kept, shown and marked, its words saying the state it or a parent is in ("Greece
  * (unpublished)"). The place pickers of the administrator (payment and shipping methods, carrier zones, the country
  * field's settings, the price, discount and tax forms, the prices editor) read it through placeReason() and
@@ -97,7 +97,7 @@ final class CategoryPickerPolicy
     private const PLACE_MARKS = [
         self::UNPUBLISHED => 'COM_ALFA_PLACE_MARK_UNPUBLISHED',
         self::TRASHED => 'COM_ALFA_PLACE_MARK_TRASHED',
-        // A place deleted while a record (a price row) still names it (2.2.1).
+        // A place deleted while a record (a price row) still names it.
         self::MISSING => 'COM_ALFA_PLACE_MARK_DELETED',
     ];
 

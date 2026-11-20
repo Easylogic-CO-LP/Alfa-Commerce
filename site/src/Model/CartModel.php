@@ -155,7 +155,7 @@ class CartModel extends FormModel
      */
     public function getDeliveryPlaceId(): ?int
     {
-        // The same reading the opened cart prices its goods and carriage at, on every page that shows it (2.2.1).
+        // The same reading the opened cart prices its goods and carriage at, on every page that shows it.
         return CheckoutAddress::place(userId: $this->currentUserId());
     }
 
@@ -271,8 +271,8 @@ class CartModel extends FormModel
     }
 
     /**
-     * The order the order-completed page shows, opened by its keyed address (2.2.0,
-     * design 2.17): the site read service's one read-only value. Only reads.
+     * The order the order-completed page shows, opened by its keyed address:
+     * the site read service's one read-only value. Only reads.
      *
      * @param int $id The order id the address carries.
      * @param string $key The key the address carries.
@@ -297,7 +297,7 @@ class CartModel extends FormModel
 
     /**
      * The key of the order a checkout has just completed, for the arrival address's
-     * redirect to the keyed one (2.2.0, design 2.17).
+     * redirect to the keyed one.
      *
      * @param int $id The order id the session held.
      *

@@ -35,8 +35,8 @@ defined('_JEXEC') or die;
  * back office, must not become operable by staff merely because it works for
  * shoppers. Opting in is a statement that somebody thought about it.
  *
- * The shape follows PaymentsPlugin::supportsRecurring(), which has answered a
- * question of exactly this kind since 2.0.0 and is consumed the same way. No
+ * The shape follows PaymentsPlugin::supportsRecurring(), which answers a
+ * question of exactly this kind and is consumed the same way. No
  * method is named here and none ever should be: a policy that lists plugins by
  * name is a policy that is wrong as soon as somebody writes a new one.
  *
@@ -75,7 +75,7 @@ final class OperatorPaymentPolicy
             return self::$answers[$type];
         }
 
-        // The plugin helper is the one availability authority (2.2.0): a plugin disabled, missing, outside the
+        // The plugin helper is the one availability authority: a plugin disabled, missing, outside the
         // request's view levels or unloadable answers no; one that fails while answering answers no, logged.
         $plugins = AlfaPluginHelper::get();
 

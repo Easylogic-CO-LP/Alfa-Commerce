@@ -30,7 +30,7 @@ use Throwable;
  * (Money::format()), a document by its type's label and its number, a status
  * change by the status names and who made it, the record of an order's task
  * (an e-mail, a plugin reaction, a task resolved) by the sentence its context
- * keeps as a language key with its parameters (2.1.4). Where the context lacks
+ * keeps as a language key with its parameters. Where the context lacks
  * a fact the line needs (an old row, another writer's row, a status or a user
  * that no longer exists, a key the loaded languages do not have), the stored
  * summary is shown as it was written.
@@ -40,10 +40,10 @@ use Throwable;
 final class OrderHistoryHelper
 {
     /**
-     * The field names core writes into an order's history record (2.1.4's rows, those 2.2.0 added, and the activity
+     * The field names core writes into an order's history record (its own fields and the activity
      * writer's own record of details it could not keep whole: unencodable, truncated, original_bytes, keys), each said
      * in the reader's language by its key COM_ALFA_ORDER_HISTORY_FIELD_<NAME> wherever the record's fields are listed:
-     * the Details box and the table of an edit's changes (2.2.1). A name core does not write, a plugin's own, is shown
+     * the Details box and the table of an edit's changes. A name core does not write, a plugin's own, is shown
      * as stored.
      *
      * @var list<string>
@@ -286,7 +286,7 @@ final class OrderHistoryHelper
 
         foreach ($text['args'] as $arg) {
             // A status is stored by its id and said by its name; recipients by their units and times, said in the
-            // reader's time zone (UX-45, UX-47). Any other array is a text of its own.
+            // reader's time zone. Any other array is a text of its own.
             if (\is_array($arg) && \array_key_exists('status', $arg)) {
                 $arg = self::statusName(id: $arg['status']) ?? '#' . (int) $arg['status'];
             } elseif (\is_array($arg) && \is_array($arg['recipients'] ?? null)) {
@@ -307,7 +307,7 @@ final class OrderHistoryHelper
 
     /**
      * The recipients an e-mail reached, for a History line: the customer and the shop by their addresses, each with the
-     * time it was handed over in the reader's time zone (UX-47); a unit of another kind as it was recorded.
+     * time it was handed over in the reader's time zone; a unit of another kind as it was recorded.
      *
      * @param array $sent The units sent: [['unit' => 'customer:address', 'at' => UTC time], ...].
      *
@@ -327,7 +327,7 @@ final class OrderHistoryHelper
             };
         }, array_values($sent));
 
-        // The last two joined by the language's "and", any before them by commas (NEW-4).
+        // The last two joined by the language's "and", any before them by commas.
         $last = array_pop($said);
 
         return $said === [] ? (string) $last : Text::sprintf('COM_ALFA_ORDER_TASK_RECIPIENTS_AND', implode(', ', $said), (string) $last);
@@ -337,7 +337,7 @@ final class OrderHistoryHelper
      * The fields of an entry's stored context as its Details box lists them, in its order: the record of the line's
      * sentence and the handler's name left out (the line above is their reading), the task by its number, the
      * recipients through the line's own phrases, a gateway by the name Extensions: Plugins shows; any other field as
-     * stored (2.2.0's UX round). Each field is named by its label ({@see self::fieldLabel()}, 2.2.1).
+     * stored. Each field is named by its label ({@see self::fieldLabel()}).
      *
      * @param array $context The entry's context.
      *
@@ -382,7 +382,7 @@ final class OrderHistoryHelper
     }
 
     /**
-     * A provider's late update rejected because staff had moved its payment attempt to Standard (UX-44): the plugin by
+     * A provider's late update rejected because staff had moved its payment attempt to Standard: the plugin by
      * the name Extensions: Plugins shows, the attempt and the provider's reference. The stored English summary stays the
      * record.
      *

@@ -116,7 +116,7 @@ final class VariantHelper
 
     /**
      * Resolve the item's variant as resolveAndPrice() does, and overwrite the item's data with the active combination's,
-     * without pricing it: the storefront in catalogue-only mode (2.2.2, {@see ShopMode}), where no price is computed and
+     * without pricing it: the storefront in catalogue-only mode ({@see ShopMode}), where no price is computed and
      * the item's price is null. The cart and the administrator price through resolveAndPrice(), whatever the mode.
      *
      * @param object $item The item, with ->fields + ->combinations loaded.
@@ -136,7 +136,7 @@ final class VariantHelper
     }
 
     /**
-     * Give an item its price as every template reads it (2.2.2): the result when a price applies at the quantity it was
+     * Give an item its price as every template reads it: the result when a price applies at the quantity it was
      * priced at, null when none does, so the price block and the sale badge draw nothing and no zero is shown. The
      * item also carries pricedFrom: for an item with no price there, the smallest quantity above it from which one
      * applies, else null. The one place the product page, the card, the single-card reload and the cart give an item
@@ -517,12 +517,12 @@ final class VariantHelper
             return [];
         }
 
-        // Each field's own plugin, through the plugin helper (2.2.0, mode B).
+        // Each field's own plugin, through the plugin helper (targeted).
         $plugins = AlfaPluginHelper::get();
         $contributions = [];
 
         foreach ($item->fields as $field) {
-            // A field whose plugin is unavailable takes no part (2.2.0, A-C14B-9): unavailability, logged once per
+            // A field whose plugin is unavailable takes no part: unavailability, logged once per
             // request per plugin and never rethrown, so the cart page always loads; the cart refuses a line that
             // needs the field (ItemConfigurationHelper::unpricedFields()).
             $plugin = ItemConfigurationHelper::fieldPlugin(field: $field);
@@ -552,7 +552,7 @@ final class VariantHelper
                 foreach ($event->getContributions() as $contribution) {
                     // Owner default: the collector knows the invoked plugin;
                     // an unset source becomes the field's plugin element.
-                    // Every other field kept, suppliesBase included (2.2.2).
+                    // Every other field kept, suppliesBase included.
                     if ($contribution->source === '') {
                         $contribution = $contribution->withSource(source: (string) $field->type);
                     }
@@ -717,14 +717,10 @@ final class VariantHelper
      * Resolve the overlay lookups for a whole page of variant cards at once.
      *
      * WHY THIS EXISTS. {@see self::overlay()} needs two things per card (the
-     * combination's translated fields and its own gallery) and both were fetched
-     * one card at a time. The listing model batches every OTHER data kind for the
-     * page (media, item fields, prices) and then undid that three lines later, so
-     * the storefront's highest-traffic query grew with the number of variant cards
-     * on the page. MEASURED on the demo, ordering by id so the variant products
-     * land together: 1 card 26 queries, 2 cards 29, 4 cards 37, 5 cards 44, and
-     * flat at 44 once the page ran out of variant cards, which is the shape of an
-     * N+1 rather than of a bigger page.
+     * combination's translated fields and its own gallery). Fetched one card at a
+     * time, the storefront's highest-traffic query would grow with the number of
+     * variant cards on the page (an N+1), while the listing model batches every
+     * OTHER data kind for the page (media, item fields, prices).
      *
      * Calling this is an OPTIMISATION, never a requirement: overlay() still falls
      * back to its own single-row read for any combination it was not warmed with,

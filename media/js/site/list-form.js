@@ -27,7 +27,7 @@
  * anything ever round-trips this subtree through its own innerHTML, where an attribute would
  * come back set on a node whose listeners did not.
  *
- * THE RESULTS ARE BROUGHT TO THE SHOPPER (2.2.0, design 2.20; 2.2.2). revealResults() scrolls the results region
+ * THE RESULTS ARE BROUGHT TO THE SHOPPER. revealResults() scrolls the results region
  * (`[data-results]`, the pagination and the list) so that its top sits right under the page's sticky header, every
  * time a new result set comes in, wherever the region was, instantly under prefers-reduced-motion and smoothly
  * otherwise; then it gives the region the focus without scrolling again, so keyboard and screen-reader users land on the
@@ -288,7 +288,7 @@
 
     // A page the server marked is revealed once its layout is final: an image above the region (a subcategory tile)
     // that arrives after the scroll began would leave the region short of the top. Not when the shopper came back to
-    // the page by a reload or the back button (2.2.2): the scroll the browser restores is theirs.
+    // the page by a reload or the back button: the scroll the browser restores is theirs.
     if (!returnedToPage()) {
         if (document.readyState === 'complete') {
             revealResults(document.querySelector(MARKED_SELECTOR));

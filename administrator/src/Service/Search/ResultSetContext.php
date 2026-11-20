@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 \defined('_JEXEC') or die;
 
 /**
- * What core knows of a rendered result set before the provider runs (2.2.0): the order it is shown in and the global
+ * What core knows of a rendered result set before the provider runs: the order it is shown in and the global
  * position of its first row, minus one. Carried on the SearchQuery of the one read that backs a rendered result set (the
  * request-driven listing on every page, the search endpoint's intent=search read), never on a facet re-read, a
  * type-ahead lookup or a programmatic read: a query without it backs no rendered result set and gets no handle.

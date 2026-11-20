@@ -119,11 +119,9 @@ class CalculateShippingCostEvent extends ShipmentsEvent
 
     //  Refusal
     //
-    //  "This costs nothing" and "I cannot carry this" are different answers,
-    //  and until 1.10 a carrier had only one way to give either: the float
-    //  0.00. A carrier whose bands matched nothing therefore quoted zero, the
-    //  method stayed selectable, and the order froze at 0.00 carriage: the
-    //  shop shipped for free rather than declining the sale.
+    //  "This costs nothing" and "I cannot carry this" are different answers: a
+    //  quote of 0.00 keeps the method selectable and the order ships for free,
+    //  so a refusal is never given as a zero price.
     //
     //  A carrier that cannot carry the cart calls setUnavailable() and does
     //  NOT call setShippingCost(). Whatever cost was set before is discarded:

@@ -161,7 +161,7 @@ class PriceContext
         $placeId = (int) $session->get('alfa.location_id', 0);
 
         // A currency or place of the visitor's own prices this response for that visitor alone, at addresses every
-        // visitor shares (2.2.1).
+        // visitor shares.
         if ($currencyId > 0 || $placeId > 0) {
             PageCache::excludeResponse();
         }

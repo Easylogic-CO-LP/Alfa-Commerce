@@ -70,13 +70,13 @@ use Throwable;
  *
  * The refusal is plain English: no language file exists yet at an install's preflight.
  *
- * THE RANGE OF ALFA COMMERCE VERSIONS (2.2.1). An extension that declares the lines of Alfa Commerce it is built for in
+ * THE RANGE OF ALFA COMMERCE VERSIONS. An extension that declares the lines of Alfa Commerce it is built for in
  * its manifest (`<alfacore min="2.2" max="2.2"/>`, {@see AlfaCoreRange}) is refused outside them by the same gate,
  * reading the range from its own manifest, the one place core's notice after an update reads it too:
  *
  *         $refusal = $gate::rangeRefusal(name: '<Name>', route: (string) $type, manifest: $parent->getManifest());
  *
- * in place of refusal() (a site whose Alfa Commerce is older than 2.2.1 has no rangeRefusal(): ask method_exists() first
+ * in place of refusal() (a site whose Alfa Commerce has no rangeRefusal(): ask method_exists() first
  * and fall back to the extension's own minimum there).
  *
  * THE POLICY. Every Alfa extension declares both min and max, max being the last line it was tested on (2.2, never a

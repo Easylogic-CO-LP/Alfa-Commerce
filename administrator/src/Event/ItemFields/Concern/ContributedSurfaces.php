@@ -17,7 +17,7 @@ use Joomla\CMS\Log\Log;
 \defined('_JEXEC') or die;
 
 /**
- * The surfaces several plugins contribute to ONE display event (2.2.0, design 2.15.4): each contribution names its
+ * The surfaces several plugins contribute to ONE display event: each contribution names its
  * plugin, which defaults the surface's layouts to that plugin's tmpl folder. In a selection loop the event knows the
  * plugin answering (SelectionContributorsInterface) and drops, with a log line, a contribution naming another plugin.
  * Attribution, never an authorisation.

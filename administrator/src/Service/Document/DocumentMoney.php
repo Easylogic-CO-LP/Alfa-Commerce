@@ -45,7 +45,7 @@ final class DocumentMoney
      * The scale a document with no frozen fact was actually printed at.
      *
      * NOT a fallback to the live currency row, and deliberately not a guess
-     * about what that document "should" have been: every pre-v1 document was
+     * about what that document "should" have been: every legacy document was
      * rendered by a hardcoded two decimals, so two decimals IS what it printed
      * and what it must keep printing. Inferring anything else, least of all
      * from today's configuration, would change a fiscal record after the

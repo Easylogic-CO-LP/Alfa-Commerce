@@ -21,7 +21,7 @@
  *
  * On success the bar turns green and the button stays disabled (reload to re-run);
  * on error the bar turns red, the error is said beside the button in plain words, and the button is re-enabled for a
- * retry. A button never just goes grey (2.2.0, entry 20).
+ * retry. A button never just goes grey.
  *
  * Server replies use Joomla's JsonResponse envelope: { success, message, data }.
  */
@@ -33,7 +33,7 @@
             btn.addEventListener('click', function () { run(btn); });
         });
 
-        // A form whose submission cannot be taken back asks first (the web-cron address that stops the old one, UX-11).
+        // A form whose submission cannot be taken back asks first (the web-cron address that stops the old one).
         document.querySelectorAll('form[data-alfa-confirm]').forEach(function (form) {
             form.addEventListener('submit', function (event) {
                 if (!window.confirm(form.getAttribute('data-alfa-confirm'))) {

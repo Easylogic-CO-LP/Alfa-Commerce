@@ -63,7 +63,7 @@ final class PageCache
 
     /**
      * Drop every page Joomla's page cache stored for the site (its `page` group), so the next visitor of each page is
-     * served it as the shop is now (2.2.2: online sales switched on or off; a stored guest page would keep its prices
+     * served it as the shop is now (online sales switched on or off; a stored guest page would keep its prices
      * and its buy buttons, or keep showing none). Joomla's own Options save cleans only the cache of the client it runs
      * in, and the page cache is the site's. A cache that cannot be cleaned is said in the log and expires on its own.
      *

@@ -42,8 +42,8 @@ class ActiveDateCondition
     }
 
     /**
-     * The end half of the window (2.2.1): a row whose end has not passed; an empty end ('0000-00-00 00:00:00') or
-     * none is open-ended. getActiveCondition() is built with it, and the update to 2.2.1 names the rules that have not
+     * The end half of the window: a row whose end has not passed; an empty end ('0000-00-00 00:00:00') or
+     * none is open-ended. getActiveCondition() is built with it, and an update names the rules that have not
      * ended by it.
      *
      * @param string $endField The quoted-or-unquoted end date column name.

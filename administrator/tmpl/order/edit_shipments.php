@@ -250,7 +250,7 @@ foreach ($mergeMap as $primary => $children) {
 </div>
 
 <!--  SHIPMENTS TABLE                                               -->
-<?php // Below 480 px a row folds (alfa-fold, 2.2.1 A4): its cells wrap, each named by its column, the actions on a line
+<?php // Below 480 px a row folds (alfa-fold): its cells wrap, each named by its column, the actions on a line
       // of their own. ?>
 <?php if (!empty($shipments)): ?>
     <table class="table table-striped table-bordered alfa-fold">
@@ -377,7 +377,7 @@ foreach ($mergeMap as $primary => $children) {
 							endforeach; ?>
                         </div>
 					<?php endif; ?>
-					<?php // Where its buttons would be: why this shipment's plugin offers none (UX-35). ?>
+					<?php // Where its buttons would be: why this shipment's plugin offers none. ?>
 					<?php $refusal = $canEditOrder ? ActionRegistry::refusal($shipment, 'alfa-shipments') : ''; ?>
 					<?php if ($refusal !== '') : ?>
                         <p class="small text-muted mt-1 mb-0" data-alfa-plugin-refusal><?php echo $this->escape($refusal); ?></p>

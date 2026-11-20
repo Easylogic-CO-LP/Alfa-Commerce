@@ -19,7 +19,7 @@ use Throwable;
 use WeakMap;
 
 /**
- * The item lock that every writer of an item's projection rows holds (2.2.0).
+ * The item lock that every writer of an item's projection rows holds.
  *
  * Two rebuilds of one item that overlap leave the rows of the one that writes last, and nothing made the last writer
  * the one that read last: a change committed in between was lost. So each writer of an item's rows (a save's rebuild,

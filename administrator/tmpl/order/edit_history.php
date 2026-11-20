@@ -249,9 +249,8 @@ $actionColors = [
                                             </div>
 										<?php endforeach; ?>
 									<?php else : ?>
-                                        <!-- Generic: key-value list, read by OrderHistoryHelper::details() (2.2.0's UX round: the sentence's
-                                             record and the handler left out, the task, the recipients and a gateway said in words; 2.2.1: each
-                                             field by its label) -->
+                                        <!-- Generic: key-value list, read by OrderHistoryHelper::details() (the sentence's record and the
+                                             handler left out, the task, the recipients and a gateway said in words, each field by its label) -->
                                         <div class="mt-2 p-2 bg-body-tertiary rounded" style="font-size:.85em;">
 											<?php foreach (OrderHistoryHelper::details($context) as [$key, $val]) : ?>
                                                 <div class="d-flex justify-content-between py-1 border-bottom">

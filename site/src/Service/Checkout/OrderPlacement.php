@@ -334,7 +334,7 @@ class OrderPlacement
         $this->billingData = $command->billing;
         $held = false;
 
-        // CATALOGUE ONLY (2.2.2): the storefront places no order, by whatever path it reaches this class; this is the
+        // CATALOGUE ONLY: the storefront places no order, by whatever path it reaches this class; this is the
         // authority behind the storefront controller's refusal. An operator's placement (the administrator's operator
         // checkout) is the shop's own order taking and goes on.
         if (!ShopMode::sellsOnline() && !$this->subject->isOperatorPlacement()) {
@@ -355,7 +355,7 @@ class OrderPlacement
             }
 
             // The goods and the carriage are now priced at this submission's delivery place, with its methods: an
-            // order whose total is not the one the page showed is not placed (2.2.1).
+            // order whose total is not the one the page showed is not placed.
             if (!$this->totalAsShown()) {
                 return false;
             }
@@ -392,9 +392,8 @@ class OrderPlacement
                 //
                 // The read is a LOCKING read on purpose. Under REPEATABLE READ
                 // the loser's snapshot predates the winner's commit, and taking
-                // a lock does NOT refresh a snapshot: the same trap the
-                // order-row work hit in S7. Only a current read sees that the
-                // cart has just ceased to exist.
+                // a lock does NOT refresh a snapshot. Only a current read sees
+                // that the cart has just ceased to exist.
                 //
                 // This is why the ORDER needs no memory of its cart: the
                 // guarantee lives in the cart's existence, not in a pointer
@@ -485,7 +484,7 @@ class OrderPlacement
                 $this->saveOrderContributions($orderId);
                 $this->saveCartRules($orderId);
 
-                // What the placement owes after its commit, written with the order (2.1.4): the download access of
+                // What the placement owes after its commit, written with the order: the download access of
                 // its initial status and its confirmation e-mail. They run once the placement's own work after the
                 // commit (the wallet, the gateway hooks) is done, so the e-mail reads the order as the shopper
                 // completed it; a request that dies leaves them to recovery.
@@ -529,7 +528,7 @@ class OrderPlacement
 
                 // A stock plugin that refused the reservation on purpose (InventoryRefusedException, thrown by a
                 // listener of onInventoryBeforeReserve) wrote its sentence for people to read: the shopper reads it,
-                // as a plugin's refusal at onOrderPlaceValidate is read, its words only (2.2.1). Any other failure
+                // as a plugin's refusal at onOrderPlaceValidate is read, its words only. Any other failure
                 // keeps the fixed sentence.
                 $refused = InventoryRefusedException::in($e);
 
@@ -547,7 +546,7 @@ class OrderPlacement
             // COMMIT, after the try: what follows it is on the far side of the
             // commit, and a failure there is answered by the net below, never
             // by rolling back a transaction that is already closed. What the
-            // commit owes waits for the placement's own work after it (2.1.4).
+            // commit owes waits for the placement's own work after it.
             PostCommit::hold(db: $this->db, name: self::HOLD);
             $held = true;
             TransactionState::commitLevel($this->db);
@@ -673,10 +672,10 @@ class OrderPlacement
             // the last step of conversion.
 
             // What the placement owes runs now, in one batch, in the order it
-            // was written (2.1.4): the download access of the initial status
+            // was written: the download access of the initial status
             // first, then the confirmation e-mail. A payment the wallet or a
             // gateway hook completed in the hold runs its own work, the order's
-            // move included, just before the confirmation (2.2.0), so the
+            // move included, just before the confirmation, so the
             // e-mail reads the order moved, with the links its new status
             // grants; that status's own e-mail follows the confirmation. Each
             // is recorded as it ends; a failure never blocks the placement.
@@ -690,8 +689,8 @@ class OrderPlacement
             // SHOPPER'S OWN REQUEST (later transitions run in gateway callbacks or admin
             // sessions), which is why search-conversion attribution listens here and
             // nowhere else. The search group is imported deliberately, it is where the
-            // first consumer lives, and the alfa group with it. An after phase (2.2.0, mode
-            // A, isolated): a listener failure is logged and the next listener runs; the
+            // first consumer lives, and the alfa group with it. An after phase (broadcast,
+            // isolated): a listener failure is logged and the next listener runs; the
             // order is already placed, and no observer may break or appear to break a
             // completed checkout.
             try {
@@ -912,7 +911,7 @@ class OrderPlacement
      * the operator capability, because a withdrawn plugin is withdrawn from
      * everybody.
      *
-     * The plugin helper's bootSingle() is the one authority (2.2.0): it refuses
+     * The plugin helper's bootSingle() is the one authority: it refuses
      * a plugin that is disabled, missing (its files gone) or unloadable (its boot
      * throws), as the webhook endpoints do, so none of them can be handed an
      * order.
@@ -940,7 +939,7 @@ class OrderPlacement
     }
 
     /**
-     * Run one selected plugin's targeted handler (2.2.0, mode B): the plugin declares it, or it takes no part.
+     * Run one selected plugin's targeted handler: the plugin declares it, or it takes no part.
      *
      * @param LoadedPlugin $plugin The plugin, from methodPlugin().
      * @param EventInterface $event The event.
@@ -1192,7 +1191,7 @@ class OrderPlacement
 
             // Feature-plugin checkout validation (onOrderPlaceValidate): each
             // `alfa` plugin the customer's view levels admit, in their order,
-            // once, through its own targeted declaration (2.2.0); a
+            // once, through its own targeted declaration; a
             // plugin may veto the placement with customer-facing messages, and
             // one that throws refuses it. Rejections accumulate on one shared
             // event and abort before anything is written.
@@ -1203,13 +1202,13 @@ class OrderPlacement
 
             // A plugin the customer's view levels admit but Joomla does not load for the user placing the order (staff
             // lacking one of the customer's levels) takes its part when this is an operator placement by staff allowed
-            // to place orders for customers: it is booted for the customer with its own configuration (2.2.1). Anywhere
+            // to place orders for customers: it is booted for the customer with its own configuration. Anywhere
             // else it cannot check this placement, nor add its charges to the totals: the placement is refused naming
-            // it, before anything is written and before any plugin is asked: it fails closed (2.2.0).
+            // it, before anything is written and before any plugin is asked: it fails closed.
             try {
                 $validators = $plugins->participantsFor($this->subject, $plugins->admitted($this->user, 'alfa'), $validateEvent);
             } catch (PluginUnavailable $unavailable) {
-                // The plugin by the name Extensions: Plugins shows (UX-25, UX-40).
+                // The plugin by the name Extensions: Plugins shows.
                 $this->fail(
                     'COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR',
                     ['plugin' => $unavailable->plugin === null ? '' : $plugins->name($unavailable->plugin)],
@@ -1219,7 +1218,7 @@ class OrderPlacement
                 return false;
             }
 
-            // Then the plugins that take part, one at a time, in their order, so a plugin that throws is named (2.2.1):
+            // Then the plugins that take part, one at a time, in their order, so a plugin that throws is named:
             // a throw refuses the placement as the event's contract says. A refusal thrown on purpose
             // (OrderPlaceRefusedException) is read in its own words, as a rejection is; for any other throw the shopper
             // is told that the order could not be checked instead of the bare "Order placement failed", and the
@@ -1300,7 +1299,7 @@ class OrderPlacement
     }
 
     /**
-     * Whether the order's total is the one the checkout page last showed (2.2.1). The order is priced as it is placed
+     * Whether the order's total is the one the checkout page last showed. The order is priced as it is placed
      * (the goods at the delivery place the submission names, its methods, its coupons), so anything that changed
      * after the page last showed its total (an address typed in a second tab, a price or a coupon changed meanwhile)
      * can change the total: the order is then refused, never placed at a total the shopper did not see, and the
@@ -1490,7 +1489,7 @@ class OrderPlacement
      *
      * Each hook is dispatched once. After the shipment hook, an order whose
      * carrier recorded no parcel gets one from core with its shipping charge
-     * ({@see self::recordMissingParcel()}, since 2.2.1); 'shipment' is reported
+     * ({@see self::recordMissingParcel()}); 'shipment' is reported
      * when the hook failed or core could not record the parcel.
      *
      * @return string[] The sides that failed ('payment', 'shipment'); empty on success.
@@ -1581,7 +1580,7 @@ class OrderPlacement
 
             // The parcel carries the order's shipping charge: an order whose carrier recorded none (it returned
             // without one, its write failed, or its plugin could not be loaded) would lack the charge the customer
-            // accepted and the gateway was asked for. Core records it once, after the one dispatch (2.2.1).
+            // accepted and the gateway was asked for. Core records it once, after the one dispatch.
             if ($carrier !== '' && $this->order && !$this->recordMissingParcel(carrier: $carrier) && !\in_array('shipment', $failed, true)) {
                 $failed[] = 'shipment';
             }
@@ -1594,7 +1593,7 @@ class OrderPlacement
     }
 
     /**
-     * Record the order's parcel when its carrier recorded none in onOrderAfterPlace (2.2.1).
+     * Record the order's parcel when its carrier recorded none in onOrderAfterPlace.
      *
      * The order row stores no totals: its shipping is the sum of its parcels, and the parcel is the carrier's to
      * write in onOrderAfterPlace, after the commit. A carrier that returns without one, whose write fails, or whose
@@ -1703,7 +1702,7 @@ class OrderPlacement
     }
 
     /**
-     * Tell staff what became of an order's parcel its carrier did not record (2.2.1): core recorded it
+     * Tell staff what became of an order's parcel its carrier did not record: core recorded it
      * (orders.parcel.coremade.<order>, a warning), or core could not and the order lacks its shipping charge
      * (orders.parcel.missing.<order>, critical, naming the charge to record by hand). Both name the carrier: its
      * method, as the order's language names it, and its plugin. A notice that cannot be written is logged; the order

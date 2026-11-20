@@ -93,11 +93,11 @@ final class AlfaLog
 
         // Catalogue & pricing
         'com_alfa.catalog' => 'com_alfa_catalog.php',
-        // The item editor's combinations popups: what the database refused, with the endpoint and the item (2.2.0).
+        // The item editor's combinations popups: what the database refused, with the endpoint and the item.
         'com_alfa.items' => 'com_alfa_items.php',
         'com_alfa.prices' => 'com_alfa_prices.php',
 
-        // The catalogue projections' item locks: a lock not granted, a rebuild owed (2.2.0).
+        // The catalogue projections' item locks: a lock not granted, a rebuild owed.
         'com_alfa.projections' => 'com_alfa_projections.php',
 
         // NOT a duplicate of com_alfa.prices, and deliberately not merged into
@@ -120,7 +120,7 @@ final class AlfaLog
         'com_alfa.inventory' => 'com_alfa_inventory.php',
         'com_alfa.downloads' => 'com_alfa_downloads.php',
 
-        // The work a change owes after its save (2.1.4)
+        // The work a change owes after its save
         'com_alfa.tasks' => 'com_alfa_tasks.php',
 
         // Reset to default and Clear everything: the audit trail that outlives the Alfa tables.
@@ -137,7 +137,7 @@ final class AlfaLog
         'alfa_sync' => 'alfa_sync.php',             // EXISTING
         'plg_alfa_subscriptions' => 'plg_alfa_subscriptions.log.php',
 
-        // Other extensions in the family (an installed search engine registers its own category when it boots, 2.2.0)
+        // Other extensions in the family (an installed search engine registers its own category when it boots)
         'mod_alfa_search' => 'mod_alfa_search.php',
     ];
 

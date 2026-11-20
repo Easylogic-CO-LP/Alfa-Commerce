@@ -30,7 +30,7 @@ $shouldClose  = RequestScalar::int($input, 'close', 1) == 1;
 $shouldReload = RequestScalar::int($input, 'reload', 1) == 1;
 
 // The outcome belongs to the page the opener reloads: this one closes as it
-// loads, so a message shown only here is never read (C-6). The queue is read
+// loads, so a message shown only here is never read. The queue is read
 // and put back in the session, where that next page takes it from; this page
 // still renders its own copy before it closes. A close that reloads nothing
 // keeps nothing, so no stale message turns up on some later page.

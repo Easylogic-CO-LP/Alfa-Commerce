@@ -27,7 +27,7 @@ use Throwable;
 /**
  * One collation for every table of core's, made to hold after an update that could not convert them all.
  *
- * 2.1.1 converts core's tables created in another collation to utf8mb4_unicode_ci
+ * An update converts core's tables created in another collation to utf8mb4_unicode_ci
  * (sql/updates/mysql/2.1.1.sql). A statement there may fail without stopping the update: two
  * values that a unique key reads as one in the new collation (ss and the sharp s), a lost
  * connection, a full disk. The installer then runs {@see self::converge()} once: every table of

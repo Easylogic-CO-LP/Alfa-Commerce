@@ -46,10 +46,10 @@ use Throwable;
  * listen to {@see NotificationPushedEvent} (onAlfaNotificationPushed), which push()
  * dispatches once the row is written and no transaction of the caller's is open.
  *
- * Inside a transaction no row is written (2.1.4): push() and clear() record the write
+ * Inside a transaction no row is written: push() and clear() record the write
  * in the transaction's notice journal (a notice single, {@see Tasks::notice()}), a
  * rollback discards it, and it is written once the outermost transaction has
- * committed, before any other work, even while Alfa's named locks are held (s71);
+ * committed, before any other work, even while Alfa's named locks are held;
  * onAlfaNotificationPushed still waits for their release. Until a notice is written
  * every reader counts it ({@see self::exists()}, {@see self::isOpen()},
  * {@see self::keys()}): its own transaction, and any other request once that
@@ -60,8 +60,8 @@ use Throwable;
  * other write is raised as it is made), and a journalled write is skipped when its row
  * holds a write raised after it ({@see self::applyJournal()}).
  *
- * A title and a message are a language key and its parameters (2.1.4,
- * {@see NotificationText}): the key, the parameters and the text domain are stored as
+ * A title and a message are a language key and its parameters
+ * ({@see NotificationText}): the key, the parameters and the text domain are stored as
  * the notification, translated when shown in each reader's language; `title` and
  * `message` keep a snapshot in the shop's default administrator language, written with
  * them and never rendered again. `notify_group` holds a group key. Literal text is kept
@@ -134,8 +134,8 @@ class NotificationHelper
     private const DEFAULT_HISTORY_DAYS = 7;
 
     /**
-     * The groups core lists its notifications under: language keys, stored as they are and translated when shown
-     * (2.1.4). A third party may name a group key of its own, or literal text.
+     * The groups core lists its notifications under: language keys, stored as they are and translated when shown.
+     * A third party may name a group key of its own, or literal text.
      *
      * @var string
      * @since  2.1.4
@@ -182,7 +182,7 @@ class NotificationHelper
 
     /**
      * The operational alert for a callback refused because its plugin of record is disabled, missing or cannot be
-     * loaded (2.2.0, design 2.15.5): one notice per plugin (dedup key plugin.unavailable.<group.element>),
+     * loaded: one notice per plugin (dedup key plugin.unavailable.<group.element>),
      * critical, counting the refused deliveries with the first and the last time, seen by staff who may view payments
      * (a gateway) or shipments (a carrier), its message naming the recovery: enable or reinstall the plugin, then
      * reconcile what the provider's retries no longer cover.
@@ -192,7 +192,7 @@ class NotificationHelper
      * logged as possibly short). A refusal that arrives after staff dismissed the notice starts a new one: the count
      * from 1 and its own first time (the notice opens again). A plugin that is enabled but whose Access a provider's
      * request (a guest) does not hold, so Joomla does not load it (PluginUnavailable::NOT_LOADED), is named for that
-     * cause and its remedy, the plugin's Access (A-C14A-29).
+     * cause and its remedy, the plugin's Access.
      *
      * @param PluginId $plugin The plugin of record.
      * @param string $reason Why it could not take the callback (a PluginUnavailable reason).
@@ -234,12 +234,11 @@ class NotificationHelper
             $previous = $open ? (NotificationText::arguments(row: $row)['message'] ?? []) : [];
             $now = self::now();
             $count = (int) ($previous[1] ?? 0) + 1;
-            // The first time as stored: a time parameter ({dt}), or the time itself in a notice raised before 2.2.0's UX
-            // round.
+            // The first time as stored: a time parameter ({dt}), or the time itself in an older notice.
             $first = (string) (\is_array($previous[2] ?? null) ? ($previous[2]['dt'] ?? $now) : ($previous[2] ?? $now));
             $carrier = $plugin->group === 'alfa-shipments';
             // The plugin by the name Extensions: Plugins shows, the times in the reader's zone, and why it could not take
-            // the updates (UX-25 to UX-27, UX-30).
+            // the updates.
             $name = AlfaPluginHelper::get()->name($plugin);
 
             self::push(
@@ -286,8 +285,8 @@ class NotificationHelper
      * also joins the journal while notices of its key are still owed, so it is written
      * after them ({@see self::journal()}). First pushes of one key
      * at once land on one row: each later one is a push of the row the first wrote. A
-     * failure to write (the row, or the journal's single) reaches the caller, as it did
-     * before 2.1.1 (each producer decides whether its work stands without the notice); a
+     * failure to write (the row, or the journal's single) reaches the caller
+     * (each producer decides whether its work stands without the notice); a
      * listener's failure never does.
      *
      * @api DURABLE: a failure to write the row reaches the caller, a listener's failure never does; inside a
@@ -476,7 +475,7 @@ class NotificationHelper
                 'messageKey' => (string) ($data['message_key'] ?? ''),
                 'textArgs' => NotificationText::arguments(row: (object) ['text_args' => $data['text_args'] ?? null]),
             ]);
-            // An after phase (2.2.0, mode A): each listener isolated by the helper, its failure reported here too.
+            // An after phase (broadcast): each listener isolated by the helper, its failure reported here too.
             foreach ($plugins->dispatchIsolated($event) as $failure) {
                 $e = $failure->error;
                 self::log(entry: 'NotificationHelper: ' . $failure->listener . ' failed on '
@@ -793,7 +792,7 @@ class NotificationHelper
      * Write notices raised inside transactions that have committed, the notice journal's singles: what the tasks
      * service runs inside its own transaction, which has deleted them first ({@see Tasks::applyJournal()}).
      *
-     * A key's notices are written only together with every older notice of the key still owed (REVIEW-C3 MAJOR-1):
+     * A key's notices are written only together with every older notice of the key still owed:
      * when the tasks table still holds one, of any request, nothing is written and those singles are answered, for the
      * caller to take them over and write again. Otherwise the writes are made in the order raised, across keys, as
      * their listeners then hear them. Each key's `modified` (when its last write was raised) is read once, before any of
@@ -810,7 +809,7 @@ class NotificationHelper
      */
     public static function applyJournal(array $ops): array
     {
-        // A single holding later writes of its key (2.2.0) is its writes one by one, each raised when it was.
+        // A single holding later writes of its key is its writes one by one, each raised when it was.
         $ops = array_merge(...array_map(
             static fn (array $entry): array => array_map(
                 static fn (array $write): array => ['task' => (int) $entry['task'], 'raised' => $write['raised'], 'op' => $write['op']],
@@ -964,7 +963,7 @@ class NotificationHelper
 
     /**
      * The writes a notice single holds, in the order raised: its own, raised when the single was written, then the later
-     * writes of its key in the same transaction, each raised when it was (`then`, 2.2.0; {@see Tasks::notice()}).
+     * writes of its key in the same transaction, each raised when it was (`then`; {@see Tasks::notice()}).
      *
      * @param mixed $payload The stored JSON, or the payload decoded.
      * @param string $raised When the single was written (its creation).
@@ -1508,7 +1507,7 @@ class NotificationHelper
      * The clock as it is now, as an SQL datetime in UTC, read on every call. Factory::getDate() keeps the time of its
      * first call for the whole process, and a task run, a console command or a queue raises, archives, reads and
      * purges notices long after that: a notice that expired during the run would still read as live, and every archive
-     * would expire counted from the first (2.2.1).
+     * would expire counted from the first.
      *
      * @return string SQL datetime, UTC.
      *
@@ -1663,9 +1662,9 @@ class NotificationHelper
      * First pushes of one key at once queue on its row: the first inserts it, each later
      * one takes the row's exclusive lock and writes itself as a push of an existing key
      * (the columns that have a value; a constant push re-alerts it). No shared lock of a
-     * duplicate key is ever upgraded, so they cannot deadlock however many meet (REVIEW-R1
-     * RV-6). The SQL is the same on MariaDB 10.6 and MySQL 8.0: every value a literal, no
-     * VALUES() function (deprecated in MySQL 8.0) and no row alias (MySQL only).
+     * duplicate key is ever upgraded, so they cannot deadlock however many meet. The SQL is
+     * the same on MariaDB 10.6 and MySQL 8.0: every value a literal, no VALUES() function
+     * (deprecated in MySQL 8.0) and no row alias (MySQL only).
      *
      * What it did is read from the affected-rows value, as both servers define it for this
      * statement when the client does not ask for found rows, which Joomla's mysqli and

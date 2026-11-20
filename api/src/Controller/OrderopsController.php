@@ -613,9 +613,8 @@ class OrderopsController extends OrdersController
         $amount = null;
 
         // ONLY an absent (or explicitly null) amount means "everything left".
-        // A zero is a validation error, not a full refund: pre-v1 there is no
-        // REST-only 0 -> null conversion left to preserve, and a monetary zero
-        // must never stand for "no amount was supplied".
+        // A zero is a validation error, not a full refund: a monetary zero must
+        // never stand for "no amount was supplied".
         if (\array_key_exists('amount', $body) && $body['amount'] !== null) {
             $amount = $this->refundAmount($body['amount'], $remainder);
         }
@@ -679,8 +678,8 @@ class OrderopsController extends OrdersController
      * what the compare-and-set exists to keep from happening twice.
      *
      * The verb is a staff entry point: its write, by either door, is held to
-     * the ledger's staff guard (PaymentLedger::staffWriteRefusal(); since
-     * 2.1.0). A gateway payment's provider transaction id is not cleared or
+     * the ledger's staff guard (PaymentLedger::staffWriteRefusal()).
+     * A gateway payment's provider transaction id is not cleared or
      * changed here, and a gateway payment's refund is not moved into a
      * settled status: 422 with the ledger's sentence.
      *
@@ -895,7 +894,7 @@ class OrderopsController extends OrdersController
         }
 
         // Suppresses the customer status email ONLY: the staff the status
-        // tells are still sent theirs (2.2.1; it skipped both before). Stock, entitlements, document issuance, both activity
+        // tells are still sent theirs. Stock, entitlements, document issuance, both activity
         // rows and the plugin event all still fire.
         if (!empty($body['silent'])) {
             $transition->silentCustomer();

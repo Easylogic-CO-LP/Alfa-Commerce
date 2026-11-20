@@ -154,7 +154,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
 							</td>
 							
 							<td class="d-none d-md-table-cell">
-								<?php // The method's image (2.2.2), its thumbnail; its alt the image's own, else the method's name. ?>
+								<?php // The method's image, its thumbnail; its alt the image's own, else the method's name. ?>
 								<?php if (!empty($item->image->thumbnail_url)) : ?>
 									<img src="<?php echo $this->escape($item->image->thumbnail_url); ?>" alt="<?php echo $this->escape(trim((string) ($item->image->alt ?? '')) !== '' ? $item->image->alt : $item->name); ?>" width="48" loading="lazy">
 								<?php endif; ?>

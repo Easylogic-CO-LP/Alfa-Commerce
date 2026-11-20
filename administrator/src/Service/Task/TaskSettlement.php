@@ -67,7 +67,7 @@ final class TaskSettlement
      * @param string $reason Why staff resolved it.
      * @param array<string, list<string>> $units The units by their last outcome (done, failed, unknown).
      * @param list<array<string, mixed>> $history Its history as it now stands: when each unit was recorded, and
-     *                                            which were carried from the task it resends or runs again (2.2.0).
+     *                                            which were carried from the task it resends or runs again.
      *
      * @since  2.1.4
      */

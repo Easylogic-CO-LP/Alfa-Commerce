@@ -88,7 +88,7 @@ final class Actions
             return '';
         }
 
-        // On a phone the actions take a line of their own under a folding row (alfa-fold, 2.2.1 A4).
+        // On a phone the actions take a line of their own under a folding row (alfa-fold).
         $html = '<td class="text-end alfa-fold-line"><div class="btn-group btn-group-sm" role="group">';
 
         foreach ($actions as $action) {

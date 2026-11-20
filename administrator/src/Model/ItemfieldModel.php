@@ -51,7 +51,7 @@ class ItemfieldModel extends AlfaAdminModel
     protected string $alfaEntity = 'itemfield';
 
     /*
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - save() returns before parent::save() when the machine field_name cannot be
      *   derived from any language's name: nothing persisted, so the contract's
      *   onAlfaAdminValidate/BeforeSave/AfterSave bracket rightly does not fire.
@@ -833,7 +833,7 @@ class ItemfieldModel extends AlfaAdminModel
                 }
 
                 // A model error, not a queued message: the back office prints it, and the REST delete answers 409
-                // with the sentence instead of 204 for a field that is still there (2.2.1).
+                // with the sentence instead of 204 for a field that is still there.
                 $this->setError(new DeleteRefusedException(
                     Text::plural('COM_ALFA_ITEMFIELD_DELETE_IN_USE', $binding['items'])
                     . ' ' . Text::sprintf('COM_ALFA_ITEMFIELD_DELETE_IN_USE_VIA', implode(', ', $via))
@@ -855,7 +855,7 @@ class ItemfieldModel extends AlfaAdminModel
                 ->whereIn($db->qn('field_id'), $pks),
         )->loadColumn() ?: []);
 
-        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks: no plugin code
         // runs under them.
         if (!$this->alfaAskBeforeDelete(pks: (array) $pks)) {
             return false;
@@ -865,7 +865,7 @@ class ItemfieldModel extends AlfaAdminModel
         // checked-out guard, content events); children cascade after, all in
         // one transaction so a mid-way failure leaves nothing orphaned. Closed
         // through TransactionState, so what the delete owes after its commit
-        // (its after-events) is heard then, once (2.1.4).
+        // (its after-events) is heard then, once.
         $nested = TransactionState::isOpen(db: $db);
         $db->transactionStart(true);
 

@@ -21,7 +21,7 @@ $shipmentChosen = $snapshot->offers->selectedShipmentId > 0;
 // Nothing offered: with a shipping method chosen, none is allowed with it;
 // with one offered and none chosen yet, only payment methods tied to a
 // shipping method exist and the choice comes first. With none offered
-// because a carrier waits for a fact (2.2.2), the list names the same fact;
+// because a carrier waits for a fact, the list names the same fact;
 // with none offered at all, nothing can pay.
 $emptyKey = match (true) {
     $shipmentChosen                       => 'COM_ALFA_CART_NO_PAYMENT_FOR_SHIPMENT',
@@ -47,7 +47,7 @@ $emptyKey = match (true) {
 
 		$checked = $snapshot->offers->selectedPaymentId === (int) $payment->id ? 'checked' : '';
 		$view = $snapshot->offers->viewFor('payment', (int) $payment->id);
-		// Each method in the order every method keeps (2.2.2): its radio, then in its label the image the shop set (none
+		// Each method in the order every method keeps: its radio, then in its label the image the shop set (none
 		// drawn without one) and its title, then the description the shop wrote, then what its plugin adds.
 		$image = Layout::render('methods.image', ['image' => $snapshot->offers->imageFor('payment', (int) $payment->id), 'title' => (string) $payment->name]);
 		?>

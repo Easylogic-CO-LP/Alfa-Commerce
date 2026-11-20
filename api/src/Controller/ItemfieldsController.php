@@ -55,7 +55,7 @@ class ItemfieldsController extends ApiController
     }
 
     /**
-     * An item field's values, which the API does not write (2.2.1): `values` and the edit form's `deleted_value_ids`.
+     * An item field's values, which the API does not write: `values` and the edit form's `deleted_value_ids`.
      * The field save reads both from the request as its Values tab posts them, and keeps a value row by its id
      * whatever field it belongs to, so a write naming another field's value moved it under this field, with what
      * products built on it, and a deletion reached the unused values of any field.
@@ -120,7 +120,7 @@ class ItemfieldsController extends ApiController
     }
 
     /**
-     * An item field is deleted from the trash only, as the administrator's list of item fields deletes it (2.2.1).
+     * An item field is deleted from the trash only, as the administrator's list of item fields deletes it.
      *
      * @since  2.2.1
      */

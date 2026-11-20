@@ -109,7 +109,7 @@ class ModelField extends ListField
      * @param string $orderDir Order direction ('ASC' or 'DESC')
      *
      * @return array|null List of ['value' => ..., 'text' => ..., 'disable' => false]; null when the
-     *                    model could not be created or its rows could not be loaded (since 2.1.0)
+     *                    model could not be created or its rows could not be loaded
      * @since  1.0.0
      */
     protected function loadItems(string $componentName, string $modelName, string $columnValue, string $columnText, string $orderBy, string $orderDir): ?array

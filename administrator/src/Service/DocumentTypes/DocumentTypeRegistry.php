@@ -423,7 +423,7 @@ final class DocumentTypeRegistry
     {
         $event = new CollectDocumentTypeProvidersEvent('onCollectDocumentTypeProviders', []);
 
-        // Every listener on the shared dispatcher (2.2.0, design 2.15.3: mode A, isolated), the platform group imported
+        // Every listener on the shared dispatcher (broadcast, isolated), the platform group imported
         // first. A failing provider is logged with its name, and the others still answer.
         foreach (self::collect($event) as $listener => $error) {
             Log::add(
@@ -478,8 +478,8 @@ final class DocumentTypeRegistry
      * THE `alfa` GROUP ON PURPOSE: registering document types is shared BACKEND integration,
      * an operator-driven sync into the persistent registry, fired only from the admin
      * Document Types screen, so it belongs to the platform layer (a capability that ships
-     * types provides an `alfa`-group companion, the gateway-admin pattern). Since 2.2.0 the
-     * event is raised on the shared dispatcher (mode A), so any listener may answer.
+     * types provides an `alfa`-group companion, the gateway-admin pattern). The
+     * event is raised on the shared dispatcher (broadcast), so any listener may answer.
      *
      * @return array{registered: string[], errors: array<string, string>}
      *
@@ -538,7 +538,7 @@ final class DocumentTypeRegistry
     }
 
     /**
-     * Ask every listener for its providers (2.2.0, mode A, isolated), the platform group imported first.
+     * Ask every listener for its providers (broadcast, isolated), the platform group imported first.
      *
      * @param CollectDocumentTypeProvidersEvent $event The collection event.
      *

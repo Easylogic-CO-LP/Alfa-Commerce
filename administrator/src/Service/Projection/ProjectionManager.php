@@ -41,12 +41,12 @@ use Throwable;
  * blocks the others, and a sync failure never blocks the admin save (mirrors
  * the original non-fatal price-sync behaviour).
  *
- * Every rebuild and removal runs under the items' locks (2.2.0, IndexRebuildLock): asked with a wait, never skipped,
+ * Every rebuild and removal runs under the items' locks (IndexRebuildLock): asked with a wait, never skipped,
  * never bypassed. An item whose lock is not granted, or whose rebuild fails, is marked owed
  * (`#__alfa_items.projection_dirty_at`) and the catalogue.rebuild job is enqueued, so no change is left unprojected
  * without a record that its rebuild is owed.
  *
- * Each call is one write of the price index as onAlfaPricesChanged announces it (2.2.0): the caller's cause (a product
+ * Each call is one write of the price index as onAlfaPricesChanged announces it: the caller's cause (a product
  * by default; a category's or a manufacturer's change, or the catalogue job's rebuild, say so), its chunks merged into
  * one event after the commit ({@see PriceIndexSyncService::announcing()}).
  *
@@ -110,7 +110,7 @@ class ProjectionManager
         $projections = [];
 
         try {
-            // Mode A, isolated (2.2.0): a contributor that fails is logged and every later one still registers.
+            // Broadcast, isolated: a contributor that fails is logged and every later one still registers.
             $plugins = AlfaPluginHelper::get();
             $plugins->importGroup('alfa-search');
             $plugins->importGroup('alfa');
@@ -144,7 +144,7 @@ class ProjectionManager
      * ended the transaction it called in.
      *
      * @param int $itemId The item primary key.
-     * @param string $cause Why, as onAlfaPricesChanged says it (2.2.0; a PricesChangedEvent::CAUSE_ constant).
+     * @param string $cause Why, as onAlfaPricesChanged says it (a PricesChangedEvent::CAUSE_ constant).
      * @param int|null $causeId What caused it; null for the item itself.
      *
      * @since  2.0.0
@@ -157,7 +157,7 @@ class ProjectionManager
     }
 
     /**
-     * Run one call as one write the price index announces (2.2.0): for a product's cause with no id given, the product
+     * Run one call as one write the price index announces: for a product's cause with no id given, the product
      * when the call names one, else 0.
      *
      * @param string $cause The cause.
@@ -182,7 +182,7 @@ class ProjectionManager
      * enqueued; the others go on.
      *
      * @param int[] $itemIds The item primary keys.
-     * @param string $cause Why, as onAlfaPricesChanged says it (2.2.0; a PricesChangedEvent::CAUSE_ constant).
+     * @param string $cause Why, as onAlfaPricesChanged says it (a PricesChangedEvent::CAUSE_ constant).
      * @param int|null $causeId What caused it; null for the item when one is named, else 0.
      *
      * @since  2.0.0
@@ -203,7 +203,7 @@ class ProjectionManager
     {
         $itemIds = self::ascending(itemIds: $itemIds);
 
-        // No item: the projections are still asked, as before 2.2.0 (the price index aligns its sets of groups).
+        // No item: the projections are still asked (the price index aligns its sets of groups).
         if ($itemIds === []) {
             foreach ($this->projections as $projection) {
                 try {
@@ -222,10 +222,10 @@ class ProjectionManager
     }
 
     /**
-     * Rebuild several items in every projection, item by item, and answer which failed and which were busy (2.2.0, the
+     * Rebuild several items in every projection, item by item, and answer which failed and which were busy (the
      * catalogue.rebuild job's path): the job clears an item's mark only when its rebuild committed.
      *
-     * The job keeps its own transactions (design 4.2 item 9): the items' locks are taken in ascending order, and each
+     * The job keeps its own transactions: the items' locks are taken in ascending order, and each
      * item is rebuilt in a transaction begun after its grant and committed before its release, so it reads the item as
      * committed when the lock was granted. The asks wait no longer than the deadline the job's chunk has (the tick's
      * budget, never past its lease); an item whose lock was not granted by then is answered as busy and keeps its
@@ -423,7 +423,7 @@ class ProjectionManager
      * once with the whole set instead of looping {@see self::deleteForItem()},
      * so each projection can collapse the removal into a single statement.
      *
-     * A removal writes the items' rows too, so it holds their locks (2.2.0): a chunk at a time, in ascending id order,
+     * A removal writes the items' rows too, so it holds their locks: a chunk at a time, in ascending id order,
      * with the wait. An item whose lock is not granted, or whose removal a projection failed, is marked and enqueued:
      * the catalogue job brings its rows in line with what it is then. The marks of the items removed are cleared by
      * compare-and-set on the value read after the grant, as a rebuild clears them.
@@ -433,7 +433,7 @@ class ProjectionManager
      * implementer written against the older single-item contract keeps working.
      *
      * @param int[] $itemIds The item primary keys.
-     * @param string $cause Why, as onAlfaPricesChanged says it (2.2.0; a PricesChangedEvent::CAUSE_ constant).
+     * @param string $cause Why, as onAlfaPricesChanged says it (a PricesChangedEvent::CAUSE_ constant).
      * @param int|null $causeId What caused it; null for the item when one is named, else 0.
      *
      * @since  2.0.0
@@ -564,7 +564,7 @@ class ProjectionManager
      * {@see self::deleteForItems()} is the primitive.
      *
      * @param int $itemId The item primary key.
-     * @param string $cause Why, as onAlfaPricesChanged says it (2.2.0; a PricesChangedEvent::CAUSE_ constant).
+     * @param string $cause Why, as onAlfaPricesChanged says it (a PricesChangedEvent::CAUSE_ constant).
      * @param int|null $causeId What caused it; null for the item itself.
      *
      * @since  2.0.0
@@ -645,7 +645,7 @@ class ProjectionManager
         );
     }
 
-    //  THE CATALOGUE JOB'S DIRTY SCOPE (2.2.0)
+    //  THE CATALOGUE JOB'S DIRTY SCOPE
     //
     //  #__alfa_items.projection_dirty_at marks an item whose projections are owed a rebuild (NULL = current). An item
     //  save writes it before its row and clears it with its rebuild; a lock not granted or a rebuild that failed writes
@@ -671,7 +671,7 @@ class ProjectionManager
     }
 
     /**
-     * Before an item change committed outside the item save (2.2.0, the lock rule of the save): the item's lock asked
+     * Before an item change committed outside the item save (the lock rule of the save): the item's lock asked
      * with its wait, then the item marked by the statement the save uses, so the change is never committed unmarked.
      * Answer to give rebuildChanged() once the change is made, in a finally.
      *
@@ -770,7 +770,7 @@ class ProjectionManager
 
     /**
      * Mark the items a condition names owed a rebuild, in ranges of 1,000 ids as markAllForRebuild() does: one
-     * statement per range, so a large catalogue is never scanned or locked whole by one statement (2.2.2).
+     * statement per range, so a large catalogue is never scanned or locked whole by one statement.
      *
      * @param string $condition An SQL condition on #__alfa_items, from core's own code only; '' for every item.
      *

@@ -20,7 +20,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *
  * To refuse a movement on purpose, throw InventoryRefusedException with the
  * sentence staff are to read: a movement owed after a status change or a
- * document is then refused, not tried again, and staff decide (2.2.1). Any
+ * document is then refused, not tried again, and staff decide. Any
  * other exception is a failure, tried again with the task engine's waits.
  *
  * @since  2.0.0

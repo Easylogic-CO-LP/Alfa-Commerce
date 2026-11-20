@@ -20,7 +20,7 @@ use Tobscure\JsonApi\Exception\InvalidParameterException;
  * A request value that is not the single value its reader expects: a list (name[]=...) where a number, a word or a
  * text is read.
  *
- * Answered 400 with a neutral sentence (2.2.1): the storefront's error page carries no exception text of
+ * Answered 400 with a neutral sentence: the storefront's error page carries no exception text of
  * the code that would have received the value, so no server path, and the REST API names the parameter, as Joomla's
  * API answers an invalid parameter.
  *

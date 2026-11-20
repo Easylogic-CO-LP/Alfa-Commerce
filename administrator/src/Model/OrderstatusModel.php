@@ -58,7 +58,7 @@ class OrderstatusModel extends AlfaAdminModel
     protected string $alfaEntity = 'orderstatus';
 
     /*
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - save(): the role-invariant guard (canSaveStatus) returns before parent::save(),
      *   so the onAlfaAdminValidate/BeforeSave/AfterSave bracket fires only for saves
      *   that pass the guard: a vetoed save never touches the DB, nothing to observe.
@@ -427,7 +427,7 @@ class OrderstatusModel extends AlfaAdminModel
 
         // Auto-issuance rule rows (subform) -> one JSON column. Normalised
         // whenever the save carries the rules (a REST create or update with or
-        // without the delivery-note setting, 2.2.1) and on every full form save
+        // without the delivery-note setting) and on every full form save
         // (the delivery-note radio always posts), so removing the last row
         // clears the stored rules too.
         if (\array_key_exists('issues_doc_rules', $data) || \array_key_exists('issues_delivery_note', $data)) {
@@ -567,7 +567,7 @@ class OrderstatusModel extends AlfaAdminModel
         if (empty($pks)) {
             // Every status asked for is the last holder of a role. A model error, not a queued message: the
             // back office prints it, and the REST delete answers 409 with the sentence instead of 204 for a
-            // row that is still there (2.2.1).
+            // row that is still there.
             if ($refusals !== []) {
                 $this->setError(new DeleteRefusedException(implode(' ', $refusals)));
             }
@@ -594,7 +594,7 @@ class OrderstatusModel extends AlfaAdminModel
 
             if ($used > 0) {
                 // A model error, not a queued message: the REST delete answers it with 409 and the sentence
-                // instead of 204 for a status that is still there (2.2.1).
+                // instead of 204 for a status that is still there.
                 $this->setError(new DeleteRefusedException(Text::sprintf('COM_ALFA_ORDERSTATUS_DELETE_IN_USE', (int) $pk, $used)));
 
                 return false;

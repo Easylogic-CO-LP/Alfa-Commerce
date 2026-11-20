@@ -47,11 +47,11 @@ if ($itemName === '') {
     $itemName = trim((string) ($item->sku ?? '')) ?: Text::sprintf('COM_ALFA_ITEM_UNNAMED', (int) $item->id);
 }
 ?>
-<?php // The card's global position through the view's call (2.2.0): only on a result set with a handle, or on a
+<?php // The card's global position through the view's call: only on a result set with a handle, or on a
       // reload that carried it; an override keeps the call. ?>
 <article class="list-item" data-item-id="<?php echo (int) $item->id; ?>"<?php echo $this->resultAttributes(position: isset($this->itemPosition) ? (int) $this->itemPosition : null); ?>>
 
-    <?php // The card's images, a part of its own (2.2.1): the first image (default_card_images.php) or a variant of it,
+    <?php // The card's images, a part of its own: the first image (default_card_images.php) or a variant of it,
           // the slider among them, chosen per item, category, menu item or in the Options. An override of this card
           // that keeps its own image markup keeps showing its first image. ?>
     <?php echo $this->loadTemplate($this->cardImagesTplFor($item)); ?>
@@ -65,7 +65,7 @@ if ($itemName === '') {
         // A buy form (same as the product page) when the shop sells online. reloadUrl
         // is empty when the item has no interactive fields: variant.js just skips the
         // reload; the add-to-cart still works (JS reads item_id + quantity). In
-        // catalogue-only mode (2.2.2, $item->sellsOnline false) a plain block, no
+        // catalogue-only mode ($item->sellsOnline false) a plain block, no
         // form: the fields arrive as read-only lists and there is no add to cart.
         $sellsOnline = (bool) ($item->sellsOnline ?? true);
     ?>

@@ -18,7 +18,7 @@ defined('_JEXEC') or die;
 
 /**
  * The delivery address a storefront checkout holds, read the same way by the checkout page, the cart module and the
- * placement (2.2.1).
+ * placement.
  *
  * What the shopper typed in this checkout, kept in the user state across its pages and redirects; with nothing typed,
  * a signed-in customer's saved address the checkout fills in by itself (their only saved address, unless they chose

@@ -185,7 +185,7 @@ final class TourSeeder
         $files = glob(self::TOURS_PATH . '/*.json') ?: [];
         $group = PanelDispatcher::PLATFORM_GROUP;
 
-        // The group's enabled plugins as Joomla lists them, through the plugin helper (2.2.0); nothing is booted.
+        // The group's enabled plugins as Joomla lists them, through the plugin helper; nothing is booted.
         try {
             $plugins = AlfaPluginHelper::get()->available($group);
         } catch (Throwable) {

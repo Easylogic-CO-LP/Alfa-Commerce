@@ -411,8 +411,7 @@ final class AlfaItemsHelper
      * the card itself, with its add-to-cart token, is still rendered on every
      * request. One visitor's recently viewed items and a random order are never
      * cached. A page that shows a visitor's own recently viewed items is never
-     * stored by Joomla's page cache either: the next visitor would be shown them
-     * (2.2.1).
+     * stored by Joomla's page cache either: the next visitor would be shown them.
      *
      * The entry also carries each item's stock verdict and figures, so the key holds
      * the shop-wide stock settings the listing is judged by and the inventory version
@@ -454,7 +453,7 @@ final class AlfaItemsHelper
         $cache->methodparams = [$params, $contextCategoryId, $scopeCategoryIds, $source, $limit, $ordering];
         // One entry per module, query, pricing context, page (an item's link follows
         // the page's menu item), stock settings, inventory version and online sales (a
-        // card drawn to sell is not one drawn for the catalogue only, 2.2.2); the cache
+        // card drawn to sell is not one drawn for the catalogue only); the cache
         // keeps languages apart itself.
         $cache->modeparams = md5(serialize([
             ShopMode::sellsOnline(),
@@ -594,7 +593,7 @@ final class AlfaItemsHelper
         /** @var CallbackController $cache */
         $cache = Factory::getCache('mod_alfa_items', 'callback');
         $cache->setCaching(true);
-        // Joomla counts a cache lifetime in minutes, as the option is (2.2.1).
+        // Joomla counts a cache lifetime in minutes, as the option is.
         $cache->setLifeTime($minutes);
 
         $ids = $cache->get(
@@ -1201,7 +1200,7 @@ final class AlfaItemsHelper
     }
 
     /**
-     * One value of the request, through Joomla's filter, or null when the request sends a list in its place (2.2.1): a
+     * One value of the request, through Joomla's filter, or null when the request sends a list in its place: a
      * list handed on to a typed parameter fails with an error page that names a file of the site, so it is refused
      * before any use.
      *
@@ -1223,7 +1222,7 @@ final class AlfaItemsHelper
 
     /**
      * Answer a request that sent a list where one value is expected: 400, with this module's sentence and no file of the
-     * site named (2.2.1).
+     * site named.
      *
      * @since  2.2.1
      */

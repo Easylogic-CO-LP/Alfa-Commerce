@@ -198,8 +198,7 @@ class HtmlView extends BaseHtmlView
 
             $data['items'] = $model->getItems();
 
-            // A list that could not be read is said to staff in plain words; the database's message is in the log
-            // (2.2.1).
+            // A list that could not be read is said to staff in plain words; the database's message is in the log.
             if ($model->listFailed()) {
                 Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_PANEL_LIST_FAILED'), 'error');
             }

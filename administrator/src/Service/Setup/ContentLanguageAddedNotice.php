@@ -373,7 +373,7 @@ final class ContentLanguageAddedNotice
 
     /**
      * "2,503 products": a count of one table's records in words, the number grouped as the
-     * reader's language groups it, as a notice's parameter (since 2.1.4).
+     * reader's language groups it, as a notice's parameter.
      *
      * @param string $table The base table (e.g. "#__alfa_items").
      * @param int $count The records.

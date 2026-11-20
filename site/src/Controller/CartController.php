@@ -99,7 +99,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
     }
 
     /**
-     * Run a cart task, unless the shop shows its catalogue only (2.2.2): then every task is refused before anything is
+     * Run a cart task, unless the shop shows its catalogue only: then every task is refused before anything is
      * read or written, HTTP 403 with the catalogue-only sentence, as JSON to a script and as the error page to a
      * browser's navigation. recalculate() changes no cart and answers through the item model with no price, so it runs.
      * Placement is refused by OrderPlacement as well, the authority for a storefront order.
@@ -186,7 +186,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
             ],
         );
 
-        // The stock line at the quantity the price is for: the model never prices under the product's minimum (2.2.2).
+        // The stock line at the quantity the price is for: the model never prices under the product's minimum.
         $stockAvailabilityLayout = Layout::render(
             'item.stock_info',
             [
@@ -747,7 +747,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
                     }
 
                     // The session's order, marked as placed here: the process and completed pages show this
-                    // session the order it placed, never one a request merely named (2.2.1, SessionOrder).
+                    // session the order it placed, never one a request merely named (SessionOrder).
                     SessionOrder::placed($this->app, $orderId);
 
                     // Clear cart-related session data.

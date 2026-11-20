@@ -70,7 +70,7 @@ final class PanelResolver
     }
 
     /**
-     * Boot the owning plugin through the plugin helper (2.2.0, mode B: Joomla's list asked, so a disabled or missing
+     * Boot the owning plugin through the plugin helper (targeted: Joomla's list asked, so a disabled or missing
      * owner is never booted), load its language from where an installed plugin keeps it (Joomla auto-loads the
      * component's language on this page but never a plugin's), and return the helper's handle on it.
      *
@@ -95,7 +95,7 @@ final class PanelResolver
 
     /**
      * Is this an installed, enabled plugin in an alfa* group? Asked of the plugin helper, the one availability
-     * authority (2.2.0: PluginHelper::isEnabled(), the list a plugin's provider reads its configuration from), so an
+     * authority (PluginHelper::isEnabled(), the list a plugin's provider reads its configuration from), so an
      * identity can never name a plugin that is not live for this request.
      *
      * @param string $group Plugin group.

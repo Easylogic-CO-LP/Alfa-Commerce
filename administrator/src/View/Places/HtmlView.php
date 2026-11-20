@@ -90,7 +90,7 @@ class HtmlView extends BaseHtmlView
         if ($canCreate) {
             $toolbar->addNew('place.add');
 
-            // The places Alfa Commerce ships inside Greece and Spain, for the selected countries (2.2.1).
+            // The places Alfa Commerce ships inside Greece and Spain, for the selected countries.
             $toolbar->standardButton('add-subdivisions', 'COM_ALFA_PLACES_ADD_SUBDIVISIONS', 'places.addSubdivisions')
                 ->icon('icon-tree-2')
                 ->listCheck(true);

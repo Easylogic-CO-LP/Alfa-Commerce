@@ -6,7 +6,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * The products list in a modal, to pick one product (2.2.2): the field Modal_Item opens it (the product form's Related
+ * The products list in a modal, to pick one product: the field Modal_Item opens it (the product form's Related
  * tab). The list's own search, filters and ordering, kept apart from the products screen's (modal=1). A product's name
  * picks it through Joomla's modal-content-select script, as Joomla's own article picker does. As on the products screen,
  * published and unpublished products are listed, and archived or trashed ones through the status filter: a product may

@@ -28,7 +28,7 @@ use LogicException;
  *
  * Raised on the shared dispatcher once the `alfa` PLATFORM group (the layer that owns SHARED
  * backend surfaces) is imported, so every listener already loaded hears it, a plugin of another
- * group included (2.2.0). Capability plugins (alfa-payments, alfa-shipments, ...) own their own
+ * group included. Capability plugins (alfa-payments, alfa-shipments, ...) own their own
  * domain screens and layouts and are not imported for these: one that wants to reach into a
  * screen it does not own ships a second plugin in the `alfa` group. Entity names are the
  * component's own (`item` for a product).
@@ -310,7 +310,7 @@ final class AlfaAdminContext
     }
 
     /**
-     * Which plugin wrote each row value key (2.2.0): a key belongs to the first plugin that writes it.
+     * Which plugin wrote each row value key: a key belongs to the first plugin that writes it.
      *
      * @var array<string, string>
      * @since  2.2.0
@@ -318,7 +318,7 @@ final class AlfaAdminContext
     private array $rowDataOwners = [];
 
     /**
-     * Contribute one value key for the page's rows (2.2.0, PHASE_LIST_ROW_DATA): `$values` holds the value per row id
+     * Contribute one value key for the page's rows (PHASE_LIST_ROW_DATA): `$values` holds the value per row id
      * and lands as [id => [key => value]], where the plugin's columns read it. A key belongs to the first plugin that
      * writes it; another plugin writing the same key is refused with a log line. The only way a value enters.
      *
@@ -348,7 +348,7 @@ final class AlfaAdminContext
     }
 
     /**
-     * The page's row values: [id => [key => value]] (2.2.0).
+     * The page's row values: [id => [key => value]].
      *
      * @return array<int, array<string, mixed>>
      *
@@ -360,7 +360,7 @@ final class AlfaAdminContext
     }
 
     /**
-     * One row's values, keyed by value key; null when no plugin wrote any for it (2.2.0).
+     * One row's values, keyed by value key; null when no plugin wrote any for it.
      *
      * @param int $id The row id.
      *
@@ -374,7 +374,7 @@ final class AlfaAdminContext
     }
 
     /**
-     * The markup appended for the slot (2.2.0).
+     * The markup appended for the slot.
      *
      * @since  2.2.0
      */
@@ -570,9 +570,9 @@ final class AlfaAdminContext
     }
 
     /**
-     * Append markup to the slot being rendered: the only way markup enters (2.2.0).
+     * Append markup to the slot being rendered: the only way markup enters.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $html The markup.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.

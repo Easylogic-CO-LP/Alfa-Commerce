@@ -21,7 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\Database\DatabaseDriver;
 
 /**
- * Delete the finished tasks the retention rules let go (2.2.0), a batch by id per chunk, through TaskRetention.
+ * Delete the finished tasks the retention rules let go, a batch by id per chunk, through TaskRetention.
  *
  * Light, the lowest priority. A merge never asks a rerun: deleting twice deletes nothing more. Owed by any tick when
  * none finished in the last hour; when none finished for a day, it goes ahead of the other maintenance (owe()).

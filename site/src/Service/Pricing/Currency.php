@@ -271,11 +271,10 @@ class Currency
      * has already been taken), and it deliberately carries no filter, because
      * refusing to resolve it would break an issued order.
      *
-     * Writing all three keys from any of them made the filtered answer depend on
-     * CALL ORDER: an unfiltered `loadById()` populated the `code_` key, and the
-     * next `loadByCode('XXX')` returned an unpublished currency its own WHERE
-     * clause would have refused. Measured on the demo before this change, the
-     * same call, same request: REFUSED on its own, RESOLVED after a loadById().
+     * Writing all three keys from any of them would make the filtered answer
+     * depend on CALL ORDER: an unfiltered `loadById()` would populate the `code_`
+     * key, and the next `loadByCode('XXX')` would return an unpublished currency
+     * its own WHERE clause refuses.
      *
      * So the id key is always written, and the two published keys only for a
      * currency that satisfies what they promise. An unpublished currency stays

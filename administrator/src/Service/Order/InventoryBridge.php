@@ -635,10 +635,9 @@ class InventoryBridge
                 // document's movement" (the intent above) and "do not deduct the
                 // same unit twice", which are separate rules and both hold.
                 //
-                // Measured while building item 2: with the edit intent in place
-                // but this target left at the full line quantity, lowering a
-                // delivery-noted line from 2 to 1 made the order DEDUCT a second
-                // unit: the same defect as before with its sign reversed.
+                // With the edit intent in place but this target left at the full
+                // line quantity, lowering a delivery-noted line from 2 to 1 would
+                // make the order DEDUCT a second unit.
                 // CLAMPED AT ZERO, and the clamp is load-bearing. The net is
                 // COALESCE(-SUM(qty_change)) over DEDUCT and RESTORE, so a
                 // document that put units BACK (a credit note carries
@@ -759,12 +758,11 @@ class InventoryBridge
 
                 // A RESERVATION COVERS ONLY WHAT IS NOT ALREADY PHYSICALLY OUT.
                 //
-                // Measured before this patch: a 2-unit line whose delivery note had
-                // already deducted 2 moved to a reserving status and gained a
-                // 2-unit hold on top: 4 units of shelf committed to a 2-unit line,
-                // the availability axis wrong by exactly what the document moved.
-                // The deduct branch above learned this in item 2; this branch is
-                // the same rule on the other axis, against the same target.
+                // Otherwise a 2-unit line whose delivery note had already deducted
+                // 2, moved to a reserving status, would gain a 2-unit hold on top:
+                // 4 units of shelf committed to a 2-unit line, the availability
+                // axis wrong by exactly what the document moved. The deduct branch
+                // above holds the same rule on the other axis, against the same target.
                 //
                 // The delta stays SIGNED: negative is how an existing hold that now
                 // exceeds the target is released, and clamping it would strand it.

@@ -65,7 +65,7 @@ use Joomla\Registry\Registry;
 abstract class ItemFieldsPlugin extends Plugin implements TargetedHandlersInterface
 {
     /**
-     * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
+     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the
      * shared dispatcher, never in getSubscribedEvents().
      *
      * @since  2.2.0
@@ -85,14 +85,14 @@ abstract class ItemFieldsPlugin extends Plugin implements TargetedHandlersInterf
 
     /**
      * The events this plugin group subscribes to on the shared dispatcher: only the list page's broadcast
-     * onItemsListPrepare (2.2.0). The surface hooks are addressed to the field's own plugin (TARGETED_EVENTS), so a
+     * onItemsListPrepare. The surface hooks are addressed to the field's own plugin (TARGETED_EVENTS), so a
      * broadcast of a shared name such as onItemView never reaches a field plugin.
      *
      * @since  2.0.0
      */
     public static function getSubscribedEvents(): array
     {
-        // 2.2.0: onItemsListPrepare is the group's one broadcast; every other field hook is addressed to the field's
+        // onItemsListPrepare is the group's one broadcast; every other field hook is addressed to the field's
         // plugin alone (TARGETED_EVENTS).
         return [
             'onItemsListPrepare' => 'onItemsListPrepare',
@@ -100,7 +100,7 @@ abstract class ItemFieldsPlugin extends Plugin implements TargetedHandlersInterf
     }
 
     /**
-     * Alfa's targeted-handler declaration (2.2.0, design 2.15.2): each event of TARGETED_EVENTS this plugin
+     * Alfa's targeted-handler declaration: each event of TARGETED_EVENTS this plugin
      * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
      * shared dispatcher.
      *

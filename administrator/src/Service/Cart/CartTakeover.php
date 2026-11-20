@@ -174,11 +174,11 @@ final class CartTakeover
             // the saved line against tomorrow's catalogue: the exact
             // reconstruction the custom-price contract forbids.
             //
-            // So the control ships drawn-but-unreachable. Pre-v1 has no users
-            // to migrate and no back-compat debt, and the custom-price contract already imposes a
+            // So the control ships drawn-but-unreachable. The custom-price
+            // contract already imposes a
             // staged exposure of its own ("the cart-source and cart-permission
             // work must land before this capability is exposed"), so holding it
-            // one step longer is that ruling's own habit rather than a new
+            // one step longer follows that contract rather than a new
             // policy. Server-side authority is unaffected: every endpoint asks
             // mayPriceCustom() on its own account, whatever this says.
             'canPriceCustom' => false,
@@ -268,7 +268,7 @@ final class CartTakeover
      * The row is inserted directly rather than through
      * {@see \Joomla\Component\Actionlogs\Administrator\Model\ActionlogModel::addLog()},
      * which swallows a failed insert and so cannot tell a caller that the record
-     * the owner requires does not exist. The columns, the JSON shape and the IP
+     * required here does not exist. The columns, the JSON shape and the IP
      * rule are core's own, so the Actions Log screen renders these rows exactly
      * like any other.
      *
@@ -413,8 +413,8 @@ final class CartTakeover
 
     /**
      * The record, or no act. Used where the record can still be written BEFORE
-     * the thing it describes: taking over a shopper's cart, which the owner
-     * requires to leave a trail.
+     * the thing it describes: taking over a shopper's cart, which must
+     * leave a trail.
      *
      * @param CartSource $source The cart's source.
      * @param int $cartId The cart.

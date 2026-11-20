@@ -43,10 +43,10 @@ class ShipmentModel extends AlfaAdminModel
     protected string $alfaEntity = 'shipment';
 
     /*
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - save() writes the row, the per-language translations, the five scope pivots
      *   and the taxes in one transaction, and onAlfaAdminAfterSave is announced at its
-     *   commit, so it reads the method as saved (2.2.1; before, the base row only).
+     *   commit, so it reads the method as saved.
      * - delete() removes the scope pivots and translations AFTER parent::delete(),
      *   so onAlfaAdminAfterDelete fires before that cleanup runs.
      */
@@ -103,7 +103,7 @@ class ShipmentModel extends AlfaAdminModel
             return false;
         }
 
-        // An order uses this method: its plugin is fixed (2.2.0).
+        // An order uses this method: its plugin is fixed.
         $this->lockMethodTypeField(form: $form, id: $id);
 
         $item = ($this->item === null ? $this->getItem() : $this->item);
@@ -175,7 +175,7 @@ class ShipmentModel extends AlfaAdminModel
                 );
             }
 
-            // The method's image (2.2.2): one media row of origin 'shipment', as a manufacturer's.
+            // The method's image: one media row of origin 'shipment', as a manufacturer's.
             $item->medias = MediaHelper::getMediaData(origin: 'shipment', itemIDs: (int) ($item->id ?? 0));
 
             $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_categories', 'shipment_id', 'category_id');
@@ -227,18 +227,18 @@ class ShipmentModel extends AlfaAdminModel
         $rawData = $input->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
-        // A new method that leaves a colour out takes the one its form offers (2.2.1): the edit form always posts
+        // A new method that leaves a colour out takes the one its form offers: the edit form always posts
         // both, a REST create need not, and neither column has a default of its own.
         $data = $this->withFormDefaults(data: $data, fields: ['color', 'bg_color']);
 
-        // The plugin of an order's method cannot change (2.2.0, design 2.15.5).
+        // The plugin of an order's method cannot change.
         if (!$this->methodTypeChangeAllowed(data: $data)) {
             return false;
         }
 
         // The method plugin's settings are written from their group. A REST POST or PATCH that does not send the
         // group reads nothing: a shipping method being created starts with none, and an existing one keeps the
-        // settings it has; empty settings are never written over stored ones over REST (since 2.1.0). On the
+        // settings it has; empty settings are never written over stored ones over REST. On the
         // method form the group is absent only when every field of it posted nothing (all cleared): that is
         // saved as no settings.
         if (\array_key_exists('shipmentsparams', $data)) {
@@ -264,7 +264,7 @@ class ShipmentModel extends AlfaAdminModel
             return false;
         }
 
-        // The method's image (2.2.2), as a manufacturer's: the uploads fetched apart from the form's data, and a
+        // The method's image, as a manufacturer's: the uploads fetched apart from the form's data, and a
         // thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()),
         // refused before anything is written, from the form and the API alike.
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
@@ -276,7 +276,7 @@ class ShipmentModel extends AlfaAdminModel
             return false;
         }
 
-        // Alfa's before-save is asked before the transaction (2.1.4, design 0.2). Joomla's onContentBeforeSave runs
+        // Alfa's before-save is asked before the transaction. Joomla's onContentBeforeSave runs
         // inside it (parent::save()), so a write its listener makes is rolled back with a failed save;
         // onContentAfterSave and onAlfaAdminAfterSave wait for its commit.
         $asked = $this->alfaAskSave(data: $data);
@@ -294,7 +294,7 @@ class ShipmentModel extends AlfaAdminModel
         // implicitly, and inside it that would commit the half-rewritten scope.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_shipments', primaryColumnName: 'id_shipment', data: $data);
 
-        // ONE TRANSACTION for the method's row as well (2.2.1): onAlfaAdminAfterSave and onContentAfterSave
+        // ONE TRANSACTION for the method's row as well: onAlfaAdminAfterSave and onContentAfterSave
         // wait for its commit, so a listener reads the shipping method as saved, translations and scope included, and a
         // failure anywhere leaves nothing of the save.
         $db = $this->alfaDriver();
@@ -405,7 +405,7 @@ class ShipmentModel extends AlfaAdminModel
 
             if ($orders > 0 || $shipments > 0) {
                 // A model error, not a queued message: the back office prints it, and the REST delete answers
-                // 409 with the sentence instead of 204 for a method that is still there (2.2.1).
+                // 409 with the sentence instead of 204 for a method that is still there.
                 $this->setError(new DeleteRefusedException(Text::sprintf('COM_ALFA_SHIPMENT_DELETE_HAS_ORDERS', $pk, $orders, $shipments)));
 
                 return false;

@@ -78,7 +78,7 @@ final class CartOffersView
 
     /**
      * The sentence a list shows when nothing is left to choose and a carrier waits for a fact the checkout has not given
-     * yet (2.2.2): the language key naming what is needed, '' when nothing waits.
+     * yet: the language key naming what is needed, '' when nothing waits.
      *
      * @since  2.2.2
      */
@@ -114,7 +114,7 @@ final class CartOffersView
     }
 
     /**
-     * The image the shop set for an offered method (2.2.2), or null: its first media row, as a manufacturer's image
+     * The image the shop set for an offered method, or null: its first media row, as a manufacturer's image
      * is read. The images of every offered method of a kind are read together, once, the first time one is asked for,
      * so a page that never draws the selectors reads none.
      *

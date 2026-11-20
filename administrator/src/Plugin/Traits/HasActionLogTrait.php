@@ -19,7 +19,7 @@ use Joomla\CMS\User\User;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * A row in Joomla's User Actions Log, in the plugin's own words (2.2.1).
+ * A row in Joomla's User Actions Log, in the plugin's own words.
  *
  * Shared by the payments and shipments families: a refund started, a booking sent, a setting a gateway changed with
  * its provider are acts an owner audits in one place, the User Actions Log, beside Joomla's own. A trait rather than

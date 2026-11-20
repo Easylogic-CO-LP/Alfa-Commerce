@@ -57,7 +57,7 @@ class ItemTable extends Table
     private const STATE_COLUMN = 'state';
 
     /**
-     * The mark of a rebuild owed (2.2.0). Its own statements write it (the item
+     * The mark of a rebuild owed. Its own statements write it (the item
      * save before its row, a rebuild's compare-and-set, a lock or rebuild that
      * failed), so an update never carries it: the value the row write loaded
      * would erase a mark written meanwhile. An insert stores the mark the new
@@ -110,7 +110,7 @@ class ItemTable extends Table
      * The state of an existing item is held out of the row write the same way and
      * written right after it by writeCurrentState(), which never moves the item
      * into or out of the archive. So is the mark of an existing item's rebuild
-     * owed (2.2.0): only its own statements write it.
+     * owed: only its own statements write it.
      *
      * @param bool $updateNulls True to update fields even if they are null.
      *
@@ -150,7 +150,7 @@ class ItemTable extends Table
 
         $hold();
 
-        // Alfa's own code listener on Joomla's table event, through the plugin helper (2.2.0): last of all listeners.
+        // Alfa's own code listener on Joomla's table event, through the plugin helper: last of all listeners.
         $plugins = AlfaPluginHelper::get();
         $plugins->listen(eventName: 'onTableBeforeStore', listener: $holdAfterListeners, priority: PHP_INT_MIN);
 

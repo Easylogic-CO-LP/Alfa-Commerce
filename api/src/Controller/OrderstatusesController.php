@@ -72,7 +72,7 @@ class OrderstatusesController extends ApiController
     }
 
     /**
-     * An order status is deleted from the trash only, as the administrator's list of order statuses deletes it (2.2.1).
+     * An order status is deleted from the trash only, as the administrator's list of order statuses deletes it.
      *
      * @since  2.2.1
      */

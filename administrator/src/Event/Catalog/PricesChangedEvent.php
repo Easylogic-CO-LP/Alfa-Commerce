@@ -14,7 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Catalog;
 use Joomla\CMS\Event\AbstractImmutableEvent;
 
 /**
- * The stored price index changed (2.2.0): `onAlfaPricesChanged`, raised by the index writer
+ * The stored price index changed: `onAlfaPricesChanged`, raised by the index writer
  * ({@see \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService}) once its rows are committed, so a listener
  * never hears of rows a rollback took back.
  *
@@ -28,7 +28,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * save that also archives the product (its rows changed, then removed), a delete of products some of which were sold
  * (those archived, the others removed).
  *
- * A STORED PERIOD THAT BEGINS (2.2.2, cause window): nothing is written when a period stored ahead of time becomes the
+ * A STORED PERIOD THAT BEGINS (cause window): nothing is written when a period stored ahead of time becomes the
  * one read, so the task runner announces it at its first turn at least a minute after the moment
  * (PriceIndexSyncService::announceOpenedWindows(); the minute is longer than a chunk of the writer, which decides its
  * live period at its start and commits after): one PriceChange per slot whose final price moved, the period that
@@ -49,7 +49,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * announced: its rows are removed through the writer before the product row goes.
  *
  * Detection costs one read of a chunk's rows before they are rewritten, and runs only while something listens: a shop
- * with no listener pays nothing. A broadcast in an after phase (mode A, isolated): every enabled plugin that lists it,
+ * with no listener pays nothing. A broadcast in an after phase, isolated: every enabled plugin that lists it,
  * a system plugin included, hears it once; a listener's failure is logged and the next one runs. A SIGNAL, not a job:
  * no retry, so a listener does its work quickly or hands it to its own queue. A listener's own price write raises its
  * own event, delivered after the one it is hearing ends, so every listener hears the events in the order their writes

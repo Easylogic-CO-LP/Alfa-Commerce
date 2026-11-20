@@ -101,7 +101,7 @@ class JsonApiView extends BaseApiView
     protected function prepareItem($item)
     {
         // A record that does not exist reaches here as the model's false: it is handed back untouched, so Joomla's
-        // own check answers 404 "Item does not exist" (2.2.1).
+        // own check answers 404 "Item does not exist".
         if (!\is_object($item)) {
             return $item;
         }

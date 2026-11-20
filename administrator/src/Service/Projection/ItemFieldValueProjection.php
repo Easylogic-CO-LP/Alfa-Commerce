@@ -117,7 +117,7 @@ class ItemFieldValueProjection implements ProjectionInterface
     }
 
     /**
-     * Rebuild the rows of several items and let a failure reach the caller (2.2.0): the catalogue.rebuild job clears
+     * Rebuild the rows of several items and let a failure reach the caller: the catalogue.rebuild job clears
      * an item's mark only when its rebuild committed. Each chunk is rolled back at its own level first.
      *
      * @param int[] $itemIds The item primary keys.

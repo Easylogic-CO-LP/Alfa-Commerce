@@ -230,8 +230,6 @@ final class CatalogSearchService
         // LISTING (a stray letter must not blank the catalogue), catastrophic here: the
         // unfiltered first page of the catalogue would be presented AS RESULTS for "s".
         // Refuse the search whole instead: every section answers empty, honestly.
-        // The real sub-minimum retrieval (high-value fields, capped, popularity-ranked)
-        // is designed as its own slice; see DESIGN-Incremental-Retrieval-Pipeline.
         if ((new QueryNormalizer())->normalize($keyword) === '') {
             return new CatalogSearchResults();
         }
@@ -460,7 +458,7 @@ final class CatalogSearchService
             $model->setState('list.media', $withImage);
             $model->setState('list.price', $withPrice);
 
-            // THE ORDER IS THE MODEL'S, READ ONCE ITS STATE IS SET (2.2.0, A-C11-1): this read takes no sort from the page
+            // THE ORDER IS THE MODEL'S, READ ONCE ITS STATE IS SET: this read takes no sort from the page
             // request (ignore_request), so it is shown by relevance from its first row, and what the context tells a
             // provider and what the payload says is what the model shows, never a constant. A caller that declares
             // intent=search renders its own results: this read backs a rendered result set, so a provider may mint a
@@ -693,8 +691,8 @@ final class CatalogSearchService
      * never be able to break it.
      *
      * A stale engine returning bare strings is tolerated (wrapped, unlabelled) rather
-     * than fatal: the interface changed shape in 1.9.0 and a lagging third-party
-     * implementor must degrade, not break the box.
+     * than fatal: an engine written for the interface's earlier shape must
+     * degrade, not break the box.
      *
      * @param string $keyword Cleaned keyword, used here as a completion PREFIX.
      * @param string $lang Language tag in display form.

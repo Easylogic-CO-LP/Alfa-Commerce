@@ -16,7 +16,7 @@ use Alfa\Component\Alfa\Site\Model\ItemsModel;
 use Joomla\CMS\Factory;
 
 /**
- * The related products a visitor sees on a product's page (2.2.2): the product's links in the order staff set, read
+ * The related products a visitor sees on a product's page: the product's links in the order staff set, read
  * through the site ItemsModel as the listing reads products (published, within their publish window, what the visitor
  * may see, priced from the price index for the visitor's currency, place and groups), with no search, so no search
  * engine is asked and no result set is announced. A product the visitor may not see is skipped and the next one takes

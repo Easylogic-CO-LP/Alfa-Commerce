@@ -298,7 +298,7 @@ final class HydratedCart
     }
 
     /**
-     * The same reading for a subject priced elsewhere: the delivery place the goods are priced at moved (2.2.1).
+     * The same reading for a subject priced elsewhere: the delivery place the goods are priced at moved.
      *
      * @since  2.2.1
      */

@@ -8,7 +8,7 @@
  */
 
 /**
- * The cart and the checkout in catalogue-only mode (2.2.2): one sentence instead of the cart, no form. Overridable as
+ * The cart and the checkout in catalogue-only mode: one sentence instead of the cart, no form. Overridable as
  * html/com_alfa/cart/default_catalogue_only.php.
  */
 

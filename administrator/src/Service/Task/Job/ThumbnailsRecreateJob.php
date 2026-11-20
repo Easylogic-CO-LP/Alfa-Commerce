@@ -18,7 +18,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 
 /**
- * Recreate the gallery thumbnails (2.2.0): one media row a unit, by ascending id, through
+ * Recreate the gallery thumbnails: one media row a unit, by ascending id, through
  * ThumbnailRecreation, in the mode the shop asked for (all, or only the missing and undersized ones).
  *
  * One scope, the handler's name: one job at a time. A second request merges into the active one; "all" asked while it
@@ -42,8 +42,8 @@ final class ThumbnailsRecreateJob implements JobHandler
 
     public function policy(): JobPolicy
     {
-        // Priority 20: below catalogue.rebuild (30), above search.rebuild (10). The first chunk's units by DM2's 100 ms
-        // rule, measured in the C21 cell through the GD baseline: 22 ms a 1600 x 1200 JPEG, 58 ms a 3000 x 3000 one, so
+        // Priority 20: below catalogue.rebuild (30), above search.rebuild (10). The first chunk's units by the 100 ms
+        // rule, measured through the GD baseline: 22 ms a 1600 x 1200 JPEG, 58 ms a 3000 x 3000 one, so
         // two rows of the larger; the runner grows the chunk from the cost it measures.
         return new JobPolicy(label: 'COM_ALFA_TASKS_HANDLER_THUMBNAILS_RECREATE', weight: JobPolicy::HEAVY, priority: 20, initialUnits: 2, rerunOnMerge: true, ownTransactions: true);
     }

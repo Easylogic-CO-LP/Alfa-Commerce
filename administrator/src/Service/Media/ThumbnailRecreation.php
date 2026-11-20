@@ -25,7 +25,7 @@ use Joomla\Filesystem\File;
 use Throwable;
 
 /**
- * Recreate the gallery thumbnails (2.2.0, the media.thumbnails.recreate job): the domain service the
+ * Recreate the gallery thumbnails (the media.thumbnails.recreate job): the domain service the
  * Tools > Media buttons request and the job walks.
  *
  * TWO MODES. "all" makes every image row's thumbnail again at the configured box (after a change of the box); "missing"
@@ -39,11 +39,11 @@ use Throwable;
  * the same guards for every row: never its own image, never a file outside the save folder, never a file
  * another row names as its path or thumbnail.
  *
- * ONLY AN IMAGE OF THE MEDIA FOLDERS (2.2.1). A row whose image is not a file MediaHelper::isThumbnailSource() accepts
+ * ONLY AN IMAGE OF THE MEDIA FOLDERS. A row whose image is not a file MediaHelper::isThumbnailSource() accepts
  * (outside the media folders, not of an image extension, or not an image of its kind) is failed with that reason and
  * named in the report; nothing is read from it or copied.
  *
- * WHAT A TICK CAN DECODE (REV-C21 MAJOR 3, measured in c21r2). An image whose decode does not fit the memory the tick
+ * WHAT A TICK CAN DECODE. An image whose decode does not fit the memory the tick
  * has left is not opened: the row is failed with that reason and the walk goes on, so one image too big for the process
  * never ends every tick in a fatal. The need is GD's measured peak by format (decodeNeed()), with a quarter more.
  *
@@ -146,8 +146,8 @@ final class ThumbnailRecreation
     public const REASON_CHANGED = 'changed';
 
     /**
-     * Why a row's thumbnail was not made: its image is not a file a thumbnail may be made from (2.2.1,
-     * MediaHelper::isThumbnailSource()).
+     * Why a row's thumbnail was not made: its image is not a file a thumbnail may be made from
+     * (MediaHelper::isThumbnailSource()).
      *
      * @since  2.2.1
      */

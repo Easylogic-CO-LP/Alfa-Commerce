@@ -146,7 +146,7 @@ class PriceResult
     private array $discountedUnits = [];
 
     /**
-     * Whether a price applies at the quantity asked (2.2.2): false for a result the engine states with no figure, whose
+     * Whether a price applies at the quantity asked: false for a result the engine states with no figure, whose
      * money getters throw instead of answering a zero.
      *
      * @since  2.2.2
@@ -217,7 +217,7 @@ class PriceResult
     }
 
     /**
-     * A result with no figure (2.2.2): no price row applies to the product at the quantity asked, for this shopper (their
+     * A result with no figure: no price row applies to the product at the quantity asked, for this shopper (their
      * currency, place, customer group and the dates), and no explicit price was given. The product is not priced there:
      * the models hand a template a null price, the cart refuses it, the index writes no row. Built by the engine only.
      *
@@ -389,9 +389,9 @@ class PriceResult
      * THIS IS NOT getSavingsTotal(), and the two must not be collapsed.
      * getSavingsTotal() answers "what did the discount stage remove?"; this
      * answers "what did the negotiation save?" A negotiated price is not a
-     * promotional discount, and the ruling requires all three concepts (
-     * promotional adjustment, price override, aggregate whole-line saving) to
-     * stay distinguishable.
+     * promotional discount, and all three concepts (promotional
+     * adjustment, price override, aggregate whole-line saving) stay
+     * distinguishable.
      *
      *
      * @since  2.0.0
@@ -619,7 +619,7 @@ class PriceResult
 
     /**
      * The tax-included saving per unit: getSavingsTotalWithTax() divided like every other per-unit face. The saving a
-     * price block prints beside its tax-included figures (2.2.0, A-C16-12).
+     * price block prints beside its tax-included figures.
      *
      * @since  2.2.0
      */
@@ -632,7 +632,7 @@ class PriceResult
 
     /**
      * What the discounts saved, TAX EXCLUDED: whole-line, the base total less the subtotal, the two net figures a
-     * price block shows (2.2.0, A-C16-12). The saving printed beside them, and the one the price JSON publishes. For
+     * price block shows. The saving printed beside them, and the one the price JSON publishes. For
      * a discount applied before tax it is the discount stage's own amount; for one applied after tax it is that
      * amount without the tax it carried (5 percent off 248,00 with tax saves 12,40, of which 10,00 net). Zero for a
      * line without a discount. A display figure: nothing is priced from it.
@@ -1008,7 +1008,7 @@ class PriceResult
             'subtotal' => $this->subtotal->format($includeSymbol),
             'tax_total' => $this->taxTotal->format($includeSymbol),
             'total' => $this->total->format($includeSymbol),
-            // Tax excluded, as toArray() publishes it (2.2.0, A-C16-12).
+            // Tax excluded, as toArray() publishes it.
             'savings_total' => $this->getSavingsTotalWithoutTax()->format($includeSymbol),
         ];
 
@@ -1062,10 +1062,10 @@ class PriceResult
                 'amount' => PublishedDecimal::money($this->getPrice()),
                 'formatted' => $this->getPrice()->format(),
             ],
-            // The saving on ONE basis, tax excluded, labelled so (2.2.0, A-C16-12): the base total less the subtotal,
+            // The saving on ONE basis, tax excluded, labelled so: the base total less the subtotal,
             // for a discount applied before tax or after it. A storefront block prints the tax-included saving
             // beside its tax-included figures (getSavingsTotalWithTax()); this payload stays tax excluded throughout:
-            // the discounts' total below is the same figure under the same label (A-INT-3).
+            // the discounts' total below is the same figure under the same label.
             'savings' => [
                 'basis' => 'tax_excluded',
                 'total_amount' => PublishedDecimal::money($this->getSavingsTotalWithoutTax()),
@@ -1095,7 +1095,7 @@ class PriceResult
     }
 
     /**
-     * The applied discounts as the price JSON publishes them (2.2.0, A-INT-3): on the payload's one basis, tax
+     * The applied discounts as the price JSON publishes them: on the payload's one basis, tax
      * excluded, and labelled so. Their total is what the discounts saved without tax, the figure savings.total_amount
      * states (getSavingsTotalWithoutTax()), never the discount stage's own amount, which after tax is tax included (5
      * percent off 200,00 net under 24 percent tax, applied after tax: 10,00, where the stage removed 12,40). Each

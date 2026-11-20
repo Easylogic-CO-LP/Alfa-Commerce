@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 \defined('_JEXEC') or die;
 
 /**
- * What one chunk of a job did (2.2.0, design 2.5): the units it walked, the checkpoint to resume from, and whether the
+ * What one chunk of a job did: the units it walked, the checkpoint to resume from, and whether the
  * job is finished.
  *
  * @since  2.2.0

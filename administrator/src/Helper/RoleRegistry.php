@@ -31,7 +31,7 @@ defined('_JEXEC') or die;
  * the RECIPIENT's name and phone. A member's email is never stored on a
  * record (the account's address is authoritative); a guest's is.
  *
- * ADDRESS ROLES (2.2.1). A new shop also ships three address fields (address,
+ * ADDRESS ROLES. A new shop also ships three address fields (address,
  * city, postcode). Their roles name the shipped rows, so their labels follow
  * every content language (SeededNames) and a carrier's postcode setting can
  * start on the postcode field (CheckoutfieldField's defaultrole). They are not
@@ -92,7 +92,7 @@ final class RoleRegistry
             'floors' => ['registration' => 0, 'shipping' => 0, 'billing' => 0],
             'identity' => true,
         ],
-        // The address a new shop ships (2.2.1): named rows the merchant may
+        // The address a new shop ships: named rows the merchant may
         // change, unpublish or delete, as any field of their own.
         self::ADDRESS => [
             'system' => false,
@@ -131,7 +131,7 @@ final class RoleRegistry
 
     /**
      * The roles that make the customer's identity (name, email, phone, country): the values that alone are not a
-     * saved address, and whose floors are the capture contract of a new order. The address roles (2.2.1) are not.
+     * saved address, and whose floors are the capture contract of a new order. The address roles are not.
      *
      * @return string[]
      *

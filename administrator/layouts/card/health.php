@@ -8,10 +8,10 @@
  */
 
 /**
- * The background work's card on the Dashboard's alert strip (2.2.0): the standing health notice's text and a link to
- * Tools > Tasks, and one line for each job running or waiting, linking to its progress page (NEW-7). Nothing is
+ * The background work's card on the Dashboard's alert strip: the standing health notice's text and a link to
+ * Tools > Tasks, and one line for each job running or waiting, linking to its progress page. Nothing is
  * printed while neither is there. The staff kick draws it again after each of its ticks (TasksController::
- * backgroundCard()) and swaps [data-alfa-background-card] in (entry 27).
+ * backgroundCard()) and swaps [data-alfa-background-card] in.
  *
  * @var array $displayData title, data {text, url, jobs: list<{text, url}>}.
  */

@@ -16,7 +16,7 @@ use Joomla\Database\DatabaseDriver;
 use Throwable;
 
 /**
- * What the triggers' due read names (2.2.1): the task table's types and states and the grace a single waits, the three
+ * What the triggers' due read names: the task table's types and states and the grace a single waits, the three
  * job handlers the read looks for, the states of a stock movement, and the SQL of the singles' two probes and of an
  * abandoned stock claim.
  *

@@ -17,7 +17,7 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 
 /**
- * Where an e-mail's layouts are found (2.2.1): the default administrator template's overrides
+ * Where an e-mail's layouts are found: the default administrator template's overrides
  * (administrator/templates/<template>/html/layouts/com_alfa, then the template it inherits from), then the
  * component's own layouts, whatever application sends the mail. Joomla's own resolution follows the template of the
  * application that renders, so a mail sent from the storefront, the REST API or the console never found an override

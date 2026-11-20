@@ -48,7 +48,7 @@ final class CartComputation
 
     /**
      * The plugins the customer's view levels admit that Joomla does not load for the request's user, named when the
-     * charges were last collected (2.2.0): their charges are missing, so the cart carries the refusal.
+     * charges were last collected: their charges are missing, so the cart carries the refusal.
      *
      * @var list<string>
      * @since  2.2.0
@@ -70,8 +70,8 @@ final class CartComputation
      * @param CartPluginDispatch $plugins Asks the plugins their three questions.
      * @param Closure $state (): HydratedCart - the cart as currently loaded.
      * @param Closure $touch (): void - stamp the cart's activity.
-     * @param DeliveryBinding $delivery Where the cart is delivered (2.2.1): the one binding, shared with the hydrator.
-     * @param Closure $reprice (): void - price the lines again at the delivery place, once it changed (2.2.1).
+     * @param DeliveryBinding $delivery Where the cart is delivered: the one binding, shared with the hydrator.
+     * @param Closure $reprice (): void - price the lines again at the delivery place, once it changed.
      *
      * @since  2.0.0
      */
@@ -136,7 +136,7 @@ final class CartComputation
                 $this->totals()->forget();
             },
             // Every carrier the storefront would offer is asked what it is asked once chosen, so none is offered that
-            // would refuse the shopper's first click (2.2.2). The chosen one answers once per reading, from the same
+            // would refuse the shopper's first click. The chosen one answers once per reading, from the same
             // memo the totals read; any other is told it is not the chosen one.
             fn (int $methodId): ShippingQuote => $methodId === $this->effectiveShipmentId()
                 ? $this->shipmentQuote()
@@ -214,7 +214,7 @@ final class CartComputation
 
             $folded[] = (object) [
                 'code' => $contribution->code,
-                // group.element.code from 2.2.0; rows frozen before keep their source.
+                // group.element.code; rows already frozen keep the source they were frozen with.
                 'source' => $contributor . '.' . $contribution->code,
                 'label' => $contribution->label,
                 'operation' => $contribution->operation,
@@ -234,7 +234,7 @@ final class CartComputation
 
     /**
      * The plugins the customer's view levels admit that Joomla does not load for the request's user (staff lacking
-     * one of the customer's levels), as group.element (2.2.0): the charges are collected first. Their charges are
+     * one of the customer's levels), as group.element: the charges are collected first. Their charges are
      * missing from these totals and the placement refuses; the page shows the refusal with the totals.
      *
      * @return list<string>
@@ -251,7 +251,7 @@ final class CartComputation
     /**
      * Where this request says the order is going. The same place again is no
      * change; a different one drops what was offered for the old one, and the
-     * goods are priced again at it (2.2.1): goods and carriage follow the one
+     * goods are priced again at it: goods and carriage follow the one
      * binding.
      *
      * @since  2.0.0

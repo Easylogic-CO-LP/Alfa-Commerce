@@ -25,12 +25,12 @@ use Throwable;
  * The obligation stays the stock domain's own record (#__alfa_inventory_effect_outbox): this single only runs its
  * drain first in the change's batch, so the change's other work sees the stock moved. Draining is absolute, so a
  * second run finds nothing left. A drain that leaves the movement owed or refused says so (the stock notice and the
- * timeline) and the obligation keeps its own recovery: this single owes the stock.effects.drain job (2.2.0), and Tools >
+ * timeline) and the obligation keeps its own recovery: this single owes the stock.effects.drain job, and Tools >
  * Database Sync applies what is owed.
  *
  * A failure around the drain (the order's status not read, a lost connection) is retried with the task engine's
  * backoff, as every other order task's is, and still owes the drain job whatever threw; a task that fails for good
- * shows in Tools > Tasks and the bell (2.2.1).
+ * shows in Tools > Tasks and the bell.
  *
  * @since  2.1.4
  */
@@ -74,8 +74,8 @@ final class OrderStock extends OrderTaskHandler
             $failure = $e;
         }
 
-        // An obligation left owed, by the drain or by a failure around it, is the stock.effects.drain job's (2.2.0).
-        // Its failure after the run's own never takes that one's place: the task records the run's (2.2.1).
+        // An obligation left owed, by the drain or by a failure around it, is the stock.effects.drain job's.
+        // Its failure after the run's own never takes that one's place: the task records the run's.
         try {
             if (InventoryEffectOutbox::owesOrderClaim(orderId: $run->subjectId())) {
                 StockEffectsDrainJob::enqueue();

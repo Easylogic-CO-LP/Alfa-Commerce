@@ -20,7 +20,7 @@ use Joomla\CMS\Language\Text;
 use RuntimeException;
 
 /**
- * Which installed Alfa extensions are not known to work with the installed Alfa Commerce (2.2.1): read from the range
+ * Which installed Alfa extensions are not known to work with the installed Alfa Commerce: read from the range
  * each extension declares in its manifest ({@see AlfaCoreRange}), never from its version.
  *
  * WHICH EXTENSIONS. The installed Alfa extensions as Options > About lists them ({@see ClearDataExtensions::installed()}:

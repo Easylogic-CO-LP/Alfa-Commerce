@@ -29,7 +29,7 @@ use Joomla\Database\ParameterType;
 
 /**
  * The order-completed page's order: the site read service and the one read-only value
- * it returns (2.2.0, design 2.17).
+ * it returns.
  *
  * WHO MAY SEE IT. access() answers for an order opened by its keyed address: the key is
  * compared with the order's own by hash_equals, and a missing, empty or wrong key, an

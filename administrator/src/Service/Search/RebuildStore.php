@@ -182,7 +182,7 @@ final class RebuildStore
     }
 
     /**
-     * Record that an engine's rebuild activates its generation, once (2.2.0): a compare-and-set on the row, which the
+     * Record that an engine's rebuild activates its generation, once: a compare-and-set on the row, which the
      * caller's chunk transaction holds until its fence, so another tick of the same job finds it recorded and does not
      * activate the generation again.
      *

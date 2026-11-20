@@ -22,9 +22,7 @@
  *
  * The event only validates. What the order line keeps is the field's own answer to
  * onPrepareForCart, and what the payload costs is its contribution to
- * onCalculateItemPrice, computed on the server. 2.2.1 removed setSnapshot(),
- * getSnapshot(), setPriceImpact() and getPriceImpact(): core never read what they
- * held, so a value set through them changed nothing.
+ * onCalculateItemPrice, computed on the server.
  *
  * @since  2.0.0
  */

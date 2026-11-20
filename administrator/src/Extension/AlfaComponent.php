@@ -73,7 +73,7 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
     private AlfaPluginHelper $pluginHelper;
 
     /**
-     * The request's search engine registry, so the engines are discovered once per request (2.2.0).
+     * The request's search engine registry, so the engines are discovered once per request.
      *
      * @since  2.2.0
      */
@@ -106,7 +106,7 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
         // site-wide system plugins. An empty group is a no-op, so the
         // core stands alone with zero feature plugins installed.
         //
-        // Through the plugin helper (2.2.0), one plugin at a time: a single plugin
+        // Through the plugin helper, one plugin at a time: a single plugin
         // whose class cannot load (missing file, stale autoload map) is logged with
         // its identity and the rest of the group imports, so it cannot take down
         // every com_alfa page, admin and storefront alike.
@@ -120,7 +120,7 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
     }
 
     /**
-     * The plugin helper, com_alfa's single boundary to Joomla's plugin system (2.2.0, design 2.15.2).
+     * The plugin helper, com_alfa's single boundary to Joomla's plugin system.
      *
      * @param AlfaPluginHelper $helper The request's helper.
      *

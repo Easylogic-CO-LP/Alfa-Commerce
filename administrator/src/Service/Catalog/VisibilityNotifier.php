@@ -106,7 +106,7 @@ final class VisibilityNotifier
 
             // Both groups: search engines live in `alfa-search`, while a feature
             // package (analytics, a vendor portal) may also hold a projection.
-            // An after phase (2.2.0, mode A, isolated).
+            // An after phase (broadcast, isolated).
             $plugins->importGroup('alfa-search');
             $plugins->importGroup('alfa');
 

@@ -1,4 +1,4 @@
--- Alfa Commerce 2.2.1: the orders of one customer by the e-mail on the order, and the status e-mail switch's comment
+-- The orders of one customer by the e-mail on the order, and the status e-mail switch's comment
 --
 -- The REST API's orders list gains filter[email], the orders carrying one e-mail, matched whole: a guest's orders are
 -- found by it too. An index on the order's e-mail makes it a lookup instead of a read of every order, for the page and
@@ -17,7 +17,7 @@ ALTER TABLE `#__alfa_orders` ADD INDEX `idx_customer_email` (`customer_email`) /
 -- the install SQL's.
 ALTER TABLE `#__alfa_orders_statuses` MODIFY `notify_customer` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'When 1, EmailService sends the customer the status e-mail (its parts in email_positions_customer, its wrapper email_layout_customer) on transition INTO this status.';
 
--- Alfa Commerce 2.2.1: the ISO 3166-2 code of a place below a country
+-- The ISO 3166-2 code of a place below a country
 --
 -- A place below a country (a region, an island, a town) no longer carries invented country codes: code2 and code3
 -- belong to a country, and a place below one may carry its ISO 3166-2 code in the new column subdivision_code instead

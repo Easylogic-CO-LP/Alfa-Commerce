@@ -152,7 +152,7 @@ final class CartService
      *
      * The reading is the plain one: the mini-cart, which asks for this, shows
      * lines and totals and no methods, so it carries no offers and no carrier
-     * is asked to quote for a list (2.2.2). The checkout asks
+     * is asked to quote for a list. The checkout asks
      * {@see setLineQuantityAtCheckout()} instead.
      *
      * @param int $lineId The line.
@@ -396,7 +396,7 @@ final class CartService
     }
 
     /**
-     * Whether this cart's person can have one at all (2.2.1): an account, or a well-formed key of the browser. A
+     * Whether this cart's person can have one at all: an account, or a well-formed key of the browser. A
      * first-time visitor has neither and has no cart, and saying so reads nothing: the same test the hydrator makes
      * before it reads a cart's row, and System - Alfa Commerce Sync before Joomla's page cache. A reader shown on
      * every page (the cart module) asks this first, so a visitor with no cart costs it no query.
@@ -445,7 +445,7 @@ final class CartService
      * The mini-cart's reading: the lines and the totals, and no offers.
      *
      * The same cart as {@see read()}, found the same way and with the same writes, but plain: a drawer that shows no
-     * method reads no method list, so no carrier is asked to quote for one on every page it renders on (2.2.2). The
+     * method reads no method list, so no carrier is asked to quote for one on every page it renders on. The
      * chosen carrier is still asked for the shipping total.
      *
      * @api ANSWERS: the lines and totals of the cart under the mode given, without offers; CURRENT creates no cart for

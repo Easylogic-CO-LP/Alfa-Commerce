@@ -191,7 +191,7 @@ class OrderController extends FormController
     //  Core keeps the order form's post on every reload (each modal
     //  return) and on a refused save. Only the redisplay those
     //  redirects lead to may read it back, so they carry kept=1;
-    //  the view forgets the post on any other open (F-19).
+    //  the view forgets the post on any other open.
 
     /**
      * Whether the redirect back to the order that this request builds leads
@@ -832,7 +832,7 @@ class OrderController extends FormController
      * back into the UTC the columns hold, so it runs here, the way the core
      * FormController applies it (applyFilterForCalendarFieldsToRequestData()).
      * Unfiltered, every Save moved each date by the operator's offset, and a
-     * Greek operator's d-m-Y date was refused by the database (F-04).
+     * Greek operator's d-m-Y date was refused by the database.
      *
      * A read-only calendar (a shipment's Shipped and Delivered) still posts,
      * but is display only: it is dropped, so the modal never writes it. Its
@@ -1171,7 +1171,7 @@ class OrderController extends FormController
             }
         }
 
-        // WHAT THE POPUP SHOWED IS NOT AN INSTRUCTION (A2R-4). Beside each
+        // WHAT THE POPUP SHOWED IS NOT AN INSTRUCTION. Beside each
         // value it holds, the popup posts the value it opened on; one posted
         // equal to it was not touched and is not stated, so a change another
         // save made after the popup opened stands. A shown value that is not
@@ -1680,7 +1680,7 @@ class OrderController extends FormController
         try {
             $db = Factory::getContainer()->get('DatabaseDriver');
 
-            // The movement block is read only where the form shows it (F-09):
+            // The movement block is read only where the form shows it:
             // a hidden control still posts, and the hidden purpose list's
             // default (Sale) printed a Movement block on invoices and credits.
             $isCombined = RequestScalar::int($input, 'is_combined') === 1;
@@ -1866,7 +1866,7 @@ class OrderController extends FormController
             // Escaped, as every sibling task escapes: the issuer's words can
             // carry a charge's name, and a refused amount is quoted as typed.
             // A refusal the issuer can put in the operator's words is shown
-            // in them; its technical message stays the exception's (C-4).
+            // in them; its technical message stays the exception's.
             $refusal = DocumentRefusedException::in($e);
             $app->enqueueMessage(htmlspecialchars($refusal?->operatorText() ?? $e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
 
@@ -2328,7 +2328,7 @@ class OrderController extends FormController
 
             $draft['charges'] = $this->postedIssueCharges(orderId: $orderId, isCredit: $isCredit, correctsId: $correctsId);
 
-            // Kept for every type (design section 8). A credit's issue ignores them (
+            // Kept for every type. A credit's issue ignores them (
             // its buyer is its corrected document's), but they are what the
             // operator typed, and come back for a switch to a sales type.
             foreach (['buyer_name', 'buyer_vat_number', 'buyer_tax_office', 'buyer_activity', 'buyer_email'] as $field) {
@@ -2523,7 +2523,7 @@ class OrderController extends FormController
      * Every text shown back is escaped: a refusal's detail can carry charge
      * names, and the message queue renders HTML.
      *
-     * IT MUTATES NO ORDER STATE (section 10). Issuing a correction records document
+     * IT MUTATES NO ORDER STATE. Issuing a correction records document
      * truth; the order's own quantities, prices and payments are changed
      * through the order's own workflow and never as a side effect of this.
      *

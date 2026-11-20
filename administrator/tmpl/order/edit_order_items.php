@@ -72,7 +72,7 @@ $configColspan = $visibleColumns + 1;
 </div>
 
 <?php if (!empty($items)): ?>
-    <?php // Below 480 px a row folds (alfa-fold, 2.2.1 A4): its cells wrap, each named by its column, the actions on a
+    <?php // Below 480 px a row folds (alfa-fold): its cells wrap, each named by its column, the actions on a
           // line of their own. ?>
     <table class="table table-striped table-bordered alfa-fold">
         <thead>

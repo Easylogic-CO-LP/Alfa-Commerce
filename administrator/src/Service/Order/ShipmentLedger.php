@@ -130,7 +130,7 @@ class ShipmentLedger
     public const WRITE_FAILED = -1;
 
     /**
-     * The plugin_data key of a parcel core recorded itself at placement (2.2.1): true on the parcel core writes when
+     * The plugin_data key of a parcel core recorded itself at placement: true on the parcel core writes when
      * the order's carrier recorded none in onOrderAfterPlace, so the order keeps the shipping charge the customer
      * accepted. A carrier that looks for its own parcel afterwards finds core's by this key; core writes it and reads
      * no other key of plugin_data.
@@ -511,7 +511,7 @@ class ShipmentLedger
     }
 
     /**
-     * The shipment plugin writing this new row (2.2.0): ShipmentsPlugin::shipment() names it, a carrier never does.
+     * The shipment plugin writing this new row: ShipmentsPlugin::shipment() names it, a carrier never does.
      * The row then records that plugin's element as its shipment_method_type, never the live type of a method row,
      * which an edit can change; the create refuses a method that is not one of the writer's own. Named once: another
      * element afterwards is refused.
@@ -768,7 +768,7 @@ class ShipmentLedger
      * @param array $data Shipment data. 'id_order' is REQUIRED.
      * @param bool $entered True for a charge an operator or a REST client entered.
      * @param string $writer The element of the shipment plugin writing the row ({@see self::writtenBy()}); '' for
-     *                       core's own rows, which keep their own classification (since 2.2.0).
+     *                       core's own rows, which keep their own classification.
      *
      * @return int|false New shipment row ID, or false on failure
      *
@@ -880,7 +880,7 @@ class ShipmentLedger
             );
         }
 
-        // The writer's identity (2.2.0). A row a shipment plugin writes records that plugin's element, compared byte for
+        // The writer's identity. A row a shipment plugin writes records that plugin's element, compared byte for
         // byte with the method row's type, never stamped from a type an edit could have changed: a method that is not
         // one of the writer's own is a contract error, and nothing is written.
         if ($writer !== '') {
@@ -909,7 +909,7 @@ class ShipmentLedger
             $data['id_currency'] = OrderCurrency::idOf(orderId: $orderId);
         }
 
-        // One transaction (2.2.0): the row, its item assignments and its timeline row commit together, as update()'s.
+        // One transaction: the row, its item assignments and its timeline row commit together, as update()'s.
         $db = self::db();
         $db->transactionStart(true);
 
@@ -1309,7 +1309,7 @@ class ShipmentLedger
     /**
      * A chain as written: a list of entries, each an exact decimal rate text
      * above zero with the name of the tax rule that applied it
-     * ({"rate": "24", "name": "VAT"}). A chain frozen before 2.2.0 holds the
+     * ({"rate": "24", "name": "VAT"}). A chain frozen without names holds the
      * rate texts alone ("24"); each such entry is read as a rate no rule is
      * named for.
      *
@@ -1350,8 +1350,8 @@ class ShipmentLedger
 
     /**
      * A parcel's stored tax chain as its entries, in the order they apply: each the rate as exact decimal text and the
-     * name of the tax rule that applied it ('' for a chain frozen before 2.2.0, which holds the rates alone). What the
-     * REST order resource publishes of a parcel (2.2.1).
+     * name of the tax rule that applied it ('' for a chain that holds the rates alone). What the
+     * REST order resource publishes of a parcel.
      *
      * @param string $stored The parcel's shipping_tax_chain as stored.
      *
@@ -1368,7 +1368,7 @@ class ShipmentLedger
      * The tax name a document line freezes for a parcel's charge: the names of
      * the rules its chain was calculated with, in the order they apply, joined
      * as the pricing engine joins combined rules. Empty when the chain names
-     * none: one frozen before 2.2.0, a carrier's own rate, or an untaxed
+     * none: one that holds the rates alone, a carrier's own rate, or an untaxed
      * charge.
      *
      * @param string $stored The parcel's shipping_tax_chain as stored.
@@ -1585,7 +1585,7 @@ class ShipmentLedger
      * @param int $id Shipment row PK
      * @param array $data Fields to update. 'id_order' is REQUIRED.
      * @param bool $entered True for a change an operator or a REST client entered.
-     * @param string $writer The shipping plugin updating through its builder (2.2.0): only a parcel recorded as its own,
+     * @param string $writer The shipping plugin updating through its builder: only a parcel recorded as its own,
      *                       moved only to another method of its own ({@see self::writerRefusal()}).
      *
      * @return bool True on success
@@ -1611,7 +1611,7 @@ class ShipmentLedger
         // No shipment row of an order that names no currency is written.
         OrderCurrency::of(orderId: $orderId);
 
-        // One transaction (2.2.0): the row, its item assignments, its timeline row and the automation it owes commit
+        // One transaction: the row, its item assignments, its timeline row and the automation it owes commit
         // together, as in updateIfStatus().
         $db = self::db();
         $db->transactionStart(true);
@@ -1647,7 +1647,7 @@ class ShipmentLedger
      * @param int $orderId Its order.
      * @param array $data Fields to update; 'items' re-assigns the parcel's lines.
      * @param bool $entered True for a change an operator or a REST client entered.
-     * @param string $writer The shipping plugin updating through its builder or its compare-and-set (2.2.0): held to
+     * @param string $writer The shipping plugin updating through its builder or its compare-and-set: held to
      *                       {@see self::writerRefusal()}.
      *
      * @return array|null What writeConsequences() reports on, or null when nothing was written.
@@ -1671,7 +1671,7 @@ class ShipmentLedger
             return null;
         }
 
-        // A shipping plugin's update (the writer named, 2.2.0): its own parcels only, moved only to its own methods.
+        // A shipping plugin's update (the writer named): its own parcels only, moved only to its own methods.
         $notTheirs = $writer !== '' ? self::writerRefusal(stored: $oldSnapshot, data: $data, writer: $writer) : null;
 
         if ($notTheirs !== null) {
@@ -1743,7 +1743,7 @@ class ShipmentLedger
                 $data['shipment_method_name'] = self::resolveMethodName('Shipment', $movedTo);
             }
 
-            // A shipping plugin's update (the writer named, 2.2.0) never changes the plugin a parcel records:
+            // A shipping plugin's update (the writer named) never changes the plugin a parcel records:
             // writerRefusal() let through only a move to another method of its own.
             if ($writer === '') {
                 $data['shipment_method_type'] = self::resolveMethodType('Shipment', $movedTo);
@@ -1765,7 +1765,7 @@ class ShipmentLedger
     }
 
     /**
-     * Why a shipping plugin may not make this write, or null (2.2.0). Asked by writeUpdate(), assignItems() and delete()
+     * Why a shipping plugin may not make this write, or null. Asked by writeUpdate(), assignItems() and delete()
      * when the write names its writer (ShipmentsPlugin::shipmentUpdate(), settleAttempt(), assignShipmentItems(),
      * deleteShipment()): a plugin acts only on the parcels recorded as its own, moves one only to another method of its
      * own, and never names another plugin for it. A parcel that records no plugin is no plugin's, as the action registry reads it. Staff
@@ -1822,8 +1822,8 @@ class ShipmentLedger
     }
 
     /**
-     * What a written update owes, written inside its transaction before the commit, so it commits with the row
-     * (2.2.0): its timeline entry, then, when the write changed the status and the method maps the new one, the
+     * What a written update owes, written inside its transaction before the commit, so it commits with the row:
+     * its timeline entry, then, when the write changed the status and the method maps the new one, the
      * shipment.automation single, run once the outermost transaction committed and Alfa's named locks are released
      * ({@see ShipmentAutomation}). The order's status in its payload is the transaction's read of it: this ledger
      * takes no order lock.
@@ -1901,7 +1901,7 @@ class ShipmentLedger
      * Shipment-method automation: move the ORDER when a shipment entered a
      * phase the method has mapped. What the shipment.automation single runs
      * once the write committed and Alfa's named locks are released, after its
-     * guards ({@see ShipmentAutomation}, 2.2.0).
+     * guards ({@see ShipmentAutomation}).
      *
      * The map is PLUGIN-DECLARED: each shipment plugin's params/params.xml
      * exposes only the phases its lifecycle reaches, as fields named
@@ -2097,7 +2097,7 @@ class ShipmentLedger
      * @param int $id Shipment row PK
      * @param array $data Update payload; must carry id_order
      * @param string $expectedStatus The status the row must still hold
-     * @param string $writer The shipping plugin writing through this door (2.2.0: its builder's saveVerdict(),
+     * @param string $writer The shipping plugin writing through this door (its builder's saveVerdict(),
      *                       settleAttempt()): held to the plain update's rule ({@see self::writerRefusal()}), so a
      *                       refused write is WRITE_FAILED. '' for staff and for core.
      *
@@ -2186,7 +2186,7 @@ class ShipmentLedger
                 return self::WRITE_FAILED;
             }
 
-            // What the write owes commits with it (2.2.0).
+            // What the write owes commits with it.
             self::writeConsequences(orderId: $orderId, written: $written);
         } catch (Throwable $e) {
             // A failure that ended the caller's transaction too is the
@@ -2214,7 +2214,7 @@ class ShipmentLedger
      *
      * @param int $id Shipment row PK
      * @param int $orderId Order PK (for activity log)
-     * @param string $writer The shipping plugin deleting (2.2.0, ShipmentsPlugin::deleteShipment()): only a parcel
+     * @param string $writer The shipping plugin deleting (ShipmentsPlugin::deleteShipment()): only a parcel
      *                       recorded as its own ({@see self::writerRefusal()}). '' for staff and for core.
      *
      * @return bool True on success
@@ -2230,7 +2230,7 @@ class ShipmentLedger
         // No shipment row of an order that names no currency is removed.
         OrderCurrency::of(orderId: (int) ($shipment->id_order ?? $orderId));
 
-        // A shipping plugin deletes only its own parcels (2.2.0): another plugin's parcel, or one that records none, is
+        // A shipping plugin deletes only its own parcels: another plugin's parcel, or one that records none, is
         // refused.
         if ($writer !== '') {
             $notTheirs = $shipment ? self::writerRefusal(stored: $shipment, data: [], writer: $writer) : Text::sprintf('COM_ALFA_SHIPMENT_NOT_FOUND', $id);
@@ -2242,7 +2242,7 @@ class ShipmentLedger
             }
         }
 
-        // The item assignments, the row and its timeline row go together (2.2.0).
+        // The item assignments, the row and its timeline row go together.
         $db = self::db();
         $db->transactionStart(true);
 
@@ -2289,7 +2289,7 @@ class ShipmentLedger
      * Load a single shipment with method params.
      *
      * ->params is the shipment method's record, or null when the shipment names no method, the method's row is gone,
-     * or it cannot be read (logged) (2.2.1): never Joomla's blank new record for id 0, and never the model's false.
+     * or it cannot be read (logged): never Joomla's blank new record for id 0, and never the model's false.
      *
      * @param int $id Shipment row PK
      *
@@ -2378,7 +2378,7 @@ class ShipmentLedger
      * @param int $orderId Order PK (security scope)
      * @param array $items List of line PKs, a [linePK => quantity] map, or
      *                     the published API body's [{id_order_item, quantity}] list
-     * @param string $writer The shipping plugin assigning (2.2.0, ShipmentsPlugin::assignShipmentItems()): only a
+     * @param string $writer The shipping plugin assigning (ShipmentsPlugin::assignShipmentItems()): only a
      *                       parcel recorded as its own; '' for staff and for core.
      *
      * @return bool True on success
@@ -2392,7 +2392,7 @@ class ShipmentLedger
             return false;
         }
 
-        // A shipping plugin assigns lines only to its own parcels (2.2.0).
+        // A shipping plugin assigns lines only to its own parcels.
         $parcel = $writer !== '' ? self::getRaw($shipmentId) : null;
         $notTheirs = $writer === '' ? null : ($parcel === null
             ? Text::sprintf('COM_ALFA_SHIPMENT_NOT_FOUND', $shipmentId)

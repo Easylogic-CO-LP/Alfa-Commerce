@@ -307,7 +307,7 @@ class Entitlements
 
         // The clock as it is now, read for this grant: Factory::getDate() keeps the time of its first call for the
         // whole process, so a task run, a console command or a queue granting several orders would date every grant,
-        // and every expiry, from the first one (2.2.1).
+        // and every expiry, from the first one.
         $now = new Date('now', 'UTC');
         $granted = 0;
 

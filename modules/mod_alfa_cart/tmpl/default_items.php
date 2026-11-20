@@ -20,7 +20,7 @@ if (isset($displayData)) {
 }
 
 // The reading of the visitor's cart is what this layout renders from. A visitor
-// who has no cart yet is handed none (2.2.1): the empty drawer, read from nothing.
+// who has no cart yet is handed none: the empty drawer, read from nothing.
 $snapshot = ($snapshot ?? null);
 
 $priceSettings = ($priceSettings ?? null);
@@ -191,7 +191,7 @@ $itemsCount = count($items);
                         <strong><?php echo Text::_('MOD_ALFA_CART_SHIPPING'); ?>:</strong>
                     </div>
                     <div class="totals-value">
-						<?php // Before a shipping method is chosen, the words, never a zero that reads as free (2.2.0, UX-76).?>
+						<?php // Before a shipping method is chosen, the words, never a zero that reads as free.?>
 						<?php echo $snapshot->shippingAwaitsChoice() ? Text::_('MOD_ALFA_CART_SHIPPING_LATER') : $snapshot->totals->shipment->format(); ?>
                     </div>
                 </div>

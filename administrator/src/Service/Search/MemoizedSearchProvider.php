@@ -109,12 +109,12 @@ final class MemoizedSearchProvider implements SearchProviderInterface
             implode(',', $groups),
             $query->entity->value,
             $query->intent->value,
-            // THE RENDERED READ NEVER SHARES AN ENTRY WITH A RE-READ (2.2.0): a facet
+            // THE RENDERED READ NEVER SHARES AN ENTRY WITH A RE-READ: a facet
             // sub-model's read carries no context and the listing's does, so whichever
             // runs first, the handle-bearing answer stays the listing's own. Only for a
-            // provider that can attribute (A-C11-3): core's live-table CatalogJoinProvider
+            // provider that can attribute: core's live-table CatalogJoinProvider
             // never mints a handle, so its answer is the same with a context or without,
-            // and the two reads share one entry, as before 2.2.0 (no query more).
+            // and the two reads share one entry (no query more).
             $this->inner instanceof CatalogJoinProvider ? '-' : ($query->context?->key() ?? '-'),
             $query->keyword,
         ]);

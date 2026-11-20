@@ -17,7 +17,7 @@ defined('_JEXEC') or die;
 class AlfaFiltersHelper
 {
     /**
-     * The sections that read the price index, which catalogue-only mode leaves out (2.2.2).
+     * The sections that read the price index, which catalogue-only mode leaves out.
      *
      * @var string[]
      */
@@ -215,7 +215,7 @@ class AlfaFiltersHelper
             $params->get('filter_sections', ''),
         );
 
-        // Catalogue only (2.2.2): no price is read, so the panel draws no price range and no sale or saving filter.
+        // Catalogue only: no price is read, so the panel draws no price range and no sale or saving filter.
         return ShopMode::sellsOnline()
             ? $sections
             : array_values(array_diff($sections, self::PRICE_SECTIONS));
@@ -278,7 +278,7 @@ class AlfaFiltersHelper
         $filterForm->setFieldAttribute('discount_amount_min', 'id', 'alfa_filters_discount_amount_min_' . $moduleId, 'filter');
         $filterForm->setFieldAttribute('discount_percent_min', 'id', 'alfa_filters_discount_percent_min_' . $moduleId, 'filter');
 
-        // 3. Render the fields; one the form left out (the price and saving filters in catalogue-only mode, 2.2.2)
+        // 3. Render the fields; one the form left out (the price and saving filters in catalogue-only mode)
         //    renders as nothing.
         $render = static function (string $name, string $group) use ($filterForm): string {
             $field = $filterForm->getField($name, $group);

@@ -76,7 +76,7 @@ class PluginLayoutHelper
             return self::getEmptyLayout();
         }
 
-        // Step 1: Try plugin's own tmpl/ directory (the template's override first), through the plugin helper (2.2.0)
+        // Step 1: Try plugin's own tmpl/ directory (the template's override first), through the plugin helper
         try {
             $pluginPath = dirname(AlfaPluginHelper::get()->layoutPath(PluginId::from($pluginType, $pluginName), $fileName));
         } catch (InvalidArgumentException) {

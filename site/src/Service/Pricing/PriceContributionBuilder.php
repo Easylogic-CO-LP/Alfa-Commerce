@@ -201,7 +201,7 @@ final class PriceContributionBuilder
     }
 
     /**
-     * State that this plugin's contributions are the whole price of the product (2.2.2): a product with no price row
+     * State that this plugin's contributions are the whole price of the product: a product with no price row
      * that applies to the shopper is then priced from them, for a field that prices what the buyer fills in (areas,
      * pieces). Without it, a product with no price row is not priced, whatever the contribution adds.
      *

@@ -45,7 +45,7 @@ $fmt = DocumentMoney::formatter($displayData['document'] ?? null, decimalSeparat
 $unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
 // A quantity to three places, its padding zeros dropped (2.5, 1,200).
 $quantity = static fn ($value): string => rtrim(rtrim(number_format((float) $value, 3, $separators['decimal'], $separators['thousands']), '0'), $separators['decimal']);
-// A tax rate prints as stored (2.2.2): every digit its column holds, its padding zeros dropped (15.5%, 8.875%).
+// A tax rate prints as stored: every digit its column holds, its padding zeros dropped (15.5%, 8.875%).
 ?>
 <table class="lines-table">
     <thead>

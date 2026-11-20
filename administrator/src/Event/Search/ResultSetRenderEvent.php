@@ -15,7 +15,7 @@ use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
- * A result set is being rendered (2.2.0): `onAlfaResultSetRender`, dispatched by the items view on every rendered
+ * A result set is being rendered: `onAlfaResultSetRender`, dispatched by the items view on every rendered
  * result set (the full page, the chrome-less fragment a filter swap inserts, a single card's reload), whatever the
  * handle, the filters option or the plugins present, with the `alfa-search` group imported first.
  *

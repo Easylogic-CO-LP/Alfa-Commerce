@@ -47,7 +47,7 @@ class MediaHelper
 
     /**
      * What getMediaData() has read in this request, by origin, items and options. Emptied by every write of media
-     * rows (2.2.1): a request that reads an item's media, saves them and reads them again (a REST PATCH, which answers
+     * rows: a request that reads an item's media, saves them and reads them again (a REST PATCH, which answers
      * with the saved record) is answered with what is stored, not with what was read before the save.
      *
      * @var array<string, array>
@@ -57,7 +57,7 @@ class MediaHelper
 
     /**
      * The longest image description (alt) a media row holds: its column is varchar(75). The tile's input, saveMedia
-     * and the API's media rows all hold to it, so a longer one never fails a gallery save (2.2.0).
+     * and the API's media rows all hold to it, so a longer one never fails a gallery save.
      *
      * @var int
      * @since  2.2.0
@@ -65,7 +65,7 @@ class MediaHelper
     public const ALT_MAX_LENGTH = 75;
 
     /**
-     * The thumbnail box a site uses when it stores none (2.2.0: 500 x 500; Options' default and the installer's,
+     * The thumbnail box a site uses when it stores none (500 x 500; Options' default and the installer's,
      * ComponentOptions::DEFAULTS).
      *
      * @var int
@@ -83,8 +83,8 @@ class MediaHelper
     public const THUMBNAIL_FROM_IMAGE = 'image';
 
     /**
-     * A row's thumbnail_origin when its thumbnail is a picture the merchant chose on the tile (2.2.0): the Recreate
-     * thumbnails job leaves it as it is. A row written before 2.2.0 stores neither (NULL).
+     * A row's thumbnail_origin when its thumbnail is a picture the merchant chose on the tile: the Recreate
+     * thumbnails job leaves it as it is. A row written before thumbnail origins were recorded stores neither (NULL).
      *
      * @var string
      * @since  2.2.0
@@ -353,8 +353,8 @@ class MediaHelper
      * manufacturer / item / category doesn't leave orphaned media rows + files.
      *
      * The rows go in the caller's transaction, when one is open; once it has committed, the plugins hear
-     * onAlfaMediaBeforeDelete with the rows and then the files go (2.2.1: before, this path told no plugin and
-     * took the files at once, so a delete rolled back had lost them). With no transaction open, both follow at once.
+     * onAlfaMediaBeforeDelete with the rows and then the files go, so a delete rolled back keeps them. With no
+     * transaction open, both follow at once.
      *
      * @param int[] $itemIds Entity ids whose media should be removed.
      * @param string $origin Media origin ('item' | 'category' | 'manufacturer' | 'combination' | 'payment' | 'shipment').
@@ -481,7 +481,7 @@ class MediaHelper
 
     /**
      * Delete the local files of these rows, each only when no other media row names it as its path or its thumbnail
-     * (2.2.0: two rows may name one file, a pick of an image already in the save folder or a tile thumbnail taken
+     * (two rows may name one file, a pick of an image already in the save folder or a tile thumbnail taken
      * from it, and deleting one row must never take the other's image). The rows themselves are the caller's to
      * delete; a file that only they name goes, a file another row names stays. External URLs and empty columns are
      * skipped; a file that is missing or locked never blocks the delete.
@@ -546,7 +546,7 @@ class MediaHelper
     }
 
     /**
-     * Which of these files another media row names as its path or its thumbnail (2.2.0): every row but the given
+     * Which of these files another media row names as its path or its thumbnail: every row but the given
      * ones, a stored value with or without its leading slash.
      *
      * @param string[] $files Site-relative files, no leading slash.
@@ -591,7 +591,7 @@ class MediaHelper
 
     /**
      * Whether a site-relative file lies inside a folder: the folder's own path followed by a separator, so a save
-     * folder images/commerce never takes in images/commerce-old (2.2.0).
+     * folder images/commerce never takes in images/commerce-old.
      *
      * @param string $file Site-relative file.
      * @param string $folder Site-relative folder.
@@ -902,7 +902,7 @@ class MediaHelper
             $isNew = str_contains($id, 'new-');
             $alt = self::cappedAlt(alt: (string) ($media['alt'] ?? ''));
             $finalThumbnail = '';
-            // What the thumbnail was made from (2.2.0): the row's own image, or a picture chosen on the tile; null for
+            // What the thumbnail was made from: the row's own image, or a picture chosen on the tile; null for
             // none. An existing row's tile left as it was keeps its stored origin ($keepOrigin).
             $thumbnailOrigin = null;
             $keepOrigin = false;
@@ -950,7 +950,7 @@ class MediaHelper
                 $nameForFile = '';
 
                 // FIND THE UNIQUE NAME FOR THE FILE
-                // The image's name as staff gave it, for a refusal (2.2.1).
+                // The image's name as staff gave it, for a refusal.
                 $sourceName = '';
 
                 if ($isDrop) { // Dropped Media Handler
@@ -987,7 +987,7 @@ class MediaHelper
                     }
                 } elseif ($isPicker) { // Joomla Media Picker Handler
                     $cleanPath = HTMLHelper::cleanImageURL($media['source']);
-                    // The media field stores a URL: a file name with a space arrives as %20 (2.2.0).
+                    // The media field stores a URL: a file name with a space arrives as %20.
                     $cleanPath = rawurldecode(str_replace('picker://', '', $cleanPath->url));
                     $sourceName = basename($cleanPath);
 
@@ -998,7 +998,7 @@ class MediaHelper
                     // API caller referencing (and copying) images from
                     // administrator/ or any other non-media folder.
                     // The media folders are mediaRoots(), the one definition a
-                    // thumbnail's source is held to as well (2.2.1).
+                    // thumbnail's source is held to as well.
                     $realSrc = realpath(JPATH_ROOT . '/' . $cleanPath);
                     $withinRoot = false;
 
@@ -1111,7 +1111,7 @@ class MediaHelper
                                 $storeOk = false;
                             }
                         } elseif ($relativeDest === '' || !is_file(JPATH_ROOT . '/' . $relativeDest)) {
-                            // A plugin that claims the image and writes no file gets no row (2.2.1): the row
+                            // A plugin that claims the image and writes no file gets no row: the row
                             // would name a file that is not there, a broken image on the storefront.
                             Factory::getApplication()->enqueueMessage(
                                 Text::sprintf('COM_ALFA_MEDIA_ERROR_PROCESSED_NO_FILE', htmlspecialchars($sourceName, ENT_QUOTES, 'UTF-8')),
@@ -1182,8 +1182,8 @@ class MediaHelper
                 $isFullDelete = (bool) $params->get('media_full_deletion', 1);
 
                 if ($toDelete) {
-                    // The row goes in the caller's transaction (2.2.1). Once that has committed, the plugins hear
-                    // onAlfaMediaBeforeDelete with the row (2.2.1: before, only Tools > Media raised it), then
+                    // The row goes in the caller's transaction. Once that has committed, the plugins hear
+                    // onAlfaMediaBeforeDelete with the row, then
                     // its files go when the setting says so. A save rolled back keeps the row and its files, and tells
                     // no plugin. A failure of the delete reaches the caller, whose transaction it may have ended.
                     $removed = $db->setQuery(
@@ -1227,7 +1227,7 @@ class MediaHelper
                     ];
 
                     // The origin follows the thumbnail; a tile left as it was keeps its own (a row written before
-                    // 2.2.0 keeps NULL).
+                    // thumbnail origins were recorded keeps NULL).
                     if (!$keepOrigin) {
                         $obj->thumbnail_origin = $finalThumbnail === '' ? null : $thumbnailOrigin;
                     }
@@ -1251,7 +1251,7 @@ class MediaHelper
     /**
      * Delete the files of a media row removed by a save, once the save has committed: the main image and the
      * thumbnail, but only files that actually resolve inside the media folder (a tampered path column can never lead a
-     * delete outside it) and never a file another row names (2.2.0).
+     * delete outside it) and never a file another row names.
      *
      * @param string[] $files The removed row's path and thumbnail.
      * @param int $mediaId The removed row.
@@ -1285,10 +1285,9 @@ class MediaHelper
      * Returns an empty string if the thumbnail is missing or matches the default placeholder; returns the row's own
      * stored thumbnail when the tile still shows it (an existing row re-saved as it was: its stored thumbnail, or its
      * path where it stores none or stores its path), so a re-save writes no file; otherwise makes a new thumbnail of
-     * the given image at the configured box. A file that merely lies inside the save folder is NOT kept as it is
-     * (2.2.0): it may be another row's image, and a new row then gets its own copy, never another row's file. A source
-     * that is not an image file of the media folders (isThumbnailSource()) is refused with a message and gives none
-     * (2.2.1).
+     * the given image at the configured box. A file that merely lies inside the save folder is NOT kept as it is:
+     * it may be another row's image, and a new row then gets its own copy, never another row's file. A source
+     * that is not an image file of the media folders (isThumbnailSource()) is refused with a message and gives none.
      *
      * @param string $rawThumbnail Raw (relative) thumbnail path, possibly URL-encoded and with a fragment.
      * @param string $defaultThumbPath Path of the default placeholder thumbnail to compare against.
@@ -1301,7 +1300,7 @@ class MediaHelper
      */
     private static function processThumbnail(string $rawThumbnail, string $defaultThumbPath, string $absolutePath, object $params, ?object $stored = null): string
     {
-        // Strip URL fragments (e.g., cache busters), decode what the media field encoded (a space is %20, 2.2.0) and
+        // Strip URL fragments (e.g., cache busters), decode what the media field encoded (a space is %20) and
         // normalize leading slashes.
         $cleanThumb = self::thumbnailSource(rawThumbnail: $rawThumbnail);
         $cleanDefault = ltrim($defaultThumbPath, '/');
@@ -1316,8 +1315,8 @@ class MediaHelper
             return (string) $stored->thumbnail;
         }
 
-        // The source is a client-supplied relative path: only an image file of the media folders may be one (2.2.1,
-        // isThumbnailSource()). The forms and the API refuse such a save before it writes (thumbnailRefusals()); a
+        // The source is a client-supplied relative path: only an image file of the media folders may be one
+        // (isThumbnailSource()). The forms and the API refuse such a save before it writes (thumbnailRefusals()); a
         // caller of saveMedia() that did not ask is told here, and nothing is read or copied.
         $sourcePath = JPATH_ROOT . '/' . $cleanThumb;
 
@@ -1335,7 +1334,7 @@ class MediaHelper
 
     /**
      * A thumbnail as the tile or the API sends it, read as a site-relative file: its fragment (a cache buster, the media
-     * field's joomlaImage part) dropped, what the media field encoded decoded (a space arrives as %20, 2.2.0), no leading
+     * field's joomlaImage part) dropped, what the media field encoded decoded (a space arrives as %20), no leading
      * slash.
      *
      * @param string $rawThumbnail The thumbnail as sent.
@@ -1367,7 +1366,7 @@ class MediaHelper
     }
 
     /**
-     * Where a new thumbnail of an image is written (2.2.0, saveMedia's and the Recreate thumbnails job's one naming): in
+     * Where a new thumbnail of an image is written (saveMedia's and the Recreate thumbnails job's one naming): in
      * the save folder, `<the image's name>-thumb` with the image's extension, at a name whose stem no file on disk has in
      * any extension and no media row names, so a plugin writing another format can never overwrite another file.
      *
@@ -1389,10 +1388,10 @@ class MediaHelper
     }
 
     /**
-     * Write a thumbnail of an image at the configured box (2.2.0: the one writer, for a saved tile and for the Recreate
+     * Write a thumbnail of an image at the configured box (the one writer, for a saved tile and for the Recreate
      * thumbnails job): the plugin layer first (onAlfaMediaThumbnail, which owns the format and the quality), else the
      * always-on baseline resize, else, only when GD cannot resize, a plain copy. An existing file at the destination is
-     * overwritten. Only a source isThumbnailSource() accepts is used (2.2.1): any other file is not handed to a plugin,
+     * overwritten. Only a source isThumbnailSource() accepts is used: any other file is not handed to a plugin,
      * resized or copied, and none is written, so the plain copy is only ever of an image GD cannot read (an AVIF on a
      * GD without AVIF).
      *
@@ -1431,7 +1430,7 @@ class MediaHelper
         );
 
         if ($result['processed']) {
-            // Plugin resized/converted it; use the path it actually wrote, and only a file that is there (2.2.0): a
+            // Plugin resized/converted it; use the path it actually wrote, and only a file that is there: a
             // plugin that claims the thumbnail and writes nothing leaves no thumbnail, never a name of no file.
             $written = ltrim(str_replace(JPATH_ROOT . '/', '', $result['dest']), '/');
 
@@ -1452,7 +1451,7 @@ class MediaHelper
     }
 
     /**
-     * Whether a file may be the source of a thumbnail (2.2.1): the one rule the administrator saves, the API and the
+     * Whether a file may be the source of a thumbnail: the one rule the administrator saves, the API and the
      * Recreate thumbnails job share. makeThumbnail() applies it before anything is handed to a plugin, resized or
      * copied; thumbnailRefusals() asks it before a save writes anything, and processThumbnail() and ThumbnailRecreation
      * ask it to say why no thumbnail was made.
@@ -1484,7 +1483,7 @@ class MediaHelper
     }
 
     /**
-     * Whether a file is an image of its own extension (2.2.1): it carries one of the media manager's image extensions
+     * Whether a file is an image of its own extension: it carries one of the media manager's image extensions
      * (com_media's Legal Image Extensions), under its own name and the file it leads to alike, and the type
      * getimagesize() reads from its header agrees with that extension.
      *
@@ -1517,7 +1516,7 @@ class MediaHelper
     }
 
     /**
-     * The media folders (2.2.1), as real absolute paths: the one definition the media picker's containment and a
+     * The media folders, as real absolute paths: the one definition the media picker's containment and a
      * thumbnail's source share. Joomla's com_media names two (file_path and image_path, configured separately and not
      * interchangeable), and the component adds its own save folder, where the images it stores are. A folder that
      * does not exist is left out, and so is one that is the site root itself or holds it (an empty setting, a link to a
@@ -1556,7 +1555,7 @@ class MediaHelper
     }
 
     /**
-     * The thumbnails of a gallery post the thumbnail rule refuses (2.2.1): one message for each tile whose thumbnail
+     * The thumbnails of a gallery post the thumbnail rule refuses: one message for each tile whose thumbnail
      * would be made from a file isThumbnailSource() does not accept, read as saveMedia() would read it (a drop's blob,
      * no thumbnail, the placeholder and a tile left showing its own stored thumbnail make none; a tile marked for
      * deletion makes none). The administrator saves and the API ask it before they write anything and refuse the whole
@@ -1614,10 +1613,10 @@ class MediaHelper
     }
 
     /**
-     * The files a thumbnail copy may have left that are not images (2.2.1), for the update to list: every file of the
+     * The files a thumbnail copy may have left that are not images, for the update to list: every file of the
      * save folder that is not an image of its own extension, and every file a media row names as its thumbnail that is
-     * not one, each with the rows that name it as their image or their thumbnail. Up to 2.2.0 a thumbnail could be a
-     * copy of any file the site could read, published in the save folder. Nothing is changed or deleted: staff remove
+     * not one, each with the rows that name it as their image or their thumbnail. Such a copy can stand in the save
+     * folder from before the thumbnail rule (isThumbnailSource()) held. Nothing is changed or deleted: staff remove
      * them by hand. The save folder's index.html and its hidden files (a .htaccess) are never such a copy and are not
      * listed.
      *
@@ -1698,8 +1697,8 @@ class MediaHelper
 
     /**
      * An image description as a row holds it: at most {@see self::ALT_MAX_LENGTH} characters. A longer one is
-     * shortened, and the editor is told once per save, in plain words, instead of the save failing on the column
-     * (2.2.0). The form's own input stops at the same length, and the API refuses a longer one.
+     * shortened, and the editor is told once per save, in plain words, instead of the save failing on the column.
+     * The form's own input stops at the same length, and the API refuses a longer one.
      *
      * @param string $alt The description as sent.
      *
@@ -1731,7 +1730,7 @@ class MediaHelper
     /**
      * Generates a unique filename to prevent overwriting existing files.
      *
-     * UNIQUE BY STEM (2.2.0): a media plugin may write another format than the one proposed (the Media Optimizer set to
+     * UNIQUE BY STEM: a media plugin may write another format than the one proposed (the Media Optimizer set to
      * WebP turns photo.jpg into photo.webp), so a name is free only when no file on disk has its stem in any extension
      * and no media row names a file of that stem (a row whose file is gone keeps its name); otherwise a second upload of
      * one name would overwrite the first item's image.
@@ -2235,8 +2234,8 @@ class MediaHelper
 
     /**
      * Dispatch the pre-delete cleanup event so a plugin can purge derivatives
-     * before the component removes the media files: on every delete path
-     * (2.2.1), Tools > Media, an image removed in a save and an entity deleted
+     * before the component removes the media files: on every delete path,
+     * Tools > Media, an image removed in a save and an entity deleted
      * with its gallery. A delete inside a transaction raises it once that has
      * committed, the rows then already gone from the table.
      *
@@ -2272,7 +2271,7 @@ class MediaHelper
     }
 
     /**
-     * Raise one media event on the shared dispatcher (2.2.0, design 2.15.3): mode A, the alfa-media group imported
+     * Raise one media event on the shared dispatcher (broadcast), the alfa-media group imported
      * first, under Alfa's isolated policy, so every enabled and loaded listener hears it whatever its group, and one
      * that throws is logged while the next runs, as the media pipeline always absorbed a failing plugin.
      *

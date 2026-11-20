@@ -1327,14 +1327,14 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * turns it into M14BT and hands district M1 to district M14: the reason
      * a normalise-then-compare approach was rejected.
      *
-     * EXCEPT DIGITS AND SPACES ONLY (2.2.1). Greek postcodes are written
+     * EXCEPT DIGITS AND SPACES ONLY. Greek postcodes are written
      * "412 22", Swedish "123 45", Czech and Slovak "110 00". A value or a bound
      * made only of digits and spaces is read as its digits and compared as that
      * number, so "412 22" and "41222" both meet a band written "41000" to
      * "41999" or "410 00" to "419 99". Compared naturally, "412" read below
      * "41000" and the row was missed.
      *
-     * A BAND MAY BE WHOLE POSTCODES OR THEIR FIRST DIGITS (2.2.1). When both
+     * A BAND MAY BE WHOLE POSTCODES OR THEIR FIRST DIGITS. When both
      * limits are set, made of digits of one length, and shorter than a value of
      * digits, the value's first digits of that length are compared: "410" to
      * "419" meets every postcode from "410 00" to "419 99", written with the
@@ -1383,7 +1383,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         $subject = self::digitsOf($subject);
 
-        // A band of first digits (2.2.1): its limits (one or both) digits of one length, shorter than the value's.
+        // A band of first digits: its limits (one or both) digits of one length, shorter than the value's.
         $prefix = self::prefixLength(subject: $subject, min: $hasMin ? $min : null, max: $hasMax ? $max : null);
 
         if ($prefix > 0) {
@@ -1413,8 +1413,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * A value or a bound made only of digits and spaces, as its digits ("412 22" as "41222"); anything else as given
-     * (2.2.1).
+     * A value or a bound made only of digits and spaces, as its digits ("412 22" as "41222"); anything else as given.
      *
      * @param mixed $value The value or the bound.
      *
@@ -1432,7 +1431,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * The length of the first digits a band compares, or 0 for a band of whole values (2.2.1): a value of digits
+     * The length of the first digits a band compares, or 0 for a band of whole values: a value of digits
      * against limits of digits shorter than it, both limits of one length, or one limit alone (an upper limit with no
      * floor, or a floor with no upper limit) of three digits or more, a postcode group. A limit alone of one or two
      * digits ("1" set to require a postcode) and limits of different lengths compare as whole numbers.

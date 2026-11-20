@@ -29,20 +29,20 @@ defined('_JEXEC') or die;
  * destination it had just been filtered by. Ownership lives here so that the
  * cost is paid once and the plugin API never has to mention it.
  *
- * ELIGIBLE FOR PRICING (2.2.0). The same read carries each place's state, so
+ * ELIGIBLE FOR PRICING. The same read carries each place's state, so
  * eligible() answers whether a place may price a visitor: it and every place
  * above it published. PriceContext asks it where a buyer's place enters the
  * goods' pricing, and ShippingTaxResolver for a shipment's destination; an
  * unpublished country, or a town inside one, prices as an unknown place, while
  * its price rows, discounts and taxes stay as they are.
  *
- * DISCOUNTS AND TAXES FOLLOW THE CHAIN (2.2.1). A discount or a tax scoped to
+ * DISCOUNTS AND TAXES FOLLOW THE CHAIN. A discount or a tax scoped to
  * a place reaches every place inside it: the goods' rules (PriceDataLoader) and
  * the shipping taxes (ShippingTaxResolver) match the buyer's chain, and one
  * order decides which of them applies first (RulePrecedence). A product's price
  * rows stay exact to their place.
  *
- * THE COUNTRY OF A PLACE (2.2.1). A place below a country carries no country
+ * THE COUNTRY OF A PLACE. A place below a country carries no country
  * codes of its own (code2 and code3 belong to a country; a region may carry
  * its ISO 3166-2 code instead), so the country of any place is the place at
  * the top of its chain, and countryOf() is the one way to read it with its
@@ -79,7 +79,7 @@ final class PlaceTree
     private static array $states = [];
 
     /**
-     * The place -> name map, read with the parents (2.2.1).
+     * The place -> name map, read with the parents.
      *
      * @var array<int, string>
      *
@@ -204,7 +204,7 @@ final class PlaceTree
     }
 
     /**
-     * A place's name as stored, or null for a zero or unknown id (2.2.1: the cart page names the place it prices at).
+     * A place's name as stored, or null for a zero or unknown id (the cart page names the place it prices at).
      *
      * @param int $placeId The `#__alfa_places` id.
      *

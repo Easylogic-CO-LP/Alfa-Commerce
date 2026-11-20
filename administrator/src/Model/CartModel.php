@@ -423,7 +423,7 @@ class CartModel extends ItemModel
      * @param int $quantity The quantity in the popup's box.
      *
      * @return PriceResult|null The line's result, or null when there is no such item or line. A result with no price
-     *                          applying (2.2.2) is answered as it is: ask isPriced() before its figures.
+     *                          applying is answered as it is: ask isPriced() before its figures.
      *
      * @since  2.0.0
      */

@@ -340,7 +340,7 @@ class HtmlView extends BaseHtmlView
             // and shows nothing of the order but its id, so it asks no document
             // right of its own: the dispatcher already asked Orders: Edit for
             // this layout, and an operator who may only replace must be able
-            // to close that modal (F-20). The issue form below keeps its 403.
+            // to close that modal. The issue form below keeps its 403.
             $orderId = RequestScalar::int($input, 'id_order');
 
             if ($orderId <= 0) {
@@ -465,7 +465,7 @@ class HtmlView extends BaseHtmlView
             // after a reload (every modal return) or a refused save. Any other
             // open (the notification bell, a dashboard card, a bookmark) forgets
             // it, or unsaved values gone stale would refill the form and Save
-            // would write them (F-19).
+            // would write them.
             if (RequestScalar::int($input, 'kept') !== 1) {
                 $app->setUserState('com_alfa.edit.order.data', null);
             }
@@ -482,7 +482,7 @@ class HtmlView extends BaseHtmlView
             }
 
             // A payment or a shipment whose plugin of record cannot be used: said once at the top of the page, and in the
-            // row's Actions cell (UX-33, UX-35); a delete that reads the same order says nothing of it (UX-36).
+            // row's Actions cell; a delete that reads the same order says nothing of it.
             foreach ([['alfa-payments', $this->order->payments ?? []], ['alfa-shipments', $this->order->shipments ?? []]] as [$group, $rows]) {
                 foreach ((array) $rows as $row) {
                     $refusal = \is_object($row) ? ActionRegistry::refusal($row, $group) : '';
@@ -498,7 +498,7 @@ class HtmlView extends BaseHtmlView
             // Read once: the form now holds what the post refilled. The kept=1
             // address requested again (an action popup's return reloads the
             // page as it stands, and so do F5 and Back) must show the order as
-            // stored, not a status or values gone stale since (review O-REV-1).
+            // stored, not a status or values gone stale since.
             $app->setUserState('com_alfa.edit.order.data', null);
 
             // Column definitions for the Documents panel's table, the same way
@@ -737,7 +737,7 @@ class HtmlView extends BaseHtmlView
      * Toolbar for the correction modal.
      *
      * The Issue button exists ONLY when the proposal is actually issuable:
-     * section 5 says the operator chooses among strategies that are currently valid,
+     * the operator chooses among strategies that are currently valid,
      * and a button certain to be refused is not an offer: it is a trap that
      * costs the operator a round trip to discover.
      *

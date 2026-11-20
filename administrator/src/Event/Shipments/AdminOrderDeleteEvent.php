@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Site\Service\Order\Order;
 /**
  * onAdminOrderDelete for a carrier: asked before an order is deleted, once for each shipment its plugin recorded, so
  * the plugin may refuse the delete (setResult(false)). getOrder() is the order and getMethod() the shipment, as the
- * payment twin's getMethod() is the payment (2.2.1).
+ * payment twin's getMethod() is the payment.
  *
  * @since  1.0.0
  */

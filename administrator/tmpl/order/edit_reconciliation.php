@@ -108,7 +108,7 @@ $correctable = \in_array($rf->coverage->sales->state, [
 // is. The modal enforces the permission again, at its own layout and service.
 // And only while Alfa issues the documents: with documents_issuer external the
 // Documents panel, and with it that listener, is not drawn, so a correction
-// modal opened then could never close (F-34).
+// modal opened then could never close.
 $canCorrect = DocumentHelper::isIssuerEnabled()
     && AlfaHelper::can(section: 'orders', action: 'edit', user: $this->getCurrentUser())
     && AlfaHelper::can(section: 'documents', action: 'create', user: $this->getCurrentUser());
@@ -211,7 +211,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 		</summary>
 
 		<?php if ($correctable && $canCorrect) : ?>
-			<?php // section 4A's entrance. A LINK, deliberately: this panel is
+			<?php // The correction's entrance. A LINK, deliberately: this panel is
 			      // presentation only, so it opens the correction surface and
 			      // decides nothing. The modal re-derives the proposal, shows
 			      // the exact figures, and refuses with 403 for an operator who
@@ -238,7 +238,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 						(int) $order->id,
 						// NO source is pre-named. Which document a credit
 						// corrects is a fiscal attribution the operator makes
-						// - the same ruling the Issue modal's picker follows,
+						// - the same rule the Issue modal's picker follows,
 						// where nothing is pre-selected. From here a POSITIVE
 						// correction needs no source; a negative one is opened
 						// from the document it credits, on the row below.
@@ -286,7 +286,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 					<?php echo htmlspecialchars($stateLabel($semantic->state), ENT_QUOTES, 'UTF-8'); ?>
 				</span>
 			</h6>
-			<?php // Below 480 px a row folds (alfa-fold, 2.2.1 A4): its figures wrap under the pool, each named. ?>
+			<?php // Below 480 px a row folds (alfa-fold): its figures wrap under the pool, each named. ?>
 			<table class="table table-sm mb-3 alfa-fold">
 				<thead>
 					<tr>

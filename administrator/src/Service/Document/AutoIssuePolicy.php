@@ -148,7 +148,7 @@ final class AutoIssuePolicy
     /**
      * Whether entering a status can issue anything: the issuer is Alfa's own, and the status has issue rules or issues a
      * delivery note. The flags {@see self::issueForStatus()} reads, without the order: what a status change reads to
-     * decide whether its documents single has work (2.2.0). A rule row that matches no order, or the paid gate, is still
+     * decide whether its documents single has work. A rule row that matches no order, or the paid gate, is still
      * decided when the single runs.
      *
      * @param int $statusId The status entered.
@@ -420,7 +420,7 @@ final class AutoIssuePolicy
      * prefix, so the extra segment costs nothing.
      *
      * Still never fails a transition. A deadlock or a lock wait that timed
-     * out is not the document's fault and passes again (2.1.4): it reaches
+     * out is not the document's fault and passes again: it reaches
      * the caller, and the order's documents task retries it with backoff;
      * any other failure is this alert, as before.
      *
@@ -458,7 +458,7 @@ final class AutoIssuePolicy
     }
 
     /**
-     * Why an issue failed, for the notice (2.2.1). A refusal that carries staff's sentence
+     * Why an issue failed, for the notice. A refusal that carries staff's sentence
      * ({@see DocumentRefusedException}, anywhere in the chain: the issuer wraps what it refuses in its own "issue
      * failed" exception) is said in that sentence, translated where the notice is read; a database failure is said as
      * one, so no table, column or statement reaches the notice; any other failure by the first line of the failure
@@ -652,7 +652,7 @@ final class AutoIssuePolicy
      * Say when the order holds discount no invoice can claim any more.
      *
      * A discount follows the goods, so a balance larger than the goods still
-     * to invoice stays unclaimed (an invoice issued before 2.2.1 without its
+     * to invoice stays unclaimed (an invoice issued without its
      * share leaves one, OrderChargeLines::unclaimableDiscounts()). An
      * automatic issue then issues the order's invoices without it, and they
      * total more than the order: the documents log and the order's
@@ -722,7 +722,7 @@ final class AutoIssuePolicy
     }
 
     /**
-     * Retire the auto-issue alerts an issued document answers (since 2.1.4): those of its type (failed, no series,
+     * Retire the auto-issue alerts an issued document answers: those of its type (failed, no series,
      * undocumented charges), the missing buyer tax number only when its type needs one, and the untyped `failed`
      * alert, which names no type and asks staff to act on the order, so any document issued answers it. An alert
      * about another type stays: a delivery note does not answer the invoice's.
@@ -777,7 +777,7 @@ final class AutoIssuePolicy
      * @param int $orderId The order id.
      * @param string $key Dedup key.
      * @param NotificationText $title Notification title.
-     * @param NotificationText|null $message Its body: why it was raised when the caller knows (2.2.1: a failed
+     * @param NotificationText|null $message Its body: why it was raised when the caller knows (a failed
      *                                       issue's reason), else the general one.
      *
      * @since  2.0.0

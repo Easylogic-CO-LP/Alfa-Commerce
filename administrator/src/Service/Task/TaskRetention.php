@@ -28,7 +28,7 @@ use Joomla\Database\ParameterType;
 use Joomla\Database\QueryInterface;
 
 /**
- * Which finished tasks may go, and their deletion a batch at a time (2.2.0): the one place the retention rules live.
+ * Which finished tasks may go, and their deletion a batch at a time: the one place the retention rules live.
  * The tasks.prune job, the bell's fallback, the Tools button and alfa:tasks:prune all call it.
  *
  * The rules, by state and handler:
@@ -42,7 +42,7 @@ use Joomla\Database\QueryInterface;
  *   a price set's job follows the plain KEEP_DAYS, its set row carrying prepared_at.
  *
  * A task of another owner than com_alfa (the task API's line): done singles and jobs KEEP_DAYS and no newest kept,
- * the rest as above. Every task is com_alfa's in 2.2.0 (core's handlers only), so the line costs no query: a handler
+ * the rest as above. Every task is com_alfa's (core's handlers only), so the line costs no query: a handler
  * this class does not name is held to it, which is the KEEP_DAYS rule.
  *
  * Anything that must outlive a task is written to the order's timeline before the task may go (the order.email_sent
@@ -53,7 +53,7 @@ use Joomla\Database\QueryInterface;
 final class TaskRetention
 {
     /**
-     * The owner every task has in 2.2.0.
+     * The owner every task has.
      *
      * @since  2.2.0
      */

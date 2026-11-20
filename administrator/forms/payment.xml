@@ -188,7 +188,7 @@
 
     </fieldset>
 
-    <!-- The method's image (2.2.2): one image, as a manufacturer's; drawn by core beside the method's title. -->
+    <!-- The method's image: one image, as a manufacturer's; drawn by core beside the method's title. -->
     <fieldset name="Image" label="COM_ALFA_FIELDSET_IMAGE">
         <field
                 name="medias"

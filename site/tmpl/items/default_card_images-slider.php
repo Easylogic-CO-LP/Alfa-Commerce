@@ -8,7 +8,7 @@
  */
 
 /**
- * The card's images as a slider (a variant of the "card_images" slot, 2.2.1): the product's first images, as many as
+ * The card's images as a slider (a variant of the "card_images" slot): the product's first images, as many as
  * "Images in the Card Slider" says (the item's, else its category's, else the menu item's, else the Options'; All for
  * every image), side by side in a track that scrolls sideways and stops on each image.
  *

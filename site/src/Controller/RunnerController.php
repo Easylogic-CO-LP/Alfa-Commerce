@@ -20,7 +20,7 @@ use Joomla\CMS\Session\SessionManager;
 use Throwable;
 
 /**
- * The storefront's two runner endpoints (design 2.7).
+ * The storefront's two runner endpoints.
  *
  * runner.kick is the guest endpoint a storefront page's kick script calls after load: POST only, no token, no input
  * read (no job, type, payload or budget is taken from the request), one working call per 5 s whoever calls, the

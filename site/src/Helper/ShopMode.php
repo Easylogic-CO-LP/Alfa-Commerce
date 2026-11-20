@@ -14,7 +14,7 @@ use Joomla\CMS\Component\ComponentHelper;
 defined('_JEXEC') or die;
 
 /**
- * Whether the shop sells online, or shows its catalogue only (2.2.2).
+ * Whether the shop sells online, or shows its catalogue only.
  *
  * One switch in the component Options (Cart, Online sales, `catalogue_only`). It is read from the component's own
  * Options, never from parameters merged with a menu item's, so no menu item switches selling back on. In catalogue-only

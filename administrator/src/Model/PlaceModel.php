@@ -35,7 +35,7 @@ use Throwable;
 class PlaceModel extends AlfaAdminModel
 {
     /**
-     * How many products the warning of a deleted place names before it counts the rest (2.2.1).
+     * How many products the warning of a deleted place names before it counts the rest.
      *
      * @since  2.2.1
      */
@@ -168,7 +168,7 @@ class PlaceModel extends AlfaAdminModel
 
     /**
      * Save a place. A place that takes another parent changes the chain of every place below it, so the price index
-     * slots kept at or below it, priced with the old chain, owe the catalogue a rebuild (2.2.1): it runs in Tools >
+     * slots kept at or below it, priced with the old chain, owe the catalogue a rebuild: it runs in Tools >
      * Tasks and staff are told.
      *
      * @param array $data The form data.
@@ -224,11 +224,11 @@ class PlaceModel extends AlfaAdminModel
      *
      * A product's price rows that name a deleted place are kept: they apply to
      * no buyer, the prices editor marks the place as deleted, and an edit that
-     * would widen one to every place is refused (2.2.1). The delete stands and
+     * would widen one to every place is refused. The delete stands and
      * names them, a warning per place with its rows and their products.
      *
      * Refused, with nothing written, while a place in the set has places inside
-     * it that are not deleted with it (2.2.1): they would be left without the
+     * it that are not deleted with it: they would be left without the
      * country or region above them, outside its rules and carrier zones. The
      * refusal names them; staff move them under another place or delete them
      * with it, as Joomla asks for a category.
@@ -260,7 +260,7 @@ class PlaceModel extends AlfaAdminModel
         // leaves every row where it was.
         $requested = $pks;
 
-        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks: no plugin code
         // runs under them.
         if (!$this->alfaAskBeforeDelete(pks: (array) $pks)) {
             return false;
@@ -277,7 +277,7 @@ class PlaceModel extends AlfaAdminModel
 
             if ($pks !== []) {
                 // The places inside the set that the set does not delete: a delete never leaves a place without the
-                // place above it (2.2.1).
+                // place above it.
                 $inside = $db->setQuery(
                     $db->getQuery(true)
                         ->select($db->quoteName(['id', 'name', 'parent_id']))
@@ -379,7 +379,7 @@ class PlaceModel extends AlfaAdminModel
     }
 
     /**
-     * The refusal of a delete that would leave places without the place above them, naming them (2.2.1).
+     * The refusal of a delete that would leave places without the place above them, naming them.
      *
      * @param DatabaseInterface $db The connection.
      * @param object[] $inside The places left behind: id, name and parent_id.
@@ -417,7 +417,7 @@ class PlaceModel extends AlfaAdminModel
     /**
      * Add, unpublished, the places Alfa Commerce ships inside the chosen countries ({@see PlaceSeed::SUBDIVISIONS}:
      * Greece's 13 regions and Mount Athos; the Canary Islands, Ceuta and Melilla inside Spain), each with its ISO 3166-2
-     * code and no country codes (2.2.1). A code the country already has a place for, directly inside it, is skipped;
+     * code and no country codes. A code the country already has a place for, directly inside it, is skipped;
      * nothing is matched by name, so a place staff made without a code is not recognised. The places of one country are
      * added together or not at all.
      *

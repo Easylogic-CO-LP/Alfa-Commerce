@@ -326,7 +326,7 @@ class ShipmentsModel extends AlfaListModel
             MultilingualHelper::bindRelated($item, 'usergroups', $ugMap);
         }
 
-        // Each method's image (2.2.2), read for the page in one call: its first media row, or null.
+        // Each method's image, read for the page in one call: its first media row, or null.
         $images = MediaHelper::getMediaData(origin: 'shipment', itemIDs: array_map(static fn (object $item): int => (int) $item->id, $items));
 
         foreach ($items as $item) {

@@ -80,7 +80,7 @@ use Throwable;
  * A veto is data: before-save and before-delete collect every objection and refuse cleanly through
  * setError(), which is what the controller already knows how to redisplay.
  *
- * AFTER THE COMMIT, VETOES BEFORE THE LOCK (2.1.4, design 0.2 and 2.9). The admin events of a save
+ * AFTER THE COMMIT, VETOES BEFORE THE LOCK. The admin events of a save
  * or a delete are moved out of a model's transaction or lock as follows, and no further:
  *   - Heard after the commit: the after-events, Alfa's (onAlfaAdminAfterSave, onAlfaAdminAfterDelete)
  *     and Joomla's (onContentAfterSave, onContentAfterDelete), once the record's write has committed
@@ -396,7 +396,7 @@ abstract class AlfaAdminModel extends AdminModel
     }
 
     /**
-     * A new record's data with the declared default of each named field it leaves out (2.2.1).
+     * A new record's data with the declared default of each named field it leaves out.
      *
      * The edit screen always posts these fields, at the values its form offers; a REST create may leave one out, and
      * then stores the value the edit screen would have offered instead of failing on a column that has no default of
@@ -601,7 +601,7 @@ abstract class AlfaAdminModel extends AdminModel
     protected function alfaAskContentBeforeDelete(array $pks): bool
     {
         try {
-            // Joomla's content event with Joomla's semantics, delivered through the plugin helper (2.2.0).
+            // Joomla's content event with Joomla's semantics, delivered through the plugin helper.
             $table = $this->getTable();
             $plugins = AlfaPluginHelper::get();
             $plugins->importGroup($this->events_map['delete']);

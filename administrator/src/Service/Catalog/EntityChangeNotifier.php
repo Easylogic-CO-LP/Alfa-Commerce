@@ -65,7 +65,7 @@ final class EntityChangeNotifier
 
             // Both groups, mirroring VisibilityNotifier: search engines live in
             // `alfa-search`, while a feature package may also keep a copy. An
-            // after phase (2.2.0, mode A, isolated): one listener's failure is
+            // after phase (broadcast, isolated): one listener's failure is
             // logged and the next listener still hears the change.
             $plugins->importGroup('alfa-search');
             $plugins->importGroup('alfa');

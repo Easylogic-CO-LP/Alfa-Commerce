@@ -59,7 +59,7 @@ final class OrderStatusEvent extends OrderTaskHandler
 
     /**
      * Whether onOrderStatusChange has a listener on the shared dispatcher, once the alfa group is imported as
-     * {@see self::run()} imports it: what a status change reads to decide whether its event single has work (2.2.0).
+     * {@see self::run()} imports it: what a status change reads to decide whether its event single has work.
      * When the listeners cannot be known (the group not imported: no application, or maintenance; or a plugin of the
      * group that failed to import) the single is owed: its run meets the same plugin then. A failure that ended the
      * caller's transaction reaches the caller.
@@ -128,7 +128,7 @@ final class OrderStatusEvent extends OrderTaskHandler
 
         // The feature plugins listen here; the component imports them when it boots, which a recovery run in another
         // process may not have done. Each listener is a task unit, named by the helper without reflection
-        // (Class::method, a repeat by its position), so a failed one is retried alone (2.2.0, mode A, an after phase).
+        // (Class::method, a repeat by its position), so a failed one is retried alone (broadcast, an after phase).
         $plugins = AlfaPluginHelper::get();
         $plugins->importGroup('alfa');
         $failed = [];

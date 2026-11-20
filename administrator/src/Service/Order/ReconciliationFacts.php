@@ -189,7 +189,7 @@ final class ReconciliationFacts
      * A source is the order line, parcel, contribution or cart rule a document
      * line names; the pool reads the sum over its sources. A credit counts
      * against the sales documentation only as far as it offsets an over-claim
-     * on the SAME source. Contract section 8: current 30, active documented 40,
+     * on the SAME source. For example: current 30, active documented 40,
      * drift -10; after CN-001 of -10 the active documented is 30 and the drift
      * is 0, so the facts reconcile without anyone marking a proposal done.
      * Three regions, each with the figure it publishes as consumed:
@@ -1003,7 +1003,7 @@ final class ReconciliationFacts
     /**
      * A sales charge line whose frozen tax rate its source now contradicts, or null.
      *
-     * section 17: a changed rate is semantic drift, shown as such and never cleared
+     * A changed rate is semantic drift, shown as such and never cleared
      * with money. A fee and a parcel each store the rate they were charged at,
      * compared as the stored decimals exactly as an item line's is: a parcel
      * re-rated after its invoice disagrees with it, whatever its amounts.

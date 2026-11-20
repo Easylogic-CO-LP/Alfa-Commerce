@@ -41,9 +41,9 @@ final class CartLinePresenter
 {
     /**
      * @param CartSubject $subject The cart's subject: its customer's context decides which commercial plugins take
-     *                             part (2.2.0: the plugins are booted through the plugin helper, so no application is
+     *                             part (the plugins are booted through the plugin helper, so no application is
      *                             handed in), and who operates it whether one Joomla does not load for them is booted
-     *                             for the customer (2.2.1).
+     *                             for the customer.
      *
      * @since  2.0.0
      */
@@ -68,7 +68,7 @@ final class CartLinePresenter
             $fieldsById[(int) $f->id] = $f;
         }
 
-        // The line's surfaces are collected here and handed to the line as a read-only map after each field (2.2.1): a
+        // The line's surfaces are collected here and handed to the line as a read-only map after each field: a
         // plugin holding the line reads what the others contributed and cannot change it.
         $slots = [];
         $cartItem->surfaces = new SurfaceMap();
@@ -79,7 +79,7 @@ final class CartLinePresenter
             $fieldSurfaces = [];
 
             if ($field !== null) {
-                // The field's own plugin, through the plugin helper (2.2.0, mode B).
+                // The field's own plugin, through the plugin helper (targeted).
                 $plugins = AlfaPluginHelper::get();
 
                 try {
@@ -109,7 +109,7 @@ final class CartLinePresenter
                         'config' => $field->config ?? new Registry($field->params_decoded ?? []),
                     ]);
 
-                    // Isolated (2.2.1): a plugin whose handler throws leaves the line its plain summary below,
+                    // Isolated: a plugin whose handler throws leaves the line its plain summary below,
                     // logged once, and the cart renders.
                     if ($plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . $fieldId . ') on a cart line')) {
                         $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
@@ -142,7 +142,7 @@ final class CartLinePresenter
             $cartItem->surfaces = new SurfaceMap($slots);
         }
 
-        // Feature plugins (onCartItemDisplay, 2.2.0): one event for the line, each
+        // Feature plugins (onCartItemDisplay): one event for the line, each
         // `alfa` plugin the customer's view levels admit called once, in their order, through
         // its own targeted declaration; a plugin that throws is logged and the next one runs.
         $plugins = AlfaPluginHelper::get();

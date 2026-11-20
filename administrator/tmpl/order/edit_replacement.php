@@ -8,9 +8,8 @@
  * Void & Replace, previewed: rendered inside a modal iframe, the same shell
  * every other order popup uses.
  *
- * The document reconciliation contract, section 6: before
- * committing, show the document that will be voided, the replacement that will
- * be issued, and what survives. Every figure here came from the issuer's own
+ * Before the commit it shows the document that will be voided, the replacement
+ * that will be issued, and what survives. Every figure here came from the issuer's own
  * preview, computed with the source's claims released and then rolled back;
  * this template performs no arithmetic, and nothing was written to show it.
  *

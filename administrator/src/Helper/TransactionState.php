@@ -46,7 +46,7 @@ defined('_JEXEC') or die;
 final class TransactionState
 {
     /**
-     * The connection as the driver whose transaction levels this class keeps (2.2.2): the narrowing of a connection to
+     * The connection as the driver whose transaction levels this class keeps: the narrowing of a connection to
      * a DatabaseDriver for TransactionState and PostCommit that the cart, the price index, the item field projection
      * and the inventory service use, each once, in its constructor, closing the levels it opens through commitLevel()
      * or rollBackLevel() on what this returns. A few older places still narrow on their own. Every connection

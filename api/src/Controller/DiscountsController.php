@@ -90,7 +90,7 @@ class DiscountsController extends ApiController
     }
 
     /**
-     * A discount is deleted from the trash only, as the administrator's list of discounts deletes it (2.2.1).
+     * A discount is deleted from the trash only, as the administrator's list of discounts deletes it.
      *
      * @since  2.2.1
      */

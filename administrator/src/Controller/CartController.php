@@ -86,8 +86,7 @@ class CartController extends BaseController
      * words. Each takes the same parameters as the code it replaces. A plugin's
      * veto, which only the plugin can word, is framed for the operator with its
      * words inside. A plugin whose check failed is named to the operator: the
-     * failure carries the plugin's name, which the shopper's sentence leaves out
-     * (2.2.1).
+     * failure carries the plugin's name, which the shopper's sentence leaves out.
      *
      * @var array<string, string>
      * @since  2.0.0
@@ -325,8 +324,8 @@ class CartController extends BaseController
             return;
         }
 
-        // THE RECORD COMES FIRST, because here it still can. The owner requires
-        // a trail for a deliberate takeover, and an unrecorded one is refused
+        // THE RECORD COMES FIRST, because here it still can. A deliberate takeover
+        // needs a trail, and an unrecorded one is refused
         // rather than performed and regretted.
         CartTakeover::recordOrFail(
             source: $this->cartSource,
@@ -585,7 +584,7 @@ class CartController extends BaseController
                 return;
             }
 
-            // A line with no price applying (2.2.2) is quoted as waiting for its custom price: the layout reads null so.
+            // A line with no price applying is quoted as waiting for its custom price: the layout reads null so.
             $this->emit(['html' => LayoutHelper::render('cart.builder_quote', ['price' => $priced->isPriced() ? $priced : null], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts')]);
         } catch (Throwable $e) {
             $this->emitThrowable($e);
@@ -883,8 +882,8 @@ class CartController extends BaseController
         }
 
         // A LOOK AT A SHOPPER'S CART DOES NOT SETTLE IT. Reconciliation writes
-        // id_shipment and id_payment on the row the shopper is using, and the
-        // owner's list names both as mutations. The rule is stated once, in
+        // id_shipment and id_payment on the row the shopper is using, and both
+        // are changes to that cart. The rule is stated once, in
         // CartTakeover; a builder cart settles as before, and so does a
         // shopper's cart this session has taken over.
         $cartId = (int) RequestScalar::int($this->input, 'cart_id');

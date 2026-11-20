@@ -75,13 +75,13 @@ final class CatalogSearchResults
         public readonly ?string $redirect = null,
         /**
          * Whether the handle belongs to this response alone ({@see SearchResult::$responseSpecific}):
-         * the endpoint then sends no-store (2.2.0).
+         * the endpoint then sends no-store.
          *
          * @since 2.2.0
          */
         public readonly bool $responseSpecific = false,
         /**
-         * The order the products are shown in (2.2.0): the items model's shownOrder() for this read, `relevance`
+         * The order the products are shown in: the items model's shownOrder() for this read, `relevance`
          * unless a sort was set on it.
          *
          * @since 2.2.0

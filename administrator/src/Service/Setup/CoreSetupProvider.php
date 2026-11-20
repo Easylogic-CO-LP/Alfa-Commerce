@@ -81,7 +81,7 @@ final class CoreSetupProvider
     private array $checks = [];
 
     /**
-     * The core checklist, each check owned by core.com_alfa (2.2.0: it enters the collecting event through the event's
+     * The core checklist, each check owned by core.com_alfa (it enters the collecting event through the event's
      * constructor, before any plugin is asked, as the menu's core entries do). Priorities encode the natural DOING
      * order, higher first: identity before currency before tax before methods before catalogue.
      *
@@ -144,7 +144,7 @@ final class CoreSetupProvider
             ->priority(800)
             ->probe(static fn (): bool => self::hasMerchantCheckoutFields());
 
-        // A required field whose plugin a visitor cannot use refuses every form that asks for it (2.2.1): the
+        // A required field whose plugin a visitor cannot use refuses every form that asks for it: the
         // form fails closed, and this row tells staff before a customer meets it.
         $this->check('form.fields_available', 'COM_ALFA_SETUP_CHECK_FORM_FIELD_PLUGINS_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)

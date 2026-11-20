@@ -165,7 +165,7 @@ class SearchController extends BaseController
                 intent: SearchIntent::fromDeclared(RequestScalar::cmd($input, 'intent', '')),
             ));
 
-            // A HANDLE THAT BELONGS TO THIS RESPONSE ALONE IS NEVER SHARED (2.2.0): the
+            // A HANDLE THAT BELONGS TO THIS RESPONSE ALONE IS NEVER SHARED: the
             // endpoint answers before Joomla's page cache could store it, and sends no
             // Cache-Control of its own otherwise, so a proxy is told here.
             if ($results->eventId !== null && $results->responseSpecific) {

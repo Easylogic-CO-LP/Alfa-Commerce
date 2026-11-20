@@ -25,7 +25,7 @@ $isOpen   = !empty($displayData['is_open']);
 $count    = (int) ($summary['count'] ?? 0);
 $severity = $count > 0 ? ($summary['severity'] ?? 'info') : 'none';
 
-// The figure says its scope (2.2.1): the unread notifications not dismissed, as the panel lists them; the
+// The figure says its scope: the unread notifications not dismissed, as the panel lists them; the
 // Notifications list counts dismissed ones too unless its scope is Not dismissed.
 $scope = htmlspecialchars(Text::sprintf('COM_ALFA_NOTIFY_BADGE_LABEL', $count), ENT_QUOTES, 'UTF-8');
 ?>

@@ -60,7 +60,7 @@ $renderActions = static function (array $actions) use ($ajaxBase): string {
 };
 $renderSurface = static fn (string $surface): string => $renderActions(ToolRegistry::forSurface($surface));
 
-// Tools > Tasks reads in the order staff act (UX-10): what needs attention and the run that retries it, the jobs and the
+// Tools > Tasks reads in the order staff act: what needs attention and the run that retries it, the jobs and the
 // deletion of finished ones, any other card of the tab, and last how the background work runs (set once, read rarely).
 $tasksActions = ToolRegistry::forSurface('tasks');
 $tasksAction = static fn (string $id): array => array_values(array_filter($tasksActions, static fn ($action): bool => $action->id === $id));
@@ -101,7 +101,7 @@ $toolsUser = Factory::getApplication()->getIdentity();
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
     <?php /* Tasks: the job the progress page follows; what a save left failed or with an unknown outcome, for staff to act on,
-             and the run that retries it; the jobs and the prune; how the background work runs (UX-10) */ ?>
+             and the run that retries it; the jobs and the prune; how the background work runs */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'tasks', Text::_('COM_ALFA_TOOLS_TAB_TASKS')); ?>
         <?php echo LayoutHelper::render('tasks.progress', ['job' => $this->job, 'missing' => $this->jobMissing, 'id' => RequestScalar::int(Factory::getApplication()->getInput(), 'job')], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo LayoutHelper::render('tasks.attention', $this->tasks + ['failedJobs' => $this->jobs['failedJobs']], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>

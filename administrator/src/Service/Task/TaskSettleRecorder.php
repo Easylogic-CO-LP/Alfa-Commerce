@@ -14,7 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 use Throwable;
 
 /**
- * A handler whose done run leaves a record that must outlive the task (2.2.0): anything that must outlive a task is
+ * A handler whose done run leaves a record that must outlive the task: anything that must outlive a task is
  * written to the business history before the task may be pruned. The record is written inside the transaction that
  * settles the run done, with a write that reports failure, so a task is never done without it: when it cannot be
  * written the settle is rolled back, the task stays running until its claim passes, and recovery holds it for staff.

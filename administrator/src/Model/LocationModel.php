@@ -45,7 +45,7 @@ class LocationModel extends AlfaAdminModel
     protected string $alfaEntity = 'location';
 
     /*
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - save() normalises capabilities, strips the protected ownership columns and
      *   runs the default-location guards BEFORE parent::save(), so
      *   onAlfaAdminBeforeSave sees the normalised data, and a guard-refused save
@@ -175,7 +175,7 @@ class LocationModel extends AlfaAdminModel
 
         if ($id > 0) {
             // Saved under the inventory locks of its stock records and its row. Alfa's before-save is asked before
-            // them (2.1.4, design 0.2), and the after-events are heard once they are released; Joomla's
+            // them, and the after-events are heard once they are released; Joomla's
             // onContentBeforeSave stays inside the save, between the record's check and its store.
             $asked = $this->alfaAskSave(data: $data);
 

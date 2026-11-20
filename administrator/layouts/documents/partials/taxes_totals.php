@@ -6,9 +6,8 @@
  * re-derived from lines (rounding truth).
  *
  * Each row prints the tax names its lines froze before its rate ("VAT 24%"),
- * the names a row carries in `tax_names` (DocumentRenderer); a row with none,
- * as on every document issued before 2.2.0, prints its rate alone, exactly as
- * it always has.
+ * the names a row carries in `tax_names` (DocumentRenderer); a row with none
+ * prints its rate alone.
  *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -45,7 +44,7 @@ $taxes = $displayData['taxes'] ?? [];
 $separators = DocumentRenderer::separators(document: $document);
 $fmt = DocumentMoney::formatter($displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
 $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF-8');
-// A tax rate prints as stored (2.2.2): every digit its column holds, its padding zeros dropped. The blank line after
+// A tax rate prints as stored: every digit its column holds, its padding zeros dropped. The blank line after
 // the row's rate keeps the line break the rate printed before, so a row whose figure is unchanged prints as it did.
 ?>
 <table class="bottom-table">

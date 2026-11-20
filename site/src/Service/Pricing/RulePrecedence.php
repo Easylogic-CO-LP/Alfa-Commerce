@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
 defined('_JEXEC') or die;
 
 /**
- * The one order in which the discounts, or the taxes, that match a buyer apply (2.2.1).
+ * The one order in which the discounts, or the taxes, that match a buyer apply.
  *
  * A rule scoped to a place reaches every place inside it, so a buyer in a town
  * can match a rule of the town, one of its region and one of its country at

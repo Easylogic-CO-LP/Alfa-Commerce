@@ -59,7 +59,7 @@ class FieldsHelper
 
     /**
      * The key of a form field's params that holds its Layout setting, the layout its stored value is shown with
-     * ({@see self::render()}); the field form saves it there with the plugin's own params (2.2.1). Never `layout`:
+     * ({@see self::render()}); the field form saves it there with the plugin's own params. Never `layout`:
      * the checkout form gives that param to Joomla's field as the layout of its input.
      *
      * @since  2.2.1
@@ -295,7 +295,7 @@ class FieldsHelper
 
             foreach ($groupFields as $field) {
                 // A field whose plugin cannot be used in this request is never a silent no-op: a required one refuses
-                // the form, an optional one is left out and logged (2.2.1).
+                // the form, an optional one is left out and logged.
                 try {
                     $plugin = self::boot($field->type ?? '');
                 } catch (Throwable $unavailable) {
@@ -621,7 +621,7 @@ class FieldsHelper
                           . '/html/plg_alfa-form-fields_' . $type . '/' . $name . '.php';
         } else {
             // No explicit template: the plugin helper resolves the active
-            // template's override, else the plugin's default (2.2.0).
+            // template's override, else the plugin's default.
             try {
                 $candidates[] = AlfaPluginHelper::get()->layoutPath(PluginId::from('alfa-form-fields', $type), $name);
             } catch (InvalidArgumentException) {
@@ -696,7 +696,7 @@ class FieldsHelper
      * NOT a destination. Nothing about shipping or tax reads this.
      *
      * The default place may be a region or a town: the code is its country's
-     * (PlaceTree::countryOf(), 2.2.1).
+     * (PlaceTree::countryOf()).
      *
      * @return string The alpha-2 code, or '' when the shop has not said.
      *
@@ -718,7 +718,7 @@ class FieldsHelper
             return '';
         }
 
-        // The country of the default place: a region or a town carries no country code of its own (2.2.1).
+        // The country of the default place: a region or a town carries no country code of its own.
         return PlaceTree::countryOf(placeId: $placeId)['code2'] ?? '';
     }
 
@@ -996,7 +996,7 @@ class FieldsHelper
     }
 
     /**
-     * Boot the alfa-form-fields plugin for this field type through the plugin helper (2.2.0, mode B), its ambient
+     * Boot the alfa-form-fields plugin for this field type through the plugin helper (targeted), its ambient
      * subscriptions (the Choice field's onBeforeCompileHead) engaged once through Joomla's own import in place of a
      * second registration by hand.
      *
@@ -1044,7 +1044,7 @@ class FieldsHelper
      *
      * A field the form must demand (required in the context and shown to this customer) is not left out: it is added
      * as a hidden field that refuses every submission, naming the field ({@see UnavailableRule}), so the form fails
-     * closed instead of storing the record without it (2.2.1). Staff read the plugin and the reason in the log,
+     * closed instead of storing the record without it. Staff read the plugin and the reason in the log,
      * and on an administrator screen; the visitor reads only that the field cannot be filled in now. An optional field
      * is left out, logged once per field type in the request.
      *

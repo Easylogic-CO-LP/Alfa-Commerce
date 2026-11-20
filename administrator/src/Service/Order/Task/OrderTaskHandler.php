@@ -28,7 +28,7 @@ use Joomla\Database\ParameterType;
  * What every task an order's change owes has in common: the order it is about, and the records it leaves on the
  * order's timeline when staff act on it (Resend, Run again, Mark resolved: who, when, why) and, for an e-mail and
  * onOrderStatusChange, when it ends failed or held; an e-mail's failed or held record also lists the recipients it had
- * already reached (2.2.0).
+ * already reached.
  *
  * Each record keeps its sentence as a language key with its parameters in its context (`text`), which the History tab
  * renders in the reader's language (OrderHistoryHelper::line()); its summary is the same sentence in English, the
@@ -135,7 +135,7 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
 
     /**
      * The units sent, as a sentence's argument: stored as they are, said where the line is read, each recipient with the
-     * time it was handed over in the reader's time zone (UX-47).
+     * time it was handed over in the reader's time zone.
      *
      * @param list<array{unit: string, at: string}> $sent What sentUnits() answered.
      *
@@ -175,7 +175,7 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
     }
 
     /**
-     * Record an automation the order no longer stood for (2.2.0): an INFO line in the tasks log and one row on the
+     * Record an automation the order no longer stood for: an INFO line in the tasks log and one row on the
      * order's timeline, so a move left out is never silent. Nothing is moved; the task ends done.
      *
      * @param TaskRun $run The task.
@@ -185,7 +185,7 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
     protected function superseded(TaskRun $run): void
     {
         $orderId = $run->subjectId();
-        // The status by its id, said by its name where the line is read (UX-45).
+        // The status by its id, said by its name where the line is read.
         $text = self::text('COM_ALFA_ORDER_TASK_SUPERSEDED', $this->what($run->payload()), $run->id(), ['status' => self::currentStatus(orderId: $orderId) ?? 0]);
         $summary = self::english(text: $text);
         Tasks::log(entry: 'Task #' . $run->id() . ' (' . $run->handler() . ') superseded: ' . $summary, priority: Log::INFO);
@@ -261,7 +261,7 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
             return;
         }
 
-        // A failed or held run also says what it had already delivered (2.2.0): that delivery outlives the task.
+        // A failed or held run also says what it had already delivered: that delivery outlives the task.
         $sent = $settlement->event === TaskSettlement::RUN || $settlement->event === TaskSettlement::INTERRUPTED ? $this->alreadySent(settlement: $settlement) : [];
 
         if ($sent !== []) {
@@ -312,7 +312,7 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
                 : self::text('COM_ALFA_ORDER_TASK_HELD', $what, $task);
         } else {
             $failed = $this->listed($settlement->units, ['failed']);
-            // The work's own failure as its key and arguments, said where the line is read (UX-09).
+            // The work's own failure as its key and arguments, said where the line is read.
             $error = Tasks::errorArgument(stored: $settlement->error);
             $text = $this->failedSummary(settlement: $settlement, what: $what) ?? match (true) {
                 $failed !== '' => self::text('COM_ALFA_ORDER_TASK_FAILED_FOR', $what, $task, $failed),

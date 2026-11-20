@@ -142,9 +142,9 @@ trait SanitisesCatalogPayload
      * ({@see PublishedDecimal}). Its formatted text is the storefront's, in the
      * Auto form. minor_units is set only when the value sits on the scale. The
      * savings are on one basis, tax excluded (savings.basis "tax_excluded": the
-     * base less the subtotal, 2.2.0), whatever the storefront prints beside its
+     * base less the subtotal), whatever the storefront prints beside its
      * tax-included figures; the discounts' total states the same figure under
-     * the same label (discounts.basis, A-INT-3), and a rule's own fixed amount
+     * the same label (discounts.basis), and a rule's own fixed amount
      * names the basis it is stated on.
      *
      * @param PriceResult $price The priced result.
@@ -177,7 +177,7 @@ trait SanitisesCatalogPayload
      * An option's amount is a money delta ('+', '-') at the priced result's
      * currency scale, never fewer decimals ("5.00", "0.125"), or a percentage
      * ('%', '-%') in its own digits ("10"). With no priced result no scale is
-     * stated, and a delta keeps its own digits. In catalogue-only mode (2.2.2) an
+     * stated, and a delta keeps its own digits. In catalogue-only mode an
      * option's amount is null, as the product's price is: no price leaves the
      * server for a shop that sells nothing online.
      *

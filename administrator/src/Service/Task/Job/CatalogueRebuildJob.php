@@ -21,7 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 
 /**
- * Rebuild every projection of the items marked owed (2.2.0): the price index, the field values, the search entry and
+ * Rebuild every projection of the items marked owed: the price index, the field values, the search entry and
  * every projection an extension registers, as an item's save rebuilds them. The job is the per-item repair of a
  * rebuild a request skipped or lost; the search index's full rebuild stays the search.rebuild job's, by generation.
  *

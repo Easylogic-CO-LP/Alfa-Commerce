@@ -147,7 +147,7 @@ final class TourHelper
      * would both render raw PLG_... strings. Importing or even booting the plugin is
      * NOT enough: measured on this install, only an explicit load() resolves them.
      *
-     * ONLY THE PLUGINS WITH A TOUR (2.2.1). A plugin's tour is named after its own
+     * ONLY THE PLUGINS WITH A TOUR. A plugin's tour is named after its own
      * extension, plg_<group>_<element>.<tour> (Joomla's own mapping from a tour to
      * its wording); the Take a Tour list shows every published tour and the running
      * tour is one of them. Loading every platform plugin's language on every page
@@ -161,7 +161,7 @@ final class TourHelper
     {
         $group = PanelDispatcher::PLATFORM_GROUP;
 
-        // The group's enabled plugins as Joomla lists them, through the plugin helper (2.2.0): their strings are
+        // The group's enabled plugins as Joomla lists them, through the plugin helper: their strings are
         // loaded, nothing is imported or booted.
         try {
             $plugins = AlfaPluginHelper::get()->available($group);

@@ -183,7 +183,7 @@ class ItemsModel extends UrlListModel
     protected array $relevanceIds = [];
 
     /**
-     * What the rendered result set of the current read carries (2.2.0): the provider's handle (opaque, or null), the
+     * What the rendered result set of the current read carries: the provider's handle (opaque, or null), the
      * shown order, whether the handle belongs to this response alone, the configured engine. Null for a read that backs
      * no rendered result set (a facet re-read, a programmatic read without a context). Carried, never interpreted.
      *
@@ -223,7 +223,7 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * The shown order's key for each column the listing sorts by (2.2.0): a closed map, so a raw ordering string (an
+     * The shown order's key for each column the listing sorts by: a closed map, so a raw ordering string (an
      * SQL alias) is never published.
      *
      * @var array<string, string>
@@ -238,11 +238,11 @@ class ItemsModel extends UrlListModel
     ];
 
     /**
-     * The order a result set of this read is shown in (2.2.0): `relevance` when nothing else was asked for (the test
+     * The order a result set of this read is shown in: `relevance` when nothing else was asked for (the test
      * the ordering block applies to an engine's ids), else `sort:<key>:<direction>` from the closed map. Computed before
      * the provider runs, so it travels on the query; a read whose engine returns no ids renders nothing to attribute.
      *
-     * Public because two readers outside the listing's own query take it (A-C11-1, A-C11-7): CatalogSearchService
+     * Public because two readers outside the listing's own query take it: CatalogSearchService
      * (the search endpoint's item read: its context and the `order` its payload reports) and getListQuery() here, for
      * a request-driven read. What is said is always what is shown.
      *
@@ -263,7 +263,7 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * The order the listing applies: the state's column and direction, except in catalogue-only mode (2.2.2), where a
+     * The order the listing applies: the state's column and direction, except in catalogue-only mode, where a
      * sort by a figure of the price index (the price, the saving) is not read and falls back to the listing's default
      * order, or to the newest first when that default is a price-index sort too.
      *
@@ -295,7 +295,7 @@ class ItemsModel extends UrlListModel
     private function explicitlySorted(): bool
     {
         // A programmatic read (ignore_request: the search endpoint, a module) never takes its sort from the page
-        // request it happens to run in (A-C11-1): its caller sets the state it means.
+        // request it happens to run in: its caller sets the state it means.
         if ($this->ignoreRequest) {
             return false;
         }
@@ -321,7 +321,7 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * The offset a rendered read's cards are numbered from (A-C11-2): pagination's own start (getStart()), which clamps
+     * The offset a rendered read's cards are numbered from: pagination's own start (getStart()), which clamps
      * a start past the last page to that page, not the raw list.start. A start above 0 is clamped against the result
      * set's total, which the count of this same read gives (the count pagination runs anyway, cached by the list model
      * for it): the count is built with no context, so a provider is told the offset only once the cards' is known.
@@ -443,7 +443,7 @@ class ItemsModel extends UrlListModel
                 : SearchIntent::SEARCH->value,
         );
 
-        // EVERY PAGE OF A REQUEST-DRIVEN LISTING IS A RENDERED RESULT SET (2.2.0): its read
+        // EVERY PAGE OF A REQUEST-DRIVEN LISTING IS A RENDERED RESULT SET: its read
         // carries a ResultSetContext, so a provider may mint a handle for any of its pages.
         // Not copied to a facet sub-model, whose re-read nobody sees.
         $this->setState('search.rendered', true);
@@ -858,7 +858,7 @@ class ItemsModel extends UrlListModel
             $form->setValue($name, 'filter', $this->getState('filter.' . $name));
         }
 
-        // Catalogue only (2.2.2): no price is read, so the bar offers no price or saving filter and no price or saving
+        // Catalogue only: no price is read, so the bar offers no price or saving filter and no price or saving
         // sort (the query leaves them out in any case).
         if (!ShopMode::sellsOnline()) {
             foreach (['price_min', 'price_max', 'on_sale', 'discount_amount_min', 'discount_percent_min'] as $name) {
@@ -1086,7 +1086,7 @@ class ItemsModel extends UrlListModel
         $context = $this->countingForStart ? null : ($this->resultSetContext ?? ($this->getState('search.rendered')
             ? new ResultSetContext(order: $this->shownOrder(), offset: $this->renderedOffset())
             : null));
-        // The configured engine's key from its one reader: '' for the database search (2.2.1).
+        // The configured engine's key from its one reader: '' for the database search.
         $engine = SearchEngineRegistry::shared()->configuredKey();
         $this->resultAttribution = $context === null ? null : new ResultAttribution(order: $context->order, engine: $engine);
 
@@ -1405,7 +1405,7 @@ class ItemsModel extends UrlListModel
             $query->where('pf.discount_percent >= ' . (float) $discountPercentMin);
         }
 
-        // Ordering (a price-index sort falls back in catalogue-only mode, 2.2.2)
+        // Ordering (a price-index sort falls back in catalogue-only mode)
         [$orderCol, $orderDirn] = $this->effectiveOrdering();
 
         // RELEVANCE WINS ONLY WHERE NOTHING ELSE WAS ASKED FOR. A search is active and the
@@ -1652,7 +1652,7 @@ class ItemsModel extends UrlListModel
         //    so the whole page can be priced in ONE batched pass afterwards
         $selections = [];
 
-        // Catalogue only (2.2.2): every card says whether the shop sells online, for its template and for the per-card
+        // Catalogue only: every card says whether the shop sells online, for its template and for the per-card
         // collector, which then lists the fields read-only and leaves no add to cart; no card is priced.
         $sellsOnline = ShopMode::sellsOnline();
 
@@ -1670,7 +1670,7 @@ class ItemsModel extends UrlListModel
                     ? ($viewedCategoryLayouts['card'] ?? '')
                     : (($categoriesMapping[$item->id_category_default ?? 0]['layouts'] ?? [])['card'] ?? ''));
 
-            // Its card's images and its slider's count, from the same levels (2.2.1); '' leaves them to the view.
+            // Its card's images and its slider's count, from the same levels; '' leaves them to the view.
             $this->stampCardImages(
                 item: $item,
                 categoryLayouts: $this->categoryId ? $viewedCategoryLayouts : ($categoriesMapping[$item->id_category_default ?? 0]['layouts'] ?? []),
@@ -1747,7 +1747,7 @@ class ItemsModel extends UrlListModel
         //    reloads). Plain items get their base; variant items their default.
         //    Opt-out via setState('list.price', false): per-user pricing is the
         //    expensive pass, and a price-less dropdown must not run it per keystroke.
-        //    In catalogue-only mode (2.2.2) it never runs, whatever a caller set.
+        //    In catalogue-only mode it never runs, whatever a caller set.
         $priced = $sellsOnline && (bool) $this->getState('list.price', true);
         $prices = $priced
             ? $this->getPriceCalculator()->calculateBatch($productIds, $quantities, $context, $selections)
@@ -1774,7 +1774,7 @@ class ItemsModel extends UrlListModel
         // Pass 2: assign each price, then overlay the active combination's data
         //    (sku/stock/name/media) onto the variant cards.
         foreach ($items as &$item) {
-            // A card with no price applying gets a null price and, when the pass ran, no add to cart (2.2.2).
+            // A card with no price applying gets a null price and, when the pass ran, no add to cart.
             if ($priced) {
                 VariantHelper::priceOnto(item: $item, result: $prices[$item->id] ?? null);
                 $this->withdrawCartWithoutPrice(item: $item);
@@ -1799,7 +1799,7 @@ class ItemsModel extends UrlListModel
         // let them adjust across the fully-built page (cross-item pass).
         $this->dispatchItemsListPrepare($items);
 
-        // Catalogue only (2.2.2): core's last word on each card's buy area, after the whole-page pass.
+        // Catalogue only: core's last word on each card's buy area, after the whole-page pass.
         if ($this->getState('plugin.layouts', true)) {
             foreach ($items as $item) {
                 $this->catalogueOnlyBuyArea(item: $item);
@@ -1810,7 +1810,7 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * Stamp ONE row's choice of its card's images (2.2.1), from the entity levels the card's own choice comes from: the
+     * Stamp ONE row's choice of its card's images, from the entity levels the card's own choice comes from: the
      * item's own Layouts, else the category's (the viewed category on a category page, the row's default category
      * elsewhere). cardImagesLayout is the "card_images" slot's sub-template and cardImagesCount how many images its
      * slider shows ('0' every one); '' for either leaves it to the menu item and the Options, which the view applies.
@@ -1853,7 +1853,7 @@ class ItemsModel extends UrlListModel
      */
     protected function finishItemCard(object $item, PriceContext $context, array $selection, array $optionValueIds = [], array $payloads = []): void
     {
-        // Catalogue only (2.2.2): the card is resolved and drawn, never priced.
+        // Catalogue only: the card is resolved and drawn, never priced.
         $item->sellsOnline = ShopMode::sellsOnline();
         $shownFieldIds = null;
 
@@ -1862,7 +1862,7 @@ class ItemsModel extends UrlListModel
             $shownFieldIds = $item->listingFieldIds;
         }
 
-        // At the quantity the card opens with: the product's minimum, as the listing prices it (2.2.2).
+        // At the quantity the card opens with: the product's minimum, as the listing prices it.
         $opening = PricingIntent::catalog()->getQuantityForItem($item);
 
         if (!$item->sellsOnline) {
@@ -1957,7 +1957,7 @@ class ItemsModel extends UrlListModel
 
         $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
 
-        // A related product's card on a product page (2.2.2) is drawn again from the levels it was drawn from: its own,
+        // A related product's card on a product page is drawn again from the levels it was drawn from: its own,
         // its default category's, the Options (Items\HtmlView::cardsFor()).
         $context = $this->getState('card.context') === 'related' ? '&context=related' : '';
 
@@ -1992,7 +1992,7 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * A card with no price applying offers no add to cart (2.2.2): core's own main slot (the add to cart or the Choose
+     * A card with no price applying offers no add to cart: core's own main slot (the add to cart or the Choose
      * options link) is set to no layout, which the wrapper renders as nothing. A card priced from a larger quantity than
      * it opens with keeps it, and the cart says from which quantity. A slot a field plugin set is the plugin's to decide;
      * the cart refuses the add in any case. The child slot (a wish list and the like) stays.
@@ -2289,7 +2289,7 @@ class ItemsModel extends UrlListModel
 
         // Base price (kept as-is for a plain item; finishItemCard overwrites it
         // through VariantHelper for a variant item), at the quantity the card opens with: the product's minimum, as the
-        // listing prices it (2.2.2). None in catalogue-only mode, and none computed.
+        // listing prices it. None in catalogue-only mode, and none computed.
         VariantHelper::priceOnto(item: $item, result: ShopMode::sellsOnline() ? $this->getPriceCalculator()->calculate($id, PricingIntent::catalog()->getQuantityForItem($item), $context) : null);
 
         $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
@@ -2305,7 +2305,7 @@ class ItemsModel extends UrlListModel
         // Engage the plugins on the dispatcher once (parity with the list path).
         $this->dispatchItemsListPrepare([$item]);
 
-        // Catalogue only (2.2.2): core's last word on the card's buy area, after the whole-page pass.
+        // Catalogue only: core's last word on the card's buy area, after the whole-page pass.
         if ($this->getState('plugin.layouts', true)) {
             $this->catalogueOnlyBuyArea(item: $item);
         }
@@ -2321,7 +2321,7 @@ class ItemsModel extends UrlListModel
      * item already carries its fields/options/combinations and resolved cart,
      * including the core's Choose options decision, which a plugin here may
      * still overwrite (the whole-page pass has the last word on the cart). The
-     * cards' surfaces are not the pass's to change (2.2.1): each card is handed
+     * cards' surfaces are not the pass's to change: each card is handed
      * its surfaces again after it, as core collected them, so a listener that
      * replaced or removed a card's map changes nothing on the page.
      *
@@ -2339,7 +2339,7 @@ class ItemsModel extends UrlListModel
             $handed[$key] = isset($item->surfaces) ? (array) $item->surfaces : null;
         }
 
-        // Mode A, a display phase, isolated (2.2.0): the item-fields group imported once through
+        // Broadcast, a display phase, isolated: the item-fields group imported once through
         // Joomla's own import (so each plugin is registered once per request), the page raised
         // once on the shared dispatcher; a listener that throws is logged with its name and the
         // listing renders without its contribution.
@@ -2369,7 +2369,7 @@ class ItemsModel extends UrlListModel
      * does) and/or replace the card's CART region and add a CART child, only
      * through the event's setters (setCartLayout..., setCartChildLayout...). We
      * fill each layout's owner from the field's type. The card's cart and cart
-     * children are kept here and handed to the item after each field (2.2.2): a
+     * children are kept here and handed to the item after each field: a
      * write to $item->cart or $item->cartChildren from this event is not kept, and
      * a plugin that throws loses what it set, the other fields keeping theirs.
      * Plugin failures never take the card down. (The dispatcher engagement
@@ -2389,12 +2389,12 @@ class ItemsModel extends UrlListModel
         $listed = array_flip($item->listingFieldIds);
 
         // The card's surfaces (emptied by setDefaultCart() for this draw) are collected here and handed to the item as a
-        // read-only map after each contribution (2.2.1): a plugin holding the item reads what the others contributed and
+        // read-only map after each contribution: a plugin holding the item reads what the others contributed and
         // cannot change it.
         $slots = [];
 
         // The card's cart region and its children (setDefaultCart()'s, for this draw), changed only from the setters of a
-        // field event that succeeded and handed to the item after each field (2.2.2).
+        // field event that succeeded and handed to the item after each field.
         $cart = $item->cart;
         $cartChildren = $item->cartChildren;
 
@@ -2407,7 +2407,7 @@ class ItemsModel extends UrlListModel
             }
 
             try {
-                // The field's own plugin, through the plugin helper (2.2.0, mode B).
+                // The field's own plugin, through the plugin helper (targeted).
                 $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
 
                 if (!$plugins->declares($plugin, 'onItemListPrepare')) {
@@ -2480,16 +2480,16 @@ class ItemsModel extends UrlListModel
                 );
             }
 
-            // Handed after each field (2.2.2): what a plugin wrote on the item's cart outside the setters is not kept.
+            // Handed after each field: what a plugin wrote on the item's cart outside the setters is not kept.
             $item->cart = $cart;
             $item->cartChildren = $cartChildren;
         }
 
-        // Handed once more after the last field (2.2.1): a plugin that changed the card's surfaces and then failed has
+        // Handed once more after the last field: a plugin that changed the card's surfaces and then failed has
         // its field caught above, and its change must not outlive it.
         $item->surfaces = new SurfaceMap($slots);
 
-        // Catalogue only (2.2.2): the card's buy area as core draws it in the mode. The fields that drew a selector are
+        // Catalogue only: the card's buy area as core draws it in the mode. The fields that drew a selector are
         // still answered, so the card resolves the variant it shows as when selling. Handed again after the whole-page
         // pass, which runs after this one.
         $this->catalogueOnlyBuyArea(item: $item);
@@ -2498,7 +2498,7 @@ class ItemsModel extends UrlListModel
     }
 
     /**
-     * A card's buy area in catalogue-only mode (2.2.2), core's last word: the buy form's slot holds only plain read-only
+     * A card's buy area in catalogue-only mode, core's last word: the buy form's slot holds only plain read-only
      * lists of the card's own fields (its listing fields, the informational ones left to its specifications), whoever
      * contributed to it, and the cart main slot is none, whatever a plugin set. Called after the per-card field events
      * and again after the whole-page pass (onItemsListPrepare), the last two passes that can change it; repeatable. A
@@ -2544,7 +2544,7 @@ class ItemsModel extends UrlListModel
      */
     public function getAvailablePriceRange(): array
     {
-        // Catalogue only (2.2.2): no price is read, so there is no range.
+        // Catalogue only: no price is read, so there is no range.
         if (!ShopMode::sellsOnline()) {
             return ['min' => null, 'max' => null];
         }
@@ -3182,7 +3182,7 @@ class ItemsModel extends UrlListModel
         }
 
         try {
-            // The field's own plugin, through the plugin helper (2.2.0, mode B).
+            // The field's own plugin, through the plugin helper (targeted).
             $plugins = AlfaPluginHelper::get();
             $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', $type));
 

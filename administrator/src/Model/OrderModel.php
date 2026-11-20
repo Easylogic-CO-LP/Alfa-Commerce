@@ -154,14 +154,14 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
-     * CONTRACT COVERAGE NOTES (decided at migration):
+     * CONTRACT COVERAGE NOTES:
      * - CREATE goes through OrderCreator (the domain pipeline) and returns before
      *   parent::save(), so the onAlfaAdminValidate/BeforeSave/AfterSave bracket fires on
      *   EDIT saves only. Admin order creation is a domain flow with its own events.
      * - A delete batch fully vetoed by the payment/shipment gateways returns before
      *   parent::delete(), so the contract's delete bracket fires only when something
      *   actually reaches the table: nothing was deleted, nothing to observe.
-     * - Since 2.1.4 the delete vetoes (onAlfaAdminBeforeDelete, onContentBeforeDelete)
+     * - The delete vetoes (onAlfaAdminBeforeDelete, onContentBeforeDelete)
      *   are asked before the delete's transaction and lock, with the gateways', and
      *   the after-events of a save and a delete are heard once it has committed.
      */
@@ -381,7 +381,7 @@ class OrderModel extends AlfaAdminModel
      *
      * A refused issue's kept draft reaches this as ordinary $data (the view
      * reads it, never this builder) and binds like any other: lines and
-     * charges whole, for their fields to render (since 2.0.0).
+     * charges whole, for their fields to render.
      *
      * @param array|object $data Data to bind (objects are normalised via objectToFormData).
      *
@@ -576,7 +576,7 @@ class OrderModel extends AlfaAdminModel
      * showon, and OrderController::issueDocument() keeps what the block posted
      * only where it holds: a hidden control still posts, and the hidden
      * purpose list's default (Sale) printed a Movement block on invoices and
-     * credit notes (F-09). It holds for a logistics type, whose content IS the
+     * credit notes. It holds for a logistics type, whose content IS the
      * movement; for a type the registry says requires one, which the issuer
      * refuses without it; and for a document ticked to serve also as a
      * delivery note.
@@ -860,7 +860,7 @@ class OrderModel extends AlfaAdminModel
      * On the redisplay after a reload or a refused save the invoice fields are
      * refilled from the kept post, so the box must follow that post too: read
      * from the stored ids it came back unticked over typed details, and the
-     * next Save (an unticked box posts nothing) dropped them (F-08). A raw
+     * next Save (an unticked box posts nothing) dropped them. A raw
      * post (a reload, a validation refusal) carries the box itself; the
      * validated data an order refusal keeps has no box, being no form field,
      * but keeps the invoice section only when the box was ticked (validate()
@@ -1369,7 +1369,7 @@ class OrderModel extends AlfaAdminModel
         // A modal's save can move the order's status (a payment or shipment
         // method's status map), and its return reloads with the page as it
         // was: the kept status was then the stale one, and Save wrote it back
-        // over the automation (review O-REV-2). A kept status equal to the one
+        // over the automation. A kept status equal to the one
         // the page was loaded with was not changed there, so the stored one
         // is shown. When the operator did change it, theirs is kept.
         $loaded = $data[self::LOADED_STATUS_KEY] ?? null;
@@ -1834,7 +1834,7 @@ class OrderModel extends AlfaAdminModel
             return false;
         }
 
-        // The payment form is a staff entry point: its write is held to the staff guard (since 2.1.0).
+        // The payment form is a staff entry point: its write is held to the staff guard.
         $success = PaymentLedger::update($id, $saveData, staff: true);
 
         if ($success) {
@@ -1872,7 +1872,7 @@ class OrderModel extends AlfaAdminModel
         // The staff guard, asked first so the operator is told before anything is written: a reservation whose money
         // the provider moved goes through the way out, never through this form; a gateway payment's pending refund
         // keeps its amount and reference and is settled by its provider only; a gateway payment keeps its method and
-        // its provider transaction id (since 2.1.0).
+        // its provider transaction id.
         $moved = $stored !== null ? PaymentLedger::staffWriteRefusal(stored: $stored, data: $data) : null;
 
         if ($moved !== null) {
@@ -2374,7 +2374,7 @@ class OrderModel extends AlfaAdminModel
      */
     protected function dispatchItemConfigSurfaces(object $item, array $seed): void
     {
-        // Collected here and handed to the item as a read-only map after each field (2.2.1), as the storefront does.
+        // Collected here and handed to the item as a read-only map after each field, as the storefront does.
         $slots = [];
         $item->surfaces = new SurfaceMap();
 
@@ -2383,7 +2383,7 @@ class OrderModel extends AlfaAdminModel
         // hidden for the admin too (the JS engine drives the live toggles).
         $showonBag = StateBagBuilder::fromItem($item);
 
-        // Each field's own plugin, through the plugin helper (2.2.0, mode B).
+        // Each field's own plugin, through the plugin helper (targeted).
         $plugins = AlfaPluginHelper::get();
 
         foreach ($item->fields as $field) {
@@ -2407,7 +2407,7 @@ class OrderModel extends AlfaAdminModel
                 ],
             ]);
 
-            // Isolated (2.2.1): a plugin whose handler throws loses this field's part, logged once, and the
+            // Isolated: a plugin whose handler throws loses this field's part, logged once, and the
             // order's item window renders without it.
             if (!$plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . (int) $field->id . ') in the order\'s item window')) {
                 continue;
@@ -2425,7 +2425,7 @@ class OrderModel extends AlfaAdminModel
             $item->surfaces = new SurfaceMap($slots);
         }
 
-        // Handed once more after the last field (2.2.1): a plugin that changed the item's surfaces and then failed has
+        // Handed once more after the last field: a plugin that changed the item's surfaces and then failed has
         // its field skipped above, and its change must not outlive it.
         $item->surfaces = new SurfaceMap($slots);
     }
@@ -2469,7 +2469,7 @@ class OrderModel extends AlfaAdminModel
 
         $request = VariantHelper::requestSelection();
 
-        // The result as stated: one with no price applying (2.2.2) is the caller's to show as such.
+        // The result as stated: one with no price applying is the caller's to show as such.
         return VariantHelper::resolveAndPrice(
             item: $item,
             selection: $request['selection'],
@@ -3100,7 +3100,7 @@ class OrderModel extends AlfaAdminModel
             throw new RuntimeException(Text::_('COM_ALFA_ORDER_ITEM_ERROR_PRICE_UNAVAILABLE'));
         }
 
-        // A product with no price applying for this order (2.2.2) is added only with a custom price, never at zero by
+        // A product with no price applying for this order is added only with a custom price, never at zero by
         // accident: the order popup and the REST API's order lines send the custom price with the line.
         if (!$result->isPriced()) {
             // Named as the line would be (the catalogue row carries no name; the names are per language).
@@ -3121,7 +3121,7 @@ class OrderModel extends AlfaAdminModel
         $applied = $result->getTaxes()->getApplied();
         $columns = ['quantity' => $quantity] + $money->toColumns() + $intent['columns'] + [
             'tax_rate' => (float) $result->getTaxes()->getEffectiveRate(),
-            // The applied tax's name, whole (2.2.0: the order line's column is text).
+            // The applied tax's name, whole (the order line's column is text).
             'tax_name' => (string) ($applied !== [] ? $applied[0]->name : ''),
         ];
 
@@ -3636,7 +3636,7 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
-     * Ask a row's plugin of record whether its order may be deleted (2.2.0, mode B; design 2.15.5): its declared
+     * Ask a row's plugin of record whether its order may be deleted (targeted): its declared
      * onAdminOrderDelete handler decides; a plugin that declares none has no objection. While the plugin is disabled,
      * missing or cannot be loaded its veto cannot be asked, so the order is not deleted, and staff are told which plugin
      * to restore (the refusal kept for delete() to report, {@see self::$deleteRefusals}).
@@ -3658,8 +3658,8 @@ class OrderModel extends AlfaAdminModel
             $plugin = $plugins->bootSingle(PluginId::from($group, $type));
         } catch (PluginUnavailable|InvalidArgumentException $e) {
             Log::add('Order ' . $orderId . ' was not deleted: its plugin of record cannot be asked (' . $e->getMessage() . ').', Log::WARNING, 'com_alfa.orders');
-            // The plugin by the name Extensions: Plugins shows, and why it cannot be asked (UX-27, UX-37): delete() says it
-            // once, as the delete's own error (UX-36).
+            // The plugin by the name Extensions: Plugins shows, and why it cannot be asked: delete() says it
+            // once, as the delete's own error.
             $name = $plugins->name(PluginId::from($group, $type));
             $this->deleteRefusals[] = $e instanceof PluginUnavailable && $e->reason === PluginUnavailable::NOT_LOADED
                 ? Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_STAFF', $name)
@@ -4573,7 +4573,7 @@ class OrderModel extends AlfaAdminModel
         // the admin save events. The before-events run inside it, before the
         // order row is written (no lock of the save's own is held yet), so
         // their listeners must not perform network or filesystem work. The
-        // after-events are heard once the save has committed (2.1.4): Alfa's
+        // after-events are heard once the save has committed: Alfa's
         // own through PostCommit, Joomla's onContentAfterSave captured and
         // heard again then (AlfaAdminModel::alfaAfterTheCommit()).
         $db = $this->getDatabase();
@@ -5031,9 +5031,8 @@ class OrderModel extends AlfaAdminModel
      *     the reference test names BOTH referring tables, and it lives INSIDE
      *     the DELETE: testing first and deleting second would leave a window
      *     in which a concurrent save adopts the row between the two.
-     *   - Rows orphaned before this fix are left alone. This collects what one
-     *     save superseded; it is not a garbage collector, and sweeping the
-     *     historical backlog is a separate, separately-decided job.
+     *   - Rows orphaned earlier are left alone. This collects what one save
+     *     superseded; it is not a garbage collector.
      *
      * @param int[] $ids Address rows this save re-pointed away from.
      *
@@ -5246,7 +5245,7 @@ class OrderModel extends AlfaAdminModel
 
     /**
      * The refusals of the order delete in progress, one for each order whose plugin of record could not be asked
-     * ({@see self::askPluginOfRecordToDelete()}); delete() says them (UX-36).
+     * ({@see self::askPluginOfRecordToDelete()}); delete() says them.
      *
      * @var list<string>
      *
@@ -5346,7 +5345,7 @@ class OrderModel extends AlfaAdminModel
             // Read as this model stores it (its rows objects), not as a subclass
             // presents it: the API's OrderModel projects payments and shipments
             // into arrays for its answer, which the plugins' vetoes and the
-            // method types read here cannot take (2.2.0, A-E24-1).
+            // method types read here cannot take.
             $orders[$pk] = self::getItem($pk);
         }
 
@@ -5416,9 +5415,9 @@ class OrderModel extends AlfaAdminModel
         }
 
         // A refused delete is one error, as Joomla's list controllers report a failed delete, and never a success message
-        // when nothing was deleted (UX-36): the refusals are the delete's error when no order is left, else each is said
+        // when nothing was deleted: the refusals are the delete's error when no order is left, else each is said
         // beside the count of the ones deleted. As a refusal of the model's own rule, which the REST delete answers 409
-        // with its sentence rather than a bare 500 (A-E24-1).
+        // with its sentence rather than a bare 500.
         $refusals = array_values(array_unique($this->deleteRefusals));
         $this->deleteRefusals = [];
 
@@ -5434,7 +5433,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         // The admin delete vetoes, asked here with the plugins', before the
-        // transaction and its lock (2.1.4): onAlfaAdminBeforeDelete, then
+        // transaction and its lock: onAlfaAdminBeforeDelete, then
         // Joomla's onContentBeforeDelete for each order. A veto refuses the
         // whole delete and nothing is written.
         if (!$this->alfaAskBeforeDelete(pks: $pks)) {
@@ -5533,8 +5532,8 @@ class OrderModel extends AlfaAdminModel
         }
 
         // The wallet returns' committed lines, once they are committed; every
-        // rollback path above returns before reaching them. Through PostCommit
-        // (2.1.4): nested in a caller's transaction, whose commit only released
+        // rollback path above returns before reaching them. Through PostCommit:
+        // nested in a caller's transaction, whose commit only released
         // a SAVEPOINT here, they wait for its outermost commit.
         foreach ($walletReturns as $entry) {
             PostCommit::defer(
@@ -5571,7 +5570,7 @@ class OrderModel extends AlfaAdminModel
             return false;
         }
 
-        // A refusal of the model's own rule: the REST delete answers it 409 with its sentence (2.2.0), as the plugin
+        // A refusal of the model's own rule: the REST delete answers it 409 with its sentence, as the plugin
         // of record's refusal of delete().
         $refusal = implode(' ', $refusals);
         $this->setError(error: new DeleteRefusedException(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'), $refusal));
@@ -6364,9 +6363,9 @@ class OrderModel extends AlfaAdminModel
      * @param array|null $context Structured data.
      * @param int|null $entityId Related entity PK.
      * @param int|null $actorId The acting user, stated by the caller: 0 = System;
-     *                          null = the current identity (since 2.0.0).
+     *                          null = the current identity.
      * @param bool $refuseOversize Refuse a context above ACTIVITY_CONTEXT_MAX_BYTES
-     *                             instead of storing it truncated (since 2.0.0).
+     *                             instead of storing it truncated.
      *
      *
      * @throws Throwable When the entry cannot be written.
@@ -6410,7 +6409,7 @@ class OrderModel extends AlfaAdminModel
      * @param int|null $actorId The acting user; 0 = System; null = the current identity.
      * @param bool $refuseOversize Refuse an oversize context instead of truncating it.
      *
-     * @return int|null The new row's id; null when nothing was written (since 2.1.1).
+     * @return int|null The new row's id; null when nothing was written.
      *
      * @since  2.0.0
      */
@@ -6541,11 +6540,11 @@ class OrderModel extends AlfaAdminModel
      * is still never a warning: it is logged CRITICAL and raised as a backend
      * notification, because a timeline with a hole in it is a thing an
      * operator has to know about. The notification stays until staff dismiss
-     * it, and a later lost record raises it again, unread (since 2.1.4: a
-     * later record no longer retracts it, as the timeline stays incomplete).
+     * it, and a later lost record raises it again, unread (a
+     * later record does not retract it, as the timeline stays incomplete).
      * The one failure that does reach the caller is one that ended the
      * caller's transaction (a deadlock): its work is gone with it and must not
-     * go on writing outside any transaction (since 2.1.1).
+     * go on writing outside any transaction.
      *
      * Callers whose mutation is still open (inside a transaction) must use
      * {@see logOrderActivityStrict} instead, so the mutation rolls back with
@@ -6559,9 +6558,9 @@ class OrderModel extends AlfaAdminModel
      * @param string $summary Human-readable summary.
      * @param array|null $context Structured data.
      * @param int|null $entityId Related entity PK.
-     * @param int|null $actorId The acting user; 0 = System; null = the current identity (since 2.1.4).
+     * @param int|null $actorId The acting user; 0 = System; null = the current identity.
      *
-     * @return int|null The record's id; null when it could not be written (since 2.1.1).
+     * @return int|null The record's id; null when it could not be written.
      *
      * @since  1.0.0
      */
@@ -6624,8 +6623,7 @@ class OrderModel extends AlfaAdminModel
      * Get activity log entries for an order, newest first.
      *
      * `created` holds whole seconds, so entries of one second are ordered by
-     * their id, the order they were written in (since 2.1.0); before, the
-     * database returned them in any order.
+     * their id, the order they were written in.
      *
      * @param int $orderId Order ID
      * @param string $eventFilter Filter by event prefix: 'item', 'payment', 'status', '' = all

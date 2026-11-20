@@ -378,7 +378,7 @@
         </field>
     </fieldset>
 
-    <!-- The products this product's page shows as related, in this order (2.2.2). A link goes one way. The model
+    <!-- The products this product's page shows as related, in this order. A link goes one way. The model
          refuses the product itself, a product listed twice and one that does not exist (RelatedItems::refusals()). -->
     <fieldset name="related" label="COM_ALFA_TAB_ITEM_RELATED">
         <field name="related" type="subform" multiple="true"

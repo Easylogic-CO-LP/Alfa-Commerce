@@ -46,7 +46,7 @@ class JsonApiView extends BaseApiView
         'ordering',
         'state',
         'translations',
-        // The method's image (2.2.2), as a manufacturer's: its media rows; a write sends `media` (or `medias`).
+        // The method's image, as a manufacturer's: its media rows; a write sends `media` (or `medias`).
         'medias',
     ];
 

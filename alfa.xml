@@ -7,10 +7,10 @@
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
-    <!-- 2.0.0 is the first stable release and the schema baseline. script.php's preflight()
+    <!-- The first stable release is the schema baseline. script.php's preflight()
          reads the installed alfa.xml before any file is copied and REFUSES the install over
-         anything older than 2.0.0: the 1.x betas have no schema baseline to update from.
-         From 2.0.0 on Joomla tracks the schema through <update> below: an install records
+         anything older than the baseline: a pre-release beta has no schema baseline to update from.
+         From the baseline on, Joomla tracks the schema through <update> below: an install records
          the newest file in sql/updates/mysql, an update runs every file newer than the
          recorded version. A schema change therefore goes into install.mysql.utf8.sql (fresh
          installs) AND into a new sql/updates/mysql/<version>.sql (installed sites). -->
@@ -138,7 +138,7 @@
 
         <plugin  group="system" plugin="alfasync"/>
 
-        <!-- Alfa Commerce's console commands: alfa:tasks:run, alfa:tasks:prune, alfa:inventory:audit (2.2.0). -->
+        <!-- Alfa Commerce's console commands: alfa:tasks:run, alfa:tasks:prune, alfa:inventory:audit. -->
         <plugin group="console" plugin="alfa"/>
 
     </plugins>

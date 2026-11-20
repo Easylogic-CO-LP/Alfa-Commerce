@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 \defined('_JEXEC') or die;
 
 /**
- * A claimed job as its handler sees it (2.2.0, design 2.5): its id, handler, scope, payload, checkpoint and progress,
+ * A claimed job as its handler sees it: its id, handler, scope, payload, checkpoint and progress,
  * what runs it, and the moment its chunk must be done by.
  *
  * @since  2.2.0

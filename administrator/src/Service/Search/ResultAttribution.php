@@ -12,12 +12,12 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 \defined('_JEXEC') or die;
 
 /**
- * What a rendered result set carries after its read (2.2.0): the handle the provider minted (opaque, int or string, or
+ * What a rendered result set carries after its read: the handle the provider minted (opaque, int or string, or
  * null), the order core showed, whether the handle belongs to this response alone (responseSpecific: the page must not
  * be shared through a cache), and the configured engine's key. Core carries the handle and renders it with the global
  * position and the order; it never interprets it. With no handle, core renders no attribution metadata at all.
  *
- * THE EXTENSION BOUNDARY, documented and not opened in 2.2.0: provider-specific metadata would attach here as a
+ * THE EXTENSION BOUNDARY, documented and not yet opened: provider-specific metadata would attach here as a
  * namespaced map, filled through onAlfaResultSetRender and rendered by the same two view calls. At result-set level
  * only the configured engine that minted the handle could add; per result nobody but core. Each extension would get one
  * namespace from its element (data-alfa-ext-<element>-<key>, the key matching ^[a-z0-9]+(-[a-z0-9]+)*$), never class,
@@ -33,7 +33,7 @@ final class ResultAttribution
      * @param string $order The shown order (ResultSetContext::$order).
      * @param bool $responseSpecific Whether the handle belongs to this response or visitor alone.
      * @param string $engine The configured engine's key, as SearchEngineRegistry::configuredKey() reads it: '' for the
-     *                       database search (2.2.1; before, the listing said 'database').
+     *                       database search (before, the listing said 'database').
      *
      * @since  2.2.0
      */

@@ -110,7 +110,7 @@ final class RunnerHealth
                 [
                     'group' => NotificationHelper::GROUP_GENERAL,
                     'severity' => 'warning',
-                    // Times said in the reader's zone (UX-30).
+                    // Times said in the reader's zone.
                     'message' => NotificationText::of('COM_ALFA_NOTIFY_RUNNER_HEALTH_MSG', NotificationText::date($waiting['since']), $waiting['count'], NotificationText::date($lastRun['at'] ?? $waiting['since'])),
                     'dismissible' => false,
                     'constant' => !NotificationHelper::isOpen(dedupKey: self::KEY),

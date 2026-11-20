@@ -28,7 +28,6 @@ use Throwable;
 /**
  * Void & Replace: the source is withdrawn and a new document issued in its place, as one act.
  *
- * The document reconciliation contract, section 4B and section 14.
  * This class PROPOSES and hands the commit to
  * DocumentIssuer::replace(), which owns the transaction; it computes no money,
  * exactly as IncrementalCorrection computes none.
@@ -39,7 +38,7 @@ use Throwable;
  * never copied. Provenance is `id_replaces` on the replacement, the inverse
  * derived; `id_corrects` is never used for it.
  *
- * ITS CONTENT IS THE CURRENT TARGET MINUS WHAT SURVIVES (section 4B amendment), never
+ * ITS CONTENT IS THE CURRENT TARGET MINUS WHAT SURVIVES, never
  * a clone of the original. For a sales document that is what the order holds
  * now minus what the documents that survive the void already cover, computed
  * by releasing the source's claims and reading the ordinary pools, so it is the
@@ -168,7 +167,7 @@ final class VoidAndReplace
             return self::refused(self::REASON_ISSUER_EXTERNAL, '', $source, $frozenBuyer);
         }
 
-        // Validity is section 5's to decide, and its answer covers the permission,
+        // Validity is CorrectionStrategies' to decide, and its answer covers the permission,
         // the stock bar at the document level and the live correctives.
         $strategy = CorrectionStrategies::forDocument($sourceId, $user)[CorrectionStrategies::VOID_AND_REPLACE];
 
@@ -226,7 +225,7 @@ final class VoidAndReplace
             );
         }
 
-        // section 14 on the replacement's side. A source that carried no goods moved
+        // The stock bar on the replacement's side. A source that carried no goods moved
         // nothing and may be replaced; a replacement that would carry goods on
         // a type that moves them is refused by the issuer after the fact, so
         // it is not offered here.

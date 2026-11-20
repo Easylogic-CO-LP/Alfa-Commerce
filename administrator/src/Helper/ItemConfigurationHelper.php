@@ -57,7 +57,7 @@ class ItemConfigurationHelper
     protected static array $requiredOverrides = [];
 
     /**
-     * The field plugins whose unavailability was logged in this request: once per plugin (2.2.0, A-C14B-9).
+     * The field plugins whose unavailability was logged in this request: once per plugin.
      *
      * @var array<string, true>
      * @since  2.2.0
@@ -119,7 +119,7 @@ class ItemConfigurationHelper
             }
 
             // A required field whose plugin is unavailable cannot be answered, so the line cannot enter; the refusal
-            // says why (2.2.0, A-C14B-9).
+            // says why.
             if (self::fieldPlugin(field: $field) instanceof PluginUnavailable) {
                 return ['key' => 'COM_ALFA_CART_FIELD_UNAVAILABLE', 'params' => [(string) ($field->display_name ?? $field->field_name)], 'text' => null];
             }
@@ -136,7 +136,7 @@ class ItemConfigurationHelper
         $plugins = AlfaPluginHelper::get();
 
         foreach ($item->fields as $field) {
-            // The field's own plugin, through the plugin helper (2.2.0, mode B): one Joomla does not list as
+            // The field's own plugin, through the plugin helper (targeted): one Joomla does not list as
             // enabled (or that is missing, or of another family) takes no part, as a missing one never did.
             try {
                 $plugin = $plugins->bootSingle(PluginId::from('alfa-item-fields', (string) $field->type));
@@ -315,7 +315,7 @@ class ItemConfigurationHelper
      */
     private static function payloadHandler(object $field): ?LoadedPlugin
     {
-        // The field's own plugin, through the plugin helper (2.2.0, mode B); one that is not available stores nothing.
+        // The field's own plugin, through the plugin helper (targeted); one that is not available stores nothing.
         $plugins = AlfaPluginHelper::get();
 
         try {
@@ -354,7 +354,7 @@ class ItemConfigurationHelper
     }
 
     /**
-     * A field's own plugin (2.2.0, A-C14B-9): booted through the plugin helper (mode B), or why it is unavailable
+     * A field's own plugin: booted through the plugin helper (targeted), or why it is unavailable
      * (disabled, missing, unloadable, not loaded for this request's user, of another family, or a type that names no
      * plugin). Unavailability is logged once per request per plugin, never once per price computation, and is never
      * a failure to rethrow: the field takes no part, and a cart line that needs it is not priced
@@ -390,7 +390,7 @@ class ItemConfigurationHelper
     }
 
     /**
-     * The fields a cart line cannot be priced without while their plugin is unavailable (2.2.0, A-C14B-9): a field
+     * The fields a cart line cannot be priced without while their plugin is unavailable: a field
      * whose composition the line carries, or a required field. The line is then marked as one that cannot be sold,
      * and never priced without them.
      *

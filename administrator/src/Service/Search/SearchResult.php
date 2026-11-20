@@ -73,7 +73,7 @@ final class SearchResult
          * search service string query ids. Consumers carry it and hand it back; only the
          * minting engine interprets it.
          *
-         * THE HANDLE NAMES THE RENDERED RESULT SET OF THIS REQUEST, NOT THE SEARCH (2.2.0).
+         * THE HANDLE NAMES THE RENDERED RESULT SET OF THIS REQUEST, NOT THE SEARCH.
          * A provider may return one for any query that carries a ResultSetContext, on any
          * page and under any intent, and relates the handles of one shopper's pages
          * internally, as its own analytics model decides. A query without a ResultSetContext
@@ -88,7 +88,7 @@ final class SearchResult
          */
         public readonly int|string|null $eventId = null,
         /**
-         * Whether the handle belongs to this response or visitor alone (2.2.0), so the
+         * Whether the handle belongs to this response or visitor alone, so the
          * response must not be shared through a cache: core then keeps the page out of
          * Joomla's page cache and sends no-store on JSON. Read only when a handle is
          * present; core never knows which engine set it.

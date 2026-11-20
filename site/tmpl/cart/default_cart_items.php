@@ -93,7 +93,7 @@ $columnLabels = array_map(
             // the line is unpriced or its money is not counted.
             // The saving is tax included, as every figure of the cart: the struck
             // total less this saving is the line's total. It carries the minus
-            // sign the summary's reductions carry (2.2.1).
+            // sign the summary's reductions carry.
             $discountTotal = $payable
                 ? ($price->hasDiscount() ? '&minus;' . $price->getSavingsTotalWithTax()->format() : '-')
                 : '-';
@@ -225,7 +225,7 @@ $columnLabels = array_map(
         'label' => Text::_('COM_ALFA_CART_SUMMARY_LABEL'),
     ]); ?>
 
-    <?php // WHERE THESE PRICES ARE FOR (2.2.1): the goods are priced at the delivery place the checkout holds, which
+    <?php // WHERE THESE PRICES ARE FOR: the goods are priced at the delivery place the checkout holds, which
           // may not be the place the shop's other pages price this visitor at. ?>
     <?php $pricedAt = \Alfa\Component\Alfa\Site\Helper\CartPricedAt::place($snapshot->placeId); ?>
     <?php if ($pricedAt !== null) : ?>
@@ -233,7 +233,7 @@ $columnLabels = array_map(
     <?php endif; ?>
 
     <?php // THE TOTAL THIS PAGE SHOWS, sent with the checkout form (form="cart-form") and replaced with these rows on
-          // every change: the placement refuses an order whose total is not this one (2.2.1). ?>
+          // every change: the placement refuses an order whose total is not this one. ?>
     <input type="hidden" form="cart-form" name="shown_total"
            value="<?php echo htmlspecialchars($snapshot->currency->getCode() . ':' . $snapshot->totals->grand->getMinorUnits(), ENT_QUOTES, 'UTF-8'); ?>"/>
 

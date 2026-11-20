@@ -16,16 +16,12 @@ use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 /**
  * The one place a document's lines are assembled from an operator's picks.
  *
- * WHY THIS EXISTS. The document reconciliation contract, section 7:
- * "There must never be a `proposal calculator` and a `manual calculator` as
- * separate financial models", and section 19: "All of these paths must converge on the
- * same domain services... UI origin must never change financial meaning."
- *
- * This assembly used to live inside OrderController::issueDocument(), the
- * manual path. The moment a PROPOSED correction needed the same draft, that
- * private copy became the risk the contract names: two assemblers that agree
- * today and drift apart on the first edit to either. So it moved here, and both
- * entrances call it.
+ * WHY THIS EXISTS. A proposal and a manual pick are never two financial models:
+ * every path that builds a document converges on the same domain services, and
+ * where an action starts never changes its financial meaning. The manual path
+ * (OrderController::issueDocument()) and a PROPOSED correction both call this,
+ * so there are never two assemblers that agree today and drift apart on the
+ * first edit to either.
  *
  * IT CALCULATES NOTHING ITSELF. Every figure comes from OrderItemLines and
  * OrderChargeLines, which are the same builders the issuer's guards measure

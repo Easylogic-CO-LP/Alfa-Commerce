@@ -959,7 +959,7 @@ class EmailPositionsField extends EditorField
      * @return string|null Raw JSON, '' when the column is empty, or null
      *                     on a missing row.
      *
-     * @throws Throwable When it cannot be read (since 2.1.0: not a missing row).
+     * @throws Throwable When it cannot be read (not a missing row).
      *
      * @since  1.0.0
      */
@@ -1073,7 +1073,7 @@ class EmailPositionsField extends EditorField
      *
      * @return bool True when a row exists.
      *
-     * @throws Throwable When it cannot be read (since 2.1.0: not an absent row).
+     * @throws Throwable When it cannot be read (not an absent row).
      *
      * @since  1.0.0
      */

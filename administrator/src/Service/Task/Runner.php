@@ -25,7 +25,7 @@ use Joomla\Database\ParameterType;
 use Throwable;
 
 /**
- * The job runner (2.2.0, design 2.4): every trigger calls tick() with its own wall-clock budget, and a tick runs the
+ * The job runner: every trigger calls tick() with its own wall-clock budget, and a tick runs the
  * singles recovery owes first, then due jobs in short chunks, and stops before the budget is spent.
  *
  * Orchestration only: the lease, the retry, the budget, the checkpoint, the progress and the priority. It knows no
@@ -42,7 +42,7 @@ use Throwable;
  * Nothing runs while the connection holds a transaction or one of Alfa's named locks, while Alfa is in maintenance,
  * or while an update has paused the runner (`runner.paused_until`).
  *
- * THE CLOCK IN A LONG RUN (2.2.1). Joomla's Factory::getDate() keeps the time of its first call for the whole process,
+ * THE CLOCK IN A LONG RUN. Joomla's Factory::getDate() keeps the time of its first call for the whole process,
  * and a run started from the command line, a scheduler or a queue goes on long after that, so an instant that starts a
  * window, or is compared with one, in a handler or a service it reaches is read afresh: new Date('now', 'UTC'), or
  * UTC_TIMESTAMP() where the row is compared with the database's clock, as the runner's own leases and due times are.
@@ -143,7 +143,7 @@ final class Runner
     public const META_LAST_TICK = 'runner.last_tick';
 
     /**
-     * The triggers' gates: rows of #__alfa_task_slots taken by compare-and-set for their span (design 2.7, D1). The
+     * The triggers' gates: rows of #__alfa_task_slots taken by compare-and-set for their span. The
      * storefront page that wins the page gate carries the kick; the guest endpoint and the API trigger work at most
      * once per span, whoever calls.
      *
@@ -237,7 +237,7 @@ final class Runner
         }
 
         // The work recovery runs is no visitor's and no member of staff's: the tick acts as the neutral system actor,
-        // an empty user, and gives the request its own identity back afterwards (design 2.7, D8).
+        // an empty user, and gives the request its own identity back afterwards.
         $identity = self::actAsSystem();
 
         try {
@@ -298,10 +298,10 @@ final class Runner
     }
 
     /**
-     * Whether a trigger has work to run now, in one statement (design 2.7): a pending job due, a running job whose lease
+     * Whether a trigger has work to run now, in one statement: a pending job due, a running job whose lease
      * passed, a single recovery would take, a waiting price set whose job is gone, a stock movement owed with no
      * drain job to apply it, an item's rebuild owed past the grace with no catalogue job, or a stored price period that
-     * began, older than the lag, and is not announced yet (2.2.2). A heavy job running under a live lease is not due, so pages stop kicking by themselves.
+     * began, older than the lag, and is not announced yet. A heavy job running under a live lease is not due, so pages stop kicking by themselves.
      * A failure answers false, logged: a page never fails for it.
      *
      * @since  2.2.0
@@ -315,7 +315,7 @@ final class Runner
     }
 
     /**
-     * Whether work remains for an open administrator page to keep asking for (DESIGN-2.2.0.md 9.44, amending 2.7), in
+     * Whether work remains for an open administrator page to keep asking for, in
      * one statement: what due() reads, and a job running under a live lease, which another worker holds now. The page
      * keeps asking while such a job runs; the claim rules decide who works it. A failure answers false, logged: the
      * page stops and the next page load asks again.
@@ -383,8 +383,8 @@ final class Runner
     }
 
     /**
-     * The probes of due(), each a SELECT of one column that reads at most one row. Every name they need is DueRead's
-     * (2.2.1), so the read every storefront page and API request makes loads no job class, nor Tasks or
+     * The probes of due(), each a SELECT of one column that reads at most one row. Every name they need is DueRead's,
+     * so the read every storefront page and API request makes loads no job class, nor Tasks or
      * InventoryEffectOutbox; those load when a job runs.
      *
      * @param DatabaseDriver $db The connection.
@@ -419,7 +419,7 @@ final class Runner
     /**
      * An item's rebuild mark older than the singles' grace that no catalogue job has been asked for since it was
      * written, while no catalogue job is pending or running: a save that died after its commit and before its
-     * rebuild (2.2.0, Q-L). A failed job is not active here: it stands for staff, and the mark still gets its job, whose
+     * rebuild (Q-L). A failed job is not active here: it stands for staff, and the mark still gets its job, whose
      * success closes the failed one. A mark a job has already walked and kept (a rebuild that failed again) waits for
      * the next request of the job, so an item that always fails never keeps the pages kicking.
      *
@@ -455,7 +455,7 @@ final class Runner
     }
 
     /**
-     * A stock movement owed, pending or under a claim gone stale (which the drain settles as a failed try, 2.2.1), with
+     * A stock movement owed, pending or under a claim gone stale (which the drain settles as a failed try), with
      * no drain job to apply it. A movement that failed waits for the bell's throttled check
      * (InventoryEffectOutbox::syncNotice()), so a movement that always fails never keeps the pages kicking.
      *
@@ -680,7 +680,7 @@ final class Runner
     }
 
     /**
-     * Core's job handlers by name (2.2.0, design 2.5; the jobs themselves are written in part C4).
+     * Core's job handlers by name.
      *
      * @return array<string, class-string<JobHandler>>
      *

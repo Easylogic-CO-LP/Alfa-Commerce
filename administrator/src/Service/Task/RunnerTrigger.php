@@ -16,7 +16,7 @@ use Joomla\CMS\Log\Log;
 use Throwable;
 
 /**
- * What the request-bound triggers share (design 2.7): the session closed before any work, and the response finished
+ * What the request-bound triggers share: the session closed before any work, and the response finished
  * first where the server can end the request before the tick (PHP-FPM, LiteSpeed's LSAPI). The triggers own nothing:
  * every one calls Runner::tick() with its budget.
  *

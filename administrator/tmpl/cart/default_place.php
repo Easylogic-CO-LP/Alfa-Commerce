@@ -93,7 +93,7 @@ if ($offers->paymentRequirement === MethodRequirement::Unavailable) {
 }
 
 // A plugin that adds charges or checks to this customer's cart and that Joomla does not load for this account: the
-// totals lack its part and placement refuses, so the button is disabled with the same sentence as its reason (UX-40).
+// totals lack its part and placement refuses, so the button is disabled with the same sentence as its reason.
 $notLoaded = array_map(
     static fn (string $plugin): string => Text::sprintf('COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR', AlfaPluginHelper::get()->name(PluginId::of($plugin))),
     array_values((array) $snapshot->totals->contributionsNotLoaded),

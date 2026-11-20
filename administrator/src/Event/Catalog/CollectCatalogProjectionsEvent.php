@@ -42,7 +42,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * {@see VisibilityChangedEvent}, since nothing else will tell it that an allowlist
  * moved underneath the rows it stores.
  *
- * THE LIST IS WRITTEN ONLY THROUGH addProjection() (2.2.1). It is the event's own, not an
+ * THE LIST IS WRITTEN ONLY THROUGH addProjection(). It is the event's own, not an
  * argument: setting the projections argument (setArgument(), or $event['projections'])
  * is refused with a BadMethodCallException, so no listener replaces or empties what the
  * others registered.
@@ -67,7 +67,7 @@ class CollectCatalogProjectionsEvent extends AbstractEvent
      * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
      *
      * @param ProjectionInterface $projection The projection instance.
-     * @param string $contributor The owning plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The owning plugin, group.element (attribution, never an authorisation).
      * @param string $version The package version.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.
@@ -98,7 +98,7 @@ class CollectCatalogProjectionsEvent extends AbstractEvent
     }
 
     /**
-     * Refuses the projections argument: the list is written only through addProjection() (2.2.1).
+     * Refuses the projections argument: the list is written only through addProjection().
      *
      * @param mixed $value The value a caller tried to set.
      *

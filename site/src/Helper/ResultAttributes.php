@@ -15,7 +15,7 @@ use Joomla\CMS\Log\Log;
 use Throwable;
 
 /**
- * The one renderer of a result set's attribution metadata (2.2.0): the closed set of core-owned names, each value
+ * The one renderer of a result set's attribution metadata: the closed set of core-owned names, each value
  * escaped once, null rendering nothing. Templates never concatenate or escape these attributes themselves: the items
  * view's resultSetAttributes() and resultAttributes() call this, and those two calls are the listing's supported
  * override contract.

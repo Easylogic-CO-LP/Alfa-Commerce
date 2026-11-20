@@ -23,7 +23,7 @@ use Throwable;
  * item-field and search projections, so `ItemModel` calls one boundary and the
  * pricing service keeps its own richer API untouched.
  *
- * Removal too is the service's (2.2.0, deleteForItems(): a chunked, set-shaped
+ * Removal too is the service's (deleteForItems(): a chunked, set-shaped
  * DELETE), so the index has one writer and it announces every row it removes.
  *
  * @since  2.0.0
@@ -61,7 +61,7 @@ class PriceProjection implements ProjectionInterface
     }
 
     /**
-     * Rebuild the price index rows of several items and let a failure reach the caller (2.2.0, the catalogue.rebuild
+     * Rebuild the price index rows of several items and let a failure reach the caller (the catalogue.rebuild
      * job's path).
      *
      * @param int[] $itemIds The item primary keys.
@@ -87,8 +87,8 @@ class PriceProjection implements ProjectionInterface
     /**
      * Remove the price index rows for a whole batch of items.
      *
-     * The set-shaped delete {@see ProjectionManager} prefers, made by the service
-     * (2.2.0): one statement per chunk of the selection, so the IN-list cannot
+     * The set-shaped delete {@see ProjectionManager} prefers, made by the service:
+     * one statement per chunk of the selection, so the IN-list cannot
      * outgrow the driver's placeholder limit on a select-all trash.
      *
      * @param int[] $itemIds The item primary keys.
@@ -97,7 +97,7 @@ class PriceProjection implements ProjectionInterface
      */
     public function deleteForItems(array $itemIds): void
     {
-        // The index has one writer (2.2.0): the removal is the service's, which announces the rows it removes
+        // The index has one writer: the removal is the service's, which announces the rows it removes
         // (onAlfaPricesChanged).
         $this->service->deleteForItems(itemIds: $itemIds);
     }

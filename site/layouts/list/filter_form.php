@@ -82,11 +82,11 @@ if ($searchField && $searchField->getAttribute('data-alfa-search')) {
 		// the engine, never with the component. This renders the input only; an engine's
 		// consumer of the result set's attribution loads when the items view announces the
 		// result set (onAlfaResultSetRender). The question goes to the configured engine's
-		// plugin ALONE (2.2.0, mode B): no other listener can take the input. With no such
+		// plugin ALONE (targeted): no other listener can take the input. With no such
 		// plugin (the database search, an engine core ships itself, a plugin disabled or
 		// failing) this renders the stock searchtools input exactly as before. `method`
 		// carries the configured engine key from its one reader ('' for the database
-		// search, 2.2.1); redirects are deliberately not honoured here.
+		// search); redirects are deliberately not honoured here.
 		$inputEvent = new SearchInputLayoutEvent('onAlfaSearchInputLayout', [
 			'subject' => $view,
 			'method'  => SearchEngineRegistry::shared()->configuredKey(),
@@ -95,7 +95,7 @@ if ($searchField && $searchField->getAttribute('data-alfa-search')) {
 			// claim only one.
 			'context' => 'com_alfa.' . $view->getName(),
 		]);
-		// The request's registry: the engines are discovered once per page, whoever asks (2.2.0).
+		// The request's registry: the engines are discovered once per page, whoever asks.
 		$enginePlugin = SearchEngineRegistry::shared()->configuredPlugin();
 
 		if ($enginePlugin !== null) {

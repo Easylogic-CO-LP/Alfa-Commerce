@@ -42,7 +42,7 @@ class PlacesController extends AdminController
 
     /**
      * Add, unpublished, the places Alfa Commerce ships inside the selected countries (Greece's regions and Mount Athos;
-     * the Canary Islands, Ceuta and Melilla inside Spain), the existing shop's way to them (2.2.1): an update never adds
+     * the Canary Islands, Ceuta and Melilla inside Spain), the existing shop's way to them: an update never adds
      * them. One message per selected place says what was added, or why nothing was.
      *
      * @since  2.2.1

@@ -1251,8 +1251,8 @@ final class CartRulesEngine
             // This is the ONLY place eligibility is decided. Condition
             // evaluation runs on the full $lines and never passes through here,
             // so an overridden line still contributes its real merchandise
-            // value to "subtotal >= 100" and rules keep firing; the ruling
-            // asks for exactly that, and it is already true structurally.
+            // value to "subtotal >= 100" and rules keep firing, as they
+            // must; it holds structurally.
             if (!$allowOverridden && !empty($line->has_custom_price)) {
                 continue;
             }

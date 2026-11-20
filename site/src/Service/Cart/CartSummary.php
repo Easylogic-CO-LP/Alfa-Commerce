@@ -56,7 +56,7 @@ final class CartSummary
 
         // Catalogue discounts and tax are already inside the subtotal; each row
         // appears only when there is something to state, as a figure included, never
-        // a deduction (2.2.0, UX-75): the discount directly under the subtotal it was
+        // a deduction: the discount directly under the subtotal it was
         // taken from, with no sign. The tax is the goods tax, the figure inside the
         // subtotal it sits under; carriage tax is inside the shipping row's own figure.
         if ($hasDiscount) {
@@ -77,8 +77,8 @@ final class CartSummary
 
         // Free shipping is a benefit the engine classified; the row renders that
         // verdict and compares no numbers. It is always shown. Before a shipping
-        // method is chosen it states that, never a zero that reads as free (2.2.0,
-        // UX-76); a free verdict still says Free.
+        // method is chosen it states that, never a zero that reads as free;
+        // a free verdict still says Free.
         $shipping = $totals->shippingBenefit;
         $free = $shipping->benefit === 'free_shipping';
         $later = $shippingAwaitsChoice && !$free;

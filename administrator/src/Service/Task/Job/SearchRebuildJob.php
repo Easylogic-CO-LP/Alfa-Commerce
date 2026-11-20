@@ -27,7 +27,7 @@ use Joomla\CMS\Language\Text;
 use Throwable;
 
 /**
- * Rebuild the search index of the configured engine (2.2.0), through core's RebuildRunner and its RebuildStore row.
+ * Rebuild the search index of the configured engine, through core's RebuildRunner and its RebuildStore row.
  *
  * The first chunk opens a new generation of the index; every chunk walks the catalogue from the store's cursor and
  * writes into that generation, which nobody reads until it is activated; the last chunk reconciles what was saved while

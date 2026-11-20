@@ -205,8 +205,8 @@ class OrderTotalHelper
         // Sum discounts, and take shipping benefits off SHIPPING
         // A shipping-class rule is not a discount: it reduces the carrier
         // charge. Counting it here as well as leaving the gross shipping in
-        // place subtracted it twice. Rows frozen before 1.9.0 carry
-        // discount_class='order', so they behave exactly as they used to.
+        // place subtracted it twice. Older rows carry
+        // discount_class='order', so they count as order discounts.
         $discountExcl = $zero;
         $discountIncl = $zero;
 
@@ -217,7 +217,7 @@ class OrderTotalHelper
             // wrong for anything taxed differently, shipping above all.
             $rowIncl = self::exact($discount->value_tax_incl ?? 0);
 
-            // Pre-1.9.0 rows have no inclusive figure; the excl value is the
+            // An older row has no inclusive figure; the excl value is the
             // only honest thing left to use.
             if (!$rowIncl->isPositive()) {
                 $rowIncl = $rowExcl;
@@ -270,7 +270,7 @@ class OrderTotalHelper
      * Use only when no pre-loaded data exists (e.g. PaymentLedger).
      * For OrderModel/OrdersModel, call computeFromArrays() instead.
      *
-     * Money since 2.2.1 (a float before): the exact grand total of
+     * Money: the exact grand total of
      * {@see self::getExactBreakdown()}, in the order's currency, rounded once
      * at the scale the order froze.
      *
@@ -416,7 +416,7 @@ class OrderTotalHelper
     /**
      * Items total (tax inclusive).
      *
-     * Money since 2.2.1 (a float before): the exact sum of the lines, in the
+     * Money: the exact sum of the lines, in the
      * order's currency, rounded once at the scale the order froze.
      *
      * @param int $orderId Order PK
@@ -456,10 +456,9 @@ class OrderTotalHelper
      * The shipping the order charges (tax inclusive): its active parcels' charges after the shipping-class cart rules
      * reduced them, the figure its total and its documents use ({@see self::getExactBreakdown()}, shipping_tax_incl).
      *
-     * One figure (2.2.1): before, this summed the parcels' charges alone, so an order with free or reduced
-     * shipping through a cart rule read more shipping here than its total holds. The carriers' gross charge is the
-     * breakdown's shipping_gross_tax_incl ({@see self::getBreakdown()}). Money since 2.2.1 (a float before), in the
-     * order's currency, rounded once at the scale the order froze.
+     * One figure, so an order with free or reduced shipping through a cart rule reads here what its total holds, not
+     * the parcels' charges alone. The carriers' gross charge is the breakdown's shipping_gross_tax_incl
+     * ({@see self::getBreakdown()}). Money, in the order's currency, rounded once at the scale the order froze.
      *
      * @param int $orderId Order PK
      *
@@ -477,7 +476,7 @@ class OrderTotalHelper
     /**
      * Discount total (tax inclusive): the order discounts' own frozen inclusive figures.
      *
-     * Money since 2.2.1 (a float before), in the order's currency, rounded once
+     * Money, in the order's currency, rounded once
      * at the scale the order froze.
      *
      * @param int $orderId Order PK
@@ -496,7 +495,7 @@ class OrderTotalHelper
         // rebuilt them from the items' average VAT multiplier, which is wrong
         // for any rule taxed differently from the items: a free-shipping
         // benefit on a zero-tax carrier charge came back inflated by the whole
-        // items VAT rate. COALESCE keeps pre-1.9.0 rows (incl = 0) working off
+        // items VAT rate. COALESCE keeps older rows (incl = 0) working off
         // their excl value.
         //
         // Shipping-class rules are excluded: they reduce the carrier charge,
@@ -516,7 +515,7 @@ class OrderTotalHelper
     /**
      * Discount total (tax exclusive).
      *
-     * Money since 2.2.1 (a float before), in the order's currency, rounded once
+     * Money, in the order's currency, rounded once
      * at the scale the order froze.
      *
      * @param int $orderId Order PK

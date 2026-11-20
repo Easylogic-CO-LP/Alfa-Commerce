@@ -8,7 +8,7 @@
  */
 
 /**
- * One product field as a plain read-only list of its values, in place of the buy form in catalogue-only mode (2.2.2):
+ * One product field as a plain read-only list of its values, in place of the buy form in catalogue-only mode:
  * the field's name, then each value's name, as text. No input, no link, nothing a script reads. A presenter: the model
  * decided which fields are listed.
  *

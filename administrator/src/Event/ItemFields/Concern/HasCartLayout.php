@@ -32,7 +32,7 @@ defined('_JEXEC') or die;
  * after the field dispatch when the card hides a dimension or required field the
  * buyer must answer. A MAIN a plugin sets here is never replaced by the core.
  *
- * What a field plugin may and may not do (2.2.2):
+ * What a field plugin may and may not do:
  * - It changes the cart region only by calling these setters, in its own
  *   onItemListPrepare or onItemView. The values live in this event's private
  *   properties and the setters are the one way in. setArgument() and $event[...]

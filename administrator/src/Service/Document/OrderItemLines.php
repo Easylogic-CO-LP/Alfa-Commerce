@@ -760,8 +760,7 @@ final class OrderItemLines
      * NULL AUTHORITY PRINTS ZERO, NOT A GUESS. A line written before Item 3
      * carries no authoritative whole-line saving, and its legacy columns held
      * two different money spaces depending on which writer last touched them.
-     * Reconstructing one would be fabricating financial truth; the approved
-     * pre-v1 reset regenerates the corpus through the canonical writers.
+     * Reconstructing one would be fabricating financial truth.
      *
      * @param object $row The order line.
      * @param float $quantity The quantity this document drafts.

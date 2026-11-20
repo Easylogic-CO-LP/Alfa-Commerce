@@ -11,7 +11,7 @@
     </field>
 
     <!-- A country (no parent) carries its ISO 3166-1 codes; a place below a country carries none, and may carry its
-         ISO 3166-2 code. PlaceTable::check() enforces both, for every path that saves a place (2.2.1). -->
+         ISO 3166-2 code. PlaceTable::check() enforces both, for every path that saves a place. -->
     <field name="code2" maxlength="2" filter="safehtml" type="text" showon="parent_id:0" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_PLACE_CODE2" description="COM_ALFA_FORM_DESC_PLACE_CODE2" hint="COM_ALFA_FORM_LBL_PLACE_CODE2"/>
     <field name="code3" maxlength="3" filter="safehtml" type="text" showon="parent_id:0" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_PLACE_CODE3" description="COM_ALFA_FORM_DESC_PLACE_CODE3" hint="COM_ALFA_FORM_LBL_PLACE_CODE3"/>
     <field name="subdivision_code" maxlength="6" filter="safehtml" type="text" showon="parent_id!:0" label="COM_ALFA_FORM_LBL_PLACE_SUBDIVISION_CODE" description="COM_ALFA_FORM_DESC_PLACE_SUBDIVISION_CODE" hint="COM_ALFA_FORM_HINT_PLACE_SUBDIVISION_CODE"/>

@@ -85,13 +85,13 @@ class HtmlView extends BaseHtmlView
         $lister->recoverStale();
 
         // Each plugin booted under the lock, marked while it loads: one whose code cannot be loaded is shown so. The page
-        // never waits for the lock: while a clear is at work it shows what it could read and says so (2.2.1).
+        // never waits for the lock: while a clear is at work it shows what it could read and says so.
         $rows = $lister->inspect(entries: $lister->rows(), wait: 0);
         $this->busy = $lister->busy();
         $statuses = ClearDataStatus::all();
         $last = static fn (array $entry): ?array => \is_array($statuses[$entry['key']] ?? null) && isset($statuses[$entry['key']]['status']) ? $statuses[$entry['key']] : null;
 
-        // A language pack owns no data: its Clear Data cell says so (2.2.1).
+        // A language pack owns no data: its Clear Data cell says so.
         $packs = LanguagePacks::installed();
 
         foreach ($rows as $row) {

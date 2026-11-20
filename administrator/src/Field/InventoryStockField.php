@@ -271,7 +271,7 @@ class InventoryStockField extends FormField
      * cannot be sold while combinations exist, so it is named in a notice.
      *
      * @param int $itemId The product.
-     * @param string $id The field's id, given to the read-only figure so the label names it (since 2.1.1).
+     * @param string $id The field's id, given to the read-only figure so the label names it.
      *
      *
      * @since  2.0.0

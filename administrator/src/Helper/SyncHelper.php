@@ -707,7 +707,7 @@ final class SyncHelper
         $map = [
             'modified' => ['danger',  'COM_ALFA_NOTIFY_INTEGRITY_MODIFIED'],
             'ahead' => ['info',    'COM_ALFA_NOTIFY_INTEGRITY_AHEAD'],
-            // A list that cannot be reached says nothing about the files: Info, not Warning (UX-24).
+            // A list that cannot be reached says nothing about the files: Info, not Warning.
             'unreachable' => ['info',    'COM_ALFA_NOTIFY_INTEGRITY_UNVERIFIED'],
             'bad_signature' => ['danger',  'COM_ALFA_NOTIFY_INTEGRITY_BADSIG'],
         ];

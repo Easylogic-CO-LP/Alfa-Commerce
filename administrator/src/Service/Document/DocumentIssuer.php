@@ -132,7 +132,7 @@ final class DocumentIssuer
      * "ONLY the explicit Void & Replace workflow". issue() refuses a draft that
      * carries it unless it names exactly this id, so neither a manual path nor
      * an onDocumentBeforeIssue subscriber can invent a replacement relationship
-     * (section 19, N5: a manual void followed by ordinary issuance is NOT a
+     * (a manual void followed by ordinary issuance is NOT a
      * replacement, however similar the resulting numbers).
      *
      *
@@ -227,8 +227,8 @@ final class DocumentIssuer
      * @param User|SystemActor|null $actor Who issues: a person, who must hold
      *                                     Sales Documents: Create; the shop's
      *                                     own policy, named (SystemActor); null
-     *                                     = the request's identity (2.2.1,
-     *                                     the service checks, whoever
+     *                                     = the request's identity (the
+     *                                     service checks, whoever
      *                                     calls it).
      *
      * @return object The issued `#__alfa_documents` row (fresh read).
@@ -383,7 +383,7 @@ final class DocumentIssuer
             $series = self::lockSeries(db: $db, seriesId: $seriesId, docType: $docType);
 
             // The clock as it is now, read for this document, and its date in the shop's time zone from the same
-            // instant (2.2.1). Factory::getDate() keeps the time of its first call for the whole process, so a task
+            // instant. Factory::getDate() keeps the time of its first call for the whole process, so a task
             // run or a console command issuing several documents would date them all at its start (a run crossing
             // midnight dating the later ones the day before, a year-scoped series numbering a new year's first
             // documents in the old year's series) and refuse a series another request had issued in since.
@@ -633,10 +633,9 @@ final class DocumentIssuer
     /**
      * Preview a draft: what this document WOULD be, without issuing it.
      *
-     * The document reconciliation contract, section 6: "Preview must
-     * execute the same canonical domain calculation used by final issuance,
-     * without persisting or consuming pools", and section 19: there must never be a
-     * proposal calculator and a manual calculator as separate financial models.
+     * A preview executes the same canonical domain calculation as final issuance,
+     * without persisting or consuming pools, and there is never a proposal
+     * calculator and a manual calculator as separate financial models.
      *
      * THIS METHOD LIVES ON THE ISSUER FOR THAT REASON. It does not re-implement
      * anything: it runs the SAME validateDraft(), the SAME over-issue and charge
@@ -656,7 +655,7 @@ final class DocumentIssuer
      *    because drawing one burns it; `number_formatted` is null on purpose
      *    rather than a guess the operator might read as real.
      *  - NO STOCK VALIDATION. validateForIssue() is a dry run already, but it
-     *    belongs to issuing; section 12 keeps fiscal reconciliation and physical stock
+     *    belongs to issuing; fiscal reconciliation and physical stock stay
      *    separate, and a preview that reported a stock veto as a money problem
      *    would blur exactly that line.
      *  - NO EVENTS. A subscriber may amend a draft or veto on the real issue;
@@ -665,7 +664,7 @@ final class DocumentIssuer
      *
      * A REFUSAL IS AN ANSWER, NOT AN ERROR. Every guard states its own reason in
      * its own words, so an invalid draft comes back with `valid = false` and the
-     * issuer's verbatim message, which is what section 5 needs to offer the operator
+     * issuer's verbatim message, which is what CorrectionStrategies needs to offer the operator
      * only strategies that are currently valid, with the reason when they are
      * not. THIS METHOD THROWS NOTHING for anything the issuer would refuse,
      * including the three checks issue() makes before its transaction opens
@@ -676,9 +675,9 @@ final class DocumentIssuer
      * @return object {valid: bool, reason: string, lines: stdClass[],
      *                totals: object, tax_summary: stdClass[],
      *                currency_code: string, currency_scale: int,
-     *                number_formatted: null, buyer: array (buyerBlock(), since 2.0.0),
+     *                number_formatted: null, buyer: array (buyerBlock()),
      *                refusal_key: string, refusal_values: array (the refusal's
-     *                operator words, '' / [] when valid or when it carries none; since 2.0.0)}
+     *                operator words, '' / [] when valid or when it carries none)}
      *
      * @since  2.0.0
      */
@@ -714,7 +713,7 @@ final class DocumentIssuer
 
         // EVERY refusal the issuer would make comes back as an ANSWER, in the
         // issuer's own words, including the three checks issue() makes before
-        // it opens its transaction. section 5 needs a reason for each strategy it
+        // it opens its transaction. CorrectionStrategies needs a reason for each strategy it
         // cannot offer; a thrown exception is not a reason an operator reads.
         if (!\in_array($docType, DocumentHelper::types(), true)) {
             return $answer(false, "DocumentIssuer: unknown doc_type '{$docType}'.");
@@ -797,7 +796,7 @@ final class DocumentIssuer
      * @param string $reason Mandatory human reason (audit).
      * @param int|null $actorId Acting admin; null = current identity. The
      *                          actor must hold Sales Documents: Change State
-     *                          (2.2.1, the service checks, whoever
+     *                          (the service checks, whoever
      *                          calls it).
      * @param bool $manageTransaction Own the transaction (default true).
      *
@@ -1163,10 +1162,9 @@ final class DocumentIssuer
     /**
      * Void a document and issue its replacement as ONE coordinated act.
      *
-     * The document reconciliation contract, section 14: "Do not
-     * implement Void & Replace as two unrelated UI button calls that can leave
-     * the system halfway through accidentally. Treat it as one explicit
-     * coordinated domain workflow." The only observable results are therefore
+     * Void & Replace is never two unrelated button calls that can leave the
+     * system halfway through: it is one explicit, coordinated domain workflow.
+     * The only observable results are therefore
      * two: the source still ACTIVE with no replacement, or the source VOIDED,
      * the replacement ISSUED and the replacement naming the source in
      * `id_replaces`. Every step below runs inside one transaction, and nothing
@@ -1389,7 +1387,7 @@ final class DocumentIssuer
                 buyer:       self::buyerBlock($built->draft),
             );
 
-            // 8. The relationship, audited on its own (section 20)
+            // 8. The relationship, audited on its own
             self::logAction(
                 db:       $db,
                 orderId:  $orderId,
@@ -1583,7 +1581,7 @@ final class DocumentIssuer
             );
         }
 
-        // section 14 amendment, at the DOCUMENT level: a combined invoice moved the
+        // At the DOCUMENT level: a combined invoice moved the
         // goods even though its type moves none. Issuing its replacement
         // would execute that physical movement again. A document with no item
         // line moved nothing, so there is nothing to move twice.
@@ -1963,7 +1961,7 @@ final class DocumentIssuer
      * Over-issue / over-credit guards: computed INSIDE the order lock so a
      * concurrent issuance cannot slip past the sums.
      *
-     * Also the corrected-document rules of a credit (since 2.0.0): its buyer
+     * Also the corrected-document rules of a credit: its buyer
      * and its language are the ones the corrected document froze, it credits
      * no more of a line than that document has left, and only a credit may
      * name a corrected document at all.
@@ -2021,7 +2019,7 @@ final class DocumentIssuer
                     : '';
 
                 // The message keeps the technical detail logs read; the
-                // operator is told the line by its row and product (C-4).
+                // operator is told the line by its row and product.
                 throw new DocumentRefusedException(
                     message: "line {$i}: quantity {$qty}{$context} exceeds the remaining {$remaining[$orderItemId]['remaining']} for order line #{$orderItemId}.",
                     key:     $context === '' ? 'COM_ALFA_DOCUMENTS_REFUSED_LINE_QUANTITY' : 'COM_ALFA_DOCUMENTS_REFUSED_LINE_QUANTITY_TOTAL',
@@ -2770,7 +2768,7 @@ final class DocumentIssuer
      * at the rate it was frozen with, and nothing is resolved again from the
      * tax rules. A CREDIT takes it ONLY from the document it corrects, as it
      * takes the inventory identity: a line that document froze without a name
-     * carries none (every document issued before 2.2.0), and the order is
+     * carries none, and the order is
      * never read. Everything else takes an item line's from its order line
      * (#__alfa_order_items.tax_name) and a shipping line's from its parcel's
      * tax chain (ShipmentLedger::chainTaxName()). A fee, an adjustment or a
@@ -3055,7 +3053,7 @@ final class DocumentIssuer
 
         unset($draft[self::ASKED]);
 
-        // A before phase (2.2.0, mode A): Joomla's dispatch(), a listener's exception is the veto.
+        // A before phase (broadcast): Joomla's dispatch(), a listener's exception is the veto.
         $plugins = AlfaPluginHelper::get();
         $plugins->importGroup('alfa');
         $event = new DocumentBeforeIssueEvent('onDocumentBeforeIssue', ['draft' => $draft]);
@@ -3367,7 +3365,7 @@ final class DocumentIssuer
      * AT THE ORDER'S FROZEN SCALE, not today's. The document freezes the same
      * scale, so the money it computes now and the money it renders later are in
      * one scale for the life of the record. No fallback when the order has
-     * none: a pre-v1 order's scale is unknown, and inventing one here would put
+     * none: a legacy order's scale is unknown, and inventing one here would put
      * today's configuration into a fiscal record.
      *
      * An order that names no currency is issued nothing. No other currency is
@@ -3662,13 +3660,13 @@ final class DocumentIssuer
         // document and the order it documents can never disagree about the
         // scale their shared money is in. A CREDIT inherits it from the
         // document it corrects, whose money it gives back. NULL stays
-        // NULL: a pre-v1 record cannot lend a scale it never recorded, and 0
+        // NULL: a legacy record cannot lend a scale it never recorded, and 0
         // is a real zero-decimal scale that must stay distinguishable from its
         // absence.
         $scaleSource = $isCredit ? self::load(db: $db, documentId: (int) $draft['id_corrects']) : $order;
         $doc->currency_scale = $scaleSource->currency_scale === null ? null : (int) $scaleSource->currency_scale;
 
-        // Buyer snapshot: draft wins, enterable at issue (spec 1g). The one
+        // Buyer snapshot: draft wins, enterable at issue. The one
         // normaliser, so what is previewed and fingerprinted is what lands.
         foreach (self::buyerBlock($draft) as $column => $value) {
             $doc->{$column} = $value;
@@ -3728,7 +3726,7 @@ final class DocumentIssuer
      * @param string $summary Human-readable summary.
      * @param array $context Structured data.
      * @param int $actorId The acting user; 0 = System.
-     * @param bool $refuseOversize Refuse a record too large to store whole (since 2.0.0).
+     * @param bool $refuseOversize Refuse a record too large to store whole.
      *
      * @since  2.0.0
      */
@@ -3870,7 +3868,7 @@ final class DocumentIssuer
     }
 
     /**
-     * Raise a document event on the shared dispatcher after the alfa group is imported (2.2.0, mode A, an after phase,
+     * Raise a document event on the shared dispatcher after the alfa group is imported (broadcast, an after phase,
      * isolated): a listener's failure is logged with its name and the next listener runs (non-blocking contract).
      *
      * @since  2.0.0

@@ -7,7 +7,7 @@
  * why), and never sooner than a second after the last one began. Closing the page loses nothing: the job waits for
  * the next run. When the job ends, the sentence of its end shows, coloured by it, the bar turns solid in the same colour,
  * a thumbnails job's report is printed, and the jobs card below is asked for again: the server draws it with its own
- * layout (task=tasks.jobsCard) and the script swaps it in (UX-84, UX-88). The script fills the page's own elements and
+ * layout (task=tasks.jobsCard) and the script swaps it in. The script fills the page's own elements and
  * swaps in the card the server drew; it builds no markup.
  */
 (function () {

@@ -24,7 +24,7 @@ use UnexpectedValueException;
  *
  * FieldsHelper::prepareForm() puts this rule on a required field whose form-field plugin is unavailable in the request
  * (missing, disabled, not loaded for the visitor's access, or failing to start): the form fails closed instead of
- * storing the record without the field (2.2.1). The visitor reads that the field cannot be filled in now;
+ * storing the record without the field. The visitor reads that the field cannot be filled in now;
  * staff read the plugin and the reason in the log.
  *
  * @since  2.2.1

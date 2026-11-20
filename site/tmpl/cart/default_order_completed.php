@@ -10,14 +10,14 @@
 \defined('_JEXEC') or die;
 
 /**
- * The order-completed page (2.2.0, design 2.17).
+ * The order-completed page.
  *
  * It prints one read-only value, $this->confirmation (Site\Service\Order\OrderConfirmation),
  * which the site read service prepared through CartModel::getCompletedOrder(): this file
  * reads nothing else, queries nothing and decides nothing. Null means the order is not
  * available to this visitor, and the page then says only that (the view answers 404).
  *
- * The money is the cart.summary layout's (C15), fed rows the order froze; the lines and their
+ * The money is the cart.summary layout's, fed rows the order froze; the lines and their
  * totals are .cart-lines, so they look as the cart's do (cart.css). The gateway's
  * block is its own layout, left out with the neutral line when its plugin cannot be asked.
  * Print is bound by the page's script (asset com_alfa.order-completed): it opens this same keyed
@@ -67,7 +67,7 @@ $columns = [
 
     <p class="order-not-available"><?php echo Text::_('COM_ALFA_ORDER_NOT_AVAILABLE'); ?></p>
 
-    <?php // The page's own action first and primary, Continue shopping after it, as the process page orders them (NEW-8);
+    <?php // The page's own action first and primary, Continue shopping after it, as the process page orders them;
           // alone, Continue shopping is the page's one way on. ?>
     <div class="order-completed-actions">
         <?php if ($this->loginUrl !== '') : ?>
@@ -82,7 +82,7 @@ $columns = [
 
     <p class="order-number">
         <?php echo Text::sprintf('COM_ALFA_ORDER_COMPLETED_NUMBER', $this->escape($order->number)); ?>
-        <?php // For the logged-in owner, the link to this order in the account goes here once the account's order view exists (design 8.4 item 13). ?>
+        <?php // For the logged-in owner, the link to this order in the account goes here once the account's order view exists. ?>
     </p>
 
     <dl class="order-facts">

@@ -23,7 +23,7 @@ use Throwable;
 \defined('_JEXEC') or die;
 
 /**
- * The provider callback endpoints' delivery to the plugin of record (2.2.0, design 2.15.5):
+ * The provider callback endpoints' delivery to the plugin of record:
  * the plugin the address names, booted through the plugin helper, the event delivered to its declared handler; never
  * another plugin. A webhook that cannot be processed is never acknowledged: a plugin of record that is disabled,
  * missing or cannot be loaded is answered 503 with Retry-After (the provider keeps retrying) and raises one

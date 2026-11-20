@@ -76,7 +76,7 @@ final class SearchQuery
          */
         public readonly SearchEntity $entity = SearchEntity::ITEM,
         /**
-         * THE READ THAT BACKS A RENDERED RESULT SET (2.2.0), or null for any other read
+         * THE READ THAT BACKS A RENDERED RESULT SET, or null for any other read
          * (a facet re-read, a type-ahead lookup, a programmatic read). A provider may mint
          * a handle only for a query that carries one ({@see SearchResult::$eventId}).
          *

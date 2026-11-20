@@ -20,7 +20,7 @@ defined('_JEXEC') or die;
  * Visibility / usergroup / price stay with the catalog query that filters these
  * candidates.
  *
- * ATTRIBUTION (2.2.0). The handle names the rendered result set of this request, not
+ * ATTRIBUTION. The handle names the rendered result set of this request, not
  * the search. A provider may return one for any query that carries a ResultSetContext,
  * on any page and under any intent, and relates the handles of one shopper's pages
  * internally, as its own analytics model decides. A query without a ResultSetContext

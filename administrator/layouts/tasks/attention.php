@@ -9,7 +9,7 @@
  *   - total (int)    TaskStaff::attentionTotal()
  *   - users (array)  user id => name, for the history
  *   - failedJobs (int) how many background jobs failed: with no task to list, the card says so and where they are,
- *     so it never tells staff that nothing needs attention while a job does (UX-02)
+ *     so it never tells staff that nothing needs attention while a job does
  *   - unreadable (bool) the tasks could not be read (the table missing or damaged): one line instead of the list
  *
  * @package    Alfa Commerce

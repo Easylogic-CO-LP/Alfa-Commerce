@@ -3,7 +3,7 @@
     <fields name="formfieldsparams">
         <fieldset name="fieldparams" label="PLG_ALFA_FORM_FIELDS_TEL_PARAMS_TAB">
             <!-- The countries only (places with no parent), by their ISO 3166-1 code: a place inside a country carries
-                 no country code of its own (2.2.1). -->
+                 no country code of its own. -->
             <field
                 layout="joomla.form.field.list-fancy-select"
                 name="default_region"

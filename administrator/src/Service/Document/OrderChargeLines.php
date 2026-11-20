@@ -63,7 +63,7 @@ use RuntimeException;
  * rule OrderItemLines::claim() applies to the item lines). A claim never
  * goes past the draft's goods, so shipping and fees are never reduced by a
  * goods discount. A balance larger than the goods still to invoice (an
- * invoice issued before 2.2.1 without its share) keeps the rest unclaimed:
+ * invoice issued without its share) keeps the rest unclaimed:
  * unclaimableDiscounts() names it for the document screen.
  *
  * VAT of an order-level discount is attributed PRO-RATA across the draft's
@@ -372,7 +372,7 @@ final class OrderChargeLines
             $incl = (float) $row->value_tax_incl;
             $excl = (float) $row->value_tax_excl;
 
-            // Rows frozen before 1.9.0 carry no inclusive figure: the excl
+            // A row frozen without an inclusive figure: the excl
             // value is the only honest amount left (same fallback as
             // OrderTotalHelper::computeFromArrays).
             if (!Money::of($incl, $currency)->isPositive()) {
@@ -2333,7 +2333,7 @@ final class OrderChargeLines
      * The goods still to invoice are shared out over the order's discounts in
      * the order's own order, each taking at most what is left of them. A
      * balance larger than that keeps the rest, which no sales document can
-     * claim: a partial invoice issued before 2.2.1 without its share of the
+     * claim: a partial invoice issued without its share of the
      * discount leaves one (unclaimableDiscounts()).
      *
      * @param object $charges The order's charges (remaining()).
@@ -2368,7 +2368,7 @@ final class OrderChargeLines
      * claim any more, for the order's document screen.
      *
      * A discount follows the goods, so a balance larger than the goods still
-     * to invoice can carry stays unclaimed: an invoice issued before 2.2.1
+     * to invoice can carry stays unclaimed: an invoice issued
      * without its share of the discount leaves one. The order's invoices then
      * total more than the order by that amount; issued documents are never
      * rewritten, and staff give it back with a credit note.
@@ -2910,7 +2910,7 @@ final class OrderChargeLines
      *     kept is stored nowhere, so a change is not additive (goods_credited);
      *   - a rule whose frozen net/gross no longer matches the documented one,
      *     or the goods' for a rule never documented, changed its tax semantic
-     *     and is section 17's, not money's (tax_changed).
+     *     and is a semantic mismatch, not money (tax_changed).
      *
      * @param object $db Database driver.
      * @param int $orderId The order id.
@@ -3254,7 +3254,7 @@ final class OrderChargeLines
             $incl = $rule === null ? 0.0 : abs((float) $rule->value_tax_incl);
             $excl = $rule === null ? 0.0 : abs((float) $rule->value_tax_excl);
 
-            // Rows frozen before 1.9.0 carry no inclusive figure (remaining()).
+            // A row frozen without an inclusive figure takes the excl one (remaining()).
             if ($rule !== null && !Money::of($incl, $currency)->isPositive()) {
                 $incl = $excl;
             }

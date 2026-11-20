@@ -109,7 +109,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
     /**
      * Alfa's Options as they were when a save of them began ({@see self::onExtensionBeforeSave()}), so the save can ask
-     * the one rule for online sales with what it changed (2.2.2). Request memory only; null when no such save began.
+     * the one rule for online sales with what it changed. Request memory only; null when no such save began.
      *
      * @var array<string, mixed>|null
      *
@@ -194,7 +194,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             'onExtensionAfterInstall' => 'onExtensionAfterInstall',
             'onExtensionAfterUpdate' => 'onExtensionAfterInstall',
 
-            // Extensions enabled or disabled from Extensions: Manage (2.2.1): an Alfa extension among them drops the
+            // Extensions enabled or disabled from Extensions: Manage: an Alfa extension among them drops the
             // cached dashboard cards and setup verdict, as the Plugins list's switch does.
             'onExtensionChangeState' => 'onExtensionChangeState',
 
@@ -265,7 +265,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         // The customer details a registration carries are not stored here: the request's raw values never reach a
         // record. Alfa's registration stores them itself, as its form validated, filtered and pruned them
-        // (RegistrationModel::register()), and no other user save writes customer details (2.2.1).
+        // (RegistrationModel::register()), and no other user save writes customer details.
         $this->followAccount(caller: 'onUserAfterSave', userId: $userId);
     }
 
@@ -282,7 +282,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * business in com_alfa. The script itself does nothing until a com_alfa tour is
      * actually running.
      *
-     * The same event carries the background work's kicks (2.2.0, design 2.7): on a
+     * The same event carries the background work's kicks: on a
      * storefront page, kickFromStorefront(); on any administrator page, Alfa
      * Commerce's own included, for a user who manages it, kickFromAdministrator()
      * (9.44: an open staff page keeps the work going). Each costs one read when
@@ -327,7 +327,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * The storefront kick (design 2.7): one due read; when work is due, the page that takes the page gate (30 s)
+     * The storefront kick: one due read; when work is due, the page that takes the page gate (30 s)
      * carries the registered kick script, which POSTs once after the page has loaded to the guest endpoint. Nothing
      * about the queue is in the page. Alfa Commerce's own pages kick through the bell instead. During maintenance it
      * reads nothing and kicks nothing ({@see self::paused()}).
@@ -349,7 +349,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * The staff kick (design 2.7, amended by 9.44, s120): on an administrator page of a user who manages Alfa Commerce,
+     * The staff kick: on an administrator page of a user who manages Alfa Commerce,
      * one read of the remaining work (Runner::remains(): what is due, and a job another worker holds now); when work
      * remains, the registered script POSTs to the staff tick after the page has loaded, the session token in the body
      * (the address carries no token), and again after Runner::STAFF_REPEAT_MS for as long as the tick's answer says
@@ -370,7 +370,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         $document->addScriptOptions('com_alfa.runner', [
             'url' => Uri::base(true) . '/index.php?option=com_alfa&task=runner.tick&format=raw', 'token' => Session::getFormToken(),
             'header' => RunnerTrigger::REMAINS_HEADER, 'pauseMs' => Runner::STAFF_REPEAT_MS, 'capMs' => Runner::STAFF_REPEAT_CAP_SECONDS * 1000,
-            // The Dashboard's background-work card, drawn again after each tick while it is on the page (entry 27).
+            // The Dashboard's background-work card, drawn again after each tick while it is on the page.
             'cardUrl' => Uri::base(true) . '/index.php?option=com_alfa&task=tasks.backgroundCard',
         ]);
         $assets = $document->getWebAssetManager();
@@ -379,7 +379,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Joomla's System - Page Cache, the serving side (2.2.0): it asks on a guest's GET, before the component runs,
+     * Joomla's System - Page Cache, the serving side: it asks on a guest's GET, before the component runs,
      * whether to use its cache. Not for the cart page, nor for a visitor with a cart ({@see self::sharesNoPage()}): a
      * page stored for another visitor is not served to them, and nothing of theirs is stored.
      *
@@ -395,7 +395,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Joomla's System - Page Cache, the storing side (2.2.0): it asks after the page is drawn whether to keep it out of
+     * Joomla's System - Page Cache, the storing side: it asks after the page is drawn whether to keep it out of
      * its cache. The same rule as the serving side, read again: what the visitor holds now.
      *
      * @param IsExcludedEvent $event Joomla's question; true answers "excluded".
@@ -467,7 +467,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * The API's recovery tick (design 2.7, D8): one due read per API request; when work is due, the request that takes
+     * The API's recovery tick: one due read per API request; when work is due, the request that takes
      * the API gate (5 s) ticks after its response: 1,000 ms where the server can finish the response first, 250 ms
      * inline where it cannot. Never under a lock or in a transaction (Runner::tick() refuses), and never during
      * maintenance.
@@ -940,7 +940,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             if ($component === 'com_alfa') {
                 $this->invalidateSetup('com_alfa options saved');
 
-                // Online sales switched on or off (2.2.2): the one rule of every write of the Options
+                // Online sales switched on or off: the one rule of every write of the Options
                 // (ComponentOptions::followOnlineSales()). Joomla's Options save writes the row itself, not through
                 // ComponentOptions::write(), so this save asks it here, with the Options it found before.
                 if ($this->alfaOptionsBeforeSave !== null) {
@@ -1032,7 +1032,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * An Alfa extension installed, updated, uninstalled, enabled, disabled or saved (2.2.1): the cached
+     * An Alfa extension installed, updated, uninstalled, enabled, disabled or saved: the cached
      * dashboard cards and setup verdict are dropped, so its cards and setup rows are drawn, or left out, from the next
      * page on instead of when their cache expires (5 minutes, 6 hours). Never breaks the caller.
      *
@@ -1222,7 +1222,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * between would see them replaced or would set them on a shop that is not whole. Joomla's Options
      * save stops on a false result (com_config ComponentModel::save()).
      *
-     * It also keeps the Options as they were before the save (2.2.2), for the one rule of online sales
+     * It also keeps the Options as they were before the save, for the one rule of online sales
      * ({@see ComponentOptions::followOnlineSales()}) the save after it asks: Joomla's Options save writes
      * the row itself, never through ComponentOptions::write(), which asks the rule for every other write.
      *
@@ -1239,7 +1239,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             return;
         }
 
-        // The Options as they were before this save, for the rule the save after it asks (2.2.2).
+        // The Options as they were before this save, for the rule the save after it asks.
         $this->alfaOptionsBeforeSave = ComponentOptions::stored();
 
         if (!$this->paused()) {
@@ -1347,7 +1347,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * An extension uninstalled through Joomla (2.2.1): when it was an Alfa extension
+     * An extension uninstalled through Joomla: when it was an Alfa extension
      * ({@see self::onExtensionBeforeUninstall()} remembered it) and it is gone, the cached dashboard cards and setup
      * verdict are dropped, so its cards and setup rows are no longer drawn, and a standing compatibility notice is
      * brought up to date. It never fails the uninstall.

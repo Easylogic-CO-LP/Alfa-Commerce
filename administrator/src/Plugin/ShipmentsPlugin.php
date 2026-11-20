@@ -111,7 +111,7 @@
  *    $this->deleteShipment($id, $orderId);
  *    $this->assignShipmentItems($shipmentId, $orderId, [101, 102]);
  *
- *  THE ORDER'S MONEY AND THE AUDIT LOG (since 2.2.1):
+ *  THE ORDER'S MONEY AND THE AUDIT LOG:
  *    $collect = $this->amountToCollect($order);                  // Money: what cash on delivery collects, never negative
  *    $this->recordActionLog('PLG_ALFA_SHIPMENTS_<YOU>_LOG_BOOKED', ['title' => '#12'], $orderId); // Joomla's User Actions Log
  *
@@ -228,7 +228,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
     }
 
     /**
-     * The events Alfa addresses to one plugin of this family alone (2.2.0, design 2.15.2): mode B only, never on the
+     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the
      * shared dispatcher, never in getSubscribedEvents().
      *
      * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
@@ -248,7 +248,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
         'onGetActions',
         'onExecuteAction',
         'onAdminOrderDelete',
-        // A carrier's own data (2.1.0's Clear Data), addressed to it alone (2.2.0, part C14b).
+        // A carrier's own data (Clear Data), addressed to it alone.
         'onClearData',
     ];
 
@@ -259,13 +259,13 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      */
     public static function getSubscribedEvents(): array
     {
-        // 2.2.0: every Alfa event a carrier handles is addressed to it alone (TARGETED_EVENTS); a carrier that needs
+        // Every Alfa event a carrier handles is addressed to it alone (TARGETED_EVENTS); a carrier that needs
         // an ambient Joomla event merges its own map.
         return [];
     }
 
     /**
-     * Alfa's targeted-handler declaration (2.2.0, design 2.15.2): each event of TARGETED_EVENTS this plugin
+     * Alfa's targeted-handler declaration: each event of TARGETED_EVENTS this plugin
      * handles, by the method of the same name. The helper's targeted mode reads it; nothing here is registered on the
      * shared dispatcher.
      *
@@ -367,7 +367,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * The builder names this plugin as its writer, so save(), saveVerdict() and settleAttempt() alike write only a
      * parcel recorded as this plugin's, move it only to another method of this plugin, and never name another plugin
-     * for it; anything else is refused and nothing is written (2.2.0).
+     * for it; anything else is refused and nothing is written.
      *
      * @api ANSWERS: the ledger in builder mode for one parcel, naming this plugin as the writer, so its save() refuses
      *      another plugin's parcel; throws when the shipment is not found.
@@ -387,7 +387,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
     /**
      * The amount still to collect on this order, as Money: what a cash-on-delivery carrier asks the courier to
-     * collect (2.2.1).
+     * collect.
      *
      * The order's grand total less what the shop still holds of its payments, in the order's currency at the scale the
      * order froze, never negative: the same figure the gateways' amountToCollect() answers as a float, read from the
@@ -418,7 +418,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * Delete an order shipment record.
      *
      * Automatically clears item assignments before deletion. Only a parcel recorded as this plugin's: another plugin's
-     * parcel, or one that records no plugin, is refused and nothing is deleted (2.2.0).
+     * parcel, or one that records no plugin, is refused and nothing is deleted.
      *
      * @param int $id Shipment row PK
      * @param int $orderId Order PK (for activity log)
@@ -477,7 +477,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      *
      * Clears previous assignments for this shipment, then sets new ones.
      * Scoped to order to prevent cross-order item assignment, and to this
-     * plugin's own parcels: another plugin's parcel is refused (2.2.0).
+     * plugin's own parcels: another plugin's parcel is refused.
      *
      * @param int $shipmentId Shipment PK
      * @param int $orderId Order PK (security scope)
@@ -635,7 +635,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * wrong dimension.
      *
      * A key of this carrier's language namespace ({@see self::refusalKey()}), or one of core's two keys for a fact the
-     * checkout has not given yet: {@see self::REFUSAL_NEEDS_PLACE} and {@see self::REFUSAL_NEEDS_POSTCODE} (2.2.2),
+     * checkout has not given yet: {@see self::REFUSAL_NEEDS_PLACE} and {@see self::REFUSAL_NEEDS_POSTCODE},
      * worded in core's language file, so a carrier needs no key of its own for them.
      *
      * @api READ ONLY: the reason key the last pricing call recorded, for setUnavailable().
@@ -745,7 +745,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * Resolves the delivery country, finds the matching cost-per-place
      * zone, then delegates to cheapestMatchingCost() for limit matching.
      *
-     * THE NEAREST ZONE WINS (2.2.1). A zone matches when one of its places is
+     * THE NEAREST ZONE WINS. A zone matches when one of its places is
      * the destination or a place above it. Of the zones that match, the one
      * naming the place nearest the destination prices the cart: a zone of Crete
      * before a zone of Greece for an address in Crete, wherever each sits in the
@@ -759,7 +759,7 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
      * never priced by a farther zone or the catch-all (as the first matching
      * zone decided alone before).
      *
-     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO (2.2.2), in core's words: with no destination at all and no zone for
+     * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO, in core's words: with no destination at all and no zone for
      * it (no place, no catch-all), the refusal is {@see self::REFUSAL_NEEDS_PLACE}; with the carrier's postcode field
      * unanswered ('') and a zone whose every row that would fit has a postcode band, it is
      * {@see self::REFUSAL_NEEDS_POSTCODE}. A carrier that reads no postcode field passes null, and is refused
@@ -831,8 +831,8 @@ abstract class ShipmentsPlugin extends Plugin implements TargetedHandlersInterfa
 
         // NO ZONES AT ALL IS A CHOICE, NOT A FAILURE. A merchant who published
         // this method and configured no cost rows is offering carriage at no
-        // charge, and has been since 1.0. That is the one zero here that still
-        // means free, for a parcel the carrier can actually take.
+        // charge. That is the one zero here that still means free, for a
+        // parcel the carrier can actually take.
         if ($zones === []) {
             return 0.0;
         }

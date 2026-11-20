@@ -37,7 +37,7 @@ class PaymentController extends BaseController
      * onPaymentResponse to it, and follow the redirect it sets. No order is loaded here: the plugin resolves and
      * authenticates its own message. A plugin that is disabled, missing or cannot be loaded sends the shopper to the
      * home page with the payment method missing; a handler that sets no redirect sends the shopper to the cart with a
-     * neutral message (2.2.1), never to an empty page.
+     * neutral message, never to an empty page.
      *
      * @return void
      *
@@ -53,7 +53,7 @@ class PaymentController extends BaseController
         // an order this controller has no business loading.
         $paymentType = RequestScalar::cmd($this->input, 'method', '');
 
-        // The plugin the address names, booted through the plugin helper (2.2.0): never another one. A plugin that
+        // The plugin the address names, booted through the plugin helper: never another one. A plugin that
         // is disabled, missing or cannot be loaded is refused with a neutral message.
         $plugins = AlfaPluginHelper::get();
 
@@ -85,7 +85,7 @@ class PaymentController extends BaseController
             return;
         }
 
-        // What leaves the handler is the handler's own failure (Joomla's error page, as before 2.2.0).
+        // What leaves the handler is the handler's own failure (Joomla's error page).
         $plugins->dispatchTo($paymentPlugin, $paymentEvent);
 
         if ($paymentEvent->hasRedirect()) {
@@ -95,7 +95,7 @@ class PaymentController extends BaseController
         }
 
         // A handler that names no page leaves the shopper somewhere defined: the cart, told that the result could
-        // not be confirmed here (2.2.1). This controller holds no order, so the order's own page is the plugin's to name.
+        // not be confirmed here. This controller holds no order, so the order's own page is the plugin's to name.
         $app->enqueueMessage(Text::_('COM_ALFA_PAYMENT_RETURN_UNCONFIRMED'), 'warning');
         $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
     }
@@ -121,7 +121,7 @@ class PaymentController extends BaseController
 
         $onWebhookPaymentEventName = 'onPaymentWebhook';
 
-        // A DISABLED plugin is refused at its sessionless endpoint (2.2.0: 503 with Retry-After, so the provider
+        // A DISABLED plugin is refused at its sessionless endpoint (503 with Retry-After, so the provider
         // retries once it is enabled again, and an alert for staff), never handed the delivery.
         // subject = null, ALWAYS. This endpoint is addressed by the gateway's
         // server, and the only thing that can prove a message is genuine is the
@@ -138,7 +138,7 @@ class PaymentController extends BaseController
             'method' => $paymentType,
         ]);
 
-        // Delivered to the plugin of record only (2.2.0, design 2.15.5): unavailable, 503 with Retry-After and the
+        // Delivered to the plugin of record only: unavailable, 503 with Retry-After and the
         // alert; a handler that throws, 500; no webhook handler, 404. Never a 2xx for a delivery not processed.
         $this->deliverWebhook('alfa-payments', $paymentType, $paymentEvent);
     }

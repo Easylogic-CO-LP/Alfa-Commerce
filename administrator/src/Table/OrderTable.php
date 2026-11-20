@@ -84,7 +84,7 @@ class OrderTable extends Table
      * silently re-denominates the whole order, and clearing it leaves an order
      * that names none, which nothing can price, take payment for or invoice.
      *
-     * A row with no stored scale is a pre-v1 record with no authority to
+     * A row with no stored scale is a legacy record with no authority to
      * protect; it is left alone rather than given one, because inferring
      * historical scale from today's configuration is the defect, not the cure.
      *

@@ -24,7 +24,7 @@ $shipments = $snapshot->offers->shipments;
 	<?php endforeach; ?>
 
 	<?php if ($shipments === []) : ?>
-		<?php // What the checkout still needs, when a carrier waits for it (2.2.2). ?>
+		<?php // What the checkout still needs, when a carrier waits for it. ?>
         <p class="cart-methods-empty"><?php echo Text::_($snapshot->offers->needsKey() ?: 'COM_ALFA_CART_NO_SHIPMENT_AVAILABLE'); ?></p>
 	<?php endif; ?>
 
@@ -32,7 +32,7 @@ $shipments = $snapshot->offers->shipments;
 	foreach ($shipments as $shipment):
 		$checked = $snapshot->offers->selectedShipmentId === (int) $shipment->id ? 'checked' : '';
 		$view = $snapshot->offers->viewFor('shipment', (int) $shipment->id);
-		// Each method in the order every method keeps (2.2.2): its radio, then in its label the image the shop set (none
+		// Each method in the order every method keeps: its radio, then in its label the image the shop set (none
 		// drawn without one) and its title, then the description the shop wrote, then what its plugin adds.
 		$image = Layout::render('methods.image', ['image' => $snapshot->offers->imageFor('shipment', (int) $shipment->id), 'title' => (string) $shipment->name]);
 		?>

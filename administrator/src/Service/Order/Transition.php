@@ -63,8 +63,8 @@ use WeakReference;
  *                      (Tasks): the stock drain, the download entitlements,
  *                      the documents, the status e-mail unless silent(), and
  *                      onOrderStatusChange. All of it commits with the status
- *                      or rolls back with it (2.1.4). Each single only when
- *                      its handler can have work (2.2.0).
+ *                      or rolls back with it. Each single only when
+ *                      its handler can have work.
  *
  * The singles run once the outermost transaction has committed and Alfa's
  * named locks are released, in that order, each recorded as it ends: at once
@@ -140,7 +140,7 @@ class Transition
     protected bool $silent = false;
 
     /**
-     * Skip the customer's status e-mail only; the staff the status tells are still sent theirs (2.2.1).
+     * Skip the customer's status e-mail only; the staff the status tells are still sent theirs.
      *
      * @since  2.2.1
      */
@@ -331,7 +331,7 @@ class Transition
     }
 
     /**
-     * Skip the customer's status e-mail only: the staff recipients of the status are still sent theirs (2.2.1; the REST
+     * Skip the customer's status e-mail only: the staff recipients of the status are still sent theirs (the REST
      * status change's silent). silent() still skips both.
      *
      * @since  2.2.1
@@ -375,7 +375,7 @@ class Transition
      *
      * Answered once the change's stock single ran: before save() returns when
      * save() opened the transaction; after the caller's commit when nested
-     * (null until then, 2.1.4).
+     * (null until then).
      *
      * @return array|null ['action' => string, 'count' => int], or null when the
      *                    stock effect was not applied: still owed and retried,
@@ -825,7 +825,7 @@ class Transition
 
             $lockedStatusId = (int) $lockedRow->id_order_status;
 
-            // The status the move was owed in, asked where no other writer can change the answer (2.2.0).
+            // The status the move was owed in, asked where no other writer can change the answer.
             if ($this->expectedStatusId !== null && $lockedStatusId !== $this->expectedStatusId) {
                 TransactionState::rollBackLevel($db);
                 $this->refusedSuperseded = true;
@@ -926,7 +926,7 @@ class Transition
             return false;
         }
 
-        // Whether the change wrote its stock single; without one there is nothing to apply (2.2.0).
+        // Whether the change wrote its stock single; without one there is nothing to apply.
         $stockOwed = false;
 
         try {
@@ -1006,7 +1006,7 @@ class Transition
                 );
             }
 
-            // Everything else the change owes, written with it (2.1.4): its timeline records and its singles commit
+            // Everything else the change owes, written with it: its timeline records and its singles commit
             // with the status or roll back with it. Exactly one caller owns them (above).
             if ($ownsSideEffects) {
                 $stockOwed = $this->writeConsequences(oldStatusId: $oldStatusId, unpaidException: $unpaidException, facts: $facts, claimChanged: $claimChanged);
@@ -1122,7 +1122,7 @@ class Transition
      * Write what the change owes, inside its window: the stock drain's single first (the batch runs it before the
      * rest), the timeline records, then the singles of the change in the order they run.
      *
-     * A single is written only when its handler can have work, decided from what this transaction reads (2.2.0, D4): a
+     * A single is written only when its handler can have work, decided from what this transaction reads: a
      * status setting, recipient or plugin changed between the commit and a later run is read as it was here. A guard
      * that cannot be read owes its single ({@see self::owes()}).
      *
@@ -1205,7 +1205,7 @@ class Transition
         }
 
         // The customer is left out of a change made silent for the customer alone; its single then has work only when the
-        // status tells staff (2.2.1).
+        // status tells staff.
         $toCustomer = !$this->silentCustomer;
 
         if (!$this->silent && $this->owes(handler: OrderStatusEmail::NAME, guard: static fn (): bool => EmailService::notifiesForStatus(statusId: $toStatusId, customer: $toCustomer))) {
@@ -1226,8 +1226,8 @@ class Transition
     }
 
     /**
-     * Whether a single of the change has work, by its guard (2.2.0, D4). A guard only spares a row; its handler decides
-     * again when it runs, as in 2.1.4. So a guard that cannot be read writes the single, with a WARNING line naming the
+     * Whether a single of the change has work, by its guard. A guard only spares a row; its handler decides
+     * again when it runs. So a guard that cannot be read writes the single, with a WARNING line naming the
      * handler and the order, and never refuses the change. A failure that ended the transaction (a deadlock) is
      * rethrown: the change then fails as any of its writes would.
      *
@@ -1264,7 +1264,7 @@ class Transition
      * this fails (or the process never gets here), the obligation is still recorded and outstanding, and Tools >
      * Database Sync finishes it. The drain also picks up an obligation an earlier change left owed, which is why a
      * claim-equal move heals an order the short-circuit would once have skipped for ever: a failed one is opened
-     * again first, so the new status tries it at once and its save says what happened (2.2.1).
+     * again first, so the new status tries it at once and its save says what happened.
      *
      * @param int $orderId The order.
      * @param int $oldStatusId The status it left.
@@ -1303,7 +1303,7 @@ class Transition
                 $outcome['refusal'] = (string) $drained['refusalReasons'][$orderId];
 
                 // A stock plugin's own refusal is staff's to decide; a line with no stock identity is resolved on the
-                // Inventory audit page (2.2.1).
+                // Inventory audit page.
                 $byListener = isset($drained['refusedByListener'][$orderId]);
 
                 self::reportStockDeferred(
@@ -1331,7 +1331,7 @@ class Transition
                     reason:      (string) ($drained['errors'][$orderId] ?? 'unknown'),
                     refused:     false,
                     notice:      $drained['reservedFloorNotices'][$orderId] ?? $outcome['reservedFloor'],
-                    // Its last automatic try (2.2.1): from now on it waits for staff.
+                    // Its last automatic try: from now on it waits for staff.
                     noticeKey:   isset($drained['exhausted'][$orderId]) ? 'COM_ALFA_NOTIFY_STOCK_ORDER_EXHAUSTED_MSG' : 'COM_ALFA_NOTIFY_STOCK_ORDER_RESERVED_MSG',
                 );
             } elseif (($drained['failed'] ?? 0) > 0) {

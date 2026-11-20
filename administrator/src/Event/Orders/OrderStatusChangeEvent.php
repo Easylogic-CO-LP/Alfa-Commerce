@@ -19,13 +19,13 @@
  * documents, subscription state); they do not steer the transition itself.
  *
  * A listener exception NEVER blocks the transition: the event is raised by the
- * order.status_event task once the status change has committed (2.1.4), which
+ * order.status_event task once the status change has committed, which
  * calls each listener on its own, records a listener that throws with its error
  * in the task's history, and still runs the others; staff run it again from
  * Tools > Tasks.
  *
- * A listener never depends on the current user or the current application
- * (2.2.0): the event can be dispatched by the shop's background work, which
+ * A listener never depends on the current user or the current application:
+ * the event can be dispatched by the shop's background work, which
  * runs as the neutral system actor (an empty user, id 0) on whatever request
  * carried its tick: a storefront visit, a member of staff's page, an API call,
  * the cron command or the web cron.

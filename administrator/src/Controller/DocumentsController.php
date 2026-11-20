@@ -59,7 +59,7 @@ class DocumentsController extends BaseController
      * stored it (read as text, so markup is dropped): it is kept
      * under the document's own user-state key and the redirect carries
      * `kept=1`, the one open of the form that reads it back, the pattern the
-     * issue and replacement modals follow (since 2.0.0).
+     * issue and replacement modals follow.
      *
      *
      * @since  2.0.0
@@ -88,7 +88,7 @@ class DocumentsController extends BaseController
             $app->enqueueMessage(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 'error');
             // Back to the form, which asks the same permission and refuses
             // inside the modal, never the Documents list loaded into the
-            // dialog (F-35).
+            // dialog.
             $this->setRedirect(Route::_($formUrl, false));
 
             return;
@@ -116,8 +116,8 @@ class DocumentsController extends BaseController
             );
         } catch (Throwable $e) {
             // Kept for the redisplay, so the operator corrects rather than
-            // retypes it (F-26). Escaped: the refusal's words are not ours,
-            // and the message queue renders HTML (F-14). A refusal the issuer
+            // retypes it. Escaped: the refusal's words are not ours,
+            // and the message queue renders HTML. A refusal the issuer
             // can put in the operator's words is shown in them; its technical
             // message stays the exception's and the log's.
             $app->setUserState($stateKey, ['reason' => $reason]);

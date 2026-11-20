@@ -123,7 +123,7 @@ class Layout
             return self::getEmptyLayout();
         }
 
-        // The template's override first, else the plugin's tmpl folder, through the plugin helper (2.2.0).
+        // The template's override first, else the plugin's tmpl folder, through the plugin helper.
         try {
             $path = dirname(AlfaPluginHelper::get()->layoutPath(PluginId::from((string) $pluginType, (string) $pluginName), (string) $fileName));
         } catch (InvalidArgumentException) {

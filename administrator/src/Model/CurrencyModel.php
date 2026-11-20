@@ -68,7 +68,7 @@ class CurrencyModel extends AlfaAdminModel
      * places, since those rows freeze or depend on the currency and would break
      * without it. Transient (cart) and rebuildable (price index) references are not
      * guarded. In-use ids are dropped from the batch with a message; the rest delete. When every id asked for is in
-     * use, the refusal is the model's DeleteRefusedException (2.2.1): the back office prints the sentence, and the REST
+     * use, the refusal is the model's DeleteRefusedException: the back office prints the sentence, and the REST
      * delete answers 409 with it instead of 204 for a currency that is still there.
      *
      * @param array $pks The ids to delete.
@@ -135,8 +135,7 @@ class CurrencyModel extends AlfaAdminModel
      * the merchant in currencyInUse(), but leaving the pointer dangling is not
      * free either: every such row then resolves its currency through
      * HydratedCart::currency()'s fallback for the rest of its life, and the
-     * column says something untrue. The demo carried 24 carts pointing at a
-     * currency id that had never existed.
+     * column says something untrue.
      *
      * The row is corrected to what the shopper is ALREADY being shown; the
      * repository does not stamp it, because this is maintenance and not the
@@ -245,8 +244,8 @@ class CurrencyModel extends AlfaAdminModel
     }
 
     /**
-     * The rules of {@see self::guardProtectedCurrencies()}, read once for the list's batch and for the edit form's save
-     * (2.2.2): which ids of a take-out-of-service request may go, and the sentence of each rule that keeps one standing.
+     * The rules of {@see self::guardProtectedCurrencies()}, read once for the list's batch and for the edit form's save:
+     * which ids of a take-out-of-service request may go, and the sentence of each rule that keeps one standing.
      *
      * @param list<int> $pks The candidate ids, already normalised to ints.
      *
@@ -478,7 +477,7 @@ class CurrencyModel extends AlfaAdminModel
         }
 
         // The Status field takes a currency out of service as the list's Unpublish, Archive and Trash do, so it keeps
-        // the same two standing (2.2.2): the store's default currency and the last published one, refused with the
+        // the same two standing: the store's default currency and the last published one, refused with the
         // same sentence, which the edit screen and the REST API show.
         $id = (int) ($data['id'] ?? 0);
 

@@ -19,7 +19,7 @@
  *
  * Input:  getOrder() (the order being paid, e.g. a renewal order),
  *         getAmount(), getCurrencyCode(), getReference(), getOperation(),
- *         getAttempt() (since 2.2.1: which attempt this is, from 1, for the
+ *         getAttempt() (which attempt this is, from 1, for the
  *         gateway's per-attempt idempotency key)
  * Output: exactly ONE of
  *         setSuccess($transactionId)       the provider confirmed the charge;
@@ -139,7 +139,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     }
 
     /**
-     * Which attempt to charge this cycle this is, counted from 1 (since 2.2.1).
+     * Which attempt to charge this cycle this is, counted from 1.
      *
      * The dispatcher sets it (core never dispatches this event): 1 for the
      * first attempt, one more for each new attempt after a failure, and the

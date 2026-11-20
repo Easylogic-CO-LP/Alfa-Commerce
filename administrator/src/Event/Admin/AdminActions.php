@@ -40,7 +40,7 @@ final class AdminActions
     /**
      * Declare an action.
      *
-     * @param string $contributor The declaring plugin, group.element (2.2.0): its tmpl folder is the
+     * @param string $contributor The declaring plugin, group.element: its tmpl folder is the
      *                            action's layout default, and its identity the permission derivation's.
      * @param string $key The action's identity key (unique per contributor).
      *

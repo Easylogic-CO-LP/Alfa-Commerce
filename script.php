@@ -21,7 +21,7 @@ use Joomla\CMS\Language\Text;
  * Responsibilities:
  *  - Refuse the install before anything is touched when the site runs a Joomla this
  *    build is not tested on (older than 6.1, or 7 and later), a PHP that is too old
- *    or lacks a required extension, or an Alfa Commerce older than 2.0.0 (preflight).
+ *    or lacks a required extension, or an Alfa Commerce older than the schema baseline (preflight).
  *  - Install / update bundled libraries, plugins and modules alongside the component.
  *  - Seed sensible default configuration parameters after install/update (postflight).
  *  - Bulk-sync existing Joomla users and usergroups into Alfa tables on install/update.
@@ -109,11 +109,11 @@ class com_alfaInstallerScript extends InstallerScript
     /**
      * The oldest Alfa Commerce version this build installs over.
      *
-     * 2.0.0 is the first stable release and the schema baseline. From 2.0.0 on the
+     * It is the first stable release and the schema baseline. From it on the
      * manifest's <update> element has Joomla record the schema version at install
      * and, on update, run every sql/updates/mysql file newer than the recorded one
-     * (InstallerAdapter::parseQueries), so a later 2.x installs over 2.0.0 in place.
-     * The 1.x betas have no such baseline: Joomla would copy the new files over
+     * (InstallerAdapter::parseQueries), so a later release installs over it in place.
+     * The betas before it have no such baseline: Joomla would copy the new files over
      * theirs and leave their schema behind, a site that boots and then fails on its
      * first query. Refusing them is the only honest outcome, and preflight is the
      * last point at which nothing has been touched.
@@ -177,8 +177,8 @@ class com_alfaInstallerScript extends InstallerScript
     private bool $resetUnfinished = false;
 
     /**
-     * The link tables: two ids per row, each pair meaning one link. Schema 2.0.1
-     * keys every one of them on its pair (sql/updates/mysql/2.0.1.sql), so a
+     * The link tables: two ids per row, each pair meaning one link. The schema
+     * keys every one of them on its pair (an update file), so a
      * repeated pair is reduced to one row before the key is added.
      *
      * @var array<string, array{0: string, 1: string}>
@@ -220,7 +220,7 @@ class com_alfaInstallerScript extends InstallerScript
     ];
 
     /**
-     * Plain keys of schema 2.0.0 that the 2.0.1 primary key makes redundant
+     * Plain keys of the baseline schema that the pair's primary key makes redundant
      * (the same columns, or its first column alone).
      *
      * @var array<string, string>
@@ -240,7 +240,7 @@ class com_alfaInstallerScript extends InstallerScript
     ];
 
     /**
-     * Columns no code reads (2.2.1): written only as empty or never at all. The installation drops each one a table
+     * Columns no code reads: written only as empty or never at all. The installation drops each one a table
      * still has ({@see self::dropLeftoverColumns()}). The orders' invoice_number was never written either: the order
      * number is the order's id (EmailService::orderNumber()).
      *
@@ -255,7 +255,7 @@ class com_alfaInstallerScript extends InstallerScript
     ];
 
     /**
-     * The e-mail texts of the per-language status tables (#__alfa_orders_statuses_<language>, 2.2.1): no code reads
+     * The e-mail texts of the per-language status tables (#__alfa_orders_statuses_<language>): no code reads
      * them; a status e-mail is built from its positions and its layout. Dropped from every language's table that
      * still has them.
      *
@@ -265,7 +265,7 @@ class com_alfaInstallerScript extends InstallerScript
     private const LEFTOVER_STATUS_TEXT_COLUMNS = ['email_subject_customer', 'email_body_customer', 'email_subject_admin', 'email_body_admin'];
 
     /**
-     * Columns a release adds to a table an earlier one created (2.2.1): table => column => its definition, exactly as
+     * Columns a release adds to a table an earlier one created: table => column => its definition, exactly as
      * the install SQL's CREATE has it, and the column it follows. The installation adds each one a table lacks
      * ({@see self::addMissingColumns()}); the install SQL creates them for a new shop.
      *
@@ -279,11 +279,11 @@ class com_alfaInstallerScript extends InstallerScript
     ];
 
     /**
-     * The cache groups an update cleans once (2.2.0, A-C16-6): Joomla's page cache, where 2.1.4 could store a guest's
+     * The cache groups an update cleans once: Joomla's page cache, where the version before could store a guest's
      * completed order under the arrival address and serve it to the next guest, and every group the component writes
      * (the dashboard's cards, the setup checks, the storefront's category tree, the integrity verdict and the
      * throttles of the notices, the tasks and the stock effects), whose entries the version before computed, and the
-     * group of the bundled items module (mod_alfa_items: its best sellers ranking and its listings, 2.2.1). A group
+     * group of the bundled items module (mod_alfa_items: its best sellers ranking and its listings). A group
      * added to the component or to a bundled mod_alfa_ module is added here; the release tests compare this list with
      * the source.
      *
@@ -339,9 +339,9 @@ class com_alfaInstallerScript extends InstallerScript
      *     same file for its own oldFiles bookkeeping, and copyBaseFiles() has not
      *     run yet, so what is on disk is the OLD manifest, whatever route Joomla
      *     took to get here. The check therefore runs whenever a manifest is found
-     *     at all: a genuinely clean install finds none and proceeds, a 2.x
+     *     at all: a genuinely clean install finds none and proceeds, a
      *     reinstall or update meets the floor and proceeds, and a leftover
-     *     1.x tree is refused on 'install' exactly as it is on 'update'.
+     *     tree below the floor is refused on 'install' exactly as it is on 'update'.
      *  6. Alfa tables kept in the database that this package cannot reconnect
      *     ({@see self::keptDataRefusal()}). Uninstalling keeps every Alfa table,
      *     and an install runs the install SQL over whatever it finds, which
@@ -534,7 +534,7 @@ class com_alfaInstallerScript extends InstallerScript
             }
         }
 
-        // An update keys the link tables on their pair of ids (2.0.1.sql), which Joomla runs after this
+        // An update keys the link tables on their pair of ids in its SQL file, which Joomla runs after this
         // method. A pair written twice before then is reduced to one row first, or the key is refused.
         if ($type === 'update' && !$unfinished && !$this->resetUnfinished) {
             try {
@@ -554,7 +554,7 @@ class com_alfaInstallerScript extends InstallerScript
             }
         }
 
-        // Nothing is refused any more: the job runner waits until the update is done (2.2.0).
+        // Nothing is refused any more: the job runner waits until the update is done.
         $this->pauseRunner();
 
         return true;
@@ -829,10 +829,10 @@ class com_alfaInstallerScript extends InstallerScript
      * After the update files have run: every link table has its primary key and none keeps a plain
      * key the primary key makes redundant.
      *
-     * 2.0.1.sql adds the keys with statements allowed to fail, so that the file can run again
+     * The update file adds the keys with statements allowed to fail, so that the file can run again
      * after an interruption; this check completes whatever it could not, and names what is still
      * missing instead of passing over it. The repeated pairs are reduced once, before the first
-     * key, in a step of their own (2.1.0).
+     * key, in a step of their own.
      *
      * @return  void
      * @since   2.0.1
@@ -959,7 +959,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Drop the columns no code reads (2.2.1, {@see self::LEFTOVER_COLUMNS} and the status texts of every language's
+     * Drop the columns no code reads ({@see self::LEFTOVER_COLUMNS} and the status texts of every language's
      * status table, {@see self::LEFTOVER_STATUS_TEXT_COLUMNS}), each only where the table still has it.
      *
      * The tables' own columns are read first, from the database's catalogue, so the step drops nothing twice and
@@ -1124,8 +1124,8 @@ class com_alfaInstallerScript extends InstallerScript
      * this package, or null when they can (or when there are none).
      *
      * No schema version among them means tables an earlier Alfa Commerce left
-     * behind, from before the version was recorded: they need the clean
-     * installation the 1.x betas need. A recorded version other than
+     * behind, from before the version was recorded: they need a clean
+     * installation, as the betas before the baseline do. A recorded version other than
      * {@see self::SCHEMA_VERSION} means a database this install SQL does not
      * describe: it would create what is missing and leave every other table in
      * its old shape, so the release that matches it has to be installed instead
@@ -1283,7 +1283,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * The inventory console plugin goes on an update from before 2.2.0 (design 3.2): its one command,
+     * The inventory console plugin goes on an update where it is still installed: its one command,
      * alfa:inventory:audit, is registered by plg_console_alfa under the same name. Joomla's installer uninstalls it;
      * the message names its state: removed, not installed, or still installed (refused), the last as a warning that
      * names where to uninstall it. A failure is said, never a failed update.
@@ -1345,15 +1345,15 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * The update's step from the scheduled task to the job runner for the list prices of customer groups (2.2.0):
+     * The update's step from the scheduled task to the job runner for the list prices of customer groups:
      * every waiting set gets its price.set.prepare job, the scheduled tasks of plg_task_alfapricesets' routine are
      * deleted, and the plugin is uninstalled through Joomla's installer; each of the three on its own, so a failure of
-     * one never skips the next. The tasks go first (2.2.1): the plugin's own uninstall script (2.1.x) removes them
-     * through a constant this version no longer has and says it failed, so it is not run (removed with the plugin
-     * before the uninstall, logged), and this step's one message says what was done. A failure is said, never a failed update: the jobs are given again by the
-     * next request of a set, and Tools > Database Sync shows what waits. The message names the plugin's state:
-     * removed, not installed, or still installed (refused by Joomla's installer), the last as a warning that names
-     * where to uninstall it.
+     * one never skips the next. The tasks go first: the plugin's own uninstall script removes them through a constant
+     * this version does not have and says it failed, so it is not run (removed with the plugin before the uninstall,
+     * logged), and this step's one message says what was done. A failure is said, never a failed update: the jobs are
+     * given again by the next request of a set, and Tools > Database Sync shows what waits. The message names
+     * the plugin's state: removed, not installed, or still installed (refused by Joomla's installer), the last as a
+     * warning that names where to uninstall it.
      *
      * @return  void
      * @since   2.2.0
@@ -1416,8 +1416,8 @@ class com_alfaInstallerScript extends InstallerScript
                 $installer = new Installer();
                 $installer->setDatabase($db);
 
-                // The plugin's own install script (2.1.x) does one thing at its uninstall: it removes the tasks above,
-                // through a constant this version no longer has, and then warns they were not removed. They are gone
+                // The plugin's own install script does one thing at its uninstall: it removes the tasks above,
+                // through a constant this version does not have, and then warns they were not removed. They are gone
                 // already, so it is not run: removed with the plugin, before Joomla's installer would include it.
                 $oldScript = JPATH_PLUGINS . '/task/alfapricesets/script.php';
 
@@ -1427,7 +1427,7 @@ class com_alfaInstallerScript extends InstallerScript
                 if ($hadScript && !$unlinked)
                 {
                     // Not writable: the uninstall below still runs, and Joomla runs the old script with it, which warns
-                    // as it did in 2.2.0. The log says why that warning shows.
+                    // that the tasks were not removed. The log says why that warning shows.
                     self::maintenanceLog(
                         line:     sprintf('Update to %s: the uninstall script of plg_task_alfapricesets could not be removed (its folder is not writable), so it ran with the uninstall and may warn that the scheduled tasks were not removed.', $this->packageVersion),
                         priority: \Joomla\CMS\Log\Log::WARNING,
@@ -1466,7 +1466,8 @@ class com_alfaInstallerScript extends InstallerScript
             ), 'warning');
         }
 
-        // A plugin that stayed reads in its scheduler routine what 2.2.0 removed: it must go by hand, said as a warning.
+        // A plugin that stayed reads in its scheduler routine what this version does not have: it must go by hand,
+        // said as a warning.
         $plugin = $state === 'removed'
             ? $this->installerText(key: 'COM_ALFA_INSTALL_PRICE_SETS_PLUGIN_REMOVED', fallback: 'removed by Alfa Commerce', values: [])
             : ($state === 'kept'
@@ -1565,7 +1566,7 @@ class com_alfaInstallerScript extends InstallerScript
             JPATH_ADMINISTRATOR . '/components/com_alfa/src'
         );
 
-        // The site half too (2.2.1): the update names the rules that have not ended by the pricing's own reading of a
+        // The site half too: the update names the rules that have not ended by the pricing's own reading of a
         // rule's end (Site\Service\Pricing\ActiveDateCondition).
         \JLoader::registerNamespace(
             'Alfa\\Component\\Alfa\\Site',
@@ -1656,7 +1657,7 @@ class com_alfaInstallerScript extends InstallerScript
             'failed' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_FAILED', 'Alfa Commerce %1$s could not uninstall these language packs:'
                 . ' %2$s. Uninstall them in System > Manage > Extensions.', 'warning', 'could not uninstall the language pack %s',
                 \Joomla\CMS\Log\Log::WARNING],
-            // The owner's sentence, word for word; the maintenance log names each pack and why.
+            // A fixed sentence; the maintenance log names each pack and why.
             'no_manifest' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_NO_MANIFEST', 'This language pack does not include a package manifest.',
                 'warning', 'could not uninstall the language pack %s', \Joomla\CMS\Log\Log::WARNING],
         ];
@@ -1732,7 +1733,7 @@ class com_alfaInstallerScript extends InstallerScript
         try {
             return $this->postflightSteps(type: $type, parent: $parent);
         } finally {
-            // Last, whatever the steps did (2.2.0).
+            // Last, whatever the steps did.
             $this->resumeRunner();
         }
     }
@@ -1788,7 +1789,7 @@ class com_alfaInstallerScript extends InstallerScript
             $this->removeObsoleteFilesOnUpdate(parent: $parent);
         }
 
-        // On update, what the version before cached is cleaned once (A-C16-6): a stored page or card it drew is never
+        // On update, what the version before cached is cleaned once: a stored page or card it drew is never
         // served by this version.
         if ($type === 'update')
         {
@@ -1865,15 +1866,15 @@ class com_alfaInstallerScript extends InstallerScript
             return true;
         }
 
-        // 0. The link tables have their keys (2.0.1), the columns no code reads are gone and the columns this release
-        //    adds are there (2.2.1), then the Alfa tables are at this package's schema: say so among them.
+        // 0. The link tables have their keys, the columns no code reads are gone and the columns this release
+        //    adds are there, then the Alfa tables are at this package's schema: say so among them.
         $this->completeLinkKeys();
         $this->dropLeftoverColumns();
         $this->addMissingColumns();
         $this->recordSchemaVersion();
         $this->seedPriceWindowsCursor();
 
-        // The list prices of a new combination of customer groups are prepared by the job runner (2.2.0). On an update
+        // The list prices of a new combination of customer groups are prepared by the job runner. On an update
         // from an earlier release, after the Clear-everything check (core's tables must be whole): the sets the
         // scheduled task left waiting become their jobs (each resumes from its checkpoint), the task's plugin goes
         // through Joomla's installer, whose uninstall removes its scheduled tasks, and a task row of its routine left
@@ -1882,18 +1883,18 @@ class com_alfaInstallerScript extends InstallerScript
         {
             $this->retirePriceSetsTask();
 
-            // The console commands moved to plg_console_alfa (2.2.0): the inventory console plugin goes, its command
+            // The console commands moved to plg_console_alfa: the inventory console plugin goes, its command
             // keeping its name, so a server's cron line keeps working.
             $this->retireInventoryConsolePlugin();
         }
 
-        // A discount or a tax scoped to a place reaches every place inside it (2.2.1): the product list's prices are
+        // A discount or a tax scoped to a place reaches every place inside it: the product list's prices are
         // rebuilt once, in the background, and staff are told which rules now reach further.
         if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.1', '<'))
         {
             $this->owePlaceRulesRebuild();
 
-            // The countries of ISO 3166-1 (2.2.1): the rows the shop never changed corrected in place, the missing
+            // The countries of ISO 3166-1: the rows the shop never changed corrected in place, the missing
             // countries added unpublished, and what is left as it is named.
             $this->correctPlacesSeed();
         }
@@ -1921,14 +1922,14 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         // 0b. Each shipping method owns its shipping taxes and the entry mode of its
-        //     prices (2.1.0): the two former Options are moved onto every method once.
+        //     prices: the two former Options are moved onto every method once.
         $this->moveShippingOptions();
 
-        // 0c. A layout picked from a template was saved as "html:<name>" up to 2.1.0:
+        // 0c. A layout picked from a template may be stored as "html:<name>":
         //     each such choice names its template, where exactly one template has it.
         $this->repairTemplateLayouts();
 
-        // 0d. Notifications keep a language key and its parameters (2.1.4): the rows written
+        // 0d. Notifications keep a language key and its parameters: the rows written
         //     before are given theirs once, their stored text kept as their snapshot.
         $this->mapNotificationKeys();
 
@@ -2003,17 +2004,17 @@ class com_alfaInstallerScript extends InstallerScript
             }
         }
 
-        // 5. One collation for every Alfa table (2.1.1): what the update files could not convert
+        // 5. One collation for every Alfa table: what the update files could not convert
         //    is converted here, once per table, and what is still left is named.
         if ($type === 'update')
         {
             $this->convergeCollation();
 
-            // 6. Thumbnails that are not images (2.2.1): up to 2.2.0 a thumbnail could be a copy of any file the site
-            //    could read; the update lists what is left, deleting nothing.
+            // 6. Thumbnails that are not images: a thumbnail made before the thumbnail rule held could be a copy of
+            //    any file the site could read; the update lists what is left, deleting nothing.
             $this->listNonImageFiles();
 
-            // 7. E-mail layout overrides left in a site template (2.2.1): the e-mails read their layouts from the
+            // 7. E-mail layout overrides left in a site template: the e-mails read their layouts from the
             //    default administrator template only; the update names the files a site template still holds,
             //    moving nothing.
             $this->listSiteTemplateEmailLayouts();
@@ -2226,9 +2227,9 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Bring the shop's countries to ISO 3166-1 (2.2.1,
-     * {@see \Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed::correctOnUpdate()}): the country rows still
-     * exactly as the seed up to 2.2.0 shipped them are corrected in place, keeping their ids, and the ISO countries the
+     * Bring the shop's countries to ISO 3166-1
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Place\PlaceSeed::correctOnUpdate()}): the country rows still
+     * exactly as an older seed shipped them are corrected in place, keeping their ids, and the ISO countries the
      * shop has no country for are added, unpublished. Nothing the shop changed is changed: one message says what was
      * corrected and added and how to add the places below Greece and Spain, and a warning names what was left as it is
      * (the rows the shop changed, the rows that are not ISO countries, the development row Larisa, and the countries
@@ -2355,9 +2356,9 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * Say which files a thumbnail copy may have left that are not images
-     * ({@see \Alfa\Component\Alfa\Administrator\Helper\MediaHelper::nonImageFiles()}): up to 2.2.0 a member of
-     * staff or an API client could name any file the site could read as a thumbnail, and a copy of it was published in
-     * the save folder. One warning names every file with the media rows that name it, and the media log
+     * ({@see \Alfa\Component\Alfa\Administrator\Helper\MediaHelper::nonImageFiles()}): before the thumbnail rule held,
+     * a member of staff or an API client could name any file the site could read as a thumbnail, and a copy of it was
+     * published in the save folder. One warning names every file with the media rows that name it, and the media log
      * (com_alfa_media.php) keeps one line per file. Nothing is changed or deleted: staff look at each file and remove
      * it by hand. A failure is said, never a failed update.
      *
@@ -2416,11 +2417,11 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Name the e-mail layout overrides kept in a site template (2.2.1). Since 2.2.1 every e-mail reads its layouts
+     * Name the e-mail layout overrides kept in a site template. Every e-mail reads its layouts
      * from the default administrator template (then the template it inherits from) and the component
      * ({@see \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts}), whatever sends it, so a file under a site
-     * template's html/layouts/com_alfa/emails, where the 2.2.0 Manual advised a copy for the e-mails the storefront
-     * sends, is no longer read. One warning names every such file, and the maintenance log (com_alfa_maintenance.php)
+     * template's html/layouts/com_alfa/emails, where an older Manual advised a copy for the e-mails the storefront
+     * sends, is not read. One warning names every such file, and the maintenance log (com_alfa_maintenance.php)
      * keeps one line per file. Nothing is moved or deleted: staff copy each file they want to keep into the
      * administrator template. A failure is said, never a failed update.
      *
@@ -2465,7 +2466,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Where an e-mail layout override is read from since 2.2.1, relative to the site root: the default administrator
+     * Where an e-mail layout override is read from, relative to the site root: the default administrator
      * template's html/layouts/com_alfa/emails ({@see \Alfa\Component\Alfa\Administrator\Helper\EmailLayouts}),
      * named by that template's own folder. When no default administrator template style can be read, the folder is
      * described in words instead, so the warning still says where to copy.
@@ -2527,7 +2528,7 @@ class com_alfaInstallerScript extends InstallerScript
     /**
      * Convert every Alfa table still in another collation than utf8mb4_unicode_ci, once, and
      * name each one left with the database's error (CollationCheck). A statement of
-     * sql/updates/mysql/2.1.1.sql may fail without stopping the update, and the database view
+     * the collation update file may fail without stopping the update, and the database view
      * of Joomla cannot see a collation, so this step is what makes the conversion complete:
      * every later installation runs it again. It never fails the installation.
      *
@@ -2615,7 +2616,7 @@ class com_alfaInstallerScript extends InstallerScript
         '2.2.2' => [
             // The Standard methods' product page layouts: core draws every method there (its image, title and
             // description, layout methods.item), and the Standard methods add nothing below it. The copy every
-            // release from 2.0.0 to 2.2.1 installed (PackageHelper::contentHash()).
+            // earlier release installed (PackageHelper::contentHash()).
             'plugins/alfa-payments/standard/tmpl/default_item_view.php' => ['031d61b4d1714c3dd1a10bed3325a62f31987a41d4dedc422b1e43d1b725d203'],
             'plugins/alfa-shipments/standard/tmpl/default_item_view.php' => ['031d61b4d1714c3dd1a10bed3325a62f31987a41d4dedc422b1e43d1b725d203'],
         ],
@@ -2729,8 +2730,8 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Language files a release stopped shipping, keyed by that release. From 2.1.1 on Alfa Commerce
-     * ships English only, and every other language is a separate language pack. Each exact path,
+     * Language files a release stopped shipping, keyed by that release. Alfa Commerce ships
+     * English only, and every other language is a separate language pack. Each exact path,
      * relative to the site root, maps to the sha256 of the file's exact bytes as the last release
      * that shipped it installed it. They are removed on the update from a version below that release,
      * where no language pack can be installed yet, and on uninstall; a path an installed language
@@ -2742,7 +2743,7 @@ class com_alfaInstallerScript extends InstallerScript
      */
     public const OBSOLETE_LANGUAGE_FILES = [
         '2.1.1' => [
-            // The Greek texts of 2.1.0 in Joomla's language folders. Its closing tour steps were in the
+            // The Greek texts the package once shipped in Joomla's language folders. Its closing tour steps were in the
             // component's own language folder, which goes whole (COMPONENT_LANGUAGE_FOLDERS).
             'administrator/language/el-GR/com_alfa.ini' => '138643c82e70d430ba3c587a11e563ec6d55122f921335ecef6be6521aca8740',
             'administrator/language/el-GR/com_alfa.sys.ini' => '3e028f3e0d21edd6aa7a941604f69d7f51527041877b2619b599a95274e66628',
@@ -3270,7 +3271,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Pause the job runner while the package is installed or updated (2.2.0): `runner.paused_until` in #__alfa_meta,
+     * Pause the job runner while the package is installed or updated: `runner.paused_until` in #__alfa_meta,
      * now + 10 minutes by the database clock. Every tick returns at once while it lies ahead; postflight deletes it, and
      * an update that dies half-way lets it expire. Nothing to pause when the Alfa tables are not there yet (a first
      * install). A failure is logged and never refuses the install.
@@ -3448,8 +3449,8 @@ class com_alfaInstallerScript extends InstallerScript
      * While the move has not completed, the Options still hold the shop's former shipping settings, but checkout reads
      * only each shipping method's own: shipping tax is not applied as the shop configured it. The notification says so
      * where staff look (the bell and the Notifications list), cannot be dismissed, and goes when an install completes
-     * the move or finds nothing left to move (the Options' two keys gone are the move's done-marker). It keeps its keys
-     * (2.1.4), so each administrator reads it in their language. Writing or clearing it never stops the install.
+     * the move or finds nothing left to move (the Options' two keys gone are the move's done-marker). It keeps its keys,
+     * so each administrator reads it in their language. Writing or clearing it never stops the install.
      *
      * @param   bool  $failed  True when the move failed now; false when it completed or had nothing to move.
      *
@@ -3499,7 +3500,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Give the notifications written before 2.1.4 their language keys and parameters, once
+     * Give the notifications stored as text alone their language keys and parameters, once
      * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\NotificationKeys}): their stored text stays as it
      * is, as their snapshot. The counts are said here and in the setup log. A failure never stops the install: a row
      * left without a key is shown as written, and the next install maps it.
@@ -3955,7 +3956,7 @@ class com_alfaInstallerScript extends InstallerScript
     /**
      * Install or update every plugin the package manifest lists, through Joomla's installer. A plugin the site did not
      * have before this run is enabled once its install succeeded; a plugin the site already had keeps the state it had,
-     * so one staff disabled stays disabled (2.2.1: up to 2.2.0 every update enabled each bundled plugin again).
+     * so one staff disabled stays disabled.
      * A plugin whose installer failed is never enabled. On an update, the bundled plugins kept disabled are named once
      * on the installation page and in the maintenance log.
      *

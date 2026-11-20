@@ -950,8 +950,7 @@ class OrdersModel extends AlfaListModel
                 $item->discount_total_money = Money::of($totals->discount_tax_incl, $currency);
                 // What is still due: the facts' own balance, the figure the
                 // order's totals card shows as Balance Due, never a second
-                // subtraction. None when nothing is due; an overpaid order
-                // shows what it showed before (since 2.1.0).
+                // subtraction. None when nothing is due or the order is overpaid.
                 $item->balance_due_money = $facts->money->balance->isPositive() ? $facts->money->balance : null;
             }
         }

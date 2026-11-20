@@ -910,7 +910,7 @@ final class CardLook
 
     /**
      * A CSS value a merchant typed, reduced to what a colour, a gradient or a shadow is
-     * made of: letters, digits, spaces and # % ( ) , . / + -, so it can never end the
+     * made of: letters, digits, spaces and # % () , . / + -, so it can never end the
      * declaration it is written into or open another.
      *
      * @param mixed $value The stored value.

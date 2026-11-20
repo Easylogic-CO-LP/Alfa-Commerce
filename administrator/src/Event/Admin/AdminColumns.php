@@ -25,7 +25,7 @@ use InvalidArgumentException;
  * ({@see \Alfa\Component\Alfa\Administrator\Helper\Columns}) are unchanged and NOT re-invented
  * here; this class adds only what a broadcast needs that a per-plugin event did not: the
  * contributor. Every plugin writes into one accumulator, so each column names the plugin that
- * declares it (its `group.element`, 2.2.0), which defaults the column's layouts to that plugin's
+ * declares it (its `group.element`), which defaults the column's layouts to that plugin's
  * own tmpl folder. The identity is attribution, never an authorisation; nothing is inferred from
  * the listener.
  *
@@ -58,7 +58,7 @@ final class AdminColumns
      * inside the closure: onAlfaAdminListRowData hands the whole page's ids exactly so the
      * whole column costs ONE query no matter how many rows or plugins are involved.
      *
-     * @param string $contributor The declaring plugin, group.element (2.2.0).
+     * @param string $contributor The declaring plugin, group.element.
      * @param string $key The column's identity key (unique per contributor).
      *
      * @return ColumnBuilder For chaining.

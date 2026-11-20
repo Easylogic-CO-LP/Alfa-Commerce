@@ -14,7 +14,7 @@ use Throwable;
 \defined('_JEXEC') or die;
 
 /**
- * One listener of an isolated delivery that threw (2.2.0, design 2.15.3): named as the helper names listeners
+ * One listener of an isolated delivery that threw: named as the helper names listeners
  * (Class::method, an invokable's class, a function name, else closure), or the plugin's identity in a selection loop.
  *
  * @since  2.2.0

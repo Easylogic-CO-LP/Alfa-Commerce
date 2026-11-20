@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Joomla\CMS\Language\Text;
 
-/** @var \Alfa\Component\Alfa\Site\Service\Pricing\PriceResult|null $price Null when no price applies to the line (2.2.2). */
+/** @var \Alfa\Component\Alfa\Site\Service\Pricing\PriceResult|null $price Null when no price applies to the line. */
 $price = $displayData['price'] ?? null;
 
 // No price applies to the product at this quantity for this customer: the line waits for its custom price.

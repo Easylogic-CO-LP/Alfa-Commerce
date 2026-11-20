@@ -142,7 +142,7 @@ class PriceComputationEngine
         $currency = $this->getCurrency($context);
         $breakdown = new PriceBreakdown();
 
-        // NO PRICE ROW, NO PRICE (2.2.2). With no row that applies to this shopper at this quantity and no explicit
+        // NO PRICE ROW, NO PRICE. With no row that applies to this shopper at this quantity and no explicit
         // price, the product is not priced here: the result says so, carries no figure, and names the next quantity a
         // row applies from. It is never priced at zero.
         $baseRow = $this->selectBaseRow($prices, $quantity, $context->groupDistances());
@@ -500,10 +500,9 @@ class PriceComputationEngine
 
             // The requested gross is PINNED and the net and tax are derived
             // back out of it, through the same chain that produced the
-            // canonical gross, so the ruling's "a custom price declared as an
-            // authoritative final amount must remain that requested final
-            // amount; do not redefine 100.00 as 100.01" holds by construction
-            // rather than by a clamp.
+            // canonical gross, so a custom price declared as an authoritative
+            // final amount stays that amount (100.00 never becomes 100.01) by
+            // construction rather than by a clamp.
             [$explicitNet, $taxTotal, $appliedTaxes] = $this->deriveFromGross(
                 gross: $explicitGross,
                 appliedTaxes: $appliedTaxes,
@@ -689,7 +688,7 @@ class PriceComputationEngine
     }
 
     /**
-     * The smallest quantity above the one asked from which one of the rows applies (2.2.2): rows for 1 to 5 and from 10,
+     * The smallest quantity above the one asked from which one of the rows applies: rows for 1 to 5 and from 10,
      * asked at 7, answer 10; rows for 1 to 5 only, asked at 7, answer null. The rows are the ones that apply to the
      * shopper (the loader kept their currency, place and dates); the quantity is what the cart and the page name.
      *

@@ -22,7 +22,7 @@ use Throwable;
  * The repair of the layout choices that the layout picker of 2.0 saved as "html:<name>", taken by an install or
  * an update.
  *
- * Up to 2.1.0 the layout picker (ViewLayoutField) named a template's layout after the folder above the template's
+ * Before this move the layout picker (ViewLayoutField) named a template's layout after the folder above the template's
  * overrides, so templates/<template>/html/com_alfa/<view>/<name>.php was saved as "html:<name>". Joomla reads
  * "html" as a template that does not exist: the page shows the component's own layout and none of the template's
  * overrides. The picker now saves "<template>:<name>"; this gives the choices already saved the same value:

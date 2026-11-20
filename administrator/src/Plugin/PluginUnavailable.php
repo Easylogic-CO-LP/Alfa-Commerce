@@ -15,7 +15,7 @@ use Throwable;
 \defined('_JEXEC') or die;
 
 /**
- * A targeted call that cannot reach its plugin (2.2.0, design 2.15.2 and 2.15.5): each caller maps the reason to its
+ * A targeted call that cannot reach its plugin: each caller maps the reason to its
  * own contract (a refused placement, a 503 for a webhook, a neutral page, a staff refusal).
  *
  * @since  2.2.0

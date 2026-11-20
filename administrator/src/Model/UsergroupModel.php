@@ -214,7 +214,7 @@ class UsergroupModel extends AlfaAdminModel
      * - Keeps `showon`: a label setting shows only while its price is shown,
      *   and the references resolve inside the group's own fields.
      * - Preserves <option> children for list/radio fields.
-     * - A setting the group may inherit (2.2.1) is a list offering Joomla's "Use Global (value)" choice, the shop's
+     * - A setting the group may inherit is a list offering Joomla's "Use Global (value)" choice, the shop's
      *   own setting named, and has no default of its own: a setting the group does not hold shows that choice, and a
      *   Save keeps it inherited (an empty value, which save() does not store) instead of storing config.xml's default
      *   as the group's own. A list, not config.xml's radio buttons: Joomla's showon reads the shop's value behind a
@@ -351,7 +351,7 @@ class UsergroupModel extends AlfaAdminModel
      *
      * The form's filter keeps only the fields the data names, so a group sent
      * with none left in it (a REST PATCH that removes the last setting the
-     * group stored, 2.2.1) would leave the validated data, and save() would
+     * group stored) would leave the validated data, and save() would
      * keep what is stored. Sent empty, it stays empty: save() stores no setting
      * of the group's own, and the shop's settings apply.
      *
@@ -385,12 +385,12 @@ class UsergroupModel extends AlfaAdminModel
      *
      * Encodes each overridable group array as a JSON string before persistence.
      * Empty values are stripped, and a group left with none stores an empty map
-     * ({}), never null, which the NOT NULL column refuses (2.2.1): every setting
+     * ({}), never null, which the NOT NULL column refuses: every setting
      * the map lacks is read from the component's settings.
      *
      * A save that leaves a group out (a REST write; the edit form always posts
      * it) keeps what an existing customer group has, and gives a new one what
-     * Alfa Sync gives every new customer group (2.2.1).
+     * Alfa Sync gives every new customer group.
      *
      * @param array $data The form data.
      *

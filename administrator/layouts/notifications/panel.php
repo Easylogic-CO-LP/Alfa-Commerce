@@ -33,7 +33,7 @@ $canChange = !empty($displayData['can_change']);
 <div class="alfa-notify-head">
     <span><?php echo Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'); ?></span>
     <?php if (!empty($items)) : ?>
-        <?php // The figure says its scope (2.2.1): every notification listed here, read or not, none dismissed. ?>
+        <?php // The figure says its scope: every notification listed here, read or not, none dismissed. ?>
         <small><?php echo Text::sprintf('COM_ALFA_NOTIFY_PANEL_COUNT', (int) $displayData['total']); ?></small>
     <?php endif; ?>
 </div>

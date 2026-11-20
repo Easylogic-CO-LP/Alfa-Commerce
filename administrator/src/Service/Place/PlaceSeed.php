@@ -18,7 +18,7 @@ use Joomla\Database\ParameterType;
 use Throwable;
 
 /**
- * The places Alfa Commerce ships, and how a shop installed before 2.2.1 comes to them (2.2.1).
+ * The places Alfa Commerce ships, and how a shop installed with an earlier seed comes to them.
  *
  * WHAT A NEW SHOP GETS. The install SQL seeds the countries of ISO 3166-1 (249,
  * by their English short names; Greece published) and, unpublished, the ISO
@@ -28,7 +28,7 @@ use Throwable;
  *
  * WHAT AN UPDATE DOES (correctOnUpdate()). It never deletes, renames, moves or
  * unpublishes a place the shop changed, and never infers a place from a name:
- * - a country row still exactly as the seed up to 2.2.0 shipped it (the same
+ * - a country row still exactly as the earlier seed shipped it (the same
  *   id, name, codes and no parent) is corrected in place (CORRECTIONS), so
  *   every address, price and rule that names it keeps its id; one whose
  *   shipped default currency was wrong, and still is, gets its own
@@ -80,7 +80,7 @@ final class PlaceSeed
     ];
 
     /**
-     * The country rows of the seed up to 2.2.0 that 2.2.1 corrects where the shop never changed them: id => [the row as
+     * The country rows of the earlier seed that the update corrects where the shop never changed them: id => [the row as
      * shipped, the row now], each as [name, code2, code3].
      *
      * @var array<int, array{0: array{0: string, 1: string, 2: string}, 1: array{0: string, 1: string, 2: string}}>
@@ -114,7 +114,7 @@ final class PlaceSeed
     ];
 
     /**
-     * The country rows of the seed up to 2.2.0 whose default currency was wrong (not a withdrawn code: another
+     * The country rows of the earlier seed whose default currency was wrong (not a withdrawn code: another
      * country's), corrected where the row and its currency are still as shipped: id => [the row as shipped, as [name,
      * code2, code3], the currency code shipped, the currency code now]. Turkmenistan was given the US dollar.
      *
@@ -127,7 +127,7 @@ final class PlaceSeed
     ];
 
     /**
-     * The ISO 3166-1 countries the seed up to 2.2.0 lacked: code2 => [name, code3, the code of its default currency].
+     * The ISO 3166-1 countries the earlier seed lacked: code2 => [name, code3, the code of its default currency].
      * Timor-Leste, Saint Barthélemy and the Democratic Republic of the Congo replace shipped rows (CORRECTIONS) and are
      * added only where the shop changed those rows.
      *
@@ -149,7 +149,7 @@ final class PlaceSeed
     ];
 
     /**
-     * The rows of the seed up to 2.2.0 with no single ISO successor, kept on update and named: id => [name, code2, code3]
+     * The rows of the earlier seed with no single ISO successor, kept on update and named: id => [name, code2, code3]
      * as shipped. 249 is Larisa, a row of the development database, published inside Greece.
      *
      * @var array<int, array{0: string, 1: string, 2: string}>
@@ -165,14 +165,14 @@ final class PlaceSeed
     ];
 
     /**
-     * The id of the development row Larisa in the seed up to 2.2.0.
+     * The id of the development row Larisa in the earlier seed.
      *
      * @since  2.2.1
      */
     public const LARISA = 249;
 
     /**
-     * The countries whose default currency the seed up to 2.2.0 mapped to a code since withdrawn: code2 => [the code
+     * The countries whose default currency the earlier seed mapped to a code since withdrawn: code2 => [the code
      * then, the code now]. Where the shipped code was not in the currency seed, the country got no default currency.
      *
      * @var array<string, array{0: string, 1: string}>
@@ -192,13 +192,13 @@ final class PlaceSeed
     ];
 
     /**
-     * Bring a shop's places from a seed up to 2.2.0 to 2.2.1's, as the class description says, in one transaction level
+     * Bring a shop's places from the earlier seed to the current one, as the class description says, in one transaction level
      * closed through TransactionState: a failure leaves every place as it was. Run once, by the update from a version
-     * before 2.2.1; run again it finds nothing to do.
+     * with the earlier seed; run again it finds nothing to do.
      *
      * The answer: corrected, id => the name now; currencyCorrected, id => [the name, the currency code now]; added,
-     * code2 => name; kept, id => [the shop's name, the name 2.2.1 ships]; currencyKept, id => [the shop's name, the
-     * currency code 2.2.1 gives it]; noSuccessor, id => the shop's name, Larisa included; currencies, id => [the
+     * code2 => name; kept, id => [the shop's name, the name shipped now]; currencyKept, id => [the shop's name, the
+     * currency code given now]; noSuccessor, id => the shop's name, Larisa included; currencies, id => [the
      * country's name, the code now]. The words of the update page are the installer's (language keys).
      *
      * @param DatabaseDriver $db The shop's connection.

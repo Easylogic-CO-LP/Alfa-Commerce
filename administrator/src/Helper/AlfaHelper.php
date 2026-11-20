@@ -434,7 +434,7 @@ class AlfaHelper
 
         $pluginGroup = self::pluginGroup(type: $type);
 
-        // The group's enabled plugins as Joomla lists them, through the plugin helper (2.2.0): 'id' is the plugin's
+        // The group's enabled plugins as Joomla lists them, through the plugin helper: 'id' is the plugin's
         // group.element, 'params' its configuration as JSON.
         $plugins = AlfaPluginHelper::get();
 
@@ -582,7 +582,7 @@ class AlfaHelper
      *
      * An end that names a day and no time (Y-m-d, as a REST client sends it) is that
      * whole day, to its last second, as a preset's end is; a start that names a day is
-     * its first second (2.2.1).
+     * its first second.
      *
      * @param QueryInterface $query Query to constrain.
      * @param string $column Quoted-name-safe column, e.g. 'a.created'.

@@ -54,7 +54,7 @@ final class SaleTag
             return;
         }
 
-        // The item's surfaces are read-only once handed out (2.2.1): the badges join a new map of them, made only
+        // The item's surfaces are read-only once handed out: the badges join a new map of them, made only
         // when a badge is added.
         $slots = (array) ($item->surfaces ?? []);
         $badged = false;

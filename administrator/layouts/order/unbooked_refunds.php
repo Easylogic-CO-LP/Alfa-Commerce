@@ -20,18 +20,18 @@
  * exact amount in the order's currency shows the provider's figure as stated and
  * what to do. A gateway answer that cannot be read, or a malformed report, is
  * named with what is wrong. A refund reservation its provider settled while the books
- * refused the booking is listed as the core's own settled report (since 2.1.0), with
+ * refused the booking is listed as the core's own settled report, with
  * the same actions. When the provider sent more than one word about a refund core keeps
  * for staff (another figure, a hold after a settle or a settle after a hold, a failure
  * the provider reported), its line names every word, latest first, with its kind: the
- * report states the latest settled one, which Record this refund books (since 2.1.0).
+ * report states the latest settled one, which Record this refund books.
  *
  * The second notice, apart, lists what is reserved in the order's refundable
  * pool: the refunds the provider has accepted but not completed whose exact
  * amount is known (each with its payment, reference, the amount reserved and
  * when it was reported), and the order's refunds in the books that are not
  * settled, pending or authorized, every refund reservation among them (each
- * with its payment, row, amount, status and since when; since 2.1.0). Nothing
+ * with its payment, row, amount, status and since when). Nothing
  * is printed when nothing is reported or reserved.
  *
  * Layout path: administrator/components/com_alfa/layouts/order/unbooked_refunds.php
@@ -107,7 +107,7 @@ foreach ($refunds as $paymentId => $list) {
 }
 
 // A payment whose plugin of record cannot be asked has nothing reported to show: when that is the block's only cause it
-// gets a heading and a line of its own, which say so (UX-34); with other causes its line joins theirs.
+// gets a heading and a line of its own, which say so; with other causes its line joins theirs.
 $unavailable = (array) ($unbooked['unavailable'] ?? []);
 $pluginOnly = $refunds === [] && $unread !== [] && array_diff_key($unread, $unavailable) === [];
 

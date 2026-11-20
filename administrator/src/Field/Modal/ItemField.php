@@ -19,7 +19,7 @@ use Joomla\CMS\Uri\Uri;
 use SimpleXMLElement;
 
 /**
- * One product, picked in a modal from the products list (type="Modal_Item", 2.2.2): Joomla's modal select field, as
+ * One product, picked in a modal from the products list (type="Modal_Item"): Joomla's modal select field, as
  * com_content's article picker is. The modal is the items list's layout=modal (administrator/tmpl/items/modal.php), with
  * its own search, filters and ordering kept apart from the list's own (modal=1). Select only: no new or edit button. The
  * product shows as the refusals name it ({@see ItemModel::nameForStaff()}): its name in the staff member's language,

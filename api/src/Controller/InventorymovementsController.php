@@ -43,7 +43,7 @@ class InventorymovementsController extends ApiController
      * Inventorymovements list view amended to add filtering of data
      *
      * Each filter goes onto the model state under the name the movements screen's filter form gives it, and the list
-     * model applies it as it does for the screen (2.2.1: the date window, shop-local bounds as the screen's calendars
+     * model applies it as it does for the screen (the date window, shop-local bounds as the screen's calendars
      * hold them; and item_id, the movements of one product).
      *
      * @return static A BaseController object to support chaining.

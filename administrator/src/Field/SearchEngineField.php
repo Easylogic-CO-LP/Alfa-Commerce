@@ -56,7 +56,7 @@ class SearchEngineField extends ListField
 
         foreach ($registry->all() as $key => $engine) {
             // An engine that throws while naming itself or reporting its health is offered under its key, as not
-            // ready, and the screen renders (2.2.1): before, it took the whole Options screen down.
+            // ready, and the rest of the Options screen still renders.
             try {
                 $label = $engine->label();
                 $ready = $registry->readyOrFalse($engine, (string) $key);

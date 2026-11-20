@@ -628,7 +628,7 @@ final class CartLineWriter
      * prices its lines, with the configuration it would be stored with and the
      * negotiated unit price it would carry.
      *
-     * A shopper's line whose product has no price at that quantity is refused too (2.2.2), an operator's admitted.
+     * A shopper's line whose product has no price at that quantity is refused too, an operator's admitted.
      *
      * @param object $item The product.
      * @param int|null $combinationId The unit the line would hold.
@@ -652,7 +652,7 @@ final class CartLineWriter
             instruction: $price,
         );
 
-        // NO PRICE, NO LINE FOR A SHOPPER (2.2.2). A product with no price row that applies at this quantity, and no
+        // NO PRICE, NO LINE FOR A SHOPPER. A product with no price row that applies at this quantity, and no
         // custom price, is refused before anything is written, saying whether it has no price or is priced from a
         // larger quantity. An operator's line is admitted: the order builder adds the line first and sets its custom
         // price after, and the line waits for it (the hydrator says so, placement refuses it until it has one).

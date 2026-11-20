@@ -28,10 +28,9 @@ use Throwable;
  * form, is refused while the first holds the lock, and once it is released
  * it finds the first operation recorded, so it cannot pass the checks the
  * first passed. The record set under the lock closes that window, not the
- * lock: the lock is never held across a call to the provider (2.2.1: this
- * paragraph described a lock held around the provider's call).
+ * lock: the lock is never held across a call to the provider.
  *
- * NOT for a refund (since 2.1.0). A refund start is decided and reserved in
+ * NOT for a refund. A refund start is decided and reserved in
  * the books before the provider is asked (PaymentLedger::reserveRefund(),
  * under the order's short row lock), so every other start counts it at once,
  * and no lock is held across the provider's call. The core never takes this

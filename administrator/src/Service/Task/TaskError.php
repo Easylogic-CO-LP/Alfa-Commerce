@@ -16,7 +16,7 @@ use Throwable;
 
 /**
  * A failure of the shop's own background work, as a language key and its arguments: stored so ({@see Tasks::failureLine()})
- * and said at display in the reader's language ({@see Tasks::errorText()}; 2.2.0, UX-09). Its message, for the log, is
+ * and said at display in the reader's language ({@see Tasks::errorText()}). Its message, for the log, is
  * the key and the arguments.
  *
  * @since  2.2.0

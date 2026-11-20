@@ -8,7 +8,7 @@
 /**
  * The staff kick: an administrator page, shown while background work was due, asks for a staff tick after it has
  * loaded (a POST with the session token in its body, never in the address) and keeps asking while work remains, so an
- * open staff page keeps the shop's background work going (DESIGN-2.2.0.md 9.44, amending 2.7).
+ * open staff page keeps the shop's background work going.
  *
  * The tick answers 204 with no body; its header (options.header) says whether work remains. After each answer that
  * says so the page waits options.pauseMs and ticks again. It stops when nothing remains, when the answer is anything
@@ -17,8 +17,8 @@
  * shown again, it goes on at once. One request at a time.
  *
  * On the Dashboard, while its background-work card is on the page (options.cardUrl), the card is drawn again by the
- * server after each answer and swapped in, so it follows the job; when nothing is left to show, the card goes
- * (entry 27). No timer of its own: it rides on the ticks.
+ * server after each answer and swapped in, so it follows the job; when nothing is left to show, the card goes.
+ * No timer of its own: it rides on the ticks.
  */
 (() => {
   'use strict';

@@ -32,7 +32,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * outcomes, and no new vocabulary: {@see \Alfa\Component\Alfa\Administrator\Plugin\PluginAction}
  * already carries metadata, ordering, icon, styling, confirmation and modals.
  *
- * EVERY ACTION NAMES ITS PLUGIN (2.2.0). The event reaches every listener on the
+ * EVERY ACTION NAMES ITS PLUGIN. The event reaches every listener on the
  * shared dispatcher, and each action is added with its contributor, group.element,
  * first (core's own tools as core.com_alfa): attribution, never an authorisation.
  * That is what lets {@see \Alfa\Component\Alfa\Administrator\Helper\ToolRegistry}
@@ -59,7 +59,7 @@ class GetToolActionsEvent extends AbstractEvent
     /**
      * Add an action using the fluent API, owned by the plugin that names itself.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $id Action id, unique within the contributor.
      * @param string $label Button label (a language key).
      *
@@ -80,7 +80,7 @@ class GetToolActionsEvent extends AbstractEvent
     /**
      * Add a pre-built action, owned by the plugin that names itself.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param PluginAction $action The action.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.

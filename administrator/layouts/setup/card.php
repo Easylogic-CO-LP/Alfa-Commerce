@@ -15,7 +15,7 @@
  * Row actions are TOUR-FIRST: while the row's guided tour exists and this user has not
  * completed/skipped it, the primary action starts the tour ("Show me how", the core
  * `button-start-guidedtour` API) and the deep link demotes to "just take me there";
- * afterwards they flip. No tour in the DB (they ship in a later slice) -> plain CTA.
+ * afterwards they flip. No tour in the DB -> plain CTA.
  * Styling: setup-dashboard.css.
  *
  * @var array $displayData  ['status'       => array (SetupHelper::evaluate() shape),

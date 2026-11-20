@@ -25,7 +25,7 @@ use Joomla\CMS\Language\Text;
  * emails/order/ (siblings like emails/invoice/ belong to other email
  * types). Lists every wrapper LayoutHelper can resolve for the
  * administrator client (emails render with client = 1), from the folders
- * every mail renders through ({@see EmailLayouts}, 2.2.1):
+ * every mail renders through ({@see EmailLayouts}):
  *
  *   - administrator/templates/<the default administrator template>/html/layouts/com_alfa/emails/order/*.php
  *     (overrides / additions; then the template it inherits from)
@@ -69,7 +69,7 @@ class OrderStatusEmailLayoutField extends FormField
         $layouts = [];
 
         // The default administrator template's additions, its parent's, then the component's defaults: the folders
-        // every mail renders through, whatever application sends it (2.2.1).
+        // every mail renders through, whatever application sends it.
         foreach (EmailLayouts::includePaths() as $folder) {
             foreach ($this->scanFolder($folder . '/emails/order') as $name) {
                 $layouts['emails.order.' . $name] ??= $this->layoutLabel(name: $name);

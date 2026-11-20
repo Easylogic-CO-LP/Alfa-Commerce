@@ -99,7 +99,7 @@ final class NotificationPushedEvent extends AbstractImmutableEvent
     }
 
     /**
-     * The group the notification is listed under: a group key (COM_ALFA_NOTIFY_GROUP_ORDERS) since 2.1.4, or literal
+     * The group the notification is listed under: a group key (COM_ALFA_NOTIFY_GROUP_ORDERS), or literal
      * text a third party gave ({@see \Alfa\Component\Alfa\Administrator\Helper\NotificationText::group()} says it in
      * a reader's language).
      *
@@ -123,7 +123,7 @@ final class NotificationPushedEvent extends AbstractImmutableEvent
     }
 
     /**
-     * The headline as stored: since 2.1.4 the snapshot in the shop's default administrator language of
+     * The headline as stored: the snapshot in the shop's default administrator language of
      * {@see self::titleKey()} and {@see self::arguments()}, or the literal text a third party gave.
      *
      *

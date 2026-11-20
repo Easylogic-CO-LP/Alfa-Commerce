@@ -148,7 +148,7 @@ if ($hasItem) {
                     <?php // The quote: the line as the cart will price it, the Items
                           // table's own cells, re-rendered by the server on change. The
                           // layout decides between the figures and, for a line with no
-                          // price applying (2.2.2: its price is null), the sentence that
+                          // price applying (its price is null), the sentence that
                           // it waits for its custom price. ?>
                     <?php if ($hasItem) : ?>
                         <div class="col-auto" data-builder-quote aria-live="polite">

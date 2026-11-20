@@ -22,45 +22,43 @@ use Joomla\Database\ParameterType;
 /**
  * Which reconciliation strategies are valid for a document, and why the others are not.
  *
- * THE CONTRACT THIS IMPLEMENTS is the document reconciliation
- * contract, section 5: "Do not let the operator choose an invalid strategy. Alfa
+ * THE RULE THIS IMPLEMENTS: the operator never chooses an invalid strategy. Alfa
  * determines whether the source document is voidable; whether active dependent
  * corrective documents exist; whether the fiscal/document provider permits
  * void/replacement; whether the requested quantities and amounts remain inside
  * authoritative source pools; whether the currency matches; whether required
  * permissions exist; whether stock/logistics consequences require separate
  * actions. The operator chooses only among strategies that are currently
- * valid."
+ * valid.
  *
  * SO THIS CLASS DECIDES NOTHING ABOUT MONEY. It answers one question (
  * may this strategy be offered, and if not, what does the operator read), and
  * every monetary answer inside it comes from DocumentIssuer::preview(), which
- * is the issuer's own calculator (section 6, section 19). A strategy that looks affordable
+ * is the issuer's own calculator. A strategy that looks affordable
  * here is affordable because the issuer said so, not because this class
  * re-derived it.
  *
  * DERIVED, NEVER PERSISTED, exactly as ReconciliationFacts is. There is no
- * strategy column, no pending-correction row and no stored verdict: section 1 says
- * drift is derived and a pending correction is never persisted merely because
- * drift exists. A request only memoises its own read of a replacement chain
+ * strategy column, no pending-correction row and no stored verdict: drift is
+ * derived, and a pending correction is never persisted merely because drift
+ * exists. A request only memoises its own read of a replacement chain
  * (clearCache()).
  *
- * THE THREE STRATEGIES, and they are the contract's own:
+ * THE THREE STRATEGIES:
  *
- *  - INCREMENTAL (section 4A): keep the valid source document and issue only the
+ *  - INCREMENTAL: keep the valid source document and issue only the
  *    difference. The normal, recommended strategy. For NEGATIVE drift that is
- *    a credit note against the source (section 16); for POSITIVE drift it is another
- *    ordinary sales document covering only the undocumented delta (section 15, and
- *    the rule that core v1 invents no supplementary or
- *    debit type, and does not overload id_corrects, which is reserved for the
- *    credit/correction-cap axis).
+ *    a credit note against the source; for POSITIVE drift it is another
+ *    ordinary sales document covering only the undocumented delta (core invents
+ *    no supplementary or debit type, and does not overload id_corrects, which is
+ *    reserved for the credit/correction-cap axis).
  *
- *  - VOID_AND_REPLACE (section 4B): void the source and issue a replacement. NOT the
+ *  - VOID_AND_REPLACE: void the source and issue a replacement. NOT the
  *    default reaction to an order edit. It carries its own explicit ACL
  *    capability, `alfa.documents.replace`, and is never implied by the pair
  *    that authorises ordinary manual issuance.
  *
- *  - VOID (section 13): withdraw the document from active coverage, keeping it
+ *  - VOID: withdraw the document from active coverage, keeping it
  *    numbered, immutable and auditable. The correction of last resort.
  *
  * @since  2.0.0
@@ -251,7 +249,7 @@ final class CorrectionStrategies
 
         // Void and replace
         // Its own capability, never the manual-issuance pair.
-        // And section 14's amendment: a stock-moving document must not be offered
+        // And a stock-moving document must not be offered
         // ordinary void-and-replace while issuing its replacement would execute
         // the same physical movement a second time. Until a movement-preserving
         // mechanism exists the strategy is UNAVAILABLE with the reason shown;

@@ -108,7 +108,7 @@ class TasksController extends BaseController
     /**
      * The progress page's call: a 2-second tick on the job while it waits, then how far it is, as JSON. The session is
      * closed before the tick, so the same member of staff's other pages never wait for it. A job waiting out its
-     * backoff is made due first, as staff asked (2.2.0).
+     * backoff is made due first, as staff asked.
      *
      * The answer paces the page: retry_after is 0 while the tick worked the job and it still waits, and the endpoint's
      * gap (5 s) when the job could not be worked, with the reason and its line (another run holds it, a large job holds
@@ -152,7 +152,7 @@ class TasksController extends BaseController
             'percent' => $job['percent'],
             'text' => TaskStaff::unitsText(done: $job['done'], total: $job['total'], percent: $job['percent']),
             'error' => Tasks::errorText($job['error']),
-            // A thumbnails job's report, printed in the card when the job ends (UX-84).
+            // A thumbnails job's report, printed in the card when the job ends.
             'report' => $finished && \is_array($job['report'])
                 ? Text::sprintf('COM_ALFA_TASKS_THUMBNAILS_REPORT', (int) $job['report']['made'], (int) $job['report']['kept'], (int) $job['report']['missing'], (int) $job['report']['failed'])
                 : '',
@@ -166,7 +166,7 @@ class TasksController extends BaseController
     /**
      * The jobs card of the Tasks tab, drawn by its own layout from the one source of its data (TaskStaff::jobsCard()), as
      * JSON {html}: the progress page swaps it in when its job ends, so the list below the card is never left stale and a
-     * thumbnails job's report shows in its row (UX-84). A POST with the form token, by a user with the Tools permission.
+     * thumbnails job's report shows in its row. A POST with the form token, by a user with the Tools permission.
      *
      * @since  2.2.0
      */
@@ -188,7 +188,7 @@ class TasksController extends BaseController
     /**
      * The Dashboard's background-work card, drawn by its own layout from the one source of its data
      * (CoreCardProvider::backgroundWork()), as JSON {html}: the staff kick swaps it in after each of its ticks while the
-     * card is on the page, so the card follows the job without a reload (entry 27). Its html holds no
+     * card is on the page, so the card follows the job without a reload. Its html holds no
      * [data-alfa-background-card] when there is nothing left to show. A POST with the form token, by a user with the
      * Tools permission.
      *

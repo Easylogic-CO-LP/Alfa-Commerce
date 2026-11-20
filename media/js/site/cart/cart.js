@@ -66,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (event.target.matches('[data-action="cart-clear"], [data-action="cart-clear"] *')) {
             event.preventDefault();
 
-            // Emptying the cart cannot be undone, so the shopper is asked first (2.2.0, UX-77).
+            // Emptying the cart cannot be undone, so the shopper is asked first.
             if (window.confirm(Joomla.Text._('COM_ALFA_CART_CLEAR_CONFIRM'))) {
                 clearCart();
             }
@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // DELIVERY DETAILS CHANGED: the offered methods and shipping costs depend on them. A carrier is offered only
-        // once the checkout gives what it needs (the country, the postcode: 2.2.2), so any delivery field reads the
+        // once the checkout gives what it needs (the country, the postcode), so any delivery field reads the
         // methods again, as the delivery place always did.
         // The [data-alfa-delivery-place] clause serves a template override of the checkout form without the wrapper.
         if (event.target.matches('[data-alfa-delivery-place]') || event.target.closest('[data-cart-delivery-fields]')) {

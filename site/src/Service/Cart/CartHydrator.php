@@ -131,7 +131,7 @@ final class CartHydrator
     }
 
     /**
-     * Price the lines again at the delivery place, once the binding changed it (2.2.1); nothing is read when the
+     * Price the lines again at the delivery place, once the binding changed it; nothing is read when the
      * place the lines were priced at stands.
      *
      * @since  2.2.1
@@ -194,7 +194,7 @@ final class CartHydrator
         }
 
         // The addresses are read outside the net, and the delivery address before the lines: the goods are priced at
-        // the delivery place (2.2.1).
+        // the delivery place.
         $delivery = isset($row->id_user_info_delivery) ? $this->address($identity->cartId, (int) $row->id_user_info_delivery) : null;
         $subject = $this->atDeliveryPlace(subject: $subject, deliveryAddress: $delivery);
 
@@ -217,7 +217,7 @@ final class CartHydrator
     }
 
     /**
-     * The subject priced at the cart's delivery place (2.2.1): the place the binding holds (the one this request
+     * The subject priced at the cart's delivery place: the place the binding holds (the one this request
      * bound, else the delivery address's), so the goods are priced where the carriage is, on the storefront and in
      * the order builder alike (its screen and its placement show and charge one total). A place the cart was opened
      * with in its money context stands (the operator placement names the one typed in its delivery details, and any
@@ -393,7 +393,7 @@ final class CartHydrator
             $item = clone $base;
             [$selection, $optionValueIds, $payloads, $summary] = $this->configuration->of($item, (int) $line->id);
 
-            // A FIELD WHOSE PLUGIN CANNOT ANSWER (2.2.0, A-C14B-9). The line carries
+            // A FIELD WHOSE PLUGIN CANNOT ANSWER. The line carries
             // a composition of that field, or the field is required, and its plugin
             // is unavailable: the line is never priced without it. It stays in the
             // cart, named, with its chosen fields and no price, marked with the
@@ -447,7 +447,7 @@ final class CartHydrator
             $cartItem->fields = $summary;  // chosen fields, for the line summary
             $this->presenter->decorate($cartItem, $item, $payloads);
 
-            // A LINE WITH NO PRICE (2.2.2). No price row applies to its product at its quantity for this cart's terms,
+            // A LINE WITH NO PRICE. No price row applies to its product at its quantity for this cart's terms,
             // and it carries no custom price: its price is null, its money is in no total, and placement refuses it by
             // name. In the order builder it waits for its custom price; elsewhere the product lost its price, or the
             // quantity is under the first one priced.
@@ -822,7 +822,7 @@ final class CartHydrator
         $context = $this->terms(subject: $subject);
         $calculator = new PriceCalculator();
 
-        // A quantity with no price (2.2.2) has no unit: the search goes on to the next tier.
+        // A quantity with no price has no unit: the search goes on to the next tier.
         $unitAt = function (int $quantity) use ($product, $configuration, $instruction, $context, $calculator, $unitOf): ?string {
             $candidate = clone $product;
 

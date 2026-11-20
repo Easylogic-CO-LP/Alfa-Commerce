@@ -104,7 +104,7 @@ final class CatalogSearchPayload
      *         `{id, name, url, description}`, carrying only the sections that have rows.
      *         `event` is the opaque attribution handle (null = search not recorded) a
      *         consumer rendering its own results page stamps on the click beacon.
-     *         `order` (2.2.0) is the order the products are shown in: `relevance`, or
+     *         `order` is the order the products are shown in: `relevance`, or
      *         `sort:<key>:<direction>`; a product's position is its index in
      *         sections.products plus 1 (the endpoint sends no per-row position).
      *         `redirect` non-null means: do not render sections; navigate there. Born
@@ -147,7 +147,7 @@ final class CatalogSearchPayload
             'query' => $query,
             'total' => $results->total(),
             'event' => $results->eventId,
-            // The order the products are shown in (2.2.0, additive within contract 3): the
+            // The order the products are shown in (additive within contract 3): the
             // items model's own, as it told a provider, never a constant. A product's position
             // is its index in sections.products plus 1.
             'order' => $results->order,

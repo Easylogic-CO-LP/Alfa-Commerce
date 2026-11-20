@@ -22,7 +22,7 @@
     use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
     use Alfa\Component\Alfa\Site\Helper\Surface;
 
-    // Whether the shop sells online (2.2.2): in catalogue-only mode the item says so, and the page draws no buy form and
+    // Whether the shop sells online: in catalogue-only mode the item says so, and the page draws no buy form and
     // asks for none of its scripts. An override reads the same property.
     $sellsOnline = (bool) ($this->item->sellsOnline ?? true);
 
@@ -81,7 +81,7 @@
             <input type="hidden" name="edit_line" value="<?php echo (int) $this->item->editLine; ?>">
             <?php endif; ?>
         <?php else: ?>
-        <?php // Catalogue only (2.2.2): a plain block, no form; the fields arrive as read-only lists. ?>
+        <?php // Catalogue only: a plain block, no form; the fields arrive as read-only lists. ?>
         <div class="item-catalogue">
         <?php endif; ?>
 
@@ -135,6 +135,6 @@
     </div>
 </div>
 
-<?php // The related products (2.2.2), a part of their own after the product's container: a variant change replaces the
+<?php // The related products, a part of their own after the product's container: a variant change replaces the
       // container and leaves them as they are. An override of this page shows them where it loads the part. ?>
 <?php echo $this->loadTemplate($this->relatedTpl); ?>

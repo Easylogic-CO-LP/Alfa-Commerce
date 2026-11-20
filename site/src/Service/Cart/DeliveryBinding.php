@@ -14,7 +14,7 @@ use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 defined('_JEXEC') or die;
 
 /**
- * Where an opened cart is delivered: the one binding its goods and its carriage are priced at (2.2.1).
+ * Where an opened cart is delivered: the one binding its goods and its carriage are priced at.
  *
  * The place this request bound (the checkout form's, the submission's, the order builder's), else the place field of
  * the cart's delivery address. The computation binds it and reads it for the shipping methods, their quotes and the

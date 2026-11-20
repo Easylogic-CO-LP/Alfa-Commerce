@@ -35,7 +35,7 @@ final class PriceUnits
 {
     /**
      * The per-unit figures of a price block, in the order it shows them: the tax-excluded saving (discount) beside the
-     * net figures, the tax-included saving (discount_with_tax) beside the tax-included ones (2.2.0, A-C16-12).
+     * net figures, the tax-included saving (discount_with_tax) beside the tax-included ones.
      *
      * @since  2.0.0
      */

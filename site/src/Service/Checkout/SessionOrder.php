@@ -19,7 +19,7 @@ use Joomla\Utilities\IpHelper;
 defined('_JEXEC') or die;
 
 /**
- * The order the checkout's own pages show this visitor, and where that came from (2.2.1).
+ * The order the checkout's own pages show this visitor, and where that came from.
  *
  * The process page and the completed page's arrival act on the order the session names: the process page asks the
  * order's gateway for its payment page, the arrival sends the visitor to the order's keyed address. A gateway's

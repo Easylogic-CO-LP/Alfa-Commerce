@@ -24,15 +24,14 @@ use Throwable;
 /**
  * Incremental correction: keep the source document, issue only the difference.
  *
- * The document reconciliation contract, section 4A: "Keep the valid
- * source document and issue only the difference... This is the normal/default
- * recommended strategy."
+ * The valid source document is kept and only the difference is issued: the
+ * normal, recommended strategy.
  *
  * WHAT THIS CLASS IS, AND WHAT IT IS NOT. It is a PROPOSER. It reads the facts,
  * decides which direction the drift runs, turns that into picks, and hands them
  * to the SAME assembler and the SAME preview the manual path uses. It computes
- * no money of its own, not one figure, because section 7 and section 19 forbid a proposal
- * calculator standing beside a manual one.
+ * no money of its own, not one figure: a proposal calculator never stands
+ * beside a manual one.
  *
  *   ReconciliationFacts  -> what the drift IS
  *   CorrectionStrategies -> whether correcting is ALLOWED
@@ -41,20 +40,20 @@ use Throwable;
  *
  * THE TWO DIRECTIONS, and they take different documents:
  *
- *  - NEGATIVE DRIFT (section 16): the order is now below what active documents cover.
+ *  - NEGATIVE DRIFT: the order is now below what active documents cover.
  *    A credit note against ONE named source document, for the difference, never
  *    for more than that source's own remaining credit pool. Both bounds apply:
  *    the drift says what is NEEDED, the pool says what is PERMITTED, and the
  *    smaller wins. Its type is the one credit type paired with the source's
  *    type (DocumentHelper::pairedCreditType()); none or several is refused.
  *
- *  - POSITIVE DRIFT (section 15): the order is now above what active documents cover.
+ *  - POSITIVE DRIFT: the order is now above what active documents cover.
  *    Another ORDINARY sales document of the existing target type, covering only
  *    the undocumented delta and never restating the documented part. An order
  *    with no sales document takes the one type the automatic-issue rules of
  *    the shop's statuses choose for its buyer; none, or two that disagree, is
- *    refused, and so is a type that is disabled. Per the
- *    design, core v1 invents no supplementary or debit
+ *    refused, and so is a type that is disabled. Core
+ *    invents no supplementary or debit
  *    type, and `id_corrects` is NOT overloaded for it: that column is the
  *    credit/correction-cap axis and means something else.
  *
@@ -77,7 +76,7 @@ use Throwable;
  * so the preview shows it and the fingerprint binds it; a buyer the type's
  * requirements are not met by is named (REASON_BUYER_INSUFFICIENT).
  *
- * SEMANTIC DRIFT IS NOT CORRECTED HERE (section 17). A tax-rate or identity mismatch
+ * SEMANTIC DRIFT IS NOT CORRECTED HERE. A tax-rate or identity mismatch
  * is a DEFECT that no signed amount expresses; ReconciliationFacts says so in
  * its own words, that "the sum would be right and the document would still be
  * wrong". Manufacturing a money delta for it would be the "meaningless
@@ -209,8 +208,8 @@ final class IncrementalCorrection
     /**
      * A discount drifted in a way no amount can correct on its own: goods were
      * already credited, so its share of the goods kept is stored nowhere, or
-     * its tax semantic changed (OrderChargeLines::discountDrift()). Named, as
-     * section 17 names a semantic mismatch, rather than corrected with money.
+     * its tax semantic changed (OrderChargeLines::discountDrift()). Named as a
+     * semantic mismatch rather than corrected with money.
      *
      * @var string
      * @since 2.0.0
@@ -251,7 +250,7 @@ final class IncrementalCorrection
         $user ??= Factory::getApplication()->getIdentity();
         $facts = ReconciliationFacts::forOrder($orderId);
 
-        // section 17: a semantic mismatch is a defect that no signed amount expresses.
+        // A semantic mismatch is a defect that no signed amount expresses.
         // Reported before anything else, because issuing money against it would
         // clear the arithmetic and leave the document just as wrong.
         if (!empty($facts->mismatches)) {
@@ -444,7 +443,7 @@ final class IncrementalCorrection
     /**
      * Issue the correction the operator previewed, and nothing else.
      *
-     * section 6: what is committed is the exact result that was shown. The preview
+     * What is committed is the exact result that was shown. The preview
      * and the confirmation are two requests, and the order may change between
      * them. So the proposal is derived again here, the one way it is ever
      * derived, and issued only when its fingerprint is the one the confirmed

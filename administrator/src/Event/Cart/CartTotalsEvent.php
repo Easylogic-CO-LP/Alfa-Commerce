@@ -23,7 +23,7 @@ use LogicException;
 defined('_JEXEC') or die;
 
 /**
- * Cart totals collection event (onCartTotals): ONE event for the whole sequence (2.2.0), delivered in turn to
+ * Cart totals collection event (onCartTotals): ONE event for the whole sequence, delivered in turn to
  * each `alfa` plugin the CUSTOMER's view levels admit, in their order, through the plugin's own targeted declaration
  * (never the shared dispatcher), so a cart costs the same whoever operates it. A plugin contributes declarative
  * CART-level charges, each naming the plugin (never HTML, never a computed total, no artifact imports):
@@ -121,7 +121,7 @@ class CartTotalsEvent extends AbstractImmutableEvent implements SelectionContrib
     /**
      * Author one cart-level charge fluently.
      *
-     * @param string $contributor The contributing plugin, group.element (2.2.0; attribution, never an authorisation).
+     * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param string $code Stable id for the line, e.g. 'signup_fee'.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.
@@ -137,7 +137,7 @@ class CartTotalsEvent extends AbstractImmutableEvent implements SelectionContrib
     }
 
     /**
-     * Contribute a ready-made charge (2.2.0).
+     * Contribute a ready-made charge.
      *
      * @param string $contributor The contributing plugin, group.element (attribution, never an authorisation).
      * @param CartContribution $contribution The declarative charge.

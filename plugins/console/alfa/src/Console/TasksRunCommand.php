@@ -23,7 +23,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 /**
- * alfa:tasks:run, the server cron's trigger (design 2.7): ticks as the system actor for 25 s or until nothing is due,
+ * alfa:tasks:run, the server cron's trigger: ticks as the system actor for 25 s or until nothing is due,
  * whichever comes first. A tick that could do nothing (the work is another tick's, or waits for its time) ends the
  * run: the next cron run comes soon. Exit codes: 0 when the work ran or none was due, 1 when the runner refused
  * (maintenance, the update's pause), 2 when it failed.

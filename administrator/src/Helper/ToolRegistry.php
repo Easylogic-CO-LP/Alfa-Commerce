@@ -89,7 +89,7 @@ final class ToolRegistry
     private static array $resolved = [];
 
     /**
-     * The claims dropped in this request's collection (2.2.0, A-C14B-8), keyed `owner_group/owner_name:action_id`: why
+     * The claims dropped in this request's collection, keyed `owner_group/owner_name:action_id`: why
      * the owner named did not confirm it (unlisted, unavailable, or its own listing failed), so a run asked under that
      * name is refused for the true reason.
      *
@@ -100,8 +100,8 @@ final class ToolRegistry
     private static array $dropped = [];
 
     /**
-     * The owners' own answers in this request (A-C14B-8), by `owner_group/owner_name`: each owner is asked itself once,
-     * at collection or, for a hinted run its collection did not hold, at the run (A-INT-1).
+     * The owners' own answers in this request, by `owner_group/owner_name`: each owner is asked itself once,
+     * at collection or, for a hinted run its collection did not hold, at the run.
      *
      * @var array<string, array{actions: array<string, PluginAction>, why: string, text: string}>
      *
@@ -139,7 +139,7 @@ final class ToolRegistry
             }
         }
 
-        // The claims (2.2.0, design 2.15.3): every listener on the shared dispatcher (mode A, a display phase,
+        // The claims: every listener on the shared dispatcher (broadcast, a display phase,
         // isolated), the platform group imported first; each claim names the plugin it is for, and a listener that
         // fails is logged while the others' claims stand.
         $event = new GetToolActionsEvent('onGetToolActions', []);
@@ -163,7 +163,7 @@ final class ToolRegistry
             );
         }
 
-        // A TOOL'S ENTRY IS ITS OWNER'S OWN ANSWER (A-C14B-8). A claim says only which plugin a tool is for; that plugin
+        // A TOOL'S ENTRY IS ITS OWNER'S OWN ANSWER. A claim says only which plugin a tool is for; that plugin
         // is asked itself, once in this request, and only what it lists for itself is kept: its label, its card, its
         // enabled and mutates flags. So the card, the run, mutates() and the POST and one-time-key rule all read the
         // owner's own entry, and another plugin's claim in its name can never change how its tool is shown or guarded.
@@ -269,10 +269,10 @@ final class ToolRegistry
      *
      * THE OWNER HINT IS NOT AN AUTHORISATION. The rendered button knows its provider
      * and passes it back; it never decides whether the action may run: the action must
-     * be one the named plugin listed for itself in this request's collection (2.2.0,
-     * every action names its plugin), enabled, and it then runs on that plugin alone,
-     * through its own declaration of onExecuteToolAction. A HINTED RUN NEVER FALLS BACK
-     * (2.2.0, A-INT-1): a hint under which this request's collection holds no such
+     * be one the named plugin listed for itself in this request's collection (every
+     * action names its plugin), enabled, and it then runs on that plugin alone,
+     * through its own declaration of onExecuteToolAction. A HINTED RUN NEVER FALLS BACK:
+     * a hint under which this request's collection holds no such
      * action is refused, naming the hinted plugin and why (its own listing failed, it is
      * unavailable, it declares no handler, or it does not list the action), and no other
      * plugin's action of the same id runs, whatever a stale page or a failed listing
@@ -301,7 +301,7 @@ final class ToolRegistry
         $action = self::resolve($actionId, $ownerHint);
 
         if ($action === null) {
-            // A hinted run (A-C14B-8, A-INT-1): refused for the true reason, naming the hinted plugin, never run
+            // A hinted run: refused for the true reason, naming the hinted plugin, never run
             // elsewhere. A claim its owner did not confirm says why it was dropped; otherwise the hinted plugin's own
             // answer says it (asked once in the request).
             $hint = trim($ownerHint);
@@ -340,8 +340,8 @@ final class ToolRegistry
             'data' => $data,
         ]);
 
-        // Core is not a plugin and must never be booted as one. A plugin's tool runs on that plugin alone (2.2.0, mode
-        // B): booted through Joomla's list, its own declaration of onExecuteToolAction; a handler's exception is the
+        // Core is not a plugin and must never be booted as one. A plugin's tool runs on that plugin alone (targeted):
+        // booted through Joomla's list, its own declaration of onExecuteToolAction; a handler's exception is the
         // operation's and reaches the caller.
         if ($group === CoreToolProvider::OWNER_GROUP) {
             (new CoreToolProvider())->onExecuteToolAction($event);
@@ -420,7 +420,7 @@ final class ToolRegistry
 
     /**
      * The search behind {@see self::resolve()}: under the hinted provider alone when
-     * there is a hint (A-INT-1), the whole collection by id when there is none.
+     * there is a hint, the whole collection by id when there is none.
      *
      * @param string $actionId The action.
      * @param string $ownerHint Untrusted `group/name`; '' to scan everything.
@@ -430,7 +430,7 @@ final class ToolRegistry
      */
     private static function resolveUncached(string $actionId, string $ownerHint): ?PluginAction
     {
-        // A hint names the one plugin the action must be listed under (A-INT-1): its own entry, or nothing; never
+        // A hint names the one plugin the action must be listed under: its own entry, or nothing; never
         // another plugin's action of the same id.
         if (trim($ownerHint) !== '') {
             return self::actions()[trim($ownerHint) . ':' . $actionId] ?? null;
@@ -506,7 +506,7 @@ final class ToolRegistry
     }
 
     /**
-     * Why a hinted run finds nothing under its hint (A-INT-1): the hinted plugin's own answer says it. It lists the
+     * Why a hinted run finds nothing under its hint: the hinted plugin's own answer says it. It lists the
      * action itself only when its listing in this request's collection failed (the collection would hold it).
      *
      * @param string $owner The hinted owner, `group/name`.
@@ -553,7 +553,7 @@ final class ToolRegistry
     }
 
     /**
-     * One owner's own answer to onGetToolActions (A-C14B-8): booted through the plugin helper and asked alone through
+     * One owner's own answer to onGetToolActions: booted through the plugin helper and asked alone through
      * its own subscriber map (askSubscriber()); only the tools it lists in its own name, each id once, first first.
      *
      * @param AlfaPluginHelper $plugins The plugin helper.
@@ -576,7 +576,7 @@ final class ToolRegistry
             return ['actions' => [], 'why' => 'unavailable', 'text' => $e->getMessage()];
         }
 
-        // A tool is confirmed only when its owner can run it (A-INT-2): an owner that declares no onExecuteToolAction
+        // A tool is confirmed only when its owner can run it: an owner that declares no onExecuteToolAction
         // confirms nothing, so no card is shown that would always fail.
         if (!$plugins->declares($plugin, 'onExecuteToolAction')) {
             return ['actions' => [], 'why' => 'nohandler', 'text' => 'it declares no onExecuteToolAction'];

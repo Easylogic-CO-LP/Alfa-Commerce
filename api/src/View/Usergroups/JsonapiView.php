@@ -51,7 +51,7 @@ class JsonApiView extends BaseApiView
     ];
 
     /**
-     * A customer group's price display settings as a map, an object also when the group has none of its own (2.2.1):
+     * A customer group's price display settings as a map, an object also when the group has none of its own:
      * the model hands the edit form an array, which JSON writes as a list when it is empty.
      *
      * @param object|false $item The customer group, or false when there is none.

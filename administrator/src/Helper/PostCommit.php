@@ -44,14 +44,14 @@ defined('_JEXEC') or die;
  * runs while another request is refused as busy on that lock. Work deferred
  * with no transaction open inside a lock scope is already committed, so no
  * rollback discards it. Work that waits so may claim what it will run from
- * the commit on (its reserve hook, 2.2.0): a batch of tasks is reserved for
+ * the commit on (its reserve hook): a batch of tasks is reserved for
  * its run, so recovery in another request leaves it alone meanwhile.
  *
- * The queue also holds the connection's notice journal (2.1.4): each notification
+ * The queue also holds the connection's notice journal: each notification
  * write raised inside a transaction, recorded by its single ({@see Tasks::notice()}),
  * owned by its level like the work. Once the outermost transaction has committed the
  * journal is written first, before any other work, even while a lock scope or a hold
- * is open (s71): a row write holds no lock past its own statement. What the writes owe
+ * is open: a row write holds no lock past its own statement. What the writes owe
  * outside the database (onAlfaNotificationPushed) is work like any other and waits
  * for the release.
  *
@@ -107,7 +107,7 @@ final class PostCommit
      * when it runs, such as a batch of tasks.
      *
      * Work that a lock scope or a hold keeps waiting after its commit may ask
-     * for what it will run to be claimed for it then (2.2.0, D7): its reserve
+     * for what it will run to be claimed for it then: its reserve
      * hook runs at each commit made while it waits, after the notice journal,
      * and at once when it is queued inside a lock scope with no transaction
      * open. A failure of the hook is logged like a failure of the work.
@@ -214,7 +214,7 @@ final class PostCommit
      *
      * When the connection still holds the lock although no scope of Alfa's holds it any more (its release failed, or
      * other code took it again), the scope is kept open: nothing deferred runs on the connection in this request, and
-     * the singles it wrote reach recovery once the lock is gone and their reservation (2.2.0) has lapsed.
+     * the singles it wrote reach recovery once the lock is gone and their reservation has lapsed.
      *
      * @param DatabaseDriver $db The connection that released the lock.
      * @param string $name The lock's name.
@@ -337,12 +337,12 @@ final class PostCommit
      * transaction's commit, and nothing runs twice.
      *
      * The notice journal is written first ({@see Tasks::applyJournal()}), at
-     * the outermost commit even while a lock scope is open (s71), so other
+     * the outermost commit even while a lock scope is open, so other
      * requests and the work after it read the notifications its transactions
      * raised. Inside a lock scope the work its writes defer (their
      * announcements) waits with the work the commit released, after the work
      * of earlier commits, in the order it runs without a lock scope; then each
-     * waiting item's reserve hook runs (2.2.0), so what the release will run
+     * waiting item's reserve hook runs, so what the release will run
      * is claimed for it from this commit on.
      *
      * @param DatabaseDriver $db The connection.

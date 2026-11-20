@@ -17,7 +17,7 @@ use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Session\Session;
 
 /**
- * The staff tick (design 2.7, amended by 9.44): the kick script of an administrator page calls it after load, when
+ * The staff tick: the kick script of an administrator page calls it after load, when
  * work was due, by POST with the session token in the body (never a GET with the token in the address, which servers
  * and proxies log), and again after a short pause for as long as the answer says work remains and the page is shown.
  * A tick that finds the work taken returns after one claim attempt. The session is closed before any work, so the

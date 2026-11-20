@@ -55,7 +55,7 @@ class CollectSearchEnginesEvent extends AbstractEvent
      * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
      *
      * @param SearchEngineInterface $engine The engine instance.
-     * @param string $contributor The contributing plugin, group.element (2.2.0; in place of the extension name; attribution,
+     * @param string $contributor The contributing plugin, group.element (in place of the extension name; attribution,
      *                            never an authorisation). The configured engine's plugin is the one asked for the search
      *                            input when it is an alfa-search plugin.
      * @param string $version The package version.

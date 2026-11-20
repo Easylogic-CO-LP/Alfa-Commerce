@@ -4,7 +4,7 @@
  * The buttons a plugin declares (layouts/action/buttons.php) sit in a footer pinned to the bottom of the frame, always
  * in view while a long layout above them scrolls, as a dialog's footer is. The result screen (tmpl/action/notice.php)
  * has no layout to scroll past, only its message: there the buttons follow the message, so on a short frame (a phone,
- * or messages of the site above it) they are never drawn over the message's first lines (2.2.1, DESIGN-2.2.1 A4).
+ * or messages of the site above it) they are never drawn over the message's first lines.
  */
 
 .alfa-action-buttons {

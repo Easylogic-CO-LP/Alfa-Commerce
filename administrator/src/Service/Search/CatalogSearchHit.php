@@ -65,7 +65,7 @@ final class CatalogSearchHit
         'item' => ['url' => 'link', 'description' => 'short_desc'],
         'category' => ['url' => 'link', 'description' => 'desc'],
         // Manufacturer rows DO carry a routed `link`; the null here is CONTRACT POLICY
-        // carried over from wire v1 (the dropdown renders manufacturers unrouted, and
+        // (the dropdown renders manufacturers unrouted, and
         // the suite pins `url: null`). Routing them is a deliberate contract change:
         // flip this to 'link' and update SECTIONS_WITHOUT_URL in the suite together.
         'manufacturer' => ['url' => null, 'description' => 'desc'],

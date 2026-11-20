@@ -26,7 +26,7 @@ use Joomla\CMS\MVC\Controller\Exception\Save;
 use Joomla\CMS\User\User;
 
 /**
- * The Tasks controller: what a save left to the shop's background work, and that work (design 2.9).
+ * The Tasks controller: what a save left to the shop's background work, and that work.
  *
  * GET v1/alfa/tasks/{id} answers a task to its creator, and to anyone with the permission of its work (Tools for a
  * job, the orders view for an order's single); to anyone else, and for a task that is gone, 404, so a task's existence

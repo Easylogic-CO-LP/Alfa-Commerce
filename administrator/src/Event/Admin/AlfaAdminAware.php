@@ -67,7 +67,7 @@ trait AlfaAdminAware
     }
 
     /**
-     * Raise an admin event on the shared dispatcher (2.2.0, design 2.15.3): the before phases (validate, before save,
+     * Raise an admin event on the shared dispatcher: the before phases (validate, before save,
      * before delete) through Joomla's dispatch(), a listener's exception logged here and rethrown to the caller, which
      * refuses the operation; every other phase under Alfa's isolated policy, a listener's failure logged by the helper
      * and the next listener run.

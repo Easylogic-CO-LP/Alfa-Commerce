@@ -23,7 +23,7 @@ use Throwable;
 /**
  * The move of the two former shop-level shipping Options onto every shipping method, taken once by an update.
  *
- * Up to 2.1.0 the shop had two Options for the tax on shipping: Default shipping taxes (the tax rules of every
+ * Before this move the shop had two Options for the tax on shipping: Default shipping taxes (the tax rules of every
  * method that named none) and Shipping prices entered (what an entered shipping price meant, for every method).
  * Each shipping method now owns both, and nothing reads the Options any more. The move keeps what an updated shop
  * charged:
@@ -75,8 +75,8 @@ final class ShippingOptionsMigration
     /**
      * Add the method column of the entry mode when it is missing.
      *
-     * 2.1.0.sql adds it on an update from 2.0. A site whose schema Joomla already recorded as 2.1.0 (an earlier
-     * build of this release) never runs that file again, so the column is added here, with the same definition and
+     * The update file 2.1.0.sql adds it. A site whose schema Joomla already recorded at that file's version
+     * never runs that file again, so the column is added here, with the same definition and
      * in the same place, before the move needs it. DDL: never inside a transaction.
      *
      * @return bool True when it was added now.

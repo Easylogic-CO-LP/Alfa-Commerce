@@ -26,8 +26,8 @@ use Joomla\Database\ParameterType;
  *
  * A refund the provider must be asked to make is reserved in the books
  * before it is sent (PaymentLedger::reserveRefund(), a refund row), so the
- * mark moves when a refund is reserved as well as when one is booked (since
- * 2.1.0): a form drawn before the reservation is refused as stale by the core
+ * mark moves when a refund is reserved as well as when one is booked:
+ * a form drawn before the reservation is refused as stale by the core
  * ('mark'), and the double submit of one form reserves once. The idempotency
  * key the provider receives is the reservation's own, made by the core, so a
  * retry after no answer is the same request and two genuine refunds are never

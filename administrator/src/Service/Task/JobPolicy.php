@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 \defined('_JEXEC') or die;
 
 /**
- * How the jobs of one handler are weighed, ordered and cut into chunks (2.2.0, design 2.4 and 2.5).
+ * How the jobs of one handler are weighed, ordered and cut into chunks.
  *
  * @since  2.2.0
  */
@@ -37,7 +37,7 @@ final class JobPolicy
      * @param string $weight self::HEAVY or self::LIGHT.
      * @param int $priority Claim order: a higher one is claimed first (correctness owed to the shop, then freshness the
      *                      customer sees, then maintenance).
-     * @param int $initialUnits Units of the first chunk of a tick, measured on the demo (DM2); the runner adapts the
+     * @param int $initialUnits Units of the first chunk of a tick, as measured for the handler; the runner adapts the
      *                          rest of the tick from the cost it measures.
      * @param bool $rerunOnMerge A new request of the same scope once the job has started makes it run once more, from the
      *                           start ({@see JobHandler}).

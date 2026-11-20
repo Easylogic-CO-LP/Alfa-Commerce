@@ -69,17 +69,17 @@ $cssClass = 'item-prices' . (!empty($options['css_class']) ? ' ' . trim($options
 // Totals are money. A unit is presentation: each is printed by the one unit
 // rule from the facts the result states, for the quantity it was priced at.
 
-// A SAVING FOLLOWS THE BASIS OF THE FIGURES IT SITS BESIDE (2.2.0, A-C16-12). The block has a net part (the base
+// A SAVING FOLLOWS THE BASIS OF THE FIGURES IT SITS BESIDE. The block has a net part (the base
 // and the subtotal, before tax) and a tax-included part (the price with tax and the total). Its net part shows the
 // tax-excluded saving (the base less the subtotal); its tax-included part the tax-included saving (the price with tax
 // less the total). A block showing both bases carries each saving in its own part.
-// A SAVING SITS ONLY BESIDE PRICES OF ITS OWN BASIS (2.2.0, A-INT-4). The rows run base, net saving, subtotal, tax,
+// A SAVING SITS ONLY BESIDE PRICES OF ITS OWN BASIS. The rows run base, net saving, subtotal, tax,
 // price with tax, tax-included saving, total. A saving row is shown only when a price of its basis is shown beside it
 // and the nearest price above it and the nearest below it, the tax row aside, are each of its basis or absent: the
 // net saving never sits right above the price with tax or the total, the tax-included saving never right under the
 // base or the subtotal. So with the base, the subtotal and the total shown but not the price with tax, the block
 // shows the net saving alone, not a second Discount row between the subtotal and the total.
-// WITH NO PRICE SHOWN, THE STOREFRONT'S OWN BASIS (2.2.0, A-INT-6): a block that shows no price of either basis (the
+// WITH NO PRICE SHOWN, THE STOREFRONT'S OWN BASIS: a block that shows no price of either basis (the
 // tax and the discount alone) shows the tax-included saving, so a discount row switched on never vanishes; with no
 // price beside it there is nothing to mix.
 $hasDiscount = $prices->hasDiscount();
@@ -90,7 +90,7 @@ $showWithTax = !empty($settings['base_price_with_tax_show']);
 $showFinal = !empty($settings['final_price_show']);
 $netSaving = $discountShown && ($showBase || $showSubtotal) && ($showSubtotal || (!$showWithTax && !$showFinal));
 $grossSaving = $discountShown && ($showWithTax || (!$showBase && !$showSubtotal));
-// EACH SAVING NAMED BY ITS BASIS WHEN BOTH SHOW (2.2.0, UX-51): two rows both reading "Discount" read as two discounts
+// EACH SAVING NAMED BY ITS BASIS WHEN BOTH SHOW: two rows both reading "Discount" read as two discounts
 // on a product that has one. A block showing one saving keeps the plain word.
 $bothSavings = $netSaving && $grossSaving;
 $netSavingLabel = $bothSavings ? Text::_('COM_ALFA_PRICE_DISCOUNT_EXCL_TAX') : Text::_('COM_ALFA_PRICE_DISCOUNT');

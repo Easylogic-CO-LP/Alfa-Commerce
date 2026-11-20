@@ -801,8 +801,8 @@ class PaymentLedger
      */
     public const OUTCOME_REFUSED = 'refused';
 
-    //  CONSTANTS: the kinds and codes of a payment write's verdict (2.2.2)
-    //  A value never changes and is never reused in 2.x; a later 2.x release may add codes, never kinds.
+    //  CONSTANTS: the kinds and codes of a payment write's verdict
+    //  A value never changes and is never reused within the major version; a later release may add codes, never kinds.
 
     /**
      * @var string The row is written, or already exactly as asked, or found by its reference.
@@ -1008,14 +1008,14 @@ class PaymentLedger
     public const REFUSAL_REFUND_DOCUMENT = 'refund_document';
 
     /**
-     * @var string The message of a verdict whose lock was not taken (2.2.2): for the plugin's log only.
+     * @var string The message of a verdict whose lock was not taken: for the plugin's log only.
      *
      * @since  2.2.2
      */
     private const LOCK_NOT_TAKEN_SENTENCE = 'Another operation on this order was in progress; nothing was written.';
 
     /**
-     * @var string The message of a verdict whose write failed (2.2.2): for the plugin's log only.
+     * @var string The message of a verdict whose write failed: for the plugin's log only.
      *
      * @since  2.2.2
      */
@@ -1122,7 +1122,7 @@ class PaymentLedger
      *             (REPORT_RESERVATION_PREFIX and the row id), which holds the refund block
      *             ({@see self::refundStartRefusal()}) until it goes through the way out: Record this refund,
      *             reconcile to an existing refund, or a duplicate or invalid report (the provider's own failure
-     *             report, releaseRefund(), is added to that report since round 8; it no longer ends the row).
+     *             report, releaseRefund(), is added to that report; it does not end the row).
      *             Staff cannot fail, cancel, re-amount or delete it by hand.
      *
      * @since  2.1.0
@@ -1143,7 +1143,7 @@ class PaymentLedger
 
     /**
      * @var string The order activity event of a refund row that took the provider's refund id it had none of: the
-     *             request's ONE refund with no provider id (kept, main's N8-2, or booked, main's decision of round 8d),
+     *             request's ONE refund with no provider id (kept, or booked),
      *             named by the provider with its id at its figure. Written on the row (entity_id) with the id
      *             (provider_refund_id) and the request's key (request_key), so a later word under that key still
      *             finds its one refund ({@see self::keyRows()}).
@@ -1614,7 +1614,7 @@ class PaymentLedger
     }
 
     /**
-     * The payment plugin writing this new row (2.2.0): PaymentsPlugin::payment() names it, a gateway never does. The
+     * The payment plugin writing this new row: PaymentsPlugin::payment() names it, a gateway never does. The
      * row then records that plugin's element as its payment_method_type, never the live type of a method row, which an
      * edit can change; the create refuses a method that is not one of the writer's own, and a refund or chargeback of
      * another gateway's money. Named once: another element afterwards is refused.
@@ -1716,7 +1716,7 @@ class PaymentLedger
      * when the write settles a linked refund whose settled refunds now cover
      * its payment, that PAYMENT's flip to refunded with its own status
      * automation (status_on_refunded, once): the payment reached that phase
-     * whichever door settled the refund (since 2.1.0).
+     * whichever door settled the refund.
      *
      * SKIPPED:
      *   - the status automation (the payment.automation single, run by
@@ -1770,7 +1770,7 @@ class PaymentLedger
      * With ->expectStatus() armed, update mode routes through updateIfStatus()
      * and returns false for both the raced and the failed outcome.
      *
-     * To learn why a write did not write (a rule, a lock, a failed write), see {@see self::saveWithVerdict()} (2.2.2).
+     * To learn why a write did not write (a rule, a lock, a failed write), see {@see self::saveWithVerdict()}.
      *
      * @return int|false Payment row ID on success, false on failure
      *
@@ -1811,7 +1811,7 @@ class PaymentLedger
      * writes none of them. A verdict the row still matches but that changes
      * nothing, such as a redelivered payload already stored, is WRITE_OK.
      *
-     * WRITE_FAILED stands for every write that did not write; {@see self::saveWithVerdict()} says which (2.2.2).
+     * WRITE_FAILED stands for every write that did not write; {@see self::saveWithVerdict()} says which.
      *
      * @return int WRITE_OK | WRITE_RACED | WRITE_FAILED
      *
@@ -1835,7 +1835,7 @@ class PaymentLedger
     }
 
     /**
-     * Persist and answer what the write did, and why when it did not write (2.2.2).
+     * Persist and answer what the write did, and why when it did not write.
      *
      * The same write {@see self::save()} makes, create and update mode alike, answered as a {@see PaymentWriteVerdict}:
      * its kind (written, refused, lock_not_taken, write_failed, raced), the refusal's code, a sentence for the
@@ -1894,7 +1894,7 @@ class PaymentLedger
     }
 
     /**
-     * A create needs its status (since 1.0.0; shared by save() and saveWithVerdict() since 2.2.2).
+     * A create needs its status (shared by save() and saveWithVerdict()).
      *
      * @throws RuntimeException When no status was set.
      *
@@ -2187,9 +2187,9 @@ class PaymentLedger
      *                          order may still refund once the pending provider
      *                          refunds are reserved ({@see self::refundableNow()}).
      *                          False for money already moved, which the books'
-     *                          caps alone judge (since 2.1.0).
+     *                          caps alone judge.
      * @param string $writer The element of the payment plugin writing the row ({@see self::writtenBy()}); '' for
-     *                       core's own rows, which keep their own classification (since 2.2.0).
+     *                       core's own rows, which keep their own classification.
      *
      * @return int|false New payment row ID, or false on failure
      *
@@ -2209,7 +2209,7 @@ class PaymentLedger
     }
 
     /**
-     * The body of {@see self::create()}, run one write level deeper (2.2.2): a ledger write nested in it, and
+     * The body of {@see self::create()}, run one write level deeper: a ledger write nested in it, and
      * the verdict of the write a verdict method wraps, are told apart by that level ({@see self::noteVerdict()}).
      *
      * @since  2.2.2
@@ -2289,7 +2289,7 @@ class PaymentLedger
                 return false;
             }
 
-            // A row the idempotent create found by its reference (2.2.2): nothing of this write exists, so nothing more
+            // A row the idempotent create found by its reference: nothing of this write exists, so nothing more
             // is written (no wallet leg, no timeline entry, no flip); its level closes empty.
             if (self::$foundByReference > 0 && self::$foundByReference === $newId) {
                 self::$foundByReference = 0;
@@ -2305,12 +2305,12 @@ class PaymentLedger
             // credit payment or a refund of one.
             $walletEntries = self::settleWalletForPayment($newId, $orderId, failClosed: true);
 
-            // The row's timeline entry commits with it (2.2.0), as a status change's records do.
+            // The row's timeline entry commits with it, as a status change's records do.
             self::logCreatedRow($newId, $orderId);
 
             // A linked refund born settled (a plugin's builder ->refund()->...->completed()->save(), or a part split off
-            // a reservation): its payment is refunded once its settled refunds cover it, as on every settle path (since
-            // 2.1.0). Owed as a single of this transaction, so a request that ends after the commit cannot lose it (2.2.0).
+            // a reservation): its payment is refunded once its settled refunds cover it, as on every settle path.
+            // Owed as a single of this transaction, so a request that ends after the commit cannot lose it.
             if ((string) ($data['payment_type'] ?? '') === self::TYPE_REFUND
                 && \in_array((string) ($data['transaction_status'] ?? ''), self::REFUND_SETTLED_STATUSES, true)
                 && (int) ($data['id_refunded_payment'] ?? 0) > 0) {
@@ -2325,7 +2325,7 @@ class PaymentLedger
         TransactionState::commitLevel($db);
 
         // The wallet rows' committed lines, once they are committed and never on
-        // a rollback path: through PostCommit (2.1.4), so a call nested in a
+        // a rollback path: through PostCommit, so a call nested in a
         // caller's transaction (spendOnOrder, or any caller holding one), whose
         // commit only released a SAVEPOINT, logs them at the caller's
         // outermost commit, not before it.
@@ -2356,8 +2356,8 @@ class PaymentLedger
      * @param bool $ledgerFact True only from recordReversal() and
      *                         recordChargeback(): the one door a reversal
      *                         or a chargeback row is written through.
-     * @param bool $refundStart See create() (since 2.1.0).
-     * @param string $writer See create() (since 2.2.0).
+     * @param bool $refundStart See create().
+     * @param string $writer See create().
      *
      * @return int|false New payment row ID, or false if a guard refused
      *
@@ -2376,7 +2376,7 @@ class PaymentLedger
 
         $data['amount'] = $stored;
 
-        // The idempotent create of a verdict (2.2.2): a payment plugin's attempt whose reference is already on a
+        // The idempotent create of a verdict: a payment plugin's attempt whose reference is already on a
         // row is answered with that row, or refused, before any rule counts it a second time ({@see self::rowOfReference()}).
         if ($writer !== '' && self::$idempotentDepth > 0 && self::$idempotentDepth === self::$writeDepth
             && \in_array((string) ($data['payment_type'] ?? self::TYPE_PAYMENT), [self::TYPE_PAYMENT, self::TYPE_AUTHORIZATION], true)) {
@@ -2427,9 +2427,7 @@ class PaymentLedger
 
         // Sign
         // Direction is carried by payment_type, never by the sign: a refund
-        // is a positive row of type 'refund', and all 462 rows on the demo
-        // agree; the column comment claiming "negative for refunds" is
-        // older than the design and has been corrected.
+        // is a positive row of type 'refund'.
         //
         // Nothing enforced that. A refund of -5.00 inserted cleanly, and
         // afterwards the books disagreed with themselves: the readers that
@@ -2455,7 +2453,7 @@ class PaymentLedger
         // not a collection.
         if (!$bornVoided && ($data['payment_type'] ?? self::TYPE_PAYMENT) === self::TYPE_PAYMENT) {
             $thisPayment = self::money($data['amount'], $orderId)->abs();
-            // What the order still holds against its total (2.2.1): a lost dispute or a partial refund makes its money
+            // What the order still holds against its total: a lost dispute or a partial refund makes its money
             // owed again, as amountToCollect() says, so a new payment for it is admitted.
             $alreadyRecorded = self::heldAgainstTotal($orderId);
 
@@ -2828,7 +2826,7 @@ class PaymentLedger
             );
         }
 
-        // The writer's identity (2.2.0). A row a payment plugin writes records that plugin's element, compared byte for
+        // The writer's identity. A row a payment plugin writes records that plugin's element, compared byte for
         // byte with the method row's type, never stamped from a type an edit could have changed: a method that is not
         // one of the writer's own, or a refund or chargeback of another gateway's money, is a contract error, and
         // nothing is written.
@@ -2912,7 +2910,7 @@ class PaymentLedger
         //
         // array_key_exists, NOT empty(): scale 0 is falsy, and a caller that
         // legitimately states zero decimals must not have it silently
-        // re-derived. NULL stays NULL: a pre-v1 order cannot lend a scale it
+        // re-derived. NULL stays NULL: a legacy order cannot lend a scale it
         // never recorded, and 0 is a real zero-decimal scale.
         if (!\array_key_exists('currency_scale', $data) && $orderId > 0) {
             try {
@@ -2936,7 +2934,7 @@ class PaymentLedger
         }
 
         // Persist to database. A failure is a refusal like the others: its
-        // detail, a driver's message included, goes to the log only (2.2.1).
+        // detail, a driver's message included, goes to the log only.
         self::withoutReferenceHash($data);
         $failure = self::writeRow($data);
 
@@ -2968,7 +2966,7 @@ class PaymentLedger
         // so logs the rows it wrote once they are committed.
         //
         // The timeline entry is written by create(), in its transaction after
-        // this body returned (2.2.0; see logCreatedRow()).
+        // this body returned (see logCreatedRow()).
 
         return $newId;
     }
@@ -2977,15 +2975,15 @@ class PaymentLedger
      * Write the timeline entry for a payment row create() wrote.
      *
      * Called inside create()'s transaction, before its commit, so the entry
-     * commits with the row (2.2.0): a refund row is money going out and must
+     * commits with the row: a refund row is money going out and must
      * read as 'payment.refunded', never as an incoming 'payment.added'; one
      * that is not settled yet (pending or authorized, a reservation) reads as
-     * 'payment.refund_reserved' (since 2.1.0).
+     * 'payment.refund_reserved'.
      * Non-fatal by contract, as a status change's records: an entry that cannot
      * be written is logged (OrderModel::logOrderActivity() also raises the
      * critical staff notice) and never refuses the row, except a failure that
      * ended the transaction (a deadlock), which reaches create() and its caller
-     * with nothing written (since 2.1.1).
+     * with nothing written.
      *
      * @param int $paymentId Payment row PK, written in the open transaction.
      * @param int $orderId Order PK.
@@ -3087,8 +3085,8 @@ class PaymentLedger
      *                               ->pluginData().
      * @param bool $staff The write of a staff entry point (the payment form's save, the REST settle verb): held to
      *                    the staff guard under the lock ({@see self::staffWriteRefusal()}). Never set by a payment
-     *                    plugin or by the ledger's own writes (since 2.1.0).
-     * @param string $writer The payment plugin updating through its builder (2.2.0, PaymentsPlugin::paymentUpdate()):
+     *                    plugin or by the ledger's own writes.
+     * @param string $writer The payment plugin updating through its builder (PaymentsPlugin::paymentUpdate()):
      *                       only a row recorded as its own, moved only to another method of its own, and its recorded
      *                       plugin stays ({@see self::writerRefusal()}).
      *
@@ -3110,7 +3108,7 @@ class PaymentLedger
     }
 
     /**
-     * The body of {@see self::update()}, run one write level deeper (2.2.2): a ledger write nested in it, and
+     * The body of {@see self::update()}, run one write level deeper: a ledger write nested in it, and
      * the verdict of the write a verdict method wraps, are told apart by that level ({@see self::noteVerdict()}).
      *
      * @since  2.2.2
@@ -3158,7 +3156,7 @@ class PaymentLedger
         $before = self::getRaw($id);
         $previousOrderId = (int) ($before?->id_order ?? 0);
 
-        // A gateway's write on an attempt staff moved to Standard (2.2.0): refused before anything is locked, recorded
+        // A gateway's write on an attempt staff moved to Standard: refused before anything is locked, recorded
         // and raised; the check under the lock below still refuses one that moved meanwhile.
         if ($writer !== '' && $before !== null && $writer !== self::STANDARD_METHOD && (string) ($before->payment_method_type ?? '') === self::STANDARD_METHOD) {
             self::refuse(detail: 'update(): ' . (self::writerRefusal(stored: $before, data: $data, writer: $writer) ?? 'payment #' . $id . ' is not money of the ' . $writer . ' plugin'), orderId: $orderId, code: self::REFUSAL_NOT_WRITER);
@@ -3213,7 +3211,7 @@ class PaymentLedger
                 return false;
             }
 
-            // A payment that live refunds or provider facts name keeps its method (since 2.1.0).
+            // A payment that live refunds or provider facts name keeps its method.
             $methodFixed = $oldSnapshot ? self::methodNamedRefusal(stored: $oldSnapshot, data: $data) : null;
 
             if ($methodFixed !== null) {
@@ -3223,7 +3221,7 @@ class PaymentLedger
                 return false;
             }
 
-            // The staff guard, for the write of a staff entry point only (since 2.1.0).
+            // The staff guard, for the write of a staff entry point only.
             $staffRefused = $staff && $oldSnapshot ? self::staffWriteRefusal(stored: $oldSnapshot, data: $data) : null;
 
             if ($staffRefused !== null) {
@@ -3233,7 +3231,7 @@ class PaymentLedger
                 return false;
             }
 
-            // A payment plugin's update (the writer named, 2.2.0): its own rows only, moved only to its own methods.
+            // A payment plugin's update (the writer named): its own rows only, moved only to its own methods.
             $notTheirs = $writer !== '' && $oldSnapshot ? self::writerRefusal(stored: $oldSnapshot, data: $data, writer: $writer) : null;
 
             if ($notTheirs !== null) {
@@ -3312,8 +3310,8 @@ class PaymentLedger
                 }
 
                 // The type records the plugin that took the money: it moves with the id only (or fills a row that
-                // records none), never with a later edit of the method's own type (since 2.1.0). A payment plugin's
-                // update (the writer named, 2.2.0) never changes it: writerRefusal() let through only a move to
+                // records none), never with a later edit of the method's own type. A payment plugin's
+                // update (the writer named) never changes it: writerRefusal() let through only a move to
                 // another method of its own.
                 if ($writer === '' && ($movedFrom !== $movedTo || (string) ($oldSnapshot->payment_method_type ?? '') === '')) {
                     $data['payment_method_type'] = self::resolveMethodType('Payment', $movedTo);
@@ -3333,7 +3331,7 @@ class PaymentLedger
 
             self::withoutReferenceHash($data);
             // A failure is a refusal like the others: its detail, a driver's
-            // message included, goes to the log only (2.2.1).
+            // message included, goes to the log only.
             $failure = self::writeRow($data);
             $success = $failure === null;
 
@@ -3357,7 +3355,7 @@ class PaymentLedger
 
                 $walletEntries = self::settleWalletForPayment($id, $orderId, failClosed: false);
 
-                // What the write owes commits with it (2.2.0): its timeline row and its singles. The status
+                // What the write owes commits with it: its timeline row and its singles. The status
                 // automation and the refund flip run from their singles once the outermost transaction committed and
                 // Alfa's named locks are released, so plugin code never runs inside this transaction.
                 if ($oldSnapshot) {
@@ -3373,7 +3371,7 @@ class PaymentLedger
         TransactionState::commitLevel($db);
 
         // The wallet rows' committed lines, once they are committed; the rollback
-        // path above rethrows before reaching them. Through PostCommit (2.1.4):
+        // path above rethrows before reaching them. Through PostCommit:
         // nested in a caller's transaction they wait for its outermost commit.
         foreach ($walletEntries as $entry) {
             PostCommit::defer(
@@ -3420,7 +3418,7 @@ class PaymentLedger
      * Owe a payment's flip to refunded once its settled refunds cover it: the payment.refund_flip single, written in
      * the open transaction of the write that settled a linked refund, run once the outermost transaction committed and
      * Alfa's named locks are released ({@see PaymentRefundFlip}). It decides again under the order's lock, from the
-     * books as they are then (2.2.0).
+     * books as they are then.
      *
      * @param int $paymentId The payment.
      * @param int $orderId Its order.
@@ -3494,7 +3492,7 @@ class PaymentLedger
     }
 
     /**
-     * Claim a gateway's pending attempt for a provider reference: the one path for it (2.2.0). A payment plugin reaches
+     * Claim a gateway's pending attempt for a provider reference: the one path for it. A payment plugin reaches
      * it through PaymentsPlugin::claimPendingAttempt() and never writes the payment table itself.
      *
      * One compare-and-set inside the ledger's own transaction and under the order's row lock, as every ledger write: the
@@ -3586,8 +3584,8 @@ class PaymentLedger
     }
 
     /**
-     * A gateway's callback for an attempt staff moved to Standard (2.2.0, design 2.15.5; the 2.1.0 rule:
-     * a pending attempt with no provider id may be moved): the write was already refused, so the Standard row is never
+     * A gateway's callback for an attempt staff moved to Standard (staff may move
+     * a pending attempt with no provider id): the write was already refused, so the Standard row is never
      * settled or changed and nothing is moved back. The rejection is written to the order's history and raised as one
      * staff alert naming the order, the attempt, the original gateway and the provider's reference, one per attempt and
      * provider event, so a repeated callback adds no alert. The gateway's own answer to its provider is untouched.
@@ -3624,7 +3622,7 @@ class PaymentLedger
                 [
                     'severity' => 'danger',
                     'group' => NotificationHelper::GROUP_PAYMENTS,
-                    // The plugin by the name Extensions: Plugins shows (UX-25, UX-29).
+                    // The plugin by the name Extensions: Plugins shows.
                     'message' => NotificationText::of('COM_ALFA_NOTIFY_MOVED_CALLBACK_MESSAGE', $orderId, $attempt, AlfaPluginHelper::get()->name(PluginId::from('alfa-payments', $gateway)), $shown),
                     'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
                     'view' => ['action' => 'alfa.payments.view', 'asset' => 'com_alfa'],
@@ -3690,8 +3688,8 @@ class PaymentLedger
      *                               written and the answer is WRITE_RACED.
      * @param bool $staff The write of a staff entry point (the REST settle verb writes a payment row through this
      *                    door): held to the staff guard under the lock ({@see self::staffWriteRefusal()}). Never
-     *                    set by a payment plugin or by the ledger's own writes (since 2.1.0).
-     * @param string $writer The payment plugin writing through this door (2.2.0: its builder's ->expectStatus(),
+     *                    set by a payment plugin or by the ledger's own writes.
+     * @param string $writer The payment plugin writing through this door (its builder's ->expectStatus(),
      *                       settleAttempt(), supersedeAttempt()): held to the plain update's rule under the lock
      *                       ({@see self::writerRefusal()}). '' for staff and for the ledger's own writes.
      *
@@ -3725,7 +3723,7 @@ class PaymentLedger
     }
 
     /**
-     * The body of {@see self::updateIfStatus()}, run one write level deeper (2.2.2): a ledger write nested in it, and
+     * The body of {@see self::updateIfStatus()}, run one write level deeper: a ledger write nested in it, and
      * the verdict of the write a verdict method wraps, are told apart by that level ({@see self::noteVerdict()}).
      *
      * @since  2.2.2
@@ -3828,7 +3826,7 @@ class PaymentLedger
                 self::reevaluateAfterRefundEnded(db: $db, stored: $oldSnapshot, data: $data, orderId: $orderId);
                 $walletEntries = self::settleWalletForPayment($id, $orderId, failClosed: false);
 
-                // What the write owes commits with it, as in update() (2.2.0).
+                // What the write owes commits with it, as in update().
                 self::writeConsequences(id: $id, orderId: $orderId, oldSnapshot: $oldSnapshot, data: $data, bookkeeping: $bookkeeping);
 
                 // The provider's settle the ledger would have refused: written, and marked for staff with it.
@@ -3844,7 +3842,7 @@ class PaymentLedger
 
         TransactionState::commitLevel($db);
 
-        // Once committed, as in update(): through PostCommit (2.1.4).
+        // Once committed, as in update(): through PostCommit.
         foreach ($walletEntries as $entry) {
             PostCommit::defer(
                 db:    $db,
@@ -3896,7 +3894,7 @@ class PaymentLedger
      * @param ?array $unreconciled Set to the document refusal of a settle the
      *                             provider confirmed, which is written
      *                             anyway; null otherwise
-     * @param bool $staff The write of a staff entry point: the staff guard is asked (since 2.1.0)
+     * @param bool $staff The write of a staff entry point: the staff guard is asked
      *
      * @return int Affected rows, or -1 when a guard refused the write
      *
@@ -3944,7 +3942,7 @@ class PaymentLedger
             return -1;
         }
 
-        // Same staff guard as update(), for the write of a staff entry point only (since 2.1.0).
+        // Same staff guard as update(), for the write of a staff entry point only.
         $staffRefused = $staff ? self::staffWriteRefusal(stored: $oldSnapshot, data: $data) : null;
 
         if ($staffRefused !== null) {
@@ -3953,7 +3951,7 @@ class PaymentLedger
             return -1;
         }
 
-        // Same writer rule as update(), for a payment plugin's compare-and-set (2.2.0).
+        // Same writer rule as update(), for a payment plugin's compare-and-set.
         $notTheirs = $writer !== '' ? self::writerRefusal(stored: $oldSnapshot, data: $data, writer: $writer) : null;
 
         if ($notTheirs !== null) {
@@ -4288,7 +4286,7 @@ class PaymentLedger
      *   7. a refund that records a provider refund report, or that a report
      *      was reconciled to, keeps its amount, type, link and order: the
      *      report's outcome stands on it. Its status moves only to failed or
-     *      cancelled (since 2.1.0): the one correction a settled refund takes
+     *      cancelled: the one correction a settled refund takes
      *      (a settled refund is never set back to pending or authorized), for a
      *      refund the provider later reports failed; its payment is then
      *      re-evaluated. The kept outcome stays, so the report is
@@ -4408,7 +4406,7 @@ class PaymentLedger
      * provider's transaction id once it has one: its gateway finds it by that id and by that type, and the method
      * lock ({@see self::gatewayMethodRefusal()}) reads it. Staff may still set the payment pending or cancelled. A clause
      * of the staff guard ({@see self::staffWriteRefusal()}): asked for the write of a staff entry point only, through
-     * update() or the compare-and-set, never for a payment plugin's write (since 2.1.0).
+     * update() or the compare-and-set, never for a payment plugin's write.
      *
      * @param object $stored The row as read under the order lock (id, payment_type, payment_method_type, transaction_id).
      * @param array $data The write.
@@ -4455,7 +4453,7 @@ class PaymentLedger
      * and so the payment plugin its payment_method_type names: that plugin settles its refunds (it acts only on its
      * own payments), and a refund of a gateway payment keeps its amount and reference for staff while the provider
      * may complete it. Re-methoding the payment would lift both. Asked by update() and updateIfStatus() for every
-     * write (since 2.1.0).
+     * write.
      *
      * @param object $stored The row as read under the order lock (id, payment_type, id_payment_method, its wallet link).
      * @param array $data The write.
@@ -4485,12 +4483,12 @@ class PaymentLedger
     }
 
     /**
-     * Why a staff write may not change a payment's method, or null (main's rule 1): a payment its gateway collected
+     * Why a staff write may not change a payment's method, or null: a payment its gateway collected
      * (its recorded payment_method_type is a gateway's: not empty, not the customer's credit, not the Standard method;
      * and it is completed or refunded, or carries the provider's transaction id) keeps its method at any time: the
      * gateway finds its payments by that type, so a refund the provider makes later still reaches the books. A pending
      * checkout attempt with no provider id may still change its method. A clause of the staff guard
-     * ({@see self::staffWriteRefusal()}), since 2.1.0. A payment refunds or provider facts name is answered with
+     * ({@see self::staffWriteRefusal()}). A payment refunds or provider facts name is answered with
      * {@see self::methodNamedRefusal()}'s sentence, which names them (that rule holds for every write).
      *
      * @param object $stored The row as read (id, payment_type, id_payment_method, payment_method_type, transaction_status, transaction_id).
@@ -4781,7 +4779,7 @@ class PaymentLedger
      *
      * @param int $paymentId Pending attempt row PK
      * @param string $reason Why it was abandoned; stamped into the row's note
-     * @param string $writer The payment plugin closing its own attempt (2.2.0, PaymentsPlugin::supersedeAttempt()):
+     * @param string $writer The payment plugin closing its own attempt (PaymentsPlugin::supersedeAttempt()):
      *                       another plugin's row is refused ({@see self::updateIfStatus()}). '' for core.
      *
      * @return int WRITE_OK (1) this caller closed it;
@@ -4830,7 +4828,7 @@ class PaymentLedger
     }
 
     /**
-     * Close a gateway attempt nobody is going to pay, and answer what the write did (2.2.2): the write
+     * Close a gateway attempt nobody is going to pay, and answer what the write did: the write
      * {@see self::supersedeAttempt()} makes, as a {@see PaymentWriteVerdict}. Written when this call closed it; raced
      * when it was no longer pending; refused with REFUSAL_ROW_MISSING (the row or its order is gone) or
      * REFUSAL_NOT_WRITER (another plugin's row); lock_not_taken; write_failed.
@@ -4853,7 +4851,7 @@ class PaymentLedger
     }
 
     /**
-     * Claim a gateway's pending attempt for a provider reference, and answer what the write did (2.2.2): the
+     * Claim a gateway's pending attempt for a provider reference, and answer what the write did: the
      * claim {@see self::claimReference()} makes, as a {@see PaymentWriteVerdict}. Written when this call wrote the
      * reference; raced when the row is the gateway's but no longer a pending attempt without a reference (another
      * delivery claimed it, it moved on); refused with REFUSAL_ROW_MISSING (the row or its order is gone) or
@@ -4935,7 +4933,7 @@ class PaymentLedger
      *     row is in the books, the original is flipped to 'refunded' (a real,
      *     merchant-visible transition: the status_on_refunded map SHOULD fire
      *     here), when its settled refunds cover it, asked under the order's
-     *     lock from the books as they are then (since 2.1.0: never before the
+     *     lock from the books as they are then (never before the
      *     row exists, never from a decision taken before the lock). Anything less is
      *     PARTIAL and the original deliberately stays 'completed', because
      *     total_paid_real counts only completed 'payment' rows: flipping it
@@ -4948,7 +4946,7 @@ class PaymentLedger
      *     refund_type and the ORIGINAL's payment method, not the order's,
      *     which differs on a split-payment order.
      *  5. A REFUSED ROW changes nothing: the payment is flipped only after its
-     *     row is written (since 2.1.0), so there is nothing to undo. When the
+     *     row is written, so there is nothing to undo. When the
      *     gateway already moved the money (see 'gateway_moved') and the books
      *     refuse it, the answer is OUTCOME_UNRECONCILED with a CRITICAL
      *     reconcile log.
@@ -4962,7 +4960,7 @@ class PaymentLedger
      *     or cancelled refund row reserves nothing. Money a provider moved
      *     ('gateway_moved') under the reference of a refund row of this
      *     payment that is still pending or authorized (a reservation) settles
-     *     that row ({@see self::settleRefund()}, final) instead (since 2.1.0).
+     *     that row ({@see self::settleRefund()}, final) instead.
      *  7. A NEW START (no 'gateway_moved') waits while the refund block holds
      *     (OUTCOME_BLOCKED) and is held to what the order may still refund
      *     once its pending provider refunds are reserved (refundableNow();
@@ -4971,7 +4969,7 @@ class PaymentLedger
      *     are reserved (refundableRemainder()): asked first, and decided
      *     again inside create()'s order lock, from one read of the gateways'
      *     answers each time. Money a provider already moved
-     *     ('gateway_moved') is booked against the books alone (since 2.1.0).
+     *     ('gateway_moved') is booked against the books alone.
      *
      * This calls no gateway. A payment plugin that refunds through its
      * provider does not start with this: it reserves first
@@ -4995,8 +4993,8 @@ class PaymentLedger
      *                              whenever the gateway API succeeded
      *                              before this call.
      *   'request_key'      string  With gateway_moved: the key of this site's
-     *                              refund request the provider moved it under
-     *                              (since 2.1.0). An open reservation under
+     *                              refund request the provider moved it under.
+     *                              An open reservation under
      *                              the key settles instead; otherwise it is
      *                              money beyond that decision: booked as the
      *                              books decide, kept on a row of its own
@@ -5011,7 +5009,7 @@ class PaymentLedger
      *   'report_id'        string  With gateway_moved: the report the
      *                              gateway lists (or listed) this provider
      *                              refund under in unbookedProviderRefunds(),
-     *                              exactly as listed (since 2.1.0). A report
+     *                              exactly as listed. A report
      *                              staff recorded: OUTCOME_DUPLICATE (its
      *                              row). One staff resolved (duplicate or
      *                              invalid, reconciled) with no provider id
@@ -5024,8 +5022,7 @@ class PaymentLedger
      *                              payment not its own is OUTCOME_REFUSED,
      *                              nothing written; money moved on it
      *                              (gateway_moved) is kept for staff,
-     *                              OUTCOME_UNRECONCILED, never refused
-     *                              (since 2.1.0).
+     *                              OUTCOME_UNRECONCILED, never refused.
      *
      * Usage:
      *   $r = PaymentLedger::refundPayment($id, null, ['gateway_moved' => true]);
@@ -5048,7 +5045,7 @@ class PaymentLedger
     public static function refundPayment(int $paymentId, ?Money $amount = null, array $options = []): array
     {
         // Money a provider moved is a provider's word: one transaction under the order's lock, from the first read to
-        // the commit (round 8d). A refund start (no gateway_moved) is decided under the lock by create(), as before.
+        // the commit. A refund start (no gateway_moved) is decided under the lock by create().
         $framed = (bool) ($options['gateway_moved'] ?? false)
             ? self::inWord(rowId: $paymentId, word: static fn (): array => self::refundPayment(paymentId: $paymentId, amount: $amount, options: $options))
             : null;
@@ -5057,7 +5054,7 @@ class PaymentLedger
             return $framed;
         }
 
-        // Money a provider moved that the books refuse is kept, never refused (since 2.1.0): the outermost call asks
+        // Money a provider moved that the books refuse is kept, never refused: the outermost call asks
         // once the verb has answered; a call made inside it (money beyond a decision keeps its own) never does.
         if (!self::$keepsRefused) {
             self::$keepsRefused = true;
@@ -5087,7 +5084,7 @@ class PaymentLedger
         $type = (string) ($original->payment_type ?? '');
 
         // A payment plugin acts only on its own payments' refunds (its wrapper names it, 'plugin'): a start is refused;
-        // money its provider already moved is never refused, it is kept for staff (since 2.1.0).
+        // money its provider already moved is never refused, it is kept for staff.
         $notTheirs = self::pluginRefusal(payment: $original, options: $options);
 
         if ($notTheirs !== null) {
@@ -5105,7 +5102,7 @@ class PaymentLedger
         }
 
         // Money moved that the report its gateway listed it under names, and staff recorded that report: it is in
-        // the books already (since 2.1.0).
+        // the books already.
         $recorded = (bool) ($options['gateway_moved'] ?? false) ? self::recordedReport(payment: $original, options: $options, providerRefundId: (string) ($options['transaction_id'] ?? ''), figure: $amount) : null;
 
         if ($recorded !== null) {
@@ -5114,7 +5111,7 @@ class PaymentLedger
 
         // Money a provider moved under one of this site's refund requests that no open reservation of it covers
         // (its key given): booked as the books decide, kept and blocking when they refuse it, and surfaced to
-        // staff either way (since 2.1.0).
+        // staff either way.
         $requestKey = (bool) ($options['gateway_moved'] ?? false) ? trim((string) ($options['request_key'] ?? '')) : '';
 
         if ($requestKey !== '') {
@@ -5122,7 +5119,7 @@ class PaymentLedger
         }
 
         // Money moved with no provider id and no request key that the books refused before was kept on a row of its own
-        // (keepRefusedMoney()): the same word again is that row, settled or kept (since 2.1.0).
+        // (keepRefusedMoney()): the same word again is that row, settled or kept.
         if ((bool) ($options['gateway_moved'] ?? false) && !self::$staffWayOut && $amount !== null && (string) ($options['transaction_id'] ?? '') === '') {
             $keptBare = self::refundUnderReference($paymentId, self::bareReference(paymentId: $paymentId, amount: $amount));
 
@@ -5189,7 +5186,7 @@ class PaymentLedger
 
         // A provider refund staff resolved through the way out (any report: the core's or one its gateway listed,
         // matched by the provider id, else by the report the gateway names) is never booked over that resolution:
-        // it comes back once as a new report that holds the refund block (since 2.1.0).
+        // it comes back once as a new report that holds the refund block.
         $reportId = (string) ($options['report_id'] ?? '');
         $resolved = (bool) ($options['gateway_moved'] ?? false) && ($reference !== '' || $reportId !== '') ? self::resolvedByStaff(paymentId: $paymentId, providerRefundId: $reference, reportId: $reportId, options: $options) : null;
 
@@ -5405,7 +5402,7 @@ class PaymentLedger
             // A failure that ended the caller's transaction is the caller's to
             // hear: the answers below would be given outside it. That includes a
             // deadlock after create() released its level (on the row's timeline
-            // entry), which leaves the driver's count open (since 2.1.1).
+            // entry), which leaves the driver's count open.
             if ($nested && (!TransactionState::isOpen(self::db()) || TransactionState::endedBy(self::db(), $e))) {
                 if ($gatewayMoved) {
                     self::ensureLogger();
@@ -5489,7 +5486,7 @@ class PaymentLedger
 
         // A start the books' own caps refused under the lock (a concurrent booking took the room after the checks
         // above): the books are asked once more, and the answer is the refusal a start asked now gets, with its
-        // sentence, never a failure to retry (since 2.1.0).
+        // sentence, never a failure to retry.
         if ($createFailure === null && !$gatewayMoved) {
             $now = self::getRaw(id: $paymentId);
             $remainderNow = $now === null ? Money::zero($requested->getCurrency()) : self::bookedRemainder(original: $now);
@@ -5516,7 +5513,7 @@ class PaymentLedger
         );
     }
 
-    //  THE REFUND RESERVATION (2.1.0)
+    //  THE REFUND RESERVATION
     //
     //  A refund that a provider must be asked to make is decided and RESERVED
     //  first, under the order's short lock, as a refund row in the books that
@@ -5546,7 +5543,7 @@ class PaymentLedger
      * the form's maximum ({@see self::refundFormMaximum()}: the payment's
      * remainder less its own reservations, held to what the order may still
      * refund less every reservation, chargebacks included), decided under the
-     * lock from the same figures (round 8d); it is not the payment's coverage
+     * lock from the same figures; it is not the payment's coverage
      * and not the row's refund type. A resend is never decided again: it is the
      * same reservation, sent with the same key.
      *
@@ -5776,7 +5773,7 @@ class PaymentLedger
         $room = self::money($original->amount, $orderId)->abs()
             ->subtract(self::money(self::sumRefundsAgainst($paymentId), $orderId))
             ->subtract($own);
-        // 'full' (main's L17 rule, round 8d): the reservation takes EVERYTHING left to refund on this payment now, net:
+        // 'full': the reservation takes EVERYTHING left to refund on this payment now, net:
         // the form's maximum (refundFormMaximum(): the payment's remainder less its own reservations, held to what the
         // order may still refund less every reservation), from the same figures read here under the lock. Never the
         // payment's coverage (flipIfCovered() keeps its own test) and never the row's refund type.
@@ -5821,18 +5818,18 @@ class PaymentLedger
      * reconcile, duplicate or invalid); logged CRITICAL and notified. refund_id names
      * that row: a retried settleRefund() of the same word books it once the books have room. The same keeps the
      * provider's word when the reservation's payment is no longer collected (staff set it pending or cancelled while
-     * the provider was asked), whatever the order's other payments hold (since 2.1.0).
+     * the provider was asked), whatever the order's other payments hold.
      *
      * A later word about the refund core keeps for staff on the row it names (another figure under its provider id,
      * or with no id about the request's one refund it keeps; a settle after a hold) is only added to that row's
      * report: OUTCOME_UNRECONCILED naming the row, nothing booked or changed, and the retry of the row's first word no
-     * longer books it once the report shows more than one word ({@see self::keptWordAdded()}; since 2.1.0). Record
+     * longer books it once the report shows more than one word ({@see self::keptWordAdded()}). Record
      * this refund books the report's latest settled figure on the row itself. A provider refund id the row does not
      * carry (also on a row core keeps with none) is ANOTHER refund: booked or kept on a row of its own beside it,
      * never added to this one ({@see self::anotherRefund()}); except the request's one refund core keeps with no id,
      * named with its id at a figure its report shows: that refund identified, added, and the row takes the id. A
      * provider refund id no row of the payment carries, named on a reservation that is already settled or released, is
-     * a new refund too: booked on a row of its own when the books take it, else kept there (round 8c).
+     * a new refund too: booked on a row of its own when the books take it, else kept there.
      *
      * With no provider id, one request key is one refund (its reservation booked with no provider id, or the first
      * such refund beyond it): the same figure again is a duplicate; a different figure is never booked by itself
@@ -5840,14 +5837,14 @@ class PaymentLedger
      * (OUTCOME_UNRECONCILED): with no provider id that word is named by its figure, so each different figure keeps a
      * row of its own, also when the gateway names one of those rows ({@see self::figureWordElsewhere()}); once staff
      * resolved that refund through the way out, every later word under the key comes back for them the same way,
-     * once per figure (since 2.1.0).
+     * once per figure.
      *
      * A provider refund staff resolved through the way out, whatever report it was listed under (the core's or the
      * gateway's own), matched by its provider id or else by the report the gateway names ('report_id'), is never
      * booked over that resolution: it comes back once for staff (OUTCOME_UNRECONCILED; on this reservation while
      * it is still open under its request, else on a row of its own); once staff resolved it again, the same word
      * at the same figure only writes a WARNING line to the payments log (OUTCOME_DUPLICATE). A report staff
-     * recorded is a duplicate of the row it booked (since 2.1.0).
+     * recorded is a duplicate of the row it booked.
      *
      * Answers: OUTCOME_OK (refund_id the booked row); OUTCOME_DUPLICATE (this provider refund is already on a refund
      * row of the payment: nothing written); OUTCOME_UNRECONCILED; OUTCOME_REFUSED (not a reservation, another
@@ -5862,7 +5859,7 @@ class PaymentLedger
      *                       (string: the calling payment plugin's element), 'report_id' (string: the report
      *                       the gateway lists or listed this provider refund under, exactly as listed: a report
      *                       staff recorded is a duplicate of its row; one staff resolved comes back once for
-     *                       staff, also with no provider id; since 2.1.0).
+     *                       staff, also with no provider id).
      *
      * @return array{outcome: string, refund_id: int, reason: string, amount: float}
      *
@@ -5870,7 +5867,7 @@ class PaymentLedger
      */
     public static function settleRefund(int $reservationId, Money $amount, ?string $providerRefundId, array $options = []): array
     {
-        // One transaction under the order's lock, from the first read to the commit (round 8d).
+        // One transaction under the order's lock, from the first read to the commit.
         $framed = self::inWord(rowId: $reservationId, word: static fn (): array => self::settleRefund(reservationId: $reservationId, amount: $amount, providerRefundId: $providerRefundId, options: $options));
 
         if ($framed !== null) {
@@ -5892,7 +5889,7 @@ class PaymentLedger
 
         // Another provider refund (a refund id the row does not carry) is booked or kept on a row of its own below. An
         // id-less word named by its figure at another figure is a word of its own; a later word about the refund core
-        // keeps for staff on this row is only added to what staff see (since 2.1.0).
+        // keeps for staff on this row is only added to what staff see.
         $added = $another ? null : self::figureWordElsewhere(row: $row, kind: self::REPORT_STATUS_SETTLED, figure: $amount, providerRefundId: $providerRefundId, options: $options)
             ?? self::keptWordAdded(row: $row, kind: self::REPORT_STATUS_SETTLED, figure: $amount, providerRefundId: $providerRefundId);
 
@@ -5912,7 +5909,7 @@ class PaymentLedger
         $uncollected = self::uncollected(paymentId: $paymentId);
 
         // Another provider refund than the one the row carries (or than none, on a row core keeps for staff): its own row,
-        // beside it, booked when the books take it, else kept for staff; never merged into this row (since 2.1.0).
+        // beside it, booked when the books take it, else kept for staff; never merged into this row.
         if ($another) {
             return self::ownRow(row: $row, amount: $amount, providerRefundId: (string) $providerRefundId, options: $options, settled: true, keep: $uncollected);
         }
@@ -5973,13 +5970,13 @@ class PaymentLedger
      * id than the one the reservation carries: that provider refund is held on its own
      * pending row beside it (its figure is then required). When the reservation's payment is no longer collected
      * (staff set it pending or cancelled while the provider was asked) the held row is kept as it is and holds the
-     * refund block, reported pending until the payment is collected again: OUTCOME_UNRECONCILED (since 2.1.0). A
+     * refund block, reported pending until the payment is collected again: OUTCOME_UNRECONCILED. A
      * hold about the refund core keeps for staff on the row it names (a hold after a settle, another figure under the
      * same identity) is only added to that row's report: OUTCOME_UNRECONCILED naming the row, nothing re-figured,
-     * re-marked or split ({@see self::keptWordAdded()}; since 2.1.0); a provider refund id the row does not carry is
+     * re-marked or split ({@see self::keptWordAdded()}); a provider refund id the row does not carry is
      * another refund, held on a row of its own ({@see self::anotherRefund()}). A provider refund id no row of the
      * payment carries, named on a reservation that is already settled or released, is a new refund: held on a pending
-     * row of its own that waits for staff, listed pending and blocking (its figure is then required; round 8c).
+     * row of its own that waits for staff, listed pending and blocking (its figure is then required).
      *
      * Answers: OUTCOME_RESERVED (refund_id the row that now reserves it); OUTCOME_DUPLICATE (already so: nothing
      * written); OUTCOME_UNRECONCILED; OUTCOME_REFUSED; OUTCOME_RACED or OUTCOME_FAILED.
@@ -5996,7 +5993,7 @@ class PaymentLedger
      */
     public static function holdRefund(int $reservationId, ?string $providerRefundId, ?Money $amount = null, array $options = []): array
     {
-        // One transaction under the order's lock, from the first read to the commit (round 8d).
+        // One transaction under the order's lock, from the first read to the commit.
         $framed = self::inWord(rowId: $reservationId, word: static fn (): array => self::holdRefund(reservationId: $reservationId, providerRefundId: $providerRefundId, amount: $amount, options: $options));
 
         if ($framed !== null) {
@@ -6014,7 +6011,7 @@ class PaymentLedger
 
         // Another provider refund (a refund id the row does not carry) is held on a row of its own below. An id-less
         // word named by its figure at another figure is a word of its own; a later word about the refund core keeps
-        // for staff on this row is only added to what staff see (since 2.1.0).
+        // for staff on this row is only added to what staff see.
         $added = $another ? null : self::figureWordElsewhere(row: $row, kind: self::REPORT_STATUS_PENDING, figure: $amount, providerRefundId: $providerRefundId, options: $options)
             ?? self::keptWordAdded(row: $row, kind: self::REPORT_STATUS_PENDING, figure: $amount, providerRefundId: $providerRefundId);
 
@@ -6046,7 +6043,7 @@ class PaymentLedger
     }
 
     /**
-     * A later provider word about a word core keeps for staff (since 2.1.0). A word is KEPT while core holds it on a
+     * A later provider word about a word core keeps for staff. A word is KEPT while core holds it on a
      * row for staff: a refund row of a payment, pending or authorized, that carries the mark EVENT_REFUND_UNRECONCILED
      * and whose report core lists (a settle or hold kept while its payment was not collected or the books refused it,
      * a word beyond its request or kept after a staff resolution, a part split off a reservation, a reservation that
@@ -6060,7 +6057,7 @@ class PaymentLedger
      *  - the row's latest word again: nothing is written (OUTCOME_UNRECONCILED naming the row);
      *  - any other figure, a hold after a settle, a settle after a hold, a failure or release the provider reports
      *    about it (releaseRefund(): it never ends a row that keeps a word for staff), or an EARLIER word of the row
-     *    again (the provider's latest word is that one now: main's N8-1, arrival order, repeats included): the row's
+     *    again (the provider's latest word is that one now, arrival order, repeats included): the row's
      *    report records it: it shows every figure and id received, latest first, with its kind, and Record this refund
      *    books the latest settled figure received ({@see self::unreconciledMarks()}); one timeline entry per word
      *    (EVENT_REFUND_WORD_ADDED), and the payments log and the danger notification name the words.
@@ -6068,7 +6065,7 @@ class PaymentLedger
      * refund (its request's one refund while core keeps it, however core kept it: {@see self::idlessUnderKey()}). A
      * different provider refund id is a different refund, booked or kept on a row of its own
      * ({@see self::anotherRefund()}), except the request's one refund kept with no provider id named with its id at
-     * the same figure (main's N8-2): the row takes that id with the word. A word with no provider id that is named by
+     * the same figure: the row takes that id with the word. A word with no provider id that is named by
      * its figure (kept beyond its request's booked refund, or bare) is about this row only at its figure
      * ({@see self::figureWordElsewhere()}).
      * The answer is then OUTCOME_UNRECONCILED naming the row (refund_id > 0): it stays listed and blocking, and
@@ -6106,7 +6103,7 @@ class PaymentLedger
 
         $failure = \in_array($kind, [self::STATUS_FAILED, self::STATUS_CANCELLED], true);
         $id = $providerRefundId ?? '';
-        // The provider names the refund this row keeps with no provider id with its id (N8-2): the row takes it.
+        // The provider names the refund this row keeps with no provider id with its id: the row takes it.
         $takesId = $id !== '' && !$failure && self::providerIdOf(row: $row) === null;
         $report = self::REPORT_RESERVATION_PREFIX . (int) $row->id;
         $named = $id !== '' ? $id : 'no provider id';
@@ -6121,7 +6118,7 @@ class PaymentLedger
             }
 
             // The row as it is under the lock: booked, released or no longer kept meanwhile, the caller answers as it
-            // does for such a row (R8-2: never a word added to a row that no longer keeps one).
+            // does for such a row (never a word added to a row that no longer keeps one).
             $now = self::getRaw(id: (int) $row->id);
             $mark = $now !== null && \in_array((string) $now->transaction_status, self::REFUND_RESERVING_STATUSES, true) && self::keepsForStaff(row: $now)
                 ? (self::unreconciledMarks(orderId: $orderId)[(int) $now->id] ?? null)
@@ -6146,7 +6143,7 @@ class PaymentLedger
             $verb = $kind === self::REPORT_STATUS_PENDING ? 'holds' : 'settled';
             $said = $failure ? sprintf('reports %s', $kind === self::STATUS_CANCELLED ? 'not made (cancelled)' : 'failed') : sprintf('%s %s', $verb, $figure->format());
 
-            // The row's own one word again, decided here (R8-2): the caller answers as it did.
+            // The row's own one word again, decided here: the caller answers as it did.
             if (!$takesId && \count($words) === 1 && $same($words[0])) {
                 TransactionState::rollBackLevel($db);
 
@@ -6160,7 +6157,7 @@ class PaymentLedger
                 return self::refundResult(outcome: self::OUTCOME_UNRECONCILED, refundId: (int) $now->id, reason: sprintf('row #%d keeps this provider refund for staff and its report %s already shows this word as its latest (%s, %s): nothing was written', (int) $now->id, $report, $said, $named));
             }
 
-            // An earlier word of the row again is the provider's latest word now (N8-1: arrival order, repeats included).
+            // An earlier word of the row again is the provider's latest word now (arrival order, repeats included).
             $again = !$takesId && array_filter(\array_slice($words, 1), $same) !== [];
 
             if ($takesId) {
@@ -6344,9 +6341,9 @@ class PaymentLedger
      * Whether a provider word under a refund id is ANOTHER refund than the one a row holds: an id the row does not carry,
      * where the row carries one, or any id where the row is one core keeps for staff with none. A different provider
      * refund id is different money: it is booked or kept on a row of its own, never added to another id's row or
-     * answered as its duplicate (main's correction of 20 October). A reservation still open under its request with no
-     * provider id takes the request's refund under the provider's id, as before. One exception (main's N8-2, round
-     * 8c): the request's ONE refund core keeps with no provider id (its reservation, or 'beyond:' and the key), named
+     * answered as its duplicate. A reservation still open under its request with no
+     * provider id takes the request's refund under the provider's id. One exception:
+     * the request's ONE refund core keeps with no provider id (its reservation, or 'beyond:' and the key), named
      * with a provider id at a figure its report shows, is that refund being identified, not another one: the word is
      * added to the row, which takes the id ({@see self::keptWordAdded()}); another figure with an id is another refund.
      *
@@ -6374,9 +6371,9 @@ class PaymentLedger
 
     /**
      * Whether a word with a provider id at this figure names the request's ONE refund that core keeps on this row with
-     * no provider id (main's N8-2): the row is the request's reservation or its 'beyond:' row of the key (never a word
+     * no provider id: the row is the request's reservation or its 'beyond:' row of the key (never a word
      * named by its figure: 'beyond:', the key, ':' and a figure, or a bare word), and its report shows a settled or
-     * held word at that figure (since 2.1.0).
+     * held word at that figure.
      *
      * @param object $row The kept row (id, id_order, transaction_id, amount).
      * @param Money|null $figure The word's figure; null with $whole = the figure the report states, else none.
@@ -6417,7 +6414,7 @@ class PaymentLedger
     /**
      * Whether a refund row's reference is the core's own of a request's ONE refund with no provider id: its reservation
      * (REPORT_REQUEST_PREFIX and the key) or the first such refund beyond it (REFUND_BEYOND_PREFIX and the key); never
-     * a word named by its figure (REFUND_BEYOND_PREFIX, the key, ':' and the figure) or a bare word (since 2.1.0).
+     * a word named by its figure (REFUND_BEYOND_PREFIX, the key, ':' and the figure) or a bare word.
      *
      * @param string $reference The row's transaction_id.
      *
@@ -6430,8 +6427,8 @@ class PaymentLedger
     }
 
     /**
-     * The id given late for the request's one refund BOOKED with no provider id (main's decision of round 8d, as N8-2
-     * for a kept one): a word with a provider refund id no row carries, at the booked figure, naming that refund (its
+     * The id given late for the request's one refund BOOKED with no provider id (as for
+     * a kept one): a word with a provider refund id no row carries, at the booked figure, naming that refund (its
      * reservation, or its request key) is that refund being identified, not another one. The booked row takes the id
      * (a bookkeeping write), the identification is on the order's timeline (EVENT_REFUND_IDENTIFIED), and the answer
      * is OUTCOME_DUPLICATE naming it: nothing is booked twice. Asked inside the word's frame ({@see self::inWord()}).
@@ -6504,10 +6501,10 @@ class PaymentLedger
      * The answer to a provider word with no refund id that names a row whose word is named by its figure (a word kept
      * beyond its request's booked refund: REFUND_BEYOND_PREFIX, the key, ':' and the figure; a bare word: the bare
      * reference of its payment and figure) at ANOTHER figure, or null. With no provider id such a word's figure is its
-     * identity (decision (b): one request key, one refund with no provider id; main's ruling of 20 October): another
+     * identity (one request key, one refund with no provider id): another
      * figure is another word, handled exactly as that word arriving by itself (kept on a row of its own for staff, or
      * for a bare settle booked when the books hold it, as refundPayment() with gateway_moved books it), never added to
-     * the row it names, which is untouched. Each such row is resolved on its own through the way out (since 2.1.0).
+     * the row it names, which is untouched. Each such row is resolved on its own through the way out.
      *
      * @param object $row The row the word names (id, id_order, id_refunded_payment, transaction_id).
      * @param string $kind REPORT_STATUS_SETTLED or REPORT_STATUS_PENDING.
@@ -6600,7 +6597,7 @@ class PaymentLedger
     /**
      * The refund rows of a payment made for one of this site's refund requests (their creation recorded the request's
      * key) whose reference no longer carries it: a reservation held or kept under the provider's refund id. Any status,
-     * oldest first (since 2.1.0).
+     * oldest first.
      *
      * @param object $payment The payment (id, id_order).
      * @param string $key The request's key.
@@ -6651,7 +6648,7 @@ class PaymentLedger
     /**
      * The request's one refund BOOKED with no provider id, or null: its reservation booked with none (still under
      * REPORT_REQUEST_PREFIX and the key), else the first such refund beyond it (REFUND_BEYOND_PREFIX and the key),
-     * settled (since 2.1.0).
+     * settled.
      *
      * @param int $paymentId The payment.
      * @param string $key The request's key.
@@ -6677,8 +6674,7 @@ class PaymentLedger
      * The refund rows of a payment, beyond those already known, that hold a request's one refund outside the request's
      * reference: a row core keeps it on marked with the request's key (beyondDecision(), also under the provider's
      * id), and a row that carries a provider refund id one of those rows or a known one carries (one provider id, one
-     * refund: resurface() keeps it again under that id after a staff resolution). Any status, oldest first (R8-1,
-     * round 8c; since 2.1.0).
+     * refund: resurface() keeps it again under that id after a staff resolution). Any status, oldest first.
      *
      * @param object $payment The payment (id, id_order).
      * @param string $key The request's key.
@@ -6727,7 +6723,7 @@ class PaymentLedger
 
     /**
      * The refund rows of an order that took the provider's refund id as the one refund of a request
-     * ({@see self::EVENT_REFUND_IDENTIFIED}), by the request's key: their ids, oldest first (since 2.1.0).
+     * ({@see self::EVENT_REFUND_IDENTIFIED}), by the request's key: their ids, oldest first.
      *
      * @param int $orderId The order.
      * @param string $key The request's key.
@@ -6846,11 +6842,10 @@ class PaymentLedger
      * that ends. The reason is kept in the row's note. A row that keeps a word for staff is never ended or emptied here:
      * the provider's failure report about that word is added to its report (OUTCOME_UNRECONCILED naming the row,
      * listed and blocking; staff resolve it), and one naming another provider refund than the kept one, with no row
-     * of its own, ends nothing (OUTCOME_REFUSED); a release naming a provider id ends only that id's own row (since
-     * 2.1.0).
+     * of its own, ends nothing (OUTCOME_REFUSED); a release naming a provider id ends only that id's own row.
      *
      * Answers: OUTCOME_RELEASED; OUTCOME_DUPLICATE (already failed or cancelled: nothing written); OUTCOME_REFUSED
-     * (settled, or not a reservation: a settled refund is corrected in the payment form, R4); OUTCOME_UNRECONCILED (a
+     * (settled, or not a reservation: a settled refund is corrected in the payment form); OUTCOME_UNRECONCILED (a
      * row that keeps a word for staff: the failure added to its report); OUTCOME_RACED or OUTCOME_FAILED.
      *
      * @param int $reservationId A refund row of a payment, pending or authorized.
@@ -6868,7 +6863,7 @@ class PaymentLedger
      */
     public static function releaseRefund(int $reservationId, string $reason, array $options = []): array
     {
-        // One transaction under the order's lock, from the first read to the commit (round 8d).
+        // One transaction under the order's lock, from the first read to the commit.
         $framed = self::inWord(rowId: $reservationId, word: static fn (): array => self::releaseRefund(reservationId: $reservationId, reason: $reason, options: $options));
 
         if ($framed !== null) {
@@ -6892,7 +6887,7 @@ class PaymentLedger
 
         // A release or failure the provider reports about a word core keeps for staff never ends that row or drops the
         // word: it is added to the row's report (listed and blocking; staff resolve it). One naming another provider
-        // refund than the kept one, with no row of its own, ends nothing (since 2.1.0).
+        // refund than the kept one, with no row of its own, ends nothing.
         if (self::keepsForStaff(row: $row)) {
             return self::anotherRefund(row: $row, providerRefundId: $providerRefundId)
                 ? self::refundResult(outcome: self::OUTCOME_REFUSED, reason: sprintf('row #%d keeps another provider refund for staff and no row of %s is open: nothing was released', (int) $row->id, (string) $providerRefundId))
@@ -6973,7 +6968,7 @@ class PaymentLedger
 
     /**
      * One attempt of a reserved refund failed at the provider, and the request it was made for stands: the
-     * reservation is kept for the retry (since 2.2.1).
+     * reservation is kept for the retry.
      *
      * For the provider's definite failure of the refund it holds under $providerRefundId, when the gateway will try
      * again for the same request: never for an unknown outcome (nothing is sent then), and never when the request is
@@ -7233,7 +7228,7 @@ class PaymentLedger
 
     /**
      * Run one provider word, or a provider's release, entirely inside ONE transaction that holds the order's lock from
-     * before its first read to its commit (main's rule of round 8d, by construction): settleRefund(), holdRefund(),
+     * before its first read to its commit (by construction): settleRefund(), holdRefund(),
      * releaseRefund() and refundPayment() with gateway_moved call it first. Everything the word decides is read, decided
      * and written under that lock (rows and their marks together), and the answer is built from what was read or
      * written there: two words about one order queue on its lock and each sees the other's whole outcome. The row the
@@ -7276,7 +7271,7 @@ class PaymentLedger
      * those of the snapshot it took before the lock, which cannot see a delivery committed meanwhile, so one provider
      * refund could be booked twice. The one exception is core's own staff verb ({@see self::settleReport()}), whose
      * transaction takes the order's lock before it reads anything; a frame inside it defers its flip to the outermost
-     * commit as an outermost frame does, so no status automation runs under the verb's lock (since 2.1.1). The frame
+     * commit as an outermost frame does, so no status automation runs under the verb's lock. The frame
      * ends before its commit runs the work deferred to it, so a word raised there (the deferred flip's status
      * automation, a notification's listener) runs in a frame of its own.
      *
@@ -7379,13 +7374,13 @@ class PaymentLedger
         $notTheirs = $payment === null ? null : self::pluginRefusal(payment: $payment, options: $options);
 
         // Another plugin's payment: a release is refused (nothing moved); what the provider settled or holds is kept for
-        // staff, never refused (since 2.1.0).
+        // staff, never refused.
         if ($notTheirs !== null) {
             if ($releasing) {
                 return $refuse(sprintf('reservation #%d: %s', (int) $row->id, $notTheirs));
             }
 
-            // An id-less word named by its figure at another figure is a word of its own (since 2.1.0).
+            // An id-less word named by its figure at another figure is a word of its own.
             $elsewhere = self::figureWordElsewhere(row: $row, kind: $holding ? self::REPORT_STATUS_PENDING : self::REPORT_STATUS_SETTLED, figure: $amount, providerRefundId: $providerRefundId, options: $options);
 
             if ($elsewhere !== null) {
@@ -7393,7 +7388,7 @@ class PaymentLedger
             }
 
             // A word about the word core keeps for staff on the row it names: only added to what staff see; its own
-            // word again is that row's, never kept a second time on another row (since 2.1.0).
+            // word again is that row's, never kept a second time on another row.
             if (self::keepsForStaff(row: $row) && !self::anotherRefund(row: $row, providerRefundId: $providerRefundId, figure: $amount, whole: $amount === null)) {
                 return ['result' => self::keptWordAdded(row: $row, kind: $holding ? self::REPORT_STATUS_PENDING : self::REPORT_STATUS_SETTLED, figure: $amount, providerRefundId: $providerRefundId)
                     ?? self::keptAnswer(row: $row, what: sprintf('the provider\'s word about refund #%d', (int) $row->id))];
@@ -7483,9 +7478,9 @@ class PaymentLedger
         }
 
         // A provider refund id no row of the payment carries, named on a reservation that is settled or released: a NEW
-        // refund (main's rule of 20 October; round 8c), whatever state the reservation is in. A
+        // refund, whatever state the reservation is in. A
         // settle is booked on a row of its own when the books take it, else kept there for staff; a hold is held on a
-        // row of its own that waits for staff, listed PENDING and blocking (R3-1). Never merged into the reservation.
+        // row of its own that waits for staff, listed PENDING and blocking. Never merged into the reservation.
         if (!$releasing && $providerRefundId !== null && $owner === null && $payment !== null && !\in_array($status, self::REFUND_RESERVING_STATUSES, true)) {
             // The request's one refund BOOKED with no provider id, named with an id at its figure: that refund being
             // identified: it takes the id; DUPLICATE. Only a stated figure identifies it: a hold with none could be
@@ -7526,11 +7521,11 @@ class PaymentLedger
     }
 
     /**
-     * A provider hold under a refund id no row of the payment carries, naming a reservation that is settled or released
-     * (round 8c): a new refund, held on a pending row of its own (the provider-fact door: it reserves its figure)
+     * A provider hold under a refund id no row of the payment carries, naming a reservation that is settled or released:
+     * a new refund, held on a pending row of its own (the provider-fact door: it reserves its figure)
      * marked held and waiting for staff, so the core lists its report PENDING and it holds the refund block until staff
-     * decide (R3-1); a later settle of it is added to that report ({@see self::keptWordAdded()}). The same hold
-     * delivered twice finds the one row (since 2.1.0).
+     * decide; a later settle of it is added to that report ({@see self::keptWordAdded()}). The same hold
+     * delivered twice finds the one row.
      *
      * @param object $row The reservation it names (settled, failed or cancelled).
      * @param Money $amount The provider's figure.
@@ -7652,7 +7647,7 @@ class PaymentLedger
         ] + self::outcomeColumns(row: $row, providerRefundId: $providerRefundId, options: $options);
         $id = (int) $row->id;
         // Asked again under the order's lock: the provider id is still this row's, and a row core keeps a word on
-        // still holds this word alone (R8-2: another word added meanwhile is never booked over by the retry).
+        // still holds this word alone (another word added meanwhile is never booked over by the retry).
         $verdict = self::updateIfStatus(
             $id,
             $data,
@@ -7678,7 +7673,7 @@ class PaymentLedger
                 return self::refundResult(outcome: self::OUTCOME_DUPLICATE, refundId: (int) $owner->id, reason: self::duplicateReason($paymentId, $providerRefundId, $owner));
             }
 
-            // The row core keeps this word on received another word meanwhile (R8-2): its report shows both; staff decide.
+            // The row core keeps this word on received another word meanwhile: its report shows both; staff decide.
             if ($now !== null && !self::stillOwnWord(rowId: $id, figure: $amount, providerRefundId: $providerRefundId)) {
                 return self::refundResult(outcome: self::OUTCOME_UNRECONCILED, refundId: $id, reason: sprintf('row #%d keeps this provider refund for staff and received another word meanwhile: its report %s shows this word (%s) among the others and holds the refund block until staff decide; nothing was booked', $id, self::REPORT_RESERVATION_PREFIX . $id, $amount->format()));
             }
@@ -7697,7 +7692,7 @@ class PaymentLedger
      * Whether a settle may book the row it names as far as class A is concerned: the row is not one core keeps a word on
      * for staff, or it still holds this settled word ALONE (its own one word: a retry the books may take). Asked under
      * the order's lock by the booking door ({@see self::settleWhole()}), where no other word can be added meanwhile;
-     * staff's own Record this refund is never held to it (R8-2; since 2.1.0).
+     * staff's own Record this refund is never held to it.
      *
      * @param int $rowId The row.
      * @param Money $figure The settled figure.
@@ -7772,7 +7767,7 @@ class PaymentLedger
             }
 
             // The payment's flip never runs inside this transaction: create() owes it as a single, run once the
-            // outermost transaction committed (2.2.0), and the settle asks it again after this commit.
+            // outermost transaction committed, and the settle asks it again after this commit.
             $childId = static::create(data: $child);
 
             if ($childId === false) {
@@ -7829,7 +7824,7 @@ class PaymentLedger
      *                   collected ({@see self::uncollected()}).
      * @param bool $booksChecked The caller established why the books do not take it ($why); they are not asked.
      * @param string $requestKey The request whose one refund the row keeps outside its request reference
-     *                           ({@see self::beyondDecision()}): the mark names it (since 2.1.0).
+     *                           ({@see self::beyondDecision()}): the mark names it.
      *
      * @return array{outcome: string, refund_id: int, reason: string, amount: float}
      *
@@ -8322,7 +8317,7 @@ class PaymentLedger
             }
 
             // The request's one refund core keeps with no provider id on 'beyond:' and the key, named now with its id at
-            // a figure its report shows: that refund identified (main's N8-2, round 8c): added there, the row takes it.
+            // a figure its report shows: that refund identified: added there, the row takes it.
             $beyondRow = $own === null && $amount !== null ? array_values(array_filter(
                 self::rowsOfReference(paymentId: $paymentId, reference: self::REFUND_BEYOND_PREFIX . $requestKey),
                 static fn (object $row): bool => \in_array((string) $row->transaction_status, self::REFUND_RESERVING_STATUSES, true),
@@ -8334,7 +8329,7 @@ class PaymentLedger
             }
 
             // The request's one refund BOOKED with no provider id (its reservation, else 'beyond:' and the key), named now
-            // with its id at its figure: that refund being identified (main's decision of round 8d): it takes the id;
+            // with its id at its figure: that refund being identified: it takes the id;
             // OUTCOME_DUPLICATE, nothing booked twice. Another figure with an id is another refund (booked below).
             $booked = $own === null && $amount !== null ? self::bookedOneOfKey(paymentId: $paymentId, key: $requestKey) : null;
 
@@ -8389,7 +8384,7 @@ class PaymentLedger
             'id_payment_method' => (int) ($original->id_payment_method ?? 0),
             'transaction_id' => $bookAs,
         ] + array_filter(['gateway_response' => (string) ($options['gateway_response'] ?? ''), 'refund_reason' => mb_substr((string) ($options['reason'] ?? ''), 0, 255)]);
-        // The row and its mark are written together (round 8c, R8-1): another delivery under the key finds the row
+        // The row and its mark are written together: another delivery under the key finds the row
         // kept, never a row without its mark. The mark names the request: the row keeps the request's one refund
         // outside its reference, so a later word under the key finds it, also once it carries the provider's id.
         $keep = self::keepBeyondDecision(data: $data, amount: $amount, reference: $reference, requestKey: $requestKey, refused: $result['outcome']);
@@ -8423,7 +8418,7 @@ class PaymentLedger
      * Keep money a provider moved under a refund request beyond its decision, which the books refused, on a pending row
      * of its own (the provider-fact door) and mark it (EVENT_REFUND_UNRECONCILED, naming the request), in ONE
      * transaction under the order's lock: a concurrent delivery under the same key waits, then finds the row kept and
-     * adds its word there ({@see self::idlessUnderKey()}), never a row without its mark (round 8c, R8-1; since 2.1.0).
+     * adds its word there ({@see self::idlessUnderKey()}), never a row without its mark.
      *
      * @param array $data The pending row.
      * @param Money $amount The provider's figure.
@@ -8476,7 +8471,7 @@ class PaymentLedger
      * through the way out (duplicate or invalid, reconciled), every later word under the key comes back for staff
      * the same way. Null when nothing is under the key yet: the caller books it beyond the decision.
      *
-     * The request's one refund is found wherever core holds it (round 8c, REVIEW-c9 R8-1): with no reservation open
+     * The request's one refund is found wherever core holds it: with no reservation open
      * under the key, the first of its rows that is still open under the provider's id (the reservation held under
      * it) or that core keeps for staff, whatever kept it (the reservation, 'beyond:' and the key, beyondDecision()
      * under the provider's id, resurface() after a staff resolution: {@see self::keyRows()}), takes the word: the same
@@ -8490,7 +8485,7 @@ class PaymentLedger
      * @param string $key The request's key.
      * @param Money|null $amount The provider's figure; null = the figure already under the key.
      * @param array $options The call's options ('gateway_response', 'reason').
-     * @param bool $surface True on refundPayment()'s request_key lane: a row kept for staff is surfaced as money
+     * @param bool $surface True on refundPayment()'s request_key path: a row kept for staff is surfaced as money
      *                      beyond the decision ({@see self::surfaceBeyondDecision()}).
      * @param bool $held True when the provider holds the refund (pending) rather than settled it.
      *
@@ -8513,7 +8508,7 @@ class PaymentLedger
         // The request's reservation that now carries the provider's refund id (held or kept under it) is still the
         // request's; so is a row core keeps the request's one refund on outside its reference (beyondDecision(), also
         // under the provider's id) and a row that carries a provider id one of them carries (resurface() after a staff
-        // resolution: one provider id, one refund). R8-1, round 8c.
+        // resolution: one provider id, one refund).
         $moved = self::rowsMovedFromKey(payment: $payment, key: $key);
         $related = self::keyRows(payment: $payment, key: $key, known: array_merge($requests, $beyond, $moved));
         $live = static fn (array $rows): ?object => array_values(array_filter($rows, static fn (object $row): bool => !\in_array((string) $row->transaction_status, [self::STATUS_FAILED, self::STATUS_CANCELLED], true)))[0] ?? null;
@@ -8545,7 +8540,7 @@ class PaymentLedger
         }
 
         // The request's one refund BOOKED: its reservation or 'beyond:' row, else a row that took the provider's id as
-        // that refund (identified, round 8d) and was booked.
+        // that refund (identified) and was booked.
         $identifiedIds = self::identifiedRows(orderId: $orderId, key: $key);
         $one = $request ?? $live($beyond) ?? (array_values(array_filter(array_merge($moved, $related), static fn (object $row): bool => \in_array((int) $row->id, $identifiedIds, true) && \in_array((string) $row->transaction_status, self::REFUND_SETTLED_STATUSES, true)))[0] ?? null);
 
@@ -8596,14 +8591,14 @@ class PaymentLedger
      * (REFUND_BEYOND_PREFIX, the key, ':' and the figure; the provider-fact door) that waits for staff, holds the
      * refund block and is listed as the core's report; nothing is booked by itself. The same word again finds that
      * row: one word, one row, one notice. With no provider id such a word is named by its figure: another figure is
-     * another word, on a row of its own, never added to this one (decision (b); since 2.1.0). Staff's Record this
+     * another word, on a row of its own, never added to this one. Staff's Record this
      * refund books it; a resolution releases it.
      *
      * @param object $payment The payment.
      * @param string $key The request's key.
      * @param Money $figure The provider's figure.
      * @param array $options The call's options ('gateway_response').
-     * @param bool $surface Surfaced as money beyond the decision (the request_key lane) instead of the unreconciled
+     * @param bool $surface Surfaced as money beyond the decision (the request_key path) instead of the unreconciled
      *                      notification.
      * @param bool $held The provider holds it (pending).
      * @param object|null $resolved The kept outcome of the staff resolution that came first, when there is one.
@@ -8688,7 +8683,7 @@ class PaymentLedger
      */
     private static function keptAnswer(object $row, string $what): array
     {
-        // The row as it is now (round 8d, R8C-3): an answer is never built from a read taken before a write.
+        // The row as it is now: an answer is never built from a read taken before a write.
         $row = self::getRaw(id: (int) $row->id) ?? $row;
 
         return \in_array((string) $row->transaction_status, self::REFUND_RESERVING_STATUSES, true)
@@ -8735,7 +8730,7 @@ class PaymentLedger
      * first resolution) and the word is the same (its figure), that resolution stands. A WARNING line in the payments
      * log, and nothing else: no row, no block, no notice; the answer is OUTCOME_DUPLICATE. Another figure (or another
      * provider id) is a new fact: null, and it is kept as usual. A word staff reconciled to a refund in the books, at
-     * that refund's figure, is that refund: OUTCOME_DUPLICATE naming it, nothing written (since 2.1.0).
+     * that refund's figure, is that refund: OUTCOME_DUPLICATE naming it, nothing written.
      *
      * @param object $payment The payment (id).
      * @param object $resolved The latest kept outcome of a staff resolution of this word (report_id, outcome).
@@ -9084,8 +9079,8 @@ class PaymentLedger
     {
         // Inside a provider word's frame the flip waits for the outermost commit: decided then under its own lock,
         // its status automation runs with no lock held (round 8d, {@see self::inWord()}). So does the flip of a
-        // frame inside core's staff verb, whatever transaction the verb runs in (since 2.1.1). Owed as a single of
-        // the frame's transaction, so a request that ends after the commit cannot lose it (2.2.0).
+        // frame inside core's staff verb, whatever transaction the verb runs in. Owed as a single of
+        // the frame's transaction, so a request that ends after the commit cannot lose it.
         if (self::$wordOrder !== 0 && (self::$wordDefersFlip || self::$verbOrder === self::$wordOrder) && TransactionState::isOpen(self::db())) {
             self::oweRefundFlip(paymentId: $paymentId, orderId: $orderId);
 
@@ -9227,8 +9222,8 @@ class PaymentLedger
 
     /**
      * Money a provider moved that refundPayment() with gateway_moved could not book because the books refused it (over
-     * the payment's or the order's room, the payment not collected or already refunded): kept, never refused (rulings
-     * 43-45, as settleRefund() keeps a settle above the books). A pending row of its own carries the provider's figure
+     * the payment's or the order's room, the payment not collected or already refunded): kept, never refused (as
+     * settleRefund() keeps a settle above the books). A pending row of its own carries the provider's figure
      * and its refund id (with none, the core's reference {@see self::bareReference()}), marked unreconciled, listed
      * and holding the refund block; the way out decides, and a retry books it once the books have room. Not asked for
      * a word under a request key (money beyond a decision keeps its own), inside staff's way out, for a write that
@@ -9299,7 +9294,7 @@ class PaymentLedger
         }
 
         // A reserving row under that reference (a reservation the provider held under its id): the word is that row's
-        // settle, which keeps it marked, listed and blocking whatever the payment's state (since 2.1.0).
+        // settle, which keeps it marked, listed and blocking whatever the payment's state.
         return \in_array((string) $existing->transaction_status, self::REFUND_RESERVING_STATUSES, true)
             ? self::settleRefund(reservationId: (int) $existing->id, amount: $amount, providerRefundId: $providerId !== '' ? $providerId : null, options: ['final' => true] + array_intersect_key($options, ['gateway_response' => true, 'reason' => true, 'plugin' => true, 'report_id' => true]))
             : self::keptAnswer(row: $existing, what: sprintf('the provider\'s word of %s', $amount->format()));
@@ -9309,7 +9304,7 @@ class PaymentLedger
      * Money a provider moved (or holds) that a payment plugin reports for a payment that is not its own by the
      * payment's recorded type ({@see self::pluginRefusal()}): never refused. It is kept for staff on a pending row of
      * its own (its provider id; with none and a request key, REFUND_BEYOND_PREFIX, the key, ':' and the figure; with
-     * neither, no reference: not idempotent, as the bare lane), marked to wait for staff, listed against its payment
+     * neither, no reference: not idempotent, as the bare path), marked to wait for staff, listed against its payment
      * and holding the refund block; the way out decides (Record this refund, reconcile, duplicate or invalid). A
      * provider id another row already carries answers as that row: a reserving row is marked to keep the word, a
      * kept one answers kept, a settled one is a duplicate.
@@ -9381,7 +9376,7 @@ class PaymentLedger
     }
 
     /**
-     * Why a payment plugin may not make this write, or null (2.2.0). Asked under the order lock by update() and
+     * Why a payment plugin may not make this write, or null. Asked under the order lock by update() and
      * updateIfStatus(), and by delete(), when the write names its writer (PaymentsPlugin::paymentUpdate(),
      * settleAttempt(), supersedeAttempt(), deletePayment()): a plugin acts only on the rows recorded as its own, and
      * moves one only to another method of its own. A row that records no plugin is no plugin's, as the action registry
@@ -9773,7 +9768,7 @@ class PaymentLedger
                 return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('row #%d does not exist', $rowId));
             }
 
-            // A payment plugin records a fact only on its own money (2.2.0): the call names it ('plugin'), as the
+            // A payment plugin records a fact only on its own money: the call names it ('plugin'), as the
             // refund verbs do. A row's recorded plugin never changes, so it is read before the lock.
             if (($notTheirs = self::factRefusal(row: $target, options: $options)) !== null) {
                 return self::factResult(self::OUTCOME_REFUSED, reason: $notTheirs);
@@ -9970,8 +9965,8 @@ class PaymentLedger
                 $p = self::reopenIfUncovered(db: $db, paymentId: $paymentId, orderId: $orderId);
                 $reopened = $p !== null;
 
-                // The fact's timeline entry and notice, and the reopened payment's edit entry, commit with the fact
-                // (2.2.0). Each is best-effort: only a failure that ended the transaction reaches the catch.
+                // The fact's timeline entry and notice, and the reopened payment's edit entry, commit with the fact.
+                // Each is best-effort: only a failure that ended the transaction reaches the catch.
                 self::afterFact(newId: (int) $newId, orderId: $orderId, amount: $amount, targetId: $rowId, kind: $kind === self::TYPE_REFUND ? 'refund_reversed' : 'chargeback_reversed');
 
                 if ($reopened) {
@@ -10051,7 +10046,7 @@ class PaymentLedger
                 return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('payment #%d does not exist', $paymentId));
             }
 
-            // A payment plugin records a fact only on its own money (2.2.0), as above.
+            // A payment plugin records a fact only on its own money, as above.
             if (($notTheirs = self::factRefusal(row: $payment, options: $options)) !== null) {
                 return self::factResult(self::OUTCOME_REFUSED, reason: $notTheirs);
             }
@@ -10196,8 +10191,7 @@ class PaymentLedger
                     return self::factResult(self::OUTCOME_FAILED, reason: 'the chargeback row was rejected by the ledger');
                 }
 
-                // No flip, no side effects, no Transition: the timeline and the notice only, committed with the fact
-                // (2.2.0).
+                // No flip, no side effects, no Transition: the timeline and the notice only, committed with the fact.
                 self::afterFact(newId: (int) $newId, orderId: $orderId, amount: $amount, targetId: $paymentId, kind: 'charged_back');
             } catch (Throwable $e) {
                 TransactionState::rollBackLevel($db, $e);
@@ -10334,7 +10328,7 @@ class PaymentLedger
 
     /**
      * The timeline entry and the admin notice of a fact row, written inside the
-     * transaction that commits it (2.2.0).
+     * transaction that commits it.
      *
      * Each runs on its own: a failure is logged ERROR with the row id and never
      * changes the verb's answer, except one that ended the transaction, which
@@ -10470,8 +10464,8 @@ class PaymentLedger
     /**
      * Write the timeline entry for a reversal or chargeback row.
      *
-     * Called inside the transaction that commits the row, as logCreatedRow() is
-     * (2.2.0). The amount is shown at the order's frozen scale.
+     * Called inside the transaction that commits the row, as logCreatedRow() is.
+     * The amount is shown at the order's frozen scale.
      *
      * @param int $rowId Fact row PK.
      * @param int $orderId Order PK.
@@ -10560,7 +10554,7 @@ class PaymentLedger
      * Log and mark a refund the provider settled against the ledger's check.
      *
      * The books follow the provider: the row is settled in the open
-     * transaction, and the mark commits with it (2.2.0). What is left is to
+     * transaction, and the mark commits with it. What is left is to
      * make the case impossible to miss, in the form a refund the gateway paid
      * but the ledger did not record takes: a CRITICAL line in the payments
      * log, in the ledger's own words, written once the row committed, and a
@@ -10644,7 +10638,7 @@ class PaymentLedger
 
     /**
      * What a write of update() or updateIfStatus() owes, written inside its transaction before the commit, so it commits
-     * with the row (2.2.0): the 'payment.edited' timeline row, and the singles that run once the outermost
+     * with the row: the 'payment.edited' timeline row, and the singles that run once the outermost
      * transaction committed and Alfa's named locks are released. The CAS path calls it only for a row it changed, so
      * the settle's work is owed exactly once per payment.
      *
@@ -10715,7 +10709,7 @@ class PaymentLedger
 
         // NEVER suppressed: a linked refund settled (or re-amounted while
         // settled) by this write refunds its payment once its settled refunds
-        // cover it, as on every other settle path (since 2.1.0). The wallet
+        // cover it, as on every other settle path. The wallet
         // leg is not here either: settleWalletForPayment() runs inside the
         // write's own transaction, before this.
         if (self::settlesLinkedRefund(stored: $oldSnapshot, data: $data, orderId: $orderId)) {
@@ -11680,7 +11674,7 @@ class PaymentLedger
 
     /**
      * Move the ORDER when a payment changed status, per the method's map: what the payment.automation single runs once
-     * the write committed and Alfa's named locks are released, after its guards ({@see PaymentAutomation}, 2.2.0).
+     * the write committed and Alfa's named locks are released, after its guards ({@see PaymentAutomation}).
      *
      * Reads `status_on_<newStatus>` from the payment method's params when it
      * runs: a PLUGIN-DECLARED map, so a gateway that never declares the
@@ -12011,7 +12005,7 @@ class PaymentLedger
         }
 
         if ($type === self::TYPE_PAYMENT) {
-            // What the order still holds against its total, this row left out (2.2.1, as create() reads it).
+            // What the order still holds against its total, this row left out (as create() reads it).
             $alreadyRecorded = self::heldAgainstTotal($orderId, excludeId: $id);
             // SAME hint seam as create(): at checkout the shipment row does
             // not exist yet, so the DB recompute is short by shipping. Without
@@ -12028,7 +12022,7 @@ class PaymentLedger
             }
 
             // The row's own amount is added before the clamp at zero: its own refunds are netted against it, so a
-            // payment of 100.00 with 30.00 refunded on a total of 70.00 is measured as 70.00 (REV4D RD4D-9).
+            // payment of 100.00 with 30.00 refunded on a total of 70.00 is measured as 70.00.
             if (self::exceedsCap([self::heldAgainstTotal($orderId, excludeId: $id, plus: $amount)], $grandTotal, $orderId)) {
                 self::paymentCapRefusal(
                     log: sprintf(
@@ -12076,7 +12070,7 @@ class PaymentLedger
      *     holds its amount: it is refused here, before any money moves at a
      *     provider, rather than when it settles.
      *
-     * The reason is the detail for the log; plain is what staff read (2.2.1): the voided document's sentence as it is,
+     * The reason is the detail for the log; plain is what staff read: the voided document's sentence as it is,
      * the ceiling's from its language key as a function of the customer's order number, and none for the document of
      * another order, a caller's mistake, which staff read in the general sentence ({@see self::refuse()}).
      *
@@ -12164,7 +12158,7 @@ class PaymentLedger
                     $notePaid->format(),
                     $noteCeiling->format(),
                 ),
-                // Staff read what the note has left (2.2.1); the detail above is for the log.
+                // Staff read what the note has left; the detail above is for the log.
                 'plain' => static fn (string $number): string => Text::sprintf('COM_ALFA_REFUND_REFUSED_PAST_NOTE', $amountText, $number, $documentText, $leftText),
                 'kind' => 'ceiling',
                 'paid' => $notePaid,
@@ -12542,7 +12536,7 @@ class PaymentLedger
     }
 
     /**
-     * What an order holds against its total, for the payment cap (2.2.1): its recorded payments (every payment row
+     * What an order holds against its total, for the payment cap: its recorded payments (every payment row
      * not failed, cancelled or refunded, {@see self::sumRecordedPayments()}: pending and authorized payments count as
      * held, as they did before) less what its customer's bank took back (its chargebacks, each net of its reversals,
      * {@see self::sumChargebacks()}) less what it gave back from those payments (its settled refunds, each net of its
@@ -12605,7 +12599,7 @@ class PaymentLedger
     }
 
     /**
-     * The payment cap's refusal (2.2.2): REFUSAL_OPEN_ATTEMPT when the payment would fit if the order's open
+     * The payment cap's refusal: REFUSAL_OPEN_ATTEMPT when the payment would fit if the order's open
      * attempts were not counted, REFUSAL_OVER_TOTAL when it would not fit even then. An open attempt is a pending payment
      * row (payment type 'payment') of the order, of any gateway, the row being written left out; an authorized row is a
      * reservation the buyer already made and counts as held. The staff sentence is the cap's (COM_ALFA_PAYMENT_REFUSED_
@@ -12642,7 +12636,7 @@ class PaymentLedger
     }
 
     /**
-     * The figures of a document refusal for a verdict (2.2.2): the credit note's ceiling only (amount, total, left).
+     * The figures of a document refusal for a verdict: the credit note's ceiling only (amount, total, left).
      *
      * @param array<string, mixed> $refusal A refusal of {@see self::refundDocumentRefusal()}.
      *
@@ -12660,16 +12654,16 @@ class PaymentLedger
     }
 
     /**
-     * A money guard's refusal (2.2.1): {@see self::refuse()} with the plain sentence that names the amounts and the
-     * customer's order number, and the figures a verdict carries for the plugin's log (2.2.2).
+     * A money guard's refusal: {@see self::refuse()} with the plain sentence that names the amounts and the
+     * customer's order number, and the figures a verdict carries for the plugin's log.
      *
      * @param string $log The detail for the log.
      * @param int $orderId The order.
      * @param string $key The staff sentence's language key: its first argument is the first amount, its second the
      *                    customer's order number, then the other amounts in order.
      * @param list<Money> $amounts The amounts the sentence names.
-     * @param string $code The verdict's code, one of self::REFUSAL_* (2.2.2).
-     * @param array<string, Money> $figures The verdict's figures (2.2.2): amount, total, held, pending, left.
+     * @param string $code The verdict's code, one of self::REFUSAL_*.
+     * @param array<string, Money> $figures The verdict's figures: amount, total, held, pending, left.
      *
      * @since  2.2.1
      */
@@ -12686,7 +12680,7 @@ class PaymentLedger
     }
 
     /**
-     * A refusal of create(), update() or updateIfStatus() by a money or business rule (2.2.1): the internal detail logged
+     * A refusal of create(), update() or updateIfStatus() by a money or business rule: the internal detail logged
      * (com_alfa.orders), the caller answered by its own false or WRITE_FAILED, and a plain sentence queued only for staff
      * and for an API client (on an administrator or an api request), never on a storefront request: a shopper is told by
      * the payment plugin, in its own words. The plain sentence is the one given, a reason the ledger already words for
@@ -12694,18 +12688,18 @@ class PaymentLedger
      * saying the record was not saved and the reason is in the orders log (without a number when the write named no
      * order). A database driver's text is never queued: it goes to the log only.
      *
-     * Since 2.2.2 every refusal names its rule by a code, which a write's verdict answers ({@see self::saveWithVerdict()},
+     * Every refusal names its rule by a code, which a write's verdict answers ({@see self::saveWithVerdict()},
      * {@see PaymentWriteVerdict}); a write that could not lock or could not store its row tells through
      * {@see self::failWrite()} instead. The ledgers' other warnings tell through LedgerSupport::warn(), which queues them,
      * as this does, for staff and API clients only.
      *
      * @param string $detail The detail for the log.
      * @param int $orderId The order, 0 when none is known.
-     * @param string $code The rule, one of self::REFUSAL_* (2.2.2).
+     * @param string $code The rule, one of self::REFUSAL_*.
      * @param (Closure(string): string)|string|null $plain The sentence for staff, or a function of the order number
      *                                                     that makes it; null for the general one.
-     * @param array<string, Money> $figures The verdict's figures, for a money rule (2.2.2).
-     * @param int $rowId The row the refusal names, for the verdict (2.2.2): the row a reference already holds.
+     * @param array<string, Money> $figures The verdict's figures, for a money rule.
+     * @param int $rowId The row the refusal names, for the verdict: the row a reference already holds.
      *
      * @since  2.2.1
      */
@@ -12717,8 +12711,8 @@ class PaymentLedger
     }
 
     /**
-     * A write of create(), update() or updateIfStatus() that could not lock its order or could not store its row
-     * (2.2.2): logged like a refusal, the general sentence queued for staff and API clients only, and the kind its
+     * A write of create(), update() or updateIfStatus() that could not lock its order or could not store its row:
+     * logged like a refusal, the general sentence queued for staff and API clients only, and the kind its
      * verdict answers (self::VERDICT_LOCK_NOT_TAKEN or self::VERDICT_WRITE_FAILED). The detail may carry the database
      * driver's text: it stays in the log.
      *
@@ -12736,7 +12730,7 @@ class PaymentLedger
     }
 
     /**
-     * Queue the staff sentence of a refusal, on an administrator or an api request only (2.2.1).
+     * Queue the staff sentence of a refusal, on an administrator or an api request only.
      *
      * @param int $orderId The order, 0 when none is known.
      * @param (Closure(string): string)|string|null $plain See {@see self::refuse()}.
@@ -12761,7 +12755,7 @@ class PaymentLedger
 
     /**
      * The sentence staff read for a refusal: the plain reason given, or the general one naming the customer's order
-     * number (2.2.1).
+     * number.
      *
      * @param int $orderId The order, 0 when none is known.
      * @param (Closure(string): string)|string|null $plain See {@see self::refuse()}.
@@ -12770,7 +12764,7 @@ class PaymentLedger
      */
     private static function staffSentence(int $orderId, Closure|string|null $plain): string
     {
-        // The customer's order number is the order's id (EmailService::orderNumber(), 2.2.1): nothing to read.
+        // The customer's order number is the order's id (EmailService::orderNumber()): nothing to read.
         $number = $orderId > 0 ? EmailService::orderNumber(order: (object) ['id' => $orderId]) : '';
 
         return match (true) {
@@ -12781,7 +12775,7 @@ class PaymentLedger
         };
     }
 
-    //  THE VERDICT OF A PAYMENT WRITE (2.2.2)
+    //  THE VERDICT OF A PAYMENT WRITE
     //
     //  A verdict method opens a scope one level deeper than the write it calls; every write entry point (create(),
     //  update(), updateIfStatus()) runs one level deeper again, so a ledger write nested inside a write (its
@@ -12791,7 +12785,7 @@ class PaymentLedger
     //  outranks any note.
 
     /**
-     * How deep the running ledger writes are nested (2.2.2).
+     * How deep the running ledger writes are nested.
      *
      *
      * @since  2.2.2
@@ -12799,7 +12793,7 @@ class PaymentLedger
     private static int $writeDepth = 0;
 
     /**
-     * The open verdict scopes, each its base depth (2.2.2).
+     * The open verdict scopes, each its base depth.
      *
      * @var list<int>
      *
@@ -12808,7 +12802,7 @@ class PaymentLedger
     private static array $verdictScopes = [];
 
     /**
-     * The notes of the open scopes, keyed by the depth they were noted at (2.2.2).
+     * The notes of the open scopes, keyed by the depth they were noted at.
      *
      * @var array<int, array{kind: string, code: string, orderId: int, plain: Closure|string|null, figures: array<string, Money>, rowId: int, existing: bool}>
      *
@@ -12817,7 +12811,7 @@ class PaymentLedger
     private static array $verdictNotes = [];
 
     /**
-     * The depth whose create looks its reference up first (the idempotent create), 0 for none (2.2.2).
+     * The depth whose create looks its reference up first (the idempotent create), 0 for none.
      *
      *
      * @since  2.2.2
@@ -12825,7 +12819,7 @@ class PaymentLedger
     private static int $idempotentDepth = 0;
 
     /**
-     * The row the idempotent create found by its reference, until its create() closes (2.2.2).
+     * The row the idempotent create found by its reference, until its create() closes.
      *
      *
      * @since  2.2.2
@@ -12833,7 +12827,7 @@ class PaymentLedger
     private static int $foundByReference = 0;
 
     /**
-     * The idempotent create's lookup (2.2.2), under the order's lock. Only a non-empty reference is looked up.
+     * The idempotent create's lookup, under the order's lock. Only a non-empty reference is looked up.
      * The key is the reference on a row of the same order written by the same plugin (its payment_method_type, any of
      * its methods), matched byte for byte as PaymentsPlugin::gatewayPaymentByReference() matches it (the hash narrows,
      * the whole value decides). A row of that key with the same payment_type, still pending or authorized, whose amount
@@ -12908,7 +12902,7 @@ class PaymentLedger
     }
 
     /**
-     * Note what a write did not do, for an open verdict scope (2.2.2). The first note of a depth is kept. Nothing is
+     * Note what a write did not do, for an open verdict scope. The first note of a depth is kept. Nothing is
      * noted while no verdict scope is open.
      *
      * @param string $kind One of self::VERDICT_*.
@@ -12947,7 +12941,7 @@ class PaymentLedger
     }
 
     /**
-     * Run one write in a verdict scope and answer what it did (2.2.2).
+     * Run one write in a verdict scope and answer what it did.
      *
      * @param Closure(): (int|false) $write The write: an id or false (a create), or a WRITE_* answer (an update).
      * @param bool $create The write creates a row: its answer is an id or false.
@@ -13013,7 +13007,7 @@ class PaymentLedger
     }
 
     /**
-     * The note of the write a scope wraps: the shallowest one below its base (2.2.2).
+     * The note of the write a scope wraps: the shallowest one below its base.
      *
      * @param int $base The scope's base depth.
      *
@@ -13029,7 +13023,7 @@ class PaymentLedger
     }
 
     /**
-     * The verdict of a write that did not write, from its note (2.2.2). A write that answered false without a note is
+     * The verdict of a write that did not write, from its note. A write that answered false without a note is
      * a write failure: every refusal of the ledger notes its rule.
      *
      * @param array<string, mixed>|null $note The note, or null.
@@ -13069,7 +13063,7 @@ class PaymentLedger
     }
 
     /**
-     * Load core's administrator language for com_alfa on a request that has not (2.2.2): the staff sentences a verdict
+     * Load core's administrator language for com_alfa on a request that has not: the staff sentences a verdict
      * answers are in that catalogue only. The storefront's own com_alfa strings are loaded again over it, so a string
      * both catalogues hold keeps its storefront wording for the rest of the request.
      *
@@ -13227,7 +13221,7 @@ class PaymentLedger
      *
      * @param int $id Payment row PK
      * @param int $orderId Order PK (for activity log)
-     * @param string $writer The payment plugin deleting (2.2.0, PaymentsPlugin::deletePayment()): only a row recorded as
+     * @param string $writer The payment plugin deleting (PaymentsPlugin::deletePayment()): only a row recorded as
      *                       its own ({@see self::writerRefusal()}). '' for staff and for core.
      *
      * @return bool True on success
@@ -13241,7 +13235,7 @@ class PaymentLedger
         // No payment row of an order that names no currency is removed.
         OrderCurrency::of(orderId: (int) ($payment->id_order ?? $orderId));
 
-        // A payment plugin deletes only its own rows (2.2.0): another plugin's row, or one that records none, is refused.
+        // A payment plugin deletes only its own rows: another plugin's row, or one that records none, is refused.
         if ($writer !== '') {
             $notTheirs = $payment ? self::writerRefusal(stored: $payment, data: [], writer: $writer) : sprintf('payment #%d does not exist', $id);
 
@@ -13355,7 +13349,7 @@ class PaymentLedger
             return false;
         }
 
-        // The delete and its timeline row commit together (2.2.0).
+        // The delete and its timeline row commit together.
         $db = self::db();
         $db->transactionStart(true);
 
@@ -13665,8 +13659,7 @@ class PaymentLedger
     /**
      * {@see self::amountToCollect()} as the order's Money: what the builder
      * hands the storage door, so its digits are written as they are, and what
-     * a carrier reads through ShipmentsPlugin::amountToCollect() (public since
-     * 2.2.1; the float form above is unchanged).
+     * a carrier reads through ShipmentsPlugin::amountToCollect() (public).
      *
      * @param object $order Loaded order (ideally with ->total_paid_tax_incl Money).
      *
@@ -14015,7 +14008,7 @@ class PaymentLedger
                 $unbooked['unread'][$paymentId] = $answer['unread'];
             }
 
-            // A payment whose plugin of record cannot be asked: its name, for the block's own heading (UX-34).
+            // A payment whose plugin of record cannot be asked: its name, for the block's own heading.
             if (isset($answer['plugin'])) {
                 $unbooked['unavailable'][$paymentId] = $answer['plugin'];
             }
@@ -14164,10 +14157,10 @@ class PaymentLedger
      * never stated)
      * ({@see self::EVENT_REFUND_WORD_ADDED}, {@see self::keptWordAdded()}), one per fact (kind, provider id and
      * figure), latest first, in the order the words arrived: a fact the provider sends again after another word is its
-     * latest word again and moves to the top (main's N8-1: arrival order, repeats included; a mark written again by a
+     * latest word again and moves to the top (arrival order, repeats included; a mark written again by a
      * retry moves nothing). What the row's report states is the provider's latest SETTLED word (its figure, and its id
      * or else the latest id any word gave), or, while no word says settled, the latest word: Record this refund books
-     * the latest figure the provider settled; a hold is never booked (since 2.1.0).
+     * the latest figure the provider settled; a hold is never booked.
      *
      * @param int $orderId The order.
      *
@@ -14214,7 +14207,7 @@ class PaymentLedger
                 $words[$rowId][] = $word;
             } elseif (!$isMark) {
                 // An earlier word the provider sent again (keptWordAdded() writes it only when it is not the row's latest
-                // word) is its latest word now: moved to the end with its new date, its provider id kept (main's N8-1:
+                // word) is its latest word now: moved to the end with its new date, its provider id kept (in
                 // arrival order, repeats included). A mark written again (a retry) moves nothing.
                 $at = (int) array_key_last($known);
                 $repeated = $words[$rowId][$at];
@@ -14411,7 +14404,7 @@ class PaymentLedger
      * @param object $stored The row as read under the lock.
      * @param array $data The write (amount already the column's decimal).
      * @param bool $providerSettle True from updateIfStatus(): a payment plugin's
-     *                             compare-and-set (since 2.1.0).
+     *                             compare-and-set.
      *
      * @return array{outcome: string, reason: string}|null The refusal, or null when the write may go on.
      *
@@ -14623,7 +14616,7 @@ class PaymentLedger
      * @var array<string, bool> The payment plugins, by element, whose unbookedProviderRefunds() is being asked now, and
      *                          whether a second asking was refused meanwhile: a plugin that asks the core's reading of
      *                          its own reports from inside that report would ask itself again without end, so the
-     *                          second asking is refused, and the first reads the payment as unread (2.2.2).
+     *                          second asking is refused, and the first reads the payment as unread.
      *
      * @since  2.2.2
      */
@@ -14667,7 +14660,7 @@ class PaymentLedger
      * method with no gateway (the customer's credit), no recorded method, or an
      * element that is not an Alfa payment plugin answers nothing.
      *
-     * NEVER ASKED FROM ITS OWN ANSWER (2.2.2). While a plugin's
+     * NEVER ASKED FROM ITS OWN ANSWER. While a plugin's
      * unbookedProviderRefunds() is being asked, a second asking of the same
      * plugin (its unbookedProviderRefundsOfPayment() called from that report)
      * throws a LogicException, and the first asking reads the payment as
@@ -14710,7 +14703,7 @@ class PaymentLedger
             return ['refunds' => $own] + $none;
         }
 
-        // The gateway of record, through the plugin helper (2.2.0, design 2.15.5): while it is disabled, missing or
+        // The gateway of record, through the plugin helper: while it is disabled, missing or
         // cannot be loaded its reports cannot be read, so the block holds, naming the plugin and how to restore it.
         $plugins = AlfaPluginHelper::get();
 
@@ -14724,8 +14717,8 @@ class PaymentLedger
                 // The refusal below holds whether or not the log can be written.
             }
 
-            // The plugin by the name Extensions: Plugins shows and why it cannot be asked (UX-25, UX-27); the order page
-            // gives this case a heading and line of its own, since no provider reported anything (UX-34).
+            // The plugin by the name Extensions: Plugins shows and why it cannot be asked; the order page
+            // gives this case a heading and line of its own, since no provider reported anything.
             $name = $plugins->name(PluginId::from('alfa-payments', $element));
             $notLoaded = $unavailable instanceof PluginUnavailable && $unavailable->reason === PluginUnavailable::NOT_LOADED;
 
@@ -15030,7 +15023,7 @@ class PaymentLedger
      * (pending) is reported pending (so it is never recorded as settled): one kept for staff always, one held on a
      * payment that is no longer collected only while that payment is not collected again. Each report states the
      * provider's latest settled word and lists every word core kept on the row ('words', latest first:
-     * {@see self::unreconciledMarks()}; since 2.1.0).
+     * {@see self::unreconciledMarks()}).
      *
      * @param object $payment The payment row (id, id_order, transaction_status).
      * @param Currency $currency The order's currency at its frozen scale.
@@ -15066,7 +15059,7 @@ class PaymentLedger
                 'providerCurrency' => mb_substr($mark['currency'] !== '' ? $mark['currency'] : $currency->getCode(), 0, 16),
                 'reportedOn' => mb_substr($mark['at'], 0, 16),
                 'status' => $mark['held'] ? self::REPORT_STATUS_PENDING : self::REPORT_STATUS_SETTLED,
-                // Every word the provider sent about this refund, latest first (since 2.1.0).
+                // Every word the provider sent about this refund, latest first.
                 'words' => $mark['words'],
             ];
         }
@@ -15107,7 +15100,7 @@ class PaymentLedger
         } elseif (str_starts_with($reportId, self::REPORT_RESERVATION_PREFIX)) {
             $wrong[] = 'a reportId starting reservation: names the core\'s own report of a reservation; a gateway never lists one';
         } elseif (str_starts_with($reportId, self::REPORT_REQUEST_PREFIX)) {
-            // Rule 4 is retired (2.1.0): a refund request this site sends is a
+            // Rule 4 is retired: a refund request this site sends is a
             // reservation in the books, made by the core before the provider is asked.
             $wrong[] = 'a refund request is not a provider report: the core holds it as a reservation (reserveRefund()), so a gateway lists provider reports only';
         }
@@ -15473,8 +15466,7 @@ class PaymentLedger
 
     /**
      * The provider's earlier words on a core report that Record this refund books (its latest settled word): each
-     * other word core kept on the row, latest first, as the audit names them; '' when the report carries one word
-     * (since 2.1.0).
+     * other word core kept on the row, latest first, as the audit names them; '' when the report carries one word.
      *
      * @param array $entry The report ('words', 'id', 'providerAmount').
      *
@@ -15769,7 +15761,7 @@ class PaymentLedger
      * (cancelled; the resolution in its note): the money it stood for is accounted for by that resolution. The
      * same for a report the gateway listed under a provider id that a reservation of the payment carries (held
      * under it, listed because its amount is not exact in the order's currency): that reservation ends as the
-     * resolution decided, never reserving beside it (since 2.1.0). A row the core marked keeps its own report.
+     * resolution decided, never reserving beside it. A row the core marked keeps its own report.
      *
      * @param array $entry The report.
      * @param int $orderId Its order, locked by the caller.
@@ -15812,15 +15804,15 @@ class PaymentLedger
      * row through update(), a payment row through the compare-and-set). The payment form asks it first as well, to
      * tell the operator before anything is written. Its clauses, each for a gateway payment (its recorded
      * payment_method_type is a gateway's):
-     *   S        its refund that is pending or authorized keeps its amount and its reference, and a refund request a
-     *            gateway sent or a word kept for staff is not changed by hand ({@see self::staffRefundEditRefusal()});
-     *   R4-6     staff never move its refund into a settled status, from any status, failed or cancelled included
-     *            (the same function);
-     *   rule 1   it keeps its method once its gateway collected it ({@see self::gatewayMethodRefusal()});
-     *   R6-2     it keeps its provider transaction id once it has one ({@see self::providerIdRefusal()}).
+     *   - its refund that is pending or authorized keeps its amount and its reference, and a refund request a
+     *     gateway sent or a word kept for staff is not changed by hand ({@see self::staffRefundEditRefusal()});
+     *   - staff never move its refund into a settled status, from any status, failed or cancelled included
+     *     (the same function);
+     *   - it keeps its method once its gateway collected it ({@see self::gatewayMethodRefusal()});
+     *   - it keeps its provider transaction id once it has one ({@see self::providerIdRefusal()}).
      * A write no staff entry point marked (the core's own writes; a payment plugin's builder or compare-and-set,
      * inside a staff user's request or not: ->failed(), ->cancelled(), a capture, a settlement, its amount, payload or
-     * bookkeeping) is never refused by it (since 2.1.0).
+     * bookkeeping) is never refused by it.
      *
      * @param object $stored The row as read (id, id_order, payment_type, transaction_status, amount, transaction_id,
      *                       id_refunded_payment, id_payment_method, payment_method_type).
@@ -15844,12 +15836,12 @@ class PaymentLedger
      * reconcile to an existing refund, duplicate or invalid report). A refund request a payment gateway sent
      * (still under its 'request:' key) is moved by its gateway only (settleRefund(), holdRefund()): staff never
      * settle it, re-reference it or change its amount; they may fail or cancel it (the orphan release). A refund
-     * of a gateway payment that is pending or authorized (since 2.1.0: whoever wrote it, a
+     * of a gateway payment that is pending or authorized (whoever wrote it, a
      * reservation, a row split off it or held beside it, one kept for staff, or one typed in the payment form)
      * keeps its amount and its reference while the provider may still complete it, and only the provider's word
      * settles it (its plugin, or Record this refund), also once staff set it failed or cancelled (a revival is not a
      * settle either): staff set it failed or cancelled and record a new refund
-     * ({@see self::refundIdentityFixed()}). Clauses S and R4-6 of the staff guard ({@see self::staffWriteRefusal()}):
+     * ({@see self::refundIdentityFixed()}). The staff guard's first two clauses ({@see self::staffWriteRefusal()}):
      * asked for the write of a staff entry point only, never for a payment plugin's write or the ledger's provider
      * verbs (settleRefund(), holdRefund(): the provider's figure and id win).
      *
@@ -15870,7 +15862,7 @@ class PaymentLedger
         }
 
         // A failed or cancelled refund of a gateway payment brought back into the books by hand: only the provider's
-        // word (or Record this refund on its report) settles a gateway payment's refund (since 2.1.0).
+        // word (or Record this refund on its report) settles a gateway payment's refund.
         if (\in_array((string) ($stored->transaction_status ?? ''), [self::STATUS_FAILED, self::STATUS_CANCELLED], true)) {
             return \in_array((string) ($data['transaction_status'] ?? ''), self::REFUND_SETTLED_STATUSES, true) && self::gatewayPaymentOf(refund: $stored)
                 ? Text::sprintf('COM_ALFA_PAYMENT_REFUND_GATEWAY_SETTLES', $id)
@@ -15914,7 +15906,7 @@ class PaymentLedger
         }
 
         // A refund of a gateway payment that is pending or authorized is settled by its provider's word only (its
-        // payment plugin, or Record this refund on the provider's report): never by a status move here (since 2.1.0).
+        // payment plugin, or Record this refund on the provider's report): never by a status move here.
         $settles = $statusMoves && \in_array((string) $data['transaction_status'], self::REFUND_SETTLED_STATUSES, true);
 
         if (!($settles || $amountMoves || $referenceMoves) || !self::gatewayPaymentOf(refund: $stored)) {
@@ -16037,7 +16029,7 @@ class PaymentLedger
      * Asked by the order's payment form and the REST settle verb, to tell staff
      * before anything is written; the write itself is decided again under the
      * order's lock, whoever makes it: create() for a new row, update() and
-     * updateIfStatus() for a refund brought back (since 2.1.0).
+     * updateIfStatus() for a refund brought back.
      *
      * @param object|null $stored The row as stored (payment_type, transaction_status); null for a new row.
      * @param array $data The write.

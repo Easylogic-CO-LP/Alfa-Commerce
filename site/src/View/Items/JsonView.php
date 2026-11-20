@@ -102,7 +102,7 @@ class JsonView extends BaseJsonView
             $app->close();
         }
 
-        // THE SAME ATTRIBUTION AS THE LISTING (2.2.0): this read is the listing's, so a provider
+        // THE SAME ATTRIBUTION AS THE LISTING: this read is the listing's, so a provider
         // may mint for it. `event` and `order` for the result set, each item's global position
         // from 1, and no-store when the handle belongs to this response alone.
         $attribution = $itemsModel->getResultAttribution();

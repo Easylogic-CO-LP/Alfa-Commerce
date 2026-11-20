@@ -1,4 +1,4 @@
--- Alfa Commerce 2.1.1: one collation for every Alfa table
+-- One collation for every Alfa table
 --
 -- Every Alfa table is utf8mb4_unicode_ci, as the Joomla tables and the language tables that
 -- Alfa creates for each content language are. The tables below were created utf8mb4_general_ci,

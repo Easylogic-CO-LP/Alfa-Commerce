@@ -6,7 +6,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * A payment or shipping method in the product page's methods block (2.2.2), drawn by core in the order every method
+ * A payment or shipping method in the product page's methods block, drawn by core in the order every method
  * keeps: its image when the shop set one, its title, the description the shop wrote. What the method's plugin adds
  * follows it in the same block, from the plugin's own layout. Pure markup.
  *

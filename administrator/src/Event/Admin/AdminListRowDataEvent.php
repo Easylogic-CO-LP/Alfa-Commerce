@@ -41,7 +41,7 @@ use InvalidArgumentException;
  *     }
  *
  * The accumulator is SHARED by every contributor: value() is its only writer, and a key belongs to
- * the first plugin that writes it (2.2.0). Contributed columns read it at render time through the
+ * the first plugin that writes it. Contributed columns read it at render time through the
  * context's rowValues(); a column resolver that queries per row defeats the entire arrangement.
  *
  * `items` are the model's finished, enriched rows. Enriching them in place is allowed and is
@@ -59,7 +59,7 @@ final class AdminListRowDataEvent extends AlfaAdminEvent
     public const NAME = 'onAlfaAdminListRowData';
 
     /**
-     * Contribute one value key for the page's rows (2.2.0): `$values` holds the value per row id and lands in rowData
+     * Contribute one value key for the page's rows: `$values` holds the value per row id and lands in rowData
      * as [id => [key => value]], where the plugin's columns read it. A key belongs to the first plugin that writes it;
      * another plugin writing the same key is refused with a log line, so contributors never overwrite each other.
      *

@@ -44,7 +44,7 @@ use Joomla\CMS\Factory;
  *
  * All five dimensions must match simultaneously for a discount/tax to apply.
  *
- * Place: a rule scoped to a place reaches every place inside it (2.2.1): the
+ * Place: a rule scoped to a place reaches every place inside it: the
  * visitor's place and every place above it (PlaceTree::placesFor()) are
  * matched, and the matched rules are put in one order (RulePrecedence). A
  * product's price rows stay exact to their place.
@@ -494,7 +494,7 @@ class PriceDataLoader
      *                          that target all manufacturers
      *   3. Place scope        - discount targets all places (place_id=0/NULL)
      *                          or the visitor's place or a place above it
-     *                          (2.2.1; RulePrecedence orders what matched)
+     *                          (RulePrecedence orders what matched)
      *   4. Usergroup scope    - discount targets all groups (usergroup_id=0/NULL)
      *                          or one of the VISITOR'S Joomla usergroups
      *   5. User scope         - discount targets all users (user_id=0/NULL)
@@ -661,7 +661,7 @@ class PriceDataLoader
             ->join('LEFT', $this->manufacturerLinks() . ' AS im ON im.item_id = ic.item_id')
             ->where('(tm.tax_id IS NULL OR tm.manufacturer_id = 0 OR tm.manufacturer_id = im.manufacturer_id)')
 
-            // Scope 3: Place: the visitor's place or a place above it (2.2.1)
+            // Scope 3: Place: the visitor's place or a place above it
             ->join('LEFT', '#__alfa_tax_places AS tp ON tp.tax_id = t.id')
             ->where(self::placeMatch(alias: 'tp', foreignKey: 'tax_id', chain: $chain))
 
@@ -700,7 +700,7 @@ class PriceDataLoader
     // Helpers
 
     /**
-     * The place condition of a discount's or a tax's scope (2.2.1): no place row, the "every place" row (0), or a row
+     * The place condition of a discount's or a tax's scope: no place row, the "every place" row (0), or a row
      * naming the buyer's place or a place above it. The same words as the shipping taxes (ShippingTaxResolver).
      *
      * @param string $alias The scope table's alias.

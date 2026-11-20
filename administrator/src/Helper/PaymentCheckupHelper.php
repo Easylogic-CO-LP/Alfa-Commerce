@@ -75,7 +75,7 @@ final class PaymentCheckupHelper
 
         $type = (string) $method->type;
 
-        // The method's plugin, through the plugin helper (2.2.0, mode B): disabled, missing or unloadable, a notice.
+        // The method's plugin, through the plugin helper (targeted): disabled, missing or unloadable, a notice.
         $plugins = AlfaPluginHelper::get();
 
         try {

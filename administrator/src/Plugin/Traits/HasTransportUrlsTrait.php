@@ -40,7 +40,7 @@ trait HasTransportUrlsTrait
      * The controller noun this family's endpoints live under: 'payment' or
      * 'shipment'. Implemented by the family base, never by a leaf plugin:
      * a plugin choosing its own transport would be a plugin able to receive
-     * another family's callbacks. Static (2.2.1): it is the family's, not one
+     * another family's callbacks. Static: it is the family's, not one
      * plugin's, so the address of any plugin of the family is built from it.
      *
      *
@@ -104,12 +104,12 @@ trait HasTransportUrlsTrait
      * index.php?option=com_alfa&task=<family>.webhook&method=<element>, with
      * &environment=<set> for a payment gateway's credential set.
      *
-     * Never routed (2.2.1): the address a provider holds names no language and
+     * Never routed: the address a provider holds names no language and
      * no SEF path, so it is the same whoever reads it and whatever languages
      * the site has. While System - Alfa Commerce Sync is enabled with Access
      * Public, a GET to it is answered by the controller, not redirected: the
      * plugin marks the request before Joomla routes it. A POST always reaches
-     * the controller. An address registered in the routed form before 2.2.1
+     * the controller. An address registered in the routed form
      * still reaches the same controller.
      *
      * Carries NO per-order parameters by design: a gateway or carrier is

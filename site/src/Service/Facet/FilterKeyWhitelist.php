@@ -63,8 +63,7 @@ use Alfa\Component\Alfa\Site\Model\ManufacturersModel;
  * have one: a defaults-derived list would be empty and would kill the whole filter panel. It is
  * built from the `<field name="...">` definitions in `components/com_alfa/forms/filter_*.xml` plus
  * the URL-only keys that have a real `getState('filter....')` reader, each corroborated by a live
- * request. The audit that produced it, with the source and the live proof for every single row,
- * is `C1-WHITELIST.md` / `C1-whitelist.json`.
+ * request.
  *
  * Deliberate exclusions
  *   - `groups_mode`: grouping is permanently ANY/OR. See
@@ -83,7 +82,7 @@ final class FilterKeyWhitelist
     /**
      * Model class => the filter keys that class accepts from the request.
      *
-     * Every row is source-proven and live-proven in `C1-WHITELIST.md`. Keep the two in step.
+     * Every row is a key a site filter form defines or a getState() reader reads.
      *
      * @var array<class-string, string[]>
      *

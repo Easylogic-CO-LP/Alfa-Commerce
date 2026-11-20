@@ -14,7 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 
 /**
- * What a payment write did, and why when it did not write (2.2.2).
+ * What a payment write did, and why when it did not write.
  *
  * Answered by the builder's saveWithVerdict() and by the payment plugin's settleAttemptVerdict(),
  * supersedeAttemptVerdict() and claimPendingAttemptVerdict(). A plugin decides on $kind, and on $code when the kind is
@@ -27,11 +27,11 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Money;
  *   lock_not_taken  another operation on the order held its lock; nothing was written; temporary;
  *   write_failed    the database refused the row, or a failure was caught; nothing was written; temporary or a fault;
  *   raced           the row left the expected status first (an update with an expected status, a claim).
- * A code's value never changes and is never reused in 2.x. A later 2.x release may add codes, never kinds, so a plugin
- * handles a code it does not know as its kind.
+ * A code's value never changes and is never reused within the major version. A later release may add codes, never
+ * kinds, so a plugin handles a code it does not know as its kind.
  *
- * @api ANSWERS: a read-only value; a code's value never changes and is never reused in 2.x, and a later 2.x may add
- *      codes, never kinds.
+ * @api ANSWERS: a read-only value; a code's value never changes and is never reused within the major version, and a
+ *      later release may add codes, never kinds.
  *
  * @since  2.2.2
  */

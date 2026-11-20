@@ -108,7 +108,7 @@ final class KeptQuantity
      * @param int[] $tierStarts Every quantity at which the unit may change: the first quantity
      *                          of each tier and the one after its last. More is harmless.
      * @param Closure(int):(string|null) $unitAt The unit that prices a quantity, as the caller reads it; null for a quantity
-     *                                           with no price (2.2.2).
+     *                                           with no price.
      * @param Currency $currency The currency the line is charged in.
      *
      * @return int|null The quantity, or null when the policy keeps none that is charged, up to the line capacity.
@@ -137,7 +137,7 @@ final class KeptQuantity
                 }
             }
 
-            // A tier with no price (2.2.2) charges nothing at any quantity of it: the walk goes on to the next tier.
+            // A tier with no price charges nothing at any quantity of it: the walk goes on to the next tier.
             $unit = $unitAt($at);
 
             if ($unit === null) {

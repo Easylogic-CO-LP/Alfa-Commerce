@@ -128,7 +128,7 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
 
                 <?php // data-alfa-list is the refresh hook: orders-list.js replaces this node
                       // in place after an action. Keep it if you override the id. Below 480 px an
-                      // order's row folds (alfa-fold, 2.2.1 A4): its cells wrap under the order
+                      // order's row folds (alfa-fold): its cells wrap under the order
                       // number, each named by its data-alfa-label, the select-all box kept. ?>
                 <table class="table table-striped table-hover alfa-fold" id="orderList" data-alfa-list="orders">
 

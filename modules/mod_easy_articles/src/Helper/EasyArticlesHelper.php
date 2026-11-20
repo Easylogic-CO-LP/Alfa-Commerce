@@ -374,7 +374,7 @@ final class EasyArticlesHelper
      * visitor always reads fresh. What belongs to one visitor's session (recently
      * read) and a random order are never cached. A page that shows a visitor's
      * own recently read articles is never stored by Joomla's page cache either:
-     * the next visitor would be shown them (2.2.1).
+     * the next visitor would be shown them.
      *
      * @param int $moduleId Module instance id.
      * @param Registry $params Module parameters (owncache, cache_time).
@@ -1073,7 +1073,7 @@ final class EasyArticlesHelper
     }
 
     /**
-     * One value of the request, through Joomla's filter, or null when the request sends a list in its place (2.2.1): a
+     * One value of the request, through Joomla's filter, or null when the request sends a list in its place: a
      * list handed on to a typed parameter fails with an error page that names a file of the site, so it is refused
      * before any use.
      *
@@ -1095,7 +1095,7 @@ final class EasyArticlesHelper
 
     /**
      * Answer a request that sent a list where one value is expected: 400, with this module's sentence and no file of the
-     * site named (2.2.1).
+     * site named.
      *
      * @since  2.2.1
      */

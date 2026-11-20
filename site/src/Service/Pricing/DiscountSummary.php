@@ -112,11 +112,9 @@ class DiscountSummary
      * percentages", and it says it applies to EVERY surface, which includes
      * this one.
      *
-     * This used to walk the applied rules and add up `$discount->percent`. Two
-     * stacked 20% rules therefore reported 40.00% while the customer saved
-     * 36.00%, because the second rule takes its cut from what the first one
-     * left. Measured on the demo before this change: four rules reported
-     * 45.00% against a real 38.44%.
+     * Adding up the applied rules' `$discount->percent` would be wrong: two
+     * stacked 20% rules would report 40.00% while the customer saves 36.00%,
+     * because the second rule takes its cut from what the first one left.
      *
      * Each stage is measured against ITS OWN entry price, which is what makes
      * the two figures meaningful separately:

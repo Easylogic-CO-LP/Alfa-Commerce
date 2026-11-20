@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 \defined('_JEXEC') or die;
 
 /**
- * A job's handler (2.2.0, design 2.5): it walks the job's units through its domain service, chunk by chunk.
+ * A job's handler: it walks the job's units through its domain service, chunk by chunk.
  *
  * The runner owns the lease, the retry, the budget, the checkpoint and the progress; the handler owns none of them.
  * chunk() runs inside the runner's chunk transaction, so the domain rows, the checkpoint and the fence commit together:

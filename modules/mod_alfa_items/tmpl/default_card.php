@@ -57,7 +57,7 @@ if ($name === '') {
             <a href="<?php echo $esc($link); ?>"><?php echo $esc($name); ?></a>
         </div>
         <?php echo Surface::render(owner: $item, slot: ItemListSurface::Title); ?>
-        <?php // Catalogue only (2.2.2, $item->sellsOnline false): a plain block, no form; the fields arrive as read-only lists.?>
+        <?php // Catalogue only ($item->sellsOnline false): a plain block, no form; the fields arrive as read-only lists.?>
         <?php if ($sellsOnline) : ?>
         <form class="item-card-buy" data-item-form data-action="<?php echo $esc($reloadUrl); ?>"
               action="<?php echo $esc((string) ($item->addToCartUrl ?? '')); ?>" method="post">

@@ -28,9 +28,7 @@
  * Contributions are DECLARATIVE (operation + amount + net/gross target), so the
  * engine folds each through the SAME primitive option deltas use
  * (PriceComputationEngine::applyVariantAdjust) in sortOrder, and each becomes a
- * labeled step in the breakdown. 2.2.1 removed setOverrideFinal() and
- * getOverrideFinal(): the engine never read the pinned final, so a price pinned
- * through them changed nothing. The SAME event runs for the catalog price, the
+ * labeled step in the breakdown. The SAME event runs for the catalog price, the
  * live item-page preview and the cart line, so a configurator prices identically
  * everywhere.
  *

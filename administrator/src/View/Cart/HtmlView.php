@@ -46,7 +46,7 @@ class HtmlView extends BaseHtmlView
     protected string $alfaEntity = 'cart';
 
     /**
-     * One cart is an edit screen, not a list (2.2.1): a plugin targeting 'cart' sees SCREEN_EDIT, and the
+     * One cart is an edit screen, not a list: a plugin targeting 'cart' sees SCREEN_EDIT, and the
      * list's row and bulk action events, which have no rows here, are not raised.
      *
      * @since  2.2.1
@@ -291,7 +291,7 @@ class HtmlView extends BaseHtmlView
             //
             // A SHOPPER'S CART IS NOT SETTLED BY BEING LOOKED AT. Settling
             // reconciles, and reconciliation writes id_shipment and id_payment on
-            // the row the shopper is still using, which the owner's list calls a
+            // the row the shopper is still using, which counts as a
             // mutation. Until the cart has been taken over the reading is taken
             // without settling; a builder cart settles exactly as before.
             $this->builderSnapshot = $this->getModel()->getBuilderSnapshot(
