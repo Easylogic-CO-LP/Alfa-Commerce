@@ -20,7 +20,7 @@
     {
       "name": "plg_alfa-form-fields_tel.tel",
       "type": "style",
-      "uri": "plg_alfa-form-fields_tel/tel.css",
+      "uri": "plg_alfa-form-fields_tel/tel.min.css",
       "dependencies": [
         "plg_alfa-form-fields_tel.intltelinput"
       ]
@@ -28,7 +28,7 @@
     {
       "name": "plg_alfa-form-fields_tel.tel",
       "type": "script",
-      "uri": "plg_alfa-form-fields_tel/tel.js",
+      "uri": "plg_alfa-form-fields_tel/tel.min.js",
       "dependencies": [
         "plg_alfa-form-fields_tel.intltelinput",
         "form.validate"

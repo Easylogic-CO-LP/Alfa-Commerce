@@ -180,11 +180,18 @@ Alfa.dressActionFrame = function (frame) {
 
     // Borrow the cache-busting query from a stylesheet the host page already
     // carries, so the framed copy expires exactly when every other asset does.
+    // Its form follows that stylesheet too: the source when Joomla serves the
+    // page's styles unminified (Debug System on), the .min file otherwise.
     var ref = document.querySelector('link[href*="/media/com_alfa/css/admin/"]');
     var query = '';
+    var form = '.min';
 
     if (ref && ref.href.indexOf('?') !== -1) {
         query = ref.href.slice(ref.href.indexOf('?'));
+    }
+
+    if (ref && !/\.min\.css(\?|$)/.test(ref.href)) {
+        form = '';
     }
 
     var paths = window.Joomla && Joomla.getOptions ? Joomla.getOptions('system.paths') : null;
@@ -192,7 +199,7 @@ Alfa.dressActionFrame = function (frame) {
     var link = doc.createElement('link');
 
     link.rel = 'stylesheet';
-    link.href = base + 'media/com_alfa/css/admin/frame.css' + query;
+    link.href = base + 'media/com_alfa/css/admin/frame' + form + '.css' + query;
     link.setAttribute('data-alfa-frame-css', '1');
     doc.head.appendChild(link);
 };

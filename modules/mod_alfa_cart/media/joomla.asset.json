@@ -8,7 +8,7 @@
     {
       "name": "mod_alfa_cart.cart",
       "type": "script",
-      "uri": "mod_alfa_cart/cart.js",
+      "uri": "mod_alfa_cart/cart.min.js",
       "attributes": {
         "type": "module"
       }
@@ -16,7 +16,7 @@
     {
       "name": "mod_alfa_cart.cart",
       "type": "style",
-      "uri": "mod_alfa_cart/cart.css"
+      "uri": "mod_alfa_cart/cart.min.css"
     }
   ]
 }

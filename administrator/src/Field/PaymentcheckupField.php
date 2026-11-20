@@ -70,7 +70,7 @@ final class PaymentcheckupField extends FormField
         $variant = \in_array($variant, PaymentCheckupEvent::VARIANTS, true) ? $variant : 'general';
 
         Factory::getApplication()->getDocument()->getWebAssetManager()
-            ->registerAndUseScript('com_alfa.payment-checkup', 'media/com_alfa/js/admin/payment-checkup.js', [], ['defer' => true]);
+            ->registerAndUseScript('com_alfa.payment-checkup', 'media/com_alfa/js/admin/payment-checkup.min.js', [], ['defer' => true]);
 
         return PaymentCheckupHelper::render(
             methodId: (int) $this->form->getValue('id'),

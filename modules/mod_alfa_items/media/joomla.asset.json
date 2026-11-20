@@ -8,12 +8,12 @@
     {
       "name": "mod_alfa_items.items",
       "type": "style",
-      "uri": "mod_alfa_items/items.css"
+      "uri": "mod_alfa_items/items.min.css"
     },
     {
       "name": "mod_alfa_items.items",
       "type": "script",
-      "uri": "mod_alfa_items/items.js",
+      "uri": "mod_alfa_items/items.min.js",
       "dependencies": [
         "core"
       ],
@@ -37,12 +37,12 @@
     {
       "name": "mod_alfa_items.look-editor",
       "type": "style",
-      "uri": "mod_alfa_items/look-editor.css"
+      "uri": "mod_alfa_items/look-editor.min.css"
     },
     {
       "name": "mod_alfa_items.look-editor",
       "type": "script",
-      "uri": "mod_alfa_items/look-editor.js",
+      "uri": "mod_alfa_items/look-editor.min.js",
       "attributes": {
         "defer": true
       }

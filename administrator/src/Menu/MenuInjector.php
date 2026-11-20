@@ -75,8 +75,8 @@ final class MenuInjector
             $doc->setBuffer($markup . $doc->getBuffer('component'), 'component');
 
             $wa = $doc->getWebAssetManager();
-            $wa->registerAndUseStyle('com_alfa.sidebar', 'media/com_alfa/css/admin/sidebar.css');
-            $wa->registerAndUseScript('com_alfa.sidebar', 'media/com_alfa/js/admin/sidebar.js');
+            $wa->registerAndUseStyle('com_alfa.sidebar', 'media/com_alfa/css/admin/sidebar.min.css');
+            $wa->registerAndUseScript('com_alfa.sidebar', 'media/com_alfa/js/admin/sidebar.min.js');
         } catch (Throwable $e) {
             // The menu must never break the page it decorates.
         }
