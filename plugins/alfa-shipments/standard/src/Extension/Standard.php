@@ -841,14 +841,12 @@ final class Standard extends ShipmentsPlugin
         // View Details: opens a modal with shipment information
         $event->add('view_details', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_VIEW_DETAILS'))
             ->icon('eye')->css('btn-outline-secondary')
-            ->modal('action_view_details', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_DETAILS') . ' #' . $shipment->id)
             ->readOnly()
             ->priority(10);
 
         // View Logs: opens a modal with this shipment's plugin log history
         $event->add('view_logs', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_VIEW_LOGS'))
             ->icon('list')->css('btn-outline-info')
-            ->modal('default_order_logs_view', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_LOGS') . ' #' . $shipment->id, 'lg')
             ->readOnly()
             ->priority(5);
 
@@ -882,7 +880,6 @@ final class Standard extends ShipmentsPlugin
             if (!empty($trackingNumber)) {
                 $event->add('track', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_TRACK'))
                     ->icon('location')->css('btn-outline-primary')
-                    ->modal('action_tracking', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_TRACKING') . ' #' . $shipment->id)
                     ->readOnly()
                     ->priority(100);
             }
@@ -1140,7 +1137,6 @@ final class Standard extends ShipmentsPlugin
             'shipment' => $shipment,
             'order' => $event->getOrder(),
         ]);
-        $event->setModalTitle(Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_DETAILS') . ' #' . $shipment->id);
     }
 
     /**
@@ -1164,7 +1160,6 @@ final class Standard extends ShipmentsPlugin
             'logData' => $logData ?? [],
             'xml' => $this->getLogsSchema(),
         ]);
-        $event->setModalTitle(Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_LOGS') . ' #' . $shipment->id);
     }
 
     /**
@@ -1189,7 +1184,6 @@ final class Standard extends ShipmentsPlugin
             'tracking_number' => $shipment->tracking_number ?? '',
             'tracking_url' => $this->resolveTrackingUrl($shipment),
         ]);
-        $event->setModalTitle(Text::_('PLG_ALFA_SHIPMENTS_STANDARD_TRACKING') . ' #' . $shipment->id);
     }
 
     /**

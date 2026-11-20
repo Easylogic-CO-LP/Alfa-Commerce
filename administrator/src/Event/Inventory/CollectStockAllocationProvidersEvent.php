@@ -25,7 +25,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *     public function onCollectStockAllocationProviders(
  *         CollectStockAllocationProvidersEvent $event
  *     ): void {
- *         $event->addProvider(new NearestStoreAllocation(), 'alfa-inventory.mypack', 100);
+ *         $event->addProvider('alfa-inventory.mypack', new NearestStoreAllocation(), 100);
  *     }
  *
  * Same shape as the document type provider collection: the typed
@@ -47,26 +47,31 @@ class CollectStockAllocationProvidersEvent extends AbstractEvent
     /**
      * Contribute a provider, owned by the plugin that names itself.
      *
-     * A registry's entry names its plugin second, after the object it registers: the four registries (addProjection(),
-     * addEngine(), and addProvider() of the document types and of the stock allocation) share that shape, while a
-     * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
+     * Every contribution names its plugin first, then what it contributes: the four registries (addProjection(),
+     * addEngine(), and addProvider() of the document types and of the stock allocation) as the contributions that build
+     * an entry (item(), column(), action() and the others). A registry answers the event, so a plugin's contributions
+     * chain in one statement.
      *
-     * @param StockAllocationProviderInterface $provider The provider instance.
      * @param string $contributor The contributing plugin, group.element (in place of the extension name; attribution,
      *                            never an authorisation).
+     * @param StockAllocationProviderInterface $provider The provider instance.
      * @param int $priority Chain position; higher asks first.
+     *
+     * @return static The event, for the next contribution.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function addProvider(StockAllocationProviderInterface $provider, string $contributor, int $priority = 0): void
+    public function addProvider(string $contributor, StockAllocationProviderInterface $provider, int $priority = 0): static
     {
         $this->providers[] = [
             'provider' => $provider,
             'element' => PluginId::of($contributor)->key(),
             'priority' => $priority,
         ];
+
+        return $this;
     }
 
     /**

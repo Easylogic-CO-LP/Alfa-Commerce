@@ -12,7 +12,6 @@
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
 use Alfa\Component\Alfa\Administrator\Event\General\Traits\HasMethodArgumentTrait;
-use Alfa\Component\Alfa\Site\Service\Order\Order;
 use BadMethodCallException;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -34,8 +33,8 @@ use BadMethodCallException;
  *  - ANSWER WITH THE RESPONSE CODE: 2xx acknowledges the notification and stops
  *    retries; 5xx asks the gateway to retry later.
  *
- * The subject is the loaded order, or NULL when the gateway payload must identify the
- * order itself (e.g. via the plugin's own transaction reference).
+ * The subject is NULL: the plugin identifies the order from the verified payload
+ * itself (e.g. through its own transaction reference).
  *
  * @since  2.0.0
  */
@@ -60,24 +59,6 @@ class PaymentWebhookEvent extends PaymentsEvent
         parent::__construct($name, $arguments);
 
         $this->requireMethodArgument($name);
-    }
-
-    /**
-     * Get the order subject carried by the event: NULL when the plugin must
-     * resolve the order from its own payload.
-     *
-     * @return Order|null The loaded order object, or null
-     *
-     * @deprecated 2.2.1 Always null when the plugin is called: the controller resolves no order before the plugin
-     *             answers, so the plugin resolves it from its own reference (the provider's reference in the
-     *             notification). Removed in 2.3.0.
-     * @since  2.0.0
-     */
-    public function getOrder(): ?Order
-    {
-        $subject = $this->getSubject();
-
-        return $subject === null ? null : Order::of($subject);
     }
 
     /**

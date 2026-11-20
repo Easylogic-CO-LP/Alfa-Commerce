@@ -12,7 +12,6 @@
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 
 use Alfa\Component\Alfa\Administrator\Event\General\Traits\HasMethodArgumentTrait;
-use Alfa\Component\Alfa\Site\Service\Order\Order;
 use BadMethodCallException;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -54,23 +53,5 @@ class ShipmentResponseEvent extends ShipmentsRedirectEvent
         parent::__construct($name, $arguments);
 
         $this->requireMethodArgument($name);
-    }
-
-    /**
-     * Get the order the response is about: NULL until the plugin resolves it
-     * from its own payload.
-     *
-     * @return Order|null The order, or null when unresolved
-     *
-     * @deprecated 2.2.1 Always null when the plugin is called: the controller resolves no order before the plugin
-     *             answers, so the plugin resolves it from its own reference (the carrier's reference in the
-     *             response). Removed in 2.3.0.
-     * @since  2.0.0
-     */
-    public function getOrder(): ?Order
-    {
-        $subject = $this->getSubject();
-
-        return $subject === null ? null : Order::of($subject);
     }
 }
