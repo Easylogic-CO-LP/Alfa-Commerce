@@ -347,7 +347,7 @@ final class InformationNotices
     }
 
     /**
-     * The published products whose minimum quantity no price row covers (2.2.2): the product has price rows for every
+     * The published products whose minimum quantity no price row covers: the product has price rows for every
      * shopper of a currency (no group, customer or place of their own; an empty scope read as none, as 0), and none of
      * them covers the minimum, whether the rows begin above it or all end below it. A row of any currency counts, so a
      * shop with one row per currency is named only where none covers the minimum. A product priced only for a group, a

@@ -37,7 +37,7 @@ use Joomla\Database\ParameterType;
  * Probes are existence reads (LIMIT 1 on indexed columns) or params reads: cheap
  * enough that the cache in {@see SetupHelper} exists for politeness, not survival.
  *
- * The checklist holds the steps an administrator completes (2.2.2). What is only to be known (Joomla's page cache, a
+ * The checklist holds the steps an administrator completes. What is only to be known (Joomla's page cache, a
  * library missing or disabled, an Alfa extension not built for this version, online sales switched off, products
  * priced only from a larger quantity than they sell from) is a notification ({@see InformationNotices},
  * {@see ExtensionCompatibility}), never a row.

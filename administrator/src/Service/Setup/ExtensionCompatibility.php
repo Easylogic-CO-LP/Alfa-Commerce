@@ -34,8 +34,8 @@ use RuntimeException;
  * "compatibility not stated", the reason written to the maintenance log by the update.
  *
  * WHERE IT IS SAID. A dismissible notification to the administrators, which opens Tools > Extensions, where each
- * extension shows its verdict ({@see self::verdicts()}); never on the installer's page nor in the setup checklist
- * (2.2.2). It follows the verdict ({@see self::follow()}, {@see ConditionNotice}): after Alfa Commerce is installed or
+ * extension shows its verdict ({@see self::verdicts()}); never on the installer's page nor in the setup checklist.
+ * It follows the verdict ({@see self::follow()}, {@see ConditionNotice}): after Alfa Commerce is installed or
  * updated (script.php postflight, which also writes one line per extension named to the maintenance log), after an
  * Alfa extension is installed, updated or uninstalled (System - Alfa Commerce Sync), when Tools > Extensions is opened,
  * and at most once an hour from the bell's background refresh. An extension newly named, or a new line of Alfa

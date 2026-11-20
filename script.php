@@ -2020,7 +2020,7 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         // 8. The installed Alfa extensions not known to work with this version: one notification to the administrators
-        //    and the maintenance log, never this page (2.2.2).
+        //    and the maintenance log, never this page.
         $this->reportExtensionCompatibility(type: $type);
 
         return true;
@@ -2033,7 +2033,7 @@ class com_alfaInstallerScript extends InstallerScript
      * ("compatibility not stated"; nothing is inferred from their own version). One dismissible notification to the
      * administrators, which opens Tools > Extensions, where each one shows its verdict, raised again by an installation
      * that names an extension newly or brings a new line of Alfa Commerce, and one line per extension in the
-     * maintenance log (com_alfa_maintenance.php). The installation page says nothing of it (2.2.2). A failure is said,
+     * maintenance log (com_alfa_maintenance.php). The installation page says nothing of it. A failure is said,
      * never a failed installation.
      *
      * @param   string  $type  install or update.

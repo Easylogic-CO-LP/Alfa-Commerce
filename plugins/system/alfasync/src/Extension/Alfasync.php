@@ -161,8 +161,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Storefront menu items removed -> the setup checklist must un-tick.
             'onContentAfterDelete' => 'onContentAfterDelete',
 
-            // Alfa plugins saved / com_alfa Options saved -> setup verdict stale; an Alfa plugin's cached cards too
-            // (2.2.1).
+            // Alfa plugins saved / com_alfa Options saved -> setup verdict stale; an Alfa plugin's cached cards too.
             'onExtensionAfterSave' => 'onExtensionAfterSave',
 
             // A content language published from the Content Languages list -> its language tables. The same plugins
@@ -179,14 +178,13 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             'onExtensionBeforeSave' => 'onExtensionBeforeSave',
 
             // An Alfa extension uninstalled through Joomla: warned that its data stays (never refused); the cached
-            // dashboard cards and setup verdict are dropped once it is gone, and the compatibility notice follows
-            // (2.2.1).
+            // dashboard cards and setup verdict are dropped once it is gone, and the compatibility notice follows.
             'onExtensionBeforeUninstall' => 'onExtensionBeforeUninstall',
             'onExtensionAfterUninstall' => 'onExtensionAfterUninstall',
 
             // An Alfa language pack installed or updated: core's language sync, Joomla's own language checked. An Alfa
             // extension installed or updated: the cached dashboard cards and setup verdict are dropped, and the
-            // compatibility notice follows (2.2.1).
+            // compatibility notice follows.
             'onExtensionAfterInstall' => 'onExtensionAfterInstall',
             'onExtensionAfterUpdate' => 'onExtensionAfterInstall',
 
@@ -894,7 +892,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * Called after an extension row is saved. Two saves flip setup detectors or cards
      * without touching any Alfa table: saving an Alfa plugin, its enabled state or Access
      * among what changes (its own setup rows and cards, and the correctness join in the
-     * payments and shipping checks; 2.2.1 for every Alfa plugin and the cards), and saving
+     * payments and shipping checks), and saving
      * com_alfa's own Options (store identity, default currency, media location).
      *
      * Languages: Content Languages announces its saves here too (com_languages
@@ -967,7 +965,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * The extensions whose state the setup checklist or the dashboard reads: an Alfa extension (a plugin of a group
      * alfa... or of an Alfa\ namespace, a module mod_alfa..., a package pkg_alfa...;
      * {@see ClearDataExtensions::installed()}): its setup rows and cards, and the correctness join of the payments and
-     * shipping checks (2.2.1). One of them saved from its form
+     * shipping checks. One of them saved from its form
      * ({@see self::onExtensionAfterSave()}), or enabled or disabled from the Plugins list
      * ({@see self::onContentChangeState()}) or from Extensions: Manage ({@see self::onExtensionChangeState()}), makes
      * the setup verdict stale, and an Alfa extension the cached cards too.
@@ -1029,9 +1027,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * After an Alfa extension is installed, updated or uninstalled (2.2.1): the notification that names the extensions
+     * After an Alfa extension is installed, updated or uninstalled: the notification that names the extensions
      * not known to work with this Alfa Commerce follows the verdict ({@see ExtensionCompatibility::notify()}): raised
-     * again, unread, when an extension is newly named (2.2.2), brought up to date when one is no longer named,
+     * again, unread, when an extension is newly named, brought up to date when one is no longer named,
      * withdrawn when none is left. Not while Alfa is in maintenance. Never breaks the caller.
      *
      * @since  2.2.1
@@ -1093,7 +1091,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     /**
      * Called before extensions are enabled or disabled from Extensions: Manage (com_installer's ManageModel::publish(),
      * context com_installer.manage, the extension ids as the subject; Joomla announces it before it stores each one).
-     * An Alfa extension among them drops the cached dashboard cards and setup verdict (2.2.1), which the next
+     * An Alfa extension among them drops the cached dashboard cards and setup verdict, which the next
      * page computes from the stored state, as the Plugins list's switch does.
      *
      * @param Event $event Joomla's BeforeChangeStateEvent.
@@ -1247,7 +1245,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     {
         $extensionId = (int) ($event->getArgument('eid') ?? $event->getArgument('0') ?? 0);
 
-        // An Alfa extension: remembered, so its cards and setup rows are dropped once it is gone (2.2.1); after
+        // An Alfa extension: remembered, so its cards and setup rows are dropped once it is gone; after
         // the uninstall its row no longer says whose it was.
         try {
             if ($extensionId > 0 && $this->alfaExtensions(ids: [$extensionId]) !== []) {
@@ -1297,8 +1295,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $this->logError(caller: 'onExtensionAfterInstall', message: $e->getMessage());
         }
 
-        // An Alfa extension installed or updated (2.2.1): its cards and setup rows are drawn from the next page on,
-        // and the compatibility notice follows its manifest (2.2.2: raised again when it is newly named).
+        // An Alfa extension installed or updated: its cards and setup rows are drawn from the next page on,
+        // and the compatibility notice follows its manifest (raised again when it is newly named).
         try {
             $extensionId = (int) $event->getArgument('eid');
 

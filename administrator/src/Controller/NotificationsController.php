@@ -89,7 +89,7 @@ class NotificationsController extends BaseController
         // And an Alfa table an update left in another collation (raised or cleared, never converted).
         CollationCheck::syncNotice();
 
-        // And what the administrators are told rather than asked to do (2.2.2): Joomla's page cache, a library a
+        // And what the administrators are told rather than asked to do: Joomla's page cache, a library a
         // feature needs that is missing or disabled, online sales off, the products priced only from a larger
         // quantity than they sell from (at most every ten minutes) and the Alfa extensions not built for this
         // version (at most every hour).
