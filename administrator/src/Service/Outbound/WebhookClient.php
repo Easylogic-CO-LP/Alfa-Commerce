@@ -74,7 +74,6 @@ final class WebhookClient
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_CONNECTTIMEOUT => self::CONNECT_SECONDS,
             CURLOPT_TIMEOUT => self::TOTAL_SECONDS,
-            CURLOPT_RESOLVE => [$vetted['host'] . ':' . $vetted['port'] . ':' . (str_contains($vetted['ip'], ':') ? '[' . $vetted['ip'] . ']' : $vetted['ip'])],
             CURLOPT_PROTOCOLS => $https ? CURLPROTO_HTTPS : CURLPROTO_HTTP,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
@@ -86,6 +85,11 @@ final class WebhookClient
                 return \strlen($line);
             },
         ]);
+
+        // A host name is pinned to the address vetted for it; an address given as the host needs no name resolved.
+        if (filter_var($vetted['host'], FILTER_VALIDATE_IP) === false) {
+            curl_setopt($handle, CURLOPT_RESOLVE, [$vetted['host'] . ':' . $vetted['port'] . ':' . (str_contains($vetted['ip'], ':') ? '[' . $vetted['ip'] . ']' : $vetted['ip'])]);
+        }
 
         $answer = curl_exec($handle);
         $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
