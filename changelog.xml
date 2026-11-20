@@ -59,7 +59,7 @@
             <item>For extension developers: CartService::summary() is the cart module's reading, the lines and the totals with no offers (its offers are null), so no shipping method is asked to quote for a list on every page the module shows; the module and its quantity changes read it, so a template override of the module reads no offers. CartSnapshot::$shipmentId names the chosen shipping method on every reading.</item>
             <item>The product page's payment and shipping methods show each method's title and description, drawn by Alfa: a method shown on product pages whose plugin draws nothing there now appears with them, and the description is printed as text (the Standard methods printed it as HTML).</item>
             <item>For plugin authors: a payment or shipping plugin's product page layout (its item view) no longer draws a logo, the method's title or its description, which Alfa draws; it adds only its own content below them, and with nothing to add it sets no layout. The Standard payment and shipping plugins no longer ship a product page layout.</item>
-            <item>The Easylogic credit on the Dashboard overview is a centred line of text at the end of the page, under the last row of cards, and its logo opens easylogic.gr in the same tab.</item>
+            <item>The credit of the Alfa developers on the Dashboard overview is a centred line of text at the end of the page, under the last row of cards, and its logo opens the developers' site in the same tab. The line is added after the overview's template, so a template override does not remove or move it, and the common ways a stylesheet or a script hides it are undone, up to five times in ten seconds.</item>
         </change>
     </changelog>
     <changelog>
