@@ -49,6 +49,8 @@ use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderExternalReference;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderExternalReferenceTakenException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
@@ -1088,6 +1090,16 @@ class OrderModel extends AlfaAdminModel
             foreach (['lines', 'shipment', 'payment'] as $part) {
                 if (\array_key_exists($part, $data)) {
                     $valid[$part] = $data[$part];
+                }
+            }
+        }
+
+        // The other system's id of the order (external_source with external_reference) is not a field of the form
+        // either: a write that states it keeps it for save(), which checks its shape and that no other order holds it.
+        if (\is_array($valid)) {
+            foreach (['external_source', 'external_reference'] as $key) {
+                if (\array_key_exists($key, $data)) {
+                    $valid[$key] = $data[$key];
                 }
             }
         }
@@ -4571,6 +4583,66 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
+     * Refuse an update that changes the order's external_source and external_reference: the pair the update leaves on
+     * the order (each half the update states, else the stored one) must be the stored pair when the order has one, and
+     * when it has none, both halves or neither, in their shape, held by no other order. An update that states neither
+     * passes. The database's unique key refuses a pair another order took at the same moment.
+     *
+     * @param array $data The update's data.
+     * @param object|null $stored The order as stored.
+     * @param int $orderId The order.
+     *
+     * @throws OrderPartRefusedException When the update would change the pair, or the pair is malformed (MALFORMED),
+     *                                   or another order holds it (OrderExternalReferenceTakenException).
+     *
+     * @since  2.2.2
+     */
+    private function refuseExternalReferenceChange(array $data, ?object $stored, int $orderId): void
+    {
+        if (!\array_key_exists('external_source', $data) && !\array_key_exists('external_reference', $data)) {
+            return;
+        }
+
+        $storedPair = ($stored->external_source ?? null) !== null && ($stored->external_reference ?? null) !== null
+            ? ['source' => (string) $stored->external_source, 'reference' => (string) $stored->external_reference]
+            : null;
+        $left = [
+            'external_source' => \array_key_exists('external_source', $data) ? $data['external_source'] : ($storedPair['source'] ?? null),
+            'external_reference' => \array_key_exists('external_reference', $data) ? $data['external_reference'] : ($storedPair['reference'] ?? null),
+        ];
+
+        if ($storedPair !== null) {
+            if ($left['external_source'] !== $storedPair['source'] || (string) $left['external_reference'] !== $storedPair['reference']) {
+                throw new OrderPartRefusedException(
+                    '/external_reference',
+                    'the order carries external_source "' . $storedPair['source'] . '" with its external_reference, written once and'
+                        . ' never changed',
+                    OrderPartRefusedException::MALFORMED,
+                    OrderPartRefusedException::NOT_SAVED,
+                );
+            }
+
+            return;
+        }
+
+        try {
+            $pair = OrderExternalReference::read(data: $left);
+        } catch (OrderPartRefusedException $e) {
+            throw new OrderPartRefusedException($e->part, $e->reason, $e->status, OrderPartRefusedException::NOT_SAVED);
+        }
+
+        if ($pair === null) {
+            return;
+        }
+
+        $holder = OrderExternalReference::orderWith(db: $this->getDatabase(), source: $pair['source'], reference: $pair['reference'], except: $orderId);
+
+        if ($holder !== null) {
+            throw new OrderExternalReferenceTakenException(existingId: $holder, pair: $pair, outcome: OrderPartRefusedException::NOT_SAVED);
+        }
+    }
+
+    /**
      * Write the parts of an order created in one call, inside the creation's transaction: each line through the
      * line writer, then the parcel through the shipments ledger, then the payment through the payments ledger, so the
      * payment is judged against the order's lines and its shipping charge. Each writer takes its own locks and claims as
@@ -4722,6 +4794,9 @@ class OrderModel extends AlfaAdminModel
             try {
                 // The parts' shape, read before anything is written.
                 $parts = OrderCreateParts::read(data: $data);
+
+                // The other system's id of the order, both halves or neither, in their shape.
+                $external = OrderExternalReference::read(data: $data);
                 $identity = $app->getIdentity();
                 $customerId = (int) ($data['id_user'] ?? 0);
 
@@ -4786,6 +4861,20 @@ class OrderModel extends AlfaAdminModel
                         $draft['conversion_rate'] = 1.0;
                     }
 
+                    // One pair names one order: a pair already an order's answers that order, and nothing is written.
+                    // A create of the same pair at the same moment is refused by the database's unique key when it
+                    // writes its order row, and answered the same way after the rollback below.
+                    if ($external !== null) {
+                        $existing = OrderExternalReference::orderWith(db: $db, source: $external['source'], reference: $external['reference']);
+
+                        if ($existing !== null) {
+                            throw new OrderExternalReferenceTakenException(existingId: $existing, pair: $external);
+                        }
+
+                        $draft['external_source'] = $external['source'];
+                        $draft['external_reference'] = $external['reference'];
+                    }
+
                     $created = OrderCreator::create(draft: $draft, manageTransaction: false);
                     $lineIds = $this->writeCreatedParts(orderId: $created->orderId, parts: $parts);
 
@@ -4808,7 +4897,8 @@ class OrderModel extends AlfaAdminModel
                     // later write in the request commits into nothing.
                     TransactionState::rollBackLevel(db: $db, failure: $inner);
 
-                    throw $inner;
+                    // The database refused the pair a create made at the same moment holds: answered with that order.
+                    throw ($external !== null ? OrderExternalReference::takenBy(failure: $inner, pair: $external) : null) ?? $inner;
                 }
 
                 // OrderCreator writes the order.created activity entry itself.
@@ -4854,6 +4944,16 @@ class OrderModel extends AlfaAdminModel
         // heard again then (AlfaAdminModel::alfaAfterTheCommit()).
         $db = $this->getDatabase();
         $orderId = $pk;
+
+        // The other system's id of the order is written once: an order without one may be given one that no other
+        // order holds; an order with one keeps it.
+        try {
+            $this->refuseExternalReferenceChange(data: $data, stored: $prevOrder, orderId: $orderId);
+        } catch (OrderPartRefusedException $e) {
+            $this->setError($e);
+
+            return false;
+        }
 
         // THE DELIVERY RECORD IS THE STORED ORDER'S, whatever the submission carries. The edit form posts its id as a
         // hidden field, and an id sent in its place pointed the order at another customer's record: a guest order then

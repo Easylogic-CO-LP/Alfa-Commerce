@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderExternalReferenceTakenException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
@@ -92,12 +93,14 @@ class OrdersController extends ApiController
     private const NOT_CREATED_LISTS = ['payments', 'shipments', 'items'];
 
     /**
-     * The model the last save of this request used, so a create refused for one of its parts is answered with the
-     * refusal the model set ({@see self::add()}).
+     * The models this request made, so a write the order model refused is answered with the refusal that model set
+     * ({@see self::answerRefusal()}). A PATCH makes more than one (core's save and the read of the stored record), and
+     * the one that refused is not always the last.
      *
+     * @var list<object>
      * @since  2.2.2
      */
-    private ?object $savedModel = null;
+    private array $models = [];
 
     /**
      * The content type of the item.
@@ -193,6 +196,14 @@ class OrdersController extends ApiController
             $this->modelState->set('filter.email', RequestScalar::member($apiFilterInfo, 'email', 'STRING', 'filter'));
         }
 
+        // The other system's id of an order, each half matched whole: the orders of one system, or the one order of a
+        // pair.
+        foreach (['external_source', 'external_reference'] as $name) {
+            if (\array_key_exists($name, $apiFilterInfo)) {
+                $this->modelState->set('filter.' . $name, RequestScalar::member($apiFilterInfo, $name, 'STRING', 'filter'));
+            }
+        }
+
         // Every date bound of the API is UTC: a bound without a zone is a UTC time, a day the UTC day; a bound
         // with Z or an offset keeps its own zone.
         $this->modelState->set('filter.date_zone', 'UTC');
@@ -248,8 +259,15 @@ class OrdersController extends ApiController
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $this->refuseInvoiceWithoutDetails(orderId: $orderId);
 
-        // The guards' edit: the published attributes the update does not write are refused first.
-        return $this->guardedEdit();
+        // The guards' edit: the published attributes the update does not write are refused first. A write the model
+        // refused with a sentence of its own (the external reference written once) is answered with it.
+        try {
+            return $this->guardedEdit();
+        } catch (Save $e) {
+            $this->answerRefusal(refused: $e);
+
+            return $this;
+        }
     }
 
     /**
@@ -259,6 +277,10 @@ class OrdersController extends ApiController
      * order and answers 422 when it is not in a shape the create takes, 409 when its writer refused it, with the part
      * named as a JSON pointer into the body. The status the order opens in mails as a status change does, once the
      * creation has committed, the customer left out when silent; an order created without lines mails nobody.
+     *
+     * external_source with external_reference (the other system's name and its id of the order) names one order: a
+     * create that sends a pair an order already carries creates nothing and answers 409 with that order's id in
+     * meta.existing_id, however often it is sent.
      *
      * Asked in order: the permission to create (403), the invoice details' own refusal
      * ({@see self::refuseUnstatedInvoice()}), the method keys at the top level ({@see self::NOT_CREATED}, 422), the
@@ -298,18 +320,45 @@ class OrdersController extends ApiController
         try {
             $this->guardedAdd();
         } catch (Save $e) {
-            $refusal = $this->partRefusal();
-
-            if ($refusal !== null) {
-                throw new Save($refusal->plain, $refusal->status, $e);
-            }
-
-            throw $e;
+            $this->answerRefusal(refused: $e);
         }
     }
 
     /**
-     * The model of a save, kept so add() can read the refusal it set; every call makes a new model, as core's does.
+     * Answer a write the order model refused with the refusal it set: its status and its sentence, and for an
+     * external_source and external_reference another order holds, 409 with that order's id in meta.existing_id, so a
+     * client that sent the same order again reads the order it made the first time. Any other failure is raised as it
+     * came.
+     *
+     * @param Save $refused What the write raised.
+     *
+     * @throws Save The refusal as the API answers it, or the failure as it came.
+     *
+     * @since  2.2.2
+     */
+    private function answerRefusal(Save $refused): void
+    {
+        $refusal = $this->partRefusal();
+
+        if ($refusal === null) {
+            throw $refused;
+        }
+
+        if ($refusal instanceof OrderExternalReferenceTakenException) {
+            // The error as Joomla's renderer writes one, beside the meta it cannot carry.
+            $document = $this->app->getDocument();
+            $document->setErrors([['title' => $refusal->plain, 'code' => $refusal->status]]);
+            $document->addMeta('existing_id', $refusal->existingId);
+            $this->app->setHeader('status', (string) $refusal->status, true);
+
+            return;
+        }
+
+        throw new Save($refusal->plain, $refusal->status, $refused);
+    }
+
+    /**
+     * A model, kept so a refused write can read the refusal it set; every call makes a new model, as core's does.
      *
      * @param string $name The model name.
      * @param string $prefix The class prefix.
@@ -322,23 +371,26 @@ class OrdersController extends ApiController
     public function getModel($name = '', $prefix = '', $config = [])
     {
         $model = parent::getModel($name, $prefix, $config);
-        $this->savedModel = \is_object($model) ? $model : null;
+
+        if (\is_object($model)) {
+            $this->models[] = $model;
+        }
 
         return $model;
     }
 
     /**
-     * The refusal of a part the last save's model set, or null ({@see OrderPartRefusedException}).
+     * The refusal a model of this request set, or null ({@see OrderPartRefusedException}).
      *
      * @since  2.2.2
      */
     private function partRefusal(): ?OrderPartRefusedException
     {
-        $errors = $this->savedModel !== null && method_exists($this->savedModel, 'getErrors') ? $this->savedModel->getErrors() : [];
-
-        foreach ($errors as $error) {
-            if ($error instanceof OrderPartRefusedException) {
-                return $error;
+        foreach ($this->models as $model) {
+            foreach (method_exists($model, 'getErrors') ? $model->getErrors() : [] as $error) {
+                if ($error instanceof OrderPartRefusedException) {
+                    return $error;
+                }
             }
         }
 

@@ -15,3 +15,16 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
   KEY `idx_linked_item_id` (`linked_item_id`),
   KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
+
+-- The other system id of an order
+--
+-- An order created by another system (a marketplace, an ERP, a connector) carries that system name in external_source
+-- and its id of the order in external_reference, both or neither, written once. The pair is unique, so a connector that
+-- sends the same order again after a lost answer is answered with the order it made and never makes a second one. A
+-- row with neither column set holds no place in the unique key, so every existing order keeps NULL in both. Additions
+-- only; each statement carries the CAN FAIL marker, so an update run again finds the column or the key and goes on.
+-- The install SQL creates the same columns and key.
+
+ALTER TABLE `#__alfa_orders` ADD COLUMN `external_source` varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once' AFTER `source` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_orders` ADD COLUMN `external_reference` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source' AFTER `external_source` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_orders` ADD UNIQUE KEY `idx_external_reference` (`external_source`, `external_reference`) /** CAN FAIL **/;

@@ -77,6 +77,9 @@ class JsonApiView extends BaseApiView
         'total_refunded_real',
         'customer_note',
         'source',
+        // The other system's name and its id of the order, both or neither.
+        'external_source',
+        'external_reference',
         'state',
         'created',
         'modified',
@@ -125,6 +128,8 @@ class JsonApiView extends BaseApiView
         'id_currency',
         'currency',
         'source',
+        'external_source',
+        'external_reference',
         'state',
         'created',
         'modified',

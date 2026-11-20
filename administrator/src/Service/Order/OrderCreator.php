@@ -94,6 +94,10 @@ final class OrderCreator
      *                                the row AND the activity log: 'storefront',
      *                                'admin', 'renewal', 'api'. Presence is
      *                                enforced; the value is not validated.
+     *   external_source       string The other system's name, with
+     *   external_reference    string its id of the order: both or neither,
+     *                                checked by OrderExternalReference; the
+     *                                pair is unique in the database.
      *   deduct_stock          bool   Default true; still gated by the status'
      *                                stock_operation (StockPolicy).
      *   allow_empty           bool   Default false. Explicitly permits a
@@ -515,6 +519,9 @@ final class OrderCreator
         $order->customer_note = (string) ($draft['customer_note'] ?? '');
         $order->note = (string) ($draft['note'] ?? '');
         $order->source = (string) $draft['source'];
+        // The other system's id of the order, both or neither (OrderExternalReference); unique in the database.
+        $order->external_source = isset($draft['external_source']) ? (string) $draft['external_source'] : null;
+        $order->external_reference = isset($draft['external_reference']) ? (string) $draft['external_reference'] : null;
         $order->state = 1;
         $order->checked_out = 0;
         $order->checked_out_time = $db->getNullDate();

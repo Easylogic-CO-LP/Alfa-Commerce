@@ -566,6 +566,16 @@ class OrdersModel extends AlfaListModel
             $query->where($db->quoteName('a.customer_email') . ' = ' . $db->quote($emailFilter));
         }
 
+        // The other system's id of an order (the REST API's filter[external_source], filter[external_reference]),
+        // each matched whole on idx_external_reference; an empty value is no filter.
+        foreach (['external_source', 'external_reference'] as $column) {
+            $value = (string) $this->getState('filter.' . $column, '');
+
+            if ($value !== '') {
+                $query->where($db->quoteName('a.' . $column) . ' = ' . $db->quote($value));
+            }
+        }
+
         // Payment - Fulfilment - Waiting
         // Three plain filters; the dashboard's "Worth a look" tiles land on
         // combinations of them with the very predicates they counted with, so the
