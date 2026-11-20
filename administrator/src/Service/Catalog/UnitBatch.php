@@ -408,9 +408,9 @@ final class UnitBatch
     }
 
     /**
-     * The one location a plain stock figure is for: the location the unit is stocked at, or the shop's default
-     * location for a unit with no stock record yet. A unit stocked at more than one location is refused: its figure
-     * would not say which.
+     * The one location a plain stock figure is for: the shop's default location, as the item save takes a plain
+     * figure. A shop that keeps stock at more than one location (every published location, and an unpublished one
+     * that still holds the unit's stock) is refused: the figure would not say which.
      *
      * @param int $itemId The product.
      * @param int $combinationId The combination; 0 for the product itself.
@@ -419,19 +419,19 @@ final class UnitBatch
      *
      * @return array<int, string> Location id => figure.
      *
-     * @throws UnitBatchRefusal When the unit is stocked at more than one location.
+     * @throws UnitBatchRefusal When the unit can be stocked at more than one location.
      *
      * @since  2.2.2
      */
     private function plainTarget(int $itemId, int $combinationId, string $figure, InventoryService $inventory): array
     {
-        $locations = array_keys((new InventoryAvailabilityService())->locationBreakdown(itemId: $itemId, combinationId: $combinationId > 0 ? $combinationId : null));
+        $locations = \count((new InventoryAvailabilityService())->locationBreakdown(itemId: $itemId, combinationId: $combinationId > 0 ? $combinationId : null));
 
-        if (\count($locations) > 1) {
-            throw new UnitBatchRefusal(422, 'the unit is stocked at ' . \count($locations) . ' locations: send inventory_stock, an object of location id to figure.');
+        if ($locations > 1) {
+            throw new UnitBatchRefusal(422, 'the shop keeps stock at ' . $locations . ' locations: send inventory_stock, an object of location id to figure.');
         }
 
-        return [$locations[0] ?? $inventory->defaultLocationId() => trim($figure)];
+        return [$inventory->defaultLocationId() => trim($figure)];
     }
 
     /**
