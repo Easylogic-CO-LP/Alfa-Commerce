@@ -12,7 +12,9 @@ namespace Alfa\Component\Alfa\Api\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
@@ -29,6 +31,7 @@ class ItemsController extends ApiController
     use HasApiGuards {
         preprocessSaveData as private guardedPreprocessSaveData;
         refuseUnwrittenKeys as private guardedRefuseUnwrittenKeys;
+        displayItem as private guardedDisplayItem;
     }
 
     /**
@@ -58,7 +61,15 @@ class ItemsController extends ApiController
     protected $default_view = 'items';
 
     /**
-     * Relations the admin model clears when the key is absent from a PATCH.
+     * The item models this request made, so the answer can say what their saves did not apply.
+     *
+     * @var list<AdminItemModel>
+     * @since  2.3.0
+     */
+    private array $itemModels = [];
+
+    /**
+     * Relations the admin model clears when the key is absent from a PATCH: the item write's own list.
      *
      * @return string[]
      *
@@ -66,15 +77,57 @@ class ItemsController extends ApiController
      */
     protected function preserveOnPatch(): array
     {
-        return [
-            'categories',
-            'manufacturers',
-            'allowedUsers',
-            'allowedUserGroups',
-            'prices',
-            'robots',
-            'related',
-        ];
+        return ItemWriteService::KEPT_WHEN_ABSENT;
+    }
+
+    /**
+     * Core's model, kept when it is the item model, for the answer's warnings.
+     *
+     * @param string $name The model.
+     * @param string $prefix Its prefix.
+     * @param array $config Its configuration.
+     *
+     * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel|false
+     *
+     * @since  2.3.0
+     */
+    public function getModel($name = '', $prefix = '', $config = [])
+    {
+        $model = parent::getModel($name, $prefix, $config);
+
+        if ($model instanceof AdminItemModel) {
+            $this->itemModels[] = $model;
+        }
+
+        return $model;
+    }
+
+    /**
+     * Answer one product; after a save applied in part (stock or variants refused once the product was written, an
+     * address shared with another product), meta.warnings names each thing the save did not apply.
+     *
+     * @param int|null $id The product.
+     *
+     * @return static
+     *
+     * @since  2.3.0
+     */
+    public function displayItem($id = null)
+    {
+        $answer = $this->guardedDisplayItem($id);
+        $warnings = [];
+
+        foreach ($this->itemModels as $model) {
+            foreach ($model->written()->warnings ?? [] as $warning) {
+                $warnings[] = $warning['message'];
+            }
+        }
+
+        if ($warnings !== []) {
+            $this->app->getDocument()->addMeta('warnings', $warnings);
+        }
+
+        return $answer;
     }
 
     /**
