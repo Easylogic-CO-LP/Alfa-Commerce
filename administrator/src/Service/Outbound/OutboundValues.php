@@ -19,6 +19,8 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
 use Alfa\Component\Alfa\Site\Service\Pricing\PricingIntent;
 use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
+use DateTimeImmutable;
+use DateTimeZone;
 use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseDriver;
@@ -338,6 +340,6 @@ final class OutboundValues
      */
     private static function utc(string $at): string
     {
-        return (new \DateTimeImmutable($at, new \DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.u\Z');
+        return (new DateTimeImmutable($at, new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.u\Z');
     }
 }
