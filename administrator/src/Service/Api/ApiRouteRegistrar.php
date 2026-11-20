@@ -141,7 +141,8 @@ final class ApiRouteRegistrar
      * Nothing is loaded or asked unless the address starts with v1/alfa/ext/; under it a request with no Accept header
      * takes the route's one format. In maintenance (Clear everything) one
      * public route takes every address under the prefix, so Alfa's API dispatcher answers 503 with no plugin asked. A
-     * plugin that is not installed, not enabled, or declares no route leaves the address to Joomla's 404; one that is
+     * plugin that is not installed, not enabled, has no onAlfaBeforeApiRoute() method or declares no route leaves the
+     * address to Joomla's 404; one that is
      * enabled but cannot be loaded, or whose declaration throws, is answered 503 by ExtController.
      *
      * @param ApiRouter $router The application's router.

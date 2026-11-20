@@ -107,13 +107,13 @@ final class ExtensionJob implements JobHandler
     }
 
     /**
-     * Hand the work to the plugin: booted alone, its declared handler called; its Throwable reaches the runner, which
-     * retries the job.
+     * Hand the work to the plugin: booted alone, its onAlfaExtensionJob() method called; its Throwable reaches the
+     * runner, which retries the job.
      *
      * @param JobRun $run The job.
      * @param int $units At most this many units (one).
      *
-     * @throws RuntimeException When the payload names no plugin, or the plugin declares no handler.
+     * @throws RuntimeException When the payload names no plugin, or the plugin has no onAlfaExtensionJob() method.
      * @throws PluginUnavailable When the plugin cannot be loaded.
      *
      * @since  2.2.2
@@ -125,7 +125,7 @@ final class ExtensionJob implements JobHandler
         $loaded = $helper->bootSingle($plugin);
 
         if (!$helper->declares($loaded, 'onAlfaExtensionJob')) {
-            throw new RuntimeException('The plugin ' . $plugin . ' declares no onAlfaExtensionJob; its job ' . $run->id . ' waits.');
+            throw new RuntimeException('The plugin ' . $plugin . ' has no onAlfaExtensionJob() method; its job ' . $run->id . ' waits.');
         }
 
         $helper->dispatchTo($loaded, new ExtensionJobEvent(

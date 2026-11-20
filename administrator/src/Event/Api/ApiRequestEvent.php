@@ -18,7 +18,8 @@ use LogicException;
 
 /**
  * A request on a route an alfa plugin declared (onAlfaApiRequest): addressed to the plugin that owns the route,
- * after Joomla authenticated the token and core checked the route's permission and the body's size.
+ * after Joomla authenticated the token and core checked the route's permission and the body's size. Its handler is the
+ * plugin's public method of the event's name; a plugin without it takes no part, and its addresses answer 404.
  *
  * The plugin reads the request through the read methods and answers with exactly one of respondData(), respondList(),
  * respondJson(), respondRaw() or refuse(); header() adds a header of the few the answer may carry. The respond method

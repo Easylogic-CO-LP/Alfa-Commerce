@@ -135,6 +135,7 @@ class ExtController extends ApiController
      *
      * @throws Save 413 for a body larger than the route takes; 503 when the plugin cannot be loaded; 500 when the
      *              plugin throws, gives no answer, or gives one that does not fit the route.
+     * @throws ResourceNotFound 404 when the plugin has no onAlfaApiRequest() method: it takes no part.
      *
      * @since  2.2.2
      */
@@ -162,6 +163,13 @@ class ExtController extends ApiController
             $plugin = $plugins->resolve($id) ?? $plugins->bootSingle($id);
         } catch (PluginUnavailable $e) {
             $this->refuseUnavailable($declaration->element, $e->reason, $e->getMessage());
+        }
+
+        // A plugin without an onAlfaApiRequest() method takes no part: its addresses are not served.
+        if (!$plugins->declares($plugin, 'onAlfaApiRequest')) {
+            Log::add($this->routeName($declaration) . ': the extension has no onAlfaApiRequest() method; the address answers 404.', Log::WARNING, ApiRouteRegistrar::LOG);
+
+            throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
         }
 
         $event = new ApiRequestEvent(

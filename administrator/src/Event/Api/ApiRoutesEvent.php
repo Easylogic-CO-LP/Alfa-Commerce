@@ -16,8 +16,9 @@ use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Router\ApiRouter;
 
 /**
- * An alfa plugin declares the REST API routes it answers (onAlfaBeforeApiRoute): addressed to that plugin alone
- * (it names the event in getTargetedHandlers()), never raised on the shared dispatcher.
+ * An alfa plugin declares the REST API routes it answers (onAlfaBeforeApiRoute): addressed to that plugin alone, never
+ * raised on the shared dispatcher. Its handler is the plugin's public method of the event's name; a plugin without it
+ * adds no routes, and its addresses answer 404.
  *
  * The plugin writes its routes on the router this event carries, with Joomla's own calls, as a webservices plugin does
  * on onBeforeApiRoute:
