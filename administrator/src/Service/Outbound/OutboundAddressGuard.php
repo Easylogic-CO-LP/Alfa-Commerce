@@ -13,7 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
 
 /**
  * The one check of an address the shop connects to on an outside party's word (an image's URL a REST API client
- * gives): the host is resolved and every address it resolves to must be public and routable, never loopback, private,
+ * gives, a webhook's address staff enter): the host is resolved and every address it resolves to must be public and routable, never loopback, private,
  * link-local (a cloud's metadata address), unique-local, shared address space or reserved. The caller connects to the
  * address vetted here and to no other (the connection is pinned to it), so a DNS answer that changes between the
  * check and the connection cannot point inside; its transport follows no redirect, a redirect's address is vetted
