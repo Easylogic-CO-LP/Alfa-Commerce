@@ -83,6 +83,27 @@ class OrdersController extends ApiController
     protected $default_view = 'orders';
 
     /**
+     * The tasks of an order and what each asks: the tasks every Alfa resource maps (view, create, edit, delete), and
+     * the change of an order's state (to the trash and back, inside a PATCH), which asks Edit and Change State, as the
+     * administrator's Orders list does.
+     *
+     * @return array<string, list<string>>
+     *
+     * @since  2.3.0
+     */
+    protected function taskActions(): array
+    {
+        return [
+            'displayList' => ['view'],
+            'displayItem' => ['view'],
+            'add' => ['create'],
+            'edit' => ['edit'],
+            'delete' => ['delete'],
+            'state' => ['edit', 'edit.state'],
+        ];
+    }
+
+    /**
      * Orders list view amended to add filtering of data
      *
      * Each filter goes onto the model state under the name the orders screen's filter form gives it, and the list
@@ -403,7 +424,7 @@ class OrdersController extends ApiController
                 . implode(', ', $others) . ').', 422);
         }
 
-        $this->assertAuthorised('edit.state');
+        $this->assertAuthorisedForTask('state');
         $this->refuseMissingOrder(orderId: $orderId);
 
         $model = $this->getModel('order', '', ['ignore_request' => true]);
