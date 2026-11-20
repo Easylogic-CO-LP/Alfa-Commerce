@@ -28,3 +28,11 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
 ALTER TABLE `#__alfa_orders` ADD COLUMN `external_source` varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once' AFTER `source` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_orders` ADD COLUMN `external_reference` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source' AFTER `external_source` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_orders` ADD UNIQUE KEY `idx_external_reference` (`external_source`, `external_reference`) /** CAN FAIL **/;
+
+-- The source of an order a REST API client creates
+--
+-- A client of the REST API names the channel an order comes from (for example base for a marketplace connector), up to
+-- 32 characters, where every such order read api before. The column is widened from 16 to 32 characters; the values
+-- stored are kept, and the statement can run again. The install SQL has the same width.
+
+ALTER TABLE `#__alfa_orders` MODIFY `source` varchar(32) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api, or the channel a REST API client names (lower-case letters, digits, _ and -)';

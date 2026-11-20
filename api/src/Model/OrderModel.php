@@ -17,6 +17,8 @@ use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFulfillment;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderSource;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -38,18 +40,23 @@ class OrderModel extends AdminOrderModel
     use ProjectsMoney;
 
     /**
-     * Orders created through the API are API orders.
+     * An order created through the API takes the source its client names (its channel, for example base), checked by
+     * {@see OrderSource::ofClient()}, and is api when the client names none.
      *
      * The parent writes 'admin' for its own form controller; this class IS the
      * API client, so overriding here needs no application probe and no change
      * to forms/order.xml.
      *
+     * @param array $data The creation's validated data.
+     *
+     * @throws OrderPartRefusedException When the source sent is not in its shape, or is one core writes for its own
+     *                                   orders.
      *
      * @since  2.0.0
      */
-    protected function newOrderSource(): string
+    protected function newOrderSource(array $data): string
     {
-        return 'api';
+        return OrderSource::ofClient(value: $data['source'] ?? null);
     }
 
     /**

@@ -1480,7 +1480,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `ip_address` varchar(255) DEFAULT NULL,
   `customer_note` text DEFAULT NULL,
   `note` text DEFAULT NULL,
-  `source` varchar(16) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api',
+  `source` varchar(32) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api, or the channel a REST API client names (lower-case letters, digits, _ and -)',
   -- THE OTHER SYSTEM ID OF THE ORDER: the name of the system an order came from (a marketplace, an ERP, a connector)
   -- and its id of the order there, both or neither, written once. One pair names one order (idx_external_reference),
   -- so a connector that sends the same order again is answered with the order it made.

@@ -566,9 +566,10 @@ class OrdersModel extends AlfaListModel
             $query->where($db->quoteName('a.customer_email') . ' = ' . $db->quote($emailFilter));
         }
 
-        // The other system's id of an order (the REST API's filter[external_source], filter[external_reference]),
-        // each matched whole on idx_external_reference; an empty value is no filter.
-        foreach (['external_source', 'external_reference'] as $column) {
+        // Where orders came from (the REST API's filter[source]: storefront, admin, renewal, api, or the channel a
+        // client named) and the other system's id of an order (filter[external_source], filter[external_reference],
+        // each matched whole on idx_external_reference); an empty value is no filter.
+        foreach (['source', 'external_source', 'external_reference'] as $column) {
             $value = (string) $this->getState('filter.' . $column, '');
 
             if ($value !== '') {

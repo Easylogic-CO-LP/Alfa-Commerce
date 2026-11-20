@@ -56,6 +56,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderPlacedFollowUp;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderSource;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\ReconciliationFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
@@ -1085,9 +1086,10 @@ class OrderModel extends AlfaAdminModel
 
         // The parts of an order created in one call, its lines, its parcel and its payment, are not fields of
         // the form either: a creation keeps them for save(), which reads them through OrderCreateParts and writes each
-        // through its own writer in the creation's transaction.
+        // through its own writer in the creation's transaction. So is the source a REST client names its channel by,
+        // which only the API model reads (newOrderSource()).
         if (\is_array($valid) && $isNew) {
-            foreach (['lines', 'shipment', 'payment'] as $part) {
+            foreach (['lines', 'shipment', 'payment', 'source'] as $part) {
                 if (\array_key_exists($part, $data)) {
                     $valid[$part] = $data[$part];
                 }
@@ -4529,15 +4531,19 @@ class OrderModel extends AlfaAdminModel
      *
      * A seam rather than an isClient('api') probe: the API model already
      * extends this one, so the client that is running IS the class that is
-     * running and nothing has to ask the application. `source` is not in
-     * forms/order.xml either, so a client cannot mislabel itself: core's
-     * ApiController passes only form-validated data to save().
+     * running and nothing has to ask the application. The order screen
+     * writes admin whatever its submission carries; the API model reads the
+     * source its client sends ({@see OrderSource::ofClient()}).
      *
-     * @return string One of the documented origins: storefront | admin | renewal | api.
+     * @param array $data The creation's validated data.
+     *
+     * @return string The order's source: admin here.
+     *
+     * @throws OrderPartRefusedException When the source a client sends is refused.
      *
      * @since  2.0.0
      */
-    protected function newOrderSource(): string
+    protected function newOrderSource(array $data): string
     {
         return 'admin';
     }
@@ -4795,8 +4801,9 @@ class OrderModel extends AlfaAdminModel
                 // The parts' shape, read before anything is written.
                 $parts = OrderCreateParts::read(data: $data);
 
-                // The other system's id of the order, both halves or neither, in their shape.
+                // The other system's id of the order, both halves or neither, in their shape; the source.
                 $external = OrderExternalReference::read(data: $data);
+                $source = $this->newOrderSource(data: $data);
                 $identity = $app->getIdentity();
                 $customerId = (int) ($data['id_user'] ?? 0);
 
@@ -4845,7 +4852,7 @@ class OrderModel extends AlfaAdminModel
                         'id_order_status' => (int) ($data['id_order_status'] ?? 0),
                         'id_address_delivery' => $addressId,
                         'id_address_invoice' => $invoiceId,
-                        'source' => $this->newOrderSource(),
+                        'source' => $source,
                         'created_by' => (int) ($identity?->id ?? 0),
                         'actor_name' => (string) ($identity?->name ?? 'System'),
                         // The customer's note to the shop, as a marketplace order brings it.

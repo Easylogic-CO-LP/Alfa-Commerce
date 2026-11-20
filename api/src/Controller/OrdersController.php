@@ -196,9 +196,9 @@ class OrdersController extends ApiController
             $this->modelState->set('filter.email', RequestScalar::member($apiFilterInfo, 'email', 'STRING', 'filter'));
         }
 
-        // The other system's id of an order, each half matched whole: the orders of one system, or the one order of a
-        // pair.
-        foreach (['external_source', 'external_reference'] as $name) {
+        // Where orders came from, and the other system's id of an order, each matched whole: the orders of one channel
+        // or of one system, or the one order of a pair.
+        foreach (['source', 'external_source', 'external_reference'] as $name) {
             if (\array_key_exists($name, $apiFilterInfo)) {
                 $this->modelState->set('filter.' . $name, RequestScalar::member($apiFilterInfo, $name, 'STRING', 'filter'));
             }
@@ -277,6 +277,9 @@ class OrdersController extends ApiController
      * order and answers 422 when it is not in a shape the create takes, 409 when its writer refused it, with the part
      * named as a JSON pointer into the body. The status the order opens in mails as a status change does, once the
      * creation has committed, the customer left out when silent; an order created without lines mails nobody.
+     *
+     * source names the channel the order comes from (lower-case letters, digits, _ and -, up to 32 characters, none of
+     * core's own: storefront, admin, renewal; 422 otherwise); without it the order is api.
      *
      * external_source with external_reference (the other system's name and its id of the order) names one order: a
      * create that sends a pair an order already carries creates nothing and answers 409 with that order's id in
