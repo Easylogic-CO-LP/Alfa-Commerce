@@ -12,9 +12,9 @@ namespace Alfa\Component\Alfa\Administrator\Event\Inventory;
 \defined('_JEXEC') or die;
 
 /**
- * InventoryTransferred after-event: post-commit, side-effects only. Payload in
- * named arguments (see the dispatching command in InventoryService),
- * result summary via getResult().
+ * InventoryTransferred after-event: post-commit, side-effects only, result summary via getResult(). No command of
+ * InventoryService moves stock between locations, so core dispatches it from nowhere; the name is kept for the event
+ * list.
  *
  * @since  2.0.0
  */
