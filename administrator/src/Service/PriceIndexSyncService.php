@@ -19,6 +19,8 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
@@ -2258,6 +2260,11 @@ class PriceIndexSyncService
                 'changes' => self::rowChanges(before: $before, after: $after, terms: $terms),
                 'sets' => array_values(array_unique(array_map(static fn (int $id): int => $terms[$id]['set'], $written))),
             ];
+
+            // The consumers of price changes are owed the units whose selling price moved, in the chunk's transaction.
+            if (self::$announcement?->outbound === true) {
+                OutboundFeed::recordPriceChanges(db: $this->db, changes: $this->chunkChanges['changes'], now: $now);
+            }
         } else {
             $this->chunkChanges = ['changes' => [], 'sets' => []];
         }
@@ -2346,7 +2353,7 @@ class PriceIndexSyncService
             return $work();
         }
 
-        $announcement = (object) ['cause' => $cause, 'causeId' => max(0, $causeId), 'listening' => self::listening(), 'items' => [], 'sets' => [], 'changes' => []];
+        $announcement = (object) ['cause' => $cause, 'causeId' => max(0, $causeId), 'listening' => self::listening(), 'outbound' => self::outbound(), 'items' => [], 'sets' => [], 'changes' => []];
         self::$announcement = $announcement;
 
         try {
@@ -2412,7 +2419,7 @@ class PriceIndexSyncService
                     . ' AND ' . $db->quoteName('valid_from') . ' <= ' . $db->quote($until),
                 )->loadColumn() ?: []);
 
-                $rows = $announcement !== null && $announcement->listening
+                $rows = $announcement !== null && ($announcement->listening || $announcement->outbound)
                     ? self::openedPeriods(db: $db, from: $cursor['from'], after: $cursor['after'], until: $until, limit: self::ANNOUNCE_LIMIT + 1)
                     : [];
                 $capped = \count($rows) > self::ANNOUNCE_LIMIT;
@@ -2451,6 +2458,11 @@ class PriceIndexSyncService
                         contextId: (int) $row->context_id,
                         userId: (int) $row->user_id,
                     );
+                }
+
+                // A period that began moved the units' selling price: their consumers are owed them with the cursor.
+                if ($announcement !== null && $announcement->outbound) {
+                    OutboundFeed::recordPriceChanges(db: TransactionState::driver($db), changes: $changes, now: gmdate('Y-m-d H:i:s'));
                 }
 
                 TransactionState::commitLevel(db: $db);
@@ -2620,7 +2632,18 @@ class PriceIndexSyncService
      */
     private static function detecting(): bool
     {
-        return self::$announcement?->listening === true;
+        return self::$announcement?->listening === true || self::$announcement?->outbound === true;
+    }
+
+    /**
+     * Whether a consumer of the shop's changes takes price changes: the writes then detect their changes for it, as
+     * they do for a listener, and record them in their own transaction.
+     *
+     * @since  2.2.2
+     */
+    private static function outbound(): bool
+    {
+        return OutboundFeed::wants(db: TransactionState::driver(Factory::getContainer()->get('DatabaseDriver')), topic: OutboundTopics::PRICE);
     }
 
     /**

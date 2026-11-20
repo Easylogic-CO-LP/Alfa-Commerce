@@ -6,6 +6,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundAddressGuard;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -219,13 +220,13 @@ class MediaController extends BaseController
 
         // SSRF guard: the target must resolve exclusively to public, routable
         // addresses, never loopback, link-local (cloud metadata) or private nets.
-        if (!$this->isPublicHost($uri->getHost())) {
+        if (!OutboundAddressGuard::isPublicHost(host: $uri->getHost())) {
             $response['message'] = Text::_('COM_ALFA_MEDIA_ERROR_URL_NOT_ALLOWED');
             return $response;
         }
 
         try {
-            // Do NOT follow redirects: isPublicHost() only vetted the initial host,
+            // Do NOT follow redirects: the guard only vetted the initial host,
             // and a public host may 3xx-redirect to an internal target (loopback,
             // cloud metadata). Stopping at the redirect keeps the SSRF guard honest.
             $httpOptions = new \Joomla\Registry\Registry();
@@ -268,54 +269,5 @@ class MediaController extends BaseController
         }
 
         return false;
-    }
-
-    /**
-     * Whether a host resolves exclusively to public, routable IP addresses.
-     *
-     * SSRF guard for outbound requests: a host that resolves (in whole or in
-     * part) to a loopback, link-local or private-range address is not public.
-     *
-     * @param string $host Hostname or IP literal from the target URL.
-     *
-     * @return bool True only when every resolved address is public.
-     *
-     * @since  2.0.0
-     */
-    private function isPublicHost(string $host): bool
-    {
-        if ($host === '') {
-            return false;
-        }
-
-        $ips = [];
-
-        if (filter_var($host, FILTER_VALIDATE_IP)) {
-            $ips[] = $host;
-        } else {
-            foreach (@dns_get_record($host, DNS_A | DNS_AAAA) ?: [] as $record) {
-                $ips[] = $record['ip'] ?? $record['ipv6'] ?? null;
-            }
-
-            // Fallback when dns_get_record yields nothing usable.
-            if (empty(array_filter($ips))) {
-                $resolved = gethostbyname($host);
-                $ips = $resolved !== $host ? [$resolved] : [];
-            }
-        }
-
-        $ips = array_filter($ips);
-
-        if (empty($ips)) {
-            return false;
-        }
-
-        foreach ($ips as $ip) {
-            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

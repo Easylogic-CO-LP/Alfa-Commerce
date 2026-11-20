@@ -833,6 +833,8 @@ class AlfaHelper
         'usergroups' => 'usergroups',
         'notification' => 'notifications',
         'notifications' => 'notifications',
+        'webhook' => 'webhooks',
+        'webhooks' => 'webhooks',
     ];
 
     /**
@@ -931,7 +933,7 @@ class AlfaHelper
         'locations', 'inventorymovements', 'reservations',
         'places', 'currencies', 'taxes',
         'payments', 'shipments', 'formfields', 'formfieldgroups', 'orderstatuses',
-        'users', 'usergroups',
+        'users', 'usergroups', 'webhooks',
     ];
 
     /**
@@ -950,7 +952,7 @@ class AlfaHelper
         'location',
         'place', 'currency', 'tax',
         'payment', 'shipment', 'formfield', 'formfieldgroup', 'orderstatus',
-        'user', 'usergroup',
+        'user', 'usergroup', 'webhook',
     ];
 
     /**
@@ -1041,6 +1043,7 @@ class AlfaHelper
         'itemdownloads.delete' => ['items', 'edit'],
         'item.executefieldaction' => ['items', 'edit'],
         'notifications.panel' => ['notifications', 'view'],
+        'webhook.test' => ['webhooks', 'edit'],
     ];
 
     /**

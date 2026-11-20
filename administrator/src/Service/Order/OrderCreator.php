@@ -16,6 +16,8 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -279,6 +281,8 @@ final class OrderCreator
 
         try {
             $orderId = self::insertOrder(db: $db, draft: $draft, statusId: $statusId);
+            // The consumers of new orders are owed this one, written with it; they read it whole when it is sent.
+            OutboundFeed::record(db: TransactionState::driver($db), topic: OutboundTopics::ORDER_CREATED, subjectId: $orderId);
             // The lines' money is the order's, at the scale the order froze.
             $currency = OrderCurrency::of(orderId: $orderId);
             $lineIds = [];

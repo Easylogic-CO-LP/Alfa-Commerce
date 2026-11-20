@@ -30,6 +30,8 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
@@ -6394,6 +6396,7 @@ final class InventoryService
 
             $move('#__alfa_item_combinations', $facts->combinationId, $unitPhysicalDelta, $unitSalableDelta);
             $move('#__alfa_items', $facts->itemId, $parentPhysicalDelta, $parentSalableDelta, $moved($unitPhysicalDelta, $unitSalableDelta, $parentPhysicalDelta, $parentSalableDelta));
+            $this->tellStock(itemId: (int) $facts->itemId, combinationId: (int) $facts->combinationId, salableDelta: $unitSalableDelta);
 
             return;
         }
@@ -6403,6 +6406,24 @@ final class InventoryService
         }
 
         $move('#__alfa_items', $facts->itemId, $unitPhysicalDelta, $unitSalableDelta, $moved($unitPhysicalDelta, $unitSalableDelta));
+        $this->tellStock(itemId: (int) $facts->itemId, combinationId: 0, salableDelta: $unitSalableDelta);
+    }
+
+    /**
+     * Owe the consumers of the shop's stock changes the unit whose available quantity moved, in the change's own
+     * transaction ({@see OutboundFeed::record()}): what a sale, a return or an adjustment leaves for sale is told.
+     *
+     * @param int $itemId The product.
+     * @param int $combinationId The combination; 0 for a product without combinations.
+     * @param float $salableDelta How far the unit's available quantity moved.
+     *
+     * @since  2.2.2
+     */
+    private function tellStock(int $itemId, int $combinationId, float $salableDelta): void
+    {
+        if (abs($salableDelta) > self::EPS) {
+            OutboundFeed::record(db: $this->db, topic: OutboundTopics::STOCK, subjectId: $itemId, unitId: $combinationId);
+        }
     }
 
     /**
@@ -7058,6 +7079,18 @@ final class InventoryService
                     dStock: $figure['stock_target'] - (float) ($figure['stock'] ?? 0.0),
                     dAvail: $figure['available_target'] - (float) ($figure['available'] ?? 0.0),
                 );
+
+                // A corrected available figure is told as any other move of it: a combination's, or the product's own
+                // when it has no combination (a product with combinations is told through them).
+                $combination = $figure['table'] === '#__alfa_item_combinations';
+
+                if ($combination || $ledger['combinations'] === []) {
+                    $this->tellStock(
+                        itemId: $itemId,
+                        combinationId: $combination ? (int) $figure['id'] : 0,
+                        salableDelta: $figure['available_target'] - (float) ($figure['available'] ?? 0.0),
+                    );
+                }
             }
 
             $this->recordOperation(operationId: $operationId, command: 'reconcile', sourceType: $sourceType, sourceId: $sourceId, context: $context);

@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiAddress;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiAddressListing;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRegistrar;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundConsumers;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerCronKey;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
@@ -163,6 +164,14 @@ class HtmlView extends BaseHtmlView
     public array $tasks = ['rows' => [], 'total' => 0, 'users' => [], 'unreadable' => false];
 
     /**
+     * The Tasks tab's card of outgoing notifications: each consumer of the shop's changes ({@see OutboundConsumers::cardRows()}).
+     *
+     * @var array{rows: list<array<string, mixed>>, unreadable: bool}
+     * @since  2.2.2
+     */
+    public array $outbound = ['rows' => [], 'unreadable' => false];
+
+    /**
      * The Tasks tab's jobs ({@see TaskStaff::jobRows()}) and the names of the customer groups their price sets cover.
      *
      * @var array{rows: list<array<string, mixed>>, groups: array<int, string>, unreadable: bool}
@@ -242,6 +251,7 @@ class HtmlView extends BaseHtmlView
 
         $this->tasks = $this->tasks();
         $this->jobs = $this->jobs();
+        $this->outbound = $this->outbound();
         $this->runner = $this->runner();
         $jobId = RequestScalar::int(Factory::getApplication()->getInput(), 'job');
 
@@ -412,6 +422,25 @@ class HtmlView extends BaseHtmlView
         $form->bind(['filter' => $chosen]);
 
         return $form;
+    }
+
+    /**
+     * The consumers of the shop's changes for the card of outgoing notifications; a table that cannot be read costs
+     * the card only.
+     *
+     * @return array{rows: list<array<string, mixed>>, unreadable: bool}
+     *
+     * @since  2.2.2
+     */
+    private function outbound(): array
+    {
+        try {
+            return ['rows' => OutboundConsumers::cardRows(), 'unreadable' => false];
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Tools: the consumers of the shop\'s changes could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+
+            return ['rows' => [], 'unreadable' => true];
+        }
     }
 
     /**

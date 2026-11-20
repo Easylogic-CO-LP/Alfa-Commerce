@@ -32,6 +32,8 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
@@ -632,6 +634,28 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * The state of the product's own prices the writer read, when it sent one ({@see self::expectPricesState()}).
+     *
+     * @var string|null
+     *
+     * @since  2.2.2
+     */
+    private ?string $expectedPricesState = null;
+
+    /**
+     * Refuse the next save's prices when the product's own prices no longer have the state the writer read them in
+     * ({@see PricesState::assertUnchanged()}): the save then throws PricesStateChanged, rolled back whole.
+     *
+     * @param string $state The state the writer read.
+     *
+     * @since  2.2.2
+     */
+    public function expectPricesState(string $state): void
+    {
+        $this->expectedPricesState = $state;
+    }
+
+    /**
      * Method to save the form data.
      *
      * Extends the parent save() to also maintain the price index.
@@ -1058,6 +1082,11 @@ class ItemModel extends AlfaAdminModel
             // non-array), because [] means "delete every price row". Without the
             // coalesce a body that omits prices raised an undefined-key warning
             // straight into the API's JSON response.
+            // Prices changed since the writer read them are refused, under a lock on them until the commit.
+            if ($this->expectedPricesState !== null && $pk > 0) {
+                PricesState::assertUnchanged(db: $db, itemId: $pk, expected: $this->expectedPricesState);
+            }
+
             $this->setPrices($currentId, $data['prices'] ?? null);
 
             // What the product sells for or has to sell may have changed with this save (its prices, its own fields,
@@ -1326,6 +1355,11 @@ class ItemModel extends AlfaAdminModel
             // Nothing of the save is kept: its writes and what it deferred go with its transaction. The mark of an
             // existing item, written before it, stays and is cleared by the next rebuild.
             TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            // Prices changed since they were read: the writer is told so, by the refusal itself.
+            if ($e instanceof PricesStateChanged) {
+                throw $e;
+            }
 
             Log::add(
                 entry:    'Item ' . ($pk > 0 ? '#' . $pk : '(new)') . ' was not saved; its save was rolled back: ' . $e->getMessage(),

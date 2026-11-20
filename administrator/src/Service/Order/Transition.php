@@ -26,6 +26,8 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEvent;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStock;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Exception;
 use Joomla\CMS\Factory;
@@ -1177,6 +1179,14 @@ class Transition
                 'actor' => $actor,
                 'note' => $this->note,
             ],
+        );
+
+        // The consumers of status changes are owed this move, written with it: every move is told, in order.
+        OutboundFeed::record(
+            db: TransactionState::driver(Factory::getContainer()->get('DatabaseDriver')),
+            topic: OutboundTopics::ORDER_STATUS,
+            subjectId: $orderId,
+            payload: $oldStatusId . ':' . $toStatusId,
         );
 
         // An allowed unpaid completion is an exception, not a silent pass:

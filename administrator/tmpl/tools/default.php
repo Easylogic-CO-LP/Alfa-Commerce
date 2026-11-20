@@ -107,6 +107,7 @@ $toolsUser = Factory::getApplication()->getIdentity();
         <?php echo LayoutHelper::render('tasks.attention', $this->tasks + ['failedJobs' => $this->jobs['failedJobs']], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo $renderActions($tasksAction('tasks.run')); ?>
         <?php echo LayoutHelper::render('tasks.jobs', $this->jobs, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo LayoutHelper::render('tasks.outbound', $this->outbound, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo $renderActions($tasksAction('tasks.prune')); ?>
         <?php echo $renderActions($tasksOthers); ?>
         <?php echo LayoutHelper::render('tasks.runner', $this->runner + ['newKey' => $this->newCronKey], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
