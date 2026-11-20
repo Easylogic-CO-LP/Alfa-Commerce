@@ -45,8 +45,10 @@ $idBase = preg_replace('#\W#', '_', $base);
 $mode = (string) ($row['_mode'] ?? 'price');
 $operation = (string) ($row['operation'] ?? '+');
 $active = !isset($row['state']) || (int) $row['state'] === 1;
-$value = trim((string) ($row['value'] ?? ''));
-$override = trim((string) ($row['override_value'] ?? ''));
+// A stored figure is exact decimal text (DECIMAL(24,8)): shown as typed, without the column's padding zeros.
+$typed = static fn (string $figure): string => preg_match('/^-?\d+\.\d+$/', $figure) === 1 ? (rtrim(rtrim($figure, '0'), '.') ?: '0') : $figure;
+$value = $typed(trim((string) ($row['value'] ?? '')));
+$override = $typed(trim((string) ($row['override_value'] ?? '')));
 $overrideType = in_array($row['override_type'] ?? '', ['start', 'final'], true) ? $row['override_type'] : 'start';
 
 // Adjust target (net/gross): for an adjust row, override_type is repurposed as

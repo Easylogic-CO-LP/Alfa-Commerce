@@ -276,6 +276,9 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_places' => [
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
+        '#__alfa_items' => [
+            'opening_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings; the listing reads its price index row by it'", 'projection_dirty_at'],
+        ],
     ];
 
     /**
@@ -1371,7 +1374,7 @@ class com_alfaInstallerScript extends InstallerScript
         // Three steps, each on its own: a failure of one never skips the next.
         try
         {
-            $converted = (new \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService())->queueWaitingSets();
+            $converted = (new \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService())->queueWaitingContexts();
         }
         catch (\Throwable $e)
         {
@@ -1871,6 +1874,8 @@ class com_alfaInstallerScript extends InstallerScript
         $this->completeLinkKeys();
         $this->dropLeftoverColumns();
         $this->addMissingColumns();
+        $this->exactPriceValues();
+        $this->migratePriceIndex(type: $type);
         $this->recordSchemaVersion();
         $this->seedPriceWindowsCursor();
 
@@ -1899,17 +1904,13 @@ class com_alfaInstallerScript extends InstallerScript
             $this->correctPlacesSeed();
         }
 
-        // The product list prices each product at the quantity it opens with, its minimum (2.2.2): the products whose
-        // minimum is above 1 are owed a rebuild of their list prices, in the background, and staff are told.
+        // The thumbnail box: a side stored below 500 is raised to 500; nothing else is changed or made.
         if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.2', '<'))
         {
-            $this->oweOpeningQuantityRebuild();
-
-            // The thumbnail box: a side stored below 500 is raised to 500; nothing else is changed or made.
             $this->raiseThumbnailBox();
         }
 
-        // The web cron's key (2.2.0): made when none is kept; nobody sees it, staff make the one they copy in
+        // The web cron's key: made when none is kept; nobody sees it, staff make the one they copy in
         // Tools > Tasks. A failure is said, never a failed install: the web cron refuses every call until a key exists.
         try
         {
@@ -2114,61 +2115,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * From 2.2.2 the price index prices each product at the quantity it opens with, its minimum, as a card prints it,
-     * and a product with published combinations at its default combination's price, where the version before priced
-     * every product at quantity 1 and at its own price only. The rows of a product whose minimum is above 1, or that
-     * has published combinations, are therefore written again: those products are marked owed a rebuild (in ranges of
-     * ids) and the catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may filter and sort such
-     * a product by its earlier price, and one with no row yet (prices that begin at its minimum, or only on its
-     * combinations) is left out of the price filters and listed last by a price sort; the message says so. A shop with
-     * no such product has nothing owed and no message. A failure is said, never a failed update.
-     *
-     * @return  void
-     * @since   2.2.2
-     */
-    private function oweOpeningQuantityRebuild(): void
-    {
-        $app = Factory::getApplication();
-
-        try
-        {
-            // In ranges of ids, one statement per range (quantity_min has no index of its own, so one statement over
-            // the table would scan and lock every row of a large catalogue).
-            $db = Factory::getContainer()->get('DatabaseDriver');
-            $marked = \Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager::markForRebuildWhere(
-                condition: $db->quoteName('quantity_min') . ' > 1'
-                    . ' OR EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_item_combinations', 'ic')
-                    . ' WHERE ' . $db->quoteName('ic.item_id') . ' = ' . $db->quoteName('#__alfa_items.id')
-                    . ' AND ' . $db->quoteName('ic.state') . ' = 1)'
-            );
-
-            if ($marked === 0)
-            {
-                return;
-            }
-
-            \Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob::enqueue();
-        }
-        catch (\Throwable $e)
-        {
-            $app->enqueueMessage($this->installerText(
-                key:      'COM_ALFA_INSTALL_OPENING_QUANTITY_REBUILD_FAILED',
-                fallback: 'Alfa Commerce %1$s could not start the rebuild of the product list\'s prices: %2$s Run Rebuild catalogue projections in Tools, so the product list filters and sorts each product by its price at its minimum quantity.',
-                values:   [$this->packageVersion, $e->getMessage()],
-            ), 'warning');
-
-            return;
-        }
-
-        $app->enqueueMessage($this->installerText(
-            key:      'COM_ALFA_INSTALL_OPENING_QUANTITY_REBUILD',
-            fallback: 'Alfa Commerce %1$s: the product list now filters and sorts each product by its price at the quantity it sells from, its minimum quantity, and a product with combinations by its default combination\'s price, as its card shows it. The list prices of %2$d products with a minimum quantity above 1 or with combinations are being rebuilt in the background (Tools > Tasks); until that ends, the price filters and the price sort may use their earlier price, and a product whose prices begin at its minimum or are set only on its combinations may be left out of the price filters and listed last by the price sort.',
-            values:   [$this->packageVersion, $marked],
-        ));
-    }
-
-    /**
-     * From 2.2.1 a discount or a tax scoped to a place reaches every place inside it, and when several match, those of
+     * A discount or a tax scoped to a place reaches every place inside it, and when several match, those of
      * the nearer place apply first among the rules scoped to a place (rules with no place keep their order). The price
      * index of the version before was written with the place alone, so every product is marked owed a rebuild and the
      * catalogue job is enqueued (Tools > Tasks). Until it ends, the product list may sort and filter a buyer below a
@@ -3337,8 +3284,230 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Write the cursor of the announced price periods where it is missing (2.2.2; InstallSteps::seedPriceWindowsCursor()):
-     * an update from a release before 2.2.2 announces no period that began before it. A failure is said, never a
+     * The price rows hold their figures as exact decimals: #__alfa_items_prices.value and
+     * override_value become DECIMAL(24,8) on every install and update where they are still binary
+     * floats (the database's shape decides, never the version recorded). A stored float is read back at its eighth
+     * place, so 175.004 kept as 175.00399999999999 is 175.00400000. A failure is said, never a failed install.
+     *
+     * @return  void
+     * @since   2.2.2
+     */
+    private function exactPriceValues(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $table = $db->replacePrefix('#__alfa_items_prices');
+
+        try {
+            $types = $db->setQuery(
+                'SELECT ' . $db->quoteName('COLUMN_NAME') . ', ' . $db->quoteName('DATA_TYPE') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE() AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($table)
+                . ' AND ' . $db->quoteName('COLUMN_NAME') . ' IN (' . $db->quote('value') . ', ' . $db->quote('override_value') . ')',
+            )->loadAssocList('COLUMN_NAME', 'DATA_TYPE') ?: [];
+            $clauses = [];
+
+            if (strtolower((string) ($types['value'] ?? 'decimal')) !== 'decimal') {
+                $clauses[] = 'MODIFY ' . $db->quoteName('value') . " decimal(24,8) DEFAULT 0.00000000 COMMENT 'The price, or for an adjust row its amount or percent, exact to 8 decimals'";
+            }
+
+            if (strtolower((string) ($types['override_value'] ?? 'decimal')) !== 'decimal') {
+                $clauses[] = 'MODIFY ' . $db->quoteName('override_value') . " decimal(24,8) DEFAULT NULL COMMENT 'The sale price; NULL = none'";
+            }
+
+            if ($clauses === []) {
+                return;
+            }
+
+            $db->setQuery('ALTER TABLE ' . $db->quoteName($table) . ' ' . implode(', ', $clauses))->execute();
+            self::maintenanceLog(
+                line: sprintf('Update to %s: %s holds value and override_value as exact decimals.', self::SCHEMA_VERSION, $table),
+                priority: \Joomla\CMS\Log\Log::INFO,
+            );
+        } catch (\Throwable $e) {
+            Factory::getApplication()->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_PRICE_VALUES_FAILED',
+                fallback: 'Alfa Commerce %1$s could not store the product prices as exact decimals: %2$s Install the package again.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+        }
+    }
+
+    /**
+     * The price index, on every install and update, by the
+     * shape of the database, never by the version recorded (a site already recorded at this version runs no update file
+     * again):
+     * - The previous index (the table with a place_id column) is renamed #__alfa_items_price_index_prev and stays
+     *   readable, with its readers, while the new index is built: the flag prices.index_build is written first (before
+     *   the rename), the new tables are made from this package's install SQL, every item is marked owed a rebuild and
+     *   the catalogue job is enqueued, so the storefront keeps the previous prices until the new ones are complete, then
+     *   switches (the job, PriceIndexSyncService::finishBuild(), which records the switch). Staff are told, with
+     *   Tools > Rebuild catalogue projections for the progress.
+     * - While the flag and the previous index are there, every run marks and enqueues again (both idempotent), so a run
+     *   that stopped after the rename or before the marks resumes the build.
+     * - Once the switch is recorded, the next update drops the previous index and the columns of the sets only it read;
+     *   never on the flag's absence alone.
+     * A failure is said, never a failed install: the step runs again with the next installation.
+     *
+     * @param   string  $type  install or update.
+     *
+     * @return  void
+     * @since   2.2.2
+     */
+    private function migratePriceIndex(string $type): void
+    {
+        $app = Factory::getApplication();
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $index = $db->replacePrefix('#__alfa_items_price_index');
+        $previous = $db->replacePrefix('#__alfa_items_price_index_prev');
+
+        try {
+            $tables = array_map('strval', $db->setQuery(
+                'SELECT ' . $db->quoteName('TABLE_NAME') . ' FROM ' . $db->quoteName('information_schema.TABLES')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE() AND ' . $db->quoteName('TABLE_NAME') . ' IN (' . $db->quote($index) . ', ' . $db->quote($previous) . ')',
+            )->loadColumn() ?: []);
+            $oldShape = \in_array($index, $tables, true) && (bool) $db->setQuery(
+                'SELECT 1 FROM ' . $db->quoteName('information_schema.COLUMNS') . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($index) . ' AND ' . $db->quoteName('COLUMN_NAME') . ' = ' . $db->quote('place_id'),
+            )->loadResult();
+            $service = \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService::class;
+
+            if ($oldShape) {
+                // The flag before the rename: a run that stops after it resumes the build at the next installation.
+                $service::writeBuildFlag();
+
+                if (\in_array($previous, $tables, true)) {
+                    // The previous index is kept already: this one of the old shape is a leftover of a run that stopped.
+                    $db->setQuery('DROP TABLE ' . $db->quoteName($index))->execute();
+                } else {
+                    $db->setQuery('RENAME TABLE ' . $db->quoteName($index) . ' TO ' . $db->quoteName($previous))->execute();
+                }
+
+                $tables[] = $previous;
+            }
+
+            // The new tables, from this package's install SQL: one definition for a new shop and an updated one.
+            $sql = (string) file_get_contents(JPATH_ADMINISTRATOR . '/components/com_alfa/sql/install.mysql.utf8.sql');
+
+            foreach (['#__alfa_price_contexts', '#__alfa_items_price_index'] as $table) {
+                if (preg_match('/CREATE TABLE IF NOT EXISTS `' . preg_quote($table, '/') . '` \(.*?\) ENGINE=[^;]*;/s', $sql, $match) !== 1) {
+                    throw new \RuntimeException('the install SQL holds no definition of ' . $table);
+                }
+
+                $db->setQuery($match[0])->execute();
+            }
+
+            $this->priceIndexShape(db: $db);
+            $hasPrevious = \in_array($previous, $tables, true);
+            // A switch that recorded nothing left rows in the new index and no flag.
+            $switched = $service::switchedAt() !== null || ($service::buildStartedAt() === null
+                && (bool) $db->setQuery('SELECT 1 FROM ' . $db->quoteName($index), 0, 1)->loadResult());
+
+            // The build begun, or resumed: every run while the previous index is there and no switch is recorded marks
+            // every item and enqueues the catalogue job again.
+            if ($hasPrevious && !$switched) {
+                $marked = $service::startBuild();
+                $app->enqueueMessage($this->installerText(
+                    key:      'COM_ALFA_INSTALL_PRICE_INDEX_BUILD',
+                    fallback: 'Alfa Commerce %1$s builds the product list\'s price index again, for every combination of each product and every period: %2$d items, in the background (Tools > Rebuild catalogue projections shows how far it is). Until it is complete, the product list filters and sorts by the prices of the version before; it then switches by itself.',
+                    values:   [$this->packageVersion, $marked],
+                ));
+
+                return;
+            }
+
+            // After the switch, the next update drops the previous index and the sets' columns only it read.
+            if ($type === 'update' && $hasPrevious && $switched && $service::buildStartedAt() === null) {
+                $db->setQuery('DROP TABLE ' . $db->quoteName($previous))->execute();
+                $sets = $db->replacePrefix('#__alfa_price_group_sets');
+                $present = array_map('strval', $db->setQuery(
+                    'SELECT ' . $db->quoteName('COLUMN_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS') . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                    . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($sets),
+                )->loadColumn() ?: []);
+                $drop = array_values(array_intersect(['requested_at', 'prepared_at', 'prepared_through', 'left_out'], $present));
+
+                if ($drop !== []) {
+                    $hasKey = (bool) $db->setQuery(
+                        'SELECT 1 FROM ' . $db->quoteName('information_schema.STATISTICS') . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                        . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($sets) . ' AND ' . $db->quoteName('INDEX_NAME') . ' = ' . $db->quote('idx_requested'),
+                    )->loadResult();
+
+                    if ($hasKey) {
+                        $db->setQuery('ALTER TABLE ' . $db->quoteName($sets) . ' DROP KEY ' . $db->quoteName('idx_requested'))->execute();
+                    }
+
+                    $db->setQuery('ALTER TABLE ' . $db->quoteName($sets) . ' ' . implode(', ', array_map(static fn (string $column): string => 'DROP COLUMN ' . $db->quoteName($column), $drop)))->execute();
+                }
+
+                self::maintenanceLog(
+                    line: sprintf('Update to %s: the previous price index %s was dropped; the storefront reads the new one since its build ended.', self::SCHEMA_VERSION, $previous),
+                    priority: \Joomla\CMS\Log\Log::INFO,
+                );
+            }
+        } catch (\Throwable $e) {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_PRICE_INDEX_BUILD_FAILED',
+                fallback: 'Alfa Commerce %1$s could not prepare the product list\'s price index: %2$s Install the package again.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+        }
+    }
+
+    /**
+     * The price index tables brought to this package's shape, by the database's
+     * shape: the contexts' generation columns and keys, every prepared context its live generation; the index's foreign
+     * key to the contexts, its rows of a context no longer there removed first. Nothing when the shape is this one.
+     *
+     * @param   \Joomla\Database\DatabaseInterface  $db  The connection.
+     *
+     * @return  void
+     * @since   2.2.2
+     */
+    private function priceIndexShape(\Joomla\Database\DatabaseInterface $db): void
+    {
+        $contexts = $db->replacePrefix('#__alfa_price_contexts');
+        $index = $db->replacePrefix('#__alfa_items_price_index');
+        $columns = static fn (string $table): array => array_map('strval', $db->setQuery(
+            'SELECT ' . $db->quoteName('COLUMN_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS') . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+            . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($table),
+        )->loadColumn() ?: []);
+        $present = $columns($contexts);
+
+        if ($present !== [] && !\in_array('generation', $present, true)) {
+            $db->setQuery(
+                'ALTER TABLE ' . $db->quoteName($contexts)
+                . " ADD COLUMN `generation` int(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'The generation of the context''s rows: a context-wide change writes the next one beside the live one and switches them whole' AFTER `user_id`,"
+                . " ADD COLUMN `is_live` tinyint(1) DEFAULT NULL COMMENT '1 = the generation readers read; NULL = being prepared, or retired and being removed. At most one live per context' AFTER `generation`,"
+                . " ADD COLUMN `retired_at` datetime DEFAULT NULL COMMENT 'When a newer generation went live; its rows are removed in the background, then the row' AFTER `prepared_through`",
+            )->execute();
+            $db->setQuery('UPDATE ' . $db->quoteName($contexts) . ' SET ' . $db->quoteName('is_live') . ' = 1 WHERE ' . $db->quoteName('prepared_at') . ' IS NOT NULL')->execute();
+            $hasKey = (bool) $db->setQuery(
+                'SELECT 1 FROM ' . $db->quoteName('information_schema.STATISTICS') . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($contexts) . ' AND ' . $db->quoteName('INDEX_NAME') . ' = ' . $db->quote('idx_context'),
+            )->loadResult();
+            $db->setQuery(
+                'ALTER TABLE ' . $db->quoteName($contexts) . ($hasKey ? ' DROP KEY `idx_context`,' : '')
+                . ' ADD UNIQUE KEY `idx_generation` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`,`generation`),'
+                . ' ADD UNIQUE KEY `idx_live` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`,`is_live`)',
+            )->execute();
+        }
+
+        $hasForeignKey = (bool) $db->setQuery(
+            'SELECT 1 FROM ' . $db->quoteName('information_schema.TABLE_CONSTRAINTS') . ' WHERE ' . $db->quoteName('CONSTRAINT_SCHEMA') . ' = DATABASE()'
+            . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($index) . ' AND ' . $db->quoteName('CONSTRAINT_NAME') . ' = ' . $db->quote('fk_price_index_context'),
+        )->loadResult();
+
+        if (!$hasForeignKey && \in_array('context_id', $columns($index), true)) {
+            $db->setQuery(
+                'DELETE i FROM ' . $db->quoteName($index) . ' AS i LEFT JOIN ' . $db->quoteName($contexts) . ' AS c ON c.id = i.context_id WHERE c.id IS NULL',
+            )->execute();
+            $db->setQuery(
+                'ALTER TABLE ' . $db->quoteName($index) . ' ADD CONSTRAINT `fk_price_index_context` FOREIGN KEY (`context_id`) REFERENCES ' . $db->quoteName($contexts) . ' (`id`) ON DELETE CASCADE',
+            )->execute();
+        }
+    }
+
+    /**
+     * Write the cursor of the announced price periods where it is missing (InstallSteps::seedPriceWindowsCursor()):
+     * an update from a release without the cursor announces no period that began before it. A failure is said, never a
      * failed install: the periods are then not announced, and the Clear everything checks name the missing row.
      *
      * @return  void

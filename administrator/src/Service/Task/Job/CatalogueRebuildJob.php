@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
@@ -19,6 +20,8 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
+use Joomla\CMS\Log\Log;
+use Throwable;
 
 /**
  * Rebuild every projection of the items marked owed: the price index, the field values, the search entry and
@@ -76,6 +79,10 @@ final class CatalogueRebuildJob implements JobHandler
         $marked = ProjectionManager::markedAfter(after: (int) ($run->checkpoint['after'] ?? 0), limit: $units);
 
         if ($marked === []) {
+            // The pass is over: while the storefront still reads the previous price index, the switch is asked
+            // here, so the new index is read from the moment it is complete.
+            self::finishPriceIndexBuild();
+
             return new JobChunk(units: 0, checkpoint: null, finished: true);
         }
 
@@ -96,6 +103,14 @@ final class CatalogueRebuildJob implements JobHandler
         // never left with neither a job nor a staff item, and an item that always fails never keeps the job turning.
         $failed = ProjectionManager::stillMarked(read: array_intersect_key($marked, array_flip($answer['failed'])));
         $rebuilt = \count($marked) - \count($notRebuilt);
+        $last = max(array_keys($marked));
+        // The pass ends here when no busy item is left behind and no mark follows this chunk's: the switch is asked
+        // before a failure is thrown, so an item that always fails never holds the storefront on the previous index.
+        $finished = $busy === [] && (\count($marked) < $units || ProjectionManager::markedAfter(after: $last, limit: 1) === []);
+
+        if ($finished) {
+            self::finishPriceIndexBuild();
+        }
 
         if ($failed !== [] && $rebuilt === 0 && $busy === []) {
             throw new TaskError('COM_ALFA_TASKS_ERROR_CATALOGUE_STEP', [implode(', #', $failed)]);
@@ -110,6 +125,27 @@ final class CatalogueRebuildJob implements JobHandler
             return new JobChunk(units: $rebuilt, checkpoint: ['after' => min($busy) - 1], finished: false);
         }
 
-        return new JobChunk(units: \count($marked), checkpoint: ['after' => max(array_keys($marked))], finished: \count($marked) < $units);
+        return new JobChunk(units: \count($marked), checkpoint: ['after' => $last], finished: $finished);
+    }
+
+    /**
+     * The switch from the previous price index after the update, asked when a pass ends: made once the
+     * completeness count passes (a product whose pricing throws left out with no figure,
+     * PriceIndexSyncService::finishBuild()), else the products it lacks are owed again and the next pass asks again. A
+     * failure is logged; the storefront keeps reading the previous index.
+     *
+     * @since  2.2.2
+     */
+    private static function finishPriceIndexBuild(): void
+    {
+        if (!PriceIndexSyncService::isBuilding()) {
+            return;
+        }
+
+        try {
+            (new PriceIndexSyncService())->finishBuild();
+        } catch (Throwable $e) {
+            Log::add('[CatalogueRebuildJob] The price index could not switch from the previous one: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+        }
     }
 }
