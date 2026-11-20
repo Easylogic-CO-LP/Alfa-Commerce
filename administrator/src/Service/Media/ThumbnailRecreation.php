@@ -33,9 +33,16 @@ use Throwable;
  * thumbnail (its own path or another row's), or smaller than the box allows for its image. A row of type url is never
  * touched; a row whose own image file is missing is reported and left as it is.
  *
- * WHAT THE MERCHANT CHOSE STAYS (2.2.0, REV-C21 MAJOR 1). A thumbnail the merchant picked (thumbnail_origin chosen)
- * is left as it is in both modes and counted kept, while its file is there. Every other row, one written before 2.2.0
- * (NULL) included, is made again and its previous thumbnail file deleted (no state of before 2.2.0 is kept), under
+ * ONE WRITER, ONE RULE. Each thumbnail is written by MediaHelper::makeThumbnail(), the writer of a saved
+ * tile, under the same box rule: never larger than its image or the box, a plugin's thumbnail that breaks it written
+ * again by core (note self::NOTE_GUARD, counted guarded). The job has only the stored image: a new upload's thumbnail is
+ * made from the original as staff gave it, so where a plugin stored the image smaller than the box, the job's thumbnail
+ * is no larger than that stored image; such a row is made with note self::NOTE_SMALL_IMAGE and the report counts and
+ * names it (small, smallIds): a sharper thumbnail needs the image uploaded again.
+ *
+ * WHAT THE MERCHANT CHOSE STAYS. A thumbnail the merchant picked (thumbnail_origin chosen)
+ * is left as it is in both modes and counted kept, while its file is there. Every other row, one with no origin
+ * (NULL) included, is made again and its previous thumbnail file deleted, under
  * the same guards for every row: never its own image, never a file outside the save folder, never a file
  * another row names as its path or thumbnail.
  *
@@ -99,32 +106,6 @@ final class ThumbnailRecreation
     private const ROUNDING = 1;
 
     /**
-     * What GD takes, in bytes a pixel of the image, to make one thumbnail of it, by image type: PHP's real peak around
-     * makeThumbnail() less the usage before it, measured at 1500, 2500 and 3500 px a side and fitted (runs/c21r2/
-     * decode-peak.txt in the build record), for the worst variant of each format: a PNG with alpha 8.61 (libpng's
-     * buffer of the whole image, then GD's own 4 bytes), a JPEG 4.61 (progressive the same), a WebP 4.61 (alpha the
-     * same), a GIF 1.05; rounded up. A type not measured reads as a PNG, the most.
-     *
-     * @since  2.2.0
-     */
-    private const DECODE_BYTES_PER_PIXEL = [IMAGETYPE_PNG => 8.7, IMAGETYPE_JPEG => 4.7, IMAGETYPE_WEBP => 4.7, IMAGETYPE_GIF => 1.1];
-
-    /**
-     * What a decode takes whatever its size, beyond the thumbnail's own canvas (the measured fit's fixed part, at most
-     * 4.27 MB with a 500 x 375 canvas inside it, rounded up), in bytes.
-     *
-     * @since  2.2.0
-     */
-    private const DECODE_FIXED = 4194304;
-
-    /**
-     * The margin over the measured need: a quarter more.
-     *
-     * @since  2.2.0
-     */
-    private const DECODE_SAFETY = 1.25;
-
-    /**
      * Why a row's thumbnail was not made: its image too big to decode in the memory the tick has left.
      *
      * @since  2.2.0
@@ -152,6 +133,22 @@ final class ThumbnailRecreation
      * @since  2.2.1
      */
     public const REASON_SOURCE = 'source';
+
+    /**
+     * A note of a made thumbnail: a media plugin wrote it larger than its image or the box, and the box
+     * rule wrote it again (MediaHelper::makeThumbnail()).
+     *
+     * @since  2.2.2
+     */
+    public const NOTE_GUARD = 'guard';
+
+    /**
+     * A note of a made thumbnail: the stored image is smaller than the box on the side that limits it, so
+     * the thumbnail is the image's own size; a sharper one needs the image uploaded again.
+     *
+     * @since  2.2.2
+     */
+    public const NOTE_SMALL_IMAGE = 'small';
 
     /**
      * Ask for the thumbnails to be recreated in a mode: the job, or the one already waiting or running.
@@ -284,13 +281,13 @@ final class ThumbnailRecreation
      *
      * The outcome is 'made', 'kept' (the mode does not ask for it, or the merchant chose it on the tile), 'missing' (the
      * row's own image file is gone) or 'failed' with its reason (self::REASON_SOURCE, self::REASON_MEMORY,
-     * self::REASON_WRITE, self::REASON_CHANGED). A row made again has its previous thumbnail file deleted
-     * (deleteUnnamed()).
+     * self::REASON_WRITE, self::REASON_CHANGED). A made one carries its notes (self::NOTE_GUARD,
+     * self::NOTE_SMALL_IMAGE). A row made again has its previous thumbnail file deleted (deleteUnnamed()).
      *
      * @param object $row The row (id, path, thumbnail, thumbnail_origin).
      * @param string $mode self::MODE_ALL or self::MODE_MISSING.
      *
-     * @return array{outcome: string, reason: string|null} The outcome and its reason.
+     * @return array{outcome: string, reason: string|null, notes: list<string>} The outcome, its reason and its notes.
      *
      * @since  2.2.0
      */
@@ -323,11 +320,17 @@ final class ThumbnailRecreation
         }
 
         $params = ComponentHelper::getParams('com_alfa');
+        $guarded = false;
         $written = MediaHelper::makeThumbnail(
             source: JPATH_ROOT . '/' . $image,
             dest: MediaHelper::thumbnailDestination(source: $image, absolutePath: JPATH_ROOT . '/' . self::saveFolder(params: $params)),
             params: $params,
+            guarded: $guarded,
         );
+        $notes = array_values(array_filter([
+            $guarded ? self::NOTE_GUARD : '',
+            self::imageBelowBox(file: JPATH_ROOT . '/' . $image) ? self::NOTE_SMALL_IMAGE : '',
+        ]));
 
         // Nothing written: the row keeps what it names, never an empty thumbnail.
         if ($written === '') {
@@ -360,12 +363,12 @@ final class ThumbnailRecreation
         }
 
         if ($old === '' || $old === $written || $old === $image || str_contains($old, '://')) {
-            return self::outcome(outcome: 'made');
+            return self::outcome(outcome: 'made', notes: $notes);
         }
 
         self::deleteUnnamed(file: $old, saveFolder: self::saveFolder(params: $params));
 
-        return self::outcome(outcome: 'made');
+        return self::outcome(outcome: 'made', notes: $notes);
     }
 
     /**
@@ -373,20 +376,41 @@ final class ThumbnailRecreation
      *
      * @param string $outcome 'made', 'kept', 'missing' or 'failed'.
      * @param string|null $reason Why it failed.
+     * @param list<string> $notes What a made thumbnail's report says of it.
      *
-     * @return array{outcome: string, reason: string|null}
+     * @return array{outcome: string, reason: string|null, notes: list<string>}
      *
      * @since  2.2.0
      */
-    private static function outcome(string $outcome, ?string $reason = null): array
+    private static function outcome(string $outcome, ?string $reason = null, array $notes = []): array
     {
-        return ['outcome' => $outcome, 'reason' => $reason];
+        return ['outcome' => $outcome, 'reason' => $reason, 'notes' => $notes];
     }
 
     /**
-     * Whether an image's decode fits the memory this process has left: decodeNeed() for its size and type, read from the
-     * file's header without decoding it, against memory_limit less the process's real usage. A file whose size cannot be
-     * read is not refused here (the writer falls back as it does for any image it cannot resize).
+     * Whether a stored image is smaller than the box on the side that limits it: its thumbnail can only be the
+     * image's own size, smaller than the box allows. An image whose size cannot be read is not.
+     *
+     * @param string $file Absolute path of the image.
+     *
+     * @since  2.2.2
+     */
+    private static function imageBelowBox(string $file): bool
+    {
+        $size = @getimagesize($file);
+
+        if ($size === false) {
+            return false;
+        }
+
+        [$boxWidth, $boxHeight] = MediaHelper::thumbnailBox();
+
+        return min($boxWidth / max(1, (int) $size[0]), $boxHeight / max(1, (int) $size[1])) > 1;
+    }
+
+    /**
+     * Whether an image's thumbnail fits the memory this process has left, as the writer checks it before it decodes
+     * anything (MediaHelper::decodeCheck(), at the site's box).
      *
      * @param string $file Absolute path of the image.
      *
@@ -394,30 +418,11 @@ final class ThumbnailRecreation
      */
     public static function decodeFits(string $file): bool
     {
-        $limit = trim((string) \ini_get('memory_limit'));
-
-        if ($limit === '' || $limit === '-1') {
-            return true;
-        }
-
-        $bytes = match (strtolower(substr($limit, -1))) {
-            'g' => (int) $limit * 1073741824,
-            'm' => (int) $limit * 1048576,
-            'k' => (int) $limit * 1024,
-            default => (int) $limit,
-        };
-        $size = @getimagesize($file);
-
-        if ($bytes <= 0 || $size === false) {
-            return true;
-        }
-
-        return self::decodeNeed(width: (int) $size[0], height: (int) $size[1], type: (int) $size[2]) <= $bytes - memory_get_usage(true);
+        return MediaHelper::decodeCheck(file: $file)['fits'];
     }
 
     /**
-     * The memory one thumbnail of an image needs, in bytes: a quarter more than GD's measured peak for its type (its
-     * pixels at DECODE_BYTES_PER_PIXEL, the thumbnail's canvas at the box, 4 bytes a pixel, and DECODE_FIXED).
+     * The memory one thumbnail of an image takes at the site's box, in bytes (MediaHelper::decodeNeed()).
      *
      * @param int $width The image's width.
      * @param int $height The image's height.
@@ -428,9 +433,8 @@ final class ThumbnailRecreation
     public static function decodeNeed(int $width, int $height, int $type): int
     {
         [$boxWidth, $boxHeight] = MediaHelper::thumbnailBox();
-        $rate = self::DECODE_BYTES_PER_PIXEL[$type] ?? self::DECODE_BYTES_PER_PIXEL[IMAGETYPE_PNG];
 
-        return (int) ceil(self::DECODE_SAFETY * ($rate * $width * $height + $boxWidth * $boxHeight * 4 + self::DECODE_FIXED));
+        return MediaHelper::decodeNeed(width: $width, height: $height, type: $type, boxWidth: $boxWidth, boxHeight: $boxHeight);
     }
 
     /**
@@ -476,11 +480,12 @@ final class ThumbnailRecreation
             return false;
         }
 
+        // The box rule's own size: the image fitted in the box, never enlarged. A thumbnail larger than its stored
+        // image is not lacking: a new upload's thumbnail is made from the original, which a plugin may have stored smaller.
         [$boxWidth, $boxHeight] = MediaHelper::thumbnailBox();
-        $scale = min($boxWidth / max(1, $imageSize[0]), $boxHeight / max(1, $imageSize[1]), 1);
+        [$width, $height] = MediaHelper::thumbnailSize(width: (int) $imageSize[0], height: (int) $imageSize[1], boxWidth: $boxWidth, boxHeight: $boxHeight);
 
-        return $thumbSize[0] + self::ROUNDING < (int) round($imageSize[0] * $scale)
-            || $thumbSize[1] + self::ROUNDING < (int) round($imageSize[1] * $scale);
+        return $thumbSize[0] + self::ROUNDING < $width || $thumbSize[1] + self::ROUNDING < $height;
     }
 
     /**
@@ -488,9 +493,10 @@ final class ThumbnailRecreation
      *
      * @param array $report So far (self::emptyReport()'s keys).
      * @param int $id The row.
-     * @param array{outcome: string, reason: string|null} $outcome What recreate() said.
+     * @param array{outcome: string, reason: string|null, notes?: list<string>} $outcome What recreate() said.
      *
-     * @return array The report with the row counted, and named when its list has room (a failed row with its reason).
+     * @return array The report with the row counted, and named when its list has room (a failed row with its reason); a
+     *               made one counted by its notes too (guarded; small, named in smallIds).
      *
      * @since  2.2.0
      */
@@ -499,6 +505,20 @@ final class ThumbnailRecreation
         $report += self::emptyReport();
         $kind = (string) $outcome['outcome'];
         $report[$kind] = (int) ($report[$kind] ?? 0) + 1;
+        $notes = (array) ($outcome['notes'] ?? []);
+
+        // A made thumbnail's notes: written again by the box rule; made from a stored image smaller than the box.
+        if (\in_array(self::NOTE_GUARD, $notes, true)) {
+            $report['guarded']++;
+        }
+
+        if (\in_array(self::NOTE_SMALL_IMAGE, $notes, true)) {
+            $report['small']++;
+
+            if (\count($report['smallIds']) < self::REPORT_IDS) {
+                $report['smallIds'][] = $id;
+            }
+        }
 
         foreach (['missing' => 'missingIds', 'failed' => 'failedIds'] as $listed => $list) {
             if ($kind === $listed && \count($report[$list]) < self::REPORT_IDS) {
@@ -518,7 +538,7 @@ final class ThumbnailRecreation
      *
      * @param array|string|null $checkpoint The job's checkpoint, decoded or as stored.
      *
-     * @return array{mode: string, made: int, kept: int, missing: int, failed: int, missingIds: int[], failedIds: int[], failedReasons: array<string, string>}|null
+     * @return array{mode: string, made: int, kept: int, missing: int, failed: int, guarded: int, small: int, missingIds: int[], failedIds: int[], failedReasons: array<string, string>, smallIds: int[]}|null
      *
      * @since  2.2.0
      */
@@ -561,15 +581,16 @@ final class ThumbnailRecreation
 
     /**
      * An empty report: the counts, and the rows named for the image files missing and the thumbnails not made (each with
-     * its reason).
+     * its reason); of the made ones, those the box rule wrote again (guarded) and those made from a stored image
+     * smaller than the box (small, named in smallIds).
      *
-     * @return array{made: int, kept: int, missing: int, failed: int, missingIds: int[], failedIds: int[], failedReasons: array<string, string>}
+     * @return array{made: int, kept: int, missing: int, failed: int, guarded: int, small: int, missingIds: int[], failedIds: int[], failedReasons: array<string, string>, smallIds: int[]}
      *
      * @since  2.2.0
      */
     public static function emptyReport(): array
     {
-        return ['made' => 0, 'kept' => 0, 'missing' => 0, 'failed' => 0, 'missingIds' => [], 'failedIds' => [], 'failedReasons' => []];
+        return ['made' => 0, 'kept' => 0, 'missing' => 0, 'failed' => 0, 'guarded' => 0, 'small' => 0, 'missingIds' => [], 'failedIds' => [], 'failedReasons' => [], 'smallIds' => []];
     }
 
     /**

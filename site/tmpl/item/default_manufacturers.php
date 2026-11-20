@@ -40,7 +40,7 @@
                     </div>
                     <?php if ($firstImage) : ?>
                         <div class="item-list-entry-image item-manufacturer-image">
-                            <img src="<?php echo $this->escape($firstImage->url); ?>" alt="<?php echo $this->escape($imageAlt); ?>">
+                            <img src="<?php echo $this->escape($firstImage->thumbnail_url); ?>" alt="<?php echo $this->escape($imageAlt); ?>">
                         </div>
                     <?php endif; ?>
                 </a>

@@ -23,7 +23,7 @@ if (empty($this->categories)) return;
             <?php if (!empty($category->medias[0])): ?>
                 <?php // The name follows as this link's text: repeating it here would
                       // make a screen reader announce the category twice. ?>
-                <img class="category-item-img" src="<?= $category->medias[0]->url ?>" alt="" />
+                <img class="category-item-img" src="<?php echo htmlspecialchars((string) $category->medias[0]->thumbnail_url, ENT_QUOTES, 'UTF-8'); ?>" alt="" />
             <?php endif; ?>
             <h3 class="category-item-title"><?php echo htmlspecialchars($category->name, ENT_QUOTES, 'UTF-8'); ?></h3>
         </a>

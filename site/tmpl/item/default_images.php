@@ -7,8 +7,8 @@
      */
 
     // No direct access
-    use Joomla\CMS\HTML\HTMLHelper;
     use Joomla\CMS\Language\Text;
+    use Joomla\CMS\Layout\LayoutHelper;
 
     defined('_JEXEC') or die;
 
@@ -26,6 +26,11 @@
 
     // The merchant's own alt when set; otherwise the name and the image's ordinal from 1. The strip repeats it.
     $altOf = static fn (object $media, int $index): string => (string) ($media->alt ?: Text::sprintf('COM_ALFA_ALT_ITEM_IMAGE', $itemName, $index + 1));
+
+    // A slide is the generated thumbnail, never the stored image, which only the lightbox opens when the shopper
+    // opens it. The strip's small images are the same thumbnails.
+    // The addresses carry their files' versions (getMediaData()), so each image is drawn by Joomla's own image layout
+    // (joomla.html.image): HTMLHelper::image() loses an address with a query and no fragment.
 ?>
 
 <div class="main-images navigation-controls">
@@ -42,8 +47,8 @@
             $imgAttribs['loading'] = 'lazy';
         }
         ?>
-        <a class="item-image" href="<?= $media->url ?>">
-            <?= HTMLHelper::_('image', $media->thumbnail_url, $altOf($media, $index), $imgAttribs); ?>
+        <a class="item-image" href="<?= $this->escape($media->url) ?>">
+            <?= LayoutHelper::render('joomla.html.image', ['src' => $media->thumbnail_url, 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
         </a>
     <?php endforeach; ?>
 </div>
@@ -65,7 +70,7 @@
         }
         ?>
 
-        <?= HTMLHelper::_('image', $media->thumbnail_url, $altOf($media, $index), $imgAttribs); ?>
+        <?= LayoutHelper::render('joomla.html.image', ['src' => $media->thumbnail_url, 'alt' => $altOf($media, $index)] + $imgAttribs); ?>
     <?php endforeach; ?>
 </div>
 <?php endif; ?>
