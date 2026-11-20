@@ -273,6 +273,70 @@ class PriceCalculator
     }
 
     /**
+     * Price every unit of many products in one pass (the price index): a unit is a product's published
+     * combination, or the product itself when it has none. The base data loads once for the products and the price
+     * rows of every combination once; each unit is then priced by the same path a chosen combination takes
+     * ({@see self::computeVariantFromData()}), so the index holds what the card, the product page and the cart charge
+     * for that combination.
+     *
+     * @param array<int, int[]> $units Combination ids by product id; an empty list prices the product itself.
+     * @param int|int[] $quantities A single quantity for all, or a per-id map.
+     * @param PriceContext $context Pricing context.
+     *
+     * @return array<int, array<int, PriceResult>> Results by product id, then by combination id (0 for the product).
+     *
+     * @since  2.2.2
+     */
+    public function calculateUnits(array $units, $quantities, PriceContext $context): array
+    {
+        $itemIds = array_values(array_map('intval', array_keys($units)));
+
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $quantities = $this->normalizeQuantities($itemIds, $quantities);
+        $data = $this->loader->loadBatch($itemIds, $context);
+        $combinationIds = $units === [] ? [] : array_merge(...array_values(array_map('array_values', $units)));
+        $rows = $combinationIds !== [] ? $this->loader->loadCombinationPriceRowsFor($itemIds, $combinationIds, $context) : [];
+        $results = [];
+
+        foreach ($units as $itemId => $combinations) {
+            $itemId = (int) $itemId;
+            $quantity = max(1, (int) $quantities[$itemId]);
+
+            if ($combinations === []) {
+                $results[$itemId][0] = $this->calculator->compute(
+                    $itemId,
+                    $quantity,
+                    $data->getPricesFor($itemId),
+                    $data->getDiscountsFor($itemId),
+                    $data->getTaxesFor($itemId),
+                    $context,
+                );
+
+                continue;
+            }
+
+            foreach ($combinations as $combinationId) {
+                $combinationId = (int) $combinationId;
+                $results[$itemId][$combinationId] = $this->computeVariantFromData(
+                    $itemId,
+                    $quantity,
+                    new VariantSelection(combinationId: $combinationId),
+                    $data->getPricesFor($itemId),
+                    $data->getDiscountsFor($itemId),
+                    $data->getTaxesFor($itemId),
+                    $rows[$combinationId] ?? [],
+                    $context,
+                );
+            }
+        }
+
+        return $results;
+    }
+
+    /**
      * Compute one item's variant price from ALREADY-LOADED data: the shared core
      * of calculateVariant() (single, self-loading) and calculateBatch() (batched,
      * preloaded). Splits the combination rows into 'price' (replace base) and

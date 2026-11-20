@@ -53,6 +53,9 @@ use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
+use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
+use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -828,6 +831,14 @@ class ItemModel extends AlfaAdminModel
             if ($widened !== []) {
                 return $this->refuseSave(messages: [PriceRowPlaces::refusal(widened: $widened)]);
             }
+        }
+
+        // A price is stored exactly as typed: a row whose figure is not a number, or has more decimals or digits
+        // than the column holds, is refused here, naming the row, before anything is written.
+        $priceRefusals = self::priceRefusals(rows: \is_array($data['prices'] ?? null) ? $data['prices'] : []);
+
+        if ($priceRefusals !== []) {
+            return $this->refuseSave(messages: $priceRefusals);
         }
 
         // The posted quantity rules, parsed exactly and normalised in $data.
@@ -2852,6 +2863,38 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * The posted price rows whose price or custom discount the DECIMAL(24,8) columns cannot store: not a number,
+     * more than eight decimals, or more than sixteen digits before the point. Each named by its row and what was typed.
+     *
+     * @param array $rows jform[prices].
+     *
+     * @return string[] One refusal per figure refused.
+     *
+     * @since  2.2.2
+     */
+    private static function priceRefusals(array $rows): array
+    {
+        $refusals = [];
+        $position = 0;
+
+        foreach ($rows as $row) {
+            $position++;
+
+            foreach (['value', 'override_value'] as $column) {
+                $typed = \is_array($row) ? ($row[$column] ?? null) : null;
+
+                try {
+                    StoredDecimal::ofTyped($typed);
+                } catch (InvalidArgumentException) {
+                    $refusals[] = Text::sprintf('COM_ALFA_ITEM_PRICE_INVALID', $position, htmlspecialchars(\is_scalar($typed) ? (string) $typed : '', ENT_QUOTES, 'UTF-8'));
+                }
+            }
+        }
+
+        return $refusals;
+    }
+
+    /**
      * Refuse a save before anything is written.
      *
      * The refusals are reported once, through the model error: the edit form's
@@ -3567,8 +3610,10 @@ class ItemModel extends AlfaAdminModel
             $priceObject = new stdClass();
             $priceObject->id = isset($price['id']) ? intval($price['id']) : 0;
             $priceObject->item_id = $productId;
-            $priceObject->value = isset($price['value']) ? floatval($price['value']) : 0.0;
-            $priceObject->override_value = (trim((string) ($price['override_value'] ?? '')) !== '') ? floatval($price['override_value']) : null;
+            // Exact decimal text for the DECIMAL(24,8) columns: the typed figure on its digits, never
+            // through a float; a value that is not a number, or is finer or larger than the column holds, is refused.
+            $priceObject->value = StoredDecimal::ofTyped($price['value'] ?? null) ?? StoredDecimal::of(ExactAmount::of('0'));
+            $priceObject->override_value = StoredDecimal::ofTyped($price['override_value'] ?? null);
             $priceObject->override_type = in_array($price['override_type'] ?? '', ['start', 'final'], true) ? $price['override_type'] : 'start';
             $priceObject->state = ((string) ($price['price_status'] ?? '1') === '1') ? 1 : 0;
             $priceObject->country_id = isset($price['country_id']) ? intval($price['country_id']) : 0;

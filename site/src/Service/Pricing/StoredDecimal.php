@@ -125,4 +125,32 @@ final class StoredDecimal
 
         return ($negative ? '-' : '') . $whole . ($scale > 0 ? '.' . str_pad($places, $scale, '0') : '');
     }
+
+    /**
+     * The text a DECIMAL(24,8) column is handed for a typed figure: the posted text read on its digits, never
+     * through a float, so 175.0040 is stored as 175.00400000. A number that arrives as a PHP number is read at the
+     * digits Money reads one at.
+     *
+     * @param mixed $value The typed value: a numeric string, an int or a float; '' or null for none.
+     *
+     * @return string|null The column's text; null for an empty value.
+     *
+     * @throws InvalidArgumentException When the value is not a number, or is finer or larger than the column holds.
+     *
+     * @since  2.2.2
+     */
+    public static function ofTyped(mixed $value): ?string
+    {
+        $typed = \is_string($value) ? trim($value) : $value;
+
+        if ($typed === null || $typed === '') {
+            return null;
+        }
+
+        if (!\is_int($typed) && !\is_float($typed) && !(\is_string($typed) && is_numeric($typed))) {
+            throw new InvalidArgumentException(sprintf("'%s' is not a number.", \is_scalar($typed) ? (string) $typed : get_debug_type($typed)));
+        }
+
+        return self::of(ExactAmount::ofNumber($typed));
+    }
 }

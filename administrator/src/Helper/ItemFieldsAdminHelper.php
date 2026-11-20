@@ -30,6 +30,8 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitRetirementE
 use Alfa\Component\Alfa\Administrator\Service\Inventory\LocationPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\ItemFields\ItemFieldDisplayResolver;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
+use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
@@ -2861,6 +2863,11 @@ class ItemFieldsAdminHelper
                 $labels ??= self::combinationLabels(itemId: $itemId);
                 $refusals[] = self::keepsDiscountText(label: $labels[$combinationId] ?? ('#' . $combinationId));
             }
+
+            if ($plan['action'] === 'invalid') {
+                $labels ??= self::combinationLabels(itemId: $itemId);
+                $refusals[] = self::invalidPriceText(label: $labels[$combinationId] ?? ('#' . $combinationId), value: (string) ($cell['quick']['value'] ?? ''));
+            }
         }
 
         return $refusals;
@@ -4489,6 +4496,13 @@ class ItemFieldsAdminHelper
             ));
         }
 
+        if ($plan['action'] === 'invalid') {
+            throw new RuntimeException(self::invalidPriceText(
+                label: self::combinationLabels(itemId: $itemId)[$combinationId] ?? ('#' . $combinationId),
+                value: (string) ($quick['value'] ?? ''),
+            ));
+        }
+
         if ($plan['action'] === 'none') {
             return;
         }
@@ -4590,7 +4604,8 @@ class ItemFieldsAdminHelper
      * @param string[] $changes {@see self::quickCellChanges()}.
      *
      * @return array{action: string, rowId: int, set: array<string, mixed>}
-     *                                                                      action: none, insert, update, delete or refuse; set: column => value.
+     *                                                                      action: none, insert, update, delete, refuse or invalid (the typed
+     *                                                                      figure is not one the column stores); set: column => value.
      *
      * @since  2.0.0
      */
@@ -4606,10 +4621,19 @@ class ItemFieldsAdminHelper
         $cell = self::quickCell(cell: $quick);
         $hasDiscount = $row !== null && $row['override_value'] !== null;
         $rowId = $row === null ? 0 : (int) $row['id'];
+
+        // The typed figure as the DECIMAL(24,8) column stores it, on its digits, never through a float: a value
+        // that is not a number, or is finer or larger than the column holds, is refused.
+        try {
+            $value = $cell['value'] === '' ? null : StoredDecimal::ofTyped($cell['value']);
+        } catch (InvalidArgumentException) {
+            return ['action' => 'invalid', 'rowId' => $rowId, 'set' => []];
+        }
+
         $wants = [
             'mode' => $cell['mode'],
             'operation' => $cell['mode'] === 'adjust' ? $cell['operation'] : null,
-            'value' => (float) $cell['value'],
+            'value' => $value,
             'override_type' => $cell['mode'] === 'adjust' ? $cell['target'] : 'start',
         ];
 
@@ -4652,7 +4676,7 @@ class ItemFieldsAdminHelper
         foreach ($columns as $column) {
             $stored = $row[$column];
             $same = match ($column) {
-                'value' => $stored !== null && (float) $stored === $wants['value'],
+                'value' => $stored !== null && $wants['value'] !== null && ExactAmount::ofNumber((string) $stored)->compare(ExactAmount::of($wants['value'])) === 0,
                 'operation' => ($stored ?? ($storedMode === 'adjust' ? '+' : null)) === $wants['operation'],
                 default => $stored === $wants[$column],
             };
@@ -4703,7 +4727,12 @@ class ItemFieldsAdminHelper
             return $a === $b;
         }
 
-        return (float) $a === (float) $b;
+        // Compared exactly, on the digits.
+        try {
+            return ExactAmount::ofNumber($a)->compare(ExactAmount::ofNumber($b)) === 0;
+        } catch (InvalidArgumentException) {
+            return $a === $b;
+        }
     }
 
     /**
@@ -4807,6 +4836,20 @@ class ItemFieldsAdminHelper
     private static function keepsDiscountText(string $label): string
     {
         return Text::sprintf('COM_ALFA_COMBI_QUICK_KEEPS_DISCOUNT', self::escapedText(text: $label));
+    }
+
+    /**
+     * The refusal of a grid price cell whose figure the price column cannot store: the combination and what was
+     * typed, in the operator's words.
+     *
+     * @param string $label The combination's label.
+     * @param string $value What was typed.
+     *
+     * @since  2.2.2
+     */
+    private static function invalidPriceText(string $label, string $value): string
+    {
+        return Text::sprintf('COM_ALFA_COMBI_QUICK_PRICE_INVALID', self::escapedText(text: $label), self::escapedText(text: $value));
     }
 
     /**
@@ -5319,8 +5362,9 @@ class ItemFieldsAdminHelper
                 'combination_id' => $combinationId,
                 'mode' => $mode,
                 'operation' => ($mode === 'adjust' && in_array($operation, ['+', '-', '%', '-%'], true)) ? $operation : null,
-                'value' => (float) $row['value'],
-                'override_value' => ($mode === 'price' && trim((string) ($row['override_value'] ?? '')) !== '') ? (float) $row['override_value'] : null,
+                // Exact decimal text for the DECIMAL(24,8) columns, never through a float.
+                'value' => StoredDecimal::ofTyped($row['value']),
+                'override_value' => $mode === 'price' ? StoredDecimal::ofTyped($row['override_value'] ?? null) : null,
                 // For an adjust, override_type carries the net/gross target (a
                 // separate POST key); for a price it carries the override pin.
                 'override_type' => $mode === 'adjust'

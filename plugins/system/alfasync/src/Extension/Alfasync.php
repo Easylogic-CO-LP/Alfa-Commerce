@@ -43,6 +43,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartOwner;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
@@ -937,10 +938,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 // (ComponentOptions::followOnlineSales()). Joomla's Options save writes the row itself, not through
                 // ComponentOptions::write(), so this save asks it here, with the Options it found before.
                 if ($this->alfaOptionsBeforeSave !== null) {
+                    $after = (new Registry((string) ($item->params ?? '{}')))->toArray();
                     ComponentOptions::followOnlineSales(
                         before: $this->alfaOptionsBeforeSave,
-                        after: (new Registry((string) ($item->params ?? '{}')))->toArray(),
+                        after: $after,
                     );
+                    $this->followStockSettings(before: $this->alfaOptionsBeforeSave, after: $after);
                 }
 
                 $this->alfaOptionsBeforeSave = null;
@@ -959,6 +962,40 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         // com_plugins.plugin
         $this->invalidateForExtensions(ids: [(int) ($item->extension_id ?? 0)], how: 'saved');
+    }
+
+    /**
+     * The shop-wide stock settings saved with other values: the stock action, the backorder default or the
+     * safety floor decide which combination a listing card opens on, so every product's opening combination is
+     * decided again (the price index reads its row by it; no price row is written); a failure owes every item to the
+     * catalogue job instead. Never breaks the save.
+     *
+     * @param array $before The Options before the save.
+     * @param array $after The Options saved.
+     *
+     * @since  2.2.2
+     */
+    private function followStockSettings(array $before, array $after): void
+    {
+        $changed = false;
+
+        foreach (['stock_action', 'backorder', 'min_qty'] as $key) {
+            $changed = $changed || (string) ($before[$key] ?? '') !== (string) ($after[$key] ?? '');
+        }
+
+        if (!$changed) {
+            return;
+        }
+
+        try {
+            ComponentHelper::getComponent('com_alfa')->setParams(new Registry($after));
+            OpeningCombination::refreshAll();
+        } catch (Throwable $e) {
+            $this->logError(caller: 'onExtensionAfterSave', message: 'the opening combinations were not decided again after the stock settings changed, every item is owed: ' . $e->getMessage());
+
+            // Every item owed instead: the catalogue job's writer decides the pointers of the products it writes.
+            OpeningCombination::afterCommand(itemIds: [], all: true);
+        }
     }
 
     /**
