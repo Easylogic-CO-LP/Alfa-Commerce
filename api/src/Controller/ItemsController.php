@@ -318,6 +318,13 @@ class ItemsController extends ApiController
         try {
             return parent::save($recordKey);
         } catch (PricesStateChanged $e) {
+            // The write checked the product out before its save; a refused write gives it back as it found it.
+            $model = $this->getModel('item', '', ['ignore_request' => true]);
+
+            if ($model instanceof AdminItemModel) {
+                $model->checkin($e->itemId);
+            }
+
             throw new Save($e->getMessage(), 409, $e);
         }
     }
