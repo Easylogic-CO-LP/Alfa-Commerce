@@ -33,16 +33,16 @@ use Throwable;
  * thumbnail (its own path or another row's), or smaller than the box allows for its image. A row of type url is never
  * touched; a row whose own image file is missing is reported and left as it is.
  *
- * ONE WRITER, ONE RULE (2.2.2). Each thumbnail is written by MediaHelper::makeThumbnail(), the writer of a saved
+ * ONE WRITER, ONE RULE. Each thumbnail is written by MediaHelper::makeThumbnail(), the writer of a saved
  * tile, under the same box rule: never larger than its image or the box, a plugin's thumbnail that breaks it written
  * again by core (note self::NOTE_GUARD, counted guarded). The job has only the stored image: a new upload's thumbnail is
  * made from the original as staff gave it, so where a plugin stored the image smaller than the box, the job's thumbnail
  * is no larger than that stored image; such a row is made with note self::NOTE_SMALL_IMAGE and the report counts and
  * names it (small, smallIds): a sharper thumbnail needs the image uploaded again.
  *
- * WHAT THE MERCHANT CHOSE STAYS (2.2.0, REV-C21 MAJOR 1). A thumbnail the merchant picked (thumbnail_origin chosen)
- * is left as it is in both modes and counted kept, while its file is there. Every other row, one written before 2.2.0
- * (NULL) included, is made again and its previous thumbnail file deleted (no state of before 2.2.0 is kept), under
+ * WHAT THE MERCHANT CHOSE STAYS. A thumbnail the merchant picked (thumbnail_origin chosen)
+ * is left as it is in both modes and counted kept, while its file is there. Every other row, one with no origin
+ * (NULL) included, is made again and its previous thumbnail file deleted, under
  * the same guards for every row: never its own image, never a file outside the save folder, never a file
  * another row names as its path or thumbnail.
  *
@@ -161,7 +161,7 @@ final class ThumbnailRecreation
     public const REASON_SOURCE = 'source';
 
     /**
-     * A note of a made thumbnail (2.2.2): a media plugin wrote it larger than its image or the box, and the box
+     * A note of a made thumbnail: a media plugin wrote it larger than its image or the box, and the box
      * rule wrote it again (MediaHelper::makeThumbnail()).
      *
      * @since  2.2.2
@@ -169,7 +169,7 @@ final class ThumbnailRecreation
     public const NOTE_GUARD = 'guard';
 
     /**
-     * A note of a made thumbnail (2.2.2): the stored image is smaller than the box on the side that limits it, so
+     * A note of a made thumbnail: the stored image is smaller than the box on the side that limits it, so
      * the thumbnail is the image's own size; a sharper one needs the image uploaded again.
      *
      * @since  2.2.2
@@ -307,7 +307,7 @@ final class ThumbnailRecreation
      *
      * The outcome is 'made', 'kept' (the mode does not ask for it, or the merchant chose it on the tile), 'missing' (the
      * row's own image file is gone) or 'failed' with its reason (self::REASON_SOURCE, self::REASON_MEMORY,
-     * self::REASON_WRITE, self::REASON_CHANGED). A made one carries its notes (2.2.2: self::NOTE_GUARD,
+     * self::REASON_WRITE, self::REASON_CHANGED). A made one carries its notes (self::NOTE_GUARD,
      * self::NOTE_SMALL_IMAGE). A row made again has its previous thumbnail file deleted (deleteUnnamed()).
      *
      * @param object $row The row (id, path, thumbnail, thumbnail_origin).
@@ -402,7 +402,7 @@ final class ThumbnailRecreation
      *
      * @param string $outcome 'made', 'kept', 'missing' or 'failed'.
      * @param string|null $reason Why it failed.
-     * @param list<string> $notes What a made thumbnail's report says of it (2.2.2).
+     * @param list<string> $notes What a made thumbnail's report says of it.
      *
      * @return array{outcome: string, reason: string|null, notes: list<string>}
      *
@@ -414,7 +414,7 @@ final class ThumbnailRecreation
     }
 
     /**
-     * Whether a stored image is smaller than the box on the side that limits it (2.2.2): its thumbnail can only be the
+     * Whether a stored image is smaller than the box on the side that limits it: its thumbnail can only be the
      * image's own size, smaller than the box allows. An image whose size cannot be read is not.
      *
      * @param string $file Absolute path of the image.
@@ -527,7 +527,7 @@ final class ThumbnailRecreation
             return false;
         }
 
-        // The box rule's own size (2.2.2): the image fitted in the box, never enlarged. A thumbnail larger than its stored
+        // The box rule's own size: the image fitted in the box, never enlarged. A thumbnail larger than its stored
         // image is not lacking: a new upload's thumbnail is made from the original, which a plugin may have stored smaller.
         [$boxWidth, $boxHeight] = MediaHelper::thumbnailBox();
         [$width, $height] = MediaHelper::thumbnailSize(width: (int) $imageSize[0], height: (int) $imageSize[1], boxWidth: $boxWidth, boxHeight: $boxHeight);
@@ -543,7 +543,7 @@ final class ThumbnailRecreation
      * @param array{outcome: string, reason: string|null, notes?: list<string>} $outcome What recreate() said.
      *
      * @return array The report with the row counted, and named when its list has room (a failed row with its reason); a
-     *               made one counted by its notes too (2.2.2: guarded; small, named in smallIds).
+     *               made one counted by its notes too (guarded; small, named in smallIds).
      *
      * @since  2.2.0
      */
@@ -554,7 +554,7 @@ final class ThumbnailRecreation
         $report[$kind] = (int) ($report[$kind] ?? 0) + 1;
         $notes = (array) ($outcome['notes'] ?? []);
 
-        // A made thumbnail's notes (2.2.2): written again by the box rule; made from a stored image smaller than the box.
+        // A made thumbnail's notes: written again by the box rule; made from a stored image smaller than the box.
         if (\in_array(self::NOTE_GUARD, $notes, true)) {
             $report['guarded']++;
         }
@@ -628,7 +628,7 @@ final class ThumbnailRecreation
 
     /**
      * An empty report: the counts, and the rows named for the image files missing and the thumbnails not made (each with
-     * its reason); of the made ones (2.2.2), those the box rule wrote again (guarded) and those made from a stored image
+     * its reason); of the made ones, those the box rule wrote again (guarded) and those made from a stored image
      * smaller than the box (small, named in smallIds).
      *
      * @return array{made: int, kept: int, missing: int, failed: int, guarded: int, small: int, missingIds: int[], failedIds: int[], failedReasons: array<string, string>, smallIds: int[]}

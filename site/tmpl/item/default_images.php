@@ -28,7 +28,7 @@
     // The merchant's own alt when set; otherwise the name and the image's ordinal from 1. The strip repeats it.
     $altOf = static fn (object $media, int $index): string => (string) ($media->alt ?: Text::sprintf('COM_ALFA_ALT_ITEM_IMAGE', $itemName, $index + 1));
 
-    // A slide is the thumbnail, with the stored image beside it in its srcset (2.2.2), so a slide wider than the
+    // A slide is the thumbnail, with the stored image beside it in its srcset, so a slide wider than the
     // thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image; the lightbox opens the stored
     // image. The sizes follow item.css on Cassiopeia: the images take the whole page (less its 20 px of padding) up to
     // 651 px and half of it (less 26 px) from 652 px, never less than the slide (never "auto", which draws an image in

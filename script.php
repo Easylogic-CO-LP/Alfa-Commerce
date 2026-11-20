@@ -1904,7 +1904,7 @@ class com_alfaInstallerScript extends InstallerScript
         {
             $this->oweOpeningQuantityRebuild();
 
-            // The thumbnail box (2.2.2): a side stored below 500 is raised to 500; nothing else is changed or made.
+            // The thumbnail box: a side stored below 500 is raised to 500; nothing else is changed or made.
             $this->raiseThumbnailBox();
         }
 
@@ -2109,9 +2109,9 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * From 2.2.2 a side of the thumbnail box stored below the default, 500, is raised to it
-     * ({@see \Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailBoxUpdate::raise()}): a box stored before 2.2.0
-     * (200 x 200 on the demo) was kept by every update since, so its thumbnails stayed at most 200 pixels. The update
+     * On an update from an earlier version, a side of the thumbnail box stored below the default, 500, is raised to it
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailBoxUpdate::raise()}): a box a site stored while
+     * the default was 200 x 200 was kept by every update, so its thumbnails stayed at most 200 pixels. The update
      * writes the two Options only: the thumbnails already made stay as they are, the new ones are made at the new box.
      * A site that stores no box, or 500 or more a side, has nothing raised and no message. A failure is said, never a
      * failed update.

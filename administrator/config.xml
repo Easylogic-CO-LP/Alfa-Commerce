@@ -840,7 +840,7 @@
 
         <fieldset name="mediazone_thumbnails" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_THUMBNAILS">
             <!-- The box every thumbnail fits in, uploads, library picks and Recreate alike: 500 x 500 unless the site
-                 stores its own (2.2.0). Whole pixels from 100 to 1600 (2.2.2: MediaHelper::THUMBNAIL_BOX_MIN and
+                 stores its own. Whole pixels from 100 to 1600 (MediaHelper::THUMBNAIL_BOX_MIN and
                  THUMBNAIL_BOX_MAX, which thumbnailBox() holds a stored value to). A thumbnail is never larger than its
                  image. A change applies to the thumbnails made after it. -->
             <field

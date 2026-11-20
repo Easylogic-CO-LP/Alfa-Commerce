@@ -12,7 +12,7 @@
  * always drawn it. Chosen per item, per category, per menu item or in the Options (Items List Item Images); a variant
  * such as default_card_images-slider.php draws more than one.
  *
- * The image is the thumbnail, with the stored image beside it in its srcset (MediaHelper::srcset(), 2.2.2), so
+ * The image is the thumbnail, with the stored image beside it in its srcset (MediaHelper::srcset()), so
  * a card wider than the thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image and the
  * thumbnail is never stretched past its pixels. Its sizes follow list.css's grid on Cassiopeia (cards of at least 300
  * px, a gap of 1rem, 10 px of padding and a 1 px border: one card a row up to 647 px, two up to 963 px, three up to

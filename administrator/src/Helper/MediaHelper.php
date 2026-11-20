@@ -75,7 +75,7 @@ class MediaHelper
     public const THUMBNAIL_BOX = 500;
 
     /**
-     * The smallest side of the thumbnail box (2.2.2): the Options fields refuse less, and thumbnailBox() reads a
+     * The smallest side of the thumbnail box: the Options fields refuse less, and thumbnailBox() reads a
      * stored side below it as this.
      *
      * @var int
@@ -84,7 +84,7 @@ class MediaHelper
     public const THUMBNAIL_BOX_MIN = 100;
 
     /**
-     * The largest side of the thumbnail box (2.2.2): the Options fields refuse more, and thumbnailBox() reads a
+     * The largest side of the thumbnail box: the Options fields refuse more, and thumbnailBox() reads a
      * stored side above it as this.
      *
      * @var int
@@ -93,7 +93,7 @@ class MediaHelper
     public const THUMBNAIL_BOX_MAX = 1600;
 
     /**
-     * Pixel widths of storefront images read in this request, by site-relative file (2.2.2, srcset()).
+     * Pixel widths of storefront images read in this request, by site-relative file (srcset()).
      *
      * @var array<string, int>
      * @since  2.2.2
@@ -101,7 +101,7 @@ class MediaHelper
     private static array $pixelWidths = [];
 
     /**
-     * A row's thumbnail_origin when its thumbnail was made from the row's own image (2.2.0): the Recreate thumbnails job
+     * A row's thumbnail_origin when its thumbnail was made from the row's own image: the Recreate thumbnails job
      * may make it again.
      *
      * @var string
@@ -374,7 +374,7 @@ class MediaHelper
     }
 
     /**
-     * A media file's address as a page draws it (2.2.2): the address of one of this site's files (as toUrl() makes it)
+     * A media file's address as a page draws it: the address of one of this site's files (as toUrl() makes it)
      * with a version of the file itself, as getMediaData() gives every reader an image's url and every thumbnail_url:
      * ?v= a short digest of its modification time, size and inode, so a file written again under a name the browser has
      * seen (a thumbnail made again, an image uploaded again under the name of one deleted) is never drawn from the
@@ -976,7 +976,7 @@ class MediaHelper
             $isUrl = $media['type'] == 'url';
 
             // The tile's own thumbnail, for every non-blob source (a blob thumbnail is the dropped file's own, made below
-            // from the dropped file itself, 2.2.2). Made only once the image it belongs to stands (2.2.1): a new image after
+            // from the dropped file itself). Made only once the image it belongs to stands: a new image after
             // its own checks and its store, a URL after its scheme check, an existing row only when it is kept. Before,
             // it was made first, so an image refused afterwards had already written a thumbnail no row names and had
             // told onAlfaMediaThumbnail of it.
@@ -1197,8 +1197,8 @@ class MediaHelper
 
                         // A new image with no thumbnail of its own gets one: a drop (its blob URL is
                         // browser-only and unreachable server-side) and an API pick that names none
-                        // (2.2.0: every image's thumbnail is real). It is made from the image as staff
-                        // gave it (2.2.2): the dropped file, the picked library file, read as an
+                        // (every image's thumbnail is real). It is made from the image as staff
+                        // gave it: the dropped file, the picked library file, read as an
                         // allowed image from its own bytes above, not from the stored image, which a
                         // plugin may have made smaller, so its detail never depends on that plugin; the
                         // thumbnail plugins still set its format and quality. It is named after the
@@ -1467,7 +1467,7 @@ class MediaHelper
      * resized or copied, and none is written, so the plain copy is only ever of an image GD cannot read (an AVIF on a
      * GD without AVIF).
      *
-     * THE BOX RULE IS CORE'S (2.2.2): a thumbnail is never larger than its image's pixels nor
+     * THE BOX RULE IS CORE'S: a thumbnail is never larger than its image's pixels nor
      * than the box. A plugin's thumbnail is measured once it is written; one that breaks the rule is written again from
      * the image by the baseline resize, in the plugin's own format at the path it chose (else in the image's format at
      * the proposed path, the plugin's file removed) and $guarded is set; the media log's line of the thumbnail says so.
@@ -1494,7 +1494,7 @@ class MediaHelper
     }
 
     /**
-     * The writer behind makeThumbnail() (2.2.2): the same plugin event, box rule and baseline, for a source already held
+     * The writer behind makeThumbnail(): the same plugin event, box rule and baseline, for a source already held
      * to its rule. makeThumbnail() asks isThumbnailSource() first; saveMedia() hands it a new image's original as staff
      * gave it (a drop's uploaded file, which lies outside the media folders, once validatedImageExtension() has read it
      * from its own bytes as an allowed image), so the thumbnail's detail never depends on what a plugin did to the stored
@@ -1547,7 +1547,7 @@ class MediaHelper
                 $final = $written;
                 $how = 'by a media plugin';
             } else {
-                // The box rule holds whatever the plugin did (2.2.2): a thumbnail larger than its image or the box is
+                // The box rule holds whatever the plugin did: a thumbnail larger than its image or the box is
                 // written again from the image.
                 $guarded = true;
                 $how = 'by a media plugin at ' . self::sizeText(file: JPATH_ROOT . '/' . $written) . ', larger than its image or the box, so written again by the box rule';
@@ -1569,7 +1569,7 @@ class MediaHelper
             }
         }
 
-        // One diagnostic line a thumbnail (2.2.2), so a thumbnail reported blurred can be read back from the media log.
+        // One diagnostic line a thumbnail, so a thumbnail reported blurred can be read back from the media log.
         Log::add(
             'Thumbnail: source ' . ($sourceName !== '' ? $sourceName . ' (' . $source . ')' : ltrim(str_replace(JPATH_ROOT . '/', '', $source), '/'))
             . ' ' . self::sizeText(file: $source) . ', box ' . $thumbnailWidth . ' x ' . $thumbnailHeight
@@ -1582,7 +1582,7 @@ class MediaHelper
     }
 
     /**
-     * An image file's size and type for the media log (2.2.2): "1600 x 1200 image/jpeg", or "(size not readable)".
+     * An image file's size and type for the media log: "1600 x 1200 image/jpeg", or "(size not readable)".
      *
      * @param string $file Absolute path of the file.
      *
@@ -1596,7 +1596,7 @@ class MediaHelper
     }
 
     /**
-     * The size of an image's thumbnail in a box (2.2.2, the one rule the writer, the box guard and the Recreate
+     * The size of an image's thumbnail in a box (the one rule the writer, the box guard and the Recreate
      * thumbnails job share): the image scaled to fit inside the box, its aspect kept, never enlarged.
      *
      * @param int $width The image's width in pixels.
@@ -1618,7 +1618,7 @@ class MediaHelper
     }
 
     /**
-     * Whether a written thumbnail breaks the box rule (2.2.2): wider or taller than the box, or than its image. An image
+     * Whether a written thumbnail breaks the box rule: wider or taller than the box, or than its image. An image
      * whose size cannot be read is held to the box alone; a thumbnail whose size cannot be read is left to its plugin.
      *
      * @param string $source Absolute path of the image.
@@ -1643,7 +1643,7 @@ class MediaHelper
     }
 
     /**
-     * Write again a plugin's thumbnail that broke the box rule (2.2.2): the baseline resize of the image, in the format
+     * Write again a plugin's thumbnail that broke the box rule: the baseline resize of the image, in the format
      * the plugin wrote, at its path; when GD cannot write that format, in the image's own format at the proposed path,
      * the plugin's file removed. Nothing within the rule written: no thumbnail, never an enlarged one.
      *
@@ -1908,9 +1908,9 @@ class MediaHelper
     }
 
     /**
-     * The thumbnail box, width and height: the site's stored values, else 500 x 500 (2.2.0). A stored side outside the
-     * range the Options fields accept is read as the nearest end of it, THUMBNAIL_BOX_MIN to THUMBNAIL_BOX_MAX
-     * (2.2.2); a side stored as no number is one the site does not store.
+     * The thumbnail box, width and height: the site's stored values, else 500 x 500. A stored side outside the
+     * range the Options fields accept is read as the nearest end of it, THUMBNAIL_BOX_MIN to THUMBNAIL_BOX_MAX;
+     * a side stored as no number is one the site does not store.
      *
      * @param object|null $params Component parameters; null to read them.
      *
@@ -2097,7 +2097,7 @@ class MediaHelper
             $result->path = ltrim($result->path, '/');
 
             // Display URLs (absolute) for templates; never mutate the relative path. An image's file and every thumbnail
-            // carry their file's version (2.2.2, displayUrl()), so every page, module, cart and API answer that draws one
+            // carry their file's version (displayUrl()), so every page, module, cart and API answer that draws one
             // never shows a file written again from a cache; the stored paths, which the forms and the API post back,
             // stay as they are. A web address (a row of type url) is drawn as it is stored: the API reads a row's url
             // back as its address, so a GET echoed back keeps it as it was.
@@ -2127,13 +2127,13 @@ class MediaHelper
     }
 
     /**
-     * The images a storefront picture offers the browser (2.2.2): the thumbnail and the stored image, each with
+     * The images a storefront picture offers the browser: the thumbnail and the stored image, each with
      * its width in pixels, as an img's srcset, so a slot wider than the thumbnail's pixels (times the screen's pixel
      * ratio) is drawn from the stored image and a thumbnail is never shown larger than it is. Only for an image row
      * whose thumbnail was made from its own image (thumbnail_origin image; a picture chosen on the tile is another
      * picture), with both files on this site; '' when the stored image is not wider than the thumbnail, and for every
-     * other row (a web address, the placeholder, a row of before 2.2.0 until its thumbnail is recreated). The template
-     * that prints it gives the sizes its slot has. Each file's width is read from its header once a request.
+     * other row (a web address, the placeholder, a row with no recorded origin until its thumbnail is recreated). The
+     * template that prints it gives the sizes its slot has. Each file's width is read from its header once a request.
      *
      * @param object $media A media row as getMediaData() returns it.
      *
@@ -2157,7 +2157,7 @@ class MediaHelper
     }
 
     /**
-     * The sizes value for a media row's srcset (2.2.2): the slot widths a template gives, each capped at the widest file
+     * The sizes value for a media row's srcset: the slot widths a template gives, each capped at the widest file
      * the srcset offers, min(<width>, <px>px), so an image whose stored file is narrower than its slot is drawn no
      * wider than its pixels where its CSS lets it keep its own width (a card's image); the widths as given for a row
      * with no srcset. Each capped entry is followed by its plain twin, the same condition with the width as given: a
@@ -2241,7 +2241,7 @@ class MediaHelper
     }
 
     /**
-     * The widths of the two files a row's srcset offers (2.2.2): the thumbnail's and the stored image's, in pixels; null
+     * The widths of the two files a row's srcset offers: the thumbnail's and the stored image's, in pixels; null
      * for a row with none (see srcset()).
      *
      * @param object $media A media row as getMediaData() returns it.
@@ -2434,7 +2434,7 @@ class MediaHelper
      * ({@see self::thumbnailSize()}), and writes it in the SAME format as the
      * source (no conversion, no fancy compression; that is the plugin's job),
      * or in $outputMime when the box guard rewrites a plugin's thumbnail in the
-     * plugin's format (2.2.2). This guarantees a thumbnail is never the full image.
+     * plugin's format. This guarantees a thumbnail is never the full image.
      *
      * Returns false when the file is missing/unreadable, the server lacks the GD
      * loader/encoder for the format, or the write fails; the caller then copies

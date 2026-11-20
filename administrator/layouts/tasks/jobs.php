@@ -123,7 +123,7 @@ $search   = SearchRebuildJob::NAME . ':';
                             if ($report['failedIds'] !== []) {
                                 $covers .= '<div class="small text-muted">' . Text::sprintf('COM_ALFA_TASKS_THUMBNAILS_FAILED_ROWS', $named($report['failedIds'], (array) $report['failedReasons'])) . '</div>';
                             }
-                            // Of the made thumbnails (2.2.2): those the box rule wrote again, and those whose stored
+                            // Of the made thumbnails: those the box rule wrote again, and those whose stored
                             // image is smaller than the thumbnail size, named by their media row.
                             if ((int) $report['guarded'] > 0) {
                                 $covers .= '<div class="small text-muted">' . Text::plural('COM_ALFA_TASKS_THUMBNAILS_GUARDED', (int) $report['guarded']) . '</div>';

@@ -19,7 +19,7 @@
  * default card draws it, with no controls.
  *
  * Each image is the thumbnail, with the stored image beside it in its srcset and the sizes of the default card's
- * image, at the files' versioned addresses (default_card_images.php says why, 2.2.2). The first image loads as the
+ * image, at the files' versioned addresses (default_card_images.php says why). The first image loads as the
  * default card's image does at the card's place on the page ($this->cardImageLoading(): the first four cards at once,
  * the others lazily), and the slider's other images lazily.
  *

@@ -158,7 +158,7 @@ final class ComponentOptions
         'default_currency' => 978,  // EUR
 
         // Media (main-image format/quality/dimensions live in the optimizer plugin)
-        // The thumbnail box: 500 x 500 from 2.2.0; a site that stores its own keeps it, but the 2.2.2 update raises a side
+        // The thumbnail box: 500 x 500; a site that stores its own keeps it, but the update raises a side
         // stored below 500 to 500 (ThumbnailBoxUpdate) and MediaHelper::thumbnailBox() reads a side as 100 to 1600.
         'media_thumbnail_width' => 500,
         'media_thumbnail_height' => 500,

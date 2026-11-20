@@ -15,7 +15,7 @@
  *
  * The grid is CSS alone (item.css, the modifier class of its columns); it is never the slider's .main-images.
  *
- * Each image is the thumbnail, with the stored image beside it in its srcset (2.2.2), so a cell wider than the
+ * Each image is the thumbnail, with the stored image beside it in its srcset, so a cell wider than the
  * thumbnail's pixels (times the screen's pixel ratio) is drawn from the stored image. The sizes follow item.css on
  * Cassiopeia: the images take the whole page (less 20 px) up to 651 px and half of it (less 26 px) from 652 px, in the
  * grid's columns with 8 px between them (two columns up to 600 px), each a cell's width or a little more, never less,

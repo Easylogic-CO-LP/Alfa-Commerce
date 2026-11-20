@@ -207,7 +207,7 @@ class ToolsmediaModel extends ListModel
         }
 
         foreach ($items as $row) {
-            // The files' versioned addresses (2.2.2): a file written again is never shown from the browser's cache.
+            // The files' versioned addresses: a file written again is never shown from the browser's cache.
             $row->url = MediaHelper::displayUrl(MediaHelper::toUrl($row->path));
             $row->thumbnail_url = MediaHelper::displayUrl(MediaHelper::toUrl($row->thumbnail));
             $row->is_orphan = !(int) ($row->has_parent ?? 1);

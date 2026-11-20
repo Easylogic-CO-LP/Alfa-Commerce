@@ -39,7 +39,7 @@
 	$isNew     = $media->isNew ? '1' : '0';
 	$type      = htmlspecialchars($media->type ?? '', ENT_QUOTES, 'UTF-8');
 
-	// A stored file is drawn at its versioned address (2.2.2, MediaHelper::displayUrl()), so a file written again is
+	// A stored file is drawn at its versioned address (MediaHelper::displayUrl()), so a file written again is
 	// never shown from the browser's cache; a dropped file not saved yet is its blob. The form's values stay the paths.
 	$preview = static fn (string $file, string $class): string => str_starts_with($file, 'blob:')
 		? HTMLHelper::_('image', $file, (string) ($media->alt ?? ''), ['loading' => 'lazy', 'class' => $class], false, -1)

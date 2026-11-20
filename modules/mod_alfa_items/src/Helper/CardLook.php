@@ -533,7 +533,7 @@ final class CardLook
     }
 
     /**
-     * The width a card's image takes on each screen, as an img's sizes value (2.2.2): the screen's width less the gaps
+     * The width a card's image takes on each screen, as an img's sizes value: the screen's width less the gaps
      * between the cards (the grid's gap, or the slider's spacing), over the cards side by side there (the grid's
      * columns, or the slider's cards per view), less the card's padding and border on its two sides (the stylesheet's
      * 10 px and 1 px unless the look sets them; an overlay card has no padding), times the image's share of the card
