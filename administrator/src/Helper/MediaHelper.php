@@ -19,6 +19,8 @@ use Alfa\Component\Alfa\Administrator\Event\Media\BeforeProcessEvent;
 use Alfa\Component\Alfa\Administrator\Event\Media\ThumbnailEvent;
 use Alfa\Component\Alfa\Administrator\Event\Media\ValidateEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Service\Media\MediaFetch;
+use Alfa\Component\Alfa\Administrator\Service\Media\MediaUrls;
 use Exception;
 use FilesystemIterator;
 use Joomla\CMS\Component\ComponentHelper;
@@ -884,6 +886,10 @@ class MediaHelper
         $dropIndex = 0;
         $ordering = 0;
 
+        // The images a REST API client gave as addresses that this save does not fetch itself: a background job fetches
+        // them once the save has committed (MediaUrls::queue()), each at the place it was given.
+        $queued = [];
+
         // The stored path and thumbnail of every existing row the form sends: a tile left as it was keeps its own
         // thumbnail, and only its own (processThumbnail()).
         $existingIds = array_values(array_filter(
@@ -911,6 +917,17 @@ class MediaHelper
             $isDrop = str_starts_with($media['source'], 'blob:');
             $isPicker = str_starts_with($media['source'], 'picker:');
             $isUrl = $media['type'] == 'url';
+
+            // An image a REST API client gave as an address: fetched before the save (its token names the file this
+            // request fetched), or left for the background job.
+            $fetched = $isNew && isset($media['fetched']) ? MediaUrls::take(token: (string) $media['fetched']) : null;
+
+            if ($isNew && !isset($media['fetched']) && (string) ($media['fetch'] ?? '') !== '') {
+                $queued[] = ['url' => (string) $media['fetch'], 'alt' => $alt, 'ordering' => $ordering, 'pointer' => (string) ($media['pointer'] ?? '')];
+                $ordering++;
+
+                continue;
+            }
 
             // The tile's own thumbnail, for every non-blob source (a blob thumbnail is the dropped file's own, made below
             // from the stored image). Made only once the image it belongs to stands (2.2.1): a new image after
@@ -985,6 +1002,25 @@ class MediaHelper
                             }
                         }
                     }
+                } elseif ($fetched !== null) { // An image fetched from the address a REST API client gave
+                    $sourceName = $fetched['name'];
+
+                    // The same check as a drop: the stored extension comes from the file's content, never its name.
+                    $safeExtension = self::validatedImageExtension($fetched['file'], $allowedMimes);
+
+                    if ($safeExtension === null) {
+                        MediaUrls::refuse(pointer: (string) ($media['pointer'] ?? ''), url: $fetched['url'], reason: 'its content is not an image of a type the shop takes (Options, Media)');
+                        @unlink($fetched['file']);
+                        $ordering++;
+                        continue;
+                    }
+
+                    $src = $fetched['file'];
+                    $nameForFile = self::getUniqueFilename(
+                        name:           $fetched['name'],
+                        basePath:       $absolutePath,
+                        outputFormat:   $safeExtension,
+                    );
                 } elseif ($isPicker) { // Joomla Media Picker Handler
                     $cleanPath = HTMLHelper::cleanImageURL($media['source']);
                     // The media field stores a URL: a file name with a space arrives as %20 (2.2.0).
@@ -1153,10 +1189,18 @@ class MediaHelper
                                 'thumbnail_origin' => $thumbnailOrigin,
                                 'color' => $color,
                                 'alt' => $alt,
-                                'ordering' => $ordering,
+                                // The background job stores each image at the place the request gave it.
+                                'ordering' => isset($media['position']) ? (int) $media['position'] : $ordering,
                                 'type' => $media['type'],
                                 'origin' => $mediaOrigin,
                             ];
+
+                            // An image fetched from an address keeps the address, and its hash so it is not fetched
+                            // twice for this record.
+                            if ($fetched !== null) {
+                                $insertObject->source_url = $fetched['url'];
+                                $insertObject->source_url_hash = MediaFetch::urlHash($fetched['url']);
+                            }
 
                             // Notify the plugin layer after a successful processing/insert prep.
                             self::dispatchAfterProcess(
@@ -1173,6 +1217,11 @@ class MediaHelper
 
                 if (!empty($insertObject)) {
                     $db->insertObject('#__alfa_media', $insertObject);
+                }
+
+                // The fetched file is stored (or refused): its temporary copy goes.
+                if ($fetched !== null) {
+                    @unlink($fetched['file']);
                 }
             }
 
@@ -1245,6 +1294,9 @@ class MediaHelper
             }
             $ordering++;
         }
+
+        MediaUrls::queue(origin: $mediaOrigin, recordId: $itemId, images: $queued);
+
         return true;
     }
 
