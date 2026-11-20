@@ -106,7 +106,9 @@ final class CartMessaging
 
     /**
      * The shelf's say in a shopper's add or quantity change, as one notice
-     * naming the available quantity: never a failure.
+     * naming the available quantity: never a failure. In the back office the
+     * cart is the one a member of staff is building, so a cart that already
+     * holds the available quantity is said in the order builder's words.
      *
      * @param StockLimit $limit What the cart holds of that stock, and whether more went in.
      *
@@ -114,7 +116,11 @@ final class CartMessaging
      */
     public function stock(StockLimit $limit): void
     {
-        $this->app->enqueueMessage(msg: self::stockSentence(limit: $limit), type: 'notice');
+        $sentence = !$limit->added && $this->app->isClient('administrator')
+            ? self::builderHeldSentence(limit: $limit)
+            : self::stockSentence(limit: $limit);
+
+        $this->app->enqueueMessage(msg: $sentence, type: 'notice');
     }
 
     /**
