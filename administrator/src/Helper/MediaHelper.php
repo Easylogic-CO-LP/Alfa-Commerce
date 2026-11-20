@@ -25,7 +25,9 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\Helper\MediaHelper as CmsMediaHelper;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Image\Image;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Uri\Uri;
@@ -90,7 +92,36 @@ class MediaHelper
      * @var int
      * @since  2.2.2
      */
-    public const THUMBNAIL_BOX_MAX = 1600;
+    public const THUMBNAIL_BOX_MAX = 5000;
+
+    /**
+     * What GD takes, in bytes a pixel of the image, to decode an image for its thumbnail, by image type: PHP's peak
+     * around a thumbnail's making less the usage before it, measured at 1500, 2500 and 3500 px a side and fitted, for the
+     * worst variant of each format: a PNG with alpha 8.61 (libpng's buffer of the whole image, then GD's own 4 bytes), a
+     * JPEG 4.61 (progressive the same), a WebP 4.61 (alpha the same), a GIF 1.05; rounded up. A type not measured reads
+     * as a PNG, the most.
+     *
+     * @var array<int, float>
+     * @since  2.2.2
+     */
+    private const DECODE_BYTES_PER_PIXEL = [IMAGETYPE_PNG => 8.7, IMAGETYPE_JPEG => 4.7, IMAGETYPE_WEBP => 4.7, IMAGETYPE_GIF => 1.1];
+
+    /**
+     * What a decode takes whatever its size, beyond the thumbnail's own canvas (the measured fit's fixed part, rounded
+     * up), in bytes.
+     *
+     * @var int
+     * @since  2.2.2
+     */
+    private const DECODE_FIXED = 4194304;
+
+    /**
+     * The margin over the measured need: a quarter more.
+     *
+     * @var float
+     * @since  2.2.2
+     */
+    private const DECODE_SAFETY = 1.25;
 
     /**
      * A row's thumbnail_origin when its thumbnail was made from the row's own image: the Recreate thumbnails job
@@ -1514,6 +1545,35 @@ class MediaHelper
         $params ??= ComponentHelper::getParams('com_alfa');
         $allowedMimes = self::resolveAllowedMimes($params->get('media_mime'));
 
+        // An image too large for the memory this process has left is never decoded, by a plugin or by GD: a fatal
+        // error there would end the whole save. Staff are told why, and the image keeps no thumbnail.
+        $decode = self::decodeCheck(file: $source, boxWidth: $thumbnailWidth, boxHeight: $thumbnailHeight);
+
+        if (!$decode['fits']) {
+            $name = $sourceName !== '' ? $sourceName : basename($source);
+            $needMb = (int) ceil($decode['need'] / 1048576);
+            $roomMb = (int) floor(max(0, (int) $decode['room']) / 1048576);
+
+            try {
+                Factory::getApplication()->enqueueMessage(
+                    Text::sprintf('COM_ALFA_MEDIA_ERROR_THUMBNAIL_MEMORY', htmlspecialchars($name, ENT_QUOTES, 'UTF-8'), $decode['width'], $decode['height'], $needMb, $roomMb),
+                    'warning',
+                );
+            } catch (Throwable) {
+                // No application to tell (a command line run): the media log says it below.
+            }
+
+            Log::add(
+                'Thumbnail: source ' . ($sourceName !== '' ? $sourceName . ' (' . $source . ')' : ltrim(str_replace(JPATH_ROOT . '/', '', $source), '/'))
+                . ' ' . $decode['width'] . ' x ' . $decode['height'] . ', box ' . $thumbnailWidth . ' x ' . $thumbnailHeight
+                . ', result none: about ' . $needMb . ' MB needed to decode it and draw its thumbnail, ' . $roomMb . ' MB left under memory_limit.',
+                Log::DEBUG,
+                'com_alfa.media',
+            );
+
+            return '';
+        }
+
         // Hand thumbnail processing to the plugin layer, carrying the component's
         // thumbnail dimensions as the target size. The plugin owns FORMAT/QUALITY.
         $result = self::dispatchProcess(
@@ -1607,6 +1667,71 @@ class MediaHelper
         $scale = min(max(1, $boxWidth) / $width, max(1, $boxHeight) / $height, 1);
 
         return [max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale))];
+    }
+
+    /**
+     * The memory one thumbnail of an image takes, in bytes: a quarter more than GD's measured peak for its type (its
+     * pixels at DECODE_BYTES_PER_PIXEL, the thumbnail's own canvas at 4 bytes a pixel, the image fitted in the box and
+     * never enlarged, and DECODE_FIXED).
+     *
+     * @param int $width The image's width.
+     * @param int $height The image's height.
+     * @param int $type Its IMAGETYPE_*.
+     * @param int $boxWidth The box's width.
+     * @param int $boxHeight The box's height.
+     *
+     * @since  2.2.2
+     */
+    public static function decodeNeed(int $width, int $height, int $type, int $boxWidth, int $boxHeight): int
+    {
+        $rate = self::DECODE_BYTES_PER_PIXEL[$type] ?? self::DECODE_BYTES_PER_PIXEL[IMAGETYPE_PNG];
+        [$canvasWidth, $canvasHeight] = self::thumbnailSize(width: $width, height: $height, boxWidth: $boxWidth, boxHeight: $boxHeight);
+
+        return (int) ceil(self::DECODE_SAFETY * ($rate * max(1, $width) * max(1, $height) + $canvasWidth * $canvasHeight * 4 + self::DECODE_FIXED));
+    }
+
+    /**
+     * Whether making an image's thumbnail fits the memory this process has left: its size and type as Joomla's image
+     * helper reads them from the file's header, nothing decoded (Image::getImageFileProperties()), decodeNeed() for
+     * them, against memory_limit (Joomla's MediaHelper::toBytes()) less the process's real usage. An image whose size
+     * cannot be read, and a process with no memory limit, are not refused here (the writer falls back as it does for any
+     * image it cannot resize).
+     *
+     * @param string $file Absolute path of the image.
+     * @param int|null $boxWidth The box's width; null for the site's.
+     * @param int|null $boxHeight The box's height; null for the site's.
+     *
+     * @return array{fits: bool, need: int, room: int|null, width: int, height: int} Whether it fits, the bytes it needs,
+     *                                                                               the bytes left (null with no limit)
+     *                                                                               and the image's size.
+     *
+     * @since  2.2.2
+     */
+    public static function decodeCheck(string $file, ?int $boxWidth = null, ?int $boxHeight = null): array
+    {
+        try {
+            $image = Image::getImageFileProperties($file);
+        } catch (Throwable) {
+            return ['fits' => true, 'need' => 0, 'room' => null, 'width' => 0, 'height' => 0];
+        }
+
+        if ($boxWidth === null || $boxHeight === null) {
+            [$boxWidth, $boxHeight] = self::thumbnailBox();
+        }
+
+        $width = (int) $image->width;
+        $height = (int) $image->height;
+        $need = self::decodeNeed(width: $width, height: $height, type: (int) $image->type, boxWidth: $boxWidth, boxHeight: $boxHeight);
+        $limit = trim((string) \ini_get('memory_limit'));
+        $bytes = $limit === '' || $limit === '-1' ? 0 : (int) (new CmsMediaHelper())->toBytes($limit);
+
+        if ($bytes <= 0) {
+            return ['fits' => true, 'need' => $need, 'room' => null, 'width' => $width, 'height' => $height];
+        }
+
+        $room = $bytes - memory_get_usage(true);
+
+        return ['fits' => $need <= $room, 'need' => $need, 'room' => $room, 'width' => $width, 'height' => $height];
     }
 
     /**

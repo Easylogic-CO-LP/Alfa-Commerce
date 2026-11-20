@@ -106,32 +106,6 @@ final class ThumbnailRecreation
     private const ROUNDING = 1;
 
     /**
-     * What GD takes, in bytes a pixel of the image, to make one thumbnail of it, by image type: PHP's real peak around
-     * makeThumbnail() less the usage before it, measured at 1500, 2500 and 3500 px a side and fitted (runs/c21r2/
-     * decode-peak.txt in the build record), for the worst variant of each format: a PNG with alpha 8.61 (libpng's
-     * buffer of the whole image, then GD's own 4 bytes), a JPEG 4.61 (progressive the same), a WebP 4.61 (alpha the
-     * same), a GIF 1.05; rounded up. A type not measured reads as a PNG, the most.
-     *
-     * @since  2.2.0
-     */
-    private const DECODE_BYTES_PER_PIXEL = [IMAGETYPE_PNG => 8.7, IMAGETYPE_JPEG => 4.7, IMAGETYPE_WEBP => 4.7, IMAGETYPE_GIF => 1.1];
-
-    /**
-     * What a decode takes whatever its size, beyond the thumbnail's own canvas (the measured fit's fixed part, at most
-     * 4.27 MB with a 500 x 375 canvas inside it, rounded up), in bytes.
-     *
-     * @since  2.2.0
-     */
-    private const DECODE_FIXED = 4194304;
-
-    /**
-     * The margin over the measured need: a quarter more.
-     *
-     * @since  2.2.0
-     */
-    private const DECODE_SAFETY = 1.25;
-
-    /**
      * Why a row's thumbnail was not made: its image too big to decode in the memory the tick has left.
      *
      * @since  2.2.0
@@ -435,9 +409,8 @@ final class ThumbnailRecreation
     }
 
     /**
-     * Whether an image's decode fits the memory this process has left: decodeNeed() for its size and type, read from the
-     * file's header without decoding it, against memory_limit less the process's real usage. A file whose size cannot be
-     * read is not refused here (the writer falls back as it does for any image it cannot resize).
+     * Whether an image's thumbnail fits the memory this process has left, as the writer checks it before it decodes
+     * anything (MediaHelper::decodeCheck(), at the site's box).
      *
      * @param string $file Absolute path of the image.
      *
@@ -445,30 +418,11 @@ final class ThumbnailRecreation
      */
     public static function decodeFits(string $file): bool
     {
-        $limit = trim((string) \ini_get('memory_limit'));
-
-        if ($limit === '' || $limit === '-1') {
-            return true;
-        }
-
-        $bytes = match (strtolower(substr($limit, -1))) {
-            'g' => (int) $limit * 1073741824,
-            'm' => (int) $limit * 1048576,
-            'k' => (int) $limit * 1024,
-            default => (int) $limit,
-        };
-        $size = @getimagesize($file);
-
-        if ($bytes <= 0 || $size === false) {
-            return true;
-        }
-
-        return self::decodeNeed(width: (int) $size[0], height: (int) $size[1], type: (int) $size[2]) <= $bytes - memory_get_usage(true);
+        return MediaHelper::decodeCheck(file: $file)['fits'];
     }
 
     /**
-     * The memory one thumbnail of an image needs, in bytes: a quarter more than GD's measured peak for its type (its
-     * pixels at DECODE_BYTES_PER_PIXEL, the thumbnail's canvas at the box, 4 bytes a pixel, and DECODE_FIXED).
+     * The memory one thumbnail of an image takes at the site's box, in bytes (MediaHelper::decodeNeed()).
      *
      * @param int $width The image's width.
      * @param int $height The image's height.
@@ -479,9 +433,8 @@ final class ThumbnailRecreation
     public static function decodeNeed(int $width, int $height, int $type): int
     {
         [$boxWidth, $boxHeight] = MediaHelper::thumbnailBox();
-        $rate = self::DECODE_BYTES_PER_PIXEL[$type] ?? self::DECODE_BYTES_PER_PIXEL[IMAGETYPE_PNG];
 
-        return (int) ceil(self::DECODE_SAFETY * ($rate * $width * $height + $boxWidth * $boxHeight * 4 + self::DECODE_FIXED));
+        return MediaHelper::decodeNeed(width: $width, height: $height, type: $type, boxWidth: $boxWidth, boxHeight: $boxHeight);
     }
 
     /**

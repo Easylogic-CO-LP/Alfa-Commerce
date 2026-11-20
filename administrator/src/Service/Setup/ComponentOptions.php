@@ -159,7 +159,7 @@ final class ComponentOptions
 
         // Media (main-image format/quality/dimensions live in the optimizer plugin)
         // The thumbnail box: 500 x 500; a site that stores its own keeps it, but the update raises a side
-        // stored below 500 to 500 (ThumbnailBoxUpdate) and MediaHelper::thumbnailBox() reads a side as 100 to 1600.
+        // stored below 500 to 500 (ThumbnailBoxUpdate) and MediaHelper::thumbnailBox() reads a side as 100 to 5000.
         'media_thumbnail_width' => 500,
         'media_thumbnail_height' => 500,
         'media_save_location' => '/images/commerce',
