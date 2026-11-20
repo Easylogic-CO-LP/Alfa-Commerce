@@ -252,7 +252,7 @@ class PlaceModel extends AlfaAdminModel
             return false;
         }
 
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
 
         // ONE TRANSACTION: the rule-scope judgement, the rows and every pivot that
         // names them. The judgement locks the rule pivots it reads, so no rule editor

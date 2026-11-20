@@ -37,6 +37,7 @@ use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
 use Joomla\Database\DatabaseDriver;
+use LogicException;
 use RuntimeException;
 use Throwable;
 
@@ -812,21 +813,16 @@ abstract class AlfaAdminModel extends AdminModel
     }
 
     /**
-     * The model's connection, as the driver PostCommit takes.
+     * The model's connection, as the driver TransactionState and PostCommit take: the one narrowing,
+     * {@see TransactionState::driver()}.
      *
-     * @throws RuntimeException When the model holds another kind of database object.
+     * @throws LogicException When the model holds a connection that is not a database driver.
      *
      * @since  2.1.4
      */
     protected function alfaDriver(): DatabaseDriver
     {
-        $db = $this->getDatabase();
-
-        if (!$db instanceof DatabaseDriver) {
-            throw new RuntimeException('Alfa Commerce needs a database driver; the model holds ' . $db::class . '.');
-        }
-
-        return $db;
+        return TransactionState::driver(db: $this->getDatabase());
     }
 
     /**

@@ -984,7 +984,7 @@ class CategoryModel extends AlfaAdminModel
             return false;
         }
 
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
 
         // GUARDS: children would lose their parent (broken tree) and items
         // their DEFAULT category; move those first, then delete.

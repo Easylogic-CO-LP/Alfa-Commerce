@@ -40,6 +40,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\User\User;
 use Joomla\CMS\User\UserFactoryInterface;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Database\ParameterType;
 use RuntimeException;
 use stdClass;
@@ -3218,13 +3219,13 @@ final class DocumentIssuer
      * a caller that only meant to leave a savepoint no longer holds the
      * transaction it opened, and must not carry on as if it did.
      *
-     * @param object $db The driver.
+     * @param DatabaseDriver $db The driver.
      *
      * @return bool True when no transaction is left on the connection.
      *
      * @since   2.0.0
      */
-    private static function rollbackQuietly(object $db): bool
+    private static function rollbackQuietly(DatabaseDriver $db): bool
     {
         if (!TransactionState::isOpen($db)) {
             return true;

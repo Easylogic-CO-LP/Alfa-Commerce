@@ -505,36 +505,6 @@ parameters:
 			path: administrator/src/Model/CategoryModel.php
 
 		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/CategoryModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/CategoryModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 3
-			path: administrator/src/Model/CategoryModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:assertScopesSurvive\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/CategoryModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:lockExisting\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/CategoryModel.php
-
-		-
 			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\CategoryModel\:\:\$item \(null\) does not accept array\<int, bool\|stdClass\>\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -573,12 +543,6 @@ parameters:
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountModel\:\:prepareTable\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
-			count: 1
-			path: administrator/src/Model/DiscountModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/DiscountModel.php
 
@@ -697,27 +661,9 @@ parameters:
 			path: administrator/src/Model/FormfieldsModel.php
 
 		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/InventoryauditModel.php
-
-		-
 			message: '#^Parameter \#1 \$text of method Joomla\\Database\\DatabaseInterface\:\:quote\(\) expects array\|string, int\<1, max\> given\.$#'
 			identifier: argument.type
 			count: 1
-			path: administrator/src/Model/ItemModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 3
-			path: administrator/src/Model/ItemModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 8
 			path: administrator/src/Model/ItemModel.php
 
 		-
@@ -757,18 +703,6 @@ parameters:
 			path: administrator/src/Model/ItemfieldModel.php
 
 		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/ItemfieldModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/ItemfieldModel.php
-
-		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ItemfieldsModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
 			identifier: return.type
 			count: 1
@@ -777,36 +711,6 @@ parameters:
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturerModel\:\:prepareTable\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
-			count: 1
-			path: administrator/src/Model/ManufacturerModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/ManufacturerModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/ManufacturerModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 3
-			path: administrator/src/Model/ManufacturerModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:assertScopesSurvive\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/ManufacturerModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:lockExisting\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/ManufacturerModel.php
 
@@ -841,33 +745,9 @@ parameters:
 			path: administrator/src/Model/OrderModel.php
 
 		-
-			message: '#^Parameter \#1 \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 5
-			path: administrator/src/Model/OrderModel.php
-
-		-
-			message: '#^Parameter \#1 \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 4
-			path: administrator/src/Model/OrderModel.php
-
-		-
-			message: '#^Parameter \#1 \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 4
-			path: administrator/src/Model/OrderModel.php
-
-		-
 			message: '#^Parameter \#1 \$text of method Joomla\\Database\\DatabaseInterface\:\:quote\(\) expects array\|string, int given\.$#'
 			identifier: argument.type
 			count: 2
-			path: administrator/src/Model/OrderModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 5
 			path: administrator/src/Model/OrderModel.php
 
 		-
@@ -919,12 +799,6 @@ parameters:
 			path: administrator/src/Model/PaymentModel.php
 
 		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/PaymentModel.php
-
-		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
 			identifier: class.notFound
 			count: 1
@@ -941,36 +815,6 @@ parameters:
 			identifier: throws.notThrowable
 			count: 1
 			path: administrator/src/Model/PaymentsModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/PlaceModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/PlaceModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 3
-			path: administrator/src/Model/PlaceModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:assertScopesSurvive\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/PlaceModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:lockExisting\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/PlaceModel.php
 
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PlacesModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
@@ -991,12 +835,6 @@ parameters:
 			path: administrator/src/Model/PlacesModel.php
 
 		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/ShipmentModel.php
-
-		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ShipmentsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
 			identifier: class.notFound
 			count: 1
@@ -1013,12 +851,6 @@ parameters:
 			identifier: throws.notThrowable
 			count: 1
 			path: administrator/src/Model/ShipmentsModel.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: administrator/src/Model/TaxModel.php
 
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\TaxesModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
@@ -2057,12 +1889,6 @@ parameters:
 			identifier: booleanAnd.rightAlwaysFalse
 			count: 1
 			path: plugins/alfa-item-fields/choice/src/Extension/Choice.php
-
-		-
-			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: plugins/console/alfainventory/src/Console/InventoryAuditCommand.php
 
 		-
 			message: '#^Call to function is_array\(\) with array\<mixed\> will always evaluate to true\.$#'

@@ -46,11 +46,12 @@ defined('_JEXEC') or die;
 final class TransactionState
 {
     /**
-     * The connection as the driver whose transaction levels this class keeps: the narrowing of a connection to
-     * a DatabaseDriver for TransactionState and PostCommit that the cart, the price index, the item field projection
-     * and the inventory service use, each once, in its constructor, closing the levels it opens through commitLevel()
-     * or rollBackLevel() on what this returns. A few older places still narrow on their own. Every connection
-     * Joomla's container hands out is a driver.
+     * The connection as the driver whose transaction levels this class keeps: the one narrowing of a connection to
+     * a DatabaseDriver for TransactionState and PostCommit. The cart, the price index, the item field projection, the
+     * inventory service and Clear Data narrow once in their constructors, the admin models through alfaDriver(), the
+     * notification store, the thumbnail recreation, the inventory audit and its console command where they take
+     * their connection; each closes the levels it opens through commitLevel() or rollBackLevel() on what this
+     * returns. Every connection Joomla's container hands out is a driver.
      *
      * @api ANSWERS: the same connection as the driver whose levels this class keeps; a connection that is not one is
      *      refused with a LogicException.

@@ -128,12 +128,12 @@ final class ClearDataExtensions
     private static array $retiring = [];
 
     /**
-     * The site's connection.
-     *
+     * The site's connection, as the driver whose transaction levels TransactionState keeps, so the levels an
+     * extension leaves open are always found and closed.
      *
      * @since  2.1.0
      */
-    private DatabaseInterface $db;
+    private DatabaseDriver $db;
 
     /**
      * Whether THE lock was held by another request when this listing asked for it, so what needs it was left out or
@@ -146,11 +146,13 @@ final class ClearDataExtensions
     /**
      * @param DatabaseInterface|null $db The site's connection; the container's by default.
      *
+     * @throws LogicException When the connection is not a database driver ({@see TransactionState::driver()}).
+     *
      * @since  2.1.0
      */
     public function __construct(?DatabaseInterface $db = null)
     {
-        $this->db = $db ?? Factory::getContainer()->get(DatabaseInterface::class);
+        $this->db = TransactionState::driver(db: $db ?? Factory::getContainer()->get(DatabaseInterface::class));
     }
 
     /**
@@ -521,7 +523,7 @@ final class ClearDataExtensions
         // no longer holds; the bound keeps a driver that never answers closed from looping.
         $open = false;
 
-        if ($this->db instanceof DatabaseDriver && TransactionState::isOpen(db: $this->db)) {
+        if (TransactionState::isOpen(db: $this->db)) {
             $open = true;
 
             for ($guard = 0; $guard < 32; $guard++) {

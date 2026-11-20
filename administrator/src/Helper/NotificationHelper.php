@@ -31,6 +31,7 @@ use Joomla\CMS\Session\Session;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use LogicException;
 use RuntimeException;
 use Throwable;
 
@@ -1772,22 +1773,16 @@ class NotificationHelper
     }
 
     /**
-     * The component database driver as a driver: what TransactionState takes.
+     * The component database driver as a driver: what TransactionState takes, narrowed once by
+     * {@see TransactionState::driver()}.
      *
-     *
-     * @throws RuntimeException When the container holds another kind of database object.
+     * @throws LogicException When the container holds a connection that is not a database driver.
      *
      * @since  2.1.1
      */
     private static function driver(): DatabaseDriver
     {
-        $db = self::db();
-
-        if (!$db instanceof DatabaseDriver) {
-            throw new RuntimeException('The notification store needs a database driver; the container holds ' . $db::class . '.');
-        }
-
-        return $db;
+        return TransactionState::driver(db: self::db());
     }
 
     /**
