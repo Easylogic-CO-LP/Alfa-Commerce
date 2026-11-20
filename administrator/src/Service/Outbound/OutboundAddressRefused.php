@@ -24,7 +24,7 @@ final class OutboundAddressRefused extends RuntimeException
     /** Not a URL with a host, or one carrying a user name or password. @since 2.2.2 */
     public const NOT_URL = 'COM_ALFA_OUTBOUND_ADDRESS_NOT_URL';
 
-    /** A scheme the caller does not take (a webhook takes https only). @since 2.2.2 */
+    /** A scheme the caller does not take. @since 2.2.2 */
     public const SCHEME = 'COM_ALFA_OUTBOUND_ADDRESS_SCHEME';
 
     /** The host does not resolve, or resolves to an address that is not public. @since 2.2.2 */

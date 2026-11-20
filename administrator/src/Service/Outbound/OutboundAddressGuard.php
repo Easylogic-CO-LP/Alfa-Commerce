@@ -12,11 +12,12 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
 \defined('_JEXEC') or die;
 
 /**
- * The one check of an address the shop connects to on an outside party's word (a webhook's address, an image's URL):
- * the host is resolved and every address it resolves to must be public and routable, never loopback, private,
+ * The one check of an address the shop connects to on an outside party's word (an image's URL a REST API client
+ * gives): the host is resolved and every address it resolves to must be public and routable, never loopback, private,
  * link-local (a cloud's metadata address), unique-local, shared address space or reserved. The caller connects to the
  * address vetted here and to no other (the connection is pinned to it), so a DNS answer that changes between the
- * check and the connection cannot point inside, and it follows no redirect.
+ * check and the connection cannot point inside; its transport follows no redirect, a redirect's address is vetted
+ * here as a new one.
  *
  * @since  2.2.2
  */
@@ -42,7 +43,7 @@ final class OutboundAddressGuard
      * @api READ ONLY: vet an outside address before a connection; the answer names the one address to connect to.
      *
      * @param string $url The URL.
-     * @param bool $httpsOnly Whether only https is taken (a webhook); otherwise http and https.
+     * @param bool $httpsOnly Whether only https is taken; otherwise http and https.
      *
      * @return array{host: string, port: int, ip: string}
      *
