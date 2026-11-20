@@ -59,15 +59,6 @@ class PluginAction
     /** @var ?string Custom button layout override */
     public ?string $button_layout;
 
-    /** @var ?string Response layout (modal after execution) */
-    public ?string $response_layout;
-
-    /** @var ?string Modal popup title */
-    public ?string $modal_title;
-
-    /** @var string Modal size: sm, md, lg, xl */
-    public string $modal_size;
-
     /** @var bool Does running this action change state? True unless declared read-only. */
     public bool $mutates;
 
@@ -102,9 +93,6 @@ class PluginAction
         $this->metadata = $config['metadata'] ?? [];
         $this->priority = $config['priority'] ?? 100;
         $this->button_layout = $config['button_layout'] ?? null;
-        $this->response_layout = $config['response_layout'] ?? null;
-        $this->modal_title = $config['modal_title'] ?? null;
-        $this->modal_size = $config['modal_size'] ?? 'md';
         $this->data = $config['data'] ?? [];
         $this->starts_refund = $config['starts_refund'] ?? false;
     }

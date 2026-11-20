@@ -449,9 +449,9 @@ class OrderController extends FormController
      * Each action includes: id, label, icon, class, enabled,
      * requires_confirmation, confirmation_message, tooltip.
      *
-     * Complex actions (custom button_layout, modal response_layout)
-     * are still available; the JS renders a simplified button
-     * and the execution goes through the full plugin system.
+     * Complex actions (a custom button_layout) are still available; the
+     * JS renders a simplified button and the execution goes through the
+     * full plugin system.
      *
      *
      * @since  1.0.0

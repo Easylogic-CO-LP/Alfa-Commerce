@@ -844,9 +844,6 @@ class ActionRegistry
                 'label' => Text::_('COM_ALFA_CREDIT_REFUND_PARTIAL'),
                 'icon' => 'undo-2',
                 'class' => 'btn-outline-warning',
-                'response_layout' => 'action_credit_refund_partial',
-                'modal_title' => Text::_('COM_ALFA_CREDIT_REFUND_PARTIAL'),
-                'modal_size' => 'sm',
                 'priority' => 140,
                 // The form itself only asks for an amount; the arm that MOVES
                 // the money is credit_refund_partial_do, which is not offered
@@ -1184,9 +1181,6 @@ class ActionRegistry
                 'label' => Text::_($labelKey),
                 'icon' => $icon,
                 'class' => 'btn-outline-danger',
-                'response_layout' => 'action_ledger_fact',
-                'modal_title' => Text::_($labelKey),
-                'modal_size' => 'sm',
                 'priority' => 40,
                 // The form only asks; the arm that records (<id>_do) is never
                 // offered and falls to the fail-closed default.
@@ -1301,9 +1295,6 @@ class ActionRegistry
             'tooltip' => $tooltip,
             'icon' => 'pencil',
             'class' => $class,
-            'response_layout' => 'action_refund_report',
-            'modal_title' => Text::_($labelKey),
-            'modal_size' => 'md',
             'data' => $posts,
             'priority' => 150,
             'mutates' => false,
