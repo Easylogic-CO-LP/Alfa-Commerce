@@ -852,8 +852,8 @@ final class Standard extends PaymentsPlugin
     //
     //  1. The gateway hooks (onCartViewAssets(), onOrderAfterPlace(),
     //     onPaymentResponse(), onPaymentWebhook(), onGetActions(),
-    //     onExecuteAction(), onPaymentCheckup() and the rest of
-    //     PaymentsPlugin::TARGETED_EVENTS) are addressed to this plugin alone by
+    //     onExecuteAction(), onPaymentCheckup() and the other events of a
+    //     gateway) are addressed to this plugin alone by
     //     Alfa's targeted dispatch: the component calls this class's public
     //     method of the event's name, when it has one, and only the method it
     //     is about. Writing the method IS the subscription; nothing is put

@@ -228,40 +228,14 @@ abstract class ShipmentsPlugin extends Plugin
     }
 
     /**
-     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the shared dispatcher, never
-     * in getSubscribedEvents(). The core calls the plugin's public method of the event's name with the event when its
-     * class has one; a plugin without it takes no part in that event.
-     *
-     * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
-     *      answered through the event.
-     *
-     * @since  2.2.0
-     */
-    public const TARGETED_EVENTS = [
-        'onItemView',
-        'onCartView',
-        'onCartViewAssets',
-        'onCalculateShippingCost',
-        'onOrderBeforePlace',
-        'onOrderAfterPlace',
-        'onShipmentResponse',
-        'onShipmentWebhook',
-        'onGetActions',
-        'onExecuteAction',
-        'onAdminOrderDelete',
-        // A carrier's own data (Clear Data), addressed to it alone.
-        'onClearData',
-    ];
-
-    /**
      * Events this plugin subscribes to.
      *
      * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {
-        // Every Alfa event a carrier handles is addressed to it alone (TARGETED_EVENTS); a carrier that needs
-        // an ambient Joomla event merges its own map.
+        // Every Alfa event a carrier handles is addressed to it alone, on its method of the event's name; a
+        // carrier that needs an ambient Joomla event merges its own map.
         return [];
     }
 

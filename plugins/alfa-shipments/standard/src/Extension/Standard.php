@@ -642,8 +642,8 @@ final class Standard extends ShipmentsPlugin
     //  TWO KINDS OF HOOK, AND ONLY ONE NEEDS DECLARING.
     //
     //  1. The carrier hooks (onCartViewAssets(), onOrderAfterPlace(),
-    //     onGetActions(), onExecuteAction(), onShipmentWebhook() and the rest
-    //     of ShipmentsPlugin::TARGETED_EVENTS) are addressed to this plugin
+    //     onGetActions(), onExecuteAction(), onShipmentWebhook() and the other
+    //     events of a carrier) are addressed to this plugin
     //     alone by Alfa's targeted dispatch: the component calls this class's
     //     public method of the event's name, when it has one, and only the
     //     method it is about. Writing the method IS the subscription; nothing is put

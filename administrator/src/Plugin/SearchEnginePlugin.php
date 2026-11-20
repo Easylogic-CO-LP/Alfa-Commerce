@@ -83,19 +83,6 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
     abstract protected function engine(): SearchEngineInterface;
 
     /**
-     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the shared dispatcher, never
-     * in getSubscribedEvents(). The core calls the plugin's public method of the event's name with the event when its
-     * class has one; a plugin without it takes no part in that event. onAlfaSearchInputLayout reaches the configured
-     * engine's plugin only.
-     *
-     * @since  2.2.0
-     */
-    public const TARGETED_EVENTS = [
-        'onAlfaSearchInputLayout',
-        'onClearData',
-    ];
-
-    /**
      * Subscribed events.
      *
      * Subclasses that need more should merge rather than replace:

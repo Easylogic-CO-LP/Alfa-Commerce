@@ -65,36 +65,16 @@ use Joomla\Registry\Registry;
 abstract class ItemFieldsPlugin extends Plugin
 {
     /**
-     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the shared dispatcher, never
-     * in getSubscribedEvents(). The core calls the plugin's public method of the event's name with the event when its
-     * class has one; a plugin without it takes no part in that event.
-     *
-     * @since  2.2.0
-     */
-    public const TARGETED_EVENTS = [
-        'onItemView',
-        'onItemListPrepare',
-        'onItemFieldValueFacetGroups',
-        'onCartItemView',
-        'onCalculateItemPrice',
-        'onGetFieldActions',
-        'onExecuteFieldAction',
-        'onValidateCartAdd',
-        'onPrepareForCart',
-        'onClearData',
-    ];
-
-    /**
      * The events this plugin group subscribes to on the shared dispatcher: only the list page's broadcast
-     * onItemsListPrepare. The surface hooks are addressed to the field's own plugin (TARGETED_EVENTS), so a
-     * broadcast of a shared name such as onItemView never reaches a field plugin.
+     * onItemsListPrepare. The surface hooks are addressed to the field's own plugin, on its methods of the events'
+     * names, so a broadcast of a shared name such as onItemView never reaches a field plugin.
      *
      * @since  2.0.0
      */
     public static function getSubscribedEvents(): array
     {
         // onItemsListPrepare is the group's one broadcast; every other field hook is addressed to the field's
-        // plugin alone (TARGETED_EVENTS).
+        // plugin alone, on its method of the event's name.
         return [
             'onItemsListPrepare' => 'onItemsListPrepare',
         ];

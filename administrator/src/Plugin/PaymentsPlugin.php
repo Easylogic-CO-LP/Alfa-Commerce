@@ -335,46 +335,14 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     protected string $processPageUrl;
 
     /**
-     * The events Alfa addresses to one plugin of this family alone: targeted only, never on the shared dispatcher, never
-     * in getSubscribedEvents(). The core calls the plugin's public method of the event's name with the event when its
-     * class has one; a plugin without it takes no part in that event. onPaymentStoreReference and
-     * onPaymentChargeReference are addressed by an extension's billing engine (a subscriptions extension); core
-     * dispatches neither.
-     *
-     * @api HOOK: the events core addresses to this plugin alone; each is handled by a public method of its name,
-     *      answered through the event.
-     *
-     * @since  2.2.0
-     */
-    public const TARGETED_EVENTS = [
-        'onItemView',
-        'onCartView',
-        'onCartViewAssets',
-        'onOrderProcessView',
-        'onOrderCompleteView',
-        'onOrderBeforePlace',
-        'onOrderAfterPlace',
-        'onPaymentResponse',
-        'onPaymentWebhook',
-        'onGetActions',
-        'onExecuteAction',
-        'onAdminOrderDelete',
-        'onPaymentCheckup',
-        'onPaymentStoreReference',
-        'onPaymentChargeReference',
-        // A gateway's own data (Clear Data), addressed to it alone.
-        'onClearData',
-    ];
-
-    /**
      * Events this plugin subscribes to.
      *
      * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {
-        // Every Alfa event a gateway handles is addressed to it alone (TARGETED_EVENTS); a gateway that needs
-        // an ambient Joomla event merges its own map.
+        // Every Alfa event a gateway handles is addressed to it alone, on its method of the event's name; a
+        // gateway that needs an ambient Joomla event merges its own map.
         return [];
     }
 
