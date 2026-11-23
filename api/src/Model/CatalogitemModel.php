@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Site\Model\ItemModel as SiteItemModel;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Throwable;
@@ -65,7 +66,7 @@ class CatalogitemModel extends SiteItemModel
             // an unmapped one renders as 500. Restate it as a real 404 so a
             // hidden product answers exactly as it does on the storefront.
             if ((int) $e->getCode() === 404) {
-                throw new ResourceNotFound($e->getMessage(), 404, $e);
+                throw new ResourceNotFound(ErrorText::of($e), 404, $e);
             }
 
             throw $e;

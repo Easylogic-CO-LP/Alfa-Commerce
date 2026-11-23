@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
@@ -166,8 +167,8 @@ trait HasApiGuards
             return parent::execute($task);
         } catch (OrderCurrencyException $e) {
             throw $e->orderExists()
-                ? new Save($e->getMessage(), 409, $e)
-                : new ResourceNotFound($e->getMessage(), 404, $e);
+                ? new Save(ErrorText::of($e), 409, $e)
+                : new ResourceNotFound(ErrorText::of($e), 404, $e);
         }
     }
 
