@@ -18,6 +18,9 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDisputeEmail;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDisputeEvent;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
@@ -322,6 +325,13 @@ final class DisputeLedger
      * @since 2.2.2
      */
     private ?DisputeVerdict $verdict = null;
+
+    /**
+     * What the save's last record booked, decimal text in the order's currency (negative: a reversal).
+     *
+     * @since 2.2.2
+     */
+    private string $booked = '0';
 
     /**
      * @param DisputeWriter $writer Who writes.
@@ -1534,6 +1544,8 @@ final class DisputeLedger
         $bookings = (int) $record['bookings'];
 
         if ($record['waits_for'] !== null) {
+            $this->booked = '0';
+
             return $bookings;
         }
 
@@ -1550,8 +1562,12 @@ final class DisputeLedger
         $difference = $target->subtract($booked);
 
         if ($difference->isZero()) {
+            $this->booked = '0';
+
             return $bookings;
         }
+
+        $this->booked = ($difference->isNegative() ? '-' : '') . PublishedDecimal::money(money: $difference->abs());
 
         $at = $record['decided_at'] !== null && $record['outcome'] !== null ? (string) $record['decided_at'] : Factory::getDate('now', 'UTC')->toSql();
         $why = $this->bookingNote(record: $record, before: $before, changed: $changed, currency: $currency);
@@ -1728,7 +1744,42 @@ final class DisputeLedger
             $this->writeActionLog(record: $record, before: $before, events: $events, amount: $amount);
         }
 
-        self::notify(record: $record, payment: $payment, currency: $currency);
+        self::notify(record: $record);
+        self::owe(record: $record, before: $before, booked: $this->booked);
+    }
+
+    /**
+     * What a save owes after its commit, written in its transaction: the staff e-mail when a dispute is recorded or
+     * first reported and at its outcome (only when the shop has a store e-mail address), and onAlfaDisputeChanged when
+     * the event has a listener.
+     *
+     * @param array<string, mixed> $record The record as written.
+     * @param array<string, mixed>|null $before The record before.
+     * @param string $booked What the save booked, decimal text in the order's currency.
+     *
+     * @since 2.2.2
+     */
+    private static function owe(array $record, ?array $before, string $booked): void
+    {
+        $state = (string) $record['state'];
+        $from = $before === null ? '' : (string) $before['state'];
+        $started = $before === null && \in_array($state, self::UNDECIDED_STATES, true);
+        $decided = $state !== $from && \in_array($state, [self::STATE_WON, self::STATE_LOST, self::STATE_CLOSED], true)
+            && (string) ($record['closed_reason'] ?? '') !== self::CLOSED_MERGED;
+
+        if (($started || $decided) && OrderDisputeEmail::recipient() !== '') {
+            Tasks::single(handler: OrderDisputeEmail::NAME, subjectType: 'order', subjectId: (int) $record['id_order'], payload: ['dispute' => (int) $record['id'], 'state' => $state]);
+        }
+
+        if (OrderDisputeEvent::hasListeners()) {
+            Tasks::single(handler: OrderDisputeEvent::NAME, subjectType: 'order', subjectId: (int) $record['id_order'], payload: [
+                'dispute' => (int) $record['id'],
+                'payment' => (int) $record['id_payment'],
+                'from' => $from,
+                'to' => $state,
+                'booked' => $booked,
+            ]);
+        }
     }
 
     /**
@@ -1780,55 +1831,16 @@ final class DisputeLedger
      * case needs staff.
      *
      * @param array<string, mixed> $record The record as written.
-     * @param object $payment The disputed payment.
-     * @param Currency $currency The order's currency.
      *
      * @since 2.2.2
      */
-    private static function notify(array $record, object $payment, Currency $currency): void
+    private static function notify(array $record): void
     {
-        $id = (int) $record['id'];
         $orderId = (int) $record['id_order'];
-        $amount = self::amountText(record: $record, currency: $currency);
-        $provider = (string) $payment->payment_method;
-        $due = $record['evidence_due_by'] !== null ? NotificationText::date(utc: (string) $record['evidence_due_by']) : null;
-        $state = (string) $record['state'];
-        $waits = (string) ($record['waits_for'] ?? '');
-
-        if ($waits === self::WAITS_SAME_PAYMENT) {
-            $candidates = self::candidatesOf(db: self::db(), record: (object) $record, records: null);
-            [$title, $message, $severity] = [
-                NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_SAME_TITLE', $orderId),
-                NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_SAME_MSG', $provider, (string) $record['reference'], (int) $payment->id, '#' . implode(', #', array_map(static fn (object $one): int => (int) $one->id, $candidates))),
-                'warning',
-            ];
-        } elseif ($waits === self::WAITS_AMOUNT_UNKNOWN) {
-            [$title, $message, $severity] = [
-                NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_AMOUNT_TITLE', $orderId),
-                NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_AMOUNT_MSG', $id, $amount),
-                'danger',
-            ];
-        } else {
-            [$title, $message, $severity] = match ($state) {
-                self::STATE_INQUIRY => [
-                    NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_INQUIRY_TITLE', $orderId),
-                    $due === null ? NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_INQUIRY_MSG', $amount, (int) $payment->id, $provider) : NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_INQUIRY_DUE_MSG', $amount, (int) $payment->id, $provider, $due),
-                    'warning',
-                ],
-                self::STATE_OPEN => [
-                    $due === null ? NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_OPEN_TITLE', $orderId) : NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_OPEN_DUE_TITLE', $orderId, $due),
-                    $due === null ? NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_OPEN_MSG', $amount, (int) $payment->id, $provider) : NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_OPEN_DUE_MSG', $amount, (int) $payment->id, $provider, $due),
-                    'danger',
-                ],
-                self::STATE_UNDER_REVIEW => [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_REVIEW_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_REVIEW_MSG', $id, $amount), 'info'],
-                self::STATE_WON => [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_WON_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_WON_MSG', $id, $amount), 'success'],
-                self::STATE_LOST => [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_LOST_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_LOST_MSG', $id, $amount), 'danger'],
-                default => [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_CLOSED_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_CLOSED_MSG', $id), 'info'],
-            };
-        }
+        [$title, $message, $severity] = self::noticeTexts(record: (object) $record, state: (string) $record['state']);
 
         NotificationHelper::push(
-            dedupKey: self::NOTICE_PREFIX . $id,
+            dedupKey: self::NOTICE_PREFIX . (int) $record['id'],
             title:    $title,
             options:  [
                 'severity' => $severity,
@@ -1840,6 +1852,62 @@ final class DisputeLedger
                 'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
             ],
         );
+    }
+
+    /**
+     * What a dispute's notice and its staff e-mail say for a state: the title, the message and the notice's severity.
+     * What happened, whether it matters, what Alfa did and what to do; a record that waits for staff asks its question.
+     *
+     * @param object $record The record (as stored or as written).
+     * @param string $state The state to speak of (the e-mail's state when it was owed).
+     *
+     * @return array{0: NotificationText, 1: NotificationText, 2: string}
+     *
+     * @since 2.2.2
+     */
+    public static function noticeTexts(object $record, string $state): array
+    {
+        $db = self::db();
+        $id = (int) $record->id;
+        $orderId = (int) $record->id_order;
+        $payment = $db->setQuery('SELECT ' . $db->quoteName(['id', 'payment_method']) . ' FROM ' . $db->quoteName(self::PAYMENTS) . ' WHERE ' . $db->quoteName('id') . ' = ' . (int) $record->id_payment)->loadObject();
+        $provider = (string) ($payment->payment_method ?? '');
+        $paymentId = (int) $record->id_payment;
+        $currency = OrderCurrency::find(orderId: $orderId);
+        $amount = $currency === null ? (string) $record->stated_amount . ' ' . (string) $record->stated_currency : self::amountText(record: (array) $record, currency: $currency);
+        $due = ($record->evidence_due_by ?? null) !== null ? NotificationText::date(utc: (string) $record->evidence_due_by) : null;
+        $waits = (string) ($record->waits_for ?? '');
+
+        if ($waits === self::WAITS_SAME_PAYMENT) {
+            $candidates = self::candidatesOf(db: $db, record: $record, records: null);
+
+            return [
+                NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_SAME_TITLE', $orderId),
+                NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_SAME_MSG', $provider, (string) $record->reference, $paymentId, '#' . implode(', #', array_map(static fn (object $one): int => (int) $one->id, $candidates))),
+                'warning',
+            ];
+        }
+
+        if ($waits === self::WAITS_AMOUNT_UNKNOWN) {
+            return [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_AMOUNT_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_AMOUNT_MSG', $id, $amount), 'danger'];
+        }
+
+        return match ($state) {
+            self::STATE_INQUIRY => [
+                NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_INQUIRY_TITLE', $orderId),
+                $due === null ? NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_INQUIRY_MSG', $amount, $paymentId, $provider) : NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_INQUIRY_DUE_MSG', $amount, $paymentId, $provider, $due),
+                'warning',
+            ],
+            self::STATE_OPEN => [
+                $due === null ? NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_OPEN_TITLE', $orderId) : NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_OPEN_DUE_TITLE', $orderId, $due),
+                $due === null ? NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_OPEN_MSG', $amount, $paymentId, $provider) : NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_OPEN_DUE_MSG', $amount, $paymentId, $provider, $due),
+                'danger',
+            ],
+            self::STATE_UNDER_REVIEW => [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_REVIEW_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_REVIEW_MSG', $id, $amount), 'info'],
+            self::STATE_WON => [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_WON_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_WON_MSG', $id, $amount), 'success'],
+            self::STATE_LOST => [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_LOST_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_LOST_MSG', $id, $amount), 'danger'],
+            default => [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_CLOSED_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_CLOSED_MSG', $id), 'info'],
+        };
     }
 
     /**

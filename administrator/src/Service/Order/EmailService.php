@@ -988,6 +988,49 @@ class EmailService
     }
 
     /**
+     * Send one staff message about an order: a subject and a plain text, written in the shop's administrator language
+     * by its caller, with the link to the order on the administrator. The one way core sends staff a message that is not
+     * a status e-mail (a card dispute's e-mail).
+     *
+     * @param string $recipient The address.
+     * @param string $subject The subject, plain text.
+     * @param string $text The message, plain text.
+     * @param int $orderId The order it is about.
+     *
+     * @return array{0: string, 1: string} The outcome (self::OUTCOME_*) and its error.
+     *
+     * @since  2.2.2
+     */
+    public static function sendStaffMessage(string $recipient, string $subject, string $text, int $orderId): array
+    {
+        $watch = null;
+        $sent = false;
+
+        try {
+            $link = rtrim(Uri::root(), '/') . '/administrator/index.php?option=com_alfa&task=order.edit&id=' . $orderId;
+            $html = '<p>' . nl2br(htmlspecialchars($text, ENT_QUOTES, 'UTF-8')) . '</p>'
+                . '<p><a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '</a></p>';
+            $mailer = Factory::getContainer()->get(MailerFactoryInterface::class)->createMailer();
+            $mailer->isHtml(true);
+            $mailer->addRecipient($recipient);
+            $mailer->setSubject($subject);
+            $mailer->setBody($html);
+            $watch = $mailer instanceof Mail ? MailHandover::watch(mailer: $mailer) : null;
+            $sent = $mailer->Send() !== false;
+
+            if (!$sent) {
+                throw new RuntimeException('The mailer did not send the message.');
+            }
+
+            return [self::OUTCOME_SENT, ''];
+        } catch (Throwable $e) {
+            Log::add('Staff message about order #' . $orderId . ' not sent: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orderemail');
+
+            return [$watch?->outcome(sent: $sent) ?? self::OUTCOME_FAILED, $e->getMessage()];
+        }
+    }
+
+    /**
      * PDFs of every ISSUED document of the order, rendered in memory on
      * demand (voided docs are excluded; a cancelled legal document is
      * not re-sent). A per-document failure is logged and skipped so one
