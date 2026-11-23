@@ -29,6 +29,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryCommands;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryReservedFloorException;
@@ -439,7 +440,6 @@ class ItemController extends FormController
                     $targets[$locationId] = (float) $raw;
                 }
 
-                $inventory = new InventoryService();
                 $applied = 0;
 
                 // EVERY REFUSAL THAT CAN BE KNOWN IS FOUND BEFORE THE FIRST WRITE: a
@@ -448,74 +448,42 @@ class ItemController extends FormController
                 // orders have reserved there (or lower it at all while it is already
                 // below them), or a product whose figures have no stock records
                 // behind them (or which is held until they are repaired) refuses the
-                // whole correction, and nothing moves.
-                $refusals = $targets === [] ? [] : $this->inlineTargetRefusals(
-                    problems: $inventory->validateTargets(
-                        itemId:        $id,
-                        combinationId: null,
-                        targets:       $targets,
-                        assumeTracked: false,
-                    ),
-                    titles:   $offered,
-                );
+                // whole correction, and nothing moves. ONE CORRECTION, ALL OR NOTHING:
+                // a changed figure is an absolute target the kernel converges the
+                // locked record to, one command per location, so the ledger keeps
+                // saying WHERE; a refusal the checks could not foresee (a location
+                // disabled, stock moved or reserved in between) rolls back every
+                // location already converged.
+                $refusals = [];
 
-                if ($targets !== [] && $refusals === []) {
-                    $db = Factory::getContainer()->get('DatabaseDriver');
-                    $locationId = 0;
-                    $context = new InventoryContext(
-                        userId: (int) $this->app->getIdentity()->id,
-                        note:   Text::_('COM_ALFA_INLINE_STOCK_NOTE'),
-                    );
+                if ($targets !== []) {
+                    $correction = InventoryCommands::adjust()
+                        ->source(type: 'catalog_edit', id: $id)
+                        ->by(context: new InventoryContext(
+                            userId: (int) $this->app->getIdentity()->id,
+                            note:   Text::_('COM_ALFA_INLINE_STOCK_NOTE'),
+                        ));
 
-                    // ONE CORRECTION, ALL OR NOTHING. The product's stock records are
-                    // locked first; a refusal the checks above could not foresee (a
-                    // location disabled, stock moved or reserved in between) rolls back
-                    // every location already converged.
-                    $db->transactionStart(true);
+                    foreach ($targets as $locationId => $target) {
+                        $correction->set(itemId: $id, combinationId: null, locationId: $locationId, quantity: $target);
+                    }
 
-                    try {
-                        $inventory->lockItemStock(itemId: $id);
+                    $outcome = $correction->apply();
+                    $applied = $outcome->operations();
+                    $refusals = $outcome->problems === [] ? [] : $this->inlineTargetRefusals(problems: $outcome->problemsAsStated(), titles: $offered);
+                    $e = $outcome->failure;
 
-                        foreach ($targets as $locationId => $target) {
-                            // A changed figure is an absolute target: the kernel converges
-                            // the locked record to it, so two saves of the same figure move
-                            // the stock once. One command per location, so the ledger keeps
-                            // saying WHERE.
-                            $operation = $inventory->adjustTo(
-                                itemId:        $id,
-                                combinationId: null,
-                                locationId:    $locationId,
-                                target:        $target,
-                                sourceType:    'catalog_edit',
-                                sourceId:      $id,
-                                context:       $context,
-                            );
+                    if ($outcome->unapplied || $e !== null) {
+                        $locationId = (int) (array_keys($targets)[(int) $outcome->failedLine] ?? 0);
 
-                            // Null means the kernel found no stock unit to converge: the
-                            // product was archived, grew variants or stopped tracking since
-                            // the gate ran. Read in this transaction, the product's state is
-                            // the one the kernel judged, so an archived product is refused
-                            // with the reason the dry run gives it.
-                            if ($operation === null) {
-                                throw new RuntimeException(
-                                    CombinationState::isCurrent(state: $this->loadItemColumn(itemId: $id, column: 'state'))
-                                        ? Text::_('COM_ALFA_INLINE_STOCK_NOT_EDITABLE')
-                                        : Text::_('COM_ALFA_ITEM_STOCK_REASON_ARCHIVED'),
-                                );
-                            }
-
-                            if (($operation['operation_id'] ?? null) !== null) {
-                                $applied++;
-                            }
-                        }
-
-                        // The adjustments' events are announced once this commits.
-                        TransactionState::commitLevel(db: $db);
-                    } catch (Throwable $e) {
-                        // Closes the whole correction, after a deadlock too, and
-                        // discards what it would have announced.
-                        TransactionState::rollBackLevel(db: $db, failure: $e);
-                        $applied = 0;
+                        // Null means the kernel found no stock unit to converge: the
+                        // product was archived, grew variants or stopped tracking since
+                        // the gate ran. Read after the rollback, the product's state is
+                        // the one the kernel judged, so an archived product is refused
+                        // with the reason the dry run gives it.
+                        $message = $e?->getMessage() ?? (CombinationState::isCurrent(state: $this->loadItemColumn(itemId: $id, column: 'state'))
+                            ? Text::_('COM_ALFA_INLINE_STOCK_NOT_EDITABLE')
+                            : Text::_('COM_ALFA_ITEM_STOCK_REASON_ARCHIVED'));
 
                         // The detail goes to the component log; the merchant gets the
                         // reason in the back office's words where one exists.
@@ -524,13 +492,14 @@ class ItemController extends FormController
                                 'Inline stock correction refused for item %d at location %d, nothing applied: %s',
                                 $id,
                                 $locationId,
-                                $e->getMessage(),
+                                $message,
                             ),
                             priority: Log::WARNING,
                             category: 'com_alfa.inventory',
                         );
 
                         $refusals[] = match (true) {
+                            $e === null => $message,
                             // Stock reserved at a location while the correction waited for
                             // its lock: the figures read under that lock, in the dry run's words.
                             $e instanceof InventoryReservedFloorException => $e->operatorMessage(),

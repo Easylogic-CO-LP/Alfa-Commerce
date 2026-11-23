@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryCommands;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryProjectionMismatchException;
@@ -3328,71 +3329,31 @@ class ItemFieldsAdminHelper
             return [self::notAppliedText(itemId: $itemId, combinationId: $combinationId, tracks: $tracks)];
         }
 
-        $inventory = new InventoryService();
+        // The breakdown moves as a whole or not at all: one adjustment, the changed figures its lines.
+        $adjustment = InventoryCommands::adjust()->source(type: 'catalog_edit', id: $itemId)->by(context: InventoryContext::ambient());
 
-        $problems = self::targetProblemTexts(
-            itemId: $itemId,
-            combinationId: $combinationId,
-            problems: $inventory->validateTargets(
-                itemId: $itemId,
-                combinationId: $combinationId,
-                targets: $changes,
-                assumeTracked: false,
-            ),
-        );
+        foreach ($changes as $locationId => $target) {
+            $adjustment->set(itemId: $itemId, combinationId: $combinationId, locationId: $locationId, quantity: $target);
+        }
+
+        $outcome = $adjustment->apply();
+        $problems = self::targetProblemTexts(itemId: $itemId, combinationId: $combinationId, problems: $outcome->problemsAsStated());
 
         if ($problems !== []) {
             throw new RuntimeException(implode(' ', $problems));
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $unapplied = false;
-
-        $db->transactionStart(true);
-
-        try {
-            $inventory->lockItemStock(itemId: $itemId);
-
-            foreach ($changes as $locationId => $target) {
-                try {
-                    $applied = $inventory->adjustTo(
-                        itemId: $itemId,
-                        combinationId: $combinationId,
-                        locationId: $locationId,
-                        target: $target,
-                        sourceType: 'catalog_edit',
-                        sourceId: $itemId,
-                        context: InventoryContext::ambient(),
-                    );
-                } catch (InventoryUnitException $e) {
-                    // The combination stopped tracking stock, or went, while waiting for its lock.
-                    $applied = null;
-                } catch (InventoryReservedFloorException $e) {
-                    // Reserved while waiting for its lock: the breakdown rolls back, and the operator reads why.
-                    throw new RuntimeException(message: self::escapedText(text: $e->operatorMessage()), previous: $e);
-                }
-
-                if ($applied === null) {
-                    $unapplied = true;
-
-                    break;
-                }
-            }
-
-            // The breakdown moves as a whole or not at all: what the locations
-            // already converged would announce is discarded with it.
-            if ($unapplied) {
-                TransactionState::rollBackLevel(db: $db, failure: new RuntimeException('The combination is no longer a stock unit.'));
-            } else {
-                TransactionState::commitLevel(db: $db);
-            }
-        } catch (Throwable $e) {
-            TransactionState::rollBackLevel(db: $db, failure: $e);
-
-            throw $e;
+        // Reserved while waiting for its lock: the breakdown rolled back, and the operator reads why.
+        if ($outcome->failure instanceof InventoryReservedFloorException) {
+            throw new RuntimeException(message: self::escapedText(text: $outcome->failure->operatorMessage()), previous: $outcome->failure);
         }
 
-        if (!$unapplied) {
+        // The combination stopped tracking stock, or went, while waiting for its lock: not applied, and said.
+        if ($outcome->failure !== null && !$outcome->failure instanceof InventoryUnitException) {
+            throw $outcome->failure;
+        }
+
+        if ($outcome->applied) {
             return [];
         }
 
@@ -3450,43 +3411,28 @@ class ItemFieldsAdminHelper
             return $decision['text'];
         }
 
-        $inventory = new InventoryService();
-        $targets = [$decision['location'] => $decision['target']];
-
-        $problems = self::targetProblemTexts(
-            itemId: $itemId,
-            combinationId: $combinationId,
-            problems: $inventory->validateTargets(
-                itemId: $itemId,
-                combinationId: $combinationId,
-                targets: $targets,
-                assumeTracked: false,
-            ),
-        );
+        $outcome = InventoryCommands::adjust()
+            ->source(type: 'catalog_edit', id: $itemId)
+            ->by(context: InventoryContext::ambient())
+            ->set(itemId: $itemId, combinationId: $combinationId, locationId: $decision['location'], quantity: $decision['target'])
+            ->apply();
+        $problems = self::targetProblemTexts(itemId: $itemId, combinationId: $combinationId, problems: $outcome->problemsAsStated());
 
         if ($problems !== []) {
             throw new RuntimeException(implode(' ', $problems));
         }
 
-        try {
-            $applied = $inventory->adjustTo(
-                itemId: $itemId,
-                combinationId: $combinationId,
-                locationId: $decision['location'],
-                target: $decision['target'],
-                sourceType: 'catalog_edit',
-                sourceId: $itemId,
-                context: InventoryContext::ambient(),
-            );
-        } catch (InventoryUnitException $e) {
-            // The combination stopped tracking stock, or went, while waiting for its lock.
-            $applied = null;
-        } catch (InventoryReservedFloorException $e) {
-            // Below what open orders reserve there: the grid save rolls back, and the operator reads why.
-            throw new RuntimeException(message: self::escapedText(text: $e->operatorMessage()), previous: $e);
+        // Below what open orders reserve there: the grid save rolls back, and the operator reads why.
+        if ($outcome->failure instanceof InventoryReservedFloorException) {
+            throw new RuntimeException(message: self::escapedText(text: $outcome->failure->operatorMessage()), previous: $outcome->failure);
         }
 
-        if ($applied !== null) {
+        // The combination stopped tracking stock, or went, while waiting for its lock: not applied, and said.
+        if ($outcome->failure !== null && !$outcome->failure instanceof InventoryUnitException) {
+            throw $outcome->failure;
+        }
+
+        if ($outcome->applied) {
             return null;
         }
 
@@ -4099,43 +4045,11 @@ class ItemFieldsAdminHelper
             return [];
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $titles = $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->qn(['id', 'title']))
-                ->from($db->qn('#__alfa_inventory_locations')),
-        )->loadAssocList('id', 'title') ?: [];
-
+        $titles = InventoryCommands::locationTitles();
         $texts = [];
 
         foreach ($problems as $problem) {
-            $problem = (array) $problem;
-            $locationId = (int) ($problem['location_id'] ?? 0);
-            $location = (string) ($titles[$locationId] ?? ('#' . $locationId));
-
-            $text = match ((string) ($problem['code'] ?? '')) {
-                'not_a_location' => Text::sprintf('COM_ALFA_INVENTORY_TARGET_NOT_A_LOCATION', '#' . $locationId),
-                'location_disabled' => Text::sprintf('COM_ALFA_INVENTORY_TARGET_LOCATION_DISABLED', $location),
-                'negative_floor' => Text::sprintf('COM_ALFA_INVENTORY_TARGET_NEGATIVE', $location),
-                // The unit's figures as the inventory service reports them: the
-                // ones it shows without stock records, or those it showed when
-                // its hold began.
-                'ledger_missing', 'integrity_held' => InventoryIntegrityException::refusalText(
-                    stock: isset($problem['stock']) ? (float) $problem['stock'] : null,
-                    available: isset($problem['available']) ? (float) $problem['available'] : null,
-                    held: $problem['code'] === 'integrity_held',
-                ),
-                // Below what open orders reserve there: the service's own sentence, names escaped once.
-                'reserved_floor' => self::escapedText(text: InventoryReservedFloorException::refusalText(
-                    itemId: $itemId,
-                    combinationId: $combinationId,
-                    locationId: $locationId,
-                    onHand: (float) $problem['on_hand'],
-                    reserved: (float) $problem['reserved'],
-                    requested: (float) $problem['requested'],
-                )),
-                default => null,
-            };
+            $text = InventoryCommands::problemText(itemId: $itemId, combinationId: $combinationId, problem: (array) $problem, titles: $titles);
 
             if ($text !== null && !\in_array($text, $texts, true)) {
                 $texts[] = $text;

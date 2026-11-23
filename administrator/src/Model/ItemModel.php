@@ -44,6 +44,7 @@ use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryCommands;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityNotice;
@@ -2202,49 +2203,46 @@ class ItemModel extends AlfaAdminModel
             return;
         }
 
-        $db = $this->alfaDriver();
-        $unapplied = false;
+        // One adjustment, the changed figures its lines: every location converges, or none does.
+        $adjustment = InventoryCommands::adjust()->source(type: 'catalog_edit', id: $itemId)->by(context: InventoryContext::ambient());
 
-        $db->transactionStart(asSavepoint: true);
-
-        try {
-            $service->lockItemStock(itemId: $itemId);
-
-            foreach ($targets as $locationId => $target) {
-                $applied = $service->adjustTo(
-                    itemId:        $itemId,
-                    combinationId: null,
-                    locationId:    (int) $locationId,
-                    target:        $target,
-                    sourceType:    'catalog_edit',
-                    sourceId:      $itemId,
-                    context:       InventoryContext::ambient(),
-                );
-
-                // Null means the product is no longer a stock unit of its own.
-                if ($applied === null) {
-                    $unapplied = true;
-
-                    break;
-                }
-            }
-
-            // The change stands whole or not at all: what the locations already
-            // converged would announce is discarded with a change that does not.
-            if ($unapplied) {
-                TransactionState::rollBackLevel(db: $db, failure: new RuntimeException('The product is no longer a stock unit of its own.'));
-            } else {
-                TransactionState::commitLevel(db: $db);
-            }
-        } catch (Throwable $e) {
-            TransactionState::rollBackLevel(db: $db, failure: $e);
-
-            throw $e;
+        foreach ($targets as $locationId => $target) {
+            $adjustment->set(itemId: $itemId, combinationId: null, locationId: (int) $locationId, quantity: (float) $target);
         }
 
-        if ($unapplied) {
+        $outcome = $adjustment->apply();
+
+        if ($outcome->applied) {
+            return;
+        }
+
+        // The product is no longer a stock unit of its own.
+        if ($outcome->unapplied) {
             throw new RuntimeException($this->unappliedStockReason(itemId: $itemId));
         }
+
+        // A figure the save's own check passed and the stock records refuse now: the floor in the inventory service's
+        // own sentence, any other reason in the save's words.
+        foreach ($outcome->problemsAsStated() as $problem) {
+            if (($problem['code'] ?? '') === 'reserved_floor') {
+                throw new InventoryReservedFloorException(
+                    itemId: $itemId,
+                    combinationId: 0,
+                    locationId: (int) $problem['location_id'],
+                    onHand: (float) $problem['on_hand'],
+                    reserved: (float) $problem['reserved'],
+                    requested: (float) $problem['requested'],
+                    minimum: (float) $problem['minimum'],
+                    command: 'adjust',
+                );
+            }
+        }
+
+        if ($outcome->problems !== []) {
+            throw new RuntimeException(implode(' ', $this->targetRefusals(problems: $outcome->problemsAsStated())));
+        }
+
+        throw $outcome->failure ?? new RuntimeException($this->unappliedStockReason(itemId: $itemId));
     }
 
     /**
