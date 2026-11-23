@@ -305,7 +305,8 @@ $columnLabels = array_map(
 	<?php endif; ?>
 
     <!-- Coupon code: its own small form (activation only; automatic rules
-         need nothing) -->
+         need nothing), where the Options offer it -->
+    <?php if ($shows->coupon): ?>
     <form action="<?php echo Route::_('index.php?option=com_alfa&task=cart.applyCoupon'); ?>" method="post" class="cart-coupon-form">
         <label for="cart-coupon-code"><?php echo Text::_('COM_ALFA_CART_COUPON_LABEL'); ?></label>
         <input type="text" class="form-control" id="cart-coupon-code" name="coupon_code" value="" autocomplete="off"
@@ -313,6 +314,7 @@ $columnLabels = array_map(
         <button type="submit" class="action secondary small"><?php echo Text::_('COM_ALFA_CART_COUPON_APPLY'); ?></button>
         <?php echo HTMLHelper::_('form.token'); ?>
     </form>
+    <?php endif; ?>
 
     <!-- Near-miss rule nudges: milestone bars + checklists from the engine's
          distance-to-eligibility structure -->

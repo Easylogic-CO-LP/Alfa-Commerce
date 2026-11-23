@@ -15,13 +15,15 @@ use Joomla\CMS\Component\ComponentHelper;
 defined('_JEXEC') or die;
 
 /**
- * Which amounts the cart shows the shopper: the one reader of the five switches in the component Options (Cart, The
- * cart shows), each on by default.
+ * Which amounts the cart shows the shopper, and whether it offers the coupon field: the one reader of the six switches
+ * in the component Options (Cart, The cart shows), each on by default.
  *
  * The cart page with its checkout summary, the cart module and the added-to-cart card read them here. Line price is
  * a line's price, discount and total; Subtotal is the subtotal row and the discount row under it; Shipping is the
  * shipping row; Tax is a line's tax and the tax row; Total is the total row with the fees and the cart rules that
- * lead to it. With every switch off the cart lists its lines and their quantities only. Only the showing changes: the
+ * lead to it. With every amount switch off the cart lists its lines and their quantities only. Coupon field is the
+ * cart page's coupon form, the one storefront way to enter a code: off, the storefront takes no code (a code the cart
+ * already holds keeps its remove button). Only the showing changes: the
  * cart, its totals, the placement and the order carry every amount, and the order's own pages, e-mails and documents
  * show them.
  *
@@ -35,6 +37,7 @@ final class CartShows
      * @param bool $shipping The shipping row.
      * @param bool $tax A line's tax and the tax row.
      * @param bool $total The total row, with the fee and cart rule rows.
+     * @param bool $coupon The coupon field.
      *
      * @since  2.3.0
      */
@@ -44,6 +47,7 @@ final class CartShows
         public readonly bool $shipping,
         public readonly bool $tax,
         public readonly bool $total,
+        public readonly bool $coupon,
     ) {
     }
 
@@ -63,6 +67,7 @@ final class CartShows
             shipping: $on('cart_show_shipping'),
             tax: $on('cart_show_tax'),
             total: $on('cart_show_total'),
+            coupon: $on('coupon_field'),
         );
     }
 

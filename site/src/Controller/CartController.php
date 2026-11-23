@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Site\Helper\CartShows;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
@@ -383,7 +384,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
     /**
      * Apply a coupon code to the cart: plain POST + redirect (the totals
      * re-render with the applied rule row). The code is only an activation
-     * method: unknown/ineligible codes are rejected with a message.
+     * method: unknown/ineligible codes are rejected with a message. With the
+     * Options' coupon field off the storefront takes no code at all.
      *
      * @return void
      *
@@ -392,6 +394,13 @@ class CartController extends FormController implements UserFactoryAwareInterface
     public function applyCoupon()
     {
         $this->checkToken();
+
+        if (!CartShows::options()->coupon) {
+            $this->app->enqueueMessage(Text::_('COM_ALFA_CART_COUPON_FIELD_OFF'), 'warning');
+            $this->setRedirect(Route::_('index.php?option=com_alfa&view=cart', false));
+
+            return;
+        }
 
         $code = RequestScalar::string($this->app->getInput()->post, 'coupon_code', '');
 
