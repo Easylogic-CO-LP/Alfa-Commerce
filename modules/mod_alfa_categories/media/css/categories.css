@@ -25,7 +25,7 @@
 }
 
 /* Each level below the first steps in. */
-.mod-alfa-categories .tree .tree {
+.mod-alfa-categories .tree ul {
     padding-inline-start: var(--mod-alfa-categories-indent);
 }
 
