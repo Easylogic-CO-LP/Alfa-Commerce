@@ -191,8 +191,8 @@
  *
  *  SPLIT SHIPMENTS: one order, several parcels
  *
- * The diagram above shows ONE shipment because that is all Standard
- * creates. An order may hold as many shipment rows as it needs (
+ * The diagram above shows ONE shipment because that is what Alfa records
+ * at placement. An order may hold as many shipment rows as it needs (
  * #__alfa_order_shipments has no unique key on id_order) and which
  * lines ride in which parcel, and HOW MANY of each, lives in the join
  * table #__alfa_order_shipment_items (id_order_shipment, id_order_item,
@@ -240,8 +240,8 @@
  * already carries it. Correcting a charge is still possible through the
  * admin form, which edits rather than creates.
  *
- * A worked example lives in the SPLIT SHIPMENT block right after
- * onOrderAfterPlace().
+ * A worked example lives in the SPLIT SHIPMENT block after the order
+ * placement hook's notes.
  *
  *  SHIPPING COST CALCULATION: Dimension-Based Engine
  *
@@ -335,7 +335,8 @@
  *
  * 5. Key differences for carrier plugins:
  *    - onCalculateShippingCost(): call carrier API for real-time rates
- *    - onOrderAfterPlace(): optionally create shipment label via API
+ *    - onOrderAfterPlace(): complete the parcel Alfa recorded (a label,
+ *      a locker) through shipmentUpdate($event->getShipmentId())
  *    - handleMarkShipped(): call carrier pickup/manifest API
  *    - handleTrack(): fetch live tracking from carrier API
  *    - logs.xml: add carrier-specific columns (api_request_id, label_url)
@@ -360,7 +361,6 @@ use Alfa\Component\Alfa\Site\Service\Cart\Method;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Log\Log;
 
 defined('_JEXEC') or die;
 
@@ -516,80 +516,29 @@ final class Standard extends ShipmentsPlugin
 
     //  Order placement hook
     //
-    //  Called by OrderPlacement::triggerAfterPlaceEvents() once the order,
-    //  its items and the payment row are committed.
+    //  onOrderAfterPlace($event): called once, after the order is committed.
+    //  By then Alfa has recorded the order's parcel on this plugin's method:
+    //  pending, the shipping charge the customer accepted (with and without
+    //  tax, its rate, its chain and its basis) and every item. The carrier
+    //  COMPLETES that parcel with what is its own and never records a
+    //  second one. Standard has nothing to add, so it has no such method. A
+    //  carrier with a locker, a label or data of its own writes:
     //
-    //  This is where you create the INITIAL shipment record.
-
-    /**
-     * Create the initial shipment record when an order is placed.
-     *
-     * WHEN: Called once per order, right after checkout completes.
-     * WHO:  Triggered by the frontend OrderPlacement service.
-     * WHAT: Creates ONE shipment with ALL items assigned.
-     *
-     * The fluent builder auto-fills:
-     *   - id_order, id_shipment_method -> from $order
-     *   - weight -> SUM(items.weight x quantity) auto-calculated
-     *   - items -> assigned via ->withAllItems()
-     *   - added, id_employee, id_currency -> by the CRUD engine
-     *   - method name snapshot -> survives method deletion
-     *
-     * Shipping cost comes from OrderPlacement, which already overrides
-     * total_shipping_tax_incl/excl with cart values before this fires.
-     *
-     * For carrier plugins that auto-generate labels:
-     *   $label = $carrier->createShipment($packageDetails);
-     *   $id = $this->shipment($order)
-     *       ->pending()
-     *       ->withAllItems()
-     *       ->cost($shippingCostIncl, $shippingCostExcl, $order->shipmentTaxRate())
-     *       ->trackingNumber($label->trackingNumber)
-     *       ->carrier('Carrier A')
-     *       ->save();
-     *
-     * @param object $event OrderAfterPlaceEvent
-     *                      $event->getOrder() -> full order object
-     * @since  1.0.0
-     */
-    public function onOrderAfterPlace($event): void
-    {
-        $order = $event->getOrder();
-
-        if (!$order || empty($order->id())) {
-            return;
-        }
-
-        // Extract shipping cost from order totals
-        // OrderPlacement already overrides these from the placement cart
-        // before firing this event. No recalculation needed.
-        // The reader always answers with Money, so the old isset/is_object
-        // dance around a property that might not have been attached is gone.
-        $shippingCostIncl = $order->shipmentTotal();
-        $shippingCostExcl = $order->shipmentTotalExcl();
-        // The rate the charge was taxed at, frozen beside it (valid during
-        // onOrderAfterPlace, like the two totals).
-        $shippingTaxRate = $order->shipmentTaxRate();
-
-        // Create pending shipment via fluent builder
-        // ->pending() sets status = 'pending'
-        // ->withAllItems() collects all order item IDs and assigns them
-        // ->cost() sets shipping_cost_tax_incl + shipping_cost_tax_excl + shipping_tax_rate
-        // ->save() auto-fills: weight, added, id_employee, id_currency, method name
-        $shipmentId = $this->shipment($order)
-            ->pending()
-            ->withAllItems()
-            ->cost($shippingCostIncl, $shippingCostExcl, $shippingTaxRate)
-            ->save();
-
-        if (!$shipmentId) {
-            Log::add(
-                'Standard shipment: Failed to create initial shipment for order #' . $order->id(),
-                Log::ERROR,
-                $this->logCategory(),
-            );
-        }
-    }
+    //      public function onOrderAfterPlace(OrderAfterPlaceEvent $event): void
+    //      {
+    //          $label = $this->api()->createLabel($event->getOrder());
+    //
+    //          $this->shipmentUpdate($event->getShipmentId())
+    //              ->trackingNumber($label->trackingNumber)
+    //              ->carrier('Carrier A')
+    //              ->pluginData(['label_id' => $label->id])
+    //              ->save();
+    //      }
+    //
+    //  shipmentUpdate() names this plugin as the writer, so only a parcel of
+    //  this plugin's methods is written. A carrier that splits the order
+    //  keeps in the parcel what goes now and adds the rest as further
+    //  parcels (see SPLIT SHIPMENT below).
 
     //  THE CART PAGE: code in onCartViewAssets(), markup in onCartView()
     //
@@ -752,11 +701,11 @@ final class Standard extends ShipmentsPlugin
 
     //  SPLIT SHIPMENT: one order, several parcels
     //
-    //  Standard puts everything in one parcel (->withAllItems() above).
-    //  A plugin that ships from several warehouses, or splits backordered
-    //  units off, creates one shipment row per parcel, and because the
-    //  quantity lives on the join table, it can split a LINE, not just
-    //  whole lines:
+    //  Alfa records one parcel with every item at placement. A plugin that
+    //  ships from several warehouses, or splits backordered units off,
+    //  keeps in that parcel what goes now and records one more row per
+    //  further parcel, and because the quantity lives on the join table,
+    //  it can split a LINE, not just whole lines:
     //
     //      $now   = [];   // [orderItemId => units]
     //      $later = [];
@@ -773,12 +722,8 @@ final class Standard extends ShipmentsPlugin
     //          }
     //      }
     //
-    //      // Parcel 1 carries the shipping charge.
-    //      $this->shipment($order)
-    //          ->pending()
-    //          ->withItems($now)
-    //          ->cost($shippingCostIncl, $shippingCostExcl, $order->shipmentTaxRate())
-    //          ->save();
+    //      // The parcel Alfa recorded carries the shipping charge: it keeps what goes now.
+    //      $this->assignShipmentItems($event->getShipmentId(), $order->id(), $now);
     //
     //      // The backorder follows. Its cost is zeroed by the ledger
     //      // whatever you pass; shipping is quoted once per order.

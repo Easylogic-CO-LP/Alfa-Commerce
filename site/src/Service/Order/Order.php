@@ -362,9 +362,9 @@ final class Order
     /**
      * The rate the order's carriage was taxed at, in percent; 0.0 untaxed.
      *
-     * Placement states it beside the two carriage totals for the carrier that
-     * writes the parcel row in onOrderAfterPlace, so the row freezes the rate
-     * the charge was taxed at. An order read anywhere else may carry several
+     * Placement states it beside the two carriage totals for the parcel row
+     * core records before the carrier's onOrderAfterPlace, so the row freezes
+     * the rate the charge was taxed at. An order read anywhere else may carry several
      * parcels at different rates and states no single one: it answers 0.0, and
      * a parcel created later states its own rate.
      *
@@ -380,8 +380,9 @@ final class Order
      * How the order's carriage figures were formed: under the shop's entry
      * mode, or as the carrier stated them; null when the order states none.
      *
-     * Placement states it beside the rate, for the parcel row the carrier
-     * writes in onOrderAfterPlace. An order read anywhere else states none.
+     * Placement states it beside the rate, for the parcel row core records
+     * before the carrier's onOrderAfterPlace. An order read anywhere else
+     * states none.
      *
      *
      * @since  2.0.0
@@ -398,8 +399,8 @@ final class Order
      * apply, each as its exact decimal text with the name of the tax rule that
      * applied it; null when the order states none.
      *
-     * Placement states it beside the basis, for the parcel row the carrier
-     * writes in onOrderAfterPlace, which reads it as a chain
+     * Placement states it beside the basis, for the parcel row core records
+     * before the carrier's onOrderAfterPlace, which reads it as a chain
      * (ShipmentLedger). An order read anywhere else states none.
      *
      * @return array<int, array{rate: string, name: string}>|null
