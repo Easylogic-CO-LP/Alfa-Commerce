@@ -14,10 +14,13 @@
  * plugin overrides are resolved upstream (HtmlView / ItemsModel) onto $item->cart;
  * this only lays out the two slots:
  *
- *   MAIN  - the core add-to-cart (on a card, possibly the core cart.options
- *           link), or a plugin's replacement ($item->cart).
- *   CHILD - append-only siblings (wishlist, buy-now); the component-owned region
- *           wrapper keeps this slot alive even when MAIN is replaced.
+ *   MAIN   - the core add-to-cart (on a card, possibly the core cart.options
+ *            link), or a plugin's replacement ($item->cart).
+ *   NOTIFY - the "notify me when available" control (cart.notify), drawn when
+ *            the model's cart state offers it; outside MAIN, so a replaced or
+ *            absent add to cart (catalogue-only mode) keeps it.
+ *   CHILD  - append-only siblings (wishlist, buy-now); the component-owned region
+ *            wrapper keeps this slot alive even when MAIN is replaced.
  *
  * @var object $displayData The item (carries ->cart and optional ->cartChildren).
  */
@@ -38,6 +41,9 @@ $cart = $item->cart ?? ['layout' => 'cart.add', 'layoutData' => [], 'layoutPlugi
         $cart['layoutPluginType'] ?? '',
         $cart['layoutPluginName'] ?? '',
     ); ?>
+
+    <?php // NOTIFY slot: the layout draws the control only when the cart state offers it. ?>
+    <?php echo Layout::render('cart.notify', $item); ?>
 
     <?php // CHILD slot: append-only siblings. Empty until a plugin contributes. ?>
     <?php foreach ($item->cartChildren ?? [] as $child): ?>

@@ -8,7 +8,9 @@
  *
  * Cart region: DEFAULT MAIN slot. Renders the add-to-cart button + quantity
  * controls, with variant/stock GATING (disabled + reason hint until a complete,
- * in-stock combination). The hints (stock / select options, fill-required) are
+ * in-stock combination). A product whose stock rule offers "notify me when
+ * available" draws nothing here: the wrapper's NOTIFY slot (cart.notify) draws
+ * that control, outside this slot. The hints (stock / select options, fill-required) are
  * rows of their own ABOVE the quantity + button row; the wrapper wraps and the
  * hints span its full width. A plugin can replace this MAIN via setCartLayout (e.g.
  * the configurator's "Personalise" link); the wrapper + child slot stay intact.
@@ -74,17 +76,8 @@ $requiredHintAttr  = htmlspecialchars(
 );
 ?>
 
+<?php if (!$showNotify): ?>
 <div class="item-cart-add">
-
-	<?php if ($showNotify):    //Checking for unavailable stock ?>
-
-        <?php // The notify flow attaches through data-action="cart-notify" once wired;
-              // no inline placeholder handler ships to the storefront. ?>
-        <button type="button" data-action="cart-notify">
-			<?php echo Text::_("COM_ALFA_NOTIFY_ME_BUTTON_TEXT"); ?>
-        </button>
-
-	<?php else: ?>
 
 		<?php if (!$itemSalable && $state !== null): ?>
             <span class="item-cart-hint">
@@ -123,6 +116,5 @@ $requiredHintAttr  = htmlspecialchars(
 			<?php echo Text::_(!empty($item->editLine) ? 'COM_ALFA_CART_UPDATE_CART' : 'COM_ALFA_CART_ADD_TO_CART') ?>
         </button>
 
-	<?php endif; ?>
-
 </div>
+<?php endif; ?>
