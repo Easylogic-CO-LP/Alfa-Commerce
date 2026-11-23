@@ -51,6 +51,20 @@ extract($displayData);
 // Get price object: null when no price applies for the shopper, or the shop shows its catalogue only
 $prices = $item->price ?? null;
 
+// No price to show: its place shows what the Options say (PriceDisplay::unpriced()), the shop's text or nothing.
+// Such a product is not bought, so there is no price block to swap.
+if (!$prices) {
+	$onRequest = PriceDisplay::unpriced();
+
+	if ($onRequest !== '') {
+		?>
+<div class="item-price-request"><?php echo htmlspecialchars($onRequest, ENT_QUOTES, 'UTF-8'); ?></div>
+		<?php
+	}
+
+	return;
+}
+
 // Get settings (with automatic fallback)
 if (!isset($settings) || empty($settings)) {
 	$settings = PriceSettings::get();
@@ -62,18 +76,15 @@ $showTotals = !empty($options['show_totals']);
 // Get CSS class option
 $cssClass = 'item-prices' . (!empty($options['css_class']) ? ' ' . trim($options['css_class']) : '');
 
-// IN PLACE OF A PRICE, AS THE OPTIONS SAY (PriceDisplay): a product with no price shows the shop's text or nothing,
-// a price of zero its block, nothing or the text. The block's element stays, empty or with the text, so a quantity or
-// an option that prices the product swaps it.
-$instead = $prices === null
-	? PriceDisplay::unpriced()
-	: ($prices->getTotal()->isZero() ? PriceDisplay::zero() : null);
+// A PRICE OF ZERO, AS THE OPTIONS PRINT IT (PriceDisplay): its block, nothing, or the shop's text in its place. The
+// block's element stays, empty or with the text, so a quantity or an option that prices the product again swaps it.
+$zeroShown = $prices->getTotal()->isZero() ? PriceDisplay::zero() : null;
 
-if ($instead !== null) {
+if ($zeroShown !== null) {
 	?>
 <div class="<?php echo $cssClass; ?>" data-item-prices data-display-mode="<?php echo $showTotals ? 'totals' : 'unit'; ?>">
-	<?php if ($instead !== '') : ?>
-    <div class="item-price-request"><?php echo htmlspecialchars($instead, ENT_QUOTES, 'UTF-8'); ?></div>
+	<?php if ($zeroShown !== '') : ?>
+    <div class="item-price-request"><?php echo htmlspecialchars($zeroShown, ENT_QUOTES, 'UTF-8'); ?></div>
 	<?php endif; ?>
 </div>
 	<?php
