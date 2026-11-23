@@ -4038,7 +4038,7 @@ class com_alfaInstallerScript extends InstallerScript
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_PLUGINS_KEPT_DISABLED',
             fallback: 'Alfa Commerce %1$s kept these plugins of its package disabled, as they were before the update: %2$s.'
-                . ' Up to 2.2.0 an update enabled them again. Enable one in System > Manage > Plugins if the shop needs it.',
+                . ' Enable one in System > Manage > Plugins if the shop needs it.',
             values:   [$this->packageVersion, implode(', ', $kept)],
         ), 'notice');
         self::maintenanceLog(
