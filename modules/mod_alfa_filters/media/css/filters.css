@@ -488,11 +488,42 @@ html.alfa-filters-noscroll {
     color: var(--alfa-filters-text);
 }
 
-.mod-alfa-filters button[type="submit"] {
+/*
+ * The panel's foot: Clear all and Show N results, at the bottom of the panel and in view
+ * while the panel scrolls. Full width under the panel's own inline inset.
+ */
+
+.mod-alfa-filters .af-foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    display: flex;
+    align-items: stretch;
+    gap: var(--alfa-filters-space-sm);
+    margin: var(--alfa-filters-space-xl) calc(var(--alfa-filters-panel-padding-inline) * -1) 0;
+    padding: var(--alfa-filters-space-md) var(--alfa-filters-panel-padding-inline);
+    background-color: var(--alfa-filters-surface);
+    border-top: 1px solid var(--alfa-filters-border);
+}
+
+.mod-alfa-filters .af-foot .af-reset-all {
+    flex: none;
+    margin: 0;
+    padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-lg);
+    font-size: var(--alfa-filters-text-sm);
+    color: var(--alfa-filters-text);
+    text-decoration: none;
+    border: 1px solid var(--alfa-filters-border);
+    border-radius: var(--alfa-filters-radius-md);
+}
+
+.mod-alfa-filters .af-show-results {
+    flex: 1 1 auto;
     display: block;
     width: 100%;
+    margin: 0;
     background-color: var(--mod-alfa-filters-submit-color, var(--alfa-filters-accent));
-    color: var(--alfa-filters-surface);
+    color: var(--mod-alfa-filters-submit-color-text, var(--alfa-filters-surface));
     border: none;
     padding: var(--alfa-filters-space-md) var(--alfa-filters-space-lg);
     font-size: var(--alfa-filters-text-sm);
@@ -502,14 +533,13 @@ html.alfa-filters-noscroll {
     border-radius: var(--alfa-filters-radius-md);
     cursor: pointer;
     transition: background-color var(--alfa-filters-duration) var(--alfa-filters-ease);
-    margin-top: var(--alfa-filters-space-md);
 }
 
-.mod-alfa-filters button[type="submit"]:hover {
+.mod-alfa-filters .af-show-results:hover {
     background-color: var(--mod-alfa-filters-submit-color-hover, var(--alfa-filters-accent-hover));
 }
 
-.mod-alfa-filters button[type="submit"]:disabled {
+.mod-alfa-filters .af-show-results:disabled {
     background-color: var(--alfa-filters-border);
     color: var(--alfa-filters-text-muted);
     cursor: not-allowed;

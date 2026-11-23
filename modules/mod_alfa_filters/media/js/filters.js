@@ -184,11 +184,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     const priceReset = qs('.af-price-reset', this.wrapper);
                     priceReset?.click();
 
+                    // What was typed in the groups' search boxes goes too.
+                    this.groupQueries?.clear();
+
                     this.filterForm.dispatchEvent(new Event('change', { bubbles: true }));
                 };
 
+                // Inside the form (the panel's foot) the button is redrawn by every refresh,
+                // so the form, which outlives it, answers for it; outside (the column's
+                // actions bar) each button is bound itself.
+                this.filterForm.addEventListener('click', (event) => {
+                    if (event.target.closest('.af-reset-all')) {
+                        resetAll();
+                    }
+                });
+
                 qsAll('.af-reset-all', this.wrapper).forEach((btn) => {
-                    btn.addEventListener('click', resetAll);
+                    if (!this.filterForm.contains(btn)) {
+                        btn.addEventListener('click', resetAll);
+                    }
                 });
 
                 // Listen for form changes to update reset button visibility
@@ -536,6 +550,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const oldItems = qs(componentSelector);
 
             if (newItems && oldItems) {
+                // While the panel lies open over the page the shopper is still in it: the
+                // results' own script brings the new results into view behind it and takes the
+                // focus to them, and the focus comes back to the control the shopper is on.
+                const held = this.isVisible && this.isOverlay() && this.offCanvas?.contains(document.activeElement)
+                    ? document.activeElement
+                    : null;
+                const heldId = held?.id || '';
+
                 oldItems.innerHTML = newItems.innerHTML;
 
                 // The swap replaced live nodes: searchtools' Filter Options toggle,
@@ -549,6 +571,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // after Joomla's own signal, on the results' container, bubbling. A consumer
                 // listening on the document reads the swapped container's attribution here.
                 oldItems.dispatchEvent(new CustomEvent('alfa:results:updated', { bubbles: true, detail: { view: 'items' } }));
+
+                if (held && !this.offCanvas.contains(document.activeElement)) {
+                    (held.isConnected ? held : document.getElementById(heldId))?.focus({ preventScroll: true });
+                }
             }
 
             // Update URL DETERMINISTICALLY from the query string, never by reading
@@ -1231,6 +1257,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (more) {
                         this.toggleMore(more);
+                    }
+
+                    // Applied live, the results are in place behind the panel: show them.
+                    if (event.target.closest('[data-af-show-results]')) {
+                        this.hide();
                     }
                 });
 

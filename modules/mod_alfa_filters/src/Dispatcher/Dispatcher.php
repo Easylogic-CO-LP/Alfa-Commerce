@@ -174,6 +174,7 @@ class Dispatcher extends AbstractModuleDispatcher
         $data['form_fields'] = AlfaFiltersHelper::getFormFields($moduleId);
         $data['sectionOrder'] = AlfaFiltersHelper::getSectionOrder($params, $data['alfa_filters']);
         $data['groupSettings'] = AlfaFiltersHelper::getGroupSettings($params);
+        $data['resultCount'] = AlfaFiltersHelper::getResultCount();
 
         return $data;
     }
@@ -350,6 +351,15 @@ class Dispatcher extends AbstractModuleDispatcher
 
                         /* Hide the open/close toggle */
                         {$instanceClass} .alfa-filters-offcanvas-toggler {
+                            display: none;
+                        }
+
+                        /* The panel's foot in the column: the actions bar above carries Clear
+                           all, and results applied live are already beside the panel, so a
+                           live foot has nothing left to offer. Applied on submit, its button
+                           stays the submit. */
+                        {$instanceClass} .af-foot .af-reset-all,
+                        {$instanceClass} .af-foot[data-af-applies="live"] {
                             display: none;
                         }
 

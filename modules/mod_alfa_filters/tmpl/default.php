@@ -82,9 +82,6 @@ $moduleId = $module->id;
                 <?php if ($headerTxt !== null) : ?>
                     <h2 class="alfa-filters-header-title"><?= $headerTxt ?></h2>
                 <?php endif; ?>
-                <button type="button" class="af-reset-all">
-                    <?= Text::_('MOD_ALFAFILTERS_FILTER_RESET_ALL_BTN') ?>
-                </button>
                 <button type="button" class="alfa-filters-close-btn" aria-label="<?= Text::_('MOD_ALFAFILTERS_CLOSE_BTN_LABEL') ?>">
 					<?php if ($imageType === 'image'):?>
                         <img src="<?=htmlspecialchars($imageFile, ENT_QUOTES, 'UTF-8')?>" alt="<?= Text::_('MOD_ALFAFILTERS_CLOSE_BTN_ALT') ?>">
@@ -96,8 +93,8 @@ $moduleId = $module->id;
 					<?php endif; ?>
                 </button>
             </div>
-            <!-- Desktop reset. The header above is the off-canvas chrome and the
-                 breakpoint CSS hides it, so desktop needs its own control. -->
+            <!-- The column's Clear all. Over the page the panel's foot carries it, beside
+                 the results button; in the column the breakpoint CSS shows this bar. -->
             <div class="alfa-filters-actions">
                 <button type="button" class="af-reset-all">
                     <?= Text::_('MOD_ALFAFILTERS_FILTER_RESET_ALL_BTN') ?>

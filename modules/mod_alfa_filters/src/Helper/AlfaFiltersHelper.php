@@ -102,6 +102,7 @@ class AlfaFiltersHelper
             'dynamic_filtering' => $dynamic,
             'sectionOrder' => self::getSectionOrder($params, $alfa_filters),
             'groupSettings' => self::getGroupSettings($params),
+            'resultCount' => self::getResultCount(),
         ];
 
         $html = $layout->render($layoutData);
@@ -220,6 +221,17 @@ class AlfaFiltersHelper
         return ShopMode::sellsOnline()
             ? $sections
             : array_values(array_diff($sections, self::PRICE_SECTIONS));
+    }
+
+    /**
+     * How many products the current filters leave: the number the panel's foot shows, read
+     * by the same items model as the facets, so it is the listing's own total.
+     *
+     * @return int
+     */
+    public static function getResultCount(): int
+    {
+        return (int) self::getItemsModel()->getTotal();
     }
 
     /**
