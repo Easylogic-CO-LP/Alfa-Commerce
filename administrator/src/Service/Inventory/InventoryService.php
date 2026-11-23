@@ -1818,7 +1818,7 @@ final class InventoryService
                 $found[$key][] = [
                     'line_id' => $claimOrder['line_id'],
                     'code' => 'reserved_floor',
-                    'text' => $claimOrder['refusal']->getMessage(),
+                    'text' => ErrorText::of($claimOrder['refusal']),
                     'refusal' => $claimOrder['refusal'],
                 ];
                 break;
@@ -5665,7 +5665,7 @@ final class InventoryService
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
             Log::add(
-                entry:    "InventoryService: allocation provider listener '{$failure->listener}' failed and was skipped: " . $failure->error->getMessage(),
+                entry:    "InventoryService: allocation provider listener '{$failure->listener}' failed and was skipped: " . ErrorText::of($failure->error),
                 priority: Log::ERROR,
                 category: 'com_alfa.inventory',
             );

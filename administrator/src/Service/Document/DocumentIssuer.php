@@ -3882,7 +3882,7 @@ final class DocumentIssuer
 
             foreach ($plugins->dispatchIsolated($event) as $failure) {
                 self::logQuietly(
-                    entry:    "{$name} listener {$failure->listener} failed: " . $failure->error->getMessage(),
+                    entry:    "{$name} listener {$failure->listener} failed: " . ErrorText::of($failure->error),
                     priority: Log::ERROR,
                     category: 'com_alfa.documents',
                 );

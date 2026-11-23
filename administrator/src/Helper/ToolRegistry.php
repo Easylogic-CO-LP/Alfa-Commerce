@@ -149,7 +149,7 @@ final class ToolRegistry
         }
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
-            $skipped[] = $failure->listener . ' (' . $failure->error->getMessage() . ')';
+            $skipped[] = $failure->listener . ' (' . ErrorText::of($failure->error) . ')';
         }
 
         if ($skipped !== []) {
@@ -591,7 +591,7 @@ final class ToolRegistry
         }
 
         if ($failure !== null) {
-            return ['actions' => [], 'why' => 'failed', 'text' => $failure->listener . ': ' . $failure->error->getMessage()];
+            return ['actions' => [], 'why' => 'failed', 'text' => $failure->listener . ': ' . ErrorText::of($failure->error)];
         }
 
         $own = [];

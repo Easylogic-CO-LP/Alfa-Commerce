@@ -656,7 +656,7 @@ final class SetupHelper
         $plugins->importGroup(PanelDispatcher::PLATFORM_GROUP);
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
-            $skipped[] = $failure->listener . ' (' . $failure->error->getMessage() . ')';
+            $skipped[] = $failure->listener . ' (' . ErrorText::of($failure->error) . ')';
         }
 
         if ($skipped !== []) {

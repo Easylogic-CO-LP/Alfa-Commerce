@@ -554,7 +554,7 @@ final class DocumentTypeRegistry
         $failed = [];
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
-            $failed[$failure->listener] = $failure->error->getMessage();
+            $failed[$failure->listener] = ErrorText::of($failure->error);
         }
 
         return $failed;

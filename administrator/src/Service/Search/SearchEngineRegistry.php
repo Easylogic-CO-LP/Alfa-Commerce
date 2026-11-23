@@ -225,7 +225,7 @@ final class SearchEngineRegistry
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
             Log::add(
-                entry:    "SearchEngineRegistry: engine listener '{$failure->listener}' failed and was skipped: " . $failure->error->getMessage(),
+                entry:    "SearchEngineRegistry: engine listener '{$failure->listener}' failed and was skipped: " . ErrorText::of($failure->error),
                 priority: Log::ERROR,
                 category: 'com_alfa.search',
             );

@@ -170,7 +170,7 @@ class CurrencyModel extends AlfaAdminModel
             // The driver's own text, whether it arrived wrapped by the
             // repository or raw from the currency lookup.
             $detail = $e instanceof CartPersistenceException
-                ? (string) $e->getPrevious()?->getMessage()
+                ? ErrorText::of((string) $e->getPrevious()?->getMessage())
                 : ErrorText::of($e);
 
             // The currency is already gone and the carts still render through
