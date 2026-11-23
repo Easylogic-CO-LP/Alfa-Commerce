@@ -37,16 +37,16 @@ final class MediaFetchRefused extends RuntimeException
     public const STATUS = 'the server answered %d';
 
     /** A body larger than the size allowed. @since 2.2.2 */
-    public const TOO_LARGE = 'the file is larger than %d MB (Options, Media, Images by URL)';
+    public const TOO_LARGE = 'the file is larger than %d MB (Options, Images, Images by URL)';
 
     /** A fetch that took longer than allowed. @since 2.2.2 */
-    public const TIMEOUT = 'it did not arrive within %d seconds (Options, Media, Images by URL)';
+    public const TIMEOUT = 'it did not arrive within %d seconds (Options, Images, Images by URL)';
 
     /** A transfer that failed (the connection, TLS). @since 2.2.2 */
     public const TRANSFER = 'the connection to it failed';
 
     /** A file that is not an image of a type the shop takes. @since 2.2.2 */
-    public const TYPE = 'its content is %s, not an image of a type the shop takes (Options, Media)';
+    public const TYPE = 'its content is %s, not an image of a type the shop takes (Options, Images, Allowed Image Types)';
 
     /** No transport, or no temporary file. @since 2.2.2 */
     public const UNAVAILABLE = 'this server cannot fetch it (PHP curl, or the temporary folder)';

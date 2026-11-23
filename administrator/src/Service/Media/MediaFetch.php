@@ -25,7 +25,7 @@ use Joomla\CMS\Factory;
  * The guards, each before a byte is kept: http and https only; the host resolved and every address it resolves to
  * public, the connection made to the address vetted and no other, so a DNS answer that changes in between cannot point
  * inside (OutboundAddressGuard); a redirect followed only to an address vetted the same way, at most MAX_REDIRECTS of
- * them; the body cut off past the size Options, Media sets, and the whole fetch past its seconds; the file then judged
+ * them; the body cut off past the size Options, Images sets, and the whole fetch past its seconds; the file then judged
  * by its content, never by its name or the type the server states: an image of a type the shop takes, or nothing.
  *
  * @api READ ONLY: fetch an image from an outside address with the guards above; the answer is a temporary file the
@@ -43,7 +43,7 @@ final class MediaFetch
     public const MAX_REDIRECTS = 3;
 
     /**
-     * The size Options, Media, Images by URL sets when it sets none, in MB.
+     * The size Options, Images, Images by URL sets when it sets none, in MB.
      *
      * @since  2.2.2
      */
@@ -66,7 +66,7 @@ final class MediaFetch
     /**
      * @param Closure|null $vet How an address is vetted, fn (string $url): array{host: string, port: int, ip: string},
      *                          throwing OutboundAddressRefused; null for OutboundAddressGuard::vet() with http allowed.
-     * @param int|null $maxBytes The largest body taken; null for Options, Media, Images by URL.
+     * @param int|null $maxBytes The largest body taken; null for Options, Images, Images by URL.
      * @param int|null $seconds The seconds a fetch may take, redirects included; null for Options.
      *
      * @since  2.2.2
@@ -96,7 +96,7 @@ final class MediaFetch
      * Fetch the image at an address.
      *
      * @param string $url The address.
-     * @param string[] $allowedMimes The image types the shop takes (Options, Media).
+     * @param string[] $allowedMimes The image types the shop takes (Options, Images, Allowed Image Types).
      *
      * @return array{file: string, name: string, mime: string} The temporary file (the caller removes it), the name the
      *                                                         address gives the image, its type read from its content.

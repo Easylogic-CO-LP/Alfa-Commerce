@@ -289,6 +289,10 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_items' => [
             'commerce_changed_at' => ["datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]'", 'modified'],
         ],
+        '#__alfa_media' => [
+            'source_url' => ["varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The address the image was fetched from, as the REST API client gave it; NULL for an image uploaded or picked'", 'thumbnail_origin'],
+            'source_url_hash' => ["char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'sha256 of source_url: the same address is not fetched twice for one record'", 'source_url'],
+        ],
     ];
 
     /**

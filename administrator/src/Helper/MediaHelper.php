@@ -1097,7 +1097,7 @@ class MediaHelper
                     $safeExtension = self::validatedImageExtension($fetched['file'], $allowedMimes);
 
                     if ($safeExtension === null) {
-                        MediaUrls::refuse(pointer: (string) ($media['pointer'] ?? ''), url: $fetched['url'], reason: 'its content is not an image of a type the shop takes (Options, Media)');
+                        MediaUrls::refuse(pointer: (string) ($media['pointer'] ?? ''), url: $fetched['url'], reason: 'its content is not an image of a type the shop takes (Options, Images, Allowed Image Types)');
                         @unlink($fetched['file']);
                         $ordering++;
                         continue;
@@ -1203,7 +1203,12 @@ class MediaHelper
                         );
 
                         if ($valid === false) {
-                            // Skip this file; the error was already enqueued.
+                            // Skip this file; the error was already enqueued. An image fetched from an address is
+                            // refused in the REST answer too, as every image of the write that is not stored is.
+                            if ($fetched !== null) {
+                                MediaUrls::refuse(pointer: (string) ($media['pointer'] ?? ''), url: $fetched['url'], reason: 'a plugin of the shop refused it before it was stored');
+                            }
+
                             $ordering++;
                             continue;
                         }
@@ -1242,6 +1247,11 @@ class MediaHelper
                                 'error',
                             );
                             $storeOk = false;
+                        }
+
+                        // An image fetched from an address that could not be stored is refused in the REST answer.
+                        if (!$storeOk && $fetched !== null) {
+                            MediaUrls::refuse(pointer: (string) ($media['pointer'] ?? ''), url: $fetched['url'], reason: 'it could not be stored');
                         }
 
                         // CORE concern: the dominant colour is the image-load placeholder

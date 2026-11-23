@@ -28,7 +28,8 @@ use Joomla\Database\DatabaseInterface;
  * sends. A fetched file is known to the save by a token of this request only, so no submission can name a file of the
  * server as fetched.
  *
- * @api READ ONLY: the images of a write given as addresses, the ones refused, and the files fetched for it.
+ * @api WRITE: the images of a write given as addresses, the ones refused, and the files fetched for it; queue()
+ *      enqueues the background fetch of the rest.
  *
  * @since  2.2.2
  */
