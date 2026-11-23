@@ -9,8 +9,8 @@
    changes the look by setting a token on .mod-alfa-manufacturers, or on one module's .mod-alfa-manufacturers-<id>. */
 .mod-alfa-manufacturers {
     --mod-alfa-manufacturers-gap: 1rem;
-    /* The narrowest an entry gets: the grid holds as many columns as fit, two on a phone. */
-    --mod-alfa-manufacturers-min: 8rem;
+    /* The narrowest an entry gets: the grid holds as many columns as fit, two on a phone and in a sidebar. */
+    --mod-alfa-manufacturers-min: 7rem;
     --mod-alfa-manufacturers-logo-height: 4rem;
     --mod-alfa-manufacturers-padding: 0.75rem;
     --mod-alfa-manufacturers-surface: var(--alfa-surface, transparent);
