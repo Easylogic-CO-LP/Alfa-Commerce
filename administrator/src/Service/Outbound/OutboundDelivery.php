@@ -369,7 +369,7 @@ final class OutboundDelivery
         $first = [];
 
         if ($orders !== []) {
-            $topics = [OutboundTopics::ORDER_CREATED, OutboundTopics::ORDER_STATUS];
+            $topics = OutboundTopics::ORDERS;
             $first = $db->setQuery(
                 $db->getQuery(true)
                     ->select($db->quoteName('subject_id') . ', MIN(' . $db->quoteName('id') . ') AS ' . $db->quoteName('first_id'))

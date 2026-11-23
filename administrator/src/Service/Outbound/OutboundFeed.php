@@ -104,7 +104,8 @@ final class OutboundFeed
      * @param string $topic One of {@see OutboundTopics::ALL}.
      * @param int $subjectId The product (stock, price) or the order (order changes).
      * @param int $unitId The combination for stock and price; 0 for a product without combinations, and for an order.
-     * @param string $payload order.status: the status left and the status entered as from:to; empty otherwise.
+     * @param string $payload order.status: the status left and the status entered as from:to; order.dispute: the
+     *                        dispute and the state it moved to as id:state; empty otherwise.
      *
      * @throws Throwable A failure that ended the caller's transaction.
      *

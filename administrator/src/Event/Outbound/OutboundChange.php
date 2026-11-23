@@ -22,7 +22,7 @@ final readonly class OutboundChange
 {
     /**
      * @param int $id The change.
-     * @param string $topic stock, price, order.created or order.status.
+     * @param string $topic stock, price, order.created, order.status or order.dispute.
      * @param int $subjectId The product (stock, price) or the order.
      * @param int $unitId The combination; 0 for a product without combinations, and for an order.
      * @param string $occurredAt When the change was made, UTC, ISO 8601 with microseconds.

@@ -20,6 +20,8 @@ use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDisputeEmail;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDisputeEvent;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
@@ -1746,6 +1748,15 @@ final class DisputeLedger
 
         self::notify(record: $record);
         self::owe(record: $record, before: $before, booked: $this->booked);
+
+        // The consumers of an order's dispute changes are owed this one, written with it, in the order's sequence. A
+        // record the queue cannot write is logged CRITICAL and the save stands: the queue's rule for every writer.
+        OutboundFeed::record(
+            db: TransactionState::driver(self::db()),
+            topic: OutboundTopics::ORDER_DISPUTE,
+            subjectId: $orderId,
+            payload: $id . ':' . (string) $record['state'],
+        );
     }
 
     /**
