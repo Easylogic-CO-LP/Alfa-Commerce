@@ -28,8 +28,12 @@
  *   its destination. That is a real problem the operator must see, because
  *   placement will refuse it; it is never papered over with the published list.
  *
- *   OFFERED: the methods, exactly as the storefront would show them, each with
- *   whatever its own plugin contributed.
+ *   OFFERED: the methods the engine offers an operator placement, each with
+ *   whatever its own plugin contributed. They are the storefront's lists with
+ *   two differences: a payment method is offered only when
+ *   OperatorPaymentPolicy lets staff put it through, and a carrier is not asked
+ *   for its price before it is offered, because the operator sets the address
+ *   here; the chosen carrier's own quote still prices the shipment.
  *
  * Selected state is the CART's, read back after settlement: reconciliation may
  * already have dropped a choice that stopped being eligible, or taken the only
