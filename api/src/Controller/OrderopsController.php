@@ -1212,7 +1212,10 @@ class OrderopsController extends OrdersController
             try {
                 $values['amount'] = PublishedDecimal::money(money: ExactMoney::of(value: (string) $values['amount'], currency: $orderCurrency));
             } catch (ExactMoneyRefusal $e) {
-                $this->refuseField(field: 'amount', sentence: $e->words(field: 'amount'));
+                // The reader's words already lead with the field.
+                $this->refusedField = 'amount';
+
+                throw new Save($e->words(field: 'amount'), 422, $e);
             }
         }
 
