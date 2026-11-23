@@ -1886,6 +1886,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * decision whether a link hint is worth anything; the controller knows
      * how the message arrived, not what it means.
      *
+     * @api READ ONLY: the order a browser-return link names when its payment token proves the browser may see it; never
+     *      proof that a payment was made.
+     *
      * @return Order|null The order, or NULL when the link proves nothing.
      *
      * @since  2.0.0
