@@ -1407,7 +1407,8 @@ final class OrderChargeLines
         // discountHeadroom(); the issuer caps it again under the lock. It
         // follows this document's own lines for the rule when it carries
         // them, and the document's goods when it never carried the rule,
-        // split as the sales builder would have split it.
+        // split as the sales builder would have split it: by the rule's shares
+        // of those goods for a rule held as shares, by their value otherwise.
         $grants = (array) ($picks['amounts']['grants'] ?? []);
 
         if ($grants !== []) {
@@ -1416,7 +1417,8 @@ final class OrderChargeLines
 
             foreach ($grants as $ruleId => $amount) {
                 $own = self::ruleBuckets(db: $db, documentIds: [$correctsId], ruleId: (int) $ruleId);
-                $buckets = $own !== [] ? $own : self::goodsBuckets(db: $db, documentId: $correctsId);
+                $buckets = $own !== [] ? $own : (self::shareBuckets(db: $db, documentId: $correctsId, ruleId: (int) $ruleId)
+                    ?: self::goodsBuckets(db: $db, documentId: $correctsId));
 
                 foreach (self::spread(buckets: $buckets, incl: (float) $amount, ownRatio: $own !== [], currency: $currency) as $part) {
                     $lines[] = self::discountLine(ruleId: (int) $ruleId, label: (string) ($headroom[(int) $ruleId]->label ?? ''), part: $part, currency: $currency);
@@ -3134,7 +3136,9 @@ final class OrderChargeLines
      *     kept is stored nowhere, so a change is not additive (goods_credited);
      *   - a rule whose frozen net/gross no longer matches the documented one,
      *     or the goods' for a rule never documented, changed its tax semantic
-     *     and is a semantic mismatch, not money (tax_changed).
+     *     and is a semantic mismatch, not money (tax_changed). A rule held as
+     *     its shares of the order lines is not asked: each share's net is the
+     *     split at its own line's rate, and a grant follows the shares.
      *
      * @param object $db Database driver.
      * @param int $orderId The order id.
@@ -3178,7 +3182,7 @@ final class OrderChargeLines
 
             $cause = match (true) {
                 $goodsCredited => 'goods_credited',
-                Money::of($rule->current_incl, $currency)->isPositive()
+                Money::of($rule->current_incl, $currency)->isPositive() && !$rule->line_shares
                     && !self::discountTaxHolds(db: $db, orderId: $orderId, rule: $rule, currency: $currency) => 'tax_changed',
                 default => '',
             };
@@ -3447,7 +3451,7 @@ final class OrderChargeLines
      *
      * @return array<int, object{current_incl: float, current_excl: float, grantable_incl: float,
      *                           reversible_incl: float, documented_incl: float, label: string,
-     *                           ledger: object|null}> Keyed by rule id.
+     *                           ledger: object|null, line_shares: bool}> Keyed by rule id.
      *
      * @since  2.0.0
      */
@@ -3458,7 +3462,7 @@ final class OrderChargeLines
         $ledger = self::discountLedger(db: $db, orderId: $orderId, currency: $currency);
 
         $query = $db->getQuery(true)
-            ->select($db->quoteName(['id_order_cart_rule', 'name', 'code', 'value_tax_excl', 'value_tax_incl']))
+            ->select($db->quoteName(['id_order_cart_rule', 'name', 'code', 'value_tax_excl', 'value_tax_incl', 'line_shares']))
             ->from($db->quoteName('#__alfa_order_cart_rule'))
             ->where($db->quoteName('id_order') . ' = :orderId')
             ->where($db->quoteName('deleted') . ' = 0')
@@ -3498,6 +3502,9 @@ final class OrderChargeLines
                     ? (string) (($rule->code ?? '') !== '' ? $rule->code : $rule->name)
                     : (string) ($entry->label ?? ''),
                 'ledger' => $entry,
+                // Held as its shares of the order lines: each share's net is its line's rate, so the rule's own
+                // net over gross is no one ratio to hold.
+                'line_shares' => (int) ($rule->line_shares ?? 0) === 1,
             ];
         }
 
@@ -3543,6 +3550,74 @@ final class OrderChargeLines
         return self::bucketsOf(db: $db, documentIds: [$documentId], where: [
             $db->quoteName('i.line_type') . ' = ' . $db->quote(DocumentHelper::LINE_ITEM),
         ]);
+    }
+
+    /**
+     * The VAT buckets of a rule held as its shares of the order lines, weighted by the shares of the goods a document
+     * carries: the allocation a grant of that rule follows on a document that never stated it.
+     *
+     * Each item line of the document weighs its order line's share of the rule for the quantity the document carries
+     * (the share times that quantity over the line's, rounded once, half away from zero), in that line's VAT identity.
+     * The net of a part follows the bucket's rate, as the share's own net does.
+     *
+     * @param object $db Database driver.
+     * @param int $documentId The document.
+     * @param int $ruleId The #__alfa_order_cart_rule id.
+     *
+     * @return list<array{rate: float, vat_category: ?int, vat_exemption_code: ?string, incl: float, excl: float}>
+     *         Largest first; empty when the rule holds no shares of the document's goods.
+     *
+     * @since  2.3.0
+     */
+    private static function shareBuckets(object $db, int $documentId, int $ruleId): array
+    {
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select([
+                    $db->quoteName('i.tax_rate'), $db->quoteName('i.vat_category'), $db->quoteName('i.vat_exemption_code'),
+                    $db->quoteName('i.quantity', 'carried'), $db->quoteName('o.quantity', 'ordered'), $db->quoteName('s.value_tax_incl', 'share'),
+                ])
+                ->from($db->quoteName('#__alfa_document_items', 'i'))
+                ->join('INNER', $db->quoteName('#__alfa_order_items', 'o'), $db->quoteName('o.id') . ' = ' . $db->quoteName('i.id_order_item'))
+                ->join('INNER', $db->quoteName('#__alfa_order_item_cart_rule', 's'), $db->quoteName('s.id_order_item') . ' = ' . $db->quoteName('i.id_order_item')
+                    . ' AND ' . $db->quoteName('s.id_order_cart_rule') . ' = ' . $ruleId)
+                ->join('INNER', $db->quoteName('#__alfa_order_cart_rule', 'r'), $db->quoteName('r.id_order_cart_rule') . ' = ' . $ruleId
+                    . ' AND ' . $db->quoteName('r.line_shares') . ' = 1')
+                ->where($db->quoteName('i.id_document') . ' = ' . $documentId)
+                ->where($db->quoteName('i.line_type') . ' = ' . $db->quote(DocumentHelper::LINE_ITEM)),
+        )->loadObjectList() ?: [];
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $currency = DocumentMoney::currencyOf(DocumentHelper::getById($documentId)
+            ?? throw new RuntimeException("document #{$documentId} does not exist."));
+        $buckets = [];
+
+        foreach ($rows as $row) {
+            $ordered = (float) $row->ordered;
+            $carried = min($ordered, abs((float) $row->carried));
+            $share = Money::of((string) $row->share, $currency)->getMinorUnits();
+            $weight = $ordered <= 0.0 ? 0 : ($carried >= $ordered - self::QUANTITY_EPSILON ? $share : (int) round($share * $carried / $ordered, 0, PHP_ROUND_HALF_UP));
+            $key = self::rateKey((float) $row->tax_rate) . '|' . $row->vat_category . '|' . $row->vat_exemption_code;
+            $buckets[$key] ??= [
+                'rate' => (float) $row->tax_rate,
+                'vat_category' => $row->vat_category === null ? null : (int) $row->vat_category,
+                'vat_exemption_code' => $row->vat_exemption_code === null ? null : (string) $row->vat_exemption_code,
+                'incl' => 0,
+                'excl' => 0.0,
+            ];
+            $buckets[$key]['incl'] += $weight;
+        }
+
+        $buckets = array_values(array_filter(
+            array_map(static fn (array $bucket): array => ['incl' => Money::ofMinor((int) $bucket['incl'], $currency)->getAmount()] + $bucket, $buckets),
+            static fn (array $bucket): bool => $bucket['incl'] > 0,
+        ));
+        usort($buckets, static fn (array $a, array $b): int => $b['incl'] <=> $a['incl']);
+
+        return $buckets;
     }
 
     /**
