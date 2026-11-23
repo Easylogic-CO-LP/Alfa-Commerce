@@ -507,7 +507,7 @@ class MultilingualHelper
             );
             throw new RuntimeException(
                 '[MultilingualHelper::saveMultilingualData] Translations save failed for "'
-                . $tableName . '": ' . $e->getMessage(),
+                . $tableName . '": ' . ErrorText::of($e),
                 previous: $e,
             );
         }
@@ -951,7 +951,7 @@ class MultilingualHelper
             } catch (Throwable $e) {
                 throw new RuntimeException(
                     '[MultilingualHelper::getMultilingualData] Read failed for "'
-                    . $langTableName . '", ID ' . $currentId . ': ' . $e->getMessage(),
+                    . $langTableName . '", ID ' . $currentId . ': ' . ErrorText::of($e),
                     previous: $e,
                 );
             }
@@ -2260,7 +2260,7 @@ class MultilingualHelper
             )->loadColumn();
         } catch (Throwable $e) {
             throw new RuntimeException(
-                '[MultilingualHelper::publishedLanguages] Could not read the content languages: ' . $e->getMessage(),
+                '[MultilingualHelper::publishedLanguages] Could not read the content languages: ' . ErrorText::of($e),
                 previous: $e,
             );
         }
@@ -3325,7 +3325,7 @@ class MultilingualHelper
         } catch (Throwable $e) {
             throw new RuntimeException(
                 '[MultilingualHelper::createLangTable] Could not create "' . $langTableName
-                . '": ' . $e->getMessage(),
+                . '": ' . ErrorText::of($e),
                 previous: $e,
             );
         }
@@ -3391,7 +3391,7 @@ class MultilingualHelper
         } catch (Throwable $e) {
             throw new RuntimeException(
                 '[MultilingualHelper::ensureColumnsExist] Could not read column list for "'
-                . $langTableName . '": ' . $e->getMessage(),
+                . $langTableName . '": ' . ErrorText::of($e),
                 previous: $e,
             );
         }
@@ -3419,7 +3419,7 @@ class MultilingualHelper
             } catch (Throwable $e) {
                 throw new RuntimeException(
                     '[MultilingualHelper::ensureColumnsExist] ALTER TABLE failed for column "'
-                    . $fieldName . '" on "' . $langTableName . '": ' . $e->getMessage(),
+                    . $fieldName . '" on "' . $langTableName . '": ' . ErrorText::of($e),
                     previous: $e,
                 );
             }
@@ -3483,7 +3483,7 @@ class MultilingualHelper
         } catch (Throwable $e) {
             throw new RuntimeException(
                 '[MultilingualHelper::upsertLangRow] Upsert failed for "'
-                . $langTableName . '", ID ' . $currentId . ': ' . $e->getMessage(),
+                . $langTableName . '", ID ' . $currentId . ': ' . ErrorText::of($e),
                 previous: $e,
             );
         }
@@ -3505,7 +3505,7 @@ class MultilingualHelper
             } catch (Throwable $e) {
                 throw new RuntimeException(
                     '[MultilingualHelper::fetchTableList] Could not retrieve table list: '
-                    . $e->getMessage(),
+                    . ErrorText::of($e),
                     previous: $e,
                 );
             }
@@ -3549,7 +3549,7 @@ class MultilingualHelper
         } catch (Throwable $e) {
             throw new RuntimeException(
                 '[MultilingualHelper::getDb] Could not retrieve DatabaseDriver: '
-                . $e->getMessage(),
+                . ErrorText::of($e),
                 previous: $e,
             );
         }
@@ -3755,7 +3755,7 @@ class MultilingualHelper
             );
             throw new RuntimeException(
                 '[MultilingualHelper::deleteMultilingualData] Translations delete failed for "'
-                . $tableName . '": ' . $e->getMessage(),
+                . $tableName . '": ' . ErrorText::of($e),
                 previous: $e,
             );
         }
