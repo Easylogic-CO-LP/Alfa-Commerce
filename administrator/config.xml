@@ -360,6 +360,22 @@
                     <option value="1">COM_ALFA_CONFIG_CHECKOUT_GUEST_ALLOWED</option>
                 </field>
 
+                <!-- THE STATUS OF AN ORDER WITH NOTHING TO COLLECT (its total is
+                     zero), set at placement (OrderPlacement::placedStatusId()):
+                     a quote request lands where the shop picks it up. Empty is
+                     the initial status, as for every other order. -->
+                <field name="zero_total_status" type="model"
+                       model="orderstatuses"
+                       column_value="id"
+                       column_text="name"
+                       orderBy="ordering"
+                       filter="integer"
+                       label="COM_ALFA_CONFIG_ZERO_TOTAL_STATUS"
+                       description="COM_ALFA_CONFIG_ZERO_TOTAL_STATUS_DESC"
+                >
+                    <option value="">COM_ALFA_CONFIG_ZERO_TOTAL_STATUS_INITIAL</option>
+                </field>
+
             </fieldset>
 
             <!-- THE CART SHOWS: which amounts the cart page with its checkout

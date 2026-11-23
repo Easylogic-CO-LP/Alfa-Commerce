@@ -488,8 +488,11 @@ class OrderPlacement
                 // its initial status and its confirmation e-mail. They run once the placement's own work after the
                 // commit (the wallet, the gateway hooks) is done, so the e-mail reads the order as the shopper
                 // completed it; a request that dies leaves them to recovery.
-                Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: (int) $orderId, payload: ['status' => (int) $this->defaultStatus->id]);
-                Tasks::single(handler: OrderPlacementEmail::NAME, subjectType: 'order', subjectId: (int) $orderId, payload: ['status' => (int) $this->defaultStatus->id]);
+                // Both for the status the order landed in (OrderCreator's answer): the initial one, the one an operator
+                // named, or the one the Options name for an order with nothing to collect, whose e-mail is that status's
+                // own template.
+                Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: (int) $orderId, payload: ['status' => (int) $created->statusId]);
+                Tasks::single(handler: OrderPlacementEmail::NAME, subjectType: 'order', subjectId: (int) $orderId, payload: ['status' => (int) $created->statusId]);
 
                 // The last step of conversion, not cleanup
                 //
@@ -1855,14 +1858,11 @@ class OrderPlacement
             'id_address_invoice' => $this->cart->frozenInvoiceAddressId(),
             'id_payment_method' => $paymentMethodId,
             'id_shipment_method' => $shipmentMethodId,
-            // The operator may name the status the order lands in; a shopper
-            // names none and gets the store's is_initial status exactly as
-            // before. OrderCreator validates the chosen id and commits it in the
-            // same transaction (an unknown one lands initial, a requires-paid
-            // one is refused) so nothing here needs to police it.
-            'id_order_status' => ($this->command?->initialStatusId ?? 0) > 0
-                ? (int) $this->command->initialStatusId
-                : (int) $this->defaultStatus->id,
+            // The status the order lands in (placedStatusId()). OrderCreator
+            // validates the chosen id and commits it in the same transaction (an
+            // unknown one lands initial, a requires-paid one is refused) so
+            // nothing here needs to police it.
+            'id_order_status' => $this->placedStatusId(),
             'payment_method_name' => $this->getPaymentMethodName($paymentMethodId),
             'shipment_method_name' => $this->getShipmentMethodName($shipmentMethodId),
             // The plugin elements, already resolved by triggerBeforePlaceEvents()
@@ -1901,6 +1901,30 @@ class OrderPlacement
             'actor_name' => $customer['customer_name'] !== '' ? $customer['customer_name'] : 'Customer',
             'lines' => $lines,
         ];
+    }
+
+    /**
+     * The status the order is placed in: the one the operator named; else, for an order with nothing to collect (its
+     * total is zero, a quote request in a catalogue priced at zero), the status the Options name for it (Cart,
+     * Checkout, `zero_total_status`); else the store's initial status. An order its customer's credit pays in full is
+     * not such an order: its total is not zero.
+     *
+     *
+     * @since  2.3.0
+     */
+    private function placedStatusId(): int
+    {
+        if (($this->command?->initialStatusId ?? 0) > 0) {
+            return (int) $this->command->initialStatusId;
+        }
+
+        $zeroTotalStatus = (int) ComponentHelper::getParams('com_alfa')->get('zero_total_status', 0);
+
+        if ($zeroTotalStatus > 0 && $this->cart->grandTotal()->isZero()) {
+            return $zeroTotalStatus;
+        }
+
+        return (int) $this->defaultStatus->id;
     }
 
     /**
