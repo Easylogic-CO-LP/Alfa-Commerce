@@ -1222,7 +1222,7 @@ class ItemFieldsAdminHelper
      *
      * @since  2.0.0
      */
-    private static function ensureOnePublishedDefault(int $itemId): void
+    public static function ensureOnePublishedDefault(int $itemId): void
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
 

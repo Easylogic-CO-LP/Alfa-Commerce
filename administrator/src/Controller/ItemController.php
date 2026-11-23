@@ -25,6 +25,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CombinationService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
@@ -37,6 +38,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\UnsavedItem;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
@@ -1541,15 +1543,15 @@ class ItemController extends FormController
         // stock, and says what is required. A thumbnail of the variant's gallery
         // that is not an image file of the media folders is one such refusal
         // (2.2.1, MediaHelper::thumbnailRefusals()).
-        $plan = ItemFieldsAdminHelper::studioStockPlan(
-            itemId:         $itemId,
-            combinationId:  $combinationId,
-            row:            $row,
-            postedStock:    $postedStock,
-            postedBaseline: $postedBaseline,
-            postedOpening:  $postedOpening,
+        $write = CombinationService::change(itemId: $itemId, combinationId: $combinationId)
+            ->with(fields: $row)
+            ->prices(rows: $priceRows)
+            ->stock(figures: $postedStock, read: $postedBaseline)
+            ->opening(figures: $postedOpening);
+        $refusals = array_merge(
+            array_map(static fn (Refusal $refusal): string => $refusal->sentence, $write->refusals()),
+            MediaHelper::thumbnailRefusals(mediaData: (array) ($jform['media'] ?? [])),
         );
-        $refusals = array_merge($plan['refusals'], MediaHelper::thumbnailRefusals(mediaData: (array) ($jform['media'] ?? [])));
 
         if ($refusals !== []) {
             foreach ($refusals as $refusal) {
@@ -1561,113 +1563,38 @@ class ItemController extends FormController
             return;
         }
 
-        // Variant titles and identity are part of the item's search document: the
-        // item is marked first under its lock and rebuilt after everything the save
-        // writes, so a renamed variant is never left unfindable.
-        $change = ProjectionManager::markChange(itemId: $itemId);
+        // The combination is saved in one transaction, a tracking switch and its opening figures included; changed
+        // tracked figures converge after it, and what could not apply comes back as the result's warnings.
+        $result = $write->save();
+        $saved = $result->saved;
 
-        try {
-            // Switching tracking on books the opening figures inside the save's own
-            // transaction, with the switch itself: they commit or roll back together.
-            $opening = $plan['transition'] === 'on';
-            $saved = false;
+        foreach ($result->refusals as $refusal) {
+            $app->enqueueMessage($refusal->code === 'not_found' ? Text::_('COM_ALFA_COMBINATION_SAVE_FAILED') : $refusal->sentence, 'error');
+        }
 
-            try {
-                $saved = ItemFieldsAdminHelper::saveSingleCombination(
-                    itemId:         $itemId,
-                    combinationId:  $combinationId,
-                    row:            $row,
-                    priceRows:      $priceRows,
-                    openingTargets: $opening ? $plan['targets'] : null,
-                );
+        if ($saved) {
+            // The variant's own gallery: same machinery as the item's media,
+            // keyed by the 'combination' origin.
+            MediaHelper::saveMedia(
+                mediaData:      $jform['media'] ?? [],
+                droppedMedia:   $this->input->files->get('jform')['uploads'] ?? [],
+                itemId:         $combinationId,
+                mediaOrigin:    'combination',
+                customFileName: (string) ($row['gtin'] ?? ''),
+            );
 
-                if (!$saved) {
-                    $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVE_FAILED'), 'error');
-                }
-            } catch (RuntimeException $e) {
-                // The save rolled back as a whole; nothing after it may run.
-                Log::add(
-                    entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $itemId, $e->getMessage()),
-                    priority: Log::ERROR,
-                    category: 'com_alfa.catalog',
-                );
-
-                $app->enqueueMessage($e->getMessage(), 'error');
+            foreach ($result->warnings as $warning) {
+                $app->enqueueMessage($warning['message'], $warning['type']);
             }
 
-            if ($saved) {
-                // The variant's own gallery: same machinery as the item's media,
-                // keyed by the 'combination' origin.
-                MediaHelper::saveMedia(
-                    mediaData:      $jform['media'] ?? [],
-                    droppedMedia:   $this->input->files->get('jform')['uploads'] ?? [],
-                    itemId:         $combinationId,
-                    mediaOrigin:    'combination',
-                    customFileName: (string) ($row['gtin'] ?? ''),
-                );
+            // Variant downloads metadata (title/limits/state) rides the
+            // Studio form like every other surface; bytes go via AJAX.
+            Entitlements::saveItemDownloadsMeta(
+                itemId:  $itemId,
+                payload: (array) ($jform['item_downloads'] ?? []),
+            );
 
-                // Changed tracked figures converge after the save. A refusal here is
-                // not a failed save: the combination is stored, and the operator is
-                // told its stock did not change and why.
-                if (!$opening && $postedStock !== []) {
-                    try {
-                        $notApplied = ItemFieldsAdminHelper::applyCombinationLocationStock(
-                            itemId:        $itemId,
-                            combinationId: $combinationId,
-                            posted:        $postedStock,
-                            baseline:      $postedBaseline,
-                        );
-
-                        foreach ($notApplied as $warning) {
-                            $app->enqueueMessage($warning, 'warning');
-                        }
-                    } catch (InventoryIntegrityException $e) {
-                        Log::add(
-                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
-                            priority: Log::ERROR,
-                            category: 'com_alfa.inventory',
-                        );
-
-                        $app->enqueueMessage(self::ledgerMissingMessage(exception: $e), 'error');
-                    } catch (Throwable $e) {
-                        Log::add(
-                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
-                            priority: Log::ERROR,
-                            category: 'com_alfa.inventory',
-                        );
-
-                        // Every refusal that reaches here is a complete sentence, so it
-                        // follows the saved notice whole.
-                        $app->enqueueMessage(Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED', $e->getMessage()), 'error');
-                    }
-                }
-
-                // Tracking switched off keeps the stock records as they are; say which
-                // quantities are no longer counted for sale.
-                $tracking = ItemFieldsAdminHelper::lastTrackingChange();
-
-                if ((int) ($tracking['kept_rows'] ?? 0) > 0) {
-                    $app->enqueueMessage(
-                        Text::sprintf(
-                            'COM_ALFA_INVENTORY_TRACKING_OFF_STOCK_KEPT',
-                            (int) $tracking['kept_rows'],
-                            InventoryAvailabilityService::formatQuantity(value: (float) ($tracking['kept_on_hand'] ?? 0.0)),
-                        ),
-                        'warning',
-                    );
-                }
-
-                // Variant downloads metadata (title/limits/state) rides the
-                // Studio form like every other surface; bytes go via AJAX.
-                Entitlements::saveItemDownloadsMeta(
-                    itemId:  $itemId,
-                    payload: (array) ($jform['item_downloads'] ?? []),
-                );
-
-                $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVED'));
-            }
-        } finally {
-            ProjectionManager::rebuildChanged(change: $change);
+            $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVED'));
         }
 
         $this->redirectToStudio(itemId: $itemId, combinationId: $combinationId, saved: $saved, closeAfter: $closeAfter);
