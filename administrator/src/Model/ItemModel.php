@@ -39,6 +39,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuUnit;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -944,9 +945,21 @@ class ItemModel extends AlfaAdminModel
         // on another one's address in any language is refused; an address it already shared
         // is kept and said after the save. A copy takes its own aliases, generated.
         if ($write->isCopy()) {
-            // A SKU names one product: a copy of a product keeps none of the SKU its original holds, and says so.
+            // A SKU names one product: a copy of a product keeps none of the SKU its original holds, and says so. The
+            // registry names the unit that holds it; a SKU the registry never took (a duplicate kept from before it) is
+            // the original's own when the copy still carries it, compared as the registry compares (letter case aside).
             $copiedSku = trim((string) ($data['sku'] ?? ''));
             $skuHolder = $copiedSku === '' ? null : SkuIndex::holder(sku: $copiedSku);
+
+            if ($skuHolder === null && $copiedSku !== '') {
+                $originalSku = trim((string) $db->setQuery(
+                    $db->getQuery(true)
+                        ->select($db->quoteName('sku'))
+                        ->from($db->quoteName('#__alfa_items'))
+                        ->where($db->quoteName('id') . ' = ' . $write->copyOf()),
+                )->loadResult());
+                $skuHolder = mb_strtolower($originalSku) === mb_strtolower($copiedSku) ? new SkuUnit(itemId: $write->copyOf(), combinationId: 0) : null;
+            }
 
             if ($skuHolder !== null) {
                 $data['sku'] = '';
