@@ -128,8 +128,8 @@ class ChargeReferenceEvent extends ChargeAnswerEvent
     }
 
     /**
-     * Operation kind: 'charge' today; room for 'capture'/'void' later
-     * without a new event shape.
+     * The operation the caller asks of the stored reference: 'charge' when it
+     * names none.
      *
      * @since  2.0.0
      */
