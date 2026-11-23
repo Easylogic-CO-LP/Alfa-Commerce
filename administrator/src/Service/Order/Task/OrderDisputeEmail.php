@@ -27,8 +27,8 @@ use Throwable;
 
 /**
  * order.dispute_email: the staff e-mail of a card dispute, to the shop's address (Options, General, Store e-mail). Written
- * in the dispute's save when a dispute is recorded or first reported, at its outcome, and by its reminder; it says what
- * the dispute's notice says, in the shop's administrator language, with the link to the order. The customer gets no
+ * in the dispute's save when a dispute is recorded or first reported and at its outcome, and by its reminder job three
+ * days before the deadline; it says what the dispute's notice says, in the shop's administrator language, with the link to the order. The customer gets no
  * e-mail about a dispute.
  *
  * The recipient is a unit: recorded sent, never sent again. Refused before or by the server: retried with backoff.
@@ -45,6 +45,13 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
      * @since  2.2.2
      */
     public const NAME = 'order.dispute_email';
+
+    /**
+     * The state the reminder e-mail is owed for: the deadline is three days away and no evidence is marked sent.
+     *
+     * @since  2.2.2
+     */
+    public const REMINDER = 'reminder';
 
     /**
      * {@inheritdoc}

@@ -1043,7 +1043,7 @@ class EmailService
 
             return [self::OUTCOME_SENT, ''];
         } catch (Throwable $e) {
-            Log::add('Staff message about order #' . $orderId . ' not sent: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orderemail');
+            Log::add('Staff message about order #' . $orderId . ' not sent: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orderemail');
 
             return [$watch?->outcome(sent: $sent) ?? self::OUTCOME_FAILED, $e->getMessage()];
         }

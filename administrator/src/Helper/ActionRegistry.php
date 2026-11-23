@@ -1779,7 +1779,7 @@ class ActionRegistry
         try {
             AlfaPluginHelper::get()->dispatchTo($plugin, $asked);
         } catch (Throwable $e) {
-            self::warn('Dispute #' . (int) $dispute->id . ': ' . $asked->getName() . ' failed: ' . $e->getMessage());
+            self::warn('Dispute #' . (int) $dispute->id . ': ' . $asked->getName() . ' failed: ' . ErrorText::of($e));
 
             return self::disputeAnswer(event: $event, message: Text::_('COM_ALFA_DISPUTE_PROVIDER_FAILED'), success: false);
         }

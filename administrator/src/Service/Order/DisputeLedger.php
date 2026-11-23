@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\ActionLogHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -22,7 +24,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDisputeEmail;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDisputeEvent;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\DisputeRemindJob;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
@@ -1176,6 +1178,10 @@ final class DisputeLedger
         }
 
         if ($this->dueAsked) {
+            if ($this->dueAt !== null && $this->dueAt > gmdate('Y-m-d H:i:s', (int) strtotime('+365 days'))) {
+                return self::refused(code: DisputeVerdict::CODE_VALUE, message: sprintf('The deadline %s is more than a year ahead.', $this->dueAt), disputeId: (int) ($before['id'] ?? 0));
+            }
+
             $after['evidence_due_by'] = $this->dueAt;
         }
 
@@ -1766,8 +1772,8 @@ final class DisputeLedger
 
     /**
      * What a save owes after its commit, written in its transaction: the staff e-mail when a dispute is recorded or
-     * first reported and at its outcome (only when the shop has a store e-mail address), and onAlfaDisputeChanged when
-     * the event has a listener.
+     * first reported and at its outcome (only when the shop has a store e-mail address), the reminder of a deadline set
+     * or moved, and onAlfaDisputeChanged when the event has a listener.
      *
      * @param array<string, mixed> $record The record as written.
      * @param array<string, mixed>|null $before The record before.
@@ -1784,17 +1790,25 @@ final class DisputeLedger
             && (string) ($record['closed_reason'] ?? '') !== self::CLOSED_MERGED;
 
         if (($started || $decided) && OrderDisputeEmail::recipient() !== '') {
-            Tasks::single(handler: OrderDisputeEmail::NAME, subjectType: 'order', subjectId: (int) $record['id_order'], payload: ['dispute' => (int) $record['id'], 'state' => $state]);
+            BackgroundWork::core()->task(OrderDisputeEmail::NAME)->about('order', (int) $record['id_order'])->with(['dispute' => (int) $record['id'], 'state' => $state])->enqueue();
+        }
+
+        // A deadline set or moved on a case that waits for its answer owes its reminder; one of another deadline ends
+        // with nothing.
+        $due = $record['evidence_due_by'];
+
+        if ($due !== null && $due !== ($before['evidence_due_by'] ?? null) && \in_array($state, [self::STATE_INQUIRY, self::STATE_OPEN], true) && $record['evidence_sent_at'] === null) {
+            DisputeRemindJob::owe(disputeId: (int) $record['id'], dueBy: (string) $due);
         }
 
         if (OrderDisputeEvent::hasListeners()) {
-            Tasks::single(handler: OrderDisputeEvent::NAME, subjectType: 'order', subjectId: (int) $record['id_order'], payload: [
+            BackgroundWork::core()->task(OrderDisputeEvent::NAME)->about('order', (int) $record['id_order'])->with([
                 'dispute' => (int) $record['id'],
                 'payment' => (int) $record['id_payment'],
                 'from' => $from,
                 'to' => $state,
                 'booked' => $booked,
-            ]);
+            ])->enqueue();
         }
     }
 
@@ -1906,6 +1920,10 @@ final class DisputeLedger
 
         if ($waits === self::WAITS_AMOUNT_UNKNOWN) {
             return [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_AMOUNT_TITLE', $orderId), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_AMOUNT_MSG', $id, $amount), 'danger'];
+        }
+
+        if ($state === OrderDisputeEmail::REMINDER) {
+            return [NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_REMIND_TITLE', $orderId, $due ?? ''), NotificationText::of('COM_ALFA_NOTIFY_DISPUTE_REMIND_MSG', $id, $amount, $due ?? '', $provider), 'danger'];
         }
 
         return match ($state) {
@@ -2377,7 +2395,7 @@ final class DisputeLedger
     }
 
     /**
-     * Log a failure of a save: one ERROR line with the ids, the database's own text left out (it can name the schema).
+     * Log a failure of a save: one ERROR line with the ids and the failure's text made safe for a log line.
      *
      * @param int $orderId The order, 0 when not known.
      * @param int $paymentId The payment.
@@ -2390,16 +2408,8 @@ final class DisputeLedger
     {
         try {
             AlfaLog::register();
-            $number = MysqlError::number($failure);
             Log::add(
-                sprintf(
-                    'Dispute save failed (dispute #%d, payment #%d, order #%d): %s%s',
-                    $disputeId,
-                    $paymentId,
-                    $orderId,
-                    $failure::class,
-                    $number > 0 ? ' (database error ' . $number . ')' : ': ' . $failure->getMessage(),
-                ),
+                sprintf('Dispute save failed (dispute #%d, payment #%d, order #%d): %s', $disputeId, $paymentId, $orderId, ErrorText::of($failure)),
                 Log::ERROR,
                 'com_alfa.payments',
             );
