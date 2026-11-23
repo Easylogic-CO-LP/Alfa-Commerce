@@ -660,7 +660,7 @@ final class Runner
 
     /**
      * A job handler by name, made once per request; null when this version has none of that name. The registry is
-     * closed: core's handlers only; a plugin's work runs through extension.job.
+     * closed: core's handlers only.
      *
      * @param string $name The handler's name.
      *
@@ -718,8 +718,6 @@ final class Runner
             Job\PriceIndexTidyJob::NAME => Job\PriceIndexTidyJob::class,
             // The gallery's thumbnails, recreated from Tools > Media.
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
-            // The background work an alfa plugin owes, handed back to it.
-            Job\ExtensionJob::NAME => Job\ExtensionJob::class,
             // The images a REST API write gave as addresses, fetched and stored.
             Job\MediaFetchJob::NAME => Job\MediaFetchJob::class,
             // What a consumer of the shop's changes is owed, delivered.

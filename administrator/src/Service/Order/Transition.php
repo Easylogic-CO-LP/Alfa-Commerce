@@ -351,8 +351,8 @@ class Transition
      * force() was asked (the one rule; the REST status verb and an extension ask it before they move an order,
      * so they can say why a move is refused).
      *
-     * @api READ ONLY: whether moving an order from $fromStatusId to $toStatusId reinstates a cancelled order, which only
-     *      a conscious act (force()) may do.
+     * @api READ ONLY: whether moving an order from $fromStatusId to $toStatusId reinstates a cancelled order, a move the
+     *      status change refuses unless it is asked for on purpose.
      *
      * @param int $fromStatusId The status the order is in.
      * @param int $toStatusId The status it would enter.

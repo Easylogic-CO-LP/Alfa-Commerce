@@ -153,3 +153,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_api_keys` (
 
 ALTER TABLE `#__alfa_item_field_values` ADD COLUMN `code` varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none' AFTER `item_field_id` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_item_field_values` ADD UNIQUE KEY `uq_field_code` (`item_field_id`, `code`) /** CAN FAIL **/;
+
+-- The extension job is gone: a plugin declares its own tasks and jobs. Its rows, which no handler runs any more, are
+-- deleted; a second run deletes nothing.
+DELETE FROM `#__alfa_tasks` WHERE `handler` = 'extension.job';
