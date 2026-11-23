@@ -52,6 +52,9 @@ final class Order
     /** @var Payment[]|null @since 2.0.0 */
     private ?array $payments = null;
 
+    /** @var OrderDiscount[]|null @since 2.3.0 */
+    private ?array $discounts = null;
+
     /**
      * @param object $row The order as the model loaded it.
      *
@@ -278,6 +281,53 @@ final class Order
             static fn (object $row): Payment => Payment::of($row),
             $this->rowsFor('#__alfa_order_payments'),
         );
+    }
+
+    /**
+     * The discounts the order froze when it was placed, each with its own money (what came off tax included, tax
+     * excluded and its own tax), in the order they applied.
+     *
+     *     foreach ($order->discounts() as $discount) { $discount->amount(); $discount->tax(); $discount->kind(); }
+     *
+     * The order's totals subtract exactly these: a gateway that sends order lines with their tax sends one line per
+     * discount from them, so the tax told to the provider is the order's. A discount taken out of the order later
+     * (staff removed it) is not listed.
+     *
+     * @return OrderDiscount[] Empty when the order has none.
+     *
+     * @throws OrderCurrencyException When the order names no currency.
+     *
+     * @since  2.3.0
+     */
+    public function discounts(): array
+    {
+        if ($this->discounts !== null) {
+            return $this->discounts;
+        }
+
+        $orderId = $this->id();
+
+        if ($orderId <= 0) {
+            return $this->discounts = [];
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select('*')
+                ->from($db->quoteName('#__alfa_order_cart_rule'))
+                ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                ->where($db->quoteName('deleted') . ' = 0')
+                ->order($db->quoteName('id_order_cart_rule') . ' ASC'),
+        )->loadObjectList() ?: [];
+
+        if ($rows === []) {
+            return $this->discounts = [];
+        }
+
+        $currency = $this->currency();
+
+        return $this->discounts = array_map(static fn (object $row): OrderDiscount => new OrderDiscount($row, $currency), $rows);
     }
 
     // money and contents

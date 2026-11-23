@@ -4922,6 +4922,124 @@ class PaymentLedger
     }
 
     /**
+     * A capture the provider reports did not stand: the payment was booked completed when the provider accepted the
+     * capture, and the money did not arrive after all (a card scheme rejected the capture later). The row moves from
+     * completed to failed, so the order is owed its amount again (its balance and what is still to collect count it
+     * no longer), and staff are told on the order (a notice). Nothing is refunded, nothing is sent to the customer.
+     *
+     * Written as bookkeeping, as a superseded attempt is: the method's status map does not run, so the order's status,
+     * its e-mails and its download access stay as they are; the write, its diff and the payment's activity entry are
+     * made. Staff decide what follows (ask the customer to pay again, or collect the money another way).
+     *
+     * Refused with REFUSAL_HISTORY_LOCKED when a refund that is not failed or cancelled, or a chargeback, names the
+     * payment: money given back or taken back from it would stand against money that never arrived, so staff settle
+     * that order by hand. Compare-and-set from completed: a payment no longer completed (the same report delivered
+     * again) is raced, nothing written.
+     *
+     * @param int $paymentId The payment row.
+     * @param string $reason What the provider reported, operator-safe (no secrets); stamped first into the row's note
+     *                       and shown in the notice.
+     * @param string $writer The payment plugin whose capture it was (PaymentsPlugin::failCapture()): another plugin's
+     *                       row is refused. '' for core.
+     *
+     * @return PaymentWriteVerdict Written when this call moved it; raced when it was no longer completed; refused with
+     *                             REFUSAL_ROW_MISSING (the row or its order is gone), REFUSAL_NOT_WRITER (another
+     *                             plugin's row, or a row that is not a payment) or REFUSAL_HISTORY_LOCKED;
+     *                             lock_not_taken; write_failed.
+     *
+     * @throws Throwable A failure that ended a database transaction the caller holds open.
+     *
+     * @since  2.3.0
+     */
+    public static function failCapture(int $paymentId, string $reason, string $writer = ''): PaymentWriteVerdict
+    {
+        return self::withVerdict(
+            write: static fn (): int => self::failCaptureWrite($paymentId, $reason, $writer),
+            create: false,
+            rowId: $paymentId,
+        );
+    }
+
+    /**
+     * The write of {@see self::failCapture()}.
+     *
+     * @param int $paymentId The payment row.
+     * @param string $reason What the provider reported.
+     * @param string $writer The payment plugin whose capture it was; '' for core.
+     *
+     * @return int WRITE_OK, WRITE_RACED or WRITE_FAILED, the verdict noted.
+     *
+     * @since  2.3.0
+     */
+    private static function failCaptureWrite(int $paymentId, string $reason, string $writer): int
+    {
+        $row = $paymentId > 0 ? self::getRaw($paymentId) : null;
+
+        if ($row === null || (int) ($row->id_order ?? 0) <= 0) {
+            self::warn("failCapture(): payment #{$paymentId} or its order does not exist");
+            self::noteVerdict(kind: self::VERDICT_REFUSED, code: self::REFUSAL_ROW_MISSING);
+
+            return self::WRITE_FAILED;
+        }
+
+        $orderId = (int) $row->id_order;
+
+        if ((string) ($row->payment_type ?? '') !== self::TYPE_PAYMENT
+            || ($writer !== '' && (string) ($row->payment_method_type ?? '') !== $writer)) {
+            self::warn("failCapture(): row #{$paymentId} is not a payment of the " . ($writer !== '' ? $writer : 'named') . ' plugin; only its own payment\'s capture can fail');
+            self::noteVerdict(kind: self::VERDICT_REFUSED, code: self::REFUSAL_NOT_WRITER, orderId: $orderId);
+
+            return self::WRITE_FAILED;
+        }
+
+        // Asked before the write and again under the order's lock, where a refund or chargeback written meanwhile is seen.
+        $unnamed = static fn (): bool => self::liveRefundsOf($paymentId) === []
+            && self::countFactsNaming(column: 'id_refunded_payment', rowId: $paymentId, type: self::TYPE_CHARGEBACK) === 0;
+
+        if (!$unnamed()) {
+            self::warn("failCapture(): payment #{$paymentId} has a refund or a chargeback; staff settle order #{$orderId} by hand");
+            self::noteVerdict(kind: self::VERDICT_REFUSED, code: self::REFUSAL_HISTORY_LOCKED, orderId: $orderId);
+
+            return self::WRITE_FAILED;
+        }
+
+        // The stamp goes first: note is varchar(255), and what is clipped is the older text.
+        $stamp = $reason !== '' ? 'Capture did not stand: ' . $reason : 'Capture did not stand';
+        $existing = trim((string) ($row->note ?? ''));
+        $note = $existing !== '' ? $stamp . ' | ' . $existing : $stamp;
+
+        $result = self::updateIfStatus(
+            $paymentId,
+            [
+                'id_order' => $orderId,
+                'transaction_status' => self::STATUS_FAILED,
+                'note' => mb_substr($note, 0, 255),
+            ],
+            self::STATUS_COMPLETED,
+            bookkeeping: true,
+            precondition: $unnamed,
+            writer: $writer,
+        );
+
+        if ($result === self::WRITE_OK) {
+            NotificationHelper::push(
+                'payments.capture.failed.' . $paymentId,
+                NotificationText::of('COM_ALFA_NOTIFY_PAYMENT_CAPTURE_FAILED_TITLE', $paymentId),
+                [
+                    'severity' => 'danger',
+                    'group' => NotificationHelper::GROUP_PAYMENTS,
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_PAYMENT_CAPTURE_FAILED_MSG', $reason !== '' ? $reason : '-'),
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                ],
+            );
+        }
+
+        return $result;
+    }
+
+    /**
      * Claim a gateway's pending attempt for a provider reference, and answer what the write did: the
      * claim {@see self::claimReference()} makes, as a {@see PaymentWriteVerdict}. Written when this call wrote the
      * reference; raced when the row is the gateway's but no longer a pending attempt without a reference (another

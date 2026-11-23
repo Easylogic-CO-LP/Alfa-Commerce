@@ -128,6 +128,21 @@ final class Shipment
     }
 
     /**
+     * The rate the parcel's carriage was taxed at, frozen with its amounts, in percent as exact decimal text: '24.000'
+     * for 24 percent, '0.000' untaxed. When several taxes applied it is their combined rate.
+     *
+     * Read it instead of working a rate out from the rounded amounts: a rate cannot be recovered from them (a reduced
+     * rate comes out wrong).
+     *
+     *
+     * @since  2.3.0
+     */
+    public function taxRate(): string
+    {
+        return (string) ($this->row->shipping_tax_rate ?? '0.000');
+    }
+
+    /**
      * What the carrier plugin recorded about this parcel.
      *
      *     $shipment->pluginData()->getString(key: 'locker_id', default: '')

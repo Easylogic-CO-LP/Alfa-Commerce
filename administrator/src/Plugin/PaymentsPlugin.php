@@ -64,6 +64,7 @@
  *    $verdict = $this->paymentUpdate($rowId)->transactionId($providerId)->saveWithVerdict(); // 3. the provider's id on the row
  *    $verdict = $this->settleAttemptVerdict($write, $orderId, $txId);            // the settle, its CRITICAL or WARNING line kept
  *    $verdict = $this->supersedeAttemptVerdict($paymentId, 'New gateway visit'); // close your own attempt, never another gateway's
+ *    $verdict = $this->failCapture($paymentId, $providerReason);              // a capture your provider accepted did not stand
  *    $verdict = $this->claimPendingAttemptVerdict(paymentId: $paymentId, reference: $sessionId); // a placement row without a reference
  *    // WRITTEN with ->existing true on a pending row: your provider call may have been made; make it safe to repeat
  *    // (the provider's idempotency key from the reference) or ask the provider by the reference before creating anything
@@ -1387,6 +1388,37 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
         }
 
         return PaymentLedger::unbookedProviderRefundsOfPayment(paymentId: $paymentId);
+    }
+
+    /**
+     * Record that a capture your provider accepted did not stand: the money did not arrive after all (a card scheme
+     * rejected the capture later). Your completed payment moves to failed, the order is owed its amount again, and
+     * staff are told on the order; nothing is refunded and nothing is sent to the customer. Bookkeeping: the method's
+     * status map does not run, so the order's status, its e-mails and its download access stay as they are; staff
+     * decide what follows.
+     *
+     * Answer your provider 200 on VERDICT_WRITTEN and on VERDICT_RACED (no longer completed: the same report again);
+     * VERDICT_REFUSED with REFUSAL_HISTORY_LOCKED means a refund or a chargeback names the payment: keep your staff
+     * record, the order is settled by hand; VERDICT_LOCK_NOT_TAKEN and VERDICT_WRITE_FAILED: 503, so the provider
+     * delivers again.
+     *
+     * Usage:
+     *   $verdict = $this->failCapture($paymentId, 'The card scheme rejected the capture (code 905).');
+     *
+     * @api ANSWERS: a PaymentWriteVerdict; this plugin's own completed payments only.
+     *
+     * @param int $paymentId Your completed payment whose capture did not stand.
+     * @param string $reason What your provider reported, operator-safe (no secrets).
+     *
+     * @return PaymentWriteVerdict What the write did.
+     *
+     * @throws Throwable A failure that ended a database transaction you hold open.
+     *
+     * @since  2.3.0
+     */
+    final protected function failCapture(int $paymentId, string $reason): PaymentWriteVerdict
+    {
+        return PaymentLedger::failCapture(paymentId: $paymentId, reason: $reason, writer: (string) $this->_name);
     }
 
     /**
