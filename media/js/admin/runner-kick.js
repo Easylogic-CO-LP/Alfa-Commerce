@@ -21,126 +21,126 @@
  * No timer of its own: it rides on the ticks.
  */
 (() => {
-  'use strict';
+    'use strict';
 
-  const options = (window.Joomla && Joomla.getOptions('com_alfa.runner')) || {};
+    const options = (window.Joomla && Joomla.getOptions('com_alfa.runner')) || {};
 
-  if (!options.url || !options.token || !options.header) {
-    return;
-  }
-
-  const pauseMs = Number(options.pauseMs) || 0;
-  const capMs = Number(options.capMs) || 0;
-  let startedAt = 0;
-  let timer = 0;
-  let inFlight = false;
-  let remains = false;
-  let ended = false;
-
-  const visible = () => document.visibilityState === 'visible';
-
-  // The background-work card, drawn again by its own layout on the server; left as it was when that fails.
-  const refreshCard = () => {
-    const node = options.cardUrl ? document.querySelector('[data-alfa-background-card]') : null;
-
-    if (!node) {
-      return Promise.resolve();
+    if (!options.url || !options.token || !options.header) {
+        return;
     }
 
-    const body = new FormData();
-    body.set(options.token, '1');
+    const pauseMs = Number(options.pauseMs) || 0;
+    const capMs = Number(options.capMs) || 0;
+    let startedAt = 0;
+    let timer = 0;
+    let inFlight = false;
+    let remains = false;
+    let ended = false;
 
-    return fetch(options.cardUrl, {
-      method: 'POST', body, credentials: 'same-origin', headers: { Accept: 'application/json' },
-    })
-      .then((response) => response.json())
-      .then((reply) => {
-        if (!reply || !reply.success || !reply.data || typeof reply.data.html !== 'string') {
-          return;
+    const visible = () => document.visibilityState === 'visible';
+
+    // The background-work card, drawn again by its own layout on the server; left as it was when that fails.
+    const refreshCard = () => {
+        const node = options.cardUrl ? document.querySelector('[data-alfa-background-card]') : null;
+
+        if (!node) {
+            return Promise.resolve();
         }
 
-        const drawn = document.createElement('template');
-        drawn.innerHTML = reply.data.html.trim();
-        const fresh = drawn.content.querySelector('[data-alfa-background-card]');
+        const body = new FormData();
+        body.set(options.token, '1');
 
-        if (fresh) {
-          node.replaceWith(fresh);
-        } else {
-          (node.closest('.alfa-card') || node).remove();
+        return fetch(options.cardUrl, {
+            method: 'POST', body, credentials: 'same-origin', headers: { Accept: 'application/json' },
+        })
+            .then((response) => response.json())
+            .then((reply) => {
+                if (!reply || !reply.success || !reply.data || typeof reply.data.html !== 'string') {
+                    return;
+                }
+
+                const drawn = document.createElement('template');
+                drawn.innerHTML = reply.data.html.trim();
+                const fresh = drawn.content.querySelector('[data-alfa-background-card]');
+
+                if (fresh) {
+                    node.replaceWith(fresh);
+                } else {
+                    (node.closest('.alfa-card') || node).remove();
+                }
+            })
+            .catch(() => {});
+    };
+
+    const later = () => {
+        if (ended || !remains || inFlight || timer || !visible()) {
+            return;
         }
-      })
-      .catch(() => {});
-  };
 
-  const later = () => {
-    if (ended || !remains || inFlight || timer || !visible()) {
-      return;
+        if (pauseMs <= 0 || Date.now() - startedAt >= capMs) {
+            ended = true;
+            return;
+        }
+
+        timer = window.setTimeout(() => {
+            timer = 0;
+            tick();
+        }, pauseMs);
+    };
+
+    const tick = () => {
+        if (ended || inFlight || !visible()) {
+            return;
+        }
+
+        startedAt = startedAt || Date.now();
+        inFlight = true;
+        const body = new URLSearchParams();
+        body.set(options.token, '1');
+
+        fetch(options.url, {
+            method: 'POST', body, credentials: 'same-origin', keepalive: true,
+        })
+            .then((response) => {
+                remains = response.status === 204 && response.headers.get(options.header) === '1';
+            })
+            .catch(() => {
+                remains = false;
+            })
+            .then(refreshCard)
+            .finally(() => {
+                inFlight = false;
+                ended = ended || !remains;
+                later();
+            });
+    };
+
+    // Hidden, the page sends nothing; shown again, a new stretch of ticking begins at once.
+    document.addEventListener('visibilitychange', () => {
+        if (!visible()) {
+            window.clearTimeout(timer);
+            timer = 0;
+        } else if (remains && !ended && !inFlight && !timer) {
+            startedAt = 0;
+            tick();
+        }
+    });
+
+    window.addEventListener('pagehide', () => {
+        ended = true;
+        window.clearTimeout(timer);
+        timer = 0;
+    });
+
+    // The first tick once the page has loaded; in a tab not shown, once it is.
+    const first = () => {
+        remains = true;
+        tick();
+    };
+
+    if (document.readyState === 'complete') {
+        first();
+    } else {
+        window.addEventListener('load', first, { once: true });
     }
-
-    if (pauseMs <= 0 || Date.now() - startedAt >= capMs) {
-      ended = true;
-      return;
-    }
-
-    timer = window.setTimeout(() => {
-      timer = 0;
-      tick();
-    }, pauseMs);
-  };
-
-  const tick = () => {
-    if (ended || inFlight || !visible()) {
-      return;
-    }
-
-    startedAt = startedAt || Date.now();
-    inFlight = true;
-    const body = new URLSearchParams();
-    body.set(options.token, '1');
-
-    fetch(options.url, {
-      method: 'POST', body, credentials: 'same-origin', keepalive: true,
-    })
-      .then((response) => {
-        remains = response.status === 204 && response.headers.get(options.header) === '1';
-      })
-      .catch(() => {
-        remains = false;
-      })
-      .then(refreshCard)
-      .finally(() => {
-        inFlight = false;
-        ended = ended || !remains;
-        later();
-      });
-  };
-
-  // Hidden, the page sends nothing; shown again, a new stretch of ticking begins at once.
-  document.addEventListener('visibilitychange', () => {
-    if (!visible()) {
-      window.clearTimeout(timer);
-      timer = 0;
-    } else if (remains && !ended && !inFlight && !timer) {
-      startedAt = 0;
-      tick();
-    }
-  });
-
-  window.addEventListener('pagehide', () => {
-    ended = true;
-    window.clearTimeout(timer);
-    timer = 0;
-  });
-
-  // The first tick once the page has loaded; in a tab not shown, once it is.
-  const first = () => {
-    remains = true;
-    tick();
-  };
-
-  if (document.readyState === 'complete') {
-    first();
-  } else {
-    window.addEventListener('load', first, { once: true });
-  }
 })();
