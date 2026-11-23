@@ -1780,10 +1780,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
             return null;
         }
 
-        // NO OTHER STEP. A method id that names nothing of this plugin's used to fall to the order's chosen method,
-        // and an order chosen elsewhere to the newest of this plugin's own rows: both could answer a sibling method,
-        // another set of credentials. Before 2.0 a further step took "the oldest published method of this type";
-        // method deletion is refused while orders or ledger rows reference a method (PaymentModel::delete).
+        // NO OTHER STEP. A method id that names nothing of this plugin's is not resolved to another of its methods (the
+        // order's chosen one, the newest or the oldest of its type): that could answer a sibling method, another set of
+        // credentials. Method deletion is refused while orders or ledger rows reference a method (PaymentModel::delete).
         return $this->loadPaymentMethod((int) $header->id_payment_method);
     }
 
@@ -2567,7 +2566,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * the claim claimPendingAttempt() makes, as a verdict. Written when this call claimed it; raced when it is
      * this gateway's but no longer a pending attempt without a reference (another visit or delivery owns it: agree with
      * the winner); refused with REFUSAL_ROW_MISSING (the row or its order is gone) or REFUSAL_NOT_WRITER (another
-     * gateway's row, or not a payment or authorization); lock_not_taken where claimPendingAttempt() throws today (the
+     * gateway's row, or not a payment or authorization); lock_not_taken where claimPendingAttempt() throws (the
      * attempt stays claimable: try again); write_failed. A plugin never reads a refusal or a lock as "make a new row".
      *
      * @api ANSWERS: a PaymentWriteVerdict for the claim; another gateway's row is refused (REFUSAL_NOT_WRITER).
