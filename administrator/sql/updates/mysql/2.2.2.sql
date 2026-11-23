@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
 -- reversal rows the dispute ledger books at a decision, each naming its case in id_dispute. The install SQL creates the
 -- same table and column; on an updated site the statements below make one record for every chargeback row written
 -- before the table existed, so no chargeback stands without its case. Each statement runs again harmlessly: the table
--- and the column exist, and a row already joined to its record is never read again.
+-- and the column exist, and a row already joined to its record is never read again. A site that ran an earlier copy of
+-- this file gets the column from script.php.
 
 CREATE TABLE IF NOT EXISTS `#__alfa_order_disputes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,

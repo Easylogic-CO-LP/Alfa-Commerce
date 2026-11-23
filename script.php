@@ -280,6 +280,9 @@ class com_alfaInstallerScript extends InstallerScript
             'opening_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings'", 'projection_dirty_at'],
             'price_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination whose price the listing card shows: the opening combination when it has price rows of its own, else 0 (the product''s own price). Kept with opening_combination_id; the listing reads its price index row by it'", 'opening_combination_id'],
         ],
+        '#__alfa_order_payments' => [
+            'id_dispute' => ["int(11) DEFAULT NULL COMMENT 'Chargeback or reversal: the dispute that booked this row; written once, by the ledger'", 'id_reversed_payment'],
+        ],
     ];
 
     /**
