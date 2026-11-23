@@ -20,10 +20,10 @@ use Throwable;
  * job handlers the read looks for, the states of a stock movement, and the SQL of the singles' two probes and of an
  * abandoned stock claim.
  *
- * Every storefront page and every API request asks Runner::due() whether work is due. The read used to take these
- * names from Tasks, InventoryEffectOutbox and three job classes, so each request loaded those five large classes for a
- * handful of constants. They take their constants from here now (one definition: Tasks::STATE_PENDING is
- * DueRead::STATE_PENDING), and the five load only when a job runs.
+ * Every storefront page and every API request asks Runner::due() whether work is due. The names are defined here
+ * once, and Tasks, InventoryEffectOutbox and the three job classes take theirs from here (Tasks::STATE_PENDING is
+ * DueRead::STATE_PENDING), so a request loads none of those five large classes for a handful of constants; they load
+ * only when work runs.
  *
  * @since  2.2.1
  */

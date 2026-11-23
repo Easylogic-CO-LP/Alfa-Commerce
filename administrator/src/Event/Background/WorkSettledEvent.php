@@ -15,7 +15,8 @@ use Alfa\Component\Alfa\Administrator\Background\WorkStatus;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
- * One of a plugin's tasks or jobs ended (onAlfaWorkSettled): done, failed, held, resolved by staff or cancelled. It is
+ * One of a plugin's tasks or jobs ended (onAlfaWorkSettled): done, failed, held, resolved (by staff, or, for a failed
+ * job, by a later job of its scope that ended done) or cancelled. It is
  * addressed to the plugin that declared the work, only when it has a public onAlfaWorkSettled method, and is
  * delivered by a task of its own written in the same transaction that settled the work, so it is told once the end is
  * final, even if the server stops in between; it is retried when the method throws, so the method must be safe to

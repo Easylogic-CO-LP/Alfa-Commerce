@@ -91,8 +91,8 @@ final class BackgroundWork
     }
 
     /**
-     * Core's own work, on the same chain. Core's code only: a build check keeps every call of it inside com_alfa's
-     * administrator, site and api folders.
+     * Core's own work, on the same chain. Core's code only: nothing checks the caller, so an extension that calls it
+     * writes work under core's name, outside the contract; an extension asks through of() with its own plugin.
      *
      * @internal
      *
