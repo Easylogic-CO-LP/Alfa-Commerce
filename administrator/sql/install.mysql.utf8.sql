@@ -1157,6 +1157,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   `projection_dirty_at` datetime(6) NULL DEFAULT NULL COMMENT 'When a rebuild of this item projections was found owed and not yet done; NULL = current',
+  `opening_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings',
+  `price_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination whose price the listing card shows: the opening combination when it has price rows of its own, else 0 (the product''s own price). Kept with opening_combination_id; the listing reads its price index row by it',
   PRIMARY KEY (`id`),
   KEY `idx_available_quantity` (`available_quantity`),
   KEY `idx_state` (`state`),
@@ -1230,8 +1232,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `value` double DEFAULT 0,
-  `override_value` double DEFAULT NULL,
+  `value` decimal(24,8) DEFAULT 0.00000000 COMMENT 'The price, or for an adjust row its amount or percent, exact to 8 decimals',
+  `override_value` decimal(24,8) DEFAULT NULL COMMENT 'The sale price; NULL = none',
   `override_type` enum('start','final') NOT NULL DEFAULT 'start' COMMENT 'Meaningful only when override_value is set: start = replaces net (taxes apply), final = gross the customer pays (tax carved out)',
   `item_id` int(11) UNSIGNED NOT NULL,
   `combination_id` int(11) UNSIGNED DEFAULT NULL COMMENT 'FK #__alfa_item_combinations.id; NULL = item-level price row. Absence of combination rows = inherit item rows.',
@@ -1263,57 +1265,84 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Table structure for table `#__alfa_price_contexts`
+--
+-- The pricing contexts the price index is written for: a currency class, a place class (the nearest place of a
+-- buyer's chain that a discount or a tax names, and the buyer's own place when price rows name it), a set of pricing
+-- groups and, for a customer that a price row, a discount or a tax names, that customer. One row per context and
+-- generation: a context new to the data, or the next generation of a context a context-wide change rewrites, is
+-- requested and prepared a chunk of products at a time (prepared_through is its checkpoint) and then switched live
+-- whole; readers read the live generation only, and a retired one is removed in the background.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_price_contexts` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `currency_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Currency class: a currency a published price row names; 0 = every other currency, only while a published price row of currency 0 exists',
+  `rule_place_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Place class, first half: the nearest place of the buyer''s chain that a published discount or tax names; 0 = none',
+  `price_place_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Place class, second half: the buyer''s own place when a published price row names it; 0 = none',
+  `priced_at_place_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The member place of the class the engine prices it at; 0 = no place',
+  `group_set_id` int(10) UNSIGNED NOT NULL COMMENT '#__alfa_price_group_sets.id: the set of pricing groups',
+  `user_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'A customer named by a price row, a discount or a tax, whose own rows these are (read before the set''s); 0 = the context of a set',
+  `generation` int(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'The generation of the context''s rows: a context-wide change writes the next one beside the live one and switches them whole',
+  `is_live` tinyint(1) DEFAULT NULL COMMENT '1 = the generation readers read; NULL = being prepared, or retired and being removed. At most one live per context',
+  `requested_at` datetime DEFAULT NULL COMMENT 'When the generation was asked for; NULL once it is prepared',
+  `prepared_at` datetime DEFAULT NULL COMMENT 'When its last chunk was written and it went live; NULL = being prepared',
+  `prepared_through` int(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Checkpoint of the preparation: the last product id written',
+  `retired_at` datetime DEFAULT NULL COMMENT 'When a newer generation went live; its rows are removed in the background, then the row',
+  `left_out` text DEFAULT NULL COMMENT 'Products whose pricing threw, written with no figure, ids comma-separated; NULL or empty = none',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_generation` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`,`generation`),
+  UNIQUE KEY `idx_live` (`currency_id`,`rule_place_id`,`price_place_id`,`group_set_id`,`user_id`,`is_live`),
+  KEY `idx_group_set` (`group_set_id`),
+  KEY `idx_user` (`user_id`),
+  KEY `idx_requested` (`requested_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Pricing contexts of the price index, one row per context and generation';
+
+--
 -- Table structure for table `#__alfa_items_price_index`
+--
+-- The resolved price of every unit a product sells in every pricing context and period, at the product's opening
+-- quantity: the product itself (combination_id 0), always, and each published combination with price rows of its own (a
+-- combination without them is priced from the product's rows). Every unit has a row in every prepared context for every
+-- period; a unit with no valid price has NULL figures, an explicit price of 0 the figure 0. Rebuildable from
+-- #__alfa_items_prices and the rules; written by PriceIndexSyncService only.
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_price_index` (
+  `context_id` int(10) UNSIGNED NOT NULL COMMENT '#__alfa_price_contexts.id',
   `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK to #__alfa_items.id',
-  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '0 = item-level/default row; else #__alfa_item_combinations.id',
-  `currency_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'FK to #__alfa_currencies.id; 0 = any currency',
-  `place_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'FK to #__alfa_places.id; 0 = any place / unknown location',
-  `group_set_id` int(10) UNSIGNED NOT NULL COMMENT 'The set of pricing groups this row is prepared for: #__alfa_price_group_sets.id',
-  `base_price` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Raw unit price: no discounts, no tax',
-  `discount_amount` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Total money saved. 0 = no discount. Filter: > 0 (on sale), >= X (save at least €X)',
-  `base_price_with_discounts` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'After discounts, before tax: B2B ex-VAT net price',
-  `tax_amount` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Tax applied to the discounted price',
-  `base_price_with_tax` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Base price + tax, WITHOUT discounts: strikethrough "was" price',
-  `final_price` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'FILTER COLUMN *: final price visitor pays (after discounts + tax). "From €X" / ranges = MIN() across an item''s rows.',
-  `discount_percent` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Percentage saving 0-100. Filter: >= X (at least X% off)',
-  `valid_from` datetime NOT NULL DEFAULT '1000-01-01 00:00:00' COMMENT 'Segment start; epoch sentinel = live segment (PK column, so no NULL). The catalog query picks the segment matching NOW().',
-  `valid_until` datetime DEFAULT NULL COMMENT 'Segment end (next publish-window edge); NULL = open-ended',
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'When this row was last written; the price index has no ledger, so this is its only forensic record. Self-maintained by ON UPDATE; nothing reads it in code.',
-  PRIMARY KEY (`item_id`,`combination_id`,`currency_id`,`place_id`,`group_set_id`,`valid_from`),
-  KEY `idx_final_price` (`currency_id`,`place_id`,`group_set_id`,`final_price`),
-  KEY `idx_group_set_id` (`group_set_id`),
-  KEY `idx_discount_amount` (`discount_amount`),
-  KEY `idx_discount_percent` (`discount_percent`),
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The published combination with price rows of its own that the row prices; 0 = the product itself, the price of every combination without its own price rows',
+  `valid_from` datetime NOT NULL DEFAULT '1000-01-01 00:00:00' COMMENT 'Period start; the epoch sentinel for the period that is live when the row is written',
+  `valid_until` datetime DEFAULT NULL COMMENT 'Period end, the next edge; NULL = open-ended',
+  `base_price` decimal(24,8) DEFAULT NULL COMMENT 'Unit price before discounts and tax; NULL = no valid price',
+  `discount_amount` decimal(24,8) DEFAULT NULL COMMENT 'The saving, on the basis final_price is on; 0 = none; NULL = no valid price',
+  `base_price_with_discounts` decimal(24,8) DEFAULT NULL COMMENT 'After discounts, before tax; NULL = no valid price',
+  `tax_amount` decimal(24,8) DEFAULT NULL COMMENT 'Tax on the discounted price; NULL = no valid price',
+  `base_price_with_tax` decimal(24,8) DEFAULT NULL COMMENT 'Base price with tax, without discounts: the struck price; NULL = no valid price',
+  `final_price` decimal(24,8) DEFAULT NULL COMMENT 'What the customer pays for one piece: the listing''s filter and sort figure; NULL = no valid price',
+  `discount_percent` decimal(5,2) DEFAULT NULL COMMENT 'Percentage saving 0 to 100; NULL = no valid price',
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'When the row was last written',
+  PRIMARY KEY (`context_id`,`item_id`,`combination_id`,`valid_from`),
+  KEY `idx_context_price` (`context_id`,`final_price`),
+  KEY `idx_item` (`item_id`),
   KEY `idx_validity` (`valid_from`,`valid_until`),
-  KEY `idx_item_id` (`item_id`),
-  CONSTRAINT `fk_priceidx_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Price index: one row per item x currency x place x set of pricing groups held by customers. Column names match com_alfa config fields.';
+  CONSTRAINT `fk_price_index_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_price_index_context` FOREIGN KEY (`context_id`) REFERENCES `#__alfa_price_contexts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Price index: the resolved price of every unit per pricing context and period';
 
 --
 -- Table structure for table `#__alfa_price_group_sets`
 --
--- The sets of pricing groups customers hold, which the price index is keyed by.
--- A set nobody held before is requested by the request that brought it and
--- prepared by its price.set.prepare job, a chunk of products at a time; prepared_through
--- is its checkpoint. prepared_at is written after the last chunk, and a set
--- without it is never read, whatever rows the index holds of it.
+-- The sets of pricing groups customers hold: a part of each pricing context's key.
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_price_group_sets` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `group_list` text NOT NULL COMMENT 'The pricing groups of the set: ids ascending, comma-separated; empty = none',
   `digest` char(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'SHA-1 of group_list: the key writer and reader find the set by',
-  `requested_at` datetime DEFAULT NULL COMMENT 'When the set was asked for; NULL once it is prepared',
-  `prepared_at` datetime DEFAULT NULL COMMENT 'When its last chunk was written; NULL = not read',
-  `prepared_through` int(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Checkpoint of the preparation: the last product id written',
-  `left_out` text DEFAULT NULL COMMENT 'Products whose pricing threw when the set was prepared, ids comma-separated: no row of the set until the product is saved again; NULL or empty = none',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_digest` (`digest`),
-  KEY `idx_requested` (`requested_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Sets of pricing groups customers hold: the price index is keyed by them.';
+  UNIQUE KEY `idx_digest` (`digest`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Sets of pricing groups customers hold: a part of the price index contexts';
 
 --
 -- Table structure for table `#__alfa_item_field_value_index`

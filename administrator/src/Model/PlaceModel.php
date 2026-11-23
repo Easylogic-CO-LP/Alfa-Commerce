@@ -194,6 +194,31 @@ class PlaceModel extends AlfaAdminModel
     }
 
     /**
+     * Publish, unpublish, archive or trash places: a place prices a buyer only while it and every place above it
+     * are published, so the price index's contexts priced at or below a place whose state changed are rewritten by the
+     * catalogue job, and staff are told (PriceIndexSyncService::oweChainRebuild()).
+     *
+     * @param array $pks The places.
+     * @param int $value The state.
+     *
+     * @return bool True on success.
+     *
+     * @since  2.2.2
+     */
+    public function publish(&$pks, $value = 1)
+    {
+        if (!parent::publish($pks, $value)) {
+            return false;
+        }
+
+        if ((new PriceIndexSyncService())->oweChainRebuild(placeIds: array_map('intval', (array) $pks))) {
+            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_PLACE_STATE_CHANGED_REBUILD'), 'warning');
+        }
+
+        return true;
+    }
+
+    /**
      * A place's parent as stored, or null for a place that does not exist.
      *
      * @param int $placeId The place.
@@ -351,13 +376,9 @@ class PlaceModel extends AlfaAdminModel
             return parent::delete($requested);
         }
 
-        // The index rows priced for the deleted places. Every rule they scoped
-        // kept another place, so no other row moved.
-        $db->setQuery(
-            $db->getQuery(true)
-                ->delete($db->quoteName('#__alfa_items_price_index'))
-                ->whereIn($db->quoteName('place_id'), $pks),
-        )->execute();
+        // The price index's contexts of the deleted places go with their rows, through the index's one writer.
+        // Every rule they scoped kept another place, so no other row moved.
+        (new PriceIndexSyncService())->syncGroupSets();
 
         foreach ($pricedOn as $priced) {
             $products = (int) $priced->products;

@@ -407,7 +407,7 @@ final class Runner
             $probes[] = $single;
         }
 
-        $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_price_group_sets', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db);
+        $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_price_contexts', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db);
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_inventory_effect_outbox') . ' WHERE ' . self::owedMovementWithoutDrain(db: $db);
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_items') . ' WHERE ' . self::markWithoutCatalogueJob(db: $db);
         $probes[] = DueRead::windowsProbe(db: $db, until: DueRead::windowsUntil());
@@ -438,8 +438,9 @@ final class Runner
     }
 
     /**
-     * A waiting price set with no job of its scope, pending, running or failed: a set whose job a hand deletion or a
-     * test's cleanup removed. A failed job stands for staff (the attention notice) and is not replaced.
+     * A waiting pricing context of the price index with no job of its scope,
+     * pending, running or failed: a context whose job a hand deletion or a test's cleanup removed. A failed job stands
+     * for staff (the attention notice) and is not replaced. The table is aliased s.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -450,7 +451,7 @@ final class Runner
         return $db->quoteName('s.prepared_at') . ' IS NULL AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(DueRead::TABLE, 't')
             . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(DueRead::PRICE_SET_PREPARE)
             . ' AND ' . $db->quoteName('t.state') . ' IN (' . implode(', ', array_map([$db, 'quote'], [DueRead::STATE_PENDING, DueRead::STATE_RUNNING, DueRead::STATE_FAILED])) . ')'
-            . ' AND ' . $db->quoteName('t.scope_key') . ' = CONCAT(' . $db->quote(DueRead::PRICE_SET_PREPARE . ':') . ', CONVERT(' . $db->quoteName('s.digest') . ' USING utf8mb4)) COLLATE utf8mb4_unicode_ci)';
+            . ' AND ' . $db->quoteName('t.scope_key') . ' = CONCAT(' . $db->quote(DueRead::PRICE_SET_PREPARE . ':') . ', CAST(' . $db->quoteName('s.id') . ' AS CHAR)) COLLATE utf8mb4_unicode_ci)';
     }
 
     /**
@@ -475,8 +476,9 @@ final class Runner
      * The work a tick owes before it looks for due jobs: a job for each waiting price set with no job of its scope
      * (one whose job failed is not among them), the drain while movements are owed, the catalogue job for a rebuild
      * mark older than the grace that no job was asked for, the prune of finished tasks once an hour
-     * (TasksPruneJob::owe()), and the announcement of the stored price periods that began
-     * (PriceIndexSyncService::announceOpenedWindows(), 2.2.2). Each is logged and left on a failure: the tick goes on.
+     * (TasksPruneJob::owe()), the tidy of the price index once a day (PriceIndexTidyJob::owe()), and the
+     * announcement of the stored price periods that began
+     * (PriceIndexSyncService::announceOpenedWindows()). Each is logged and left on a failure: the tick goes on.
      *
      * @param DatabaseDriver $db The connection.
      *
@@ -487,8 +489,8 @@ final class Runner
         try {
             // Each waiting set whose job is gone gets its job; a set whose job failed is left to staff, whatever
             // happens to the others (the Tools button and the update queue every waiting set, their own planning).
-            foreach ($db->setQuery('SELECT ' . $db->quoteName('s.digest') . ' FROM ' . $db->quoteName('#__alfa_price_group_sets', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db))->loadColumn() ?: [] as $digest) {
-                Job\PriceSetPrepareJob::enqueueFor(digest: (string) $digest);
+            foreach ($db->setQuery('SELECT ' . $db->quoteName('s.id') . ' FROM ' . $db->quoteName('#__alfa_price_contexts', 's') . ' WHERE ' . self::waitingSetWithoutJob(db: $db))->loadColumn() ?: [] as $contextId) {
+                Job\PriceSetPrepareJob::enqueueFor(contextId: (int) $contextId);
             }
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the waiting price sets could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
@@ -514,6 +516,12 @@ final class Runner
             Job\TasksPruneJob::owe(db: $db);
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the prune of finished tasks could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+        }
+
+        try {
+            Job\PriceIndexTidyJob::owe(db: $db);
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Runner: the tidy of the price index could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
         }
 
         try {
@@ -693,7 +701,9 @@ final class Runner
             Job\SearchRebuildJob::NAME => Job\SearchRebuildJob::class,
             Job\CatalogueRebuildJob::NAME => Job\CatalogueRebuildJob::class,
             Job\TasksPruneJob::NAME => Job\TasksPruneJob::class,
-            // The gallery's thumbnails, recreated from Tools > Media (2.2.0, part C21).
+            // The price index's retired generations and ended periods, removed.
+            Job\PriceIndexTidyJob::NAME => Job\PriceIndexTidyJob::class,
+            // The gallery's thumbnails, recreated from Tools > Media.
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
         ];
     }
