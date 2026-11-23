@@ -61,3 +61,18 @@ UPDATE `#__alfa_items` SET `commerce_changed_at` = UTC_TIMESTAMP(6) WHERE `comme
 ALTER TABLE `#__alfa_media` ADD COLUMN `source_url` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The address the image was fetched from, as the REST API client gave it; NULL for an image uploaded or picked' /** CAN FAIL **/;
 ALTER TABLE `#__alfa_media` ADD COLUMN `source_url_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'sha256 of source_url: the same address is not fetched twice for one record' AFTER `source_url` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_media` ADD KEY `idx_alfa_media_source` (`origin`, `item_id`, `source_url_hash`) /** CAN FAIL **/;
+
+-- One SKU, one unit
+
+-- Every SKU in use is kept once in a registry: a product's own SKU and each combination's, archived ones included,
+-- compared without regard to letter case. A save that gives a product or a variant a SKU another one holds is refused,
+-- and the REST API finds a unit by its SKU. The update fills the registry after this file runs (script.php); a SKU held
+-- by more than one unit is left out and named, until each has its own. The install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_skus` (
+  `sku` varchar(255) NOT NULL COMMENT 'A SKU in use, trimmed; compared without regard to letter case',
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination; 0 for the product itself',
+  PRIMARY KEY (`sku`),
+  UNIQUE KEY `uq_unit` (`item_id`, `combination_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Every SKU in use, once: products and combinations, archived ones included';

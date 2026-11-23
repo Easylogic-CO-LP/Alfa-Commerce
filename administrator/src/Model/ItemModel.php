@@ -35,6 +35,8 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -908,6 +910,19 @@ class ItemModel extends AlfaAdminModel
         // on another one's address in any language is refused; an address it already shared
         // is kept and said after the save. A copy takes its own aliases, generated.
         if ($write->isCopy()) {
+            // A SKU names one product: a copy of a product keeps none of the SKU its original holds, and says so.
+            $copiedSku = trim((string) ($data['sku'] ?? ''));
+            $skuHolder = $copiedSku === '' ? null : SkuIndex::holder(sku: $copiedSku);
+
+            if ($skuHolder !== null) {
+                $data['sku'] = '';
+                $write->warn(msg: Text::sprintf(
+                    'COM_ALFA_SKU_COPY_LEFT_EMPTY',
+                    SkuIndex::shown(sku: $copiedSku),
+                    InventoryUnitException::labelFor(itemId: $skuHolder->itemId, combinationId: $skuHolder->combinationId),
+                ));
+            }
+
             $data = MultilingualHelper::releaseCopiedAliases(
                 data:              $data,
                 tableName:         '#__alfa_items',
@@ -1276,6 +1291,10 @@ class ItemModel extends AlfaAdminModel
                 $archived = $this->publish(pks: $moved, value: $archiveMove);
             }
 
+            // The product's SKUs and its combinations' in the registry, in this transaction: a SKU another product or
+            // variant holds refuses the save, and nothing of it is kept.
+            SkuIndex::keep(itemId: $currentId);
+
             // What follows the save, once it has committed (2.2.1).
             PostCommit::defer(
                 db: $db,
@@ -1337,6 +1356,13 @@ class ItemModel extends AlfaAdminModel
             // Nothing of the save is kept: its writes and what it deferred go with its transaction. The mark of an
             // existing item, written before it, stays and is cleared by the next rebuild.
             TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            // A SKU in use is the merchant's to change: the refusal is said as it is, never as a failed save.
+            if ($e instanceof SkuInUseException) {
+                $this->setError($e);
+
+                return false;
+            }
 
             Log::add(
                 entry:    'Item ' . ($pk > 0 ? '#' . $pk : '(new)') . ' was not saved; its save was rolled back: ' . $e->getMessage(),
@@ -3379,6 +3405,9 @@ class ItemModel extends AlfaAdminModel
                             ->whereIn($db->quoteName('id'), $comboIds),
                     )->execute();
                 }
+
+                // Their SKUs are free again.
+                SkuIndex::forget(itemIds: array_map('intval', $deletePks));
 
                 TransactionState::commitLevel(db: $db);
             } catch (InventoryUnitRetirementException $retirement) {

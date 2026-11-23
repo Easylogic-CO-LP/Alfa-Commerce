@@ -1228,6 +1228,20 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
 
 --
+-- Every SKU in use, once: a product's own SKU and each combination's, archived ones included. The key is the SKU,
+-- compared without regard to letter case, so one SKU names one unit; every writer of a SKU keeps its product's rows
+-- here in its own transaction (SkuIndex::keep()), and the REST API finds a unit by its SKU through it.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_skus` (
+  `sku` varchar(255) NOT NULL COMMENT 'A SKU in use, trimmed; compared without regard to letter case',
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination; 0 for the product itself',
+  PRIMARY KEY (`sku`),
+  UNIQUE KEY `uq_unit` (`item_id`, `combination_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Every SKU in use, once: products and combinations, archived ones included';
+
+--
 -- Table structure for table `#__alfa_items_prices`
 --
 

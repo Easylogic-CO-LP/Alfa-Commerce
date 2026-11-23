@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
@@ -4994,6 +4995,9 @@ class ItemFieldsAdminHelper
             // The combination's prices and its sale rules are its product's: recorded in this transaction, for the
             // REST API's filter[changed_since].
             CommerceChange::mark(db: $db, itemIds: [$itemId]);
+
+            // The variant's SKU in the registry: one another unit holds refuses the save.
+            SkuIndex::keep(itemId: $itemId);
 
             // What the inventory service announces for this save waits for this commit.
             TransactionState::commitLevel(db: $db);

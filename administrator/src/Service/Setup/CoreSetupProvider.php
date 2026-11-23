@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
@@ -317,6 +318,31 @@ final class CoreSetupProvider
             ->reasonArguments(
                 arguments: static fn (): array => $minimumUnderTier()['count'] === 0 ? [] : [(string) $minimumUnderTier()['count'], implode(', ', $minimumUnderTier()['names'])],
                 unnamed:   'COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER_UNNAMED',
+            );
+
+        // SKUs held by more than one product or variant: each SKU names one unit, so a save that keeps such a SKU is
+        // refused and the REST API cannot find it. Read once per computation: the state and the reason follow.
+        $duplicateSkus = null;
+        $skuDuplicates = static function () use (&$duplicateSkus): array {
+            return $duplicateSkus ??= SkuIndex::duplicates();
+        };
+
+        $this->check('catalog.sku_unique', 'COM_ALFA_SETUP_CHECK_SKU_UNIQUE_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason('COM_ALFA_SETUP_CHECK_SKU_UNIQUE')
+            ->cta('index.php?option=com_alfa&view=items')
+            ->priority(381)
+            ->probe(static fn (): string => $skuDuplicates() === [] ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN)
+            ->reasonArguments(
+                arguments: static fn (): array => $skuDuplicates() === [] ? [] : [
+                    (string) \count($skuDuplicates()),
+                    implode('; ', array_map(
+                        static fn (string $sku, array $units): string => SkuIndex::shown(sku: $sku) . ' (' . implode(', ', $units) . ')',
+                        array_map('strval', array_keys($skuDuplicates())),
+                        array_values($skuDuplicates()),
+                    )),
+                ],
+                unnamed:   'COM_ALFA_SETUP_CHECK_SKU_UNIQUE_UNNAMED',
             );
 
         // Online sales switched off (2.2.2): the shop shows its catalogue only. An information row, so the mode is never

@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
@@ -128,6 +129,34 @@ class ItemsController extends ApiController
         }
 
         return $answer;
+    }
+
+    /**
+     * Save the write: a SKU another product or variant holds answers 409 with the refusal's sentence, nothing saved.
+     *
+     * @param int|null $recordKey The record's key.
+     *
+     * @return int The record's id.
+     *
+     * @throws Save When the write's SKU is another unit's (409), or the save was refused otherwise.
+     *
+     * @since  2.3.0
+     */
+    protected function save($recordKey = null)
+    {
+        try {
+            return parent::save($recordKey);
+        } catch (Save $e) {
+            foreach ($this->itemModels as $model) {
+                foreach ($model->getErrors() as $error) {
+                    if ($error instanceof SkuInUseException) {
+                        throw new Save($error->refusal->placed(), $error->refusal->status, $e);
+                    }
+                }
+            }
+
+            throw $e;
+        }
     }
 
     /**
