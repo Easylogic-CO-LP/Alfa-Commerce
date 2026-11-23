@@ -2463,7 +2463,7 @@ class ItemFieldsAdminHelper
             ));
         }
 
-        foreach (self::gridStockEdits(existing: $existing, payload: $payload, deletedIds: $deletedIds) as $combinationId => $edit) {
+        foreach (self::gridStockEdits(itemId: $itemId, existing: $existing, payload: $payload, deletedIds: $deletedIds) as $combinationId => $edit) {
             $decision = self::gridStockDecision(
                 itemId: $itemId,
                 combinationId: $combinationId,
@@ -2592,7 +2592,7 @@ class ItemFieldsAdminHelper
         self::ensureCombinationLangSchema();
 
         $deletedIds = self::deletableIds(existing: $existing, deletedCombinationIds: $deletedCombinationIds);
-        $stockEdits = self::gridStockEdits(existing: $existing, payload: $payload, deletedIds: $deletedIds);
+        $stockEdits = self::gridStockEdits(itemId: $itemId, existing: $existing, payload: $payload, deletedIds: $deletedIds);
 
         // Publication changes of the surviving rows (an unticked box posts nothing).
         $stateChanges = [];
@@ -3974,18 +3974,25 @@ class ItemFieldsAdminHelper
     /**
      * The grid stock cells a payload posts for surviving combinations.
      *
+     * Each figure is compared with the figure its cell was rendered with (stock_baseline), which the grid renders
+     * beside every stock input: 0 for a combination with no stock yet. A save that posts a figure with no
+     * stock_baseline at all, a programmatic save that rendered no grid, is compared with the figure the grid renders
+     * now, as a programmatic save of the product's own stock figure is. A stock_baseline posted empty counts as
+     * missing, and the figure is refused rather than ignored.
+     *
+     * @param int $itemId The item.
      * @param array $existing The item's combination rows keyed by id.
      * @param array $payload The jform[combinations] array.
      * @param int[] $deletedIds Combinations the save deletes.
      *
-     * @return array<int, array{posted: ?string, baseline: ?string}> An empty
-     *                                                               figure counts as not posted; an empty baseline as missing.
+     * @return array<int, array{posted: ?string, baseline: ?string}> An empty figure counts as not posted.
      *
      * @since  2.0.0
      */
-    private static function gridStockEdits(array $existing, array $payload, array $deletedIds): array
+    private static function gridStockEdits(int $itemId, array $existing, array $payload, array $deletedIds): array
     {
         $edits = [];
+        $rendered = null;
 
         foreach ($payload as $combinationId => $row) {
             $combinationId = (int) $combinationId;
@@ -3998,15 +4005,49 @@ class ItemFieldsAdminHelper
             }
 
             $posted = trim((string) $row['stock']);
-            $baseline = trim((string) ($row['stock_baseline'] ?? ''));
+
+            if (\array_key_exists('stock_baseline', $row)) {
+                $baseline = trim((string) $row['stock_baseline']);
+                $baseline = $baseline === '' ? null : $baseline;
+            } else {
+                $rendered ??= self::gridRenderedFigures(itemId: $itemId);
+                $baseline = $rendered[$combinationId] ?? InventoryAvailabilityService::formatQuantity(value: 0.0);
+            }
 
             $edits[$combinationId] = [
                 'posted' => $posted === '' ? null : $posted,
-                'baseline' => $baseline === '' ? null : $baseline,
+                'baseline' => $baseline,
             ];
         }
 
         return $edits;
+    }
+
+    /**
+     * The figure the grid renders in each combination's stock cell now: the physical quantity at the location its one
+     * figure edits; where one figure cannot hold the combination's stock (it is held at several locations), the total,
+     * which no figure posted for the cell can be applied to. A combination with no stock record renders 0 and is not
+     * listed.
+     *
+     * @param int $itemId The item.
+     *
+     * @return array<int, string> The formatted figures by combination id.
+     *
+     * @since  2.3.0
+     */
+    private static function gridRenderedFigures(int $itemId): array
+    {
+        $enabledLocationIds = LocationPolicy::enabledIds(db: Factory::getContainer()->get('DatabaseDriver'));
+        $figures = [];
+
+        foreach (self::combinationStockByLocation(itemId: $itemId) as $combinationId => $unitRows) {
+            $locationId = self::gridStockLocation(unitRows: $unitRows, enabledLocationIds: $enabledLocationIds);
+            $figures[$combinationId] = InventoryAvailabilityService::formatQuantity(
+                value: $locationId !== null ? (float) ($unitRows[$locationId]['physical'] ?? 0.0) : array_sum(array_column($unitRows, 'physical')),
+            );
+        }
+
+        return $figures;
     }
 
     /**
