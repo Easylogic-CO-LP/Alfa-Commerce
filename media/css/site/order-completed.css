@@ -153,11 +153,11 @@
     margin-block: 1rem;
 }
 
-.com-alfa.order-completed .order-cancel > summary {
+.com-alfa.order-completed .order-cancel-open {
     list-style: none;
 }
 
-.com-alfa.order-completed .order-cancel > summary::-webkit-details-marker {
+.com-alfa.order-completed .order-cancel-open::-webkit-details-marker {
     display: none;
 }
 
@@ -186,7 +186,10 @@
 }
 
 @media print {
-    .com-alfa.order-completed .order-completed-actions,
+    .com-alfa.order-completed .order-completed-actions {
+        display: none;
+    }
+
     .com-alfa.order-completed .order-cancel {
         display: none;
     }

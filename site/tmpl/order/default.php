@@ -24,7 +24,8 @@
  * tmpl=component and print=1, the root marked data-order-print).
  *
  * Classes the stylesheet reads (media/com_alfa/css/site/order-completed.css):
- *   .order-completed  .order-account  .order-number  .order-cancel  .order-cancel-held  .order-completed-actions,
+ *   .order-completed  .order-account  .order-number  .order-cancel  .order-cancel-open  .order-cancel-held
+ *   .order-completed-actions,
  *   and those of the order.detail layout
  */
 
@@ -71,7 +72,7 @@ $this->getDocument()->getWebAssetManager()
     <?php // Cancel: only where the shop allows it; confirmed in place, a POST with the form's token. ?>
     <?php if ($this->cancel === CustomerCancel::OPEN) : ?>
     <details class="order-cancel">
-        <summary class="action secondary"><?php echo Text::_('COM_ALFA_ORDER_CANCEL_BUTTON'); ?></summary>
+        <summary class="action secondary order-cancel-open"><?php echo Text::_('COM_ALFA_ORDER_CANCEL_BUTTON'); ?></summary>
         <form method="post" action="<?php echo Route::_('index.php?option=com_alfa&task=order.cancel'); ?>">
             <p><?php echo Text::_('COM_ALFA_ORDER_CANCEL_QUESTION'); ?></p>
             <input type="hidden" name="id" value="<?php echo (int) $order->id; ?>">
