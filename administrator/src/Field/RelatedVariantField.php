@@ -95,7 +95,7 @@ class RelatedVariantField extends FormField
     {
         $renderer = parent::getRenderer($layoutId);
         $renderer->setComponent('com_alfa');
-        $renderer->setClient('administrator');
+        $renderer->setClient('admin');
 
         return $renderer;
     }
