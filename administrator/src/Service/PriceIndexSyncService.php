@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PriceChange;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -581,7 +582,7 @@ class PriceIndexSyncService
             ProjectionManager::markAllForRebuild();
             CatalogueRebuildJob::enqueue();
         } catch (Throwable $e) {
-            $this->logWarning(message: 'The catalogue could not be owed a rebuild after a failed write: ' . $e->getMessage());
+            $this->logWarning(message: 'The catalogue could not be owed a rebuild after a failed write: ' . ErrorText::of($e));
         }
     }
 
