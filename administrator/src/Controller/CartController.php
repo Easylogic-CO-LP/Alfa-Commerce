@@ -104,6 +104,27 @@ class CartController extends BaseController
     ];
 
     /**
+     * What a coupon code's outcome says to the operator who entered it on the builder: the storefront's reasons,
+     * worded for staff. An unpublished rule is named as such (the shopper reads "not recognised"). A code that
+     * applied says nothing: the cart's table shows its rule.
+     *
+     * @var array<string, string>
+     * @since  2.3.0
+     */
+    private const COUPON_WORDING = [
+        CouponOutcome::CONDITIONS_NOT_MET => 'COM_ALFA_CART_BUILDER_COUPON_CONDITIONS_NOT_MET',
+        CouponOutcome::NOT_FOUND => 'COM_ALFA_CART_BUILDER_COUPON_NOT_FOUND',
+        CouponOutcome::UNPUBLISHED => 'COM_ALFA_CART_BUILDER_COUPON_UNPUBLISHED',
+        CouponOutcome::NOT_YET_ACTIVE => 'COM_ALFA_CART_BUILDER_COUPON_NOT_YET_ACTIVE',
+        CouponOutcome::EXPIRED => 'COM_ALFA_CART_BUILDER_COUPON_EXPIRED',
+        CouponOutcome::USAGE_LIMIT_REACHED => 'COM_ALFA_CART_BUILDER_COUPON_USAGE_LIMIT_REACHED',
+        CouponOutcome::CUSTOMER_LIMIT_REACHED => 'COM_ALFA_CART_BUILDER_COUPON_CUSTOMER_LIMIT_REACHED',
+        CouponOutcome::REQUIRES_LOGIN => 'COM_ALFA_CART_BUILDER_COUPON_REQUIRES_LOGIN',
+        CouponOutcome::NOT_ELIGIBLE => 'COM_ALFA_CART_BUILDER_COUPON_NOT_ELIGIBLE',
+        CouponOutcome::NOT_BETTER_THAN_EXISTING => 'COM_ALFA_CART_BUILDER_COUPON_NOT_BETTER_THAN_EXISTING',
+    ];
+
+    /**
      * The builder page's sections a form may name for its reply to land on (the page's ids are alfa-builder-<name>).
      *
      * @var string[]
@@ -696,6 +717,11 @@ class CartController extends BaseController
             // nothing behind to describe.
             if (CouponOutcome::isStored($outcome)) {
                 $this->recordTakeover($actor, 'applyCoupon', ['code' => $code, 'outcome' => $outcome]);
+            }
+
+            // The page's form is told why, in staff wording; a scripted caller reads the outcome in the reply.
+            if (RequestScalar::read($this->input, 'form', '', 'word') !== '' && isset(self::COUPON_WORDING[$outcome])) {
+                $this->app->enqueueMessage(Text::_(self::COUPON_WORDING[$outcome]), CouponOutcome::messageType($outcome));
             }
 
             $this->emitCart($editor, '', false, ['outcome' => $outcome]);

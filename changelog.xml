@@ -33,6 +33,7 @@
             <item>Options, Currencies, Default Currency lists only the published currencies, and a saved value must be one of them: an unpublished default could be chosen, which left the setup checklist's Default currency step open and the shop's currency unresolved for every page that needs it. A shop whose default is no longer published sees "Select a currency" there, and Options are saved once a published currency is chosen.</item>
             <item>The currency edit screen's Status can no longer take the store's default currency, or the last published currency, out of service (unpublished, archived or trashed): the save is refused with the sentence the currencies list's Unpublish, Archive and Trash give. A PATCH of a currency over the REST API is refused the same way.</item>
             <item>The order builder (Sales > Carts, a cart opened) prints the administrator's own wording wherever the storefront's language file has a string of the same name: it loads the storefront's file for the checkout's notices and refusals, then its own over it. Before, the storefront's text of such a string showed on the administrator's screen.</item>
+            <item>The order builder says why a coupon code was not taken (no rule has the code, its rule is unpublished, not started or ended, its uses are spent, the customer may not use it, a better discount is already on the cart, or the cart does not meet its conditions yet), in words for staff. Before, the page reloaded with nothing said.</item>
         </fix>
 
         <addition>
