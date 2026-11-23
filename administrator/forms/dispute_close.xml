@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Alfa Commerce: Close a dispute with the outcome. DisputeModel leaves only the outcomes the record may take (closed as
+    an inquiry that ended for an inquiry, recorded in error for a record made by hand) and the amount only on a record made
+    by hand: a provider's record books the provider's amount at a loss.
+
+    @package    Alfa Commerce
+    @author     Agamemnon Fakas <info@easylogic.gr>
+    @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+    @license    GNU General Public License version 3 or later; see LICENSE
+-->
+<form>
+    <fieldset name="dispute">
+        <field name="outcome" type="list" label="COM_ALFA_DISPUTE_FIELD_OUTCOME" required="true" filter="cmd">
+            <option value="won">COM_ALFA_DISPUTE_OUTCOME_WON</option>
+            <option value="lost">COM_ALFA_DISPUTE_OUTCOME_LOST</option>
+            <option value="inquiry_ended">COM_ALFA_DISPUTE_OUTCOME_INQUIRY_ENDED</option>
+            <option value="in_error">COM_ALFA_DISPUTE_OUTCOME_IN_ERROR</option>
+        </field>
+        <field name="amount" type="text" label="COM_ALFA_DISPUTE_FIELD_FINAL_AMOUNT" description="COM_ALFA_DISPUTE_FIELD_FINAL_AMOUNT_DESC" validate="number" min="0" filter="string" inputmode="decimal" showon="outcome:lost"/>
+        <field name="fee_returned" type="text" label="COM_ALFA_DISPUTE_FIELD_FEE_RETURNED" validate="number" min="0" filter="string" inputmode="decimal"/>
+        <field name="note" type="text" label="COM_ALFA_DISPUTE_FIELD_NOTE" maxlength="255" filter="string"/>
+    </fieldset>
+</form>

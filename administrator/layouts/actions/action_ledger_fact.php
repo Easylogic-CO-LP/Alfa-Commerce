@@ -9,17 +9,15 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * Record a provider fact on a gateway row: the COMPONENT'S own form for
- * Record failed refund, Record won dispute and Record chargeback
- * alike. No plugin owns these actions, so no
- * plugin provides a layout for them.
+ * Record failed refund. No plugin owns this action, so no plugin provides a
+ * layout for it.
  *
- * Rendered by the non-mutating 'ledger_reversal' / 'ledger_chargeback' arms.
+ * Rendered by the non-mutating 'ledger_reversal' arm.
  * The submit button carries data attributes only; ledger-fact-form.js reads
  * the fields and calls AlfaAction.run('<action>_do', ...).
  *
- * Receives: kind ('refund_reversal' | 'dispute_won' | 'chargeback'), payment,
- * order, cap (Money for a reversal: what is left to reverse; null for a
- * chargeback), currency (the order's), submit (the _do action id). The ledger
+ * Receives: kind ('refund_reversal'), payment, order, cap (Money: what is left
+ * to reverse), currency (the order's), submit (the _do action id). The ledger
  * decides; max below is a courtesy to the typist, never the guard.
  *
  * A refused submission comes back here, not as the result notice: typed (the
@@ -53,11 +51,7 @@ $minorUnit = $scale > 0 ? '0.' . str_repeat('0', $scale - 1) . '1' : '1';
 // The machine form of the cap: no thousands separator, the currency's decimals.
 $capAttr = isset($cap) && $cap !== null ? number_format($cap->getAmount(), $scale, '.', '') : '';
 
-$intro = match ($kind) {
-    'refund_reversal' => Text::sprintf('COM_ALFA_LEDGER_REFUND_REVERSAL_INTRO', $escape($cap->format())),
-    'dispute_won'     => Text::sprintf('COM_ALFA_LEDGER_DISPUTE_WON_INTRO', $escape($cap->format())),
-    default           => Text::_('COM_ALFA_LEDGER_CHARGEBACK_INTRO'),
-};
+$intro = Text::sprintf('COM_ALFA_LEDGER_REFUND_REVERSAL_INTRO', $escape($cap->format()));
 
 // What the operator typed, on a refused submission; a fresh form has none.
 $typedOf = static fn (string $name): string => \is_array($typed ?? null) ? (string) ($typed[$name] ?? '') : '';

@@ -69,6 +69,25 @@
             <option value="1">COM_ALFA_FILTER_RECONCILIATION_NEEDED</option>
         </field>
 
+        <!-- Disputes: the orders with a card dispute in a state, or one to answer within seven days; where staff see
+             every case. -->
+        <field
+          name="dispute" type="list"
+          multiple="false"
+          label="COM_ALFA_FILTER_DISPUTE"
+          layout="joomla.form.field.list-fancy-select"
+          onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_DISPUTE_ANY</option>
+            <option value="undecided">COM_ALFA_FILTER_DISPUTE_UNDECIDED</option>
+            <option value="inquiry">COM_ALFA_FILTER_DISPUTE_INQUIRY</option>
+            <option value="open">COM_ALFA_FILTER_DISPUTE_OPEN</option>
+            <option value="under_review">COM_ALFA_FILTER_DISPUTE_UNDER_REVIEW</option>
+            <option value="won">COM_ALFA_FILTER_DISPUTE_WON</option>
+            <option value="lost">COM_ALFA_FILTER_DISPUTE_LOST</option>
+            <option value="due">COM_ALFA_FILTER_DISPUTE_DUE</option>
+        </field>
+
         <field
           name="overpaid" type="list"
           multiple="false"

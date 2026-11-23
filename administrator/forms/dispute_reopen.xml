@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Alfa Commerce: Reopen a won or lost dispute (a second round): the new deadline, typed in the shop's time zone and
+    stored in UTC. The case keeps its last decision until the bank decides again.
+
+    @package    Alfa Commerce
+    @author     Agamemnon Fakas <info@easylogic.gr>
+    @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+    @license    GNU General Public License version 3 or later; see LICENSE
+-->
+<form>
+    <fieldset name="dispute">
+        <field name="evidence_due_by" type="calendar" label="COM_ALFA_DISPUTE_FIELD_DUE" showtime="true" format="%Y-%m-%d %H:%M:%S" filter="server_utc"/>
+        <field name="note" type="text" label="COM_ALFA_DISPUTE_FIELD_NOTE" maxlength="255" filter="string"/>
+    </fieldset>
+</form>

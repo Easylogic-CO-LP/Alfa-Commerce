@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Alfa Commerce: a card dispute recorded by hand, or changed while it is still a record made by hand.
+
+    Rendered on the action page of the disputed payment (Record a dispute, Change) through DisputeModel::getForm(); the
+    model validates it and hands the values to the disputes ledger, which decides. The amount is in the order's currency
+    (prefilled with the payment's); the deadline is typed in the shop's time zone and stored in UTC.
+
+    @package    Alfa Commerce
+    @author     Agamemnon Fakas <info@easylogic.gr>
+    @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+    @license    GNU General Public License version 3 or later; see LICENSE
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="dispute">
+        <field name="kind" type="list" label="COM_ALFA_DISPUTE_FIELD_KIND" description="COM_ALFA_DISPUTE_FIELD_KIND_DESC" default="open" filter="cmd" required="true">
+            <option value="inquiry">COM_ALFA_DISPUTE_KIND_INQUIRY</option>
+            <option value="open">COM_ALFA_DISPUTE_KIND_CHARGEBACK</option>
+        </field>
+        <field name="amount" type="text" label="COM_ALFA_DISPUTE_FIELD_AMOUNT" description="COM_ALFA_DISPUTE_FIELD_AMOUNT_DESC" required="true" validate="number" min="0" filter="string" inputmode="decimal"/>
+        <field name="reason_code" type="list" label="COM_ALFA_DISPUTE_FIELD_REASON" default="other" filter="cmd" required="true">
+            <option value="fraud">COM_ALFA_DISPUTE_REASON_FRAUD</option>
+            <option value="not_received">COM_ALFA_DISPUTE_REASON_NOT_RECEIVED</option>
+            <option value="not_as_described">COM_ALFA_DISPUTE_REASON_NOT_AS_DESCRIBED</option>
+            <option value="duplicate">COM_ALFA_DISPUTE_REASON_DUPLICATE</option>
+            <option value="credit_not_processed">COM_ALFA_DISPUTE_REASON_CREDIT_NOT_PROCESSED</option>
+            <option value="cancelled">COM_ALFA_DISPUTE_REASON_CANCELLED</option>
+            <option value="unrecognised">COM_ALFA_DISPUTE_REASON_UNRECOGNISED</option>
+            <option value="other">COM_ALFA_DISPUTE_REASON_OTHER</option>
+        </field>
+        <field name="reason_text" type="text" label="COM_ALFA_DISPUTE_FIELD_REASON_TEXT" description="COM_ALFA_DISPUTE_FIELD_REASON_TEXT_DESC" maxlength="255" filter="string"/>
+        <field name="reference" type="text" label="COM_ALFA_DISPUTE_FIELD_REFERENCE" description="COM_ALFA_DISPUTE_FIELD_REFERENCE_DESC" filter="raw"/>
+        <field name="evidence_due_by" type="calendar" label="COM_ALFA_DISPUTE_FIELD_DUE" description="COM_ALFA_DISPUTE_FIELD_DUE_DESC" showtime="true" format="%Y-%m-%d %H:%M:%S" filter="server_utc"/>
+        <field name="fee_amount" type="text" label="COM_ALFA_DISPUTE_FIELD_FEE" validate="number" min="0" filter="string" inputmode="decimal"/>
+        <field name="fee_currency" type="text" label="COM_ALFA_DISPUTE_FIELD_FEE_CURRENCY" description="COM_ALFA_DISPUTE_FIELD_FEE_CURRENCY_DESC" maxlength="3" pattern="[A-Z]{3}" filter="cmd"/>
+        <field name="note" type="text" label="COM_ALFA_DISPUTE_FIELD_NOTE" maxlength="255" filter="string"/>
+    </fieldset>
+</form>

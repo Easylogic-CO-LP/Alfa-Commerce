@@ -19,15 +19,20 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ExecuteFieldActionEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\GetFieldActionsEvent;
+use Alfa\Component\Alfa\Administrator\Event\Payments\DisputeAcceptEvent;
+use Alfa\Component\Alfa\Administrator\Event\Payments\DisputeRefreshEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\ExecutePaymentActionEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\GetPaymentActionsEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ExecuteShipmentActionEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\GetShipmentActionsEvent;
+use Alfa\Component\Alfa\Administrator\Model\DisputeModel;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginAction;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeVerdict;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
@@ -49,7 +54,7 @@ class ActionRegistry
 {
     /**
      * The layout owner of the core-owned ledger actions (Record failed refund,
-     * Record chargeback, Record won dispute). No plugin folder carries this
+     * the report actions, the dispute actions). No plugin folder carries this
      * name, so the action layouts resolve to the component's
      * layouts/actions/<file>.php, as the wallet actions do.
      *
@@ -118,6 +123,25 @@ class ActionRegistry
      * @since  2.1.0
      */
     private const REPORT_FORMS = [self::RECORD_REFUND_TYPED, self::RECONCILE_REPORT, self::DISMISS_REPORT];
+
+    /**
+     * The prefix of the dispute actions: ledger_dispute_<act>, each form's submission its _do arm. A dispute's action
+     * posts the record's id in 'dispute'.
+     *
+     * @var string
+     *
+     * @since  2.2.2
+     */
+    public const DISPUTE_PREFIX = 'ledger_dispute_';
+
+    /**
+     * The field every dispute action posts: the record's id.
+     *
+     * @var string
+     *
+     * @since  2.2.2
+     */
+    public const DISPUTE_FIELD = 'dispute';
 
     /**
      * Where used one-time keys are kept.
@@ -1065,7 +1089,11 @@ class ActionRegistry
      */
     public static function getPaymentActions(object $payment, object $order): array
     {
-        return self::paymentOffer(payment: $payment, order: $order)['actions'];
+        // A dispute's actions are offered on its card, not on the payment's row.
+        return array_values(array_filter(
+            self::paymentOffer(payment: $payment, order: $order)['actions'],
+            static fn ($action): bool => !\array_key_exists(self::DISPUTE_FIELD, (array) (\is_array($action) ? ($action['data'] ?? []) : ($action->data ?? []))),
+        ));
     }
 
     /**
@@ -1109,6 +1137,7 @@ class ActionRegistry
             ),
             self::reportActions(payment: $payment),
             $ledger,
+            self::paymentDisputeActions(payment: $payment),
         );
 
         $startsRefund = static fn ($action): bool => (bool) (\is_array($action) ? ($action['starts_refund'] ?? false) : ($action->starts_refund ?? false));
@@ -1127,13 +1156,9 @@ class ActionRegistry
     }
 
     /**
-     * The COMPONENT'S OWN actions for recording a provider fact on a gateway row.
-     *
-     * Record failed refund (a settled refund the provider reports as failed or
-     * returned), Record won dispute (a chargeback the provider gave back) and
-     * Record chargeback (a completed payment the bank took money back from).
-     * They are the core-owned manual recording path for the
-     * gateways that report no such event, and never boot a plugin.
+     * The COMPONENT'S OWN actions on a gateway row: Record failed refund (a settled refund the provider reports as
+     * failed or returned) and Record a dispute (a completed or refunded payment the customer's bank disputes). They are
+     * the core-owned way for the gateways that report no such event, and never boot a plugin.
      *
      * Only on a gateway row: a row whose class is empty or non-gateway (the
      * wallet) is offered none.
@@ -1158,41 +1183,200 @@ class ActionRegistry
             return [];
         }
 
-        $action = null;
-
         if ($type === PaymentLedger::TYPE_REFUND
             && \in_array($status, [PaymentLedger::STATUS_REFUNDED, PaymentLedger::STATUS_COMPLETED], true)
             && PaymentLedger::unreversedRemainder($rowId)->isPositive()) {
-            $action = ['ledger_reversal', 'COM_ALFA_LEDGER_RECORD_REFUND_FAILED', 'undo-2'];
-        } elseif ($type === PaymentLedger::TYPE_CHARGEBACK
-            && $status === PaymentLedger::STATUS_COMPLETED
-            && PaymentLedger::unreversedRemainder($rowId)->isPositive()) {
-            $action = ['ledger_reversal', 'COM_ALFA_LEDGER_RECORD_DISPUTE_WON', 'undo-2'];
-        } elseif ($type === PaymentLedger::TYPE_PAYMENT && $status === PaymentLedger::STATUS_COMPLETED) {
-            $action = ['ledger_chargeback', 'COM_ALFA_LEDGER_RECORD_CHARGEBACK', 'warning'];
+            return [
+                new PluginAction([
+                    'id' => 'ledger_reversal',
+                    'label' => Text::_('COM_ALFA_LEDGER_RECORD_REFUND_FAILED'),
+                    'icon' => 'undo-2',
+                    'class' => 'btn-outline-danger',
+                    'response_layout' => 'action_ledger_fact',
+                    'modal_title' => Text::_('COM_ALFA_LEDGER_RECORD_REFUND_FAILED'),
+                    'modal_size' => 'sm',
+                    'priority' => 40,
+                    // The form only asks; the arm that records (<id>_do) is never
+                    // offered and falls to the fail-closed default.
+                    'mutates' => false,
+                ]),
+            ];
         }
 
-        if ($action === null) {
+        if ($type === PaymentLedger::TYPE_PAYMENT && \in_array($status, [PaymentLedger::STATUS_COMPLETED, PaymentLedger::STATUS_REFUNDED], true)) {
+            return [self::disputeAction(act: 'record', labelKey: 'COM_ALFA_DISPUTE_ACTION_RECORD', icon: 'warning', class: 'btn-outline-danger', data: [])];
+        }
+
+        return [];
+    }
+
+    /**
+     * The actions a dispute's card offers now, by its state, its kind of record and what its payment's plugin answers:
+     * Mark evidence sent (inquiry, open), Close with the outcome (undecided; won and lost to correct), Reopen (won,
+     * lost), Change (a record made by hand), Same dispute as #n and A different dispute (a record that waits for that
+     * answer), the amount in the order's currency (a lost record that waits for it), Ask the provider again and Accept
+     * at the provider (when the payment's plugin has the method). A closed record offers none.
+     *
+     * @param object $dispute The record (DisputeLedger::forOrder() or ::get()).
+     * @param object $payment Its payment row.
+     *
+     * @return PluginAction[]
+     *
+     * @since  2.2.2
+     */
+    public static function disputeActions(object $dispute, object $payment): array
+    {
+        $state = (string) $dispute->state;
+        $id = (int) $dispute->id;
+        $data = [self::DISPUTE_FIELD => $id];
+        $actions = [];
+
+        if ($state === DisputeLedger::STATE_CLOSED) {
             return [];
         }
 
-        [$id, $labelKey, $icon] = $action;
+        $waits = (string) ($dispute->waits_for ?? '');
 
-        return [
-            new PluginAction([
-                'id' => $id,
-                'label' => Text::_($labelKey),
-                'icon' => $icon,
-                'class' => 'btn-outline-danger',
-                'response_layout' => 'action_ledger_fact',
-                'modal_title' => Text::_($labelKey),
-                'modal_size' => 'sm',
-                'priority' => 40,
-                // The form only asks; the arm that records (<id>_do) is never
-                // offered and falls to the fail-closed default.
-                'mutates' => false,
-            ]),
-        ];
+        if ($waits === DisputeLedger::WAITS_SAME_PAYMENT) {
+            foreach ((array) ($dispute->candidates ?? self::candidatesOf(dispute: $dispute)) as $candidate) {
+                $actions[] = self::disputeAction(act: 'same', labelKey: 'COM_ALFA_DISPUTE_ACTION_SAME', icon: 'link', class: 'btn-outline-primary', data: $data + ['same_as' => (int) $candidate], labelArgument: (int) $candidate, mutates: true, confirm: 'COM_ALFA_DISPUTE_CONFIRM_SAME');
+            }
+
+            $actions[] = self::disputeAction(act: 'different', labelKey: 'COM_ALFA_DISPUTE_ACTION_DIFFERENT', icon: 'unlink', class: 'btn-outline-secondary', data: $data, mutates: true, confirm: 'COM_ALFA_DISPUTE_CONFIRM_DIFFERENT');
+        }
+
+        if ($waits === DisputeLedger::WAITS_AMOUNT_UNKNOWN) {
+            $actions[] = self::disputeAction(act: 'amount', labelKey: 'COM_ALFA_DISPUTE_ACTION_AMOUNT', icon: 'pencil', class: 'btn-outline-danger', data: $data);
+        }
+
+        if (\in_array($state, [DisputeLedger::STATE_INQUIRY, DisputeLedger::STATE_OPEN], true)) {
+            $actions[] = self::disputeAction(act: 'evidence', labelKey: 'COM_ALFA_DISPUTE_ACTION_EVIDENCE', icon: 'upload', class: 'btn-outline-primary', data: $data);
+        }
+
+        $actions[] = self::disputeAction(act: 'close', labelKey: 'COM_ALFA_DISPUTE_ACTION_CLOSE', icon: 'checkmark', class: 'btn-outline-secondary', data: $data);
+
+        if (\in_array($state, [DisputeLedger::STATE_WON, DisputeLedger::STATE_LOST], true)) {
+            $actions[] = self::disputeAction(act: 'reopen', labelKey: 'COM_ALFA_DISPUTE_ACTION_REOPEN', icon: 'refresh', class: 'btn-outline-secondary', data: $data);
+        }
+
+        if (!DisputeLedger::followsProvider(record: $dispute)) {
+            $actions[] = self::disputeAction(act: 'change', labelKey: 'COM_ALFA_DISPUTE_ACTION_CHANGE', icon: 'edit', class: 'btn-outline-secondary', data: $data);
+        }
+
+        // The provider's own answers, offered only when the payment's plugin writes them and the case names its id.
+        if ((string) ($dispute->reference ?? '') !== '') {
+            $plugin = self::pluginOfRecord(group: 'alfa-payments', type: self::methodType($payment, 'payment_method_type'));
+
+            if ($plugin instanceof LoadedPlugin) {
+                $plugins = AlfaPluginHelper::get();
+
+                if ($plugins->declares($plugin, DisputeRefreshEvent::NAME)) {
+                    $actions[] = self::disputeAction(act: 'refresh', labelKey: 'COM_ALFA_DISPUTE_ACTION_REFRESH', icon: 'loop', class: 'btn-outline-secondary', data: $data, mutates: true);
+                }
+
+                if (\in_array($state, [DisputeLedger::STATE_INQUIRY, DisputeLedger::STATE_OPEN], true) && $plugins->declares($plugin, DisputeAcceptEvent::NAME)) {
+                    $actions[] = self::disputeAction(act: 'accept', labelKey: 'COM_ALFA_DISPUTE_ACTION_ACCEPT', icon: 'flag', class: 'btn-outline-danger', data: $data);
+                }
+            }
+        }
+
+        return $actions;
+    }
+
+    /**
+     * Every dispute action of a payment's records: the action page's offer, decided again for the record a request
+     * names ({@see self::executeDisputeAction()}).
+     *
+     * @param object $payment Payment row.
+     *
+     * @return PluginAction[]
+     *
+     * @since  2.2.2
+     */
+    private static function paymentDisputeActions(object $payment): array
+    {
+        if ((string) ($payment->payment_type ?? '') !== PaymentLedger::TYPE_PAYMENT || (int) ($payment->id ?? 0) <= 0) {
+            return [];
+        }
+
+        $actions = [];
+
+        foreach (self::disputesOfPayment(paymentId: (int) $payment->id) as $dispute) {
+            array_push($actions, ...self::disputeActions(dispute: $dispute, payment: $payment));
+        }
+
+        return $actions;
+    }
+
+    /**
+     * One dispute action.
+     *
+     * @param string $act The act (record, evidence, close, reopen, change, same, different, amount, refresh, accept).
+     * @param string $labelKey Its label's key.
+     * @param string $icon Its icon.
+     * @param string $class Its button class.
+     * @param array $data What it posts (the record's id; the candidate for same).
+     * @param int $labelArgument A number the label names (Same dispute as #n); 0 for none.
+     * @param bool $mutates It writes at once (no form): submitted with a one-time key.
+     * @param string $confirm The key of the question asked before it writes at once; '' for none.
+     *
+     * @since  2.2.2
+     */
+    private static function disputeAction(string $act, string $labelKey, string $icon, string $class, array $data, int $labelArgument = 0, bool $mutates = false, string $confirm = ''): PluginAction
+    {
+        $label = $labelArgument > 0 ? Text::sprintf($labelKey, $labelArgument) : Text::_($labelKey);
+
+        return new PluginAction([
+            'requires_confirmation' => $confirm !== '',
+            'confirmation_message' => $confirm !== '' ? $confirm : null,
+            'id' => self::DISPUTE_PREFIX . $act,
+            'label' => $label,
+            'icon' => $icon,
+            'class' => $class,
+            'response_layout' => 'action_dispute',
+            'modal_title' => $label,
+            'modal_size' => 'md',
+            'priority' => 45,
+            'data' => $data,
+            'mutates' => $mutates,
+        ]);
+    }
+
+    /**
+     * The records of one payment, oldest first, each with its reconcile candidates.
+     *
+     * @param int $paymentId The payment.
+     *
+     * @return list<object>
+     *
+     * @since  2.2.2
+     */
+    private static function disputesOfPayment(int $paymentId): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $orderId = (int) $db->setQuery('SELECT ' . $db->quoteName('id_order') . ' FROM ' . $db->quoteName('#__alfa_order_payments') . ' WHERE ' . $db->quoteName('id') . ' = ' . $paymentId)->loadResult();
+
+        return array_values(array_filter(DisputeLedger::forOrder(orderId: $orderId), static fn (object $dispute): bool => (int) $dispute->id_payment === $paymentId));
+    }
+
+    /**
+     * The reconcile candidates of a record read alone.
+     *
+     * @param object $dispute The record.
+     *
+     * @return list<int>
+     *
+     * @since  2.2.2
+     */
+    private static function candidatesOf(object $dispute): array
+    {
+        foreach (DisputeLedger::forOrder(orderId: (int) $dispute->id_order) as $record) {
+            if ((int) $record->id === (int) $dispute->id) {
+                return (array) $record->candidates;
+            }
+        }
+
+        return [];
     }
 
     /**
@@ -1334,10 +1518,10 @@ class ActionRegistry
      * submission brings the form back holding what the operator typed. The
      * report actions are answered by executeReportAction().
      *
-     * @param object $payment The refund, chargeback or payment row.
+     * @param object $payment The refund or payment row.
      * @param object $order Its order.
-     * @param string $action ledger_reversal, ledger_chargeback, either with _do, or a report action.
-     * @param Input $input Request input (amount, reference, reason; a report's reference).
+     * @param string $action ledger_reversal or its _do arm, a report action, or a dispute action.
+     * @param Input $input Request input (amount, reference, reason; a report's reference; a dispute's form).
      *
      * @return ExecutePaymentActionEvent The event the action page renders.
      *
@@ -1353,21 +1537,24 @@ class ActionRegistry
         ]);
 
         $rowId = (int) ($payment->id ?? 0);
-        $isRefund = (string) ($payment->payment_type ?? '') === PaymentLedger::TYPE_REFUND;
 
         if (self::isReportAction(actionId: $action)) {
             return self::executeReportAction(event: $event, payment: $payment, order: $order, action: $action, input: $input);
+        }
+
+        if (str_starts_with($action, self::DISPUTE_PREFIX)) {
+            return self::executeDisputeAction(event: $event, payment: $payment, order: $order, action: $action, input: $input);
         }
 
         // The order's currency at its frozen scale: the one the ledger's verbs
         // compare against.
         $currency = PaymentLedger::paidTotal((int) ($payment->id_order ?? 0))->getCurrency();
 
-        if ($action === 'ledger_reversal' || $action === 'ledger_chargeback') {
+        if ($action === 'ledger_reversal') {
             return self::ledgerForm(event: $event, payment: $payment, order: $order, formAction: $action, currency: $currency);
         }
 
-        if (!\in_array($action, ['ledger_reversal_do', 'ledger_chargeback_do'], true)) {
+        if ($action !== 'ledger_reversal_do') {
             $event->setError(Text::sprintf('COM_ALFA_LEDGER_UNKNOWN_ACTION', $action));
 
             return $event;
@@ -1401,13 +1588,8 @@ class ActionRegistry
             'reason' => trim(RequestScalar::string($input, 'reason')),
         ];
 
-        if ($action === 'ledger_chargeback_do') {
-            $result = PaymentLedger::recordChargeback(paymentId: $rowId, amount: $amount, options: $options);
-            $messageKey = 'COM_ALFA_LEDGER_CHARGEBACK_DONE';
-        } else {
-            $result = PaymentLedger::recordReversal(rowId: $rowId, amount: $amount, options: $options);
-            $messageKey = $isRefund ? 'COM_ALFA_LEDGER_REVERSAL_DONE' : 'COM_ALFA_LEDGER_DISPUTE_WON_DONE';
-        }
+        $result = PaymentLedger::recordReversal(rowId: $rowId, amount: $amount, options: $options);
+        $messageKey = 'COM_ALFA_LEDGER_REVERSAL_DONE';
 
         if ($result['outcome'] !== PaymentLedger::OUTCOME_RECORDED) {
             return self::ledgerForm(event: $event, payment: $payment, order: $order, formAction: $formAction, currency: $currency, typed: $typed, refusal: (string) $result['reason']);
@@ -1428,9 +1610,9 @@ class ActionRegistry
      * reads above the fields, and the event still answers as refused.
      *
      * @param ExecutePaymentActionEvent $event The event the action page renders.
-     * @param object $payment The refund, chargeback or payment row.
+     * @param object $payment The refund row.
      * @param object $order Its order.
-     * @param string $formAction ledger_reversal or ledger_chargeback.
+     * @param string $formAction ledger_reversal.
      * @param Currency $currency The order's currency at its frozen scale.
      * @param array $typed What the operator typed: amount, reference, reason.
      * @param string $refusal Why the submission was refused, plain text; '' for a fresh form.
@@ -1447,7 +1629,6 @@ class ActionRegistry
         array $typed = [],
         string $refusal = '',
     ): ExecutePaymentActionEvent {
-        $isRefund = (string) ($payment->payment_type ?? '') === PaymentLedger::TYPE_REFUND;
         $message = $refusal === '' ? '' : Text::sprintf('COM_ALFA_LEDGER_ACTION_FAILED', $refusal);
 
         if ($message !== '') {
@@ -1456,10 +1637,10 @@ class ActionRegistry
 
         $event->setLayout('action_ledger_fact');
         $event->setLayoutData([
-            'kind' => $formAction === 'ledger_chargeback' ? 'chargeback' : ($isRefund ? 'refund_reversal' : 'dispute_won'),
+            'kind' => 'refund_reversal',
             'payment' => $payment,
             'order' => $order,
-            'cap' => $formAction === 'ledger_reversal' ? PaymentLedger::unreversedRemainder(rowId: (int) ($payment->id ?? 0)) : null,
+            'cap' => PaymentLedger::unreversedRemainder(rowId: (int) ($payment->id ?? 0)),
             'currency' => $currency,
             'submit' => $formAction . '_do',
             'typed' => $typed,
@@ -1467,6 +1648,238 @@ class ActionRegistry
         ]);
 
         return $event;
+    }
+
+    /**
+     * Answer a dispute action. Never writes the table: the form arms show the act's form (DisputeModel::getForm(), from
+     * its XML), the _do arms validate it there and run the act through the model, which hands it to the disputes
+     * ledger; the reconcile answers and Ask the provider again write at once; Accept at the provider asks a typed
+     * confirmation, then the plugin. The action must be on offer for the record now, as its card offers it. A refused
+     * submission brings the form back holding what was typed, with the reason above it.
+     *
+     * @param ExecutePaymentActionEvent $event The event the action page renders.
+     * @param object $payment The disputed payment.
+     * @param object $order Its order.
+     * @param string $action ledger_dispute_<act>, or its _do arm.
+     * @param Input $input The request: 'dispute', and the form's jform values.
+     *
+     * @since  2.2.2
+     */
+    private static function executeDisputeAction(ExecutePaymentActionEvent $event, object $payment, object $order, string $action, Input $input): ExecutePaymentActionEvent
+    {
+        $submitted = str_ends_with($action, '_do');
+        $formOf = $submitted ? substr($action, 0, -3) : $action;
+        $act = substr($formOf, \strlen(self::DISPUTE_PREFIX));
+        $dispute = null;
+        $offered = self::ledgerActions(payment: $payment);
+
+        if ($act !== 'record') {
+            $dispute = DisputeLedger::get(disputeId: RequestScalar::int($input, self::DISPUTE_FIELD));
+
+            if ($dispute === null || (int) $dispute->id_payment !== (int) ($payment->id ?? 0)) {
+                return self::disputeAnswer(event: $event, message: Text::_('COM_ALFA_DISPUTE_ACTION_GONE'), success: false);
+            }
+
+            $dispute->candidates = self::candidatesOf(dispute: $dispute);
+            $offered = self::disputeActions(dispute: $dispute, payment: $payment);
+        }
+
+        $same = RequestScalar::int($input, 'same_as');
+        $offeredNow = array_values(array_filter($offered, static fn (PluginAction $one): bool => $one->id === $formOf
+            && ($act !== 'same' || (int) ($one->data['same_as'] ?? 0) === $same)));
+
+        if ($offeredNow === []) {
+            return self::disputeAnswer(event: $event, message: Text::_('COM_ALFA_ACTION_REFUSED_STALE'), success: false);
+        }
+
+        $user = Factory::getApplication()->getIdentity();
+        $model = self::disputeModel();
+
+        if ($act === 'same' || $act === 'different') {
+            return self::disputeVerdictAnswer(event: $event, verdict: $model->act(act: $act, payment: $payment, dispute: $dispute, values: ['same_as' => $same], user: $user));
+        }
+
+        if ($act === 'refresh' || $act === 'accept') {
+            return self::askProvider(event: $event, payment: $payment, dispute: $dispute, act: $act, submitted: $submitted, input: $input);
+        }
+
+        $form = $model->getForm(['act' => $act, 'payment' => $payment, 'dispute' => $dispute]);
+
+        if ($form === false) {
+            return self::disputeAnswer(event: $event, message: Text::_('COM_ALFA_DISPUTE_ACTION_GONE'), success: false);
+        }
+
+        if (!$submitted) {
+            return self::disputeForm(event: $event, payment: $payment, dispute: $dispute, act: $act, form: $form);
+        }
+
+        $typed = (array) $input->post->get('jform', [], 'array');
+        $valid = $model->validate($form, $typed);
+
+        if ($valid === false) {
+            $errors = array_map(static fn ($error): string => $error instanceof Throwable ? $error->getMessage() : (string) $error, $model->getErrors());
+
+            return self::disputeForm(event: $event, payment: $payment, dispute: $dispute, act: $act, form: $model->getForm(['act' => $act, 'payment' => $payment, 'dispute' => $dispute, 'typed' => $typed]), refusal: implode(' ', $errors));
+        }
+
+        $verdict = $model->act(act: $act, payment: $payment, dispute: $dispute, values: $valid, user: $user);
+
+        if (!$verdict->isWritten()) {
+            return self::disputeForm(event: $event, payment: $payment, dispute: $dispute, act: $act, form: $model->getForm(['act' => $act, 'payment' => $payment, 'dispute' => $dispute, 'typed' => $typed]), refusal: $verdict->message);
+        }
+
+        return self::disputeVerdictAnswer(event: $event, verdict: $verdict);
+    }
+
+    /**
+     * Ask the payment's plugin: Ask the provider again (at once), or Accept at the provider (after the typed
+     * confirmation). The plugin applies the provider's word with its own dispute() and answers; core writes the staff
+     * act's action log row.
+     *
+     * @param ExecutePaymentActionEvent $event The event the action page renders.
+     * @param object $payment The disputed payment.
+     * @param object $dispute The record.
+     * @param string $act refresh or accept.
+     * @param bool $submitted The confirmation was submitted (accept).
+     * @param Input $input The request.
+     *
+     * @since  2.2.2
+     */
+    private static function askProvider(ExecutePaymentActionEvent $event, object $payment, object $dispute, string $act, bool $submitted, Input $input): ExecutePaymentActionEvent
+    {
+        $phrase = (string) ($dispute->reference ?? '');
+
+        if ($act === 'accept' && !$submitted) {
+            $event->setLayout('action_dispute');
+            $event->setLayoutData(['act' => 'accept', 'dispute' => $dispute, 'payment' => $payment, 'form' => null, 'phrase' => $phrase, 'submit' => self::DISPUTE_PREFIX . 'accept_do', 'refusal' => '']);
+
+            return $event;
+        }
+
+        if ($act === 'accept' && self::typedValue(input: $input, name: 'phrase') !== $phrase) {
+            $event->setLayout('action_dispute');
+            $event->setLayoutData(['act' => 'accept', 'dispute' => $dispute, 'payment' => $payment, 'form' => null, 'phrase' => $phrase, 'submit' => self::DISPUTE_PREFIX . 'accept_do', 'refusal' => Text::_('COM_ALFA_DISPUTE_ACCEPT_PHRASE_WRONG')]);
+
+            return $event;
+        }
+
+        $plugin = self::pluginOfRecord(group: 'alfa-payments', type: self::methodType($payment, 'payment_method_type'));
+
+        if (!$plugin instanceof LoadedPlugin) {
+            return self::disputeAnswer(event: $event, message: self::pluginRefusal(group: 'alfa-payments', type: self::methodType($payment, 'payment_method_type'), unavailable: $plugin), success: false);
+        }
+
+        $record = ['id' => (int) $dispute->id, 'id_order' => (int) $dispute->id_order, 'id_payment' => (int) $dispute->id_payment, 'reference' => (string) ($dispute->reference ?? ''), 'state' => (string) $dispute->state, 'stage' => (int) $dispute->stage, 'amount' => $dispute->amount, 'stated_amount' => $dispute->stated_amount, 'stated_currency' => $dispute->stated_currency, 'evidence_due_by' => $dispute->evidence_due_by];
+        $asked = $act === 'accept' ? new DisputeAcceptEvent(DisputeAcceptEvent::NAME, ['dispute' => $record]) : new DisputeRefreshEvent(DisputeRefreshEvent::NAME, ['dispute' => $record]);
+        $orderId = (int) $dispute->id_order;
+        $user = Factory::getApplication()->getIdentity();
+
+        ActionLogHelper::write(
+            extension: 'com_alfa',
+            languageKey: $act === 'accept' ? 'COM_ALFA_ACTIONLOG_DISPUTE_ACCEPT_ASKED' : 'COM_ALFA_ACTIONLOG_DISPUTE_REFRESH_ASKED',
+            facts: ['title' => '#' . $orderId, 'itemlink' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId, 'dispute' => (int) $dispute->id, 'payment' => (int) $dispute->id_payment],
+            itemId: $orderId,
+            actor: $user,
+        );
+
+        try {
+            AlfaPluginHelper::get()->dispatchTo($plugin, $asked);
+        } catch (Throwable $e) {
+            self::warn('Dispute #' . (int) $dispute->id . ': ' . $asked->getName() . ' failed: ' . $e->getMessage());
+
+            return self::disputeAnswer(event: $event, message: Text::_('COM_ALFA_DISPUTE_PROVIDER_FAILED'), success: false);
+        }
+
+        if ($asked->getVerdict() !== null) {
+            return self::disputeVerdictAnswer(event: $event, verdict: $asked->getVerdict());
+        }
+
+        return self::disputeAnswer(event: $event, message: $asked->getError() !== '' ? $asked->getError() : Text::_('COM_ALFA_DISPUTE_PROVIDER_NO_ANSWER'), success: false);
+    }
+
+    /**
+     * The form page of a dispute act: fresh, or refused and holding what was typed.
+     *
+     * @param ExecutePaymentActionEvent $event The event the action page renders.
+     * @param object $payment The disputed payment.
+     * @param object|null $dispute The record; null for record.
+     * @param string $act The act.
+     * @param \Joomla\CMS\Form\Form|false $form The act's form.
+     * @param string $refusal Why a submission was refused, plain text; '' for a fresh form.
+     *
+     * @since  2.2.2
+     */
+    private static function disputeForm(ExecutePaymentActionEvent $event, object $payment, ?object $dispute, string $act, mixed $form, string $refusal = ''): ExecutePaymentActionEvent
+    {
+        if ($refusal !== '') {
+            $event->setError(Text::sprintf('COM_ALFA_DISPUTE_ACTION_REFUSED', $refusal));
+        }
+
+        $event->setLayout('action_dispute');
+        $event->setLayoutData([
+            'act' => $act,
+            'dispute' => $dispute,
+            'payment' => $payment,
+            'form' => $form === false ? null : $form,
+            'submit' => self::DISPUTE_PREFIX . $act . '_do',
+            'refusal' => $refusal === '' ? '' : Text::sprintf('COM_ALFA_DISPUTE_ACTION_REFUSED', $refusal),
+        ]);
+
+        return $event;
+    }
+
+    /**
+     * The result notice of a dispute act's verdict.
+     *
+     * @param ExecutePaymentActionEvent $event The event.
+     * @param DisputeVerdict $verdict The verdict.
+     *
+     * @since  2.2.2
+     */
+    private static function disputeVerdictAnswer(ExecutePaymentActionEvent $event, DisputeVerdict $verdict): ExecutePaymentActionEvent
+    {
+        return $verdict->isWritten()
+            ? self::disputeAnswer(event: $event, message: Text::sprintf('COM_ALFA_DISPUTE_SAVED', $verdict->disputeId), success: true)
+            : self::disputeAnswer(event: $event, message: Text::sprintf('COM_ALFA_DISPUTE_ACTION_REFUSED', $verdict->message), success: false);
+    }
+
+    /**
+     * A result notice that reloads the order screen.
+     *
+     * @param ExecutePaymentActionEvent $event The event.
+     * @param string $message The sentence, plain text.
+     * @param bool $success It was done.
+     *
+     * @since  2.2.2
+     */
+    private static function disputeAnswer(ExecutePaymentActionEvent $event, string $message, bool $success): ExecutePaymentActionEvent
+    {
+        if ($success) {
+            $event->setSuccess(true);
+            $event->setMessage($message);
+        } else {
+            $event->setError($message);
+        }
+
+        $event->setRefresh(true);
+
+        return $event;
+    }
+
+    /**
+     * The dispute model.
+     *
+     * @since  2.2.2
+     */
+    private static function disputeModel(): DisputeModel
+    {
+        $model = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory()->createModel('Dispute', 'Administrator', ['ignore_request' => true]);
+
+        if (!$model instanceof DisputeModel) {
+            throw new RuntimeException('The dispute model could not be created.', 500);
+        }
+
+        return $model;
     }
 
     /**
