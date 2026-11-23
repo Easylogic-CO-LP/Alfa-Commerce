@@ -32,6 +32,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSaveBusyException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
@@ -59,6 +60,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Closure;
 use Joomla\CMS\Component\ComponentHelper;
@@ -1379,6 +1381,17 @@ class ItemModel extends AlfaAdminModel
             // A SKU in use is the merchant's to change: the refusal is said as it is, never as a failed save.
             if ($e instanceof SkuInUseException) {
                 $this->setError($e);
+
+                return false;
+            }
+
+            // Another write held the same rows (two creates of one SKU at once): nothing was kept, and the same save
+            // sent again finds them free, so the caller is told to send it again rather than that the save failed.
+            if (MysqlError::busy(error: $e)) {
+                $this->setError(new ItemSaveBusyException(
+                    refusal: new Refusal(code: 'busy', sentence: Text::_('COM_ALFA_ITEM_SAVE_BUSY'), status: Refusal::CONFLICT),
+                    previous: $e,
+                ));
 
                 return false;
             }

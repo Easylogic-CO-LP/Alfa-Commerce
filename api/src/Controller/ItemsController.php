@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSaveBusyException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
@@ -176,13 +177,15 @@ class ItemsController extends ApiController
     }
 
     /**
-     * Save the write: a SKU another product or variant holds answers 409 with the refusal's sentence, nothing saved.
+     * Save the write: a SKU another product or variant holds answers 409 with the refusal's sentence, nothing saved; a
+     * save that met another write of the same rows answers 409 with Retry-After, to be sent again.
      *
      * @param int|null $recordKey The record's key.
      *
      * @return int The record's id.
      *
-     * @throws Save When the write's SKU is another unit's (409), or the save was refused otherwise.
+     * @throws Save When the write's SKU is another unit's (409), another write held its rows (409, Retry-After), or the
+     *              save was refused otherwise.
      *
      * @since  2.3.0
      */
@@ -196,11 +199,21 @@ class ItemsController extends ApiController
                     // The write checked the product out before its save; a refused write gives it back as it found it.
                     $model->checkin(RequestScalar::int($this->input, 'id'));
 
+                    if (\in_array('busy', array_column($model->written()->refused, 'code'), true)) {
+                        $this->app->setHeader('Retry-After', (string) ItemSaveBusyException::RETRY_AFTER, true);
+                    }
+
                     throw new ItemGraphRefusedException(refusals: $model->written()->refused);
                 }
 
                 foreach ($model->getErrors() as $error) {
                     if ($error instanceof SkuInUseException) {
+                        throw new Save($error->refusal->placed(), $error->refusal->status, $e);
+                    }
+
+                    if ($error instanceof ItemSaveBusyException) {
+                        $this->app->setHeader('Retry-After', (string) ItemSaveBusyException::RETRY_AFTER, true);
+
                         throw new Save($error->refusal->placed(), $error->refusal->status, $e);
                     }
                 }

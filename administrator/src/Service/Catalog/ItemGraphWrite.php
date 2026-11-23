@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
@@ -130,7 +131,10 @@ final class ItemGraphWrite
             }
         } catch (RuntimeException $e) {
             Log::add('Product ' . $id . ' and its graph were not saved: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.catalog');
-            $refused = [new Refusal(code: 'refused', sentence: ErrorText::of($e), status: Refusal::CONFLICT)];
+            // Another write held the same rows: the request is to be sent again, as the product's own save says it.
+            $refused = [MysqlError::busy(error: $e)
+                ? new Refusal(code: 'busy', sentence: Text::_('COM_ALFA_ITEM_SAVE_BUSY'), status: Refusal::CONFLICT)
+                : new Refusal(code: 'refused', sentence: ErrorText::of($e), status: Refusal::CONFLICT)];
         } finally {
             if ($change !== null) {
                 $committed ? ProjectionManager::rebuildChanged(change: $change) : ProjectionManager::leaveChanged(change: $change);
@@ -347,8 +351,8 @@ final class ItemGraphWrite
     }
 
     /**
-     * The product's own refusals (the item save's), each a refusal of the request as a whole; a SKU in use keeps its
-     * own place and status.
+     * The product's own refusals (the item save's), each a refusal of the request as a whole; a SKU in use and a save
+     * that met another write of the same rows keep their own place and status.
      *
      * @return list<Refusal>
      *
@@ -359,7 +363,7 @@ final class ItemGraphWrite
         $refusals = [];
 
         foreach ($this->model->getErrors() as $error) {
-            if ($error instanceof SkuInUseException) {
+            if ($error instanceof SkuInUseException || $error instanceof ItemSaveBusyException) {
                 $refusals[] = $error->refusal;
             }
         }
