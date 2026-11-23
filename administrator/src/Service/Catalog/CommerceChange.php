@@ -24,8 +24,9 @@ use Joomla\Database\ParameterType;
  * integrator that keeps stock and prices in step reads the products changed since its last read with
  * filter[changed_since] instead of every product.
  *
- * The writers: InventoryService (the statement that moves a product's stock figures), the product's save, the
- * combination's own save (its prices), and the price index's announcement of the periods that begin.
+ * The writers: InventoryService (the statement that moves a product's stock figures, and a move into or out of the
+ * archive), the product's save, the combination's own save (its prices), and the price index's announcement of the
+ * periods that begin.
  *
  * @api WRITE: mark() records on the products the time their stock, prices or own fields changed; now() and bound()
  *      read the time and a changed_since bound.

@@ -8650,6 +8650,10 @@ final class InventoryService
                 }
             }
 
+            // Into or out of the archive, the products leave or rejoin what the shop sells: a change of what they
+            // have to sell, which an integrator reading filter[changed_since] must see, in the move's transaction.
+            CommerceChange::mark(db: $this->db, itemIds: $ids);
+
             foreach ($ids as $itemId) {
                 // An archived product is never offered for sale, so none of its
                 // units is evaluated for notices again: what they show is retired.
