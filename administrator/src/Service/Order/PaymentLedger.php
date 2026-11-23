@@ -5227,7 +5227,9 @@ class PaymentLedger
      * @param array $options See above
      *
      * @return array ['outcome' => OUTCOME_*, 'refund_id' => int (0 when no
-     *               row was written), 'reason' => string (empty on success)]
+     *               row was written), 'reason' => string (empty on success),
+     *               'amount' => float (the amount the verdict concerns, in
+     *               major units)]
      *
      * @since  2.0.0
      */
