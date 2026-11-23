@@ -732,8 +732,6 @@ final class Runner
             Job\PriceIndexTidyJob::NAME => Job\PriceIndexTidyJob::class,
             // The gallery's thumbnails, recreated from Tools > Media.
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
-            // The background work an alfa plugin owes, handed back to it.
-            Job\ExtensionJob::NAME => Job\ExtensionJob::class,
             // The images a REST API write gave as addresses, fetched and stored.
             Job\MediaFetchJob::NAME => Job\MediaFetchJob::class,
             // What a consumer of the shop's changes is owed, delivered.

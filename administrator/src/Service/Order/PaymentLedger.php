@@ -13512,6 +13512,9 @@ class PaymentLedger
      * Returns the raw DB row enriched with:
      *   - params -> full payment method record (from PaymentModel)
      *
+     * @api READ ONLY: one payment row, its amount as Money and its method's record attached: the row staffSettle()
+     *      takes.
+     *
      * @param int $id Payment row PK.
      *
      * @return object|null Payment record with params, its amount as Money, or null if not found
