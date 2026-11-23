@@ -26,6 +26,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
 use LogicException;
@@ -347,7 +348,13 @@ final class UnitBatch
                 $e instanceof UnitBatchRefusal => $refused($at, $e->status, ErrorText::of($e)),
                 $e instanceof PricesStateChanged => $refused($pointer . '/prices_state', 409, 'the unit\'s prices changed since you read them (prices_state). Read them again.'),
                 $e instanceof InventoryReservedFloorException, $e instanceof InventoryIntegrityException => $refused($at, 409, $e->operatorMessage()),
-                $e instanceof InventoryUnitException => $refused($at, 422, $combinationId > 0 ? 'this combination does not track stock.' : 'this product does not track stock.'),
+                // A unit that stopped taking stock between the batch's reading and its write: archived, gone or no longer
+                // tracked, refused 409 in the words the stock commands give it on their own path.
+                $e instanceof InventoryUnitException => $refused($at, 409, Text::sprintf(match ($e->reason) {
+                    InventoryUnitException::ITEM_ARCHIVED => 'COM_ALFA_INVENTORY_UNIT_ARCHIVED',
+                    InventoryUnitException::NOT_TRACKED => 'COM_ALFA_INVENTORY_UNIT_NOT_TRACKED',
+                    default => 'COM_ALFA_INVENTORY_UNIT_GONE',
+                }, InventoryUnitException::labelFor(itemId: $itemId, combinationId: $combinationId)) . ' ' . Text::_('COM_ALFA_INVENTORY_NOTHING_CHANGED')),
                 $e instanceof InventoryProjectionMismatchException => $refused($at, 409, 'the unit\'s stock figures disagree with its stock records; the shop repairs them first.'),
                 // The services' own refusals (a place deleted since, a location that takes no stock); never the database's.
                 $e instanceof RuntimeException && !str_starts_with($e::class, 'Joomla\\Database\\') && !TransactionState::endedBy(db: $this->db, failure: $e)
