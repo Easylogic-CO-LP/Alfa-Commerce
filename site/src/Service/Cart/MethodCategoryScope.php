@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
@@ -177,7 +178,8 @@ final class MethodCategoryScope
         $lines = [];
 
         foreach ($rows as $row) {
-            $lines[(int) $row->id] ??= ['categories' => [], 'name' => (string) $row->name];
+            // The order froze its line's name as a map of languages: the sentence reads it in this request's language.
+            $lines[(int) $row->id] ??= ['categories' => [], 'name' => MultilingualHelper::resolveLangMap((string) $row->name)];
 
             if ($row->category_id !== null) {
                 $lines[(int) $row->id]['categories'][] = (int) $row->category_id;
