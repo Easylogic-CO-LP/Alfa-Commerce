@@ -49,7 +49,18 @@ extract($displayData);
 
 // Get price object
 $prices = $item->price ?? null;
+
+// No price to show (none is set for the shopper, or the shop shows its catalogue only): its place says how to get one,
+// in the shop's own words (COM_ALFA_PRICE_ON_REQUEST, which a language override can change, or empty to show nothing).
 if (!$prices) {
+	$onRequest = Text::_('COM_ALFA_PRICE_ON_REQUEST');
+
+	if ($onRequest !== '') {
+		?>
+<div class="item-price-request"><?php echo htmlspecialchars($onRequest, ENT_QUOTES, 'UTF-8'); ?></div>
+		<?php
+	}
+
 	return;
 }
 
@@ -87,8 +98,8 @@ $discountShown = !empty($settings['discount_amount_show']) && $hasDiscount;
 $showBase = !empty($settings['base_price_show']);
 $showSubtotal = !empty($settings['base_price_with_discounts_show']);
 $showWithTax = !empty($settings['base_price_with_tax_show']);
-$showFinal = !empty($settings['final_price_show']);
-$netSaving = $discountShown && ($showBase || $showSubtotal) && ($showSubtotal || (!$showWithTax && !$showFinal));
+// The rule is PriceSettings::netSaving(), which the catalogue's saving filter and sort read too.
+$netSaving = $discountShown && PriceSettings::netSaving(settings: $settings);
 $grossSaving = $discountShown && ($showWithTax || (!$showBase && !$showSubtotal));
 // EACH SAVING NAMED BY ITS BASIS WHEN BOTH SHOW: two rows both reading "Discount" read as two discounts
 // on a product that has one. A block showing one saving keeps the plain word.

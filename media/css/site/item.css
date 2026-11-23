@@ -11,6 +11,12 @@
     gap: 20px;
 }
 
+/* A product name may be one word longer than the screen is wide: in the page's title and in the template's breadcrumb
+   (Joomla's breadcrumbs module) it wraps rather than widen the page. No specificity, so a template's rule wins. */
+:where(.item-name, .mod-breadcrumbs__item) {
+    overflow-wrap: anywhere;
+}
+
 /* Sale-tag badge (a flagged discount's name, contributed to a surface slot by
    SaleTag). Plain names, scoped under the alfa root shell; layout is overridable.
    Context modifiers: .sale-tag--list (cards) / .sale-tag--item (product page). */

@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Order\NamedLock;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
@@ -103,13 +104,17 @@ use Throwable;
  * keep and is prepared at once.
  *
  * Generations. A context-wide change is written as the next GENERATION of every context it reaches, beside the live
- * one, and switched whole when complete ({@see self::markPrepared()}): a rule or a tax whose scope is more than one chunk
- * and at least half the published products (every live context, prepared in the save's request within a budget, the
- * rest by the jobs), and a place moved, published or unpublished (the contexts priced at or below it, by the jobs);
- * a first generation still being prepared in their reach is started again from its first product. Readers read the
- * live generation (is_live) only; writes meanwhile go to the live one and, for the products it has passed, to the one
- * being prepared, so a product saved while a generation is prepared is read with the change before the switch. The retired generation's rows, and the periods that ended, are removed by the
- * price.index.tidy job (once a day, and after each switch).
+ * one: a rule or a tax whose scope is more than one chunk and at least half the published products (every live context,
+ * prepared in the save's request within a budget, the rest by the jobs), and a place moved, published or unpublished
+ * (the contexts priced at or below it, by the jobs); a generation still being prepared in their reach, or complete and
+ * waiting for its switch, is started again from its first product. A generation whose chunks are all written is
+ * complete (prepared_at set, is_live NULL); the next generations of live contexts switch live together, in one
+ * transaction, once none of them is still being prepared ({@see self::switchReady()}), so a change replaces the live
+ * prices whole in every context at the same moment; a first generation (a context new to the data) switches live
+ * once it is complete. Readers read the live generation (is_live) only; writes meanwhile go to the live one and, for
+ * the products it has passed, to the one being prepared or complete, so a product saved meanwhile is read with the
+ * change before the switch. The retired generation's rows, and the periods that ended, are removed by the
+ * price.index.tidy job (once a day, and after each switch's announcement).
  *
  * On an update, the previous index (the table with a place_id column) is renamed #__alfa_items_price_index_prev by the
  * installer and stays readable, with its readers, while the new index is built in the background by the catalogue job
@@ -147,6 +152,7 @@ use Throwable;
  *   pricingGroups(), slotKey()     - the groups that change a price; the set of one visitor
  *   readableSetKey(), slotSetJoin(), slotPlaces(), slotRanking() - the previous index's reader, kept for the build
  *   oweChainRebuild($placeIds)     - the generations owed when places take another parent or another state
+ *   switchReady()                  - the complete generations switched live (the preparation's end, the tidy)
  *   removeRetired($n), removeEndedPeriods($n), tidyCount() - the tidy (the price.index.tidy job)
  *   startBuild(), writeBuildFlag(), switchedAt() - the build after the update (the installer)
  *
@@ -160,18 +166,22 @@ use Throwable;
  *   An inventory kernel command (after its commit), the shop-wide stock settings saved -> the opening combination only
  *                                    (no price row)
  *
- * A failure of a write is logged and owed to the catalogue job (ProjectionManager::owe()); a save is never refused.
+ * A failure of a write is logged and owed to the catalogue job (ProjectionManager::owe()); a save is never refused. A
+ * failure before the products are known (the contexts' alignment, the read of a rule's scope) owes every product.
  *
  * THE PRICE-CHANGE EVENT (onAlfaPricesChanged, {@see PricesChangedEvent}). This writer is the only place that writes
  * the index, so it announces it: each public write runs as one announcement ({@see self::announcing()}); while
- * something listens, each chunk reads its rows before rewriting them, and the rows that changed join the announcement
- * once the chunk's level has committed; it goes out once, after the outermost commit (PostCommit). With no listener
- * nothing is read.
+ * something listens, each chunk reads the live rows it rewrites before rewriting them, and the rows that changed join
+ * the announcement once the chunk's level has committed; it goes out once, after the outermost commit (PostCommit).
+ * With no listener nothing is read. The rows of a generation that is not live are not announced, since no reader
+ * reads them: its switch is ({@see self::announceSwitch()}).
  *
  * @since  1.0.0
  */
 class PriceIndexSyncService
 {
+    use NamedLock;
+
     // Constants
 
     /** Products per chunk of the writer: one transaction, one load per context and period. */
@@ -196,6 +206,16 @@ class PriceIndexSyncService
 
     /** valid_from of the period that is live when the row is written. */
     public const EPOCH = '1000-01-01 00:00:00';
+
+    /**
+     * Seconds a switch waits for the tidy to let go of the switch's lock: the tidy holds it for one batch of removals.
+     *
+     * @since  2.2.2
+     */
+    private const SWITCH_LOCK_SECONDS = 30;
+
+    /** Products per page of a switch's announcement. */
+    private const SWITCH_PAGE = 500;
 
     /** The sets of pricing groups. */
     private const SETS_TABLE = '#__alfa_price_group_sets';
@@ -525,6 +545,8 @@ class PriceIndexSyncService
      */
     private function syncScope(callable $itemIds, string $label): int
     {
+        $ids = null;
+
         try {
             $contexts = $this->alignContexts();
             $ids = $itemIds();
@@ -537,8 +559,33 @@ class PriceIndexSyncService
             return $ids === [] ? 0 : $this->writeIndexRows(itemIds: $ids, contexts: $contexts);
         } catch (Throwable $e) {
             $this->logWarning("{$label} failed: " . ErrorText::of($e));
+            $this->oweAfterFailure(itemIds: $ids);
 
             return 0;
+        }
+    }
+
+    /**
+     * Owe the catalogue job what a write that failed before or between its chunks left unwritten: the products it
+     * named, or every product when it failed before they were known. A failure to record it is logged.
+     *
+     * @param int[]|null $itemIds The products; null for every product.
+     *
+     * @since  2.2.2
+     */
+    private function oweAfterFailure(?array $itemIds): void
+    {
+        if ($itemIds !== null) {
+            ProjectionManager::owe(itemIds: $itemIds);
+
+            return;
+        }
+
+        try {
+            ProjectionManager::markAllForRebuild();
+            CatalogueRebuildJob::enqueue();
+        } catch (Throwable $e) {
+            $this->logWarning(message: 'The catalogue could not be owed a rebuild after a failed write: ' . ErrorText::of($e));
         }
     }
 
@@ -588,6 +635,7 @@ class PriceIndexSyncService
                 return $written;
             } catch (Throwable $e) {
                 $this->logWarning('syncAll() failed: ' . ErrorText::of($e));
+                $this->oweAfterFailure(itemIds: null);
 
                 return 0;
             }
@@ -1816,12 +1864,11 @@ class PriceIndexSyncService
         $placed = [];
         $preparing = [];
 
-        // The live contexts and the first generations being prepared, priced at or below the places.
+        // The live contexts and the generations not live yet, priced at or below the places.
         foreach ($this->db->setQuery(
             'SELECT ' . $this->db->quoteName('id') . ', ' . $this->db->quoteName('priced_at_place_id') . ', ' . $this->db->quoteName('is_live')
             . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE)
-            . ' WHERE ' . $this->db->quoteName('priced_at_place_id') . ' > 0 AND ' . $this->db->quoteName('retired_at') . ' IS NULL'
-            . ' AND (' . $this->db->quoteName('is_live') . ' = 1 OR ' . $this->db->quoteName('prepared_at') . ' IS NULL)',
+            . ' WHERE ' . $this->db->quoteName('priced_at_place_id') . ' > 0 AND ' . $this->db->quoteName('retired_at') . ' IS NULL',
         )->loadObjectList() ?: [] as $row) {
             $place = (int) $row->priced_at_place_id;
 
@@ -2081,33 +2128,16 @@ class PriceIndexSyncService
         $detect = self::detecting();
         $before = [];
         $after = [];
+        // The live contexts this chunk rewrites: only their rows are read by visitors, so only they are announced; a
+        // generation that is not live is announced by its switch.
+        $live = array_column($contexts, 'live', 'id');
+        $announced = array_keys(array_filter($deleteOf, static fn (array $items, int $id): bool => $items !== [] && ($live[$id] ?? false), ARRAY_FILTER_USE_BOTH));
 
-        if ($detect) {
-            $written = array_keys(array_filter($deleteOf, static fn (array $items): bool => $items !== []));
-            $before = $written === [] ? [] : array_filter(
-                $this->readIndexRows(itemIds: $chunk, contextIds: $written),
+        if ($detect && $announced !== []) {
+            $before = array_filter(
+                $this->readIndexRows(itemIds: $chunk, contextIds: $announced),
                 static fn (array $row): bool => \in_array($row['item'], $deleteOf[$row['context']] ?? [], true),
             );
-            // A generation being prepared beside a live one is compared with what readers read now: the live rows.
-            $liveOf = [];
-
-            foreach ($contexts as $context) {
-                if ($context['liveOf'] !== null && ($deleteOf[$context['id']] ?? []) !== []) {
-                    $liveOf[$context['liveOf']] = $context['id'];
-                }
-            }
-
-            if ($liveOf !== []) {
-                $before = array_filter($before, static fn (array $row): bool => !\in_array($row['context'], $liveOf, true));
-
-                foreach ($this->readIndexRows(itemIds: $chunk, contextIds: array_keys($liveOf)) as $row) {
-                    $row['context'] = $liveOf[$row['context']];
-
-                    if (\in_array($row['item'], $deleteOf[$row['context']], true)) {
-                        $before[self::rowKey(row: $row)] = $row;
-                    }
-                }
-            }
         }
 
         // One DELETE per distinct list of products: the rows of exactly the contexts rewritten below.
@@ -2220,7 +2250,7 @@ class PriceIndexSyncService
                             . ',' . ($period['until'] === null ? 'NULL' : $this->db->quote($period['until']))
                             . ',' . implode(',', array_map(static fn (?string $v): string => $v ?? 'NULL', $f)) . ',UTC_TIMESTAMP())';
 
-                        if ($detect) {
+                        if ($detect && ($live[$contextId] ?? false)) {
                             $row = ['context' => (int) $contextId, 'item' => (int) $itemId, 'combination' => (int) $combinationId, 'from' => $period['from'],
                                 'until' => $period['until'], 'final' => $f['final_price'] === null ? null : self::columnText(value: $f['final_price'], places: 8)];
                             $after[self::rowKey(row: $row)] = $row;
@@ -2259,10 +2289,9 @@ class PriceIndexSyncService
                 $terms[$context['id']] = ['currency' => $context['currency_id'], 'place' => $context['priced_at_place_id'], 'set' => $context['group_set_id'], 'user' => $context['user_id']];
             }
 
-            $written = array_keys(array_filter($deleteOf, static fn (array $items): bool => $items !== []));
             $this->chunkChanges = [
                 'changes' => self::rowChanges(before: $before, after: $after, terms: $terms),
-                'sets' => array_values(array_unique(array_map(static fn (int $id): int => $terms[$id]['set'], $written))),
+                'sets' => array_values(array_unique(array_map(static fn (int $id): int => $terms[$id]['set'], $announced))),
             ];
 
             // The consumers of price changes are owed the units whose selling price moved, in the chunk's transaction.
@@ -2657,26 +2686,41 @@ class PriceIndexSyncService
 
         $db = $this->db;
         $join = static function () use ($announcement, $kept, $db): void {
-            foreach ($kept['changes'] as $change) {
-                $announcement->changes[] = $change;
-                $announcement->items[$change->itemId] = true;
-            }
-
-            foreach ($kept['sets'] as $setId) {
-                $announcement->sets[$setId] = true;
-            }
-
-            // THE BOUND: past the limit, with no transaction open, what is collected goes out as its own event.
-            if (\count($announcement->changes) >= self::ANNOUNCE_LIMIT && !TransactionState::isOpen($db)) {
-                $part = clone $announcement;
-                $announcement->changes = [];
-                $announcement->items = [];
-                $announcement->sets = [];
-                self::deliver(announcement: $part);
-            }
+            self::collect(announcement: $announcement, changes: $kept['changes'], sets: $kept['sets'], db: $db);
         };
 
         PostCommit::defer(db: $this->db, label: PricesChangedEvent::NAME, work: $join);
+    }
+
+    /**
+     * Join committed changes to an announcement; past the limit, with no transaction open, what it holds goes out as
+     * its own event (THE BOUND), so a large write is announced in exact parts.
+     *
+     * @param stdClass $announcement The announcement.
+     * @param PriceChange[] $changes The changes.
+     * @param int[] $sets The sets of pricing groups they were written for.
+     * @param DatabaseDriver $db The connection.
+     *
+     * @since  2.2.2
+     */
+    private static function collect(stdClass $announcement, array $changes, array $sets, DatabaseDriver $db): void
+    {
+        foreach ($changes as $change) {
+            $announcement->changes[] = $change;
+            $announcement->items[$change->itemId] = true;
+        }
+
+        foreach ($sets as $setId) {
+            $announcement->sets[$setId] = true;
+        }
+
+        if (\count($announcement->changes) >= self::ANNOUNCE_LIMIT && !TransactionState::isOpen($db)) {
+            $part = clone $announcement;
+            $announcement->changes = [];
+            $announcement->items = [];
+            $announcement->sets = [];
+            self::deliver(announcement: $part);
+        }
     }
 
     /**
@@ -2756,12 +2800,13 @@ class PriceIndexSyncService
      *
      * @param int[] $itemIds The products.
      * @param int[]|null $contextIds The contexts; null for every context.
+     * @param bool $locking A locking read (the rows a chunk rewrites); false for a plain read.
      *
      * @return array<string, array{context: int, item: int, combination: int, from: string, until: string|null, final: string|null}> By row key.
      *
      * @since  2.2.0
      */
-    private function readIndexRows(array $itemIds, ?array $contextIds): array
+    private function readIndexRows(array $itemIds, ?array $contextIds, bool $locking = true): array
     {
         $db = $this->db;
         $sql = 'SELECT ' . implode(', ', $db->quoteName(['context_id', 'item_id', 'combination_id', 'valid_from', 'valid_until', 'final_price']))
@@ -2769,7 +2814,7 @@ class PriceIndexSyncService
             . ($contextIds !== null ? ' AND ' . $db->quoteName('context_id') . ' IN (' . implode(',', array_map('intval', $contextIds)) . ')' : '');
         $rows = [];
 
-        foreach ($db->setQuery($sql . ' FOR UPDATE')->loadObjectList() ?: [] as $stored) {
+        foreach ($db->setQuery($sql . ($locking ? ' FOR UPDATE' : ''))->loadObjectList() ?: [] as $stored) {
             $row = [
                 'context' => (int) $stored->context_id, 'item' => (int) $stored->item_id, 'combination' => (int) $stored->combination_id,
                 'from' => (string) $stored->valid_from, 'until' => $stored->valid_until === null ? null : (string) $stored->valid_until,
@@ -2977,7 +3022,14 @@ class PriceIndexSyncService
             $anyPrepared = $anyPrepared || (int) $row->is_live === 1;
         }
 
-        $this->dropContexts(ids: array_merge([], ...array_values(array_diff_key($known, $defined))));
+        $dropped = array_merge([], ...array_values(array_diff_key($known, $defined)));
+        $this->dropContexts(ids: $dropped);
+
+        // A dropped generation may have been the last one the complete ones waited for.
+        if ($dropped !== []) {
+            $this->switchReady();
+        }
+
         $new = array_diff_key($defined, $known);
         $this->lastRequested = 0;
 
@@ -3023,7 +3075,7 @@ class PriceIndexSyncService
      * @param int[]|null $ids The contexts; null for every one.
      * @param bool $waitingOnly Only contexts that wait for their preparation.
      *
-     * @return array<int, array{id: int, currency_id: int, rule_place_id: int, price_place_id: int, priced_at_place_id: int, group_set_id: int, user_id: int, groups: int[], through: int|null, leftOut: int[], liveOf: int|null}>
+     * @return array<int, array{id: int, currency_id: int, rule_place_id: int, price_place_id: int, priced_at_place_id: int, group_set_id: int, user_id: int, groups: int[], through: int|null, leftOut: int[], live: bool}>
      *
      * @since  2.2.2
      */
@@ -3048,13 +3100,9 @@ class PriceIndexSyncService
         $out = [];
 
         foreach ($this->db->setQuery(
-            'SELECT c.id, c.currency_id, c.rule_place_id, c.price_place_id, c.priced_at_place_id, c.group_set_id, c.user_id, c.prepared_at, c.prepared_through, c.left_out, s.group_list,'
-            . ' l.id AS live_id'
+            'SELECT c.id, c.currency_id, c.rule_place_id, c.price_place_id, c.priced_at_place_id, c.group_set_id, c.user_id, c.is_live, c.prepared_at, c.prepared_through, c.left_out, s.group_list'
             . ' FROM ' . $this->db->quoteName(self::CONTEXTS_TABLE, 'c')
             . ' INNER JOIN ' . $this->db->quoteName(self::SETS_TABLE, 's') . ' ON s.id = c.group_set_id'
-            . ' LEFT JOIN ' . $this->db->quoteName(self::CONTEXTS_TABLE, 'l') . ' ON c.prepared_at IS NULL AND l.is_live = 1 AND l.id <> c.id'
-            . ' AND l.currency_id = c.currency_id AND l.rule_place_id = c.rule_place_id AND l.price_place_id = c.price_place_id'
-            . ' AND l.group_set_id = c.group_set_id AND l.user_id = c.user_id'
             . ' WHERE ' . implode(' AND ', $where)
             . ' ORDER BY c.id',
         )->loadObjectList() ?: [] as $row) {
@@ -3069,8 +3117,8 @@ class PriceIndexSyncService
                 'groups' => self::groupsOfList(list: (string) $row->group_list),
                 'through' => $row->prepared_at === null ? (int) $row->prepared_through : null,
                 'leftOut' => self::groupsOfList(list: (string) $row->left_out),
-                // A generation being prepared beside the live one of its context: the live one's id.
-                'liveOf' => $row->live_id === null ? null : (int) $row->live_id,
+                // Whether readers read it: a generation being prepared, or complete and waiting for its switch, is not.
+                'live' => (int) $row->is_live === 1,
             ];
         }
 
@@ -3357,15 +3405,13 @@ class PriceIndexSyncService
     }
 
     /**
-     * Mark a generation prepared and switch it live: first every unit it is written for that no row of it covers
-     * now is written (a product the preparation passed while another writer held it), a product whose pricing throws
-     * left out with no figure; then, in one transaction, the live generation of the same context retired and this one
-     * live, so a reader meets the old generation or the new one, never a mix. The retired generation's rows are removed
-     * by the tidy job.
+     * Mark a generation complete: first every unit it is written for that no row of it covers now is written (a product
+     * the preparation passed while another writer held it), a product whose pricing throws left out with no figure;
+     * then its prepared_at is set, and it waits for its switch ({@see self::switchReady()}), which is asked at once.
      *
      * @param int $contextId The generation, all of whose chunks are written.
      *
-     * @return int 1 when it was switched live; 0 when it was gone or already live.
+     * @return int 1 when it was marked complete; 0 when it was gone or already complete.
      *
      * @since  2.2.2
      */
@@ -3392,33 +3438,15 @@ class PriceIndexSyncService
         }
 
         $db = $this->db;
-        $retired = 0;
+        $marked = false;
         $db->transactionStart(true);
 
         try {
-            $row = $db->setQuery(
-                'SELECT ' . implode(', ', $db->quoteName(['currency_id', 'rule_place_id', 'price_place_id', 'group_set_id', 'user_id']))
-                . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $contextId
-                . ' AND ' . $db->quoteName('prepared_at') . ' IS NULL FOR UPDATE',
-            )->loadObject();
-
-            if ($row === null) {
-                TransactionState::commitLevel(db: $db);
-
-                return 0;
-            }
-
-            $db->setQuery(
-                'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE) . ' SET ' . $db->quoteName('is_live') . ' = NULL, ' . $db->quoteName('retired_at') . ' = UTC_TIMESTAMP()'
-                . ' WHERE ' . $db->quoteName('is_live') . ' = 1 AND ' . $db->quoteName('id') . ' <> ' . $contextId . ' AND ' . self::keyWhere(db: $db, row: $row),
-            )->execute();
-            $retired = (int) $db->getAffectedRows();
-            $db->setQuery(
+            $marked = $db->setQuery(
                 'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE)
-                . ' SET ' . $db->quoteName('is_live') . ' = 1, ' . $db->quoteName('prepared_at') . ' = UTC_TIMESTAMP(), ' . $db->quoteName('requested_at') . ' = NULL, '
-                . $db->quoteName('prepared_through') . ' = 0'
-                . ' WHERE ' . $db->quoteName('id') . ' = ' . $contextId,
-            )->execute();
+                . ' SET ' . $db->quoteName('prepared_at') . ' = UTC_TIMESTAMP(), ' . $db->quoteName('requested_at') . ' = NULL, ' . $db->quoteName('prepared_through') . ' = 0'
+                . ' WHERE ' . $db->quoteName('id') . ' = ' . $contextId . ' AND ' . $db->quoteName('prepared_at') . ' IS NULL',
+            )->execute() && $db->getAffectedRows() > 0;
             TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
@@ -3426,14 +3454,183 @@ class PriceIndexSyncService
             throw $e;
         }
 
-        self::$readContexts = [];
-        self::$resolved = [];
+        if (!$marked) {
+            return 0;
+        }
 
-        if ($retired > 0) {
+        $this->switchReady();
+
+        return 1;
+    }
+
+    /**
+     * Switch live the generations that are complete: a first generation (its context has no live one) at once; the
+     * next generations of live contexts all together, once none of them is still being prepared, so a change prepared
+     * beside the live prices replaces them in every context at the same moment. One transaction: each switched
+     * generation's live predecessor retired, the generation live, so a reader meets the old prices or the new ones,
+     * never a mix, and no two contexts disagree about the change. What the switch changed for readers is announced
+     * after its commit ({@see self::announceSwitch()}); then the tidy is owed, which removes the retired rows.
+     *
+     * Asked when a generation is marked complete, when contexts are dropped (the last one being prepared may be among
+     * them) and by the tidy job; never inside a transaction, since the switch is its own.
+     *
+     * @return int The generations switched live.
+     *
+     * @since  2.2.2
+     */
+    public function switchReady(): int
+    {
+        $db = $this->db;
+
+        if (TransactionState::isOpen(db: $db)) {
+            return 0;
+        }
+
+        $switched = 0;
+        $retired = false;
+        $work = function () use ($db, &$switched, &$retired): void {
+            $table = $db->quoteName(self::CONTEXTS_TABLE);
+            $twin = static fn (string $of): string => 'l.is_live = 1 AND l.id <> ' . $of . '.id AND l.currency_id = ' . $of . '.currency_id AND l.rule_place_id = ' . $of . '.rule_place_id'
+                . ' AND l.price_place_id = ' . $of . '.price_place_id AND l.group_set_id = ' . $of . '.group_set_id AND l.user_id = ' . $of . '.user_id';
+            $pairs = [];
+            $retire = [];
+            $db->transactionStart(true);
+
+            try {
+                $ready = $db->setQuery(
+                    'SELECT c.id, l.id AS live_id FROM ' . $table . ' AS c LEFT JOIN ' . $table . ' AS l ON ' . $twin('c')
+                    . ' WHERE c.is_live IS NULL AND c.retired_at IS NULL AND c.prepared_at IS NOT NULL ORDER BY c.id FOR UPDATE',
+                )->loadObjectList() ?: [];
+                $preparing = $ready !== [] && (bool) $db->setQuery(
+                    'SELECT 1 FROM ' . $table . ' AS c INNER JOIN ' . $table . ' AS l ON ' . $twin('c') . ' WHERE c.prepared_at IS NULL AND c.retired_at IS NULL',
+                    0,
+                    1,
+                )->loadResult();
+
+                foreach ($ready as $row) {
+                    if ($row->live_id === null) {
+                        $pairs[(int) $row->id] = null;
+                    } elseif (!$preparing) {
+                        $pairs[(int) $row->id] = (int) $row->live_id;
+                    }
+                }
+
+                $retire = array_values(array_filter($pairs));
+
+                if ($retire !== []) {
+                    $db->setQuery(
+                        'UPDATE ' . $table . ' SET ' . $db->quoteName('is_live') . ' = NULL, ' . $db->quoteName('retired_at') . ' = UTC_TIMESTAMP()'
+                        . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', $retire) . ')',
+                    )->execute();
+                }
+
+                if ($pairs !== []) {
+                    $db->setQuery(
+                        'UPDATE ' . $table . ' SET ' . $db->quoteName('is_live') . ' = 1, ' . $db->quoteName('prepared_at') . ' = UTC_TIMESTAMP()'
+                        . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', array_keys($pairs)) . ')',
+                    )->execute();
+                }
+
+                TransactionState::commitLevel(db: $db);
+            } catch (Throwable $e) {
+                TransactionState::rollBackLevel(db: $db, failure: $e);
+
+                throw $e;
+            }
+
+            if ($pairs === []) {
+                return;
+            }
+
+            self::$readContexts = [];
+            self::$resolved = [];
+            $switched = \count($pairs);
+            $retired = $retire !== [];
+            $this->announceSwitch(pairs: $pairs);
+        };
+
+        // The switch and its announcement under the switch's lock, which the tidy takes before it removes retired rows:
+        // the rows the announcement compares are still there while it reads them.
+        if (!self::runLocked(name: self::lockName(db: $db, kind: 'price-switch', id: 0), label: 'price index switch lock', logCategory: 'com_alfa', work: $work, wait: self::SWITCH_LOCK_SECONDS)) {
+            $this->logWarning(message: 'The complete generations were not switched: the switch lock stayed held; the next preparation or tidy switches them.');
+
+            return 0;
+        }
+
+        if ($retired) {
             PriceIndexTidyJob::enqueue();
         }
 
-        return 1;
+        return $switched;
+    }
+
+    /**
+     * Announce a switch, right after its commit and while nothing can remove the rows it replaced: one PriceChange per
+     * row a switched generation holds that differs from the live generation it replaced (each row of a first
+     * generation, which replaced none: its visitors read a nearer context from now on), the generations read a page of
+     * products at a time and delivered in exact events of at most ANNOUNCE_LIMIT changes. It joins the write that made
+     * the switch (the preparation's last chunk: cause set, causeId that generation; a rule's save: its own cause), else
+     * it is its own with the cause set and causeId 0 (the tidy's switch). Nothing is read when nothing listens.
+     *
+     * @param array<int, int|null> $pairs The switched generations, each with the generation it retired (null for none).
+     *
+     * @since  2.2.2
+     */
+    private function announceSwitch(array $pairs): void
+    {
+        self::announcing(cause: PricesChangedEvent::CAUSE_SET, causeId: 0, work: function () use ($pairs): void {
+            if (!self::detecting()) {
+                return;
+            }
+
+            $db = $this->db;
+            $terms = $this->contextTerms(ids: array_keys($pairs));
+
+            foreach ($pairs as $new => $old) {
+                $contexts = array_values(array_filter([$new, $old]));
+                $after = 0;
+
+                do {
+                    $items = array_map('intval', $db->setQuery(
+                        'SELECT DISTINCT ' . $db->quoteName('item_id') . ' FROM ' . $db->quoteName(self::INDEX_TABLE)
+                        . ' WHERE ' . $db->quoteName('context_id') . ' IN (' . implode(',', $contexts) . ') AND ' . $db->quoteName('item_id') . ' > ' . $after
+                        . ' ORDER BY ' . $db->quoteName('item_id'),
+                        0,
+                        self::SWITCH_PAGE,
+                    )->loadColumn() ?: []);
+
+                    if ($items === []) {
+                        break;
+                    }
+
+                    $before = [];
+                    $now = [];
+
+                    foreach ($this->readIndexRows(itemIds: $items, contextIds: $contexts, locking: false) as $row) {
+                        if ($row['context'] === $new) {
+                            $now[self::rowKey(row: $row)] = $row;
+                        } else {
+                            $row['context'] = $new;
+                            $before[self::rowKey(row: $row)] = $row;
+                        }
+                    }
+
+                    // Collected at once, not after a commit: the switch has committed, and a page held until the lock is
+                    // released would keep the whole catalogue's changes in memory.
+                    $changes = self::rowChanges(before: $before, after: $now, terms: $terms);
+
+                    if ($changes !== [] && self::$announcement?->listening === true) {
+                        self::collect(announcement: self::$announcement, changes: $changes, sets: [$terms[$new]['set'] ?? 0], db: $db);
+                    }
+
+                    if ($changes !== [] && self::$announcement?->outbound === true) {
+                        OutboundFeed::recordPriceChanges(db: $db, changes: $changes, now: (new Date('now', 'UTC'))->toSql());
+                    }
+
+                    $after = (int) end($items);
+                } while (\count($items) === self::SWITCH_PAGE);
+            }
+        });
     }
 
     /**
@@ -3456,7 +3653,8 @@ class PriceIndexSyncService
 
     /**
      * Start the next generation of some live contexts: beside each, a generation not yet live from its first product
-     * (its checkpoint 0), or the one already being prepared started again from its first product. Readers keep reading
+     * (its checkpoint 0), or the one already being prepared, or complete and waiting for its switch, started again from
+     * its first product. Readers keep reading
      * the live generation until the new one switches whole ({@see self::markPrepared()}); every write meanwhile goes to
      * the live generation and, for the products it has passed, to the new one.
      *
@@ -3484,13 +3682,13 @@ class PriceIndexSyncService
             $key = self::keyWhere(db: $db, row: $row);
             $existing = (int) $db->setQuery(
                 'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $key
-                . ' AND ' . $db->quoteName('prepared_at') . ' IS NULL AND ' . $db->quoteName('retired_at') . ' IS NULL',
+                . ' AND ' . $db->quoteName('is_live') . ' IS NULL AND ' . $db->quoteName('retired_at') . ' IS NULL',
             )->loadResult();
 
             if ($existing > 0) {
                 $db->setQuery(
                     'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE) . ' SET ' . $db->quoteName('prepared_through') . ' = 0, ' . $db->quoteName('left_out') . ' = NULL, '
-                    . $db->quoteName('requested_at') . ' = UTC_TIMESTAMP() WHERE ' . $db->quoteName('id') . ' = ' . $existing,
+                    . $db->quoteName('prepared_at') . ' = NULL, ' . $db->quoteName('requested_at') . ' = UTC_TIMESTAMP() WHERE ' . $db->quoteName('id') . ' = ' . $existing,
                 )->execute();
                 $building[] = $existing;
 
@@ -3579,10 +3777,11 @@ class PriceIndexSyncService
     }
 
     /**
-     * Start again from their first product the generations being prepared (their checkpoint 0, their left-out list
-     * cleared): a change that reaches them while they are prepared is then written into every product they hold.
+     * Start again from their first product the generations not live, being prepared or complete and waiting for their
+     * switch (their checkpoint 0, their left-out list cleared): a change that reaches them before they are live is
+     * then written into every product they hold.
      *
-     * @param int[]|null $ids These generations only; null for every one being prepared.
+     * @param int[]|null $ids These generations only; null for every one not live.
      *
      * @return int[] The generations started again.
      *
@@ -3595,7 +3794,7 @@ class PriceIndexSyncService
         }
 
         $db = $this->db;
-        $where = $db->quoteName('prepared_at') . ' IS NULL AND ' . $db->quoteName('retired_at') . ' IS NULL'
+        $where = $db->quoteName('is_live') . ' IS NULL AND ' . $db->quoteName('retired_at') . ' IS NULL'
             . ($ids === null ? '' : ' AND ' . $db->quoteName('id') . ' IN (' . implode(',', array_map('intval', $ids)) . ')');
         $restarted = array_map('intval', $db->setQuery(
             'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName(self::CONTEXTS_TABLE) . ' WHERE ' . $where . ' ORDER BY ' . $db->quoteName('id'),
@@ -3603,8 +3802,9 @@ class PriceIndexSyncService
 
         if ($restarted !== []) {
             $db->setQuery(
-                'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE) . ' SET ' . $db->quoteName('prepared_through') . ' = 0, ' . $db->quoteName('left_out') . ' = NULL'
-                . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', $restarted) . ') AND ' . $db->quoteName('prepared_at') . ' IS NULL',
+                'UPDATE ' . $db->quoteName(self::CONTEXTS_TABLE) . ' SET ' . $db->quoteName('prepared_through') . ' = 0, ' . $db->quoteName('left_out') . ' = NULL, '
+                . $db->quoteName('prepared_at') . ' = NULL'
+                . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', $restarted) . ') AND ' . $db->quoteName('is_live') . ' IS NULL',
             )->execute();
         }
 
@@ -3652,6 +3852,29 @@ class PriceIndexSyncService
     public function removeRetired(int $limit): int
     {
         $db = $this->db;
+        $removed = 0;
+        $work = function () use ($db, $limit, &$removed): void {
+            $removed = $this->removeRetiredLocked(db: $db, limit: $limit);
+        };
+
+        // A switch announcing its changes holds the lock: its retired rows wait for the tidy it owes when it ends.
+        self::runLocked(name: self::lockName(db: $db, kind: 'price-switch', id: 0), label: 'price index switch lock', logCategory: 'com_alfa', work: $work);
+
+        return $removed;
+    }
+
+    /**
+     * The work of removeRetired(), under the switch's lock.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param int $limit At most this many rows.
+     *
+     * @return int Rows removed.
+     *
+     * @since  2.2.2
+     */
+    private function removeRetiredLocked(DatabaseDriver $db, int $limit): int
+    {
         $removed = 0;
 
         foreach (array_map('intval', $db->setQuery(

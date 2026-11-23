@@ -200,6 +200,26 @@ class PriceSettings
         }
     }
 
+    /**
+     * Whether a price block drawn with these settings puts its saving on the net basis: the block shows a net figure
+     * (the base or the subtotal) and the saving's row, placed after the base, sits beside a net figure, never right
+     * above the price with tax or the total. Such a block shows the net saving first; any other shows the
+     * tax-included saving. The price block draws its saving rows by it, and the catalogue's saving filter and sort
+     * compare the saving on the same basis, so a shopper filters and sorts by the saving they read on the card.
+     *
+     * @param array $settings The visibility settings (get()).
+     *
+     * @since  2.2.2
+     */
+    public static function netSaving(array $settings): bool
+    {
+        $showBase = !empty($settings['base_price_show']);
+        $showSubtotal = !empty($settings['base_price_with_discounts_show']);
+
+        return ($showBase || $showSubtotal)
+            && ($showSubtotal || (empty($settings['base_price_with_tax_show']) && empty($settings['final_price_show'])));
+    }
+
     // Preset methods
 
     /**

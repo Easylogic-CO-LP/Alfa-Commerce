@@ -25,8 +25,10 @@ use Joomla\Database\DatabaseDriver;
  * the periods that ended, a batch per chunk (PriceIndexSyncService::removeRetired() and removeEndedPeriods()). No
  * reader reads either: a retired generation is not live, an ended period does not hold the present.
  *
- * Light, low priority. Enqueued when a generation goes live, and owed by any tick once a day when none finished in the
- * last day (owe()). Deleting twice deletes nothing more: a merge never asks a rerun.
+ * Light, low priority. Enqueued after a switch has been announced, and owed by any tick once a day when none finished
+ * in the last day (owe()). Each chunk first switches live the complete generations that wait for nothing
+ * (PriceIndexSyncService::switchReady(), a switch the preparation could not make). Deleting twice deletes nothing more:
+ * a merge never asks a rerun. It keeps its own transactions: the switch is one, each removal a statement.
  *
  * @since  2.2.2
  */
@@ -82,7 +84,7 @@ final class PriceIndexTidyJob implements JobHandler
 
     public function policy(): JobPolicy
     {
-        return new JobPolicy(label: 'COM_ALFA_TASKS_HANDLER_PRICE_INDEX_TIDY', weight: JobPolicy::LIGHT, priority: 5, initialUnits: 5000, rerunOnMerge: false);
+        return new JobPolicy(label: 'COM_ALFA_TASKS_HANDLER_PRICE_INDEX_TIDY', weight: JobPolicy::LIGHT, priority: 5, initialUnits: 5000, rerunOnMerge: false, ownTransactions: true);
     }
 
     public function total(JobRun $run): int
@@ -93,6 +95,7 @@ final class PriceIndexTidyJob implements JobHandler
     public function chunk(JobRun $run, int $units): JobChunk
     {
         $service = new PriceIndexSyncService();
+        $service->switchReady();
         $removed = $service->removeRetired(limit: $units);
 
         if ($removed < $units) {

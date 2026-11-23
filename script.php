@@ -3683,7 +3683,7 @@ class com_alfaInstallerScript extends InstallerScript
             $db->setQuery(
                 'ALTER TABLE ' . $db->quoteName($contexts)
                 . " ADD COLUMN `generation` int(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'The generation of the context''s rows: a context-wide change writes the next one beside the live one and switches them whole' AFTER `user_id`,"
-                . " ADD COLUMN `is_live` tinyint(1) DEFAULT NULL COMMENT '1 = the generation readers read; NULL = being prepared, or retired and being removed. At most one live per context' AFTER `generation`,"
+                . " ADD COLUMN `is_live` tinyint(1) DEFAULT NULL COMMENT '1 = the generation readers read; NULL = being prepared, complete and waiting for its switch, or retired and being removed. At most one live per context' AFTER `generation`,"
                 . " ADD COLUMN `retired_at` datetime DEFAULT NULL COMMENT 'When a newer generation went live; its rows are removed in the background, then the row' AFTER `prepared_through`",
             )->execute();
             $db->setQuery('UPDATE ' . $db->quoteName($contexts) . ' SET ' . $db->quoteName('is_live') . ' = 1 WHERE ' . $db->quoteName('prepared_at') . ' IS NOT NULL')->execute();

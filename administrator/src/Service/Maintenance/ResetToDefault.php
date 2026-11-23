@@ -28,11 +28,12 @@ use RuntimeException;
  * WHAT IT CHANGES, and nothing else:
  *   - the component Options, to what an installation of this version writes
  *     ({@see ComponentOptions::DEFAULTS}); an Option with no installed value is removed, so it
- *     reads its built-in default, as on a fresh install. Four are kept as they are: the download
- *     store's path (the store, and every file in it, stays where it is), the delivery destination
- *     the merchant mapped and the status a customer's cancel moves an order to (structural choices
- *     of the shop, not defaults: kept, set or not), and the records kept among the Options
- *     ({@see ComponentOptions::CARRIED}: which menu items the setup created);
+ *     reads its built-in default, as on a fresh install. Kept as they are: the download store's
+ *     path (the store, and every file in it, stays where it is), the shop's structural choices
+ *     ({@see self::STRUCTURAL}: the delivery destination the merchant mapped, the status a
+ *     customer's cancel moves an order to, and the default currency, which the shop's prices
+ *     stored for the default currency are in; kept, set or not), and the records kept among the
+ *     Options ({@see ComponentOptions::CARRIED}: which menu items the setup created);
  *   - the price display of every customer group, the setting built from those Options: built
  *     again from the defaults, and each group following the shop's Options again.
  * The Options are saved through Joomla's own Options save, so whatever listens to an Options save
@@ -59,6 +60,18 @@ final class ResetToDefault
      * @since  2.1.0
      */
     public const PRICE_INDEX_KEYS = ['combination_adjust_target'];
+
+    /**
+     * Options that are the shop's structural choices, not defaults: written back as they are stored.
+     * The delivery destination the merchant mapped; the status a customer's cancel moves an order to;
+     * the default currency, which the prices stored for the default currency are in, so a reset never
+     * moves them to another currency, nor names a currency the shop does not publish.
+     *
+     * @var string[]
+     *
+     * @since  2.2.2
+     */
+    public const STRUCTURAL = ['delivery_place_field', 'customer_cancel_status', 'default_currency'];
 
     /**
      * The site's connection.
@@ -108,9 +121,9 @@ final class ResetToDefault
             $target['downloads_storage_path'] = $store;
         }
 
-        // The save replaces the Options wholesale: the mapping and the customer cancel status are written back as they
-        // are, or they would be lost. A shop that set neither keeps neither.
-        foreach (['delivery_place_field', 'customer_cancel_status'] as $key) {
+        // The save replaces the Options wholesale: each structural choice is written back as it is, or
+        // it would be lost. One the shop never set stays as the installation writes it.
+        foreach (self::STRUCTURAL as $key) {
             if (\array_key_exists($key, $stored)) {
                 $target[$key] = $stored[$key];
             }
