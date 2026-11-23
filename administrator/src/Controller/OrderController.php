@@ -32,6 +32,7 @@ use Alfa\Component\Alfa\Administrator\Helper\ActionLogHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CreditNoteRefusedException;
@@ -1633,7 +1634,7 @@ class OrderController extends FormController
         try {
             $sent = EmailService::sendPaymentLink(orderId: $orderId);
         } catch (Throwable $e) {
-            $app->enqueueMessage(sprintf($said[EmailService::OUTCOME_FAILED], htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')), 'error');
+            $app->enqueueMessage(sprintf($said[EmailService::OUTCOME_FAILED], htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8')), 'error');
 
             return;
         }
