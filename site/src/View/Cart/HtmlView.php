@@ -12,12 +12,8 @@ namespace Alfa\Component\Alfa\Site\View\Cart;
 // No direct access
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent as PaymentsOrderCompleteViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent as PaymentsOrderProcessViewEvent;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
-use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
-use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
-use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
@@ -25,19 +21,17 @@ use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
 use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
+use Alfa\Component\Alfa\Site\Service\Order\GatewayOfRecord;
 use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
-use InvalidArgumentException;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use stdClass;
-use Throwable;
 
 /**
  * View class for a list of Alfa.
@@ -324,7 +318,7 @@ class HtmlView extends BaseHtmlView
                 'method' => $selectedPayment,
             ]);
 
-            if ($paymentType !== '' && $this->askGatewayOfRecord($paymentType, $paymentEvent) !== 'asked') {
+            if ($paymentType !== '' && GatewayOfRecord::ask(paymentType: $paymentType, event: $paymentEvent) !== GatewayOfRecord::ASKED) {
                 // The gateway of record cannot be loaded, or its handler failed: the page says so in
                 // neutral words and changes nothing; it never moves on to the completed page for it,
                 // which would read as a payment taken.
@@ -366,56 +360,6 @@ class HtmlView extends BaseHtmlView
         $this->_prepareDocument();
 
         parent::display($tpl);
-    }
-
-    /**
-     * Ask the order's gateway of record for its page (targeted): its ambient subscriptions engaged, the view event
-     * delivered to its declared handler, the layout owner defaulted to it. A gateway with no handler for the page is
-     * asked nothing. Any Throwable leaving the handler is its failure: logged, and the caller renders no plugin block
-     * (the process page shows the neutral line and stays).
-     *
-     * @param string $paymentType The order's snapshot of the gateway's plugin element.
-     * @param PaymentsOrderProcessViewEvent|PaymentsOrderCompleteViewEvent $event The view event.
-     *
-     * @return string 'asked'; 'unavailable' when the gateway of record is disabled, missing or cannot be loaded;
-     *                'failed' when its handler threw.
-     *
-     * @since  2.2.0
-     */
-    private function askGatewayOfRecord(string $paymentType, PaymentsOrderProcessViewEvent|PaymentsOrderCompleteViewEvent $event): string
-    {
-        $plugins = AlfaPluginHelper::get();
-
-        try {
-            $id = PluginId::from('alfa-payments', $paymentType);
-            $gateway = $plugins->bootSingle($id);
-        } catch (PluginUnavailable|InvalidArgumentException $e) {
-            Log::add('Order page: the gateway of record cannot be loaded (' . $e->getMessage() . '); the page shows the neutral line.', Log::WARNING, 'com_alfa.payments');
-
-            return 'unavailable';
-        }
-
-        $plugins->importSingle($id);
-
-        if ($plugins->declares($gateway, $event->getName())) {
-            try {
-                $plugins->dispatchTo($gateway, $event);
-            } catch (Throwable $e) {
-                Log::add('Order page: ' . $id . ' failed in ' . $event->getName() . ' (' . $e::class . ': ' . $e->getMessage() . '); the page renders without it.', Log::ERROR, 'com_alfa.payments');
-
-                return 'failed';
-            }
-        }
-
-        if (empty($event->getLayoutPluginName())) {
-            $event->setLayoutPluginName($paymentType);
-        }
-
-        if (empty($event->getLayoutPluginType())) {
-            $event->setLayoutPluginType('alfa-payments');
-        }
-
-        return 'asked';
     }
 
     /**
@@ -487,8 +431,8 @@ class HtmlView extends BaseHtmlView
 
         // PAY NOW, while the order still owes money and may be paid again: the address of its payment step. Never in
         // the print view.
-        if (!RequestScalar::bool($input, 'print', false) && PayAgain::verdict(orderId: (int) $id) === PayAgain::OPEN) {
-            $this->payAgainUrl = PayAgain::link((object) ['id' => (int) $id, 'secure_key' => (string) $key]);
+        if (!RequestScalar::bool($input, 'print', false)) {
+            $this->payAgainUrl = $this->confirmation->payAgainUrl();
         }
 
         // THE GATEWAY'S BLOCK (targeted): the completion view goes to the order's gateway of record alone,
@@ -496,20 +440,13 @@ class HtmlView extends BaseHtmlView
         // whose handler throws leaves its block out, and the page says so in neutral words: never a word of payment
         // the order does not hold.
         $this->event = new stdClass();
-        $paymentEvent = new PaymentsOrderCompleteViewEvent('onOrderCompleteView', [
-            'subject' => $this->confirmation->gatewaySubject(),
-            'method' => $this->confirmation->gatewayMethod(),
-        ]);
+        ['event' => $paymentEvent, 'unavailable' => $this->providerUnavailable] = GatewayOfRecord::completeView(order: $this->confirmation);
 
-        if ($this->confirmation->gateway !== '') {
-            if ($this->askGatewayOfRecord($this->confirmation->gateway, $paymentEvent) !== 'asked') {
-                $this->providerUnavailable = true;
-            } elseif ($paymentEvent->hasRedirect()) {
-                // The gateway's own choice, as before.
-                $app->redirect($paymentEvent->getRedirectUrl(), $paymentEvent->getRedirectCode() ?? 303);
+        if (!$this->providerUnavailable && $paymentEvent->hasRedirect()) {
+            // The gateway's own choice, as before.
+            $app->redirect($paymentEvent->getRedirectUrl(), $paymentEvent->getRedirectCode() ?? 303);
 
-                return;
-            }
+            return;
         }
 
         $this->event->onOrderCompleteView = $paymentEvent;

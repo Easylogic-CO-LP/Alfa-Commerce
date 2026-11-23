@@ -58,9 +58,9 @@ final class MenuProvisioningService
      *
      * Two tiers, and the difference is only what the setup check DEMANDS: shop and
      * cart are what "reachable" means (cart hosts checkout as layouts, so one item
-     * covers both), while account and registration are the customer-facing pages a
-     * merchant most often forgets: provisioned all the same, so forgetting costs
-     * nothing, but never gating the checklist.
+     * covers both), while account, orders and registration are the customer-facing
+     * pages a merchant most often forgets: provisioned all the same, so forgetting
+     * costs nothing, but never gating the checklist.
      *
      * @var array<string, array{title: string, alias: string}>
      * @since  2.0.0
@@ -69,6 +69,7 @@ final class MenuProvisioningService
         'items' => ['title' => 'COM_ALFA_SETUP_MENU_TITLE_SHOP',     'alias' => 'shop'],
         'cart' => ['title' => 'COM_ALFA_SETUP_MENU_TITLE_CART',     'alias' => 'cart'],
         'userinfo' => ['title' => 'COM_ALFA_SETUP_MENU_TITLE_ACCOUNT',  'alias' => 'my-account'],
+        'orders' => ['title' => 'COM_ALFA_SETUP_MENU_TITLE_ORDERS',   'alias' => 'my-orders'],
         'registration' => ['title' => 'COM_ALFA_SETUP_MENU_TITLE_REGISTER', 'alias' => 'register'],
     ];
 

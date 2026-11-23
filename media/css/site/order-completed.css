@@ -1,8 +1,9 @@
 /**
- * Alfa Commerce: the order-completed page
+ * Alfa Commerce: the order-completed page and the order page of the customer's account
  *
- * The page's own layout under its root (.com-alfa.order-completed): the order's facts,
- * the lines, the addresses and the actions. The lines and their totals are the cart's
+ * The pages' own layout under their root (.com-alfa.order-completed): the order's facts,
+ * the parcels' tracking numbers, the lines, the addresses, the customer's cancel and the
+ * actions. The lines and their totals are the cart's
  * (.cart-lines in cart.css; this page's table has three columns). The process page's answer
  * when the gateway cannot be loaded uses the same root, number and actions. Colours come from
  * the shop's tokens only; logical properties only, so a right-to-left page mirrors.
@@ -79,6 +80,61 @@
     font-size: 1.05em;
 }
 
+/* The parcels' tracking numbers: carrier and number, as the facts read. */
+.com-alfa.order-completed .order-parcels {
+    margin-block: 1rem;
+}
+
+.com-alfa.order-completed .order-parcels h2 {
+    margin-block: 0 0.5rem;
+    font-size: 1.05em;
+}
+
+.com-alfa.order-completed .order-parcels dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+    margin: 0;
+}
+
+.com-alfa.order-completed .order-parcels dl > div {
+    display: contents;
+}
+
+.com-alfa.order-completed .order-parcels dt {
+    font-weight: 700;
+}
+
+.com-alfa.order-completed .order-parcels dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* The customer's cancel on their order page: a button that opens its confirmation in place, no script. */
+.com-alfa.order-completed .order-cancel {
+    margin-block: 1rem;
+}
+
+.com-alfa.order-completed .order-cancel > summary {
+    list-style: none;
+}
+
+.com-alfa.order-completed .order-cancel > summary::-webkit-details-marker {
+    display: none;
+}
+
+.com-alfa.order-completed .order-cancel form {
+    margin-block-start: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--alfa-hairline);
+    background-color: var(--alfa-surface);
+    color: var(--alfa-surface-color, inherit);
+}
+
+.com-alfa.order-completed .order-cancel-held {
+    color: var(--alfa-warning-color);
+}
+
 .com-alfa.order-completed .order-completed-actions {
     display: flex;
     flex-wrap: wrap;
@@ -87,7 +143,8 @@
 }
 
 @media print {
-    .com-alfa.order-completed .order-completed-actions {
+    .com-alfa.order-completed .order-completed-actions,
+    .com-alfa.order-completed .order-cancel {
         display: none;
     }
 

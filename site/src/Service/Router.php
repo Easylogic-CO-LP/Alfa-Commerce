@@ -112,6 +112,14 @@ class Router extends RouterView
         $userinfo = new RouterViewConfiguration('userinfo');
         $this->registerView($userinfo);
 
+        // The customer's orders, and one order of theirs below them (/my-orders/123)
+        $orders = new RouterViewConfiguration('orders');
+        $this->registerView($orders);
+
+        $order = new RouterViewConfiguration('order');
+        $order->setKey('id')->setParent($orders);
+        $this->registerView($order);
+
         // Register blank view
         $blank = new RouterViewConfiguration('blank');
         $this->registerView($blank);
@@ -569,5 +577,38 @@ class Router extends RouterView
         $this->db->setQuery($dbquery);
 
         return (int) $this->db->loadResult();
+    }
+
+    /**
+     * The segment of one of the customer's orders: its id. The order belongs to the customer logged in, so the
+     * address names no more than the number the customer knows it by.
+     *
+     * @param string $id The order's id.
+     * @param array $query The request that is built right now.
+     *
+     * @return array<int, string>
+     *
+     * @since  2.3.0
+     */
+    public function getOrderSegment($id, $query): array
+    {
+        $id = (int) $id;
+
+        return [$id => (string) $id];
+    }
+
+    /**
+     * The order a segment names: a positive whole number, else none. Whose order it is, the order view asks.
+     *
+     * @param string $segment The segment.
+     * @param array $query The request that is parsed right now.
+     *
+     * @return int|false
+     *
+     * @since  2.3.0
+     */
+    public function getOrderId($segment, $query)
+    {
+        return preg_match('/^[1-9][0-9]{0,9}$/', (string) $segment) === 1 ? (int) $segment : false;
     }
 }
