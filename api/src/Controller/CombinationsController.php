@@ -394,7 +394,10 @@ class CombinationsController extends ApiController
      */
     private function routeId(string $name): int
     {
-        return max(0, (int) RequestScalar::read($this->input, $name, 0, 'int'));
+        // A POST's route variables arrive with its posted data, as the order operations read them.
+        $bag = strtoupper((string) $this->input->getMethod()) === 'POST' ? $this->input->post : $this->input;
+
+        return max(0, (int) RequestScalar::int($bag, $name, 0));
     }
 
     /**

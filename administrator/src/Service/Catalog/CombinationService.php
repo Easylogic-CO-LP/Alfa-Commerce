@@ -681,7 +681,7 @@ final class CombinationService
         $db = self::db();
 
         return $db->setQuery(
-            'SELECT ' . $db->quoteName(['id', 'signature', 'state']) . ' FROM ' . $db->quoteName('#__alfa_item_combinations')
+            'SELECT ' . implode(', ', $db->quoteName(['id', 'signature', 'state'])) . ' FROM ' . $db->quoteName('#__alfa_item_combinations')
             . ' WHERE ' . $db->quoteName('item_id') . ' = ' . $itemId . ' AND ' . CombinationState::currentSql(column: $db->quoteName('state')),
         )->loadObjectList('id') ?: [];
     }
@@ -700,7 +700,7 @@ final class CombinationService
         $db = self::db();
 
         return $ids === [] ? [] : ($db->setQuery(
-            'SELECT ' . $db->quoteName(['id', 'signature', 'state']) . ' FROM ' . $db->quoteName('#__alfa_item_combinations')
+            'SELECT ' . implode(', ', $db->quoteName(['id', 'signature', 'state'])) . ' FROM ' . $db->quoteName('#__alfa_item_combinations')
             . ' WHERE ' . $db->quoteName('item_id') . ' = ' . $itemId . ' AND ' . $db->quoteName('state') . ' = ' . CombinationState::ARCHIVED
             . ' AND ' . $db->quoteName('id') . ' IN (' . implode(',', array_map('intval', $ids)) . ')',
         )->loadObjectList('id') ?: []);
