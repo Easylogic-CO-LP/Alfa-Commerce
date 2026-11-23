@@ -46,6 +46,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderRuleShares;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
@@ -3823,6 +3824,19 @@ class OrderModel extends AlfaAdminModel
             // lines whenever a line's quantity or its unit moved.
             $oldQuantity = $isNew ? 0 : (int) $plan['oldRow']->quantity;
 
+            // The line's part of each cart rule follows its quantity; the rules engine is not asked again.
+            if (!$isNew && $plan['quantity'] !== $oldQuantity) {
+                OrderRuleShares::rescaleLine(
+                    db: $db,
+                    orderId: $orderId,
+                    lineId: $lineId,
+                    oldQuantity: $oldQuantity,
+                    newQuantity: (int) $plan['quantity'],
+                    currency: $plan['currency'],
+                    taxRate: (float) ($plan['columns']['tax_rate'] ?? $plan['oldRow']->tax_rate),
+                );
+            }
+
             if ($plan['quantity'] !== $oldQuantity || $plan['combinationChanged']) {
                 InventoryBridge::syncOrderLines($orderId);
 
@@ -4147,6 +4161,9 @@ class OrderModel extends AlfaAdminModel
                     ->where($db->quoteName('id') . ' = ' . (int) $id)
                     ->where($db->quoteName('id_order') . ' = ' . (int) $orderId),
             )->execute();
+
+            // The line's shares of the cart rules went with it; the rules' rows are their remaining shares' sums.
+            OrderRuleShares::resum(db: $db, orderId: $orderId);
 
             // Reconcile inventory: the vanished line's deductions return and
             // its holds release (kernel per-line ledger, idempotent).
