@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
+use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -1235,6 +1236,14 @@ class EmailService
             );
         }
 
+        // PAY NOW, on the genuine customer send only and while the order may be paid again (PayAgain): the address of
+        // its payment step. It carries the order's payment token, never its key.
+        $payUrl = '';
+
+        if ($withDownloadLinks && $orderId > 0 && PayAgain::verdict(orderId: $orderId) === PayAgain::OPEN) {
+            $payUrl = PayAgain::link((object) ['id' => $orderId, 'secure_key' => (string) ($order->secure_key ?? '')]);
+        }
+
         return [
             'order' => $order,
             'items' => $items,
@@ -1242,6 +1251,7 @@ class EmailService
             'payments' => $payments,
             'shipments' => $shipments,
             'downloads' => $downloads,
+            'payUrl' => $payUrl,
             'status' => $status,
             'recipient' => $recipient,
             'langTag' => $langTag,

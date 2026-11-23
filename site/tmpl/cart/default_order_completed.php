@@ -30,7 +30,7 @@
  *
  * Classes the stylesheet reads (media/com_alfa/css/site/order-completed.css):
  *   .order-completed  .order-facts  .order-items  .order-addresses  .order-address
- *   .order-completed-actions
+ *   .order-completed-actions  .order-pay-again
  */
 
 use Alfa\Component\Alfa\Site\Helper\Layout;
@@ -115,6 +115,14 @@ $columns = [
         </div>
         <?php endif; ?>
     </dl>
+
+    <?php // The order still owes money and may be paid again: its payment step, never a new order. ?>
+    <?php if ($this->payAgainUrl !== '') : ?>
+    <div class="order-pay-again">
+        <p><?php echo Text::_('COM_ALFA_PAY_AGAIN_INTRO'); ?></p>
+        <a class="action primary" href="<?php echo $this->escape($this->payAgainUrl); ?>" rel="nofollow"><?php echo Text::_('COM_ALFA_PAY_AGAIN_BUTTON'); ?></a>
+    </div>
+    <?php endif; ?>
 
     <?php // The address the confirmation went to; a guest sees a typo at once. ?>
     <?php if ($order->email !== '') : ?>

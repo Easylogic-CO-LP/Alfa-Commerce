@@ -42,6 +42,10 @@
  *  Items, totals, payments and shipments are TABLES, not tokens; they are
  *  rendered structurally via $render('emails.partials.<name>') below.
  *
+ *  $payUrl is the address of the order's payment step (Pay now), set on the
+ *  customer's send while the order still owes money and may be paid again;
+ *  '' otherwise.
+ *
  *  Intentionally generic: system fonts only, grayscale palette, thin
  *  hairlines, no accent colour. Designed to look at home next to any
  *  shop's brand. Sites that want personality drop an override copy of
@@ -63,6 +67,8 @@
  */
 
 defined('_JEXEC') or die;
+
+use Joomla\CMS\Language\Text;
 
 /** @var array $displayData */
 extract($displayData);
@@ -227,6 +233,17 @@ extract($displayData);
                     <tr>
                         <td class="email__pad" style="padding:6px 44px 0 44px;">
                             <?php echo $render('emails.partials.order_shipments', ['shipments' => $shipments]); ?>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+
+                    <?php // Pay now: only on the genuine customer send, while the
+                          // order still owes money and may be paid again. ?>
+                    <?php if (!empty($payUrl)) : ?>
+                    <tr>
+                        <td class="email__pad email__body" style="padding:14px 44px 0 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.65;color:#111827;">
+                            <p style="margin:0 0 10px 0;"><?php echo htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_PAY_NOW_TEXT'), ENT_COMPAT, 'UTF-8'); ?></p>
+                            <a href="<?php echo htmlspecialchars((string) $payUrl, ENT_COMPAT, 'UTF-8'); ?>" style="display:inline-block;padding:10px 18px;background:#111827;color:#ffffff;text-decoration:none;border-radius:4px;font-weight:600;"><?php echo htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_PAY_NOW'), ENT_COMPAT, 'UTF-8'); ?></a>
                         </td>
                     </tr>
                     <?php endif; ?>

@@ -28,7 +28,9 @@ defined('_JEXEC') or die;
  *
  * - placed: this session placed the order (the storefront's placement writes it);
  * - return: a gateway authenticated a browser return for the order (PaymentsPlugin::authenticatedReturnFor(), in any
- *   session, a fresh one included: a hosted payment page outlives the PHP session).
+ *   session, a fresh one included: a hosted payment page outlives the PHP session);
+ * - pay: the buyer opened the order's pay again address (its payment token, PayAgain), which the process page checks
+ *   again before it asks the gateway.
  *
  * An order id with neither mark is refused by both pages: the visitor goes to the cart with one neutral message, the
  * same whether the order exists or not, and nothing of the order is shown. The mark is written and cleared only with
@@ -49,6 +51,9 @@ final class SessionOrder
 
     /** A gateway authenticated a browser return for the order. */
     public const AUTHENTICATED_RETURN = 'return';
+
+    /** The buyer opened the order's pay again address. */
+    public const PAY_AGAIN = 'pay';
 
     /**
      * This session placed the order: the storefront's placement, the buyer's own flow.
@@ -79,6 +84,32 @@ final class SessionOrder
         }
 
         self::point($app, $orderId, self::AUTHENTICATED_RETURN);
+    }
+
+    /**
+     * The buyer opened the order's pay again address: the session names the order for the payment step.
+     *
+     * @param CMSApplicationInterface $app The storefront request.
+     * @param int $orderId The order the address names, 1 or more.
+     *
+     * @since  2.3.0
+     */
+    public static function payAgain(CMSApplicationInterface $app, int $orderId): void
+    {
+        self::point($app, $orderId, self::PAY_AGAIN);
+    }
+
+    /**
+     * Whether the session names the order through its pay again address.
+     *
+     * @param CMSApplicationInterface $app The storefront request.
+     * @param int $orderId The session's order id.
+     *
+     * @since  2.3.0
+     */
+    public static function isPayAgain(CMSApplicationInterface $app, int $orderId): bool
+    {
+        return $orderId > 0 && $app->getUserState(self::ORIGIN) === $orderId . ':' . self::PAY_AGAIN;
     }
 
     /**
@@ -172,7 +203,7 @@ final class SessionOrder
     {
         $mark = $app->getUserState(self::ORIGIN);
 
-        if (!\is_string($mark) || !preg_match('/^([1-9][0-9]*):(' . self::PLACED . '|' . self::AUTHENTICATED_RETURN . ')$/', $mark, $found)) {
+        if (!\is_string($mark) || !preg_match('/^([1-9][0-9]*):(' . self::PLACED . '|' . self::AUTHENTICATED_RETURN . '|' . self::PAY_AGAIN . ')$/', $mark, $found)) {
             return 0;
         }
 
