@@ -76,7 +76,7 @@ final class OrderConfirmation
 
     /**
      * @param int $id The order id.
-     * @param string $number The number the customer knows the order by (its invoice number, else its id).
+     * @param string $number The number the customer knows the order by: its id (EmailService::orderNumber()).
      * @param string $created When the order was placed, UTC, as stored.
      * @param string $status The order status's name in the current language.
      * @param object[] $lines Each line: name, options (each label and value), quantity, total (Money).
