@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SelectionRules;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
@@ -624,7 +625,8 @@ final class VariantHelper
      * value's own field, which is no dimension, so an option field holds at
      * most the one value chosen for it; a payload when its field takes one
      * ({@see self::payloadFields()}). Everything else is dropped. A request
-     * the storefront's own controls post comes back as it was.
+     * the storefront's own controls post comes back as it was. The rule is
+     * {@see SelectionRules}, the one the related links are judged by.
      *
      * @param object $item The product, with its fields, options and combinations.
      * @param array $request The selection, as requestSelection() returns it.
@@ -635,26 +637,11 @@ final class VariantHelper
      */
     public static function offeredSelection(object $item, array $request): array
     {
-        $fields = (array) ($item->fields ?? []);
-        $dimensions = CombinationResolver::dimensionValues(fields: $fields, combinations: (array) ($item->combinations ?? []));
-        $fieldOf = [];
-
-        foreach ($fields as $field) {
-            foreach ((array) ($field->values ?? []) as $value) {
-                $fieldOf[(int) $value->id] = (int) $field->id;
-            }
-        }
-
-        $offered = [];
-
-        foreach ((array) ($item->options ?? []) as $option) {
-            $offered[(int) $option->value_id] = true;
-        }
-
+        $rules = SelectionRules::forItem(item: $item);
         $selection = [];
 
         foreach ((array) ($request['selection'] ?? []) as $fieldId => $valueId) {
-            if (isset($dimensions[(int) $fieldId])) {
+            if ($rules->isDimension(fieldId: (int) $fieldId)) {
                 $selection[(int) $fieldId] = (int) $valueId;
             }
         }
@@ -662,11 +649,8 @@ final class VariantHelper
         $optionValueIds = [];
 
         foreach ((array) ($request['optionValueIds'] ?? []) as $fieldId => $valueId) {
-            $fieldId = (int) $fieldId;
-            $valueId = (int) $valueId;
-
-            if (isset($offered[$valueId]) && ($fieldOf[$valueId] ?? null) === $fieldId && !isset($dimensions[$fieldId])) {
-                $optionValueIds[$fieldId] = $valueId;
+            if ($rules->offersOption(fieldId: (int) $fieldId, valueId: (int) $valueId)) {
+                $optionValueIds[(int) $fieldId] = (int) $valueId;
             }
         }
 
