@@ -409,7 +409,7 @@ class Storage
      * shop must not serve to the web, and the one place an extension keeps its
      * own: in a folder named as Joomla names the extension, which it creates
      * itself: root() . '/plg_<group>_<element>' for a plugin
-     * (plg_alfa-shipments_boxnow) and root() . '/mod_<name>' for a module. The
+     * (plg_alfa-shipments_standard) and root() . '/mod_<name>' for a module. The
      * element alone is not enough: two plugins of different groups share one
      * (standard is a payment and a shipment plugin). Core's objects sit in two
      * levels of two hex characters (aa/bb/<key>), so a folder of that shape is

@@ -7,7 +7,8 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * The manufacturers as a grid of links: as many columns as the width holds. An entry shows its logo, its name or
- * both; an entry asked for its logo that has none shows its name, so no entry is ever empty.
+ * both; an entry asked for its logo that has none shows its name, so no entry is ever empty. A logo alone carries the
+ * name as its alternative text; beside the name it is decorative (an empty alt), so the name is read once.
  *
  * @var object $module The module instance.
  * @var \Joomla\Registry\Registry $params The module's settings.
@@ -29,7 +30,6 @@ $withLogo = $show !== 'name';
             <li class="entry">
                 <a class="link" href="<?php echo htmlspecialchars($entry->link, ENT_QUOTES, 'UTF-8'); ?>">
                     <?php if ($logo) : ?>
-                        <?php // The name follows as the link's text unless the logo stands alone: then the logo carries it. ?>
                         <img class="logo" src="<?php echo htmlspecialchars($entry->logo, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo $show === 'logo' ? $name : ''; ?>" loading="lazy">
                     <?php endif; ?>
                     <?php if (!$logo || $show !== 'logo') : ?>

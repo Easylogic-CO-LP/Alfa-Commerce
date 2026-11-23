@@ -51,8 +51,8 @@ final class AlfaCategoriesHelper
      * @param Registry $params The module's settings.
      * @param int $currentId The visitor's category: the category of the shop's page they are on, 0 for none.
      *
-     * @return list<object{id: int, name: string, link: string, count: int|null, current: bool, open: bool, children: list<object>}>
-     *         One node per category, its children inside it; empty when the parent has no category the visitor may see.
+     * @return list<object> One node per category (id, name, link, count or null, current, open, children), its
+     *                      children inside it; empty when the parent has no category the visitor may see.
      *
      * @since  2.3.0
      */

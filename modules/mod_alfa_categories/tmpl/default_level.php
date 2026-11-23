@@ -9,8 +9,8 @@
  * One level of the categories. The visitor's category is marked aria-current="page"; the categories on its branch,
  * it included, carry data-state="open".
  *
- * @var list<object{id: int, name: string, link: string, count: int|null, current: bool, open: bool, children: list<object>}> $children
- *      The nodes of this level.
+ * @var list<object> $children The nodes of this level (AlfaCategoriesHelper::nodes(): id, name, link, count,
+ *                   current, open, children).
  * @var callable(array): void $level Draws a level below.
  */
 

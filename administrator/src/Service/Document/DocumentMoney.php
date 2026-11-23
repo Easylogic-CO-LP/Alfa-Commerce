@@ -98,7 +98,7 @@ final class DocumentMoney
      * @param string $thousandsSeparator The thousands separator to print.
      *
      * @return callable(float|int|string, float|int|string, float|int|string, float|int|string|null=, float|int|string|null=): string
-     *                                                                                                        (unit, lineTotal, quantity, rate, stored)
+     *                                                                                                                                (unit, lineTotal, quantity, rate, stored)
      *
      * @since  2.0.0
      */

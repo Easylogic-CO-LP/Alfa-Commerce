@@ -57,7 +57,7 @@ final class AlfaManufacturersHelper
      * @param Registry $params The module's settings.
      *
      * @return list<object{id: int, name: string, link: string, logo: string}> One entry per manufacturer; empty when
-     *                                                                           the shop shows none of the chosen ones.
+     *                                                                         the shop shows none of the chosen ones.
      *
      * @since  2.3.0
      */
