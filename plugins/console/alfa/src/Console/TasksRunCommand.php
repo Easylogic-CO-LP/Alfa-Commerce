@@ -11,6 +11,7 @@ namespace Alfa\Plugin\Console\Alfa\Console;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Factory;
@@ -87,7 +88,7 @@ class TasksRunCommand extends AbstractCommand
             }
         } catch (Throwable $e) {
             // The cause goes to the Alfa Commerce log, as the line printed says.
-            Tasks::log(entry: 'alfa:tasks:run could not run: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'alfa:tasks:run could not run: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
             $io->getErrorStyle()->error(message: Text::sprintf('PLG_CONSOLE_ALFA_TASKS_ERROR', $e::class));
 
             return 2;

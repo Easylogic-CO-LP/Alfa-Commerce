@@ -37,6 +37,7 @@ namespace Alfa\Plugin\System\Alfasync\Extension;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Card\CardRegistry;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
@@ -230,7 +231,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         try {
             $this->groupSetBeforeSave[$userId] = (new PriceIndexSyncService())->accountGroupSet(userId: $userId);
         } catch (Throwable $e) {
-            $this->logError(caller: 'onUserBeforeSave', message: $e->getMessage(), context: ['user_id' => $userId]);
+            $this->logError(caller: 'onUserBeforeSave', message: ErrorText::of($e), context: ['user_id' => $userId]);
         }
     }
 
@@ -260,7 +261,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $inserted = SyncHelper::insertAlfaUser($this->getDatabase(), $userId);
             $this->logDebug('onUserAfterSave', ($inserted ? 'Inserted' : 'Already exists') . ': user #' . $userId);
         } catch (Exception $e) {
-            $this->logError('onUserAfterSave', $e->getMessage(), ['user_id' => $userId]);
+            $this->logError('onUserAfterSave', ErrorText::of($e), ['user_id' => $userId]);
         }
 
         // The customer details a registration carries are not stored here: the request's raw values never reach a
@@ -460,7 +461,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 1,
             )->loadResult();
         } catch (Throwable $e) {
-            $this->logError(__FUNCTION__, 'the cart could not be read, the page is kept out of the page cache: ' . $e::class . ': ' . $e->getMessage());
+            $this->logError(__FUNCTION__, 'the cart could not be read, the page is kept out of the page cache: ' . $e::class . ': ' . ErrorText::of($e));
 
             return true;
         }
@@ -632,7 +633,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $inserted = SyncHelper::insertAlfaUsergroup($this->getDatabase(), $groupId);
             $this->logDebug('onUserAfterSaveGroup', ($inserted ? 'Inserted' : 'Already exists') . ': group #' . $groupId);
         } catch (Exception $e) {
-            $this->logError('onUserAfterSaveGroup', $e->getMessage(), ['group_id' => $groupId]);
+            $this->logError('onUserAfterSaveGroup', ErrorText::of($e), ['group_id' => $groupId]);
         }
 
         // A group given another parent is followed by onContentCleanCache: the
@@ -682,7 +683,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 $this->followCustomerGroups(caller: $caller);
             }
         } catch (Throwable $e) {
-            $this->logError(caller: $caller, message: $e->getMessage(), context: ['user_id' => $userId]);
+            $this->logError(caller: $caller, message: ErrorText::of($e), context: ['user_id' => $userId]);
         }
     }
 
@@ -703,7 +704,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $requested = (new PriceIndexSyncService())->syncGroupSets();
             $this->logDebug(caller: $caller, message: 'Price index followed the customers\' groups: ' . $requested . ' set(s) requested');
         } catch (Throwable $e) {
-            $this->logError(caller: $caller, message: $e->getMessage());
+            $this->logError(caller: $caller, message: ErrorText::of($e));
         }
     }
 
@@ -757,7 +758,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         try {
             $db = $this->getDatabase();
         } catch (Throwable $e) {
-            $this->logError('onUserAfterDelete', $e->getMessage(), ['user_id' => $userId]);
+            $this->logError('onUserAfterDelete', ErrorText::of($e), ['user_id' => $userId]);
 
             return;
         }
@@ -770,7 +771,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $db->setQuery($query)->execute();
             $this->logDebug('onUserAfterDelete', 'Deleted alfa user #' . $userId);
         } catch (Exception $e) {
-            $this->logError('onUserAfterDelete', $e->getMessage(), ['user_id' => $userId]);
+            $this->logError('onUserAfterDelete', ErrorText::of($e), ['user_id' => $userId]);
         }
 
         // The account is gone; its orders are not. Clearing id_user is what
@@ -786,7 +787,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $db->setQuery($query)->execute();
             $this->logDebug('onUserAfterDelete', 'Detached orders of deleted user #' . $userId);
         } catch (Throwable $e) {
-            $this->logError('onUserAfterDelete', $e->getMessage(), ['user_id' => $userId, 'table' => 'orders']);
+            $this->logError('onUserAfterDelete', ErrorText::of($e), ['user_id' => $userId, 'table' => 'orders']);
         }
 
         // Cascade-equivalent cleanup for the order-status admin recipients
@@ -800,7 +801,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $db->setQuery($query)->execute();
             $this->logDebug('onUserAfterDelete', 'Dropped order-status recipient memberships for user #' . $userId);
         } catch (Exception $e) {
-            $this->logError('onUserAfterDelete', $e->getMessage(), ['user_id' => $userId, 'table' => 'orderstatus_recipients']);
+            $this->logError('onUserAfterDelete', ErrorText::of($e), ['user_id' => $userId, 'table' => 'orderstatus_recipients']);
         }
 
         // The account's set of pricing groups may be held by nobody now.
@@ -857,7 +858,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                     $this->logDebug('handleContentSave', 'Language schema synced: ' . count($result['tables']) . ' table(s).');
                     ContentLanguageAddedNotice::languagesAdded(codes: $added);
                 } catch (Throwable $e) {
-                    $this->logError('handleContentSave', $e->getMessage(), ['context' => $context]);
+                    $this->logError('handleContentSave', ErrorText::of($e), ['context' => $context]);
                 }
                 break;
 
@@ -1013,7 +1014,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 $this->invalidateSetup('page cache or Alfa Commerce Sync plugin ' . $how);
             }
         } catch (Throwable $e) {
-            $this->logError('invalidateForExtensions', $e->getMessage(), ['ids' => $ids]);
+            $this->logError('invalidateForExtensions', ErrorText::of($e), ['ids' => $ids]);
         }
     }
 
@@ -1047,7 +1048,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         try {
             CardRegistry::invalidate();
         } catch (Throwable $e) {
-            $this->logError('invalidateForAlfaExtension', $e->getMessage(), ['why' => $why]);
+            $this->logError('invalidateForAlfaExtension', ErrorText::of($e), ['why' => $why]);
         }
     }
 
@@ -1068,7 +1069,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         try {
             ExtensionCompatibility::notify(alert: false);
         } catch (Throwable $e) {
-            $this->logError('followCompatibility', $e->getMessage());
+            $this->logError('followCompatibility', ErrorText::of($e));
         }
     }
 
@@ -1172,7 +1173,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 $this->invalidateSetup('tour state saved: ' . $uid);
             }
         } catch (Throwable $e) {
-            $this->logError('onAfterTourSaveUserState', $e->getMessage());
+            $this->logError('onAfterTourSaveUserState', ErrorText::of($e));
         }
     }
 
@@ -1189,7 +1190,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             SetupHelper::invalidate();
             $this->logDebug('invalidateSetup', $why);
         } catch (Throwable $e) {
-            $this->logError('invalidateSetup', $e->getMessage(), ['why' => $why]);
+            $this->logError('invalidateSetup', ErrorText::of($e), ['why' => $why]);
         }
     }
 
@@ -1283,7 +1284,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 $this->uninstallingAlfa[$extensionId] = true;
             }
         } catch (Throwable $e) {
-            $this->logError(caller: 'onExtensionBeforeUninstall', message: $e->getMessage());
+            $this->logError(caller: 'onExtensionBeforeUninstall', message: ErrorText::of($e));
         }
 
         try {
@@ -1323,7 +1324,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 manifest:    $installer instanceof Installer ? $installer->getManifest() : null,
             );
         } catch (Throwable $e) {
-            $this->logError(caller: 'onExtensionAfterInstall', message: $e->getMessage());
+            $this->logError(caller: 'onExtensionAfterInstall', message: ErrorText::of($e));
         }
 
         // The setup checklist's PDF row reads the library (2.2.1): its verdict is recomputed on the next page.
@@ -1342,7 +1343,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 $this->followCompatibility();
             }
         } catch (Throwable $e) {
-            $this->logError(caller: 'onExtensionAfterInstall', message: $e->getMessage());
+            $this->logError(caller: 'onExtensionAfterInstall', message: ErrorText::of($e));
         }
     }
 
@@ -1402,7 +1403,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                     ->bind(':eid', $extensionId, ParameterType::INTEGER),
             )->loadResult() > 0;
         } catch (Throwable $e) {
-            $this->logError(caller: 'isPdfLibrary', message: $e->getMessage());
+            $this->logError(caller: 'isPdfLibrary', message: ErrorText::of($e));
 
             return false;
         }

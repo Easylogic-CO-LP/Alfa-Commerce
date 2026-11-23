@@ -11,6 +11,7 @@ namespace Alfa\Plugin\Console\Alfa\Extension;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Plugin\Console\Alfa\Console\InventoryAuditCommand;
 use Alfa\Plugin\Console\Alfa\Console\TasksPruneCommand;
@@ -103,7 +104,7 @@ final class Alfa extends CMSPlugin implements SubscriberInterface, DatabaseAware
             } catch (Throwable $e) {
                 AlfaLog::register();
                 Log::add(
-                    entry: sprintf('plg_console_alfa: a command was not registered: %s', $e->getMessage()),
+                    entry: sprintf('plg_console_alfa: a command was not registered: %s', ErrorText::of($e)),
                     priority: Log::ERROR,
                     category: 'com_alfa',
                 );
