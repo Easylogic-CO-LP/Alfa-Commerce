@@ -106,6 +106,14 @@ class ItemModel extends AlfaAdminModel
     private ?ItemWriteResult $written = null;
 
     /**
+     * The steps of the product's graph a REST write sends with it, laid on the write the save builds.
+     *
+     * @var (\Closure(ItemWriteService): void)|null
+     * @since  2.3.0
+     */
+    private ?\Closure $graph = null;
+
+    /**
      * @var string Alias to manage history control
      */
     public $typeAlias = 'com_alfa.item';
@@ -634,6 +642,10 @@ class ItemModel extends AlfaAdminModel
             $write->asCopyOf(originalId: RequestScalar::int($input, 'id'));
         }
 
+        if ($this->graph !== null) {
+            ($this->graph)($write);
+        }
+
         $this->written = $write->save(model: $this);
 
         foreach ($this->written->warnings as $warning) {
@@ -641,6 +653,20 @@ class ItemModel extends AlfaAdminModel
         }
 
         return $this->written->saved;
+    }
+
+    /**
+     * The product's graph a REST write sends with it (its item fields' values, options, specifications, combinations
+     * and their stock): the steps laid on the write this model's save builds, so the product and its graph are saved
+     * in one transaction ({@see ItemWriteService}).
+     *
+     * @param \Closure(ItemWriteService): void $steps The steps.
+     *
+     * @since  2.3.0
+     */
+    public function expectGraph(\Closure $steps): void
+    {
+        $this->graph = $steps;
     }
 
     /**

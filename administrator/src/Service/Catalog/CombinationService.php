@@ -199,6 +199,7 @@ final class CombinationService
 
         $db = self::db();
         $skusBefore = SkuIndex::skusOf(itemId: $itemId);
+        $nested = TransactionState::isOpen(db: $db);
         $change = ProjectionManager::markChange(itemId: $itemId);
 
         try {
@@ -219,9 +220,14 @@ final class CombinationService
                 throw $e;
             }
         } catch (RuntimeException $e) {
+            // A failure that ended the caller's transaction is the caller's to hear.
+            if ($nested && !TransactionState::isOpen(db: $db)) {
+                throw $e;
+            }
+
             return new CombinationWriteResult(saved: false, refusals: [self::refusalOf(failure: $e)]);
         } finally {
-            ProjectionManager::rebuildChanged(change: $change);
+            self::afterChange(change: $change, nested: $nested);
         }
 
         return new CombinationWriteResult(saved: true, removed: $ids, archived: $archived);
@@ -374,6 +380,7 @@ final class CombinationService
         }
 
         $db = self::db();
+        $nested = TransactionState::isOpen(db: $db);
         $change = ProjectionManager::markChange(itemId: $this->itemId);
         $combinationId = $this->combinationId;
         $warnings = [];
@@ -445,6 +452,12 @@ final class CombinationService
                 ), 'type' => 'warning'];
             }
         } catch (RuntimeException $e) {
+            // A failure that ended the caller's transaction is the caller's to hear: a refusal would let it commit work
+            // the server has already discarded.
+            if ($nested && !TransactionState::isOpen(db: $db)) {
+                throw $e;
+            }
+
             Log::add(
                 entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $this->itemId, ErrorText::of($e)),
                 priority: Log::ERROR,
@@ -453,7 +466,7 @@ final class CombinationService
 
             return new CombinationWriteResult(saved: false, id: $this->combinationId, refusals: [self::refusalOf(failure: $e)]);
         } finally {
-            ProjectionManager::rebuildChanged(change: $change);
+            self::afterChange(change: $change, nested: $nested);
         }
 
         return new CombinationWriteResult(saved: true, id: $combinationId, warnings: $warnings);
@@ -629,6 +642,25 @@ final class CombinationService
                 . $db->quoteName('id') . ' = ' . $combinationId . ' THEN 1 ELSE 0 END) WHERE ' . $db->quoteName('item_id') . ' = ' . $this->itemId
                 . ' AND ' . CombinationState::currentSql(column: $db->quoteName('state')))->execute();
         }
+    }
+
+    /**
+     * The product's catalogue after the write: rebuilt now, or, inside a caller's transaction (a product's whole write
+     * through ItemWriteService), left marked for the caller to rebuild once after its commit.
+     *
+     * @param array{item: int, lock: \Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock, held: int[]} $change What ProjectionManager::markChange() answered.
+     *
+     * @since  2.3.0
+     */
+    private static function afterChange(array $change, bool $nested): void
+    {
+        if ($nested) {
+            ProjectionManager::leaveChanged(change: $change);
+
+            return;
+        }
+
+        ProjectionManager::rebuildChanged(change: $change);
     }
 
     /**

@@ -43,13 +43,7 @@ class ItemfieldvaluesController extends ApiController
 {
     use HasApiGuards;
     use AnswersFromServices;
-
-    /**
-     * The keys a value's body takes.
-     *
-     * @since  2.3.0
-     */
-    private const BODY_KEYS = ['code', 'state', 'ordering', 'params', 'translations'];
+    use ReadsCatalogBodies;
 
     /**
      * @var string
@@ -141,34 +135,7 @@ class ItemfieldvaluesController extends ApiController
 
         $creating = $method === 'POST' && $valueId === 0;
         $body = $this->bodyObject(example: '{"code": "silver", "translations": {"en_gb": {"name": "Silver"}}}');
-        $warnings = $this->unknownKeys(body: $body, keys: self::BODY_KEYS, what: 'a value');
-        $fields = [];
-        $refusals = [];
-
-        foreach (['code', 'state', 'ordering'] as $key) {
-            if (\array_key_exists($key, $body)) {
-                if ($body[$key] !== null && !\is_scalar($body[$key])) {
-                    $refusals[] = new Refusal(code: 'invalid', sentence: 'send a value, not a list or an object.', pointer: '/' . $key);
-                } else {
-                    $fields[$key] = $body[$key] === null ? '' : (string) $body[$key];
-                }
-            }
-        }
-
-        if (\array_key_exists('params', $body)) {
-            if (!\is_array($body['params']) || ($body['params'] !== [] && array_is_list($body['params']))) {
-                $refusals[] = new Refusal(code: 'invalid', sentence: Text::_('COM_ALFA_ITEMFIELD_VALUE_PARAMS_INVALID'), pointer: '/params');
-            } else {
-                $fields['valueparams'] = $body['params'];
-            }
-        }
-
-        if (\array_key_exists('translations', $body)) {
-            [$texts, $textRefusals, $textWarnings] = $this->translationFields(translations: $body['translations'], texts: ['name']);
-            $fields += $texts;
-            array_push($refusals, ...$textRefusals);
-            array_push($warnings, ...$textWarnings);
-        }
+        [$fields, $refusals, $warnings] = $this->valueFields(body: $body);
 
         if ($refusals !== []) {
             return $this->refuse(refusals: $refusals);

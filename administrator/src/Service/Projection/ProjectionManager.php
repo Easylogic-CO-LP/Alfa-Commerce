@@ -719,6 +719,19 @@ class ProjectionManager
     }
 
     /**
+     * After the change markChange() announced, made inside a caller's transaction: the lock released (the caller holds
+     * it too, or the catalogue job takes the item), the item left marked for the caller's rebuild after its commit.
+     *
+     * @param array{item: int, lock: IndexRebuildLock, held: int[]} $change What markChange() answered.
+     *
+     * @since  2.3.0
+     */
+    public static function leaveChanged(array $change): void
+    {
+        $change['lock']->release(itemIds: $change['held']);
+    }
+
+    /**
      * The database clock as a mark: what a new item's insert carries.
      *
      * @since  2.2.0

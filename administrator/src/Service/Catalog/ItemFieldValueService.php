@@ -356,6 +356,41 @@ final class ItemFieldValueService
     }
 
     /**
+     * An item field named by its id or its field_name; null for none.
+     *
+     * @param int|string $field The field's id, or its field_name.
+     *
+     * @since  2.3.0
+     */
+    public static function fieldId(int|string $field): ?int
+    {
+        $db = self::db();
+        $where = \is_int($field) || ctype_digit($field)
+            ? $db->quoteName('id') . ' = ' . (int) $field
+            : $db->quoteName('field_name') . ' = ' . $db->quote($field);
+        $id = $db->setQuery('SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_item_fields') . ' WHERE ' . $where)->loadResult();
+
+        return $id === null ? null : (int) $id;
+    }
+
+    /**
+     * A value of a field named by its code; null for none.
+     *
+     * @param int $fieldId The field.
+     * @param string $code The value's code.
+     *
+     * @since  2.3.0
+     */
+    public static function byCode(int $fieldId, string $code): ?int
+    {
+        $db = self::db();
+        $id = $db->setQuery('SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_item_field_values') . ' WHERE '
+            . $db->quoteName('item_field_id') . ' = ' . $fieldId . ' AND ' . $db->quoteName('code') . ' = ' . $db->quote($code))->loadResult();
+
+        return $id === null ? null : (int) $id;
+    }
+
+    /**
      * Values as an answer names them, whatever their field: the field (id and field_name), the code and the texts of
      * every content language (name, alias), by value id.
      *

@@ -54,7 +54,7 @@ trait AnswersFromServices
         $this->app->setHeader('status', (string) $status, true);
 
         if ($warnings !== []) {
-            $document->addMeta('warnings', $warnings);
+            $this->app->getDocument()->addMeta('warnings', $warnings);
         }
 
         return $this;

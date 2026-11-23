@@ -35,6 +35,28 @@ use Throwable;
  * A write built in code is checked by the item form as the screen's is; on a change, what it leaves out keeps its
  * stored value, as a REST PATCH keeps it. The caller checks its own permission: the service writes what it is given.
  *
+ * A product's whole graph is written with it in the same save, one transaction, through the services that own each
+ * part:
+ *
+ *     $result = ItemWriteService::create()
+ *         ->with(['sku' => 'SMX', 'name_en_gb' => 'Smartphone X', 'categories' => [3], 'manage_stock' => 1])
+ *         ->value(field: 'colour', fields: ['code' => 'silver', 'name_en_gb' => 'Silver'])
+ *         ->option(value: ['field' => 'warranty', 'code' => '2y'], operation: '+', amount: '49.00')
+ *         ->informational(values: [['field' => 'material', 'code' => 'aluminium']])
+ *         ->combination(values: ['colour' => 'silver', 'storage' => '512gb'], fields: ['sku' => 'SMX-SLV-512'], stock: [['location_id' => 1, 'quantity' => '5']])
+ *         ->from('api')
+ *         ->save();
+ *
+ * The order of resolution is fixed, each part able to name what the one before made: the item fields' values first
+ * (ItemFieldValueService: created, or changed when the field already has a value with the code sent), then the product
+ * itself (the item save), then its options and specifications (ItemOptionService: an option added, or its price change
+ * set when the value is already one), then its combinations (CombinationService: created by their values, or changed
+ * when the product already has one with those values), then the combinations' stock (InventoryCommands: each figure set
+ * at its location). A value is named by its id or by its field (id or field_name) and code; a combination's values by
+ * field (id or field_name) to value (id or code). Nothing is removed by a graph: options, combinations and values go
+ * through their own removals. The first refusal of any part rolls the whole write back; the result names each part
+ * written ({@see ItemWriteResult::$written}) or each refusal with its JSON pointer ({@see ItemWriteResult::$refused}).
+ *
  * @api CHANGE CATALOGUE: save a product with the item save's rules, refusals and transaction.
  *
  * @since  2.3.0
@@ -93,6 +115,22 @@ final class ItemWriteService
      * @since  2.3.0
      */
     private int $copyOf = 0;
+
+    /**
+     * The parts of the product's graph, in the order given within each part: values, options, specifications,
+     * combinations.
+     *
+     * @var array{values: list<array>, options: list<array>, informational: ?array, combinations: list<array>}
+     * @since  2.3.0
+     */
+    private array $graph = ['values' => [], 'options' => [], 'informational' => null, 'combinations' => []];
+
+    /**
+     * Where the write comes from: admin, api or sync (the combinations' event and the stock movements record it).
+     *
+     * @since  2.3.0
+     */
+    private string $origin = 'admin';
 
     /**
      * The warnings the save gives as it goes.
@@ -209,6 +247,89 @@ final class ItemWriteService
     }
 
     /**
+     * An item field's value written with the product: created, or changed when the field already has a value with the
+     * code sent ({@see ItemFieldValueService}).
+     *
+     * @param int|string $field The field: its id or its field_name.
+     * @param array<string, mixed> $fields The value's fields, by the Values tab's names (code, name_en_gb, state, ordering, valueparams).
+     * @param string $pointer Where the value stands in the caller's request, for its refusals.
+     *
+     * @since  2.3.0
+     */
+    public function value(int|string $field, array $fields, string $pointer = ''): self
+    {
+        $this->graph['values'][] = ['field' => $field, 'fields' => $fields, 'pointer' => $pointer];
+
+        return $this;
+    }
+
+    /**
+     * An option of the product: added, or its price change set when the value is already one ({@see ItemOptionService}).
+     *
+     * @param int|array{field: int|string, code: string} $value The value: its id, or its field and code.
+     * @param string|null $operation +, -, % or -%; null for an option that changes no price.
+     * @param string|null $amount The amount.
+     * @param string|null $applyOn start, final, or null to follow the shop's setting.
+     * @param string $pointer Where the option stands in the caller's request, for its refusals.
+     *
+     * @since  2.3.0
+     */
+    public function option(int|array $value, ?string $operation = null, ?string $amount = null, ?string $applyOn = null, string $pointer = ''): self
+    {
+        $this->graph['options'][] = ['value' => $value, 'operation' => $operation, 'amount' => $amount, 'apply_on' => $applyOn, 'pointer' => $pointer];
+
+        return $this;
+    }
+
+    /**
+     * The product's specifications, replaced by the values given in their order ({@see ItemOptionService::informational()}).
+     *
+     * @param list<int|array{field: int|string, code: string}> $values The values: ids, or fields and codes.
+     * @param string $pointer Where the list stands in the caller's request, for its refusals.
+     *
+     * @since  2.3.0
+     */
+    public function informational(array $values, string $pointer = ''): self
+    {
+        $this->graph['informational'] = ['values' => array_values($values), 'pointer' => $pointer];
+
+        return $this;
+    }
+
+    /**
+     * A combination of the product: created by its values, or changed when the product already has one with those
+     * values ({@see CombinationService}); its stock figures set after every combination is written.
+     *
+     * @param array<int|string, int|string> $values Field (id or field_name) to value (id or code).
+     * @param array<string, mixed> $fields The variant window's fields (sku, gtin, mpn, overrides, name_en_gb, state, default).
+     * @param list<array>|null $prices The price rows as the window writes them; null leaves them as they are.
+     * @param list<array{location_id: int, quantity: string}> $stock Each location's figure, set as its stock record's.
+     * @param string $pointer Where the combination stands in the caller's request, for its refusals.
+     *
+     * @since  2.3.0
+     */
+    public function combination(array $values, array $fields = [], ?array $prices = null, array $stock = [], string $pointer = ''): self
+    {
+        $this->graph['combinations'][] = ['values' => $values, 'fields' => $fields, 'prices' => $prices, 'stock' => $stock, 'pointer' => $pointer];
+
+        return $this;
+    }
+
+    /**
+     * Where the write comes from, recorded by the combinations' event (admin, api or sync) and the stock movements.
+     *
+     * @param string $origin admin, api or sync.
+     *
+     * @since  2.3.0
+     */
+    public function from(string $origin): self
+    {
+        $this->origin = $origin;
+
+        return $this;
+    }
+
+    /**
      * Save the product.
      *
      * @param ItemModel|null $model The item model of the controller that saves (it keeps the saved id and the errors
@@ -229,6 +350,10 @@ final class ItemWriteService
             }
         }
 
+        if ($this->graph !== ['values' => [], 'options' => [], 'informational' => null, 'combinations' => []]) {
+            return (new ItemGraphWrite(write: $this, model: $model, graph: $this->graph, origin: $this->origin))->save(tasksBefore: $tasksBefore);
+        }
+
         $saved = $model->write(write: $this);
         $id = $saved ? (int) $model->getState($model->getName() . '.id') : $this->id;
 
@@ -239,6 +364,32 @@ final class ItemWriteService
             warnings: $this->warnings,
             tasks: array_values(array_map('intval', array_keys(array_diff_key(Tasks::requestNotes(), $tasksBefore)))),
         );
+    }
+
+    /**
+     * The product changed; 0 for a new one.
+     *
+     * @internal ItemGraphWrite reads the write.
+     *
+     * @since  2.3.0
+     */
+    public function id(): int
+    {
+        return $this->id;
+    }
+
+    /**
+     * The warnings given so far.
+     *
+     * @internal ItemGraphWrite reads the write.
+     *
+     * @return list<array{message: string, type: string}>
+     *
+     * @since  2.3.0
+     */
+    public function warnings(): array
+    {
+        return $this->warnings;
     }
 
     /**
@@ -416,13 +567,15 @@ final class ItemWriteService
     /**
      * The model's errors as sentences.
      *
+     * @internal ItemGraphWrite reads them too.
+     *
      * @param ItemModel $model The model.
      *
      * @return list<string>
      *
      * @since  2.3.0
      */
-    private static function errorsOf(ItemModel $model): array
+    public static function errorsOf(ItemModel $model): array
     {
         $errors = [];
 

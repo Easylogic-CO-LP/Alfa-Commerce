@@ -45,6 +45,7 @@ class ItemoptionsController extends ApiController
 {
     use HasApiGuards;
     use AnswersFromServices;
+    use ReadsCatalogBodies;
 
     /**
      * The keys an option's body takes.
@@ -145,18 +146,7 @@ class ItemoptionsController extends ApiController
         $creating = $method === 'POST' && $valueId === 0;
         $body = $this->bodyObject(example: '{"value_id": 71, "operation": "+", "amount": "49.00", "apply_on": "final"}');
         $warnings = $this->unknownKeys(body: $body, keys: $creating ? array_diff(self::BODY_KEYS, ['ordering']) : array_diff(self::BODY_KEYS, ['value_id']), what: 'an option');
-        $refusals = [];
-        $delta = [];
-
-        foreach (['operation', 'amount', 'apply_on'] as $key) {
-            if (\array_key_exists($key, $body)) {
-                if ($body[$key] !== null && !\is_string($body[$key]) && !\is_int($body[$key]) && !\is_float($body[$key])) {
-                    $refusals[] = new Refusal(code: 'invalid', sentence: 'send text, or null for none.', pointer: '/' . $key);
-                } else {
-                    $delta[$key] = $body[$key] === null || $body[$key] === '' ? null : (string) $body[$key];
-                }
-            }
-        }
+        [$delta, $refusals] = $this->optionDelta(body: $body);
 
         if ($creating && !\is_int($body['value_id'] ?? null)) {
             $refusals[] = new Refusal(code: 'value_missing', sentence: 'send value_id, the id of the value the product offers as an option.', pointer: '/value_id');

@@ -11,8 +11,6 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
-use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CombinationReader;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CombinationService;
@@ -43,6 +41,7 @@ class CombinationsController extends ApiController
 {
     use HasApiGuards;
     use AnswersFromServices;
+    use ReadsCatalogBodies;
 
     /**
      * The keys a combination's body takes.
@@ -252,79 +251,18 @@ class CombinationsController extends ApiController
      */
     private function writeOf(CombinationService $write, array $body, int $itemId, int $combinationId): array
     {
-        $refusals = [];
-        $warnings = [];
-
-        foreach (array_diff(array_map('strval', array_keys($body)), self::BODY_KEYS) as $key) {
-            $warnings[] = ['code' => 'not_a_field', 'title' => $key . ' is not a key of a combination; it was left out.', 'pointer' => '/' . $key];
-        }
+        $warnings = $this->unknownKeys(body: $body, keys: self::BODY_KEYS, what: 'a combination');
 
         if (\is_array($body['values'] ?? null)) {
             $write->values(values: $body['values']);
         }
 
-        foreach (['sku', 'gtin', 'mpn'] as $key) {
-            if (\array_key_exists($key, $body)) {
-                if (!\is_string($body[$key]) || mb_strlen($body[$key]) > 255 || preg_match('/[\x00-\x1F\x7F]/', $body[$key]) === 1) {
-                    $refusals[] = new Refusal(code: 'invalid', sentence: 'send text of at most 255 characters, without control characters.', pointer: '/' . $key);
-                } else {
-                    $write->set(field: $key, value: trim($body[$key]));
-                }
-            }
-        }
+        [$fields, $prices, $refusals, $fieldWarnings] = $this->combinationFields(body: $body);
+        array_push($warnings, ...$fieldWarnings);
+        $write->with(fields: $fields);
 
-        foreach (['state' => [0, 1], 'manage_stock' => [0, 1, null]] as $key => $allowed) {
-            if (\array_key_exists($key, $body)) {
-                if (!\in_array($body[$key], $allowed, true)) {
-                    $refusals[] = new Refusal(code: 'invalid', sentence: 'send ' . implode(' or ', array_map(static fn ($v): string => json_encode($v), $allowed)) . '.', pointer: '/' . $key);
-                } else {
-                    $write->set(field: $key, value: $body[$key] === null ? '' : (string) $body[$key]);
-                }
-            }
-        }
-
-        if (\array_key_exists('default', $body)) {
-            if ($body['default'] !== true) {
-                $refusals[] = new Refusal(code: 'invalid', sentence: 'send true to make this the combination the product opens on; another one is made so by its own write.', pointer: '/default');
-            } else {
-                $write->set(field: 'default', value: true);
-            }
-        }
-
-        foreach ((array) ($body['overrides'] ?? []) as $key => $value) {
-            if (!\array_key_exists((string) $key, ItemFieldsAdminHelper::COMBINATION_OVERRIDE_CASTS) || $key === 'manage_stock') {
-                $warnings[] = ['code' => 'not_a_field', 'title' => 'overrides.' . $key . ' is not an override of a combination; it was left out.', 'pointer' => '/overrides/' . $key];
-            } elseif ($value !== null && !\is_scalar($value)) {
-                $refusals[] = new Refusal(code: 'invalid', sentence: 'send a value, or null to inherit the product\'s.', pointer: '/overrides/' . $key);
-            } else {
-                $write->set(field: (string) $key, value: $value === null ? '' : (string) $value);
-            }
-        }
-
-        foreach ((array) ($body['translations'] ?? []) as $tag => $texts) {
-            if (!\is_array($texts) || !\in_array(MultilingualHelper::normaliseTag(tag: (string) $tag), array_map(static fn (string $t): string => MultilingualHelper::normaliseTag(tag: $t), MultilingualHelper::getLanguageTags()), true)) {
-                $refusals[] = new Refusal(code: 'invalid', sentence: 'send the texts of a content language of the shop, {"en_gb": {"name": "White"}}.', pointer: '/translations/' . $tag);
-
-                continue;
-            }
-
-            if (\array_key_exists('name', $texts)) {
-                $write->set(field: 'name_' . MultilingualHelper::normaliseTag(tag: (string) $tag), value: (string) $texts['name']);
-            }
-        }
-
-        if (\array_key_exists('prices', $body)) {
-            if (!\is_array($body['prices']) || !array_is_list($body['prices'])) {
-                $refusals[] = new Refusal(code: 'invalid', sentence: 'send a list of price rows, [] for none.', pointer: '/prices');
-            } else {
-                $write->prices(rows: array_map(static function ($row): array {
-                    $row = (array) $row;
-                    $mode = ($row['mode'] ?? 'price') === 'adjust' ? 'adjust' : 'price';
-
-                    return ['_mode' => $mode, 'price_status' => (string) ($row['state'] ?? '1'),
-                        $mode === 'adjust' ? 'adjust_target' : 'override_type' => $row['override_type'] ?? 'start'] + $row;
-                }, $body['prices']));
-            }
+        if ($prices !== null) {
+            $write->prices(rows: $prices);
         }
 
         foreach (['stock' => 'stock', 'opening_stock' => 'opening'] as $key => $kind) {
@@ -332,20 +270,9 @@ class CombinationsController extends ApiController
                 continue;
             }
 
-            $figures = [];
-
-            foreach ((array) $body[$key] as $n => $line) {
-                $location = (int) ($line['location_id'] ?? 0);
-                $quantity = $line['quantity'] ?? null;
-
-                if ($location <= 0 || !(\is_string($quantity) || \is_int($quantity) || \is_float($quantity)) || !is_numeric((string) $quantity)) {
-                    $refusals[] = new Refusal(code: 'invalid', sentence: 'send {"location_id": 1, "quantity": "5"}.', pointer: '/' . $key . '/' . $n);
-
-                    continue;
-                }
-
-                $figures[$location] = (string) $quantity;
-            }
+            [$lines, $lineRefusals] = $this->stockFigures(lines: $body[$key], pointer: '/' . $key);
+            array_push($refusals, ...$lineRefusals);
+            $figures = array_column($lines, 'quantity', 'location_id');
 
             if ($kind === 'opening') {
                 $write->opening(figures: $figures);
