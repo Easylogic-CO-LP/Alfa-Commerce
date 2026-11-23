@@ -61,6 +61,9 @@ final class CartOffersView
      *                                       method id; a method that adds none is not in it ({@see PaymentFee}).
      * @param array<int, string> $shipmentRefusals Why the cart's goods keep a shipping method off the list, by method
      *                                             id ({@see CartMethods::shipmentRefusals()}).
+     * @param array{id?: int, code?: string} $withdrawnShipment The chosen carrier this settle withdrew for its own
+     *                                                          answer, with the code of that refusal; empty when none
+     *                                                          ({@see CartMethods::withdrawnChosen()}).
      *
      * @since  2.0.0
      */
@@ -80,6 +83,7 @@ final class CartOffersView
         public readonly array $shipmentNeeds = [],
         public readonly array $paymentFees = [],
         public readonly array $shipmentRefusals = [],
+        public readonly array $withdrawnShipment = [],
     ) {
     }
 

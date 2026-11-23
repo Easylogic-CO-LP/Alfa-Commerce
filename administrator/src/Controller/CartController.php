@@ -196,6 +196,14 @@ class CartController extends BaseController
         // making sure the thing being checked is what the cart says.
         $selection = $this->cartSelection($cartId, $actor, new User($customerId));
 
+        // The settle at the moment of placing withdrew the chosen carrier for its own answer about this cart: the
+        // order is not placed, and the operator is told the carrier's reason, as placement says it to staff.
+        if ($selection['withdrawn'] !== []) {
+            $this->refuse($cartId, [['code' => (string) $selection['withdrawn']['code'], 'params' => ['method' => (int) $selection['withdrawn']['id']]]]);
+
+            return;
+        }
+
         $result = OperatorCheckout::place(
             actor: $actor,
             customer: new User($customerId),
@@ -603,7 +611,8 @@ class CartController extends BaseController
      * @param User $actor The operator.
      * @param User $customer The cart's own customer.
      *
-     * @return array{shipment: int, payment: int}
+     * @return array{shipment: int, payment: int, withdrawn: array{id?: int, code?: string}} The methods, and the
+     *         chosen carrier the settle withdrew for its own answer (empty when none).
      *
      * @since  2.0.0
      */
@@ -617,6 +626,7 @@ class CartController extends BaseController
         return [
             'shipment' => (int) $offers->selectedShipmentId,
             'payment' => (int) $offers->selectedPaymentId,
+            'withdrawn' => $offers->withdrawnShipment,
         ];
     }
 

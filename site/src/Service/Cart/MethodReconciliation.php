@@ -79,6 +79,10 @@ final class MethodReconciliation
                 $methods->addNotice('shipment', $withheld === null
                     ? Text::sprintf('COM_ALFA_CART_SHIPMENT_NO_LONGER_AVAILABLE', $methods->name('shipment', $chosenShipment))
                     : self::refusalNotice($withheld, $methods->name('shipment', $chosenShipment)));
+
+                if ($withheld !== null) {
+                    $methods->withdrawChosen(id: $chosenShipment, answer: $withheld);
+                }
             }
 
             $this->rows->applyShipment(0, $at);
@@ -110,6 +114,7 @@ final class MethodReconciliation
                 // A carrier that waits for a fact the checkout has not given is set aside without a word.
                 if (!CartMethods::waitsForFact($quote)) {
                     $methods->addNotice('shipment', self::refusalNotice($quote, $methods->name('shipment', $chosenShipment)));
+                    $methods->withdrawChosen(id: $chosenShipment, answer: $quote);
                 }
 
                 $this->rows->applyShipment(0, $at);

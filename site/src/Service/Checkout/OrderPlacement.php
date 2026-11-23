@@ -2473,11 +2473,7 @@ class OrderPlacement
             // too big. Distinguished so the operator reading the failure is
             // sent to the plugin.
             $this->fail(
-                match (true) {
-                    !$quote->answered => 'COM_ALFA_SHIPMENT_NO_ANSWER',
-                    $quote->reasonKey !== '' => $quote->reasonKey,
-                    default => 'COM_ALFA_ORDER_SHIPMENT_CANNOT_CARRY',
-                },
+                $quote->refusalCode(),
                 ['method' => $id],
                 '',
                 null,

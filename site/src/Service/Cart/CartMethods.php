@@ -86,6 +86,16 @@ final class CartMethods
     private array $withheld = [];
 
     /**
+     * The chosen carrier the last reconciliation withdrew for its own answer: its id and the code of that refusal
+     * ({@see ShippingQuote::refusalCode()}); empty when it withdrew none.
+     *
+     * @var array{id?: int, code?: string}
+     *
+     * @since  2.3.0
+     */
+    private array $withdrawnChosen = [];
+
+    /**
      * Whether the carriers are being asked right now: a question a carrier's answer puts back to this list gets the
      * list before the carriers were asked, never a second round of questions.
      *
@@ -658,6 +668,32 @@ final class CartMethods
     public function clearNotices(): void
     {
         $this->notices = ['shipment' => [], 'payment' => []];
+        $this->withdrawnChosen = [];
+    }
+
+    /**
+     * Record that the reconciliation withdrew the chosen carrier for its own answer about this cart.
+     *
+     * @param int $id The carrier.
+     * @param ShippingQuote $answer Its answer.
+     *
+     * @since  2.3.0
+     */
+    public function withdrawChosen(int $id, ShippingQuote $answer): void
+    {
+        $this->withdrawnChosen = ['id' => $id, 'code' => $answer->refusalCode()];
+    }
+
+    /**
+     * The chosen carrier the last reconciliation withdrew for its own answer, with the code of that refusal.
+     *
+     * @return array{id?: int, code?: string} Empty when it withdrew none.
+     *
+     * @since  2.3.0
+     */
+    public function withdrawnChosen(): array
+    {
+        return $this->withdrawnChosen;
     }
 
     /**
