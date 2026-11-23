@@ -73,8 +73,9 @@ $structuralChanges = <<<HTML
             removing the old copy on update needs a cleanup step in the release that ships the change.</li>
         <li><strong>Bump the version.</strong> Set <code>&lt;version&gt;</code> in <code>alfa.xml</code> to the new number
             (e.g. <code>{$nextVersion}</code>) and set the same number as <code>"version"</code> in
-            <code>media/com_alfa/joomla.asset.json</code>; that query string is what makes browsers fetch the new
-            CSS and JS instead of the cached ones.</li>
+            <code>media/com_alfa/joomla.asset.json</code>, so the asset registry names the release it belongs to.
+            Browsers fetch the new CSS and JS on their own: Joomla adds the site's media version to every asset
+            address and changes it on each install and update.</li>
     </ul>
 </div>
 HTML;
