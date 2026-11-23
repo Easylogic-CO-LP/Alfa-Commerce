@@ -480,7 +480,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * error. Inside an open transaction a table that lacks something is left
      * as it is, and reads as "nothing logged" too.
      *
-     * @api READ ONLY: the method's own log rows, newest first.
+     * @api WRITE: the method's own log rows, newest first; the first call of a request creates or completes the log
+     *      table.
      *
      * @param int $methodId The payment/shipment method id.
      * @param array $filters Optional extra filters (see loadLogs()).
