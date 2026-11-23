@@ -2283,6 +2283,10 @@ class com_alfaInstallerScript extends InstallerScript
             'administrator/components/com_alfa/src/Service/Setup/ShippingOptionsMigration.php' => ['4e22724a1b283b697008d9e4651283248029aaea98b1de5784a5a1749ab56ef2'],
             'administrator/components/com_alfa/src/Service/Setup/TemplateLayoutMigration.php' => ['663e25cb8844f83f37bb947883656c486e9ad77dbb66859fc8a9724ec3dcc6fc'],
             'administrator/components/com_alfa/src/Event/Inventory/InventoryTransferredEvent.php' => ['a34f0233982661d93891628f5dd892ae14f12bfb5d967001c1cd65e596699c94'],
+            // Files the package no longer ships, removed from an updated site while they are as an earlier
+            // release installed them (PackageHelper::contentHash()).
+            'administrator/components/com_alfa/src/Plugin/TargetedHandlersInterface.php' => ['d38ddb8777a884bdf692b8f56682e495fbd815e1812ec4ecbffdc0522eb91daa'],
+            'media/com_alfa/js/libraries/keen-slider.js.gz' => ['7a2685e5e72e1f1f8fa7c6b3019dfb9ff20696e4df520215017752cccb8477d5'],
         ],
     ];
 
