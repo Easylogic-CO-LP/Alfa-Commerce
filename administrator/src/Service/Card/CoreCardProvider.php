@@ -579,7 +579,7 @@ final class CoreCardProvider
         // started.
         $since = Factory::getDate('today midnight', Factory::getApplication()->get('offset', 'UTC'))->toSql();
 
-        // Takings: settled payments, less chargebacks, plus won disputes. A
+        // Takings: settled payments, less the chargebacks lost disputes booked, plus their reversals. A
         // payment is money in its ORDER's currency, so the rows are grouped by
         // the currency the order names and only where that currency has a row:
         // the money of an order that names none is in no figure.

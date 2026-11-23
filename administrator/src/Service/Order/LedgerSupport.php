@@ -31,6 +31,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Site\Service\Data\PluginPayload;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
@@ -455,6 +456,70 @@ trait LedgerSupport
                 $e->getMessage(),
             ), 0, $e);
         }
+    }
+
+    /**
+     * Lock one or more order rows FOR UPDATE, in a canonical order.
+     *
+     * Ascending by id, de-duplicated: when a write touches two orders, two
+     * concurrent writes touching the same pair must take them in the same
+     * sequence or they deadlock on each other instead of queueing.
+     *
+     * A missing row is refused rather than skipped: FOR UPDATE on an absent
+     * id takes a GAP lock, and two writers aiming at the same absent id
+     * deadlock rather than order.
+     *
+     * @param object $db Database driver (already inside a transaction)
+     * @param int ...$orderIds Order PKs; zero and duplicates are ignored
+     *
+     * @return bool False if any named order does not exist, or if the row
+     *              cannot be locked (another writer holds it)
+     *
+     * One lock, one implementation, for every ledger that writes an order's money: the payments ledger and the
+     * disputes ledger take their orders through it, in the same order.
+     *
+     * @since  2.0.0
+     */
+    private static function lockOrders(object $db, int ...$orderIds): bool
+    {
+        $ids = array_values(array_unique(array_filter($orderIds, static fn (int $id): bool => $id > 0)));
+        sort($ids);
+
+        foreach ($ids as $id) {
+            $db->setQuery(
+                'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_orders')
+                . ' WHERE ' . $db->quoteName('id') . ' = ' . $id . ' FOR UPDATE',
+            );
+
+            try {
+                $locked = (int) $db->loadResult();
+            } catch (Throwable $e) {
+                // ONLY a lock-wait timeout (1205) is an ordinary refusal: it
+                // rolls back the statement, leaving the caller's transaction
+                // intact to be refused cleanly. A deadlock (1213) rolls back
+                // the whole transaction server-side, so reporting it as "busy"
+                // would let the caller commit a transaction the server has
+                // already discarded, and every other error is a real fault.
+                // Both must keep throwing.
+                if (MysqlError::number($e) !== 1205) {
+                    throw $e;
+                }
+
+                self::warnFailure(message: "lockOrders(): order #{$id} is held by another writer", failure: $e);
+                self::noteVerdict(kind: self::VERDICT_LOCK_NOT_TAKEN, code: '', orderId: $id);
+
+                return false;
+            }
+
+            if ($locked !== $id) {
+                self::warn("lockOrders(): order #{$id} does not exist");
+                self::noteVerdict(kind: self::VERDICT_REFUSED, code: 'order_missing', orderId: $id);
+
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

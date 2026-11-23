@@ -5904,6 +5904,13 @@ class OrderModel extends AlfaAdminModel
         $db->setQuery($query);
         $db->execute();
 
+        // The records of their decided disputes (an undecided one refused the delete before this point).
+        $query = $db->getQuery(true)
+            ->delete($db->quoteName('#__alfa_order_disputes'))
+            ->whereIn('id_order', $pks);
+        $db->setQuery($query);
+        $db->execute();
+
         // Delete payments
         $query = $db->getQuery(true)
             ->delete($db->quoteName('#__alfa_order_payments'))
