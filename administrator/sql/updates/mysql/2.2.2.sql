@@ -136,6 +136,7 @@ SELECT d.`id_order`, 0, '', 'dispute.migrated', d.`id`,
   JOIN `#__alfa_order_payments` cb ON cb.`id_dispute` = d.`id` AND cb.`payment_type` = 'chargeback'
  WHERE d.`source` = 'migrated' AND d.`outcome` = 'lost' AND d.`amount` < ABS(cb.`amount`)
    AND NOT EXISTS (SELECT 1 FROM `#__alfa_order_activity_log` a WHERE a.`event` = 'dispute.migrated' AND a.`entity_id` = d.`id`);
+
 -- The other system id of an order
 --
 -- An order created by another system (a marketplace, an ERP, a connector) carries that system name in external_source

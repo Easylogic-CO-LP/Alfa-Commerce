@@ -674,6 +674,17 @@ class OrdersModel extends AlfaListModel
             }
         }
 
+        // The REST API's bound: an inquiry or open chargeback with no evidence sent, to be answered before a UTC time.
+        $dueBefore = trim((string) $this->getState('filter.dispute_due_before', ''));
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/', $dueBefore) === 1) {
+            $query->where('EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_order_disputes', 'fdd')
+                . ' WHERE ' . $db->quoteName('fdd.id_order') . ' = ' . $db->quoteName('a.id')
+                . ' AND ' . $db->quoteName('fdd.state') . ' IN (' . $db->quote(DisputeLedger::STATE_INQUIRY) . ', ' . $db->quote(DisputeLedger::STATE_OPEN) . ')'
+                . ' AND ' . $db->quoteName('fdd.evidence_sent_at') . ' IS NULL'
+                . ' AND ' . $db->quoteName('fdd.evidence_due_by') . ' < ' . $db->quote(\strlen($dueBefore) === 10 ? $dueBefore . ' 00:00:00' : $dueBefore) . ')');
+        }
+
         // Trash filter
         $show_trashed = $this->getState('filter.show_trashed');
         if (is_numeric($show_trashed) && $show_trashed == 1) {

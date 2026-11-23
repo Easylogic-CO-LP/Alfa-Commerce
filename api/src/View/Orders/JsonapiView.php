@@ -85,6 +85,7 @@ class JsonApiView extends BaseApiView
         'modified',
         'lines',
         'payments',
+        'disputes',
         'shipments',
         'contributions',
         'history',

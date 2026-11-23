@@ -111,7 +111,8 @@ class DisputeModel extends AdminModel
      * @param string $act One of self::FORMS, or 'same' or 'different'.
      * @param object $payment The disputed payment.
      * @param object|null $dispute The record; null for record.
-     * @param array $values The validated values ('same_as' for same).
+     * @param array $values The validated values by the forms' names ('same_as' for same; 'currency', the stated
+     *                      amount's ISO code, from the REST verbs only).
      * @param User $user The member of staff.
      *
      * @throws InvalidArgumentException For an act that is not one of them, or a guest.
@@ -224,7 +225,8 @@ class DisputeModel extends AdminModel
      */
     private function facts(DisputeLedger $ledger, object $payment, array $values, Closure $text, Closure $utc): DisputeLedger
     {
-        $ledger->amount(amount: self::decimal(value: $text('amount')), currency: self::orderCode(payment: $payment))
+        // The order's currency, unless the REST verb names the currency the bank or the provider stated.
+        $ledger->amount(amount: self::decimal(value: $text('amount')), currency: $text('currency') !== '' ? $text('currency') : self::orderCode(payment: $payment))
             ->reason(code: $text('reason_code') !== '' ? $text('reason_code') : DisputeLedger::REASON_OTHER, text: $text('reason_text'))
             ->evidenceDueBy(utc: $utc('evidence_due_by'));
 

@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFulfillment;
@@ -314,6 +315,38 @@ class OrderModel extends AdminOrderModel
                 'added' => $p->added ?? null,
             ],
             $rows($item->payments ?? null),
+        );
+
+        // The order's card disputes, each with what its rows book: amounts as decimal text, dates UTC.
+        $decimal = static fn ($value): ?string => $value === null ? null : PublishedDecimal::decimal((string) $value);
+        $item->disputes = array_map(
+            static fn (object $d): array => [
+                'id' => (int) $d->id,
+                'id_payment' => (int) $d->id_payment,
+                'state' => (string) $d->state,
+                'outcome' => $d->outcome,
+                'stage' => (int) $d->stage,
+                'source' => (string) $d->source,
+                'amount' => $d->amount === null || $currency === null ? null : PublishedDecimal::money(money: Money::of((string) $d->amount, $currency)),
+                'currency' => $currency?->getCode(),
+                'stated_amount' => $decimal($d->stated_amount),
+                'stated_currency' => (string) $d->stated_currency,
+                'reason' => (string) $d->reason_code,
+                'reason_text' => (string) $d->reason_text,
+                'reference' => $d->reference,
+                'provider_link' => (string) $d->provider_link,
+                'evidence_due_by' => $d->evidence_due_by,
+                'evidence_sent_at' => $d->evidence_sent_at,
+                'fee' => $decimal($d->fee_amount),
+                'fee_currency' => $d->fee_currency,
+                'fee_returned' => $decimal($d->fee_returned),
+                'waits_for' => $d->waits_for,
+                'booked' => $d->booked,
+                'created' => $d->created,
+                'modified' => $d->modified,
+                'decided_at' => $d->decided_at,
+            ],
+            DisputeLedger::forOrder(orderId: (int) ($item->id ?? 0)),
         );
 
         // Each parcel's lines, read for the order's parcels in one statement.
