@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentIssuer;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRefusedException;
@@ -121,7 +122,7 @@ class DocumentsController extends BaseController
             // can put in the operator's words is shown in them; its technical
             // message stays the exception's and the log's.
             $app->setUserState($stateKey, ['reason' => $reason]);
-            $app->enqueueMessage(htmlspecialchars(DocumentRefusedException::in($e)?->operatorText() ?? $e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(DocumentRefusedException::in($e)?->operatorText() ?? ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_($success ? $returnUrl : $formUrl . '&kept=1', false));

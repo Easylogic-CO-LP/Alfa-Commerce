@@ -92,7 +92,7 @@ final class ActionLogHelper
         } catch (Throwable $e) {
             AlfaLog::register();
             Log::add(
-                'The action log row "' . $languageKey . '" of ' . $extension . ' was not written: ' . $e::class . ': ' . $e->getMessage(),
+                'The action log row "' . $languageKey . '" of ' . $extension . ' was not written: ' . $e::class . ': ' . ErrorText::of($e),
                 Log::ERROR,
                 'com_alfa.orders',
             );

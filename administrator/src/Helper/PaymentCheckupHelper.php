@@ -69,7 +69,7 @@ final class PaymentCheckupHelper
                 $data['active'] = PaymentEnvironment::active(params: (string) $method->params) === $variant;
             } catch (Throwable $e) {
                 // Unreadable saved settings: no badge; the detail goes to the log.
-                Log::add('Payment checkup of method #' . $methodId . ': its saved settings cannot be read: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+                Log::add('Payment checkup of method #' . $methodId . ': its saved settings cannot be read: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.payments');
             }
         }
 
@@ -103,7 +103,7 @@ final class PaymentCheckupHelper
         } catch (Throwable $e) {
             // A gateway that fails while describing itself must not take the
             // settings page with it; the operator sees one line, the log the rest.
-            Log::add('Payment checkup of method #' . $methodId . ' (' . $type . ') failed: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+            Log::add('Payment checkup of method #' . $methodId . ' (' . $type . ') failed: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.payments');
             $data['notice'] = Text::_('COM_ALFA_CHECKUP_ERROR');
 
             return self::draw($data);

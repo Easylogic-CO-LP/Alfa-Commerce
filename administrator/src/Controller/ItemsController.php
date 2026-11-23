@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Exception;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Application\CMSWebApplicationInterface;
@@ -69,7 +70,7 @@ class ItemsController extends AdminController
         try {
             $model->publish(pks: $cid, value: $value);
         } catch (Exception $e) {
-            $this->setMessage(text: $e->getMessage(), type: 'error');
+            $this->setMessage(text: ErrorText::of($e), type: 'error');
 
             return;
         }

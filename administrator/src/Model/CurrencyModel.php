@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartPersistenceException;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
@@ -170,7 +171,7 @@ class CurrencyModel extends AlfaAdminModel
             // repository or raw from the currency lookup.
             $detail = $e instanceof CartPersistenceException
                 ? (string) $e->getPrevious()?->getMessage()
-                : $e->getMessage();
+                : ErrorText::of($e);
 
             // The currency is already gone and the carts still render through
             // the fallback. A tidy-up that fails is untidy, never wrong.

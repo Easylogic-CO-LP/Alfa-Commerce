@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasInlineEditTrait;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\EntityChangeNotifier;
@@ -93,7 +94,7 @@ class ManufacturerController extends FormController
 
             $this->sendInlineJson(true, '', ['html' => $html]);
         } catch (Throwable $e) {
-            $this->sendInlineJson(false, $e->getMessage());
+            $this->sendInlineJson(false, ErrorText::of($e));
         }
     }
 
@@ -141,7 +142,7 @@ class ManufacturerController extends FormController
 
             $this->sendInlineJson(true, Text::_('COM_ALFA_INLINE_SAVED'), ['display' => $display]);
         } catch (Throwable $e) {
-            $this->sendInlineJson(false, $e->getMessage());
+            $this->sendInlineJson(false, ErrorText::of($e));
         }
     }
 
@@ -183,7 +184,7 @@ class ManufacturerController extends FormController
         } catch (Throwable $e) {
             Log::add(
                 '[ManufacturerController::inlineSave] Search re-sync failed for manufacturer '
-                . $manufacturerId . ': ' . $e->getMessage(),
+                . $manufacturerId . ': ' . ErrorText::of($e),
                 Log::WARNING,
                 'com_alfa',
             );

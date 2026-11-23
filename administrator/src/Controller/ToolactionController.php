@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasToolsAjaxTrait;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\ToolRegistry;
 use Joomla\CMS\MVC\Controller\BaseController;
@@ -60,7 +61,7 @@ class ToolactionController extends BaseController
                 ownerHint: RequestScalar::string($this->input, 'owner'),
             );
         } catch (Throwable $e) {
-            $this->ajaxRespond([], false, $e->getMessage());
+            $this->ajaxRespond([], false, ErrorText::of($e));
 
             return;
         }
@@ -109,7 +110,7 @@ class ToolactionController extends BaseController
                 ownerHint: RequestScalar::string($this->input, 'owner'),
             );
         } catch (Throwable $e) {
-            $this->ajaxRespond([], false, $e->getMessage());
+            $this->ajaxRespond([], false, ErrorText::of($e));
 
             return;
         }
@@ -161,7 +162,7 @@ class ToolactionController extends BaseController
                 ownerHint: RequestScalar::string($this->input, 'owner'),
             );
         } catch (Throwable $e) {
-            $this->ajaxRespond([], false, $e->getMessage());
+            $this->ajaxRespond([], false, ErrorText::of($e));
 
             return;
         }

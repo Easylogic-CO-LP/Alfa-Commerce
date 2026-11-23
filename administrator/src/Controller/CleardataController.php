@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Joomla\CMS\Access\Exception\NotAllowed;
@@ -87,7 +88,7 @@ class CleardataController extends BaseController
         try {
             $outcome = $call();
         } catch (RuntimeException $e) {
-            $this->setRedirect($this->page(), self::escape(text: $e->getMessage()), 'error');
+            $this->setRedirect($this->page(), self::escape(text: ErrorText::of($e)), 'error');
 
             return;
         }

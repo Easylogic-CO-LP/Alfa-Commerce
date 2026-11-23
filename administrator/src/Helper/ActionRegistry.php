@@ -1754,7 +1754,7 @@ class ActionRegistry
             return $event->getActions();
         } catch (Throwable $e) {
             self::warn(
-                "Item field #{$fieldId}: EXCEPTION: " . $e->getMessage()
+                "Item field #{$fieldId}: EXCEPTION: " . ErrorText::of($e)
                 . ' in ' . basename($e->getFile()) . ':' . $e->getLine(),
             );
 
@@ -1861,7 +1861,7 @@ class ActionRegistry
             return $actions;
         } catch (Throwable $e) {
             self::warn(
-                "{$label} #{$entityId}: EXCEPTION: " . $e->getMessage()
+                "{$label} #{$entityId}: EXCEPTION: " . ErrorText::of($e)
                 . ' in ' . basename($e->getFile()) . ':' . $e->getLine(),
             );
 
@@ -1938,9 +1938,9 @@ class ActionRegistry
         try {
             return AlfaPluginHelper::get()->bootSingle(PluginId::from($group, $type));
         } catch (PluginUnavailable $e) {
-            return $e->reason . ': ' . $e->getMessage();
+            return $e->reason . ': ' . ErrorText::of($e);
         } catch (InvalidArgumentException $e) {
-            return $e->getMessage();
+            return ErrorText::of($e);
         }
     }
 

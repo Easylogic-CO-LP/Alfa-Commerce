@@ -131,6 +131,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
@@ -517,7 +518,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         } catch (Throwable $e) {
             $this->reportLogFailure(
                 'loadMethodLogs(): the method-level log of method #' . $methodId . ' could not be read ('
-                . $e->getCode() . ') ' . $e->getMessage(),
+                . $e->getCode() . ') ' . ErrorText::of($e),
             );
 
             return [];
@@ -551,7 +552,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                     ->where($db->quoteName($this->logMethodField) . ' = ' . $methodId),
             )->loadResult() === 1;
         } catch (Throwable $e) {
-            $this->reportLogFailure('logForMethod(): row #' . $logId . ' could not be read (' . $e->getCode() . ') ' . $e->getMessage());
+            $this->reportLogFailure('logForMethod(): row #' . $logId . ' could not be read (' . $e->getCode() . ') ' . ErrorText::of($e));
 
             return false;
         }
@@ -637,7 +638,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         } catch (Throwable $e) {
             $this->reportLogFailure(
                 'Log row ' . ($logId > 0 ? '#' . $logId . ' ' : '') . $this->logRowLabel($data)
-                . ' not written to ' . $tableName . ' (' . $e->getCode() . ') ' . $e->getMessage(),
+                . ' not written to ' . $tableName . ' (' . $e->getCode() . ') ' . ErrorText::of($e),
             );
 
             return 0;
@@ -1108,7 +1109,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
             $lacks = $table->lacks();
         } catch (Throwable $e) {
             $this->reportLogFailure(
-                'Log table ' . $table->name() . ' could not be read (' . $e->getCode() . ') ' . $e->getMessage(),
+                'Log table ' . $table->name() . ' could not be read (' . $e->getCode() . ') ' . ErrorText::of($e),
             );
 
             return false;

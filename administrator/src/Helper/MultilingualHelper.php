@@ -502,7 +502,7 @@ class MultilingualHelper
             TransactionState::rollBackLevel(db: $db, failure: $e);
             self::log(
                 callerMethod: __METHOD__,
-                message:      'Transaction rolled back: ' . $e->getMessage(),
+                message:      'Transaction rolled back: ' . ErrorText::of($e),
                 priority:     Log::ERROR,
             );
             throw new RuntimeException(
@@ -1682,7 +1682,7 @@ class MultilingualHelper
             $configured = self::normaliseTag(tag: self::configuredSiteLanguage(db: $db));
         } catch (Throwable $e) {
             $read = false;
-            Log::add('Alfa: unable to read the content languages: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            Log::add('Alfa: unable to read the content languages: ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
         }
 
         $valid = $configured !== '' && \in_array($configured, $published, true);
@@ -3750,7 +3750,7 @@ class MultilingualHelper
             TransactionState::rollBackLevel(db: $db, failure: $e);
             self::log(
                 callerMethod: __METHOD__,
-                message:      'Transaction rolled back: ' . $e->getMessage(),
+                message:      'Transaction rolled back: ' . ErrorText::of($e),
                 priority:     Log::ERROR,
             );
             throw new RuntimeException(

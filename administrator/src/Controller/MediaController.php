@@ -5,6 +5,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Component\ComponentHelper;
@@ -239,7 +240,7 @@ class MediaController extends BaseController
             return $response;
         } catch (RuntimeException $e) {
             $response['valid'] = false;
-            $response['message'] = 'Connection failed: ' . $e->getMessage();
+            $response['message'] = 'Connection failed: ' . ErrorText::of($e);
             return $response;
         }
     }

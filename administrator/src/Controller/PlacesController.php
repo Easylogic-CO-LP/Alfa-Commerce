@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\AdminController;
 use Joomla\CMS\Router\Route;
@@ -70,7 +71,7 @@ class PlacesController extends AdminController
         try {
             $summary = $this->getModel()->addSubdivisions($pks);
         } catch (Throwable $e) {
-            $this->setMessage($e->getMessage(), 'error');
+            $this->setMessage(ErrorText::of($e), 'error');
 
             return;
         }

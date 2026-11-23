@@ -80,7 +80,7 @@ class OrderHelper
         try {
             $items = $db->loadObjectList();
         } catch (Exception $e) {
-            Log::add('Error loading order items: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('Error loading order items: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
             return [];
         }
 
@@ -342,7 +342,7 @@ class OrderHelper
         try {
             $items = $model->getItems() ?: [];
         } catch (Exception $e) {
-            Log::add('Product search error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('Product search error: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
             return [];
         }
 
@@ -364,7 +364,7 @@ class OrderHelper
                 self::attachPriceResult($item, $priceResult);
             }
         } catch (Exception $e) {
-            Log::add('PriceCalculator failed, falling back to raw prices: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            Log::add('PriceCalculator failed, falling back to raw prices: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
             $rawPrices = self::getBaseProductPrices(array_column($items, 'id'));
             foreach ($items as $item) {
                 self::attachPriceResult($item, null, $rawPrices[$item->id] ?? 0);
@@ -447,7 +447,7 @@ class OrderHelper
             $priceResult = $calculator->calculate($productId, $quantity, $context);
             self::attachPriceResult($item, is_object($priceResult) ? $priceResult : null);
         } catch (Exception $e) {
-            Log::add('PriceCalculator failed for product ' . $productId . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            Log::add('PriceCalculator failed for product ' . $productId . ': ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
             $rawPrices = self::getBaseProductPrices([$productId]);
             self::attachPriceResult($item, null, $rawPrices[$productId] ?? 0);
         }

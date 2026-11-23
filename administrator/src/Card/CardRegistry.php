@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Card;
 
 use Alfa\Component\Alfa\Administrator\Event\Card\CollectCardsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Card\CoreCardProvider;

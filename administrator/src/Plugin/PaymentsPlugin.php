@@ -94,6 +94,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\PaymentToken;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasActionLogTrait;
@@ -1981,7 +1982,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
             SessionOrder::authenticatedReturn($app, $orderId);
         } catch (Throwable $e) {
             AlfaLog::register();
-            Log::add('authenticatedReturnFor(' . $orderId . ') could not write the session (' . $e::class . ': ' . $e->getMessage() . '); the order pages will refuse it.', Log::ERROR, 'com_alfa.payments');
+            Log::add('authenticatedReturnFor(' . $orderId . ') could not write the session (' . $e::class . ': ' . ErrorText::of($e) . '); the order pages will refuse it.', Log::ERROR, 'com_alfa.payments');
         }
     }
 

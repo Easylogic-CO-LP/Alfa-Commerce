@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\SelectionContributorsInterface;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\CartContribution;
@@ -187,7 +188,7 @@ class CartTotalsEvent extends AbstractImmutableEvent implements SelectionContrib
                 $built[] = [$owner->key(), $entry instanceof CartContributionBuilder ? $entry->build() : $entry];
             } catch (LogicException $e) {
                 $refused[$owner->key()] = true;
-                Log::add('Cart totals: ' . $owner . ' contributed nothing: ' . $e->getMessage(), Log::ERROR, 'com_alfa.cart');
+                Log::add('Cart totals: ' . $owner . ' contributed nothing: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.cart');
             }
         }
 

@@ -497,7 +497,7 @@ final class SyncHelper
                     fields:            $definition['fields'],
                 );
             } catch (Exception $e) {
-                $summary['errors'][$table] = $e->getMessage();
+                $summary['errors'][$table] = ErrorText::of($e);
             }
         }
 

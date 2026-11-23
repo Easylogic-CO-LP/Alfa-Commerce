@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Tools;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
@@ -191,7 +192,7 @@ class HtmlView extends BaseHtmlView
             try {
                 $this->job = TaskStaff::job(id: $jobId);
             } catch (Throwable $e) {
-                Tasks::log(entry: 'Tools: job #' . $jobId . ' could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+                Tasks::log(entry: 'Tools: job #' . $jobId . ' could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
             }
 
             $this->jobMissing = $this->job === null;
@@ -217,7 +218,7 @@ class HtmlView extends BaseHtmlView
             $rows = TaskStaff::attentionRows();
             $total = TaskStaff::attentionTotal();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the tasks could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Tools: the tasks could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
 
             return ['rows' => [], 'total' => 0, 'users' => [], 'unreadable' => true];
         }
@@ -284,7 +285,7 @@ class HtmlView extends BaseHtmlView
             $lastTick = \is_array($decoded) ? $decoded : null;
             $keyKept = RunnerCronKey::kept();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the runner state could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Tools: the runner state could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
         }
 
         return [

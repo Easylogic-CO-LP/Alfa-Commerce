@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Card;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Joomla\CMS\Log\Log;
 use Throwable;
 
@@ -412,7 +413,7 @@ final class AdminCard
                 self::$failureLogged[$key] = true;
                 Log::add(
                     'Card ' . $this->id . ' of ' . ($this->metadata['owner_group'] ?? '') . '.' . ($this->metadata['owner_name'] ?? '')
-                        . ' is hidden: its data failed (' . $e::class . ': ' . $e->getMessage() . ').',
+                        . ' is hidden: its data failed (' . $e::class . ': ' . ErrorText::of($e) . ').',
                     Log::WARNING,
                     'com_alfa.cards',
                 );

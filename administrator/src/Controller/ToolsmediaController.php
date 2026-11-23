@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
@@ -60,7 +61,7 @@ class ToolsmediaController extends BaseController
                 $this->setMessage(Text::sprintf('COM_ALFA_TOOLSMEDIA_N_DELETED', $deleted));
             }
         } catch (Throwable $e) {
-            $this->setMessage($e->getMessage(), 'error');
+            $this->setMessage(ErrorText::of($e), 'error');
         }
 
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=toolsmedia', false));
@@ -117,7 +118,7 @@ class ToolsmediaController extends BaseController
             $deleted = MediaHelper::deleteUntrackedFiles($paths);
             $this->setMessage(Text::sprintf('COM_ALFA_TOOLSMEDIA_N_FILES_DELETED', $deleted));
         } catch (Throwable $e) {
-            $this->setMessage($e->getMessage(), 'error');
+            $this->setMessage(ErrorText::of($e), 'error');
         }
 
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=toolsmedia', false));
@@ -145,7 +146,7 @@ class ToolsmediaController extends BaseController
             $deleted = MediaHelper::deleteMediaByIds($ids);
             $this->setMessage(Text::sprintf('COM_ALFA_TOOLSMEDIA_N_DELETED', $deleted));
         } catch (Throwable $e) {
-            $this->setMessage($e->getMessage(), 'error');
+            $this->setMessage(ErrorText::of($e), 'error');
         }
 
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=toolsmedia', false));

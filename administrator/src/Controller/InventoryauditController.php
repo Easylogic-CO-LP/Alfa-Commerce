@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\InventoryauditModel;
@@ -248,7 +249,7 @@ class InventoryauditController extends BaseController
                         'Inventory audit: a refused write-off of item #%d combination #%d could not be worded: %s',
                         $itemId,
                         $combinationId,
-                        $readFailure->getMessage(),
+                        ErrorText::of($readFailure),
                     ),
                     priority: Log::WARNING,
                     category: 'com_alfa.inventory',
@@ -356,7 +357,7 @@ class InventoryauditController extends BaseController
                         'Inventory audit: the stock movement of %s #%d, queued again by an order-line resolution, could not be tried: %s',
                         (string) $obligation['source_type'],
                         (int) $obligation['source_id'],
-                        $e->getMessage(),
+                        ErrorText::of($e),
                     ),
                     priority: Log::ERROR,
                     category: 'com_alfa.inventory',
@@ -500,7 +501,7 @@ class InventoryauditController extends BaseController
             $owed = $model->owedMovements(orderId: $orderId);
         } catch (Throwable $e) {
             Log::add(
-                entry: sprintf('Inventory audit: order #%d was served first, but its owed stock movements could not be read: %s', $orderId, $e->getMessage()),
+                entry: sprintf('Inventory audit: order #%d was served first, but its owed stock movements could not be read: %s', $orderId, ErrorText::of($e)),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );
@@ -522,7 +523,7 @@ class InventoryauditController extends BaseController
                         (string) $obligation['source_type'],
                         (int) $obligation['source_id'],
                         $orderId,
-                        $e->getMessage(),
+                        ErrorText::of($e),
                     ),
                     priority: Log::ERROR,
                     category: 'com_alfa.inventory',
@@ -583,7 +584,7 @@ class InventoryauditController extends BaseController
                 entry: sprintf(
                     'Inventory audit: order-line resolution #%d is recorded, but its stock unit could not be read for the message: %s',
                     $resolutionId,
-                    $e->getMessage(),
+                    ErrorText::of($e),
                 ),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
@@ -655,7 +656,7 @@ class InventoryauditController extends BaseController
         }
 
         return htmlspecialchars(
-            string: $e instanceof InventoryUnitException ? $e->operatorMessage() : $e->getMessage(),
+            string: $e instanceof InventoryUnitException ? $e->operatorMessage() : ErrorText::of($e),
             flags: ENT_QUOTES,
             encoding: 'UTF-8',
         );

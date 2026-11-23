@@ -479,7 +479,7 @@ final class PostCommit
             $work();
         } catch (Throwable $e) {
             $failure = $e;
-            self::report(entry: "Post-commit work '{$label}' failed: " . $e::class . ': ' . $e->getMessage()
+            self::report(entry: "Post-commit work '{$label}' failed: " . $e::class . ': ' . ErrorText::of($e)
                 . ' (' . $e->getFile() . ':' . $e->getLine() . ')');
         }
 

@@ -101,7 +101,7 @@ class OrderStatusHelper
             $rows = $db->loadObjectList('id') ?: [];
         } catch (Exception $e) {
             Log::add(
-                entry:    'OrderStatusHelper::getAll failed: ' . $e->getMessage(),
+                entry:    'OrderStatusHelper::getAll failed: ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.orderstatus',
             );

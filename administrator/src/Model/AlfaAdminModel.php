@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Event\Admin\AdminValidateEvent;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminAware;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
@@ -379,7 +380,7 @@ abstract class AlfaAdminModel extends AdminModel
         } catch (Throwable $e) {
             // An abortable phase rethrows a handler's exception; a refused save must still look
             // like a refused save to the controller, not like an error page.
-            $this->setError($e->getMessage());
+            $this->setError(ErrorText::of($e));
 
             return false;
         }
@@ -641,7 +642,7 @@ abstract class AlfaAdminModel extends AdminModel
     {
         try {
             Log::add(
-                entry: ucfirst($this->alfaEntity) . ' ' . implode(separator: ', ', array: $pks) . ' not deleted; a before-delete listener refused: ' . $failure->getMessage(),
+                entry: ucfirst($this->alfaEntity) . ' ' . implode(separator: ', ', array: $pks) . ' not deleted; a before-delete listener refused: ' . ErrorText::of($failure),
                 priority: Log::WARNING,
                 category: 'com_alfa',
             );
@@ -649,7 +650,7 @@ abstract class AlfaAdminModel extends AdminModel
             // An unwritable log changes nothing that happened.
         }
 
-        $this->setError($failure->getMessage());
+        $this->setError(ErrorText::of($failure));
     }
 
     /**
@@ -683,7 +684,7 @@ abstract class AlfaAdminModel extends AdminModel
         try {
             self::alfaRaise(new AdminBeforeSaveEvent($context));
         } catch (Throwable $e) {
-            $this->setError($e->getMessage());
+            $this->setError(ErrorText::of($e));
 
             return null;
         }
@@ -771,7 +772,7 @@ abstract class AlfaAdminModel extends AdminModel
         try {
             self::alfaRaise(new AdminBeforeDeleteEvent($context));
         } catch (Throwable $e) {
-            $this->setError($e->getMessage());
+            $this->setError(ErrorText::of($e));
 
             return false;
         }

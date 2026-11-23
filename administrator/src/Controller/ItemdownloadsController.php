@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
 use Exception;
@@ -94,7 +95,7 @@ class ItemdownloadsController extends BaseController
 
             echo new JsonResponse($row);
         } catch (Exception $e) {
-            echo new JsonResponse(null, $e->getMessage(), true);
+            echo new JsonResponse(null, ErrorText::of($e), true);
         }
 
         $this->app->close();
@@ -155,7 +156,7 @@ class ItemdownloadsController extends BaseController
 
             echo new JsonResponse($update);
         } catch (Exception $e) {
-            echo new JsonResponse(null, $e->getMessage(), true);
+            echo new JsonResponse(null, ErrorText::of($e), true);
         }
 
         $this->app->close();
@@ -201,7 +202,7 @@ class ItemdownloadsController extends BaseController
 
             echo new JsonResponse(['id' => $rowId]);
         } catch (Exception $e) {
-            echo new JsonResponse(null, $e->getMessage(), true);
+            echo new JsonResponse(null, ErrorText::of($e), true);
         }
 
         $this->app->close();

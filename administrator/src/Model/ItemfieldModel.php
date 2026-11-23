@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldParams;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
@@ -357,7 +358,7 @@ class ItemfieldModel extends AlfaAdminModel
             }
         } catch (Throwable $searchException) {
             \Joomla\CMS\Log\Log::add(
-                '[ItemfieldModel::save] Search re-sync failed for field ' . $currentId . ': ' . $searchException->getMessage(),
+                '[ItemfieldModel::save] Search re-sync failed for field ' . $currentId . ': ' . ErrorText::of($searchException),
                 \Joomla\CMS\Log\Log::WARNING,
                 'com_alfa',
             );
@@ -731,7 +732,7 @@ class ItemfieldModel extends AlfaAdminModel
             // Non-fatal, like every other projection failure: the state change itself
             // succeeded and must not be reported as a failure.
             Log::add(
-                '[ItemfieldModel::publish] re-sync failed: ' . $e->getMessage(),
+                '[ItemfieldModel::publish] re-sync failed: ' . ErrorText::of($e),
                 Log::WARNING,
                 'com_alfa',
             );
@@ -921,7 +922,7 @@ class ItemfieldModel extends AlfaAdminModel
                 throw $e;
             }
 
-            Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
+            Factory::getApplication()->enqueueMessage(ErrorText::of($e), 'error');
 
             return false;
         }

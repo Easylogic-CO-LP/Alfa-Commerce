@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\Language\Text;
@@ -78,7 +79,7 @@ class FormfieldsController extends AdminController
                 Text::_('COM_ALFA_FORM_FIELD_LEVEL_' . ['HIDDEN', 'OPTIONAL', 'REQUIRED'][$applied]),
             ));
         } catch (Throwable $e) {
-            $this->setMessage($e->getMessage(), 'error');
+            $this->setMessage(ErrorText::of($e), 'error');
         }
 
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=formfields' . $this->getRedirectToListAppend(), false));

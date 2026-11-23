@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasInlineEditTrait;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ExecuteFieldActionEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
@@ -265,7 +266,7 @@ class ItemController extends FormController
 
             throw new RuntimeException(Text::_('COM_ALFA_INLINE_UNSUPPORTED_FIELD'));
         } catch (Throwable $e) {
-            $this->sendInlineJson(false, $e->getMessage());
+            $this->sendInlineJson(false, ErrorText::of($e));
         }
     }
 
@@ -513,7 +514,7 @@ class ItemController extends FormController
                                 'Inline stock correction refused for item %d at location %d, nothing applied: %s',
                                 $id,
                                 $locationId,
-                                $e->getMessage(),
+                                ErrorText::of($e),
                             ),
                             priority: Log::WARNING,
                             category: 'com_alfa.inventory',
@@ -531,7 +532,7 @@ class ItemController extends FormController
                             $e instanceof InventoryUnitException => $e->reason === InventoryUnitException::ITEM_ARCHIVED
                                 ? Text::_('COM_ALFA_ITEM_STOCK_REASON_ARCHIVED')
                                 : Text::_('COM_ALFA_INLINE_STOCK_NOT_EDITABLE'),
-                            default => $e->getMessage(),
+                            default => ErrorText::of($e),
                         };
                     }
                 }
@@ -582,7 +583,7 @@ class ItemController extends FormController
 
             throw new RuntimeException(Text::_('COM_ALFA_INLINE_UNSUPPORTED_FIELD'));
         } catch (Throwable $e) {
-            $this->sendInlineJson(false, $e->getMessage());
+            $this->sendInlineJson(false, ErrorText::of($e));
         }
     }
 
@@ -1216,7 +1217,7 @@ class ItemController extends FormController
             $app->close();
         } catch (Throwable $e) {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => ErrorText::of($e)]);
             $app->close();
         }
     }
@@ -1399,7 +1400,7 @@ class ItemController extends FormController
         try {
             AlfaLog::register();
             Log::add(
-                sprintf('%s of item #%d: the database refused it: %s: %s', $endpoint, $itemId, $failure::class, $failure->getMessage()),
+                sprintf('%s of item #%d: the database refused it: %s: %s', $endpoint, $itemId, $failure::class, ErrorText::of($failure)),
                 Log::ERROR,
                 'com_alfa.items',
             );
@@ -1488,7 +1489,7 @@ class ItemController extends FormController
                 // (a failed query's SQL and table names among them) never reaches the page.
                 try {
                     Log::add(
-                        sprintf('Price preview of item #%d (0: a product not saved yet) failed: %s: %s', $itemId, $e::class, $e->getMessage()),
+                        sprintf('Price preview of item #%d (0: a product not saved yet) failed: %s: %s', $itemId, $e::class, ErrorText::of($e)),
                         Log::ERROR,
                         'com_alfa.prices',
                     );
@@ -1607,12 +1608,12 @@ class ItemController extends FormController
             } catch (RuntimeException $e) {
                 // The save rolled back as a whole; nothing after it may run.
                 Log::add(
-                    entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $itemId, $e->getMessage()),
+                    entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $itemId, ErrorText::of($e)),
                     priority: Log::ERROR,
                     category: 'com_alfa.catalog',
                 );
 
-                $app->enqueueMessage($e->getMessage(), 'error');
+                $app->enqueueMessage(ErrorText::of($e), 'error');
             }
 
             if ($saved) {
@@ -1643,7 +1644,7 @@ class ItemController extends FormController
                         }
                     } catch (InventoryIntegrityException $e) {
                         Log::add(
-                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
+                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, ErrorText::of($e)),
                             priority: Log::ERROR,
                             category: 'com_alfa.inventory',
                         );
@@ -1651,14 +1652,14 @@ class ItemController extends FormController
                         $app->enqueueMessage(self::ledgerMissingMessage(exception: $e), 'error');
                     } catch (Throwable $e) {
                         Log::add(
-                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
+                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, ErrorText::of($e)),
                             priority: Log::ERROR,
                             category: 'com_alfa.inventory',
                         );
 
                         // Every refusal that reaches here is a complete sentence, so it
                         // follows the saved notice whole.
-                        $app->enqueueMessage(Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED', $e->getMessage()), 'error');
+                        $app->enqueueMessage(Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED', ErrorText::of($e)), 'error');
                     }
                 }
 

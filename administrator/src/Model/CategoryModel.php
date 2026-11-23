@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
@@ -435,7 +436,7 @@ class CategoryModel extends AlfaAdminModel
         } catch (Throwable $e) {
             Log::add(
                 '[CategoryModel] Search re-sync failed for category(ies) '
-                . implode(', ', $categoryIds) . ': ' . $e->getMessage(),
+                . implode(', ', $categoryIds) . ': ' . ErrorText::of($e),
                 Log::WARNING,
                 'com_alfa',
             );
@@ -1139,7 +1140,7 @@ class CategoryModel extends AlfaAdminModel
                         (new PriceIndexSyncService())->syncItems($affectedItems);
                     } catch (Throwable $priceIndexException) {
                         Log::add(
-                            '[CategoryModel::delete] Price index re-sync failed: ' . $priceIndexException->getMessage(),
+                            '[CategoryModel::delete] Price index re-sync failed: ' . ErrorText::of($priceIndexException),
                             Log::WARNING,
                             'com_alfa',
                         );

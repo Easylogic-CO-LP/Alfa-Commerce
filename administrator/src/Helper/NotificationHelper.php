@@ -209,7 +209,7 @@ class NotificationHelper
         try {
             $locked = (int) $db->setQuery('SELECT GET_LOCK(' . $lock . ', 5)')->loadResult() === 1;
         } catch (Throwable $e) {
-            Log::add('Notifications: the lock of ' . $key . ' could not be taken (' . $e->getMessage() . ').', Log::WARNING, 'com_alfa.plugins');
+            Log::add('Notifications: the lock of ' . $key . ' could not be taken (' . ErrorText::of($e) . ').', Log::WARNING, 'com_alfa.plugins');
         }
 
         if (!$locked) {
@@ -264,7 +264,7 @@ class NotificationHelper
                 try {
                     $db->setQuery('SELECT RELEASE_LOCK(' . $lock . ')')->loadResult();
                 } catch (Throwable $e) {
-                    Log::add('Notifications: the lock of ' . $key . ' could not be released (' . $e->getMessage() . ').', Log::WARNING, 'com_alfa.plugins');
+                    Log::add('Notifications: the lock of ' . $key . ' could not be released (' . ErrorText::of($e) . ').', Log::WARNING, 'com_alfa.plugins');
                 }
 
                 PostCommit::leaveLock($db, name: $lock, stillHeld: \Alfa\Component\Alfa\Administrator\Service\Order\OrderMoneyLock::stillHeld($db, $lock));
@@ -479,12 +479,12 @@ class NotificationHelper
             foreach ($plugins->dispatchIsolated($event) as $failure) {
                 $e = $failure->error;
                 self::log(entry: 'NotificationHelper: ' . $failure->listener . ' failed on '
-                    . NotificationPushedEvent::NAME . " of '{$key}' (#{$id}): " . $e::class . ': ' . $e->getMessage()
+                    . NotificationPushedEvent::NAME . " of '{$key}' (#{$id}): " . $e::class . ': ' . ErrorText::of($e)
                     . ' (' . $e->getFile() . ':' . $e->getLine() . ')', priority: Log::ERROR);
             }
         } catch (Throwable $e) {
             self::log(entry: 'NotificationHelper: ' . NotificationPushedEvent::NAME . " of '{$key}' could not be dispatched: "
-                . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+                . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
         }
     }
 

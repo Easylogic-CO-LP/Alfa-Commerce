@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasInlineEditTrait;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\CategoryModel;
@@ -119,7 +120,7 @@ class CategoryController extends FormController
 
             $this->sendInlineJson(true, '', ['html' => $html]);
         } catch (Throwable $e) {
-            $this->sendInlineJson(false, $e->getMessage());
+            $this->sendInlineJson(false, ErrorText::of($e));
         }
     }
 
@@ -168,7 +169,7 @@ class CategoryController extends FormController
 
             $this->sendInlineJson(true, Text::_('COM_ALFA_INLINE_SAVED'), ['display' => $display]);
         } catch (Throwable $e) {
-            $this->sendInlineJson(false, $e->getMessage());
+            $this->sendInlineJson(false, ErrorText::of($e));
         }
     }
 }

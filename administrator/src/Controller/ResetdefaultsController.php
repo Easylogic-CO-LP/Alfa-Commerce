@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\ResetToDefault;
 use Joomla\CMS\Access\Exception\NotAllowed;
@@ -56,7 +57,7 @@ class ResetdefaultsController extends BaseController
         try {
             $done = (new ResetToDefault())->apply(user: $this->app->getIdentity());
         } catch (Throwable $e) {
-            $this->setRedirect($page, Text::sprintf('COM_ALFA_RESET_FAILED', htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')), 'error');
+            $this->setRedirect($page, Text::sprintf('COM_ALFA_RESET_FAILED', htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8')), 'error');
 
             return;
         }

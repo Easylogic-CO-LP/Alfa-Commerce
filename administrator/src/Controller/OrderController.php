@@ -30,6 +30,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CreditNoteRefusedException;
@@ -382,7 +383,7 @@ class OrderController extends FormController
                 'changed' => array_keys($data),
             ]);
         } catch (Throwable $e) {
-            $this->sendJsonResponse(false, $e->getMessage());
+            $this->sendJsonResponse(false, ErrorText::of($e));
         }
     }
 
@@ -537,7 +538,7 @@ class OrderController extends FormController
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => ErrorText::of($e),
             ]);
             $app->close();
         }
@@ -598,7 +599,7 @@ class OrderController extends FormController
         } catch (Throwable $e) {
             // Escaped, as every sibling task escapes: the ledger's and the
             // driver's words can quote a typed value.
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $app->setUserState($stateKey, $success ? null : $this->keptModalDraft(form: $form, posted: $posted));
@@ -672,7 +673,7 @@ class OrderController extends FormController
             }
         } catch (Throwable $e) {
             // Escaped, as every sibling task escapes.
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_($success ? $redirectSuccessURL : $redirectURL, false));
@@ -744,7 +745,7 @@ class OrderController extends FormController
         } catch (Throwable $e) {
             // Escaped, as every sibling task escapes: the ledger's and the
             // driver's words can quote a typed value.
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $app->setUserState($stateKey, $success ? null : $this->keptModalDraft(form: $form, posted: $posted));
@@ -818,7 +819,7 @@ class OrderController extends FormController
             }
         } catch (Throwable $e) {
             // Escaped, as every sibling task escapes.
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_($success ? $redirectSuccessURL : $redirectURL, false));
@@ -869,7 +870,7 @@ class OrderController extends FormController
 
         foreach ($form->getErrors() as $error) {
             $this->app->enqueueMessage(
-                htmlspecialchars($error instanceof Throwable ? $error->getMessage() : (string) $error, ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($error instanceof Throwable ? ErrorText::of($error) : (string) $error, ENT_QUOTES, 'UTF-8'),
                 'error',
             );
         }
@@ -979,7 +980,7 @@ class OrderController extends FormController
                 $app->enqueueMessage(Text::_('COM_ALFA_ORDER_ITEM_SAVED'), 'success');
             }
         } catch (Throwable $e) {
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $app->setUserState($stateKey, $success ? null : $this->keptOrderItemDraft(isNew: $isNew));
@@ -1036,7 +1037,7 @@ class OrderController extends FormController
                 'display' => $model->describeOrderItemPlan($plan),
             ];
         } catch (Throwable $e) {
-            $response = ['success' => false, 'message' => $e->getMessage()];
+            $response = ['success' => false, 'message' => ErrorText::of($e)];
         }
 
         $this->emitOrderItemPreview($response);
@@ -1418,7 +1419,7 @@ class OrderController extends FormController
             }
         } catch (Throwable $e) {
             // Escaped, as every sibling task escapes.
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_($success ? $redirectSuccessURL : $redirectURL, false));
@@ -1576,7 +1577,7 @@ class OrderController extends FormController
             // Escaped, as every sibling task escapes. The ledger's own refusal
             // is shown in its plain reason; its message, which carries the
             // ledger's name, is the log's.
-            $app->enqueueMessage(htmlspecialchars($e instanceof CreditNoteRefusedException ? $e->reason() : $e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars($e instanceof CreditNoteRefusedException ? $e->reason() : ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_($redirect, false));
@@ -1868,7 +1869,7 @@ class OrderController extends FormController
             // A refusal the issuer can put in the operator's words is shown
             // in them; its technical message stays the exception's.
             $refusal = DocumentRefusedException::in($e);
-            $app->enqueueMessage(htmlspecialchars($refusal?->operatorText() ?? $e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars($refusal?->operatorText() ?? ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
 
             // A refusal keeps the draft for the redisplay; a throw that came
             // after a document landed keeps nothing and goes where a success
@@ -1998,7 +1999,7 @@ class OrderController extends FormController
                     (string) $document->number_formatted,
                     $orderId,
                     (string) $document->total_tax_incl,
-                    $e->getMessage(),
+                    ErrorText::of($e),
                 ),
                 priority: Log::ERROR,
                 category: 'com_alfa.credit',
@@ -2350,7 +2351,7 @@ class OrderController extends FormController
             // The refusal is already on screen; a draft that cannot be read
             // back is not kept rather than half kept.
             Log::add(
-                entry:    'Issue modal draft for order ' . $orderId . ' was not kept: ' . $e->getMessage(),
+                entry:    'Issue modal draft for order ' . $orderId . ' was not kept: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.documents',
             );
@@ -2595,7 +2596,7 @@ class OrderController extends FormController
                 'success',
             );
         } catch (Throwable $e) {
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_($success ? $returnUrl : $formUrl, false));
@@ -2716,7 +2717,7 @@ class OrderController extends FormController
             // them; its technical message stays the exception's and the log's.
             // Escaped: the issuer's words can carry a buyer's or a line's name.
             $app->setUserState($stateKey, ['buyer' => $buyer, 'reason' => $reason]);
-            $app->enqueueMessage(htmlspecialchars(DocumentRefusedException::in($e)?->operatorText() ?? $e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(DocumentRefusedException::in($e)?->operatorText() ?? ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_($success ? $returnUrl : $formUrl . '&kept=1', false));

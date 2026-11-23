@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Setup;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -123,7 +124,7 @@ final class TourSeeder
                     $result['skipped'][] = $tour['uid'];
                 }
             } catch (Throwable $e) {
-                $result['errors'][] = basename($file) . ': ' . $e->getMessage();
+                $result['errors'][] = basename($file) . ': ' . ErrorText::of($e);
             }
         }
 
@@ -136,7 +137,7 @@ final class TourSeeder
                 }
             }
         } catch (Throwable $e) {
-            $result['errors'][] = 'cleanup: ' . $e->getMessage();
+            $result['errors'][] = 'cleanup: ' . ErrorText::of($e);
         }
 
         return $result;
