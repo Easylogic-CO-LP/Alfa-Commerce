@@ -25,7 +25,8 @@ use Throwable;
  *
  *   1. the site's configured database user, host and schema (database name), each where it stands as a word of its
  *      own, become <user>, <host> and <schema>; the database password, the site's secret and the mail password
- *      become <secret> wherever they occur;
+ *      become <secret> wherever they occur; the site's folder is taken out of a path (a file of the site reads from
+ *      the site's root, the root itself reads ".");
  *   2. any 'name'@'host' pair (the server's form for an account) becomes '<user>'@'<host>';
  *   3. the user and password of an address (scheme://user:password@host) become <user>:<secret>;
  *   4. a Bearer or Basic credential, and a value of four characters or more given to a password, passwd, pwd,
@@ -35,7 +36,7 @@ use Throwable;
  *   6. the text is cut at 1,000 characters.
  *
  * Everything else is kept as it is, so an ordinary message reads the same. Outside a Joomla application (no site
- * configuration to read) rule 1 is not applied; the others are.
+ * configuration to read) rule 1 applies to the site's folder only; the others apply.
  *
  * Usage:
  *   } catch (\Throwable $e) {
@@ -95,8 +96,9 @@ final class ErrorText
     }
 
     /**
-     * The site's configured database user, host, schema and secrets, longest first (so a value inside another is
-     * replaced after it); empty and one-character values left out. Nothing outside a Joomla application.
+     * The site's folder and its configured database user, host, schema and secrets, longest first (so a value inside
+     * another is replaced after it); empty and one-character values left out. Outside a Joomla application, the folder
+     * alone.
      *
      * @return array<string, array{0: string, 1: bool}>
      */
@@ -108,19 +110,25 @@ final class ErrorText
 
         $values = [];
 
+        // The site's folder: a path reads from the site's root.
+        if (\defined('JPATH_ROOT') && JPATH_ROOT !== '') {
+            $values[] = [JPATH_ROOT . DIRECTORY_SEPARATOR, '', false];
+            $values[] = [JPATH_ROOT, '.', false];
+        }
+
         try {
             $app = Factory::getApplication();
-            $values = [
+            array_push(
+                $values,
                 [(string) $app->get('password'), '<secret>', false],
                 [(string) $app->get('secret'), '<secret>', false],
                 [(string) $app->get('smtppass'), '<secret>', false],
                 [(string) $app->get('db'), '<schema>', true],
                 [(string) $app->get('user'), '<user>', true],
                 [(string) $app->get('host'), '<host>', true],
-            ];
+            );
         } catch (Throwable) {
-            // No application: no site configuration to read; the patterns still apply.
-            $values = [];
+            // No application: no site configuration to read; the folder and the patterns still apply.
         }
 
         $map = [];
