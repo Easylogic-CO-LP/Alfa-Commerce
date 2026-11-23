@@ -11,6 +11,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
 use Alfa\Component\Alfa\Site\Helper\Layout;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
@@ -139,7 +140,11 @@ $surfaces  = $line->surfaces[CartSurface::Main->value] ?? [];
 
         <div class="cart-added-summary">
             <span><?php echo Text::plural('COM_ALFA_CART_ADDED_ITEMS', $quantity); ?></span>
-            <span><?php echo Text::_('COM_ALFA_CART_TOTAL'); ?>: <strong><?php echo $grandTotal->format(); ?></strong></span>
+            <?php // A total of zero the Options hide is not drawn. ?>
+            <?php $grandShown = PriceDisplay::price(price: $grandTotal); ?>
+            <?php if ($grandShown !== ''): ?>
+            <span><?php echo Text::_('COM_ALFA_CART_TOTAL'); ?>: <strong><?php echo $grandShown; ?></strong></span>
+            <?php endif; ?>
         </div>
 
         <div class="cart-added-actions">

@@ -9,6 +9,7 @@
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Service\Summary\SummaryRow;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
@@ -17,7 +18,8 @@ use Joomla\CMS\Router\Route;
 /**
  * THE MONEY SUMMARY: one labelled row each, under the cart lines. It receives
  * prepared rows (CartSummary::rows() on the cart page) and decides and computes
- * nothing: which rows exist, and every figure, arrive ready. Override
+ * nothing: which rows exist, and every figure, arrive ready. A subtotal and a total
+ * print through PriceDisplay, so a zero reads as the Options say. Override
  * html/layouts/com_alfa/cart/summary.php in a template to restructure it.
  *
  * Classes the stylesheet reads (media/com_alfa/css/site/cart.css):
@@ -71,7 +73,7 @@ $removeLabel = static fn (string $code): string => $escape(Text::sprintf('COM_AL
                 <?php elseif ($row->later): ?>
                 <span class="summary-later"><?php echo Text::_('COM_ALFA_CART_SUMMARY_SHIPPING_LATER'); ?></span>
                 <?php else: ?>
-                <span class="summary-amount"><?php echo $row->reduction ? '−' : ''; ?><?php echo $row->amount->format(); ?></span>
+                <span class="summary-amount"><?php echo $row->reduction ? '−' : ''; ?><?php echo PriceDisplay::isPrice(row: $row) ? PriceDisplay::price(price: $row->amount) : $row->amount->format(); ?></span>
                 <?php endif; ?>
             </dd>
         </div>

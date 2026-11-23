@@ -24,6 +24,7 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Joomla\CMS\Language\Text;
 
 // FileLayout passes the whole displayData array; it does NOT extract
@@ -72,10 +73,11 @@ $muted    = 'padding:14px 10px;text-align:center;color:#7a6e5d;font-style:italic
                 // email's language.
                 $name      = MultilingualHelper::resolveLangMap($item->name ?? '');
                 $quantity  = (int)    ($item->quantity ?? 0);
-                // The unit as the one unit rule prints it: a separate fact beside the quantity and the total.
-                $unit      = (string) $item->unit_price_tax_incl_formatted;
+                // The unit as the one unit rule prints it: a separate fact beside the quantity and the total. A price
+                // of zero prints as the Options say (PriceDisplay).
+                $unit      = PriceDisplay::figure(formatted: (string) $item->unit_price_tax_incl_formatted, zero: (float) $item->unit_price_tax_incl === 0.0);
                 $lineTotal = isset($item->total_price_tax_incl) && is_object($item->total_price_tax_incl)
-                    ? (string) $item->total_price_tax_incl->format()
+                    ? PriceDisplay::price(price: $item->total_price_tax_incl)
                     : '';
                 ?>
                 <tr>

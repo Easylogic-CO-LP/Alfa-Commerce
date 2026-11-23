@@ -18,6 +18,7 @@
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
 use Alfa\Component\Alfa\Site\Helper\Layout;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSummary;
 use Joomla\CMS\Factory;
@@ -179,7 +180,7 @@ $columnLabels = array_map(
                 </td>
 
                 <td data-label="<?php echo $columnLabels['price']; ?>" class="cart-item-col-price cart-item-col cart-money">
-		            <?= $price ? $unitPrice : '-'; ?>
+		            <?= $price ? PriceDisplay::figure(formatted: $unitPrice, zero: $baseTotalWithTax->isZero()) : '-'; ?>
                 </td>
 
                 <td data-label="<?php echo $columnLabels['tax']; ?>" class="cart-item-col-tax cart-item-col cart-money">
@@ -198,7 +199,7 @@ $columnLabels = array_map(
                     <?php if ($price->hasDiscount()): ?>
                     <del><?= $baseTotalWithTax->format(); ?></del><br/>
                     <?php endif; ?>
-					<span><?= $total->format(); ?></span>
+					<span><?= PriceDisplay::price(price: $total); ?></span>
 					<?php else: ?>
 					<span>-</span>
 					<?php // A line out of stock says why its total is not counted. ?>

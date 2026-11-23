@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Site\Service\Order;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Summary\SummaryRow;
@@ -149,7 +150,8 @@ final class OrderSummary
             amount: $money($breakdown->grand_total_tax_incl),
         );
 
-        return $rows;
+        // A subtotal or total of zero the Options hide is no row at all.
+        return PriceDisplay::summary(rows: $rows);
     }
 
     /**

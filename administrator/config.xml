@@ -319,6 +319,22 @@
                     <option value="1">COM_ALFA_CONFIG_CATALOGUE_ONLY_CATALOGUE</option>
                 </field>
 
+                <!-- A PRICE OF ZERO, AS THE SHOPPER READS IT. Read through
+                     PriceDisplay: the product's price, a line's unit and total,
+                     the subtotal and the total, on the storefront, in the cart
+                     module, the order e-mails and the documents. The figure
+                     itself stays zero everywhere, the REST API included. -->
+                <field name="zero_price_display" type="list" default="show"
+                       label="COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY"
+                       description="COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY_DESC"
+                       validate="options"
+                       showon="catalogue_only:0"
+                >
+                    <option value="show">COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY_SHOW</option>
+                    <option value="hide">COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY_HIDE</option>
+                    <option value="text">COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY_TEXT</option>
+                </field>
+
                 <!-- WHICH FIELD SAYS WHERE THE ORDER IS GOING. Only needed by a
                      checkout carrying more than one place field: with exactly
                      one it is inferred, and a shop with none sells fine without

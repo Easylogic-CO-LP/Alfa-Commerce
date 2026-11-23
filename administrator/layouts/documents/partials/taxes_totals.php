@@ -22,6 +22,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Joomla\CMS\Language\Text;
 
 /** @var array $displayData */
@@ -44,6 +45,8 @@ $taxes = $displayData['taxes'] ?? [];
 $separators = DocumentRenderer::separators(document: $document);
 $fmt = DocumentMoney::formatter($displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
 $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF-8');
+// A total of zero (net or with tax) prints as the Options print a price of zero (PriceDisplay), its currency with it.
+$total = static fn ($value): string => PriceDisplay::figure(formatted: $fmt((float) $value) . ' ' . $currency, zero: (float) $value === 0.0);
 // A tax rate prints as stored: every digit its column holds, its padding zeros dropped. The blank line after
 // the row's rate keeps the line break the rate printed before, so a row whose figure is unchanged prints as it did.
 ?>
@@ -82,7 +85,7 @@ $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF
             <table class="totals-table">
                 <tr>
                     <td class="label"><?php echo Text::_('COM_ALFA_DOC_PRINT_NET_TOTAL'); ?></td>
-                    <td class="num"><?php echo $fmt((float) $document->total_tax_excl); ?> <?php echo $currency; ?></td>
+                    <td class="num"><?php echo $total($document->total_tax_excl); ?></td>
                 </tr>
                 <tr>
                     <td class="label"><?php echo Text::_('COM_ALFA_DOC_PRINT_VAT_TOTAL'); ?></td>
@@ -90,7 +93,7 @@ $currency = htmlspecialchars((string) $document->currency_code, ENT_COMPAT, 'UTF
                 </tr>
                 <tr class="grand">
                     <td class="label"><?php echo Text::_('COM_ALFA_DOC_PRINT_GRAND_TOTAL'); ?></td>
-                    <td class="num"><?php echo $fmt((float) $document->total_tax_incl); ?> <?php echo $currency; ?></td>
+                    <td class="num"><?php echo $total($document->total_tax_incl); ?></td>
                 </tr>
             </table>
         </td>

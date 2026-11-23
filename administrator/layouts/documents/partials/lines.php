@@ -18,6 +18,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRenderer;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Joomla\CMS\Language\Text;
 
 /** @var array $displayData */
@@ -43,6 +44,8 @@ $fmt = DocumentMoney::formatter($displayData['document'] ?? null, decimalSeparat
 // line's own net total and quantity: a unit is presentation, the line total
 // is the money. Totals keep $fmt.
 $unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
+// A line's price of zero (its unit, its net and its total) prints as the Options say (PriceDisplay).
+$price = static fn (string $formatted, $value): string => PriceDisplay::figure(formatted: $formatted, zero: (float) $value === 0.0);
 // A quantity to three places, its padding zeros dropped (2.5, 1,200).
 $quantity = static fn ($value): string => rtrim(rtrim(number_format((float) $value, 3, $separators['decimal'], $separators['thousands']), '0'), $separators['decimal']);
 // A tax rate prints as stored: every digit its column holds, its padding zeros dropped (15.5%, 8.875%).
@@ -82,11 +85,11 @@ $quantity = static fn ($value): string => rtrim(rtrim(number_format((float) $val
                 <?php endif; ?>
             </td>
             <?php if ($showPrices) : ?>
-                <td class="num"><?php echo $unitFmt($line->unit_price_tax_excl, $line->total_tax_excl, $line->quantity); ?></td>
+                <td class="num"><?php echo $price($unitFmt($line->unit_price_tax_excl, $line->total_tax_excl, $line->quantity), $line->unit_price_tax_excl); ?></td>
                 <td class="num"><?php echo (float) $line->discount_tax_excl > 0 ? $fmt((float) $line->discount_tax_excl) : '-'; ?></td>
                 <td class="num"><?php echo htmlspecialchars(AlfaHelper::percentDisplay(value: $line->tax_rate, decimalSeparator: $separators['decimal']), ENT_COMPAT, 'UTF-8'); ?></td>
-                <td class="num"><?php echo $fmt((float) $line->total_tax_excl); ?></td>
-                <td class="num"><strong><?php echo $fmt((float) $line->total_tax_incl); ?></strong></td>
+                <td class="num"><?php echo $price($fmt((float) $line->total_tax_excl), $line->total_tax_excl); ?></td>
+                <td class="num"><strong><?php echo $price($fmt((float) $line->total_tax_incl), $line->total_tax_incl); ?></strong></td>
             <?php endif; ?>
         </tr>
     <?php endforeach; ?>

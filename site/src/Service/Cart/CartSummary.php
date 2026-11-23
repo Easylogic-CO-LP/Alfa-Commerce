@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Summary\SummaryRow;
@@ -125,6 +126,7 @@ final class CartSummary
             amount: $totals->grand,
         );
 
-        return $rows;
+        // A subtotal or total of zero the Options hide is no row at all.
+        return PriceDisplay::summary(rows: $rows);
     }
 }

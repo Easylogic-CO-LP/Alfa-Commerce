@@ -9,6 +9,7 @@
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
 use Alfa\Component\Alfa\Site\Helper\Layout;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
@@ -197,15 +198,18 @@ $itemsCount = count($items);
                 </div>
 				<?php //endif;?>
 
-                <!-- Grand Total Row -->
+                <!-- Grand Total Row: a total of zero the Options hide is not drawn -->
+				<?php $grandShown = PriceDisplay::price(price: $snapshot->totals->grand); ?>
+				<?php if ($grandShown !== ''): ?>
                 <div class="totals-row grand-total-row">
                     <div class="totals-label">
                         <strong><?php echo Text::_('MOD_ALFA_CART_TOTAL_PRICE_TEXT'); ?>:</strong>
                     </div>
                     <div class="totals-value">
-                        <strong><?php echo $snapshot->totals->grand->format(); ?></strong>
+                        <strong><?php echo $grandShown; ?></strong>
                     </div>
                 </div>
+				<?php endif; ?>
 
             </div>
 
