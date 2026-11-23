@@ -21,6 +21,6 @@ defined('_JEXEC') or die;
  */
 enum CartSurface: string
 {
-    /** The field's presentation on the cart line (cart-item-fields). The default. */
+    /** The field's presentation on the cart line (cart-item-fields). */
     case Main = 'main';
 }
