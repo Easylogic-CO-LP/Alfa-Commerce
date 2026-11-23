@@ -628,6 +628,65 @@ class CartRepository
     }
 
     /**
+     * Remove the selection rows of one product's lines that chose these values, leaving the lines standing, and stamp
+     * the carts affected: an option the product no longer offers is no longer chosen on its lines, while the same value
+     * chosen on another product's lines stays.
+     *
+     * @param int $itemId The product.
+     * @param int[] $valueIds The values it no longer offers.
+     *
+     * @return int The selection rows removed.
+     *
+     * @throws CartPersistenceException When the database refuses a statement.
+     *
+     * @since  2.3.0
+     */
+    public function removeSelectionsForItemValues(int $itemId, array $valueIds): int
+    {
+        $valueIds = $this->ids($valueIds);
+
+        if ($itemId <= 0 || $valueIds === []) {
+            return 0;
+        }
+
+        $db = $this->db;
+        $db->transactionStart(true);
+
+        try {
+            $rows = $db->setQuery(
+                $db->getQuery(true)
+                    ->select([$db->quoteName('f.id'), $db->quoteName('ci.id_cart')])
+                    ->from($db->quoteName('#__alfa_cart_item_fields', 'f'))
+                    ->join('INNER', $db->quoteName('#__alfa_cart_items', 'ci') . ' ON ' . $db->quoteName('ci.id') . ' = ' . $db->quoteName('f.id_cart_item'))
+                    ->where($db->quoteName('ci.id_item') . ' = ' . $itemId)
+                    ->whereIn($db->quoteName('f.id_item_field_value'), $valueIds),
+            )->loadAssocList() ?: [];
+
+            if ($rows !== []) {
+                $db->setQuery(
+                    $db->getQuery(true)
+                        ->delete($db->quoteName('#__alfa_cart_item_fields'))
+                        ->whereIn($db->quoteName('id'), array_map('intval', array_column($rows, 'id'))),
+                )->execute();
+                $db->setQuery(
+                    $db->getQuery(true)
+                        ->update($db->quoteName('#__alfa_cart'))
+                        ->set($db->quoteName('updated') . ' = ' . $db->quote($this->now()))
+                        ->whereIn($db->quoteName('id'), array_values(array_unique(array_map('intval', array_column($rows, 'id_cart'))))),
+                )->execute();
+            }
+
+            TransactionState::commitLevel(db: $db);
+
+            return \count($rows);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw new CartPersistenceException('removeSelectionsForItemValues', 0, $e);
+        }
+    }
+
+    /**
      * Remove the selection rows that point at these FIELDS, leaving the lines
      * standing, and stamp the carts affected.
      *

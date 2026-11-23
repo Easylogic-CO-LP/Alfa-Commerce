@@ -140,6 +140,32 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             new Route(['GET'], 'v1/alfa/catalog/items/:id', 'catalogitems.displayItem', ['id' => '\d+'], $defaults),
 
             new Route(['GET'], 'v1/alfa/inventorymovements', 'inventorymovements.displayList', [], $defaults),
+
+            // Stock set or corrected: a command over the stock records, never a movement written by hand (the ledger
+            // records what the command did). Its task is edit, the stock editors' permission; the records read only.
+            new Route(['POST'], 'v1/alfa/inventory/adjustments', 'inventoryadjustments.edit', [], $defaults),
+            new Route(['GET'], 'v1/alfa/inventory/stock', 'inventorystock.displayList', [], $defaults),
+
+            // A product's combinations, each written through the one way a combination is written: the task of every
+            // write is edit (the product's edit permission), of every read displayList or displayItem.
+            new Route(['GET'], 'v1/alfa/items/:id/combinations', 'combinations.displayList', ['id' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/items/:id/combinations', 'combinations.edit', ['id' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/items/:id/combinations/:combinationId', 'combinations.displayItem', ['id' => '\d+', 'combinationId' => '\d+'], $defaults),
+            new Route(['PATCH', 'DELETE'], 'v1/alfa/items/:id/combinations/:combinationId', 'combinations.edit', ['id' => '\d+', 'combinationId' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/combinations', 'combinations.displayList', [], $defaults),
+
+            // An item field's values, and a product's options and specifications, each written through the one way they
+            // are written: the task of every write is edit (the field's or the product's edit permission).
+            new Route(['GET'], 'v1/alfa/itemfields/:id/values', 'itemfieldvalues.displayList', ['id' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/itemfields/:id/values', 'itemfieldvalues.edit', ['id' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/itemfields/:id/values/:valueId', 'itemfieldvalues.displayItem', ['id' => '\d+', 'valueId' => '\d+'], $defaults),
+            new Route(['PATCH', 'DELETE'], 'v1/alfa/itemfields/:id/values/:valueId', 'itemfieldvalues.edit', ['id' => '\d+', 'valueId' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/items/:id/options', 'itemoptions.displayList', ['id' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/items/:id/options', 'itemoptions.edit', ['id' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/items/:id/options/:valueId', 'itemoptions.displayItem', ['id' => '\d+', 'valueId' => '\d+'], $defaults),
+            new Route(['PATCH', 'DELETE'], 'v1/alfa/items/:id/options/:valueId', 'itemoptions.edit', ['id' => '\d+', 'valueId' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/items/:id/informational', 'itemoptions.displayList', ['id' => '\d+'], ['part' => 'informational'] + $defaults),
+            new Route(['PUT'], 'v1/alfa/items/:id/informational', 'itemoptions.edit', ['id' => '\d+'], ['part' => 'informational'] + $defaults),
             new Route(['GET'], 'v1/alfa/documents', 'documents.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/documents/:id', 'documents.displayItem', ['id' => '\d+'], $defaults),
 

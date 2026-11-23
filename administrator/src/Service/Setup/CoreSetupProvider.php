@@ -320,8 +320,8 @@ final class CoreSetupProvider
                 unnamed:   'COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER_UNNAMED',
             );
 
-        // SKUs held by more than one product or variant: each SKU names one unit, so a save that keeps such a SKU is
-        // refused and the REST API cannot find it. Read once per computation: the state and the reason follow.
+        // SKUs held by more than one product or variant: each SKU names one unit, so the REST API cannot find such a SKU
+        // and no other unit can take it. Read once per computation: the state and the reason follow.
         $duplicateSkus = null;
         $skuDuplicates = static function () use (&$duplicateSkus): array {
             return $duplicateSkus ??= SkuIndex::duplicates();

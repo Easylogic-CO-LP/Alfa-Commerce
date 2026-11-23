@@ -279,6 +279,22 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_places' => [
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
+        '#__alfa_item_field_values' => [
+            'code' => ["varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none'", 'item_field_id'],
+        ],
+    ];
+
+    /**
+     * Keys over the columns of {@see self::NEW_COLUMNS}: table => key name => its definition, exactly as the install
+     * SQL's CREATE has it. The installation adds each one a table lacks ({@see self::addMissingKeys()}).
+     *
+     * @var array<string, array<string, string>>
+     * @since 2.3.0
+     */
+    private const NEW_KEYS = [
+        '#__alfa_item_field_values' => [
+            'uq_field_code' => 'UNIQUE KEY `uq_field_code` (`item_field_id`, `code`)',
+        ],
     ];
 
     /**
@@ -947,6 +963,45 @@ class com_alfaInstallerScript extends InstallerScript
                 );
             } catch (\Throwable $e) {
                 $failed[] = $table . ': ' . implode(', ', array_keys($columns)) . ' (' . $e->getMessage() . ')';
+            }
+        }
+
+        if ($failed !== []) {
+            $message = $this->installerText(
+                key:      'COM_ALFA_INSTALL_NEW_COLUMNS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not add columns this version needs: %2$s. Install the package again; the pages that read them need them.',
+                values:   [$this->packageVersion, implode('; ', $failed)],
+            );
+            Factory::getApplication()->enqueueMessage($message, 'error');
+            self::maintenanceLog(line: $message, priority: \Joomla\CMS\Log\Log::ERROR);
+        }
+    }
+
+    /**
+     * Add the keys this release adds over its new columns ({@see self::NEW_KEYS}), each only where the table lacks it:
+     * the table's keys are read first, so a fresh install, an update run again and a table kept by an uninstall all go
+     * on. A key a table refuses (rows that break it) is named in an error and the maintenance log; the shop works and
+     * the next installation adds it.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function addMissingKeys(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $failed = [];
+
+        foreach (self::NEW_KEYS as $name => $keys) {
+            try {
+                $present = array_map('strval', array_column($db->setQuery('SHOW KEYS FROM ' . $db->quoteName($name))->loadAssocList() ?: [], 'Key_name'));
+
+                foreach ($keys as $key => $definition) {
+                    if (!\in_array($key, $present, true)) {
+                        $db->setQuery('ALTER TABLE ' . $db->quoteName($name) . ' ADD ' . $definition)->execute();
+                    }
+                }
+            } catch (\Throwable $e) {
+                $failed[] = $db->replacePrefix($name) . ': ' . implode(', ', array_keys($keys)) . ' (' . $e->getMessage() . ')';
             }
         }
 
@@ -1874,6 +1929,7 @@ class com_alfaInstallerScript extends InstallerScript
         $this->completeLinkKeys();
         $this->dropLeftoverColumns();
         $this->addMissingColumns();
+        $this->addMissingKeys();
         $this->recordSchemaVersion();
         $this->seedPriceWindowsCursor();
 
@@ -2169,8 +2225,8 @@ class com_alfaInstallerScript extends InstallerScript
      * Fill the SKU registry from the catalogue, a range of products at a time (SkuIndex::fill()): each product's own
      * SKU and each combination's, archived included, unless another unit holds the same SKU. Run on every update; a
      * SKU already registered stays as it is. The SKUs held by more than one unit are left out and named, with their
-     * products and variants: a save that keeps one is refused until each has its own, and the setup checklist names
-     * them too. A failure is said, never a failed update.
+     * products and variants, as the setup checklist names them until each has its own. A failure is said, never a
+     * failed update.
      *
      * @return  void
      * @since   2.3.0
@@ -2208,7 +2264,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_SKU_REGISTRY_DUPLICATES',
-            fallback: 'Alfa Commerce %1$s: a SKU now names one product or variant. These SKUs are held by more than one, and a save that keeps one is refused until each has its own (the setup checklist lists them): %2$s.',
+            fallback: 'Alfa Commerce %1$s: a SKU now names one product or variant. These SKUs are held by more than one, and the REST API cannot find them until each has its own (the setup checklist lists them): %2$s.',
             values:   [$this->packageVersion, implode('; ', $named)],
         ), 'warning');
     }

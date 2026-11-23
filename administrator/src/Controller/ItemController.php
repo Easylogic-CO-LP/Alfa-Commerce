@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasInlineEditTrait;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ExecuteFieldActionEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
@@ -25,10 +26,13 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CombinationService;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryCommands;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryReservedFloorException;
@@ -36,6 +40,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\UnsavedItem;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
@@ -441,7 +446,6 @@ class ItemController extends FormController
                     $targets[$locationId] = (float) $raw;
                 }
 
-                $inventory = new InventoryService();
                 $applied = 0;
 
                 // EVERY REFUSAL THAT CAN BE KNOWN IS FOUND BEFORE THE FIRST WRITE: a
@@ -450,74 +454,42 @@ class ItemController extends FormController
                 // orders have reserved there (or lower it at all while it is already
                 // below them), or a product whose figures have no stock records
                 // behind them (or which is held until they are repaired) refuses the
-                // whole correction, and nothing moves.
-                $refusals = $targets === [] ? [] : $this->inlineTargetRefusals(
-                    problems: $inventory->validateTargets(
-                        itemId:        $id,
-                        combinationId: null,
-                        targets:       $targets,
-                        assumeTracked: false,
-                    ),
-                    titles:   $offered,
-                );
+                // whole correction, and nothing moves. ONE CORRECTION, ALL OR NOTHING:
+                // a changed figure is an absolute target the kernel converges the
+                // locked record to, one command per location, so the ledger keeps
+                // saying WHERE; a refusal the checks could not foresee (a location
+                // disabled, stock moved or reserved in between) rolls back every
+                // location already converged.
+                $refusals = [];
 
-                if ($targets !== [] && $refusals === []) {
-                    $db = Factory::getContainer()->get('DatabaseDriver');
-                    $locationId = 0;
-                    $context = new InventoryContext(
-                        userId: (int) $this->app->getIdentity()->id,
-                        note:   Text::_('COM_ALFA_INLINE_STOCK_NOTE'),
-                    );
+                if ($targets !== []) {
+                    $correction = InventoryCommands::adjust()
+                        ->source(type: 'catalog_edit', id: $id)
+                        ->by(context: new InventoryContext(
+                            userId: (int) $this->app->getIdentity()->id,
+                            note:   Text::_('COM_ALFA_INLINE_STOCK_NOTE'),
+                        ));
 
-                    // ONE CORRECTION, ALL OR NOTHING. The product's stock records are
-                    // locked first; a refusal the checks above could not foresee (a
-                    // location disabled, stock moved or reserved in between) rolls back
-                    // every location already converged.
-                    $db->transactionStart(true);
+                    foreach ($targets as $locationId => $target) {
+                        $correction->set(itemId: $id, combinationId: null, locationId: $locationId, quantity: $target);
+                    }
 
-                    try {
-                        $inventory->lockItemStock(itemId: $id);
+                    $outcome = $correction->apply();
+                    $applied = $outcome->operations();
+                    $refusals = $outcome->problems === [] ? [] : $this->inlineTargetRefusals(problems: $outcome->problemsAsStated(), titles: $offered);
+                    $e = $outcome->failure;
 
-                        foreach ($targets as $locationId => $target) {
-                            // A changed figure is an absolute target: the kernel converges
-                            // the locked record to it, so two saves of the same figure move
-                            // the stock once. One command per location, so the ledger keeps
-                            // saying WHERE.
-                            $operation = $inventory->adjustTo(
-                                itemId:        $id,
-                                combinationId: null,
-                                locationId:    $locationId,
-                                target:        $target,
-                                sourceType:    'catalog_edit',
-                                sourceId:      $id,
-                                context:       $context,
-                            );
+                    if ($outcome->unapplied || $e !== null) {
+                        $locationId = (int) (array_keys($targets)[(int) $outcome->failedLine] ?? 0);
 
-                            // Null means the kernel found no stock unit to converge: the
-                            // product was archived, grew variants or stopped tracking since
-                            // the gate ran. Read in this transaction, the product's state is
-                            // the one the kernel judged, so an archived product is refused
-                            // with the reason the dry run gives it.
-                            if ($operation === null) {
-                                throw new RuntimeException(
-                                    CombinationState::isCurrent(state: $this->loadItemColumn(itemId: $id, column: 'state'))
-                                        ? Text::_('COM_ALFA_INLINE_STOCK_NOT_EDITABLE')
-                                        : Text::_('COM_ALFA_ITEM_STOCK_REASON_ARCHIVED'),
-                                );
-                            }
-
-                            if (($operation['operation_id'] ?? null) !== null) {
-                                $applied++;
-                            }
-                        }
-
-                        // The adjustments' events are announced once this commits.
-                        TransactionState::commitLevel(db: $db);
-                    } catch (Throwable $e) {
-                        // Closes the whole correction, after a deadlock too, and
-                        // discards what it would have announced.
-                        TransactionState::rollBackLevel(db: $db, failure: $e);
-                        $applied = 0;
+                        // Null means the kernel found no stock unit to converge: the
+                        // product was archived, grew variants or stopped tracking since
+                        // the gate ran. Read after the rollback, the product's state is
+                        // the one the kernel judged, so an archived product is refused
+                        // with the reason the dry run gives it.
+                        $message = $e?->getMessage() ?? (CombinationState::isCurrent(state: $this->loadItemColumn(itemId: $id, column: 'state'))
+                            ? Text::_('COM_ALFA_INLINE_STOCK_NOT_EDITABLE')
+                            : Text::_('COM_ALFA_ITEM_STOCK_REASON_ARCHIVED'));
 
                         // The detail goes to the component log; the merchant gets the
                         // reason in the back office's words where one exists.
@@ -526,13 +498,14 @@ class ItemController extends FormController
                                 'Inline stock correction refused for item %d at location %d, nothing applied: %s',
                                 $id,
                                 $locationId,
-                                $e->getMessage(),
+                                $message,
                             ),
                             priority: Log::WARNING,
                             category: 'com_alfa.inventory',
                         );
 
                         $refusals[] = match (true) {
+                            $e === null => $message,
                             // Stock reserved at a location while the correction waited for
                             // its lock: the figures read under that lock, in the dry run's words.
                             $e instanceof InventoryReservedFloorException => $e->operatorMessage(),
@@ -1302,22 +1275,23 @@ class ItemController extends FormController
         $app->sendHeaders();
 
         try {
-            // These rows are committed by THIS request and feed the item-field value
-            // index, which the search document reads. The follow-up item.reload is core
-            // FormController::reload; it never calls save(), so the item is marked first
-            // under its lock and rebuilt here, never left unprojected.
-            $change = ProjectionManager::markChange(itemId: $itemId);
+            // Only the values not yet options are added, in the picked order; the service rebuilds the product's
+            // catalogue after its commit (the follow-up item.reload never saves).
+            $current = array_column(ItemOptionService::options(itemId: $itemId), 'value_id');
+            $picked = array_values(array_diff(array_unique(array_map('intval', (array) $this->input->get('values', [], 'array'))), $current, [0]));
+            $write = ItemOptionService::of(itemId: $itemId);
 
-            try {
-                $added = ItemFieldsAdminHelper::addItemOptions(
-                    itemId: $itemId,
-                    valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
-                );
-            } finally {
-                ProjectionManager::rebuildChanged(change: $change);
+            foreach ($picked as $valueId) {
+                $write->add(valueId: $valueId);
             }
 
-            echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+            $result = $write->save();
+
+            if (!$result->saved) {
+                throw new RuntimeException(implode(' ', array_map(static fn ($refusal): string => $refusal->sentence, $result->refusals)));
+            }
+
+            echo new \Joomla\CMS\Response\JsonResponse(['added' => \count($result->added)]);
         } catch (ExecutionFailureException | ConnectionFailureException $e) {
             echo $this->databaseRefused(endpoint: 'addOptions', itemId: $itemId, failure: $e);
         } catch (RuntimeException $e) {
@@ -1353,22 +1327,17 @@ class ItemController extends FormController
         $app->sendHeaders();
 
         try {
-            // These rows are committed by THIS request and feed the item-field value
-            // index, which the search document reads. The follow-up item.reload is core
-            // FormController::reload; it never calls save(), so the item is marked first
-            // under its lock and rebuilt here, never left unprojected.
-            $change = ProjectionManager::markChange(itemId: $itemId);
+            // The values not yet specifications of the product are added after its list, in the picked order; the
+            // service rebuilds the product's catalogue after its commit (the follow-up item.reload never saves).
+            $current = array_column(ItemOptionService::specifications(itemId: $itemId), 'value_id');
+            $picked = array_values(array_diff(array_unique(array_map('intval', (array) $this->input->get('values', [], 'array'))), $current, [0]));
+            $result = $picked === [] ? null : ItemOptionService::of(itemId: $itemId)->informational(valueIds: array_merge($current, $picked))->save();
 
-            try {
-                $added = ItemFieldsAdminHelper::addItemInfoValues(
-                    itemId: $itemId,
-                    valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
-                );
-            } finally {
-                ProjectionManager::rebuildChanged(change: $change);
+            if ($result !== null && !$result->saved) {
+                throw new RuntimeException(implode(' ', array_map(static fn ($refusal): string => $refusal->sentence, $result->refusals)));
             }
 
-            echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+            echo new \Joomla\CMS\Response\JsonResponse(['added' => \count($picked)]);
         } catch (ExecutionFailureException | ConnectionFailureException $e) {
             echo $this->databaseRefused(endpoint: 'addInfoValues', itemId: $itemId, failure: $e);
         } catch (RuntimeException $e) {
@@ -1617,15 +1586,15 @@ class ItemController extends FormController
         // stock, and says what is required. A thumbnail of the variant's gallery
         // that is not an image file of the media folders is one such refusal
         // (MediaHelper::thumbnailRefusals()).
-        $plan = ItemFieldsAdminHelper::studioStockPlan(
-            itemId:         $itemId,
-            combinationId:  $combinationId,
-            row:            $row,
-            postedStock:    $postedStock,
-            postedBaseline: $postedBaseline,
-            postedOpening:  $postedOpening,
+        $write = CombinationService::change(itemId: $itemId, combinationId: $combinationId)
+            ->with(fields: $row)
+            ->prices(rows: $priceRows)
+            ->stock(figures: $postedStock, read: $postedBaseline)
+            ->opening(figures: $postedOpening);
+        $refusals = array_merge(
+            array_map(static fn (Refusal $refusal): string => $refusal->sentence, $write->refusals()),
+            MediaHelper::thumbnailRefusals(mediaData: (array) ($jform['media'] ?? [])),
         );
-        $refusals = array_merge($plan['refusals'], MediaHelper::thumbnailRefusals(mediaData: (array) ($jform['media'] ?? [])));
 
         if ($refusals !== []) {
             foreach ($refusals as $refusal) {
@@ -1637,113 +1606,38 @@ class ItemController extends FormController
             return;
         }
 
-        // Variant titles and identity are part of the item's search document: the
-        // item is marked first under its lock and rebuilt after everything the save
-        // writes, so a renamed variant is never left unfindable.
-        $change = ProjectionManager::markChange(itemId: $itemId);
+        // The combination is saved in one transaction, a tracking switch and its opening figures included; changed
+        // tracked figures converge after it, and what could not apply comes back as the result's warnings.
+        $result = $write->save();
+        $saved = $result->saved;
 
-        try {
-            // Switching tracking on books the opening figures inside the save's own
-            // transaction, with the switch itself: they commit or roll back together.
-            $opening = $plan['transition'] === 'on';
-            $saved = false;
+        foreach ($result->refusals as $refusal) {
+            $app->enqueueMessage($refusal->code === 'not_found' ? Text::_('COM_ALFA_COMBINATION_SAVE_FAILED') : $refusal->sentence, 'error');
+        }
 
-            try {
-                $saved = ItemFieldsAdminHelper::saveSingleCombination(
-                    itemId:         $itemId,
-                    combinationId:  $combinationId,
-                    row:            $row,
-                    priceRows:      $priceRows,
-                    openingTargets: $opening ? $plan['targets'] : null,
-                );
+        if ($saved) {
+            // The variant's own gallery: same machinery as the item's media,
+            // keyed by the 'combination' origin.
+            MediaHelper::saveMedia(
+                mediaData:      $jform['media'] ?? [],
+                droppedMedia:   $this->input->files->get('jform')['uploads'] ?? [],
+                itemId:         $combinationId,
+                mediaOrigin:    'combination',
+                customFileName: (string) ($row['gtin'] ?? ''),
+            );
 
-                if (!$saved) {
-                    $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVE_FAILED'), 'error');
-                }
-            } catch (RuntimeException $e) {
-                // The save rolled back as a whole; nothing after it may run.
-                Log::add(
-                    entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $itemId, $e->getMessage()),
-                    priority: Log::ERROR,
-                    category: 'com_alfa.catalog',
-                );
-
-                $app->enqueueMessage($e->getMessage(), 'error');
+            foreach ($result->warnings as $warning) {
+                $app->enqueueMessage($warning['message'], $warning['type']);
             }
 
-            if ($saved) {
-                // The variant's own gallery: same machinery as the item's media,
-                // keyed by the 'combination' origin.
-                MediaHelper::saveMedia(
-                    mediaData:      $jform['media'] ?? [],
-                    droppedMedia:   $this->input->files->get('jform')['uploads'] ?? [],
-                    itemId:         $combinationId,
-                    mediaOrigin:    'combination',
-                    customFileName: (string) ($row['gtin'] ?? ''),
-                );
+            // Variant downloads metadata (title/limits/state) rides the
+            // Studio form like every other surface; bytes go via AJAX.
+            Entitlements::saveItemDownloadsMeta(
+                itemId:  $itemId,
+                payload: (array) ($jform['item_downloads'] ?? []),
+            );
 
-                // Changed tracked figures converge after the save. A refusal here is
-                // not a failed save: the combination is stored, and the operator is
-                // told its stock did not change and why.
-                if (!$opening && $postedStock !== []) {
-                    try {
-                        $notApplied = ItemFieldsAdminHelper::applyCombinationLocationStock(
-                            itemId:        $itemId,
-                            combinationId: $combinationId,
-                            posted:        $postedStock,
-                            baseline:      $postedBaseline,
-                        );
-
-                        foreach ($notApplied as $warning) {
-                            $app->enqueueMessage($warning, 'warning');
-                        }
-                    } catch (InventoryIntegrityException $e) {
-                        Log::add(
-                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
-                            priority: Log::ERROR,
-                            category: 'com_alfa.inventory',
-                        );
-
-                        $app->enqueueMessage(self::ledgerMissingMessage(exception: $e), 'error');
-                    } catch (Throwable $e) {
-                        Log::add(
-                            entry: sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $itemId, $e->getMessage()),
-                            priority: Log::ERROR,
-                            category: 'com_alfa.inventory',
-                        );
-
-                        // Every refusal that reaches here is a complete sentence, so it
-                        // follows the saved notice whole.
-                        $app->enqueueMessage(Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED', $e->getMessage()), 'error');
-                    }
-                }
-
-                // Tracking switched off keeps the stock records as they are; say which
-                // quantities are no longer counted for sale.
-                $tracking = ItemFieldsAdminHelper::lastTrackingChange();
-
-                if ((int) ($tracking['kept_rows'] ?? 0) > 0) {
-                    $app->enqueueMessage(
-                        Text::sprintf(
-                            'COM_ALFA_INVENTORY_TRACKING_OFF_STOCK_KEPT',
-                            (int) $tracking['kept_rows'],
-                            InventoryAvailabilityService::formatQuantity(value: (float) ($tracking['kept_on_hand'] ?? 0.0)),
-                        ),
-                        'warning',
-                    );
-                }
-
-                // Variant downloads metadata (title/limits/state) rides the
-                // Studio form like every other surface; bytes go via AJAX.
-                Entitlements::saveItemDownloadsMeta(
-                    itemId:  $itemId,
-                    payload: (array) ($jform['item_downloads'] ?? []),
-                );
-
-                $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVED'));
-            }
-        } finally {
-            ProjectionManager::rebuildChanged(change: $change);
+            $app->enqueueMessage(Text::_('COM_ALFA_COMBINATION_SAVED'));
         }
 
         $this->redirectToStudio(itemId: $itemId, combinationId: $combinationId, saved: $saved, closeAfter: $closeAfter);
