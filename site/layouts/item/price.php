@@ -49,7 +49,18 @@ extract($displayData);
 
 // Get price object
 $prices = $item->price ?? null;
+
+// No price to show (none is set for the shopper, or the shop shows its catalogue only): its place says how to get one,
+// in the shop's own words (COM_ALFA_PRICE_ON_REQUEST, which a language override can change, or empty to show nothing).
 if (!$prices) {
+	$onRequest = Text::_('COM_ALFA_PRICE_ON_REQUEST');
+
+	if ($onRequest !== '') {
+		?>
+<div class="item-price-request"><?php echo htmlspecialchars($onRequest, ENT_QUOTES, 'UTF-8'); ?></div>
+		<?php
+	}
+
 	return;
 }
 
