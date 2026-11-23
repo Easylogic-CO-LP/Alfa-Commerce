@@ -107,8 +107,9 @@ final class ExtensionJob implements JobHandler
     }
 
     /**
-     * Hand the work to the plugin: booted alone, its onAlfaExtensionJob() method called; its Throwable reaches the
-     * runner, which retries the job.
+     * Hand the work to the plugin: booted alone for the job, whatever its Access (the job runs as the system, not as
+     * the visitor whose request ran the runner: AlfaPluginHelper::bootForWork()), its onAlfaExtensionJob() method
+     * called; its Throwable reaches the runner, which retries the job.
      *
      * @param JobRun $run The job.
      * @param int $units At most this many units (one).
@@ -122,7 +123,7 @@ final class ExtensionJob implements JobHandler
     {
         $plugin = PluginId::of((string) ($run->payload['plugin'] ?? ''));
         $helper = AlfaPluginHelper::get();
-        $loaded = $helper->bootSingle($plugin);
+        $loaded = $helper->bootForWork($plugin);
 
         if (!$helper->declares($loaded, 'onAlfaExtensionJob')) {
             throw new RuntimeException('The plugin ' . $plugin . ' has no onAlfaExtensionJob() method; its job ' . $run->id . ' waits.');

@@ -548,6 +548,63 @@ final class AlfaPluginHelper
     }
 
     /**
+     * Boot an installed and enabled plugin for a background job the task runner runs, whatever its Access: the job
+     * runs as the system, not as the visitor whose request happened to run the runner, so whether it runs never
+     * depends on that request. Never a way around bootSingle() for a request's own work: only the runner's jobs ask it.
+     * The plugin is given the name, group and params Joomla gives one it loads, from its own enabled row (its provider
+     * leaves them out for a plugin Joomla does not list for the request's user); its family is checked; its declaration
+     * is then asked with declares() and its handler run with dispatchTo(), as everywhere.
+     *
+     * @param PluginId $id The plugin.
+     *
+     * @throws PluginUnavailable MISSING, DISABLED, UNLOADABLE, WRONG_FAMILY or NO_APPLICATION.
+     *
+     * @since  2.2.2
+     */
+    public function bootForWork(PluginId $id): LoadedPlugin
+    {
+        $app = $this->layer->application();
+
+        if ($app === null) {
+            throw new PluginUnavailable(PluginUnavailable::NO_APPLICATION, $id, 'No application: the plugin ' . $id . ' cannot be booted.');
+        }
+
+        $params = $this->layer->rowParams($id);
+
+        if ($params === null) {
+            throw $this->layer->rowEnabled($id) === null
+                ? new PluginUnavailable(PluginUnavailable::MISSING, $id, 'The plugin ' . $id . ' is not installed.')
+                : new PluginUnavailable(PluginUnavailable::DISABLED, $id, 'The plugin ' . $id . ' is not enabled.');
+        }
+
+        if (isset($this->importFailed[$id->key()])) {
+            throw new PluginUnavailable(PluginUnavailable::UNLOADABLE, $id, 'The plugin ' . $id . ' could not be imported in this request.');
+        }
+
+        try {
+            $plugin = $this->layer->bootFromRow($app, $id, $params);
+        } catch (Throwable $e) {
+            $this->importFailed[$id->key()] = true;
+
+            throw new PluginUnavailable(PluginUnavailable::UNLOADABLE, $id, 'The plugin ' . $id . ' could not be booted (' . $e::class . ': ' . $e->getMessage() . ').', $e);
+        }
+
+        if ($this->layer->isPlaceholder($plugin)) {
+            throw new PluginUnavailable(PluginUnavailable::MISSING, $id, 'The plugin ' . $id . ' is enabled but its files are missing.');
+        }
+
+        $family = self::FAMILIES[$id->group] ?? null;
+
+        if ($family !== null && !$plugin instanceof $family) {
+            throw new PluginUnavailable(PluginUnavailable::WRONG_FAMILY, $id, 'The plugin ' . $id . ' is not a ' . $family . '.');
+        }
+
+        $this->booted[$id->key()] = $plugin;
+
+        return new LoadedPlugin($id);
+    }
+
+    /**
      * Boot, for the customer of an operator placement, a plugin the customer's view levels admit that Joomla does not
      * load for the member of staff placing the order: never a way around bootSingle(). Allowed only when the
      * subject is an operator placement ({@see CartSubject::operator()}), its actor holds {@see OperatorCheckout::PERMISSION}
