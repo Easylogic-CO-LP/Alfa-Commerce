@@ -2393,8 +2393,8 @@ class com_alfaInstallerScript extends InstallerScript
 
         Factory::getApplication()->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_THUMBNAILS_NOT_IMAGES',
-            fallback: 'Alfa Commerce %1$s found files among the product images that are not images: %2$s. Up to 2.2.0 a'
-                . ' thumbnail could be a copy of any file of the site, published for anyone to download. Nothing was'
+            fallback: 'Alfa Commerce %1$s found files among the product images that are not images: %2$s. Such a file may'
+                . ' be a copy of a file of the site that a thumbnail once named, published for anyone to download. Nothing was'
                 . ' deleted: look at each file and, if it is not yours to publish, delete it by hand and choose a new'
                 . ' thumbnail for the rows named.',
             values:   [$this->packageVersion, implode('; ', $named)],
