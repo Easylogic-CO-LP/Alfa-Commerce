@@ -421,13 +421,12 @@ class ItemModel extends BaseItemModel
             $item->cartChildren = $cartChildren;
 
             // Aggregate this field's surfaces onto the page slot map (insertion
-            // order). Legacy setLayout() bridges to BuyForm; showon rides along.
+            // order); showon rides along.
             Surfaces::appendTo(
                 $slots,
                 $event,
                 'alfa-item-fields',
                 (string) $field->type,
-                ItemSurface::BuyForm->value,
                 Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                 field: $field,
             );

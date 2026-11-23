@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceBuilder;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Product-page render hook for a payment method. Beyond its default display in
+ * Product-page render hook for a payment method. Beyond its part under the method in
  * the payment-methods area, a payment plugin may contribute to shared page slots
  * (e.g. a finance badge by the title) via the same surfaces vocabulary the item
  * fields use: one container model, source-agnostic rendering.
@@ -44,7 +44,7 @@ class ItemViewEvent extends PaymentsLayoutEvent
     }
 
     /**
-     * The method's display in the payment-methods area (its default slot). Fluent,
+     * The method's own part under it in the payment-methods area, after core's drawing of it. Fluent,
      * no enum import: paymentMethods()->setLayout('x')->setData([...]).
      *
      *

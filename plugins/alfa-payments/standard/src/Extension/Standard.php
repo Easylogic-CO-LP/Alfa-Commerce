@@ -131,11 +131,12 @@
  *
  *  SURFACES & LAYOUTS: where your HTML actually lands
  *
- * A payment plugin NEVER echoes HTML. It names a template and hands
- * over the data; the caller renders it:
+ * A payment plugin NEVER echoes HTML. It asks its event for a place,
+ * names a template and hands over the data; the caller renders it:
  *
- *     $event->setLayout('default_cart_view');        // tmpl/<name>.php
- *     $event->setLayoutData(['method' => ..., 'item' => ...]);
+ *     $event->paymentMethods()                        // the place
+ *         ->setLayout('default_cart_view')            // tmpl/<name>.php
+ *         ->setData(['method' => ..., 'item' => ...]);
  *
  * The file goes through Joomla's plugin layout chain, so a site
  * template can override any of them without touching the plugin:
@@ -144,23 +145,25 @@
  *   `- parent template (child templates inherit)
  *      `- plugins/alfa-payments/<element>/tmpl/<layout>.php   <- yours
  *
- * WHERE EACH LAYOUT APPEARS
- *   onItemView()           product page, payment-methods area
- *   onCartView()           cart / checkout, inside the method selector
- *   onOrderProcessView()   the processing page after checkout
- *   onOrderCompleteView()  the thank-you page
- *   onExecuteAction()      the action page (view=action), in a modal
+ * WHERE EACH LAYOUT APPEARS (the place each hook asks for)
+ *   onItemView()           product page: paymentMethods(), title(),
+ *                          nearAddToCart()
+ *   onCartView()           cart / checkout, under the method in the
+ *                          method selector: paymentMethods()
+ *   onOrderProcessView()   the processing page after checkout:
+ *                          orderProcess()
+ *   onOrderCompleteView()  the thank-you page: orderComplete()
+ *   onExecuteAction()      the action page (view=action), in a modal:
+ *                          $event->setLayout() on the action event
  *   onPaymentResponse()    NOTHING: redirect-only, no view
  *   onPaymentWebhook()     NOTHING: response-only (raw body + code, no HTML;
  *                          gateways only, Standard has none)
  *
- * SURFACES (product page only). Beyond its default slot the item hook
- * can push into shared page slots, so a finance badge can sit beside
- * the title instead of down in the methods list:
+ * A place the plugin does not ask for stays empty. On the product page
+ * a finance badge can sit beside the title instead of down in the
+ * methods list:
  *
- *     $event->paymentMethods()->setLayout('x')->setData([...]);  // default
- *     $event->title()->setLayout('badge')->setData([...]);       // slot
- *     $event->nearAddToCart()->setLayout('badge')->setData([...]);
+ *     $event->title()->setLayout('badge')->setData([...]);
  *
  * ADMIN ACTION LAYOUTS are not rendered inline. The button opens
  * index.php?option=com_alfa&view=action&tmpl=component... in an iframe
@@ -639,8 +642,9 @@ final class Standard extends PaymentsPlugin
     //
     //  These render HTML on the storefront. Each hook receives an event
     //  with the relevant context (product, cart, order) and the payment
-    //  method record. The cart and order hooks MUST call setLayout(), even for
-    //  an empty layout; on the product page a method with nothing to add sets none.
+    //  method record, and draws through the place its event offers
+    //  (paymentMethods(), orderProcess(), orderComplete()); a hook with
+    //  nothing to add draws nothing.
     //
     //  For gateway plugins: onOrderProcessView() is where you redirect
     //  the customer to the external payment page (a hosted checkout,
@@ -656,8 +660,9 @@ final class Standard extends PaymentsPlugin
      * Available on $event:
      *   $event->getItem()     -> Product item object   (alias of getSubject())
      *   $event->getMethod()   -> Payment method record (id, name, params...)
-     *   $event->setLayout()   -> Template file in tmpl/ (without .php)
-     *   $event->setLayoutData() -> Associative array passed to template
+     *   $event->paymentMethods()->setLayout('x')->setData([...])
+     *                         -> Template file in tmpl/ (without .php), and
+     *                            the array passed to it
      *
      * For Standard: nothing; core's drawing of the method is all it shows.
      * For a card gateway: could show "Pay in 4 installments" badge.
@@ -671,14 +676,21 @@ final class Standard extends PaymentsPlugin
     }
 
     /**
-     * Cart page: show payment method selector or payment form.
+     * Cart page: what the method draws under itself in the payment methods.
+     *
+     * Core draws every offered method first (its radio, image, title and
+     * description); the plugin's layout adds only its own content under it,
+     * for every offered method. A panel meant only for the chosen method
+     * checks $event->getMethod()->isSelected() first.
      *
      * Available on $event:
      *   $event->getRequest()  -> MethodViewRequest: ->method (the Method, entire) and ->cart (the Cart, entire)
      *                           (alias of getSubject())
      *   $event->getMethod()   -> Payment method record
+     *   $event->paymentMethods()->setLayout('x')->setData([...])
+     *                         -> the method's panel
      *
-     * For Standard: shows method name and description.
+     * For Standard: an empty layout, a place a template override can fill.
      * For a card gateway: could render the gateway's hosted card form.
      * For a wallet gateway: could render the wallet's checkout buttons.
      *
@@ -687,13 +699,12 @@ final class Standard extends PaymentsPlugin
      */
     public function onCartView($event): void
     {
-        $event->setLayout('default_cart_view');
         // NOTHING IS PASSED BECAUSE NOTHING IS RENDERED. This layout emits no
         // bytes; handing it the whole view request would put an entire cart (
         // its priced lines, its customer and its raw address rows) into layout
         // data that is then carried on the cart snapshot. A presentation payload
         // carries what the template prints, and this one prints nothing.
-        $event->setLayoutData([]);
+        $event->paymentMethods()->setLayout('default_cart_view')->setData([]);
     }
 
     /**
@@ -710,8 +721,7 @@ final class Standard extends PaymentsPlugin
      *   - Redirect to the gateway:
      *       $event->setRedirectUrl($gatewayCheckoutUrl);
      *   - OR render a processing/waiting page:
-     *       $event->setLayout('default_order_process');
-     *       $event->setLayoutData([...]);
+     *       $event->orderProcess()->setLayout('default_order_process')->setData([...]);
      *     The component's default_order_process template renders your
      *     layout and nothing else; retry and cancel buttons are your
      *     layout's job.
@@ -730,8 +740,8 @@ final class Standard extends PaymentsPlugin
     public function onOrderProcessView($event): void
     {
         // Standard payment is offline: no processing step needed.
-        // By not setting a layout or redirect, the HtmlView will
-        // automatically redirect to default_order_completed.
+        // By drawing no page and setting no redirect, the HtmlView
+        // sends the buyer on to default_order_completed.
     }
 
     /**
@@ -750,8 +760,7 @@ final class Standard extends PaymentsPlugin
      */
     public function onOrderCompleteView($event): void
     {
-        $event->setLayout('default_order_completed');
-        $event->setLayoutData([
+        $event->orderComplete()->setLayout('default_order_completed')->setData([
             'order' => $event->getOrder(),   // getSubject(): this event's subject is the order
             'method' => $event->getMethod(),
         ]);
@@ -761,7 +770,7 @@ final class Standard extends PaymentsPlugin
     //
     //  Fired by the site PaymentController (task=payment.response) when the buyer
     //  returns from a hosted gateway. It runs in a CONTROLLER WITH NO VIEW, so it
-    //  is REDIRECT-ONLY: setLayout()/setLayoutData() are IGNORED here. Decide
+    //  is REDIRECT-ONLY: it offers no place to draw. Decide
     //  where to send the buyer and call setRedirectUrl():
     //
     //      success    -> the complete page : $this->getCompletePageUrl()

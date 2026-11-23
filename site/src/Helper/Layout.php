@@ -30,9 +30,9 @@ defined('_JEXEC') or die;
  *   Layout::render('item.stock_info', ['item' => $item]);                  // component
  *   Layout::render($layout, $data, $pluginType, $pluginName);         // plugin
  *
- * The view events carry the four pieces in sequence, so a call site stays a
- * one-liner: render($e->getLayout(), $e->getLayoutData(),
- * $e->getLayoutPluginType(), $e->getLayoutPluginName()).
+ * A surface descriptor carries the four pieces, so a call site stays a
+ * one-liner: render($d['layout'], $d['layoutData'], $d['layoutPluginType'],
+ * $d['layoutPluginName']).
  *
  * @since  1.0.0
  */

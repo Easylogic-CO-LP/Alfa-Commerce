@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceBuilder;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Product-page render hook for a shipment method. Beyond its default display in
+ * Product-page render hook for a shipment method. Beyond its part under the method in
  * the shipment-methods area, a shipment plugin may contribute to shared page
  * slots via the same surfaces vocabulary the item fields use: one container
  * model, source-agnostic rendering.
@@ -44,7 +44,7 @@ class ItemViewEvent extends ShipmentsLayoutEvent
     }
 
     /**
-     * The method's display in the shipment-methods area (its default slot). Fluent,
+     * The method's own part under it in the shipment-methods area, after core's drawing of it. Fluent,
      * no enum import: shipmentMethods()->setLayout('x')->setData([...]).
      *
      *

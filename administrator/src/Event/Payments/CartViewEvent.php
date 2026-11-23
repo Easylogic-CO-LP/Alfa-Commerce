@@ -15,17 +15,35 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
 
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\CheckoutSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\Concern\HasSurfaces;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceBuilder;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\MethodViewRequest;
 use Alfa\Component\Alfa\Site\Service\Cart\Cart;
 use Alfa\Component\Alfa\Site\Service\Cart\Method;
 
 /**
- * Class for CustomFields events
+ * The cart's render hook for one offered payment method (onCartView): what the
+ * method's plugin draws under the method in the cart's payment methods, through
+ * paymentMethods(). A plugin that draws nothing leaves core's drawing of the method alone.
  *
  * @since  1.0.0
  */
 class CartViewEvent extends PaymentsLayoutEvent
 {
+    use HasSurfaces;
+
+    /**
+     * The method's panel under its row in the cart's payment methods. Fluent:
+     * paymentMethods()->setLayout('default_cart_view')->setData([...]).
+     *
+     * @since  2.3.0
+     */
+    public function paymentMethods(): SurfaceBuilder
+    {
+        return $this->surfaceFor(CheckoutSurface::PaymentMethods->value);
+    }
+
     /**
      * Constructor.
      *

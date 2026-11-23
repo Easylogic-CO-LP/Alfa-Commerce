@@ -10,6 +10,8 @@
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Event\Cart\CartTotalsEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\CheckoutSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\CartViewAssetsEvent as PaymentsCartViewAssetsEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\CartViewEvent as PaymentsCartViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\CalculateShippingCostEvent;
@@ -334,7 +336,10 @@ final class CartPluginDispatch
     }
 
     /**
-     * What each offered method asked to show beside it, keyed by method id.
+     * What each offered method drew under itself, keyed by method id: the panel its
+     * plugin set through paymentMethods() or shipmentMethods(), its owner the
+     * method's own plugin unless the plugin named another. A method whose plugin
+     * drew nothing has no entry.
      *
      * THE CART IS PASSED IN, NOT FETCHED. Every method is drawn against the cart
      * the caller has already settled and is about to snapshot (never against a
@@ -362,6 +367,7 @@ final class CartPluginDispatch
     ): array {
         $isPayment = $kind === 'payment';
         $group = $isPayment ? 'alfa-payments' : 'alfa-shipments';
+        $slot = $isPayment ? CheckoutSurface::PaymentMethods->value : CheckoutSurface::ShipmentMethods->value;
         $plugins = AlfaPluginHelper::get();
         $views = [];
 
@@ -403,21 +409,17 @@ final class CartPluginDispatch
             try {
                 $plugins->dispatchTo($plugin, $event);
 
-                $pluginName = (string) $event->getLayoutPluginName();
-                $pluginType = (string) $event->getLayoutPluginType();
+                $panel = Surfaces::collect($event, $group, $type)[$slot] ?? null;
 
-                if ($selected) {
-                    $pluginName = $pluginName !== '' ? $pluginName : $type;
-                    $pluginType = $pluginType !== '' ? $pluginType : $group;
+                if ($panel !== null) {
+                    $views[$methodId] = new MethodViewContribution(
+                        methodId: $methodId,
+                        layout: (string) $panel['layout'],
+                        layoutData: (array) $panel['layoutData'],
+                        pluginType: (string) $panel['layoutPluginType'],
+                        pluginName: (string) $panel['layoutPluginName'],
+                    );
                 }
-
-                $views[$methodId] = new MethodViewContribution(
-                    methodId: $methodId,
-                    layout: (string) $event->getLayout(),
-                    layoutData: (array) $event->getLayoutData(),
-                    pluginType: $pluginType,
-                    pluginName: $pluginName,
-                );
             } catch (Throwable $e) {
                 $this->pluginFailed(
                     $kind . ' view failed (onCartView, ' . $group . '/' . $type . ', method #' . $methodId . ')',

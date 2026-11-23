@@ -18,20 +18,21 @@ use BadMethodCallException;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * View tier: redirect + layout. Hooks rendered inside an HtmlView (cart, item,
- * product, order process/complete, admin order views) extend this: they either
- * render the plugin's layout fragment inline (setLayout) or send the buyer away
- * (setRedirectUrl, inherited from RedirectEvent).
+ * View tier: the method being drawn, and the redirect (RedirectEvent). Hooks
+ * dispatched while an HtmlView is built (the product page, the cart, the order
+ * process and completed pages, the item fields on a page or a cart line) extend
+ * this: they draw through their own surface builders (HasSurfaces, one typed
+ * accessor per slot, such as paymentMethods() or buyForm()) or send the buyer
+ * away (setRedirectUrl).
  *
  * @since  1.0.0
  */
 abstract class LayoutEvent extends RedirectEvent
 {
-    // Output travels as named arguments (setLayout/setLayoutData/setLayoutPluginType/
-    // setLayoutPluginName, plus setRedirectUrl from RedirectEvent), so this event does
-    // NOT use Joomla's Result* traits/interface (multi-listener result collection) nor
-    // the ReshapeArgumentsAware legacy positional-argument b/c layer; listeners
-    // receive named arguments only.
+    // Output travels through the surface builders and setRedirectUrl, so this
+    // event does NOT use Joomla's Result* traits/interface (multi-listener result
+    // collection) nor the ReshapeArgumentsAware positional-argument layer;
+    // listeners receive named arguments only.
 
     /**
      * Constructor.
@@ -73,165 +74,5 @@ abstract class LayoutEvent extends RedirectEvent
     public function getMethod()
     {
         return $this->arguments['method'];
-    }
-
-    /**
-     * Plugin TYPE that owns the layout fragment (used by the renderer to resolve
-     * the override path). Empty string when unset.
-     *
-     *
-     * @since  1.0.0
-     */
-    public function getLayoutPluginType(): string
-    {
-        return $this->arguments['layoutPluginType'] ?? '';
-    }
-
-    /**
-     * Value filter for the 'layoutPluginType' con
-     * struction/setArgument path
-     * (Joomla magic): setArgument stores what this RETURNS, so it must return the
-     * value. Plugins use the explicit setLayoutPluginType() below for convenience.
-     *
-     * @param string $value The plugin type.
-     *
-     * @return string
-     *
-     * @since  1.0.0
-     */
-    protected function onSetLayoutPluginType($value)
-    {
-        return $value;
-    }
-
-    /**
-     * Store the layout plugin type (plugin convenience setter).
-     *
-     * @param string $value The plugin type to set.
-     *
-     *
-     * @since  1.0.0
-     */
-    public function setLayoutPluginType($value): void
-    {
-        $this->arguments['layoutPluginType'] = $value;
-    }
-
-    /**
-     * Plugin NAME that owns the layout fragment. Empty string when unset.
-     *
-     *
-     * @since  1.0.0
-     */
-    public function getLayoutPluginName(): string
-    {
-        return $this->arguments['layoutPluginName'] ?? '';
-    }
-
-    /**
-     * Value filter for the 'layoutPluginName' construction/setArgument path
-     * (Joomla magic): must return the value. Plugins use setLayoutPluginName().
-     *
-     * @param string $value The plugin name.
-     *
-     * @return string
-     *
-     * @since  1.0.0
-     */
-    protected function onSetLayoutPluginName($value)
-    {
-        return $value;
-    }
-
-    /**
-     * Store the layout plugin name (plugin convenience setter).
-     *
-     * @param string $value The plugin name to set.
-     *
-     *
-     * @since  1.0.0
-     */
-    public function setLayoutPluginName($value): void
-    {
-        $this->arguments['layoutPluginName'] = $value;
-    }
-
-    /**
-     * The layout fragment this plugin renders. Empty string when the plugin set
-     * none; the orchestrator then renders no surface for this field.
-     *
-     *
-     * @since  1.0.0
-     */
-    public function getLayout(): string
-    {
-        return $this->arguments['layout'] ?? '';
-    }
-
-    /**
-     * Value filter for the 'layout' construction/setArgument path (Joomla magic):
-     * must return the value. Plugins use the explicit setLayout() for convenience.
-     *
-     * @param string $value The layout name.
-     *
-     * @return string
-     *
-     * @since  1.0.0
-     */
-    protected function onSetLayout($value)
-    {
-        return $value;
-    }
-
-    /**
-     * Store the layout fragment to render (plugin convenience setter).
-     *
-     * @param string $value The layout name (without extension).
-     *
-     *
-     * @since  1.0.0
-     */
-    public function setLayout($value): void
-    {
-        $this->arguments['layout'] = $value;
-    }
-
-    /**
-     * The data passed to the resolved layout's $displayData. Empty array when unset.
-     *
-     *
-     * @since  1.0.0
-     */
-    public function getLayoutData(): array
-    {
-        return $this->arguments['layoutData'] ?? [];
-    }
-
-    /**
-     * Value filter for the 'layoutData' construction/setArgument path (Joomla
-     * magic): must return the value. Plugins use the explicit setLayoutData().
-     *
-     * @param array $value The layout data.
-     *
-     * @return array
-     *
-     * @since  1.0.0
-     */
-    protected function onSetLayoutData($value)
-    {
-        return $value;
-    }
-
-    /**
-     * Store the layout data passed to the resolved layout (plugin convenience).
-     *
-     * @param array $value The layout data to set.
-     *
-     *
-     * @since  1.0.0
-     */
-    public function setLayoutData($value): void
-    {
-        $this->arguments['layoutData'] = $value;
     }
 }

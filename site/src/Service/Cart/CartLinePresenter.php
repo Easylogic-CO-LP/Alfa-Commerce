@@ -112,7 +112,7 @@ final class CartLinePresenter
                     // Isolated: a plugin whose handler throws leaves the line its plain summary below,
                     // logged once, and the cart renders.
                     if ($plugins->dispatchToIsolated($plugin, $event, 'the field ' . ($field->field_name ?? '') . ' (#' . $fieldId . ') on a cart line')) {
-                        $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type, CartSurface::Main->value);
+                        $fieldSurfaces = Surfaces::collect($event, 'alfa-item-fields', (string) $field->type);
                     }
                 }
             }

@@ -142,19 +142,11 @@ $section = function (
                                   // found by method id and rendered through the
                                   // plugin's layout. The plugin decides how its
                                   // method looks; it never decides here whether
-                                  // the method is eligible. ?>
-                            <?php // RESOLVABLE OR NOTHING, the same gate the
-                                  // storefront's Layout::render() applies. The
-                                  // dispatcher backfills a plugin's identity only
-                                  // for the SELECTED method, so an unselected one
-                                  // can carry a layout name with nobody to own it;
-                                  // asking for that layout resolves nothing and
-                                  // says so loudly. A method whose plugin did not
-                                  // name itself simply contributes no markup. ?>
-                            <?php if ($view !== null
-                                && (string) $view->layout !== ''
-                                && (string) $view->pluginType !== ''
-                                && (string) $view->pluginName !== '') : ?>
+                                  // the method is eligible. A contribution always
+                                  // names its layout and its owner (the method's
+                                  // plugin unless the plugin named another); a
+                                  // method whose plugin drew nothing has none. ?>
+                            <?php if ($view !== null) : ?>
                                 <div class="mt-2 ms-2 ps-2 border-start">
                                     <?php echo PluginLayoutHelper::pluginLayout(
                                         $view->pluginType,

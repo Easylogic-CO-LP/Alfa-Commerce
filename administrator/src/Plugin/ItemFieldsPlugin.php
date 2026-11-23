@@ -30,10 +30,11 @@ use Joomla\Registry\Registry;
  *               order line (onGetFieldActions / onExecuteFieldAction). A
  *               button runs an action or opens a popup via a layout. The
  *               event arrives pre-bound to that row's params.
- *  - Frontend -> LAYOUTS. setLayout/setLayoutData on the item page
- *               (onItemView), the listing card (onItemListPrepare, per field
+ *  - Frontend -> SURFACES. A layout set on a place the event offers
+ *               ($event->buyForm()->setLayout(...)->setData(...)) on the
+ *               item page (onItemView), the listing card (onItemListPrepare, per field
  *               the card draws, with setCartLayout() control of the card's
- *               cart) and the cart line (onCartItemView). A layout can carry
+ *               cart) and the cart line (onCartItemView: main()). A layout can carry
  *               its own buttons/JS. The whole-page onItemsListPrepare runs
  *               after every card is built and has no cart setters.
  *
@@ -83,7 +84,8 @@ abstract class ItemFieldsPlugin extends Plugin
     //  SURFACE HOOKS: no-op defaults; concrete plugins override
 
     /**
-     * Item page: set a layout to render the field's buyer-facing surface.
+     * Item page: draw the field's buyer-facing surface through the places the
+     * event offers ($event->buyForm(), title(), specifications(), ...).
      *
      * @param object $event ItemViewEvent (type-guard before acting)
      *
@@ -127,7 +129,8 @@ abstract class ItemFieldsPlugin extends Plugin
     }
 
     /**
-     * Cart line: set a layout to render the customer's saved configuration.
+     * Cart line: draw the customer's saved configuration through
+     * $event->main()->setLayout(...)->setData(...).
      *
      * @param object $event CartItemViewEvent (type-guard before acting)
      *

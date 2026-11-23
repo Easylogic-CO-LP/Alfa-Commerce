@@ -33,13 +33,13 @@ enum ItemSurface: string
     /** The full description block (item-full-description). */
     case FullDescription = 'full-description';
 
-    /** The selector slot inside the buy form (item-fields-surfaces). The default. */
+    /** The selector slot inside the buy form (item-fields-surfaces). */
     case BuyForm = 'buy-form';
 
-    /** The payment methods area on the product page (a payment method's default slot). */
+    /** The payment methods area on the product page (where a payment method's own part goes). */
     case PaymentMethods = 'payment-methods';
 
-    /** The shipment methods area on the product page (a shipment method's default slot). */
+    /** The shipment methods area on the product page (where a shipment method's own part goes). */
     case ShipmentMethods = 'shipment-methods';
 
     /** Next to the add-to-cart button (by cart.wrapper): extra control/note. */

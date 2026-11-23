@@ -31,7 +31,6 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
-use stdClass;
 
 /**
  * View class for a list of Alfa.
@@ -63,7 +62,14 @@ class HtmlView extends BaseHtmlView
 
     protected $params;
 
-    protected $event;
+    /**
+     * What the order's gateway of record drew on the order process or order completed page: one surface descriptor
+     * (layout, layoutData, layoutPluginType, layoutPluginName), its owner the gateway's plugin unless it named
+     * another; null when it drew nothing there.
+     *
+     * @since  2.3.0
+     */
+    protected ?array $gatewayBlock = null;
 
     protected $savedUserInfo = [];
 
@@ -320,9 +326,6 @@ class HtmlView extends BaseHtmlView
                 $app->redirect(Uri::root());
             }
 
-            // Always present so the layout templates can safely check it.
-            $this->event = new stdClass();
-
             // THE GATEWAY OF RECORD: the order's own snapshot of the plugin
             // that took its payment, never the live method row, which staff may have edited.
             $selectedPayment = $orderData->selected_payment ?? null;
@@ -338,7 +341,6 @@ class HtmlView extends BaseHtmlView
                 // neutral words and changes nothing; it never moves on to the completed page for it,
                 // which would read as a payment taken.
                 $this->providerUnavailable = true;
-                $this->event->onOrderProcessView = $paymentEvent;
                 // Never a dead end: the number the customer quotes, and this same address, which asks
                 // the gateway again.
                 $this->orderNumber = EmailService::orderNumber(order: $orderData);
@@ -359,8 +361,10 @@ class HtmlView extends BaseHtmlView
                 return;
             }
 
-            // No payment, or the plugin produced no layout -> show the completed page.
-            if (empty($paymentEvent->getLayout())) {
+            // No payment, or the gateway drew no process page: on to the completed page.
+            $this->gatewayBlock = $paymentType !== '' ? GatewayOfRecord::block(paymentType: $paymentType, event: $paymentEvent) : null;
+
+            if ($this->gatewayBlock === null) {
                 $this->app->redirect(
                     Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed', false),
                     $paymentEvent->getRedirectCode() ?? 303,
@@ -368,8 +372,6 @@ class HtmlView extends BaseHtmlView
 
                 return;
             }
-
-            $this->event->onOrderProcessView = $paymentEvent;
         }
 
         $this->_prepareDocument();
@@ -463,17 +465,14 @@ class HtmlView extends BaseHtmlView
         // the plugin the order recorded, with the order's own row as its subject. A gateway that cannot be loaded or
         // whose handler throws leaves its block out, and the page says so in neutral words: never a word of payment
         // the order does not hold.
-        $this->event = new stdClass();
-        ['event' => $paymentEvent, 'unavailable' => $this->providerUnavailable] = GatewayOfRecord::completeView(order: $this->confirmation);
+        ['event' => $paymentEvent, 'unavailable' => $this->providerUnavailable, 'block' => $this->gatewayBlock] = GatewayOfRecord::completeView(order: $this->confirmation);
 
         if (!$this->providerUnavailable && $paymentEvent->hasRedirect()) {
-            // The gateway's own choice, as before.
+            // The gateway's own choice.
             $app->redirect($paymentEvent->getRedirectUrl(), $paymentEvent->getRedirectCode() ?? 303);
 
             return;
         }
-
-        $this->event->onOrderCompleteView = $paymentEvent;
 
         // PRINT, JOOMLA'S WAY: the same keyed address with tmpl=component and print=1 is the print view,
         // which shows the order alone; the page's script opens it from the address it was asked by, so the key is

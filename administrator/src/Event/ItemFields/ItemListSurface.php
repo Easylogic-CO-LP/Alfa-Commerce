@@ -20,7 +20,7 @@ defined('_JEXEC') or die;
  */
 enum ItemListSurface: string
 {
-    /** The selector slot inside the card's buy form (item-fields-surfaces). The default. */
+    /** The selector slot inside the card's buy form (item-fields-surfaces). */
     case BuyForm = 'buy-form';
 
     /** Beside the card title (item-title), e.g. a badge. */

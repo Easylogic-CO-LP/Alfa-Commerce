@@ -18,10 +18,9 @@ use Joomla\Registry\Registry;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Cart line render hook (onCartItemView): the plugin sets a layout fragment
- * to render the customer's stored configuration on the cart line. Frontend =
- * layout only: anything (buttons, an edit link, a thumbnail) lives in the
- * layout. Same LayoutEvent contract as payments.
+ * Cart line render hook (onCartItemView): the plugin draws the customer's
+ * stored configuration on the cart line through main(). Frontend = layout
+ * only: anything (buttons, an edit link, a thumbnail) lives in the layout.
  *
  * Arguments: subject = the cart line, method = the field definition row,
  * snapshot = the stored configuration snapshot of this line+field.

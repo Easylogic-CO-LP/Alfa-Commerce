@@ -74,56 +74,6 @@ class PriceSettings
         'price_breakdown_show',
     ];
 
-    /**
-     * Element name aliases for user-friendly API
-     * Maps common variations and abbreviations to internal field names
-     * Public for builder class access
-     *
-     * @var array
-     * @since  1.0.0
-     */
-    public const ALIASES = [
-        // Base price
-        'base' => 'base_price',
-        'base_price' => 'base_price',
-        'baseprice' => 'base_price',
-        'original' => 'base_price',
-        'original_price' => 'base_price',
-
-        // Subtotal (after discounts, before tax)
-        'subtotal' => 'base_price_with_discounts',
-        'sub' => 'base_price_with_discounts',
-        'after_discount' => 'base_price_with_discounts',
-        'base_price_with_discounts' => 'base_price_with_discounts',
-
-        // Discount
-        'discount' => 'discount_amount',
-        'discount_amount' => 'discount_amount',
-        'savings' => 'discount_amount',
-        'save' => 'discount_amount',
-
-        // Tax
-        'tax' => 'tax_amount',
-        'tax_amount' => 'tax_amount',
-        'vat' => 'tax_amount',
-
-        // Base with tax
-        'base_with_tax' => 'base_price_with_tax',
-        'base_price_with_tax' => 'base_price_with_tax',
-
-        // Final price
-        'final' => 'final_price',
-        'final_price' => 'final_price',
-        'total' => 'final_price',
-        'price' => 'final_price',
-
-        // Breakdown
-        'breakdown' => 'price_breakdown',
-        'price_breakdown' => 'price_breakdown',
-        'details' => 'price_breakdown',
-        'calculation' => 'price_breakdown',
-    ];
-
     // Primary API
 
     /**

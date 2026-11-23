@@ -19,11 +19,12 @@ use Joomla\CMS\Uri\Uri;
  * This page is used by external gateway plugins (card, wallet and bank gateways)
  * that need a "waiting for payment" step between checkout and order completion.
  *
- * The plugin's onOrderProcessView() sets a layout which is rendered here.
+ * The plugin's onOrderProcessView() draws the page through
+ * $event->orderProcess(); the view hands it here as $this->gatewayBlock.
  * Each plugin is responsible for including its own retry/cancel buttons
  * within its layout template if needed.
  *
- * Offline/instant plugins (e.g. Standard) should NOT set a layout in
+ * Offline/instant plugins (e.g. Standard) draw nothing in
  * onOrderProcessView(), which causes the HtmlView to skip this page
  * and redirect straight to default_order_completed. When the order's
  * gateway of record cannot be loaded, or its handler fails, the page
@@ -43,14 +44,14 @@ if ($this->providerUnavailable) :
             <a class="action secondary" href="<?php echo Uri::root(); ?>"><?php echo Text::_('COM_ALFA_CART_EMPTY_CONTINUE'); ?></a>
         </div>
     </div>
-<?php elseif (!empty($this->event->onOrderProcessView)): ?>
+<?php elseif ($this->gatewayBlock !== null): ?>
     <div class="order-process">
         <?php
         echo Layout::render(
-            $this->event->onOrderProcessView->getLayout(),
-            $this->event->onOrderProcessView->getLayoutData(),
-            $this->event->onOrderProcessView->getLayoutPluginType(),
-            $this->event->onOrderProcessView->getLayoutPluginName(),
+            $this->gatewayBlock['layout'],
+            $this->gatewayBlock['layoutData'],
+            $this->gatewayBlock['layoutPluginType'],
+            $this->gatewayBlock['layoutPluginName'],
         );
         ?>
     </div>

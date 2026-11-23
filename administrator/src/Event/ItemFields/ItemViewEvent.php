@@ -20,9 +20,10 @@ use Joomla\Registry\Registry;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Item-page render hook for alfa-item-fields plugins (same LayoutEvent
- * contract as payments/shipments: the plugin sets its layout fragment, the
- * item template renders it via PluginLayoutHelper).
+ * Item-page render hook for alfa-item-fields plugins: the plugin draws through
+ * the places this event offers (buyForm(), title(), image(), ...), as a payment
+ * or shipping plugin draws through its own, and the item template renders each
+ * place's layouts via PluginLayoutHelper.
  *
  * Carries the shared HasCartLayout contract too, so a plugin can replace the
  * add-to-cart MAIN slot on the product page with the SAME setCartLayout() it

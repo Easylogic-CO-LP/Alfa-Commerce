@@ -85,7 +85,7 @@ $this->getDocument()->getWebAssetManager()
     // The order as its customer reads it, the same block the order page of the customer's account prints.
     echo Layout::render(layout: 'order.detail', data: [
         'order' => $order,
-        'event' => $this->event->onOrderCompleteView ?? null,
+        'block' => $this->gatewayBlock,
         'providerUnavailable' => $this->providerUnavailable,
         'payAgainUrl' => $this->payAgainUrl,
         'email' => $order->email,
