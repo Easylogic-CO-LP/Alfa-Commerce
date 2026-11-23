@@ -116,11 +116,12 @@ final class RunJobEvent extends AbstractEvent
     }
 
     /**
-     * The job's declared name.
+     * The job's declared name. getName() stays the event's name, as on every Joomla event: the dispatcher calls the
+     * plugin's method of that name.
      *
      * @since  2.3.0
      */
-    public function getName(): string
+    public function getWorkName(): string
     {
         return $this->run->handler;
     }

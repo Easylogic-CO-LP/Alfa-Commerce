@@ -22,7 +22,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *
  *     public function onAlfaRunTask(RunTaskEvent $task): void
  *     {
- *         match ($task->getName()) {
+ *         match ($task->getWorkName()) {
  *             'invoice.submit' => $this->submitInvoice($task),
  *         };
  *     }
@@ -73,11 +73,12 @@ final class RunTaskEvent extends AbstractEvent
     }
 
     /**
-     * The task's declared name.
+     * The task's declared name. getName() stays the event's name, as on every Joomla event: the dispatcher calls the
+     * plugin's method of that name.
      *
      * @since  2.3.0
      */
-    public function getName(): string
+    public function getWorkName(): string
     {
         return $this->run->handler();
     }
