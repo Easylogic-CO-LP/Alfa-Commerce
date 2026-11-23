@@ -128,9 +128,6 @@ class OrderHelper
             $item->refunded_amount_tax_excl = Money::of($item->refunded_amount_tax_excl ?? 0, $currency);
             $item->refunded_amount_tax_incl = Money::of($item->refunded_amount_tax_incl ?? 0, $currency);
 
-            // Backward compatibility aliases (used by subform binding)
-            $item->total = $item->total_price_tax_incl; // Money object
-
             // No per-unit `price` alias: the line total divided at the currency's
             // scale printed a unit finer than it as 0.00, and nothing reads it. A
             // unit is the one rule's figure (unit_price_tax_*_formatted above).

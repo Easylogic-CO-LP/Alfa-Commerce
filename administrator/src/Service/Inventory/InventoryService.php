@@ -93,7 +93,7 @@ use WeakMap;
  * savepoint inside its caller's, committed through TransactionState::commitLevel()
  * and closed after a failure through TransactionState::rollBackLevel(), on either
  * MySQL driver. Its AFTER events (onInventoryReserved, onInventoryReleased,
- * onInventoryCommitted, onInventoryRestored, onInventoryAdjusted, onInventoryTransferred) and its
+ * onInventoryCommitted, onInventoryRestored, onInventoryAdjusted) and its
  * success log lines wait for the outermost commit and are delivered once after it,
  * never after a rollback ({@see PostCommit}); with no transaction open they are
  * delivered at once. BEFORE events run before the level opens and veto by throwing.
