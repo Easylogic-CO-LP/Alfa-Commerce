@@ -108,6 +108,14 @@ class HtmlView extends BaseHtmlView
     protected string $accountOrderUrl = '';
 
     /**
+     * Whether the order completed page offers Order again: to the order's customer logged in, while the shop sells
+     * online, never in the print view.
+     *
+     * @since  2.3.0
+     */
+    protected bool $reorder = false;
+
+    /**
      * The process page when the gateway of record cannot be loaded: the number the customer quotes, and
      * the process address, which asks the gateway again (Try again). Empty on every other page.
      *
@@ -446,6 +454,7 @@ class HtmlView extends BaseHtmlView
 
             if ($viewerId > 0 && $this->confirmation->accountId === $viewerId) {
                 $this->accountOrderUrl = Route::_('index.php?option=com_alfa&view=order&id=' . $this->confirmation->id);
+                $this->reorder = ShopMode::sellsOnline();
             }
         }
 

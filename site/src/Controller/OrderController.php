@@ -16,7 +16,9 @@ use Alfa\Component\Alfa\Administrator\Service\Document\PdfLibraryMissingExceptio
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Service\Order\CustomerCancel;
+use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\Service\Order\OrderDocuments;
+use Alfa\Component\Alfa\Site\Service\Order\Reorder;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Controller\BaseController;
@@ -25,8 +27,8 @@ use Joomla\CMS\Uri\Uri;
 use Throwable;
 
 /**
- * What a customer does with one of their orders: cancel it from their account (a POST with the form's token, the
- * customer logged in), download its documents (each link's own token). The pages themselves are the orders and order
+ * What a customer does with one of their orders: cancel it or buy it again from their account (a POST with the form's
+ * token, the customer logged in), download its documents (each link's own token). The pages themselves are the orders and order
  * views, and for a guest the order completed page's keyed address.
  *
  * @since  2.3.0
@@ -63,6 +65,40 @@ class OrderController extends BaseController
                 : 'index.php?option=com_alfa&view=order&id=' . $orderId,
             false,
         ));
+    }
+
+    /**
+     * Put the order's lines in the cart again, at today's prices and availability (Reorder): the order's id, the
+     * customer logged in, their own order. Lines that cannot go in are named with why, the rest go in; the answer is
+     * the cart when anything went in, else the order's page.
+     *
+     * @since  2.3.0
+     */
+    public function reorder(): void
+    {
+        $this->checkToken();
+
+        $orderId = RequestScalar::int($this->input, 'id', 0);
+
+        if (!$this->loggedIn(orderId: $orderId)) {
+            return;
+        }
+
+        if (OrderConfirmation::access(orderId: $orderId, key: '', viewerId: (int) $this->app->getIdentity()->id) !== OrderConfirmation::GRANTED) {
+            $this->app->enqueueMessage(Text::_('COM_ALFA_ORDER_NOT_AVAILABLE'), 'warning');
+            $this->setRedirect(Route::_('index.php?option=com_alfa&view=orders', false));
+
+            return;
+        }
+
+        $outcomes = Reorder::order(orderId: $orderId);
+
+        foreach (Reorder::sentences(outcomes: $outcomes) as [$sentence, $type]) {
+            $this->app->enqueueMessage($sentence, $type);
+        }
+
+        $any = array_filter($outcomes, static fn (object $outcome): bool => $outcome->added > 0) !== [];
+        $this->setRedirect(Route::_($any ? 'index.php?option=com_alfa&view=cart' : 'index.php?option=com_alfa&view=order&id=' . $orderId, false));
     }
 
     /**

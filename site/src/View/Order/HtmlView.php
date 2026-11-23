@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\View\Order;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Site\Helper\PageCache;
+use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Service\Order\CustomerCancel;
 use Alfa\Component\Alfa\Site\Service\Order\GatewayOfRecord;
 use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
@@ -68,6 +69,13 @@ class HtmlView extends BaseHtmlView
     protected string $cancel = '';
 
     /**
+     * Whether the page offers Order again: while the shop sells online, never in the print view.
+     *
+     * @since  2.3.0
+     */
+    protected bool $reorder = false;
+
+    /**
      * The print view (tmpl=component and print=1), which shows the order alone.
      *
      * @since  2.3.0
@@ -117,6 +125,7 @@ class HtmlView extends BaseHtmlView
         if (!$this->print) {
             $this->payAgainUrl = $this->confirmation->payAgainUrl();
             $this->cancel = CustomerCancel::verdict(orderId: $orderId, customerId: (int) $app->getIdentity()->id);
+            $this->reorder = ShopMode::sellsOnline();
         }
 
         // The gateway's block, as the order completed page asks it: its gateway of record alone.

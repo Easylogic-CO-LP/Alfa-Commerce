@@ -173,6 +173,11 @@
     color: var(--alfa-warning-color);
 }
 
+/* Order again: a form among the actions, its button one of them. */
+.com-alfa.order-completed .order-reorder {
+    margin: 0;
+}
+
 .com-alfa.order-completed .order-completed-actions {
     display: flex;
     flex-wrap: wrap;

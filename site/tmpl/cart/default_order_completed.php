@@ -32,11 +32,12 @@
  *
  * A guest reaches the order on this keyed page alone, from the checkout or from the order's
  * e-mails; a customer logged in is shown the order's page in their account as well
- * ($this->accountOrderUrl). Cancelling is never offered here: it is the account's.
+ * ($this->accountOrderUrl) and Order again ($this->reorder, the order.reorder layout).
+ * Cancelling is never offered here: it is the account's.
  *
  * Classes the stylesheet reads (media/com_alfa/css/site/order-completed.css):
  *   .order-completed  .order-account-link  .order-completed-actions, and those of the
- *   order.detail layout
+ *   order.detail and order.reorder layouts
  */
 
 use Alfa\Component\Alfa\Site\Helper\Layout;
@@ -92,6 +93,10 @@ $this->getDocument()->getWebAssetManager()
     ?>
 
     <div class="order-completed-actions">
+        <?php // Order again: for the order's customer logged in, as on the order's page in their account. ?>
+        <?php if ($this->reorder) : ?>
+        <?php echo Layout::render(layout: 'order.reorder', data: ['orderId' => $order->id]); ?>
+        <?php endif; ?>
         <button type="button" class="action secondary" data-action="order-print"><?php echo Text::_('COM_ALFA_ORDER_COMPLETED_PRINT'); ?></button>
         <a class="action primary" href="<?php echo Uri::root(); ?>"><?php echo Text::_('COM_ALFA_CART_EMPTY_CONTINUE'); ?></a>
     </div>

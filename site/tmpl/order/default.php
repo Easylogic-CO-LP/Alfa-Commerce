@@ -16,7 +16,8 @@
  * the gateway's block, the parcels' tracking numbers, the lines with the totals, the addresses), from the one
  * read-only value $this->confirmation (Site\Service\Order\OrderConfirmation). Then what the customer may do with it:
  * cancel it where the shop allows ($this->cancel, CustomerCancel::verdict()), confirmed in place with no script (a
- * details element holding the POST form), print it, go back to their orders. Null means the order is not theirs, and
+ * details element holding the POST form), order it again while the shop sells online (the order.reorder layout),
+ * print it, go back to their orders. Null means the order is not theirs, and
  * the page says only that (the view answers 404).
  *
  * The page shares the order completed page's root classes and stylesheet, and its Print (the same address with
@@ -84,6 +85,9 @@ $this->getDocument()->getWebAssetManager()
     <?php endif; ?>
 
     <div class="order-completed-actions">
+        <?php if ($this->reorder) : ?>
+        <?php echo Layout::render(layout: 'order.reorder', data: ['orderId' => $order->id]); ?>
+        <?php endif; ?>
         <button type="button" class="action secondary" data-action="order-print"><?php echo Text::_('COM_ALFA_ORDER_COMPLETED_PRINT'); ?></button>
         <a class="action primary" href="<?php echo $orders; ?>"><?php echo Text::_('COM_ALFA_ORDER_BACK_TO_ORDERS'); ?></a>
     </div>
