@@ -23,7 +23,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
  *
  * code    a fixed name for the kind of change, never reworded: shipping_charged_once, quantity_cut, hidden_by_rule,
  *         not_a_field.
- * detail  the sentence, in the request's language.
+ * detail  the sentence, in the interface language, as the API's error sentences are; ?lang= chooses the language of
+ *         the content, not of the messages.
  * pointer where in the request body the value was (a JSON pointer, "/alfa_form_fields/vatnumber"); '' for none.
  *
  * @since  2.2.2
