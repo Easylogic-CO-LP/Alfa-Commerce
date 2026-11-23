@@ -402,3 +402,14 @@ ALTER TABLE `#__alfa_inventory_movements` DROP KEY `idx_transfer` /** CAN FAIL *
 ALTER TABLE `#__alfa_inventory_movements` DROP COLUMN `transfer_id` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_inventory_movements` MODIFY `movement_type` varchar(30) NOT NULL DEFAULT '' COMMENT 'receive | deduct | restore | adjust | migration';
 ALTER TABLE `#__alfa_inventory_operations` MODIFY `command` varchar(20) NOT NULL COMMENT 'reserve | release | commit | restore | reverse_restore | receive | adjust | expire | reconcile | retire | location_state | unit_state | track_open | track_close | write_off | resolve_line | archive | unarchive | sale_rules | prioritise';
+
+-- Column comments without version numbers
+
+-- Five column comments named the version a shape of their data dates from; they say what the data is instead. A
+-- comment changes no data and no type. The install SQL has the same comments.
+
+ALTER TABLE `#__alfa_media` MODIFY `thumbnail_origin` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'What the thumbnail was made from: image (the row image) or chosen (a picture chosen on the tile); NULL on a row written before the column was kept';
+ALTER TABLE `#__alfa_order_items` MODIFY `tax_name` text NOT NULL DEFAULT ('') COMMENT 'Applied tax name snapshot, whole: the name of combined rules joined with + can pass 255 characters; a line frozen before the name was kept whole holds what it was given';
+ALTER TABLE `#__alfa_order_shipments` MODIFY `shipping_tax_chain` text NOT NULL DEFAULT ('[]') COMMENT 'The tax rates the charge was calculated with, in the order they apply, each an exact decimal text with the name of the tax rule that applied it, whole (a JSON list, e.g. [{"rate":"10","name":"VAT"},{"rate":"5","name":"Eco levy"}]; a chain frozen before rule names were kept holds the rates alone, e.g. ["10","5"]); [] = untaxed. shipping_tax_rate is their combined rate, for display and reconciliation only.';
+ALTER TABLE `#__alfa_document_items` MODIFY `tax_name` text NOT NULL DEFAULT ('') COMMENT 'The applied tax rule name frozen at issue, whole: from the order line or the shipping tax chain, on a credit from the corrected document line; empty on a document issued before names were frozen';
+ALTER TABLE `#__alfa_task_slots` MODIFY `name` varchar(32) NOT NULL COMMENT 'heavy, and any later concurrency class';

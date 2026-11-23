@@ -1479,7 +1479,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_media` (
   `alt` varchar(75) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `ordering` int(11) NOT NULL DEFAULT 0,
   `origin` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `thumbnail_origin` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'What the thumbnail was made from: image (the row image) or chosen (a picture chosen on the tile); NULL before 2.2.0',
+  `thumbnail_origin` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'What the thumbnail was made from: image (the row image) or chosen (a picture chosen on the tile); NULL on a row written before the column was kept',
   `source_url` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The address the image was fetched from, as the REST API client gave it; NULL for an image uploaded or picked',
   `source_url_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'sha256 of source_url: the same address is not fetched twice for one record',
   PRIMARY KEY (`id`),
@@ -1855,7 +1855,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
   `discount_percent` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Discount percentage (e.g., 20.00 = 20% off)',
   `discount_amount_tax_excl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Discount amount excluding tax',
   `discount_amount_tax_incl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Discount amount including tax',
-  `tax_name` text NOT NULL DEFAULT ('') COMMENT 'Applied tax name snapshot, whole: the name of combined rules joined with + can pass 255 characters; lines frozen before 2.2.0 keep what they hold',
+  `tax_name` text NOT NULL DEFAULT ('') COMMENT 'Applied tax name snapshot, whole: the name of combined rules joined with + can pass 255 characters; a line frozen before the name was kept whole holds what it was given',
   `tax_rate` decimal(10,3) NOT NULL DEFAULT 0.000 COMMENT 'Tax percentage (e.g., 24.000 = 24%)',
   `added` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
@@ -2078,7 +2078,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_shipments` (
   `shipping_cost_tax_incl` decimal(24,8) DEFAULT NULL,
   `shipping_tax_rate` decimal(10,3) NOT NULL DEFAULT 0.000 COMMENT 'VAT rate the shipping charge was taxed at (24.000 = 24%); 0.000 = untaxed. Frozen with the amounts: a rate cannot be recovered from rounded amounts.',
   `shipping_charge_basis` varchar(16) NOT NULL DEFAULT 'tax_included' COMMENT 'What the costs were derived from: tax_included (the gross was the input), tax_excluded (the net was the input) or carrier_stated (a carrier stated them; never recalculated). A staff or REST change of the charge is checked through it.',
-  `shipping_tax_chain` text NOT NULL DEFAULT ('[]') COMMENT 'The tax rates the charge was calculated with, in the order they apply, each an exact decimal text with the name of the tax rule that applied it, whole (a JSON list, e.g. [{"rate":"10","name":"VAT"},{"rate":"5","name":"Eco levy"}]; a chain frozen before 2.2.0 holds the rates alone, e.g. ["10","5"]); [] = untaxed. shipping_tax_rate is their combined rate, for display and reconciliation only.',
+  `shipping_tax_chain` text NOT NULL DEFAULT ('[]') COMMENT 'The tax rates the charge was calculated with, in the order they apply, each an exact decimal text with the name of the tax rule that applied it, whole (a JSON list, e.g. [{"rate":"10","name":"VAT"},{"rate":"5","name":"Eco levy"}]; a chain frozen before rule names were kept holds the rates alone, e.g. ["10","5"]); [] = untaxed. shipping_tax_rate is their combined rate, for display and reconciliation only.',
   `tracking_number` varchar(64) DEFAULT NULL,
   `carrier_name` varchar(255) DEFAULT NULL COMMENT 'Actual carrier name (the courier company handling the parcel)',
   `added` datetime NOT NULL,
@@ -3394,7 +3394,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_document_items` (
   `total_tax_incl` decimal(24,8) NOT NULL DEFAULT 0.00000000,
   `authority_classification` text DEFAULT NULL COMMENT 'JSON income classification slot (transmission plugin)',
   `sort_order` int(11) NOT NULL DEFAULT 0,
-  `tax_name` text NOT NULL DEFAULT ('') COMMENT 'The applied tax rule name frozen at issue, whole: from the order line or the shipping tax chain, on a credit from the corrected document line; empty on documents issued before 2.2.0',
+  `tax_name` text NOT NULL DEFAULT ('') COMMENT 'The applied tax rule name frozen at issue, whole: from the order line or the shipping tax chain, on a credit from the corrected document line; empty on a document issued before names were frozen',
   PRIMARY KEY (`id`),
   KEY `idx_document` (`id_document`),
   KEY `idx_order_item` (`id_order_item`)
@@ -3534,7 +3534,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa tasks: singles a change owes after its commit, and jobs with steps';
 
 CREATE TABLE IF NOT EXISTS `#__alfa_task_slots` (
-  `name` varchar(32) NOT NULL COMMENT 'heavy, and any later concurrency class (used from 2.2.0)',
+  `name` varchar(32) NOT NULL COMMENT 'heavy, and any later concurrency class',
   `owner` char(32) DEFAULT NULL,
   `lease_until` datetime(3) DEFAULT NULL,
   PRIMARY KEY (`name`)
