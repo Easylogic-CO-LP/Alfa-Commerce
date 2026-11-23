@@ -280,6 +280,11 @@ class com_alfaInstallerScript extends InstallerScript
             'opening_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings'", 'projection_dirty_at'],
             'price_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination whose price the listing card shows: the opening combination when it has price rows of its own, else 0 (the product''s own price). Kept with opening_combination_id; the listing reads its price index row by it'", 'opening_combination_id'],
         ],
+        '#__alfa_tasks' => [
+            'owner' => ["varchar(100) NOT NULL DEFAULT '' COMMENT 'Whose work it is: com_alfa, or the plugin that declared it as group.element; never empty once written'", 'finished_at'],
+            'result' => ["mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise'", 'owner'],
+            'cancel_requested' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: cancelled while running; the row stays running until its step has ended, then cancelled'", 'result'],
+        ],
     ];
 
     /**

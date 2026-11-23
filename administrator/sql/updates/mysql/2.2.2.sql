@@ -115,7 +115,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_outbound_deliveries` (
 -- written with its done settle; a job cancelled while it runs is marked and settled cancelled once its step has
 -- ended. The rows written before this update are core's: only core's handlers could write them. The new unique key is
 -- added before the old one is dropped, so the table always has one. Each statement carries the CAN FAIL marker or is
--- harmless when run again. The install SQL creates the same columns and keys.
+-- harmless when run again. A site that ran an earlier copy of this file gets the columns from script.php. The install
+-- SQL creates the same columns and keys.
 ALTER TABLE `#__alfa_tasks` ADD COLUMN `owner` varchar(100) NOT NULL DEFAULT '' COMMENT 'Whose work it is: com_alfa, or the plugin that declared it as group.element; never empty once written' /** CAN FAIL **/;
 UPDATE `#__alfa_tasks` SET `owner` = 'com_alfa' WHERE `owner` = '';
 ALTER TABLE `#__alfa_tasks` ADD COLUMN `result` mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise' /** CAN FAIL **/;
