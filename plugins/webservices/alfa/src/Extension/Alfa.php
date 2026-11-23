@@ -140,6 +140,11 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             new Route(['GET'], 'v1/alfa/catalog/items/:id', 'catalogitems.displayItem', ['id' => '\d+'], $defaults),
 
             new Route(['GET'], 'v1/alfa/inventorymovements', 'inventorymovements.displayList', [], $defaults),
+
+            // Stock set or corrected: a command over the stock records, never a movement written by hand (the ledger
+            // records what the command did). Its task is edit, the stock editors' permission; the records read only.
+            new Route(['POST'], 'v1/alfa/inventory/adjustments', 'inventoryadjustments.edit', [], $defaults),
+            new Route(['GET'], 'v1/alfa/inventory/stock', 'inventorystock.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/documents', 'documents.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/documents/:id', 'documents.displayItem', ['id' => '\d+'], $defaults),
 

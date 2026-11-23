@@ -158,6 +158,26 @@ class InventorymovementsModel extends AlfaListModel
             $query->where($db->quoteName('a.item_id') . ' = ' . $itemId);
         }
 
+        // The movements of one combination (0 the product's own), of one operation, or from one source, read straight
+        // off the state: set by the REST API's filter[combination_id], filter[operation_id] and filter[source_type].
+        $combinationId = $this->getState('filter.combination_id');
+
+        if ($combinationId !== null && $combinationId !== '') {
+            $query->where($db->quoteName('a.combination_id') . ' = ' . max(0, (int) $combinationId));
+        }
+
+        $operationId = (string) $this->getState('filter.operation_id', '');
+
+        if ($operationId !== '') {
+            $query->where($db->quoteName('a.operation_id') . ' = ' . $db->quote($operationId));
+        }
+
+        $sourceType = (string) $this->getState('filter.source_type', '');
+
+        if ($sourceType !== '') {
+            $query->where($db->quoteName('a.source_type') . ' = ' . $db->quote($sourceType));
+        }
+
         $query->order(
             $db->escape($this->getState('list.ordering', 'a.id')) . ' '
             . $db->escape($this->getState('list.direction', 'DESC')),
