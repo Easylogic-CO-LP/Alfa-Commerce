@@ -13,7 +13,6 @@ use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Language;
-use Joomla\CMS\Language\Text;
 use JsonSerializable;
 use Throwable;
 use ValueError;
@@ -773,7 +772,8 @@ final class NotificationText implements JsonSerializable
         }
 
         if (isset($arg['dt'])) {
-            return (string) $arg['dt'] === '' ? '' : HTMLHelper::_('date', (string) $arg['dt'], Text::_('DATE_FORMAT_LC5'));
+            // The format of the language the text is said in (its joomla.ini), never the request's.
+            return (string) $arg['dt'] === '' ? '' : HTMLHelper::_('date', (string) $arg['dt'], $language->_('DATE_FORMAT_LC5'));
         }
 
         if (isset($arg['num'])) {
