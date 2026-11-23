@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
@@ -1254,7 +1255,7 @@ final class Tasks
 
             TaskAttention::sync();
         } catch (Throwable $e) {
-            self::log(entry: 'Tasks: the recovery from the bell failed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            self::log(entry: 'Tasks: the recovery from the bell failed: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         return true;
@@ -1310,7 +1311,7 @@ final class Tasks
                 TaskRetention::prune(budgetMs: self::PRUNE_FALLBACK_MS);
             }
         } catch (Throwable $e) {
-            self::log(entry: 'Tasks: pruning finished tasks failed: ' . $e->getMessage(), priority: Log::WARNING);
+            self::log(entry: 'Tasks: pruning finished tasks failed: ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         return true;
@@ -1659,8 +1660,8 @@ final class Tasks
             if ($cause instanceof ExecutionFailureException || $cause instanceof PrepareStatementFailureException || $cause instanceof ConnectionFailureException
                 || $cause instanceof DatabaseNotFoundException || $cause instanceof mysqli_sql_exception || $cause instanceof PDOException) {
                 self::log(
-                    entry: 'Task #' . implode(', #', $taskIds) . ' failed on a database error: ' . $failure::class . ': ' . $failure->getMessage()
-                        . ($cause === $failure ? '' : ' (raised from ' . $cause::class . ': ' . $cause->getMessage() . ')'),
+                    entry: 'Task #' . implode(', #', $taskIds) . ' failed on a database error: ' . $failure::class . ': ' . ErrorText::of($failure)
+                        . ($cause === $failure ? '' : ' (raised from ' . $cause::class . ': ' . ErrorText::of($cause) . ')'),
                     priority: Log::WARNING,
                 );
 
@@ -1672,7 +1673,7 @@ final class Tasks
             return self::errorKey($failure->key, ...$failure->arguments);
         }
 
-        return $failure->getMessage() !== '' ? $failure->getMessage() : $failure::class;
+        return ErrorText::of($failure) !== '' ? ErrorText::of($failure) : $failure::class;
     }
 
     /**
@@ -2144,7 +2145,7 @@ final class Tasks
                     ->bind(':lease', $lease),
             );
         } catch (Throwable $e) {
-            self::log(entry: 'Tasks: batch ' . $batch . ' stays reserved until its claim lapses (' . self::LEASE_SECONDS . ' s), its release failed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            self::log(entry: 'Tasks: batch ' . $batch . ' stays reserved until its claim lapses (' . self::LEASE_SECONDS . ' s), its release failed: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 
@@ -2266,7 +2267,7 @@ final class Tasks
                 throw $e;
             }
 
-            self::log(entry: 'Task #' . (int) $row['id'] . ' (' . $row['handler'] . '): its handler could not record how it ended (' . $event . ', ' . $state . '): ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            self::log(entry: 'Task #' . (int) $row['id'] . ' (' . $row['handler'] . '): its handler could not record how it ended (' . $event . ', ' . $state . '): ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 
@@ -2363,7 +2364,7 @@ final class Tasks
             );
         } catch (Throwable $e) {
             // The work it renews for is unaffected: the reservation only keeps its last end, and lapses then.
-            self::log(entry: 'Tasks: the reservation of batch ' . $batch . ' could not be renewed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            self::log(entry: 'Tasks: the reservation of batch ' . $batch . ' could not be renewed: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 
@@ -2642,7 +2643,7 @@ final class Tasks
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
             self::log(
-                entry: 'Task #' . $id . ' (' . $row['handler'] . ') is not settled done: the record it must leave could not be written (' . $e::class . ': ' . $e->getMessage() . '). It stays running until its claim passes; recovery then holds it for staff.',
+                entry: 'Task #' . $id . ' (' . $row['handler'] . ') is not settled done: the record it must leave could not be written (' . $e::class . ': ' . ErrorText::of($e) . '). It stays running until its claim passes; recovery then holds it for staff.',
                 priority: Log::ERROR,
             );
 

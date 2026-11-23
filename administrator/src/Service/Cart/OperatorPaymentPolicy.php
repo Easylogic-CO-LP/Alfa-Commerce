@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -84,7 +85,7 @@ final class OperatorPaymentPolicy
         } catch (PluginUnavailable|InvalidArgumentException) {
             return self::$answers[$type] = false;
         } catch (Throwable $e) {
-            Log::add('Operator placement: the payment plugin ' . $type . ' failed while answering whether staff may place with it: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+            Log::add('Operator placement: the payment plugin ' . $type . ' failed while answering whether staff may place with it: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.payments');
 
             return self::$answers[$type] = false;
         }

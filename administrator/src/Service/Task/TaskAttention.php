@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Factory;
@@ -136,7 +137,7 @@ final class TaskAttention
                 ],
             );
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tasks: the attention notice could not be brought up to date: ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Tasks: the attention notice could not be brought up to date: ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 }

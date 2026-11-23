@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Maintenance;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Tools\ClearDataEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
@@ -194,7 +195,7 @@ final class FactoryReset
             $tables = (new CoreTables(db: $this->db))->declared();
         } catch (Throwable $e) {
             $tables = [];
-            $refusal ??= Text::sprintf('COM_ALFA_CLEAR_REFUSED_COMPONENT_SQL', $e->getMessage());
+            $refusal ??= Text::sprintf('COM_ALFA_CLEAR_REFUSED_COMPONENT_SQL', ErrorText::of($e));
         }
 
         $store = AlfaFileArea::downloadStore();
@@ -606,13 +607,13 @@ final class FactoryReset
 
             return $outcome + $this->clearCore(user: $user, run: $run, step: $step);
         } catch (Throwable $e) {
-            $error = mb_substr($e->getMessage(), 0, self::ERROR_LENGTH);
+            $error = mb_substr(ErrorText::of($e), 0, self::ERROR_LENGTH);
             $outcome += ['phase' => 'failed', 'step' => $step, 'error' => $error];
 
             try {
                 MaintenanceState::update(changes: ['phase' => 'failed', 'step' => $step, 'error' => $error]);
             } catch (Throwable $stateFailure) {
-                $outcome['error'] .= ' The maintenance state could not be updated: ' . $stateFailure->getMessage();
+                $outcome['error'] .= ' The maintenance state could not be updated: ' . ErrorText::of($stateFailure);
             }
 
             try {
@@ -623,7 +624,7 @@ final class FactoryReset
                     line: sprintf('Clear everything stopped at the step %s: %s Alfa Commerce stays in maintenance.', $step, $error),
                 );
             } catch (Throwable $auditFailure) {
-                $outcome['error'] .= ' ' . $auditFailure->getMessage();
+                $outcome['error'] .= ' ' . ErrorText::of($auditFailure);
             }
 
             return $outcome;
@@ -779,7 +780,7 @@ final class FactoryReset
         try {
             $storeWarning = $steps->checkDownloadStore(root: $root)['message'] ?? null;
         } catch (Throwable $e) {
-            $storeWarning = 'The protection of the download store could not be checked: ' . $e->getMessage();
+            $storeWarning = 'The protection of the download store could not be checked: ' . ErrorText::of($e);
         }
 
         $this->at(step: $step = 'users');

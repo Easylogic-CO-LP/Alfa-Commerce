@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\ReconciliationFacts;
 use Joomla\CMS\Factory;
@@ -321,7 +322,7 @@ final class IncrementalCorrection
             try {
                 $language = DocumentHelper::creditLanguageTag(correctsId: $sourceDocumentId);
             } catch (Throwable $e) {
-                return self::refused('issuer_refused', $e->getMessage(), self::DIRECTION_NEGATIVE);
+                return self::refused('issuer_refused', ErrorText::of($e), self::DIRECTION_NEGATIVE);
             }
 
             // A credit is made out to whoever the document it corrects was, as
@@ -332,7 +333,7 @@ final class IncrementalCorrection
             try {
                 $buyer = VoidAndReplace::buyerOf(DocumentHelper::getById($sourceDocumentId));
             } catch (RuntimeException $e) {
-                return self::refused(VoidAndReplace::REASON_BUYER_UNAVAILABLE, $e->getMessage(), self::DIRECTION_NEGATIVE);
+                return self::refused(VoidAndReplace::REASON_BUYER_UNAVAILABLE, ErrorText::of($e), self::DIRECTION_NEGATIVE);
             }
             // What the drift NEEDS, bounded by what the named document still has on that line.
             $pool = OrderItemLines::remainingForCredit(correctsId: $sourceDocumentId);

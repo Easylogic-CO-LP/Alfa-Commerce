@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Download;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -172,7 +173,7 @@ class StoreProtection
                 (new self())->check();
             }
         } catch (Throwable $e) {
-            Log::add(entry: 'Download store protection: the check of the first file failed: ' . $e->getMessage(), priority: Log::WARNING, category: 'com_alfa.downloads');
+            Log::add(entry: 'Download store protection: the check of the first file failed: ' . ErrorText::of($e), priority: Log::WARNING, category: 'com_alfa.downloads');
         }
     }
 
@@ -648,7 +649,7 @@ class StoreProtection
      */
     private function log(string $what, Throwable $error): void
     {
-        Log::add(entry: 'Download store protection: ' . $what . ': ' . $error->getMessage(), priority: Log::WARNING, category: 'com_alfa.downloads');
+        Log::add(entry: 'Download store protection: ' . $what . ': ' . ErrorText::of($error), priority: Log::WARNING, category: 'com_alfa.downloads');
     }
 
     /**

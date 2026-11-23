@@ -20,11 +20,12 @@ defined('_JEXEC') or die;
 /**
  * One address on the cart (delivery or invoice) read by field.
  *
- * A plugin needs a value the CORE has no opinion about: the postcode a carrier
- * prices by, the phone a courier texts. The core deliberately holds no role for
- * those and hardcodes no column, because they are the plugin's concern; the
- * plugin names the field in its own settings with a `checkoutfield` picker and
- * asks for it here by the id that picker saved.
+ * A plugin needs a value the core does not use itself: the postcode a carrier
+ * prices by, the phone a courier texts. The core hardcodes no column for them:
+ * the shop's fields carry roles (RoleRegistry: name, email, phone, country,
+ * address, city, postcode), and the plugin names the field in its own settings
+ * with a `checkoutfield` picker, which may start on a role's field, and asks
+ * for it here by the id that picker saved.
  *
  * The two values every address is guaranteed to carry have getters of their
  * own: {@see self::getName()} and {@see self::getEmail()}; everything else is
@@ -357,12 +358,11 @@ final class AddressView
     }
 
     /**
-     * A field by one of the product's own roles: name, email, phone, country.
-     *
-     * These four the core DOES know about, because it needs them itself: an
-     * order cannot be confirmed without an email or delivered without a
-     * recipient. Everything else is a plugin's business and goes through
-     * {@see self::field()}.
+     * A field by one of the shop's roles (RoleRegistry): name, email, phone and
+     * country, the customer's identity, which the core needs itself (an order
+     * cannot be confirmed without an email or delivered without a recipient);
+     * address, city and postcode, the address fields a new shop ships. Any
+     * other field goes through {@see self::field()}.
      *
      * @param string $role A RoleRegistry role.
      *

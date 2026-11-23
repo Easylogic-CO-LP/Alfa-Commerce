@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Credit;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRefusedException;
@@ -382,7 +383,7 @@ final class CustomerCreditLedger
             try {
                 self::ensureLogger();
                 Log::add(
-                    entry:    sprintf('Order %d: the customer credit account could not be checked before numbering a credit note: %s', $orderId, $e->getMessage()),
+                    entry:    sprintf('Order %d: the customer credit account could not be checked before numbering a credit note: %s', $orderId, ErrorText::of($e)),
                     priority: Log::WARNING,
                     category: 'com_alfa.credit',
                 );
@@ -1633,7 +1634,7 @@ final class CustomerCreditLedger
                     'Order #%d: customer-credit payment #%d could not be completed (%s), unwinding.',
                     (int) $order->id,
                     (int) $paymentId,
-                    $e->getMessage(),
+                    ErrorText::of($e),
                 ),
                 Log::CRITICAL,
                 'com_alfa.credit',
@@ -1663,7 +1664,7 @@ final class CustomerCreditLedger
                 );
             } catch (Throwable $inner) {
                 Log::add(
-                    sprintf('Order #%d: UNWIND FAILED for credit payment #%d: %s', (int) $order->id, (int) $paymentId, $inner->getMessage()),
+                    sprintf('Order #%d: UNWIND FAILED for credit payment #%d: %s', (int) $order->id, (int) $paymentId, ErrorText::of($inner)),
                     Log::CRITICAL,
                     'com_alfa.credit',
                 );

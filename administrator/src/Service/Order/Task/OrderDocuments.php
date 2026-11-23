@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Document\AutoIssuePolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskFailure;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskPolicy;
@@ -74,7 +75,7 @@ final class OrderDocuments extends OrderTaskHandler
         } catch (Throwable $e) {
             AutoIssuePolicy::reportFailure(orderId: $orderId, newStatusId: $status, failure: $e);
 
-            throw TaskFailure::retry(message: 'Automatic document issue failed: ' . $e->getMessage(), previous: $e);
+            throw TaskFailure::retry(message: 'Automatic document issue failed: ' . ErrorText::of($e), previous: $e);
         }
     }
 

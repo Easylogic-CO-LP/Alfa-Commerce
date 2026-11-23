@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Administrator\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
@@ -402,7 +403,7 @@ final class CartTakeover
         } catch (Throwable $e) {
             AlfaLog::register();
             Log::add(
-                'Cart #' . $cartId . ': the ' . $operation . ' record was not written: ' . $e::class . ': ' . $e->getMessage(),
+                'Cart #' . $cartId . ': the ' . $operation . ' record was not written: ' . $e::class . ': ' . ErrorText::of($e),
                 Log::ERROR,
                 'com_alfa.orders',
             );

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
 
 defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -191,7 +192,7 @@ final class AutoIssuePolicy
     {
         Log::add(
             entry:    "AutoIssuePolicy: order {$orderId} -> status {$newStatusId}: "
-                      . $failure->getMessage() . "\n" . $failure->getTraceAsString(),
+                      . ErrorText::of($failure) . "\n" . $failure->getTraceAsString(),
             priority: Log::ERROR,
             category: 'com_alfa.documents',
         );
@@ -443,7 +444,7 @@ final class AutoIssuePolicy
 
             Log::add(
                 entry:    "AutoIssuePolicy: order {$orderId}: {$docType} could not be issued: "
-                          . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                          . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                 priority: Log::ERROR,
                 category: 'com_alfa.documents',
             );
@@ -489,7 +490,7 @@ final class AutoIssuePolicy
             $first = $cause;
         }
 
-        $line = mb_substr(trim((string) strtok(strip_tags($first->getMessage()), "\r\n")), 0, 200);
+        $line = ErrorText::of(mb_substr(trim((string) strtok(strip_tags($first->getMessage()), "\r\n")), 0, 200));
 
         if ($line === '') {
             return NotificationText::key('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_UNKNOWN');
@@ -640,7 +641,7 @@ final class AutoIssuePolicy
 
                 Log::add(
                     entry:    "AutoIssuePolicy: order {$orderId}: {$docType} was issued, but the notice of discount no invoice can claim could not be raised: "
-                              . $noticeError->getMessage(),
+                              . ErrorText::of($noticeError),
                     priority: Log::WARNING,
                     category: 'com_alfa.documents',
                 );

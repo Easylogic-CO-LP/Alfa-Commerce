@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Orders\OrderStatusChangeEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskFailure;
@@ -157,10 +158,10 @@ final class OrderStatusEvent extends OrderTaskHandler
             }
 
             $failed[] = $unit;
-            $run->unit(unit: $unit, outcome: TaskRun::FAILED, error: $error::class . ': ' . $error->getMessage());
+            $run->unit(unit: $unit, outcome: TaskRun::FAILED, error: $error::class . ': ' . ErrorText::of($error));
             Log::add(
                 entry:    'onOrderStatusChange listener ' . $unit . ' failed for order ' . $orderId . ' (' . $from . ' -> ' . $to . '): '
-                          . $error->getMessage() . "\n" . $error->getTraceAsString(),
+                          . ErrorText::of($error) . "\n" . $error->getTraceAsString(),
                 priority: Log::ERROR,
                 category: 'com_alfa.orders',
             );

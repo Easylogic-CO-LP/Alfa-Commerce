@@ -3662,9 +3662,6 @@ class ItemModel extends AlfaAdminModel
             $priceObject->usergroup_id = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
             $priceObject->user_id = isset($price['user_id']) ? intval($price['user_id']) : 0;
             $priceObject->currency_id = isset($price['currency_id']) ? intval($price['currency_id']) : 0;
-            $priceObject->modify = isset($price['modify']) ? intval($price['modify']) : 0;
-            $priceObject->modify_function = $price['modify_function'] ?? null;
-            $priceObject->modify_type = $price['modify_type'] ?? null;
             $priceObject->publish_up = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : null;
             $priceObject->publish_down = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : null;
             $priceObject->quantity_start = !empty($price['quantity_start']) ? intval($price['quantity_start']) : null;

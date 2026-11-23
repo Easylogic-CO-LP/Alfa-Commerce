@@ -14,8 +14,8 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Redirect tier for shipment hooks fired outside a view: the gateway/carrier-return
- * handler `onPaymentResponse`. The plugin may set a redirect; it renders no layout,
+ * Redirect tier for shipment hooks fired outside a view: the carrier-return
+ * handler `onShipmentResponse`. The plugin may set a redirect; it renders no layout,
  * because the controller that dispatches it has no view.
  *
  * @since  1.0.0

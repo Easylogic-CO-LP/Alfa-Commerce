@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\Background\DeclareWorkEvent;
 use Alfa\Component\Alfa\Administrator\Event\Background\RunJobEvent;
 use Alfa\Component\Alfa\Administrator\Event\Background\RunTaskEvent;
 use Alfa\Component\Alfa\Administrator\Event\Background\WorkSettledEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -208,7 +209,7 @@ final class WorkDeclarations
                 }
             }
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Background work: the declarations of the saved plugins could not be kept in step: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Background work: the declarations of the saved plugins could not be kept in step: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
         }
     }
 
@@ -244,7 +245,7 @@ final class WorkDeclarations
                 self::setEnabled(owner: (string) $plugin->folder . '.' . (string) $plugin->element, enabled: $enabled);
             }
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Background work: the declarations of the switched plugins could not be marked: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Background work: the declarations of the switched plugins could not be marked: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
         }
     }
 
@@ -290,7 +291,7 @@ final class WorkDeclarations
             try {
                 $helper->dispatchTo($loaded, $event);
             } catch (Throwable $e) {
-                Tasks::log(entry: 'Background work: ' . $owner . ' failed when asked its declarations (' . $e::class . ': ' . $e->getMessage() . '); its previous copy stands.', priority: Log::ERROR);
+                Tasks::log(entry: 'Background work: ' . $owner . ' failed when asked its declarations (' . $e::class . ': ' . ErrorText::of($e) . '); its previous copy stands.', priority: Log::ERROR);
 
                 return false;
             }
@@ -309,7 +310,7 @@ final class WorkDeclarations
         try {
             self::replace(owner: $owner, rows: $rows);
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Background work: the declarations of ' . $owner . ' could not be kept: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Background work: the declarations of ' . $owner . ' could not be kept: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
 
             return false;
         }
@@ -344,7 +345,7 @@ final class WorkDeclarations
             )->execute();
             unset(self::$rows[$owner]);
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Background work: the declarations of ' . $owner . ' could not be marked ' . ($enabled ? 'enabled' : 'disabled') . ': ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Background work: the declarations of ' . $owner . ' could not be marked ' . ($enabled ? 'enabled' : 'disabled') . ': ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 
@@ -375,7 +376,7 @@ final class WorkDeclarations
                 unset(self::$rows[(string) $owner]);
             }
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Background work: the work of removed plugins could not be closed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Background work: the work of removed plugins could not be closed: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
         }
     }
 
@@ -522,7 +523,7 @@ final class WorkDeclarations
             try {
                 Runner::enqueue(handler: $name, scopeKey: $name, payload: $owner === DueRead::CORE_OWNER ? [] : ['data' => []], owner: $owner);
             } catch (Throwable $e) {
-                Tasks::log(entry: 'Background work: the schedule ' . $name . ' of ' . $owner . ' could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+                Tasks::log(entry: 'Background work: the schedule ' . $name . ' of ' . $owner . ' could not be queued: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
             }
         }
     }

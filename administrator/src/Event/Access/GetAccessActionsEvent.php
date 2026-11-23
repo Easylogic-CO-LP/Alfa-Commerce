@@ -18,7 +18,8 @@ use Joomla\CMS\Event\AbstractEvent;
 /**
  * Collects the ACL actions plugins contribute to com_alfa's Permissions tab.
  *
- * Fired at every alfa* plugin (onAlfaGetAccessActions) by the custom rules field
+ * Fired, once the alfa group is imported, at every loaded listener of any group (onAlfaGetAccessActions) by the
+ * custom rules field
  * {@see \Alfa\Component\Alfa\Administrator\Field\AlfarulesField}. A plugin declares the
  * permissions its own screens enforce, the same fluent shape as the menu event:
  *

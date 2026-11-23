@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -173,7 +174,7 @@ final class TaskStaff
         try {
             $rows = self::jobRows();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the jobs could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Tools: the jobs could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
 
             return ['rows' => [], 'groups' => [], 'engines' => [], 'thumbnailsMode' => null, 'followedJob' => $followedJob, 'failedJobs' => 0, 'unreadable' => true];
         }
@@ -490,7 +491,7 @@ final class TaskStaff
                     ->bind(':id', $id, ParameterType::INTEGER),
             )->execute();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Process now: job #' . $id . ' could not be made due now: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Process now: job #' . $id . ' could not be made due now: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 

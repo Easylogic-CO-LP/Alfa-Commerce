@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Throwable;
@@ -99,7 +100,7 @@ final class RunnerTrigger
         try {
             Runner::tick(trigger: $trigger, budgetMs: $finished ? $budgetMs : $inlineMs);
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the ' . $trigger . ' tick failed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the ' . $trigger . ' tick failed: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 }

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -175,7 +176,7 @@ final class InventoryIntegrityException extends RuntimeException
             }
         } catch (Throwable $e) {
             Log::add(
-                entry:    'Stock integrity refusal: the administrator strings could not be loaded: ' . $e->getMessage(),
+                entry:    'Stock integrity refusal: the administrator strings could not be loaded: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );

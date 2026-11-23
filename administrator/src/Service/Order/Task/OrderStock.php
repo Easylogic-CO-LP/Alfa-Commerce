@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockEffectsDrainJob;
@@ -87,7 +88,7 @@ final class OrderStock extends OrderTaskHandler
 
             Log::add(
                 entry:    'Task #' . $run->id() . ' (' . self::NAME . '): the stock.effects.drain job was not owed after the run failed: '
-                          . $owing->getMessage(),
+                          . ErrorText::of($owing),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );

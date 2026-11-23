@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -89,7 +90,7 @@ class ItemSearchProjection implements ProjectionInterface
                 $this->report($result, 'syncItem(' . $itemId . ')');
             }
         } catch (Throwable $e) {
-            $this->logWarning('syncItem(' . $itemId . ') failed: ' . $e->getMessage());
+            $this->logWarning('syncItem(' . $itemId . ') failed: ' . ErrorText::of($e));
         }
     }
 
@@ -201,7 +202,7 @@ class ItemSearchProjection implements ProjectionInterface
                 'deleteForItem(' . $itemId . ')',
             );
         } catch (Throwable $e) {
-            $this->logWarning('deleteForItem(' . $itemId . ') failed: ' . $e->getMessage());
+            $this->logWarning('deleteForItem(' . $itemId . ') failed: ' . ErrorText::of($e));
         }
     }
 
@@ -251,7 +252,7 @@ class ItemSearchProjection implements ProjectionInterface
                 'deleteForItems(' . \count($itemIds) . ' items)',
             );
         } catch (Throwable $e) {
-            $this->logWarning('deleteForItems(' . \count($itemIds) . ' items) failed: ' . $e->getMessage());
+            $this->logWarning('deleteForItems(' . \count($itemIds) . ' items) failed: ' . ErrorText::of($e));
         }
     }
 

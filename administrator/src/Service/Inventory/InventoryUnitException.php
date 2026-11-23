@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
@@ -341,7 +342,7 @@ final class InventoryUnitException extends RuntimeException
             }
         } catch (Throwable $e) {
             Log::add(
-                entry:    'Stock unit refusal: the administrator strings could not be loaded: ' . $e->getMessage(),
+                entry:    'Stock unit refusal: the administrator strings could not be loaded: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );

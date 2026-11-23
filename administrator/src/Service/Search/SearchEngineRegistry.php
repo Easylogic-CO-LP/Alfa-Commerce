@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Search\CollectSearchEnginesEvent;
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use InvalidArgumentException;
@@ -242,7 +243,7 @@ final class SearchEngineRegistry
                 $key = trim($engine->key());
             } catch (Throwable $e) {
                 Log::add(
-                    entry:    "SearchEngineRegistry: engine from '{$element}' failed to identify itself: " . $e->getMessage(),
+                    entry:    "SearchEngineRegistry: engine from '{$element}' failed to identify itself: " . ErrorText::of($e),
                     priority: Log::WARNING,
                     category: 'com_alfa.search',
                 );
@@ -369,7 +370,7 @@ final class SearchEngineRegistry
             return $engine->isReady();
         } catch (Throwable $e) {
             Log::add(
-                entry:    "SearchEngineRegistry: engine '{$key}' failed its readiness check: " . $e->getMessage(),
+                entry:    "SearchEngineRegistry: engine '{$key}' failed its readiness check: " . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.search',
             );

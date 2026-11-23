@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\ClearData;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Tools\ClearDataEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
@@ -911,7 +912,7 @@ final class ClearDataExtensions
                 line: sprintf('Clear Data of %s (%s) started: %s.', $name, $row['key'], $source),
             );
         } catch (Throwable $e) {
-            return $result + ['status' => 'refused', 'message' => Text::sprintf('COM_ALFA_EXTENSIONS_AUDIT_FAILED', $name, ClearDataStatus::clean(text: $e->getMessage()))];
+            return $result + ['status' => 'refused', 'message' => Text::sprintf('COM_ALFA_EXTENSIONS_AUDIT_FAILED', $name, ClearDataStatus::clean(text: ErrorText::of($e)))];
         }
 
         $plugins = $row['type'] === 'package'
@@ -1336,7 +1337,7 @@ final class ClearDataExtensions
         try {
             ClearDataStatus::mark(key: $key, status: $status, message: $message, source: $source);
         } catch (Throwable $e) {
-            MaintenanceAudit::detail(run: 'clear-data', line: sprintf('%s: its outcome (%s) could not be recorded: %s', $key, $status, $e->getMessage()));
+            MaintenanceAudit::detail(run: 'clear-data', line: sprintf('%s: its outcome (%s) could not be recorded: %s', $key, $status, ErrorText::of($e)));
         }
 
         return ['status' => $status, 'message' => $message];
@@ -1359,7 +1360,7 @@ final class ClearDataExtensions
             $this->displayName(entry: $entry),
             (string) ($entry['key'] ?? ''),
             $error::class,
-            ClearDataStatus::clean(text: $error->getMessage()),
+            ClearDataStatus::clean(text: ErrorText::of($error)),
             $error->getFile(),
             $error->getLine(),
         ));
