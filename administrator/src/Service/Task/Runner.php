@@ -996,13 +996,33 @@ final class Runner
         $done = null;
 
         if ($handler->policy()->ownTransactions) {
+            $failure = null;
+
             try {
                 $done = $handler->chunk($run, $units);
             } catch (OwnerUnavailable $e) {
                 return self::waitForOwner(db: $db, run: $run, owner: $owner, why: ErrorText::of($e));
             } catch (Throwable $e) {
-                $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;
-                self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id), failure: $e, longLadder: $handler->policy()->callsOut);
+                $failure = $e;
+            }
+
+            // A tick runs no job inside a transaction, so a level open now is one the step left open: rolled back before
+            // anything is recorded, and the step failed, as a task that leaves one is.
+            if (TransactionState::level($db) > 0) {
+                $left = new TaskError('COM_ALFA_TASKS_ERROR_STEP_LEFT_OPEN');
+
+                for ($guard = TransactionState::level($db); $guard > 0; $guard--) {
+                    if (TransactionState::rollBackLevel(db: $db, failure: $failure ?? $left)) {
+                        break;
+                    }
+                }
+
+                $failure ??= $left;
+            }
+
+            if ($failure !== null) {
+                $tally['deadlocks'] += MysqlError::number(error: $failure) === 1213 ? 1 : 0;
+                self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($failure, $run->id), failure: $failure, longLadder: $handler->policy()->callsOut);
                 $tally['failed']++;
 
                 return 'failed';
