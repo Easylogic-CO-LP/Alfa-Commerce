@@ -142,7 +142,8 @@
 
         <!-- The method's fee: a fixed amount and a percentage of the order total before the fee, summed; both 0 for
              none. What the figures mean and the tax rules the fee carries are the method's own, as a shipping
-             method's price entry mode and taxes are. -->
+             method's price entry mode and taxes are. A method with no fee needs neither: the entry mode left out is
+             tax included, or the one the method keeps (PaymentModel::save()). -->
         <fieldset name="fee" label="COM_ALFA_FIELDSET_PAYMENT_FEE" description="COM_ALFA_FIELDSET_PAYMENT_FEE_DESC">
 
             <field
@@ -173,7 +174,6 @@
                     description="COM_ALFA_FORM_DESC_PAYMENT_FEE_ENTRY_MODE"
                     class="btn-group"
                     default="tax_included"
-                    required="true"
                     validate="options"
             >
                 <option value="tax_included">COM_ALFA_PAYMENT_FEE_ENTRY_MODE_INCLUDED</option>

@@ -245,6 +245,12 @@ class PaymentModel extends AlfaAdminModel
             return false;
         }
 
+        // The fee's entry mode is needed only to read a fee: one left out or sent empty is the mode the method keeps, or
+        // tax included for a new method (the column's default).
+        if (\array_key_exists('fee_entry_mode', $data) && trim((string) $data['fee_entry_mode']) === '') {
+            unset($data['fee_entry_mode']);
+        }
+
         // The fee's two figures: zero or more, the percentage at most 100; a figure left empty on the form is none.
         // A REST write that does not send one keeps the stored figure.
         foreach (['fee_amount' => null, 'fee_percent' => 100] as $field => $ceiling) {
