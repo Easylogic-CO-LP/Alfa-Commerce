@@ -307,6 +307,30 @@ final class JoomlaPluginLayer
     }
 
     /**
+     * The group and element a booted plugin carries (CMSPlugin keeps them protected, as its _type and _name, and has no
+     * getter, so they are read from the plugin's own scope); null for any other plugin, or one that carries none.
+     *
+     * @param PluginInterface $plugin The plugin.
+     *
+     * @return array{0: string, 1: string}|null The group and the element.
+     *
+     * @since  2.3.0
+     */
+    public function identity(PluginInterface $plugin): ?array
+    {
+        if (!$plugin instanceof CMSPlugin) {
+            return null;
+        }
+
+        $read = function (): array {
+            return [(string) $this->_type, (string) $this->_name];
+        };
+        [$group, $element] = Closure::bind($read, $plugin, CMSPlugin::class)();
+
+        return $group === '' || $element === '' ? null : [$group, $element];
+    }
+
+    /**
      * Whether Joomla answered a missing plugin's boot with its placeholder.
      *
      * @param PluginInterface $plugin What bootPlugin() returned.

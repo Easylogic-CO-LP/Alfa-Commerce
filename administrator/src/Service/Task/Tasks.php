@@ -386,6 +386,66 @@ final class Tasks
     }
 
     /**
+     * Write a single of which at most one of its owner, name and key waits or runs (the unique active key holds the key
+     * while it does): a second write with the same subject and payload joins the one there; one with other data writes
+     * nothing and is answered refused with its id, so two different consequences are never merged and the caller's own
+     * transaction is never rolled back by it (a duplicate key ends only its own statement).
+     *
+     * @param string $handler The handler's name.
+     * @param string $subjectType What it is about.
+     * @param int $subjectId The id of what it is about.
+     * @param array<string, mixed> $payload What the handler needs.
+     * @param string $owner Whose work it is.
+     * @param string $onceKey The key.
+     *
+     * @return array{id: int, joined: bool, refused: bool}
+     *
+     * @throws InvalidArgumentException When no handler has that name.
+     * @throws RuntimeException When the waiting task kept ending and starting again under the write.
+     *
+     * @since  2.3.0
+     */
+    public static function writeOnce(string $handler, string $subjectType, int $subjectId, array $payload, string $owner, string $onceKey): array
+    {
+        $db = self::db();
+        $key = $handler . ':' . $onceKey;
+        $version = self::handler(name: $handler, owner: $owner)?->policy()->version ?? 1;
+        $asked = json_decode((string) json_encode(['version' => $version] + $payload, self::JSON), true);
+
+        for ($attempt = 1; $attempt <= self::WRITE_ATTEMPTS; $attempt++) {
+            try {
+                return ['id' => self::write(handler: $handler, subjectType: $subjectType, subjectId: $subjectId, payload: $payload, trigger: 'request', userId: self::userId(), owner: $owner, onceKey: $onceKey), 'joined' => false, 'refused' => false];
+            } catch (Throwable $e) {
+                if (MysqlError::number(error: $e) !== 1062) {
+                    throw $e;
+                }
+            }
+
+            $waiting = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'payload', 'subject_type', 'subject_id']))
+                    ->from($db->quoteName(self::TABLE))
+                    ->where($db->quoteName('owner') . ' = :owner')
+                    ->where($db->quoteName('active_key') . ' = :key')
+                    ->bind(':owner', $owner)
+                    ->bind(':key', $key),
+            )->loadAssoc();
+
+            // It ended between the write and the read: written again.
+            if (!\is_array($waiting)) {
+                continue;
+            }
+
+            $same = json_decode((string) $waiting['payload'], true) == $asked
+                && (string) $waiting['subject_type'] === $subjectType && (int) $waiting['subject_id'] === $subjectId;
+
+            return ['id' => (int) $waiting['id'], 'joined' => $same, 'refused' => !$same];
+        }
+
+        throw new RuntimeException('The task ' . $handler . ' of ' . $owner . ' with the key ' . $onceKey . ' could not be written: the one of its key kept ending and starting again.');
+    }
+
+    /**
      * Record a notification write raised inside the connection's transaction: a notice single in the transaction's
      * batch, and its entry in the notice journal ({@see PostCommit::journal()}). No run waits for it: the journal is
      * written once the outermost transaction has committed, before any other work, even inside a lock scope or a hold,
