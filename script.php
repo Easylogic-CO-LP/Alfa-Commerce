@@ -2165,8 +2165,8 @@ class com_alfaInstallerScript extends InstallerScript
      * Fill the SKU registry from the catalogue, a range of products at a time (SkuIndex::fill()): each product's own
      * SKU and each combination's, archived included, unless another unit holds the same SKU. Run on every update; a
      * SKU already registered stays as it is. The SKUs held by more than one unit are left out and named, with their
-     * products and variants: a save that keeps one is refused until each has its own, and the setup checklist names
-     * them too. A failure is said, never a failed update.
+     * products and variants, as the setup checklist names them until each has its own. A failure is said, never a
+     * failed update.
      *
      * @return  void
      * @since   2.3.0
@@ -2204,7 +2204,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_SKU_REGISTRY_DUPLICATES',
-            fallback: 'Alfa Commerce %1$s: a SKU now names one product or variant. These SKUs are held by more than one, and a save that keeps one is refused until each has its own (the setup checklist lists them): %2$s.',
+            fallback: 'Alfa Commerce %1$s: a SKU now names one product or variant. These SKUs are held by more than one, and the REST API cannot find them until each has its own (the setup checklist lists them): %2$s.',
             values:   [$this->packageVersion, implode('; ', $named)],
         ), 'warning');
     }
