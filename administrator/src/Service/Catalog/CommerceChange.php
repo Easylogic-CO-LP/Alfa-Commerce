@@ -27,7 +27,8 @@ use Joomla\Database\ParameterType;
  * The writers: InventoryService (the statement that moves a product's stock figures), the product's save, the
  * combination's own save (its prices), and the price index's announcement of the periods that begin.
  *
- * @api READ ONLY: the time a product's stock or prices last changed, and the reading of a changed_since bound.
+ * @api WRITE: mark() records on the products the time their stock, prices or own fields changed; now() and bound()
+ *      read the time and a changed_since bound.
  *
  * @since  2.2.2
  */
