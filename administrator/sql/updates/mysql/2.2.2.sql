@@ -15,3 +15,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
   KEY `idx_linked_item_id` (`linked_item_id`),
   KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
+
+-- The extension job is gone: a plugin declares its own tasks and jobs. Its rows, which no handler runs any more, are
+-- deleted; a second run deletes nothing.
+DELETE FROM `#__alfa_tasks` WHERE `handler` = 'extension.job';
