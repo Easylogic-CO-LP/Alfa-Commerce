@@ -106,7 +106,9 @@ final class CartMessaging
 
     /**
      * The shelf's say in a shopper's add or quantity change, as one notice
-     * naming the available quantity: never a failure.
+     * naming the available quantity: never a failure. In the back office the
+     * cart is the one a member of staff is building, so a cart that already
+     * holds the available quantity is said in the order builder's words.
      *
      * @param StockLimit $limit What the cart holds of that stock, and whether more went in.
      *
@@ -114,7 +116,11 @@ final class CartMessaging
      */
     public function stock(StockLimit $limit): void
     {
-        $this->app->enqueueMessage(msg: self::stockSentence(limit: $limit), type: 'notice');
+        $sentence = !$limit->added && $this->app->isClient('administrator')
+            ? self::builderHeldSentence(limit: $limit)
+            : self::stockSentence(limit: $limit);
+
+        $this->app->enqueueMessage(msg: $sentence, type: 'notice');
     }
 
     /**
@@ -134,15 +140,50 @@ final class CartMessaging
      */
     public static function stockSentence(StockLimit $limit): string
     {
-        $key = $limit->added ? 'COM_ALFA_CART_AVAILABLE_ADDED' : 'COM_ALFA_CART_AVAILABLE_HELD';
+        return self::figureSentence(
+            key: $limit->added ? 'COM_ALFA_CART_AVAILABLE_ADDED' : 'COM_ALFA_CART_AVAILABLE_HELD',
+            figure: $limit->quantity,
+            basePath: JPATH_SITE,
+        );
+    }
 
+    /**
+     * The order builder's wording of a cart that already holds the available
+     * quantity: the same figure, said to the staff member about the cart they
+     * are building rather than to a shopper about their own, from the back
+     * office's language file.
+     *
+     * @param StockLimit $limit What the cart holds of that stock.
+     *
+     * @return string The sentence in the staff member's language, the figure in it.
+     *
+     * @since  2.2.2
+     */
+    public static function builderHeldSentence(StockLimit $limit): string
+    {
+        return self::figureSentence(key: 'COM_ALFA_CART_BUILDER_AVAILABLE_HELD', figure: $limit->quantity, basePath: JPATH_ADMINISTRATOR);
+    }
+
+    /**
+     * A sentence with one figure. A translation that takes other parameters
+     * than the one figure is said in English from the same language folder,
+     * never thrown at the reader.
+     *
+     * @param string $key The language key.
+     * @param int $figure The figure.
+     * @param string $basePath The folder whose language file holds the key.
+     *
+     * @since  2.2.2
+     */
+    private static function figureSentence(string $key, int $figure, string $basePath): string
+    {
         try {
-            return vsprintf(Text::_($key), [$limit->quantity]);
+            return vsprintf(Text::_($key), [$figure]);
         } catch (ValueError) {
             $english = NotificationText::own(tag: 'en-GB');
-            $english->load(extension: 'com_alfa', basePath: JPATH_SITE, lang: 'en-GB', reload: false, default: false);
+            $english->load(extension: 'com_alfa', basePath: $basePath, lang: 'en-GB', reload: false, default: false);
 
-            return vsprintf($english->_($key), [$limit->quantity]);
+            return vsprintf($english->_($key), [$figure]);
         }
     }
 
