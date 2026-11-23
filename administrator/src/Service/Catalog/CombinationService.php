@@ -209,6 +209,8 @@ final class CombinationService
 
             try {
                 ItemFieldsAdminHelper::saveCombinations(itemId: $itemId, payload: [], defaultId: '', deletedCombinationIds: implode(',', $ids));
+                // A variant removed or archived is one the product no longer sells: a change filter[changed_since] sees.
+                CommerceChange::mark(db: $db, itemIds: [$itemId]);
                 ItemFieldsAdminHelper::ensureOnePublishedDefault(itemId: $itemId);
                 SkuIndex::keep(itemId: $itemId, before: $skusBefore);
                 $left = self::currentRows(itemId: $itemId) + self::archivedRows(itemId: $itemId, ids: $ids);
