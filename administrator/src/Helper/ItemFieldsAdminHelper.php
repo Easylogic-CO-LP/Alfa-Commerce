@@ -34,6 +34,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\LocationPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\ItemFields\ItemFieldDisplayResolver;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
@@ -4079,6 +4080,8 @@ class ItemFieldsAdminHelper
             return;
         }
 
+        // The rows change here: the pricing of this process reads them again.
+        PriceDataLoader::forgetLoaded();
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         if ($plan['action'] === 'insert') {
@@ -4893,6 +4896,8 @@ class ItemFieldsAdminHelper
             throw new RuntimeException(PriceRowPlaces::refusal(widened: $widened));
         }
 
+        // The rows change here: the pricing of this process reads them again.
+        PriceDataLoader::forgetLoaded();
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         $db->setQuery(

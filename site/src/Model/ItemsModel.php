@@ -67,7 +67,7 @@ use Throwable;
  *
  * Price filter
  * The catalog filter reads #__alfa_items_price_index by key: the row of the
- * visitor's pricing context for the combination each product's card opens on
+ * visitor's pricing context whose price each product's card shows
  * ({@see self::applyPriceIndexJoin()}). Column names in the index match the
  * com_alfa config fields exactly.
  *
@@ -243,8 +243,8 @@ class ItemsModel extends UrlListModel
      */
     private const ORDER_KEYS = [
         'a.ordering' => 'ordering', 'ordering' => 'ordering', 'name' => 'name', 'a.id' => 'id', 'id' => 'id',
-        'a.sku' => 'sku', 'sku' => 'sku', 'a.stock' => 'stock', 'stock' => 'stock', 'created' => 'created',
-        'a.created' => 'created', 'pf.final_price' => 'price', 'price' => 'price', 'pf.price' => 'price',
+        'a.sku' => 'sku', 'sku' => 'sku', 'a.stock' => 'stock', 'stock' => 'stock',
+        'pf.final_price' => 'price', 'price' => 'price', 'pf.price' => 'price',
         'pf.discount_amount' => 'discount_amount', 'pf.discount_percent' => 'discount_percent',
     ];
 
@@ -408,7 +408,8 @@ class ItemsModel extends UrlListModel
                 'ordering', 'a.ordering',
                 'sku',      'a.sku',
                 'stock',    'a.stock',
-                'created',  'a.created',
+                // No date column: the items table keeps none, so a request for one reads as the listing's default
+                // order (the newest first, a.id DESC).
                 // Price-index columns: all three must be listed so that
                 // parseFullordering() in UrlListModel accepts them as valid
                 // ordering targets (it does in_array($orderCol, $filter_fields)).
@@ -1478,9 +1479,10 @@ class ItemsModel extends UrlListModel
      * and the rule on products without one, from.
      *
      * The index holds a row per pricing context, product, combination and period (PriceIndexSyncService); the read
-     * takes, by key, the row of the visitor's context ({@see PriceIndexSyncService::readContext()}) for the combination
-     * the product's card opens on (#__alfa_items.opening_combination_id, 0 for a product without one), in the period
-     * that holds this moment: one row a product, alias pf, with the columns of the index. A customer with prices of
+     * takes, by key, the row of the visitor's context ({@see PriceIndexSyncService::readContext()}) whose price the
+     * product's card shows (#__alfa_items.price_combination_id: the combination the card opens on when it has price rows
+     * of its own, else 0, the product's own row), in the period that holds this moment: one row a product, alias pf,
+     * with the columns of the index. A customer with prices of
      * their own reads their context's row where it has one and the set's otherwise. A product with no valid price for
      * the visitor has a row whose figures are NULL. A left join, so every product is listed and a sort by a figure
      * places one with none last; with $pricedOnly, the read that filters by a price, an inner join, and the filters'
@@ -1518,7 +1520,7 @@ class ItemsModel extends UrlListModel
         }
 
         $period = static fn (string $alias): string => $alias . '.valid_from <= ' . $now . ' AND (' . $alias . '.valid_until IS NULL OR ' . $alias . '.valid_until > ' . $now . ')';
-        $unit = static fn (string $alias): string => $alias . '.item_id = a.id AND ' . $alias . '.combination_id = a.opening_combination_id';
+        $unit = static fn (string $alias): string => $alias . '.item_id = a.id AND ' . $alias . '.combination_id = a.price_combination_id';
         $context = (int) $read['context'];
         $customer = (int) $read['customer'];
         $on = $unit('pf') . ' AND ' . $period('pf');
@@ -2616,8 +2618,7 @@ class ItemsModel extends UrlListModel
                 'MIN(pf.final_price) AS price_min',
                 'MAX(pf.final_price) AS price_max',
             ])
-            ->where('pf.final_price IS NOT NULL')
-            ->where('pf.final_price > 0');
+            ->where('pf.final_price IS NOT NULL');
 
         // The filter module asks for this facet more than once per render; the
         // heavy price-index query is identical for the same filter state, so memo

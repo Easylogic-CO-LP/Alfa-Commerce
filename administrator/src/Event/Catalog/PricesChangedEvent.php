@@ -34,9 +34,9 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * live period at its start and commits after): one PriceChange per slot whose final price moved, the period that
  * ended as the old price (none for a slot with no period before it), the one that began as the new; a slot whose price
  * stayed the same is not named. On a shop with visitors or cron, within about two minutes of the moment; on an idle
- * shop, at its next turn. A moment of more than the limit goes out as several exact events. Only the periods the
- * index stores: at most eight per product (the nearest edges of its own prices and of the discounts and taxes), so a
- * period beyond them is neither stored nor announced. The cursor (the #__alfa_meta row prices.windows_announced_until)
+ * shop, at its next turn. A moment of more than the limit goes out as several exact events. The index stores every
+ * period that the product's own prices and the discounts and taxes reaching it define, with no horizon, so every
+ * period that begins is announced. The cursor (the #__alfa_meta row prices.windows_announced_until)
  * decides what is owed: a restored backup announces again the periods that began since its cursor and that its index
  * holds (what the shop reads again); a clock set forward is caught at the next turn; a clock set back announces
  * nothing until the clock passes the cursor again; a period edited after it began is announced by the edit's own
@@ -100,7 +100,8 @@ final class PricesChangedEvent extends AbstractImmutableEvent
     public const CAUSE_MANUFACTURER = 'manufacturer';
 
     /**
-     * @var string A chunk of a set of pricing groups' preparation; causeId the set.
+     * @var string A chunk of a pricing context's preparation (the price.set.prepare job); causeId the context
+     *             (#__alfa_price_contexts.id).
      * @since  2.2.0
      */
     public const CAUSE_SET = 'set';
@@ -141,7 +142,8 @@ final class PricesChangedEvent extends AbstractImmutableEvent
     }
 
     /**
-     * The id of what caused the write (the product, discount, tax, category, manufacturer or set); 0 for a rebuild.
+     * The id of what caused the write (the product, discount, tax, category or manufacturer, or the pricing context a
+     * preparation chunk wrote); 0 for a rebuild.
      *
      * @since  2.2.0
      */

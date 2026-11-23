@@ -183,6 +183,10 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             new Route(['PATCH', 'DELETE'], 'v1/alfa/items/:id/options/:valueId', 'itemoptions.edit', ['id' => '\d+', 'valueId' => '\d+'], $defaults),
             new Route(['GET'], 'v1/alfa/items/:id/informational', 'itemoptions.displayList', ['id' => '\d+'], ['part' => 'informational'] + $defaults),
             new Route(['PUT'], 'v1/alfa/items/:id/informational', 'itemoptions.edit', ['id' => '\d+'], ['part' => 'informational'] + $defaults),
+
+            // The light list of stock and prices: one row a product without combinations or a combination, published or
+            // not, with its selling price, pages by key. READ ONLY.
+            new Route(['GET'], 'v1/alfa/stockprices', 'stockprices.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/documents', 'documents.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/documents/:id', 'documents.displayItem', ['id' => '\d+'], $defaults),
 

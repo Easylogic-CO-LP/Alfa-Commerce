@@ -81,6 +81,17 @@ class PriceDataLoader
     private static array $loaded = [];
 
     /**
+     * The published price rows of each product read in this process, its own rows and its combinations' alike, in id
+     * order: a product's rows are read once and matched here to each pricing context, so pricing one product in many
+     * contexts (the price index writes every context of a product a save touched) reads them once. Forgotten with
+     * forgetLoaded(), which every writer of the rows calls.
+     *
+     * @var array<int, list<object>>
+     * @since  2.3.0
+     */
+    private static array $rowsOf = [];
+
+    /**
      * The product as its item form holds it, or null: a loader made by
      * forUnsavedItem() answers for that product alone, under its id.
      *
@@ -187,6 +198,108 @@ class PriceDataLoader
     public static function forgetLoaded(): void
     {
         self::$loaded = [];
+        self::$rowsOf = [];
+    }
+
+    /**
+     * The published price rows of the products, read once a process for each product (see self::$rowsOf).
+     *
+     * @param int[] $itemIds The products.
+     *
+     * @return array<int, list<object>> The rows by product, in id order.
+     *
+     * @since  2.3.0
+     */
+    private function publishedRowsOf(array $itemIds): array
+    {
+        $itemIds = array_values(array_unique(array_map('intval', $itemIds)));
+        $missing = array_values(array_filter($itemIds, static fn (int $id): bool => $id > 0 && !isset(self::$rowsOf[$id])));
+
+        foreach (array_chunk($missing, self::CHUNK_SIZE) as $chunk) {
+            $rows = $this->db->setQuery(
+                $this->db->getQuery(true)
+                    ->select('*')
+                    ->from($this->db->qn('#__alfa_items_prices'))
+                    ->whereIn($this->db->qn('item_id'), $chunk)
+                    ->where($this->db->qn('state') . ' = 1')
+                    ->order($this->db->qn('id') . ' ASC'),
+            )->loadObjectList() ?: [];
+
+            foreach ($chunk as $id) {
+                self::$rowsOf[$id] = [];
+            }
+
+            foreach ($rows as $row) {
+                self::$rowsOf[(int) $row->item_id][] = $row;
+            }
+        }
+
+        $rowsOf = [];
+
+        foreach ($itemIds as $id) {
+            $rowsOf[$id] = self::$rowsOf[$id] ?? [];
+        }
+
+        return $rowsOf;
+    }
+
+    /**
+     * The rows of one product that apply in a context, most specific first: its own rows (no combination) or the rows
+     * of the combinations named; in their period at the context's moment (no start, or the empty date, has begun; no
+     * end, or the empty date, has not ended); of the context's currency or of any (0); of one of its groups, the "any
+     * group" 0 among them; of its user or of any (0), only of any for a guest or the index; of its place or of any (0),
+     * only of any when the place is not known. A row whose dimension is empty (NULL) applies nowhere. Ordered by
+     * currency, group, user and place, each the more specific first, then the lowest quantity first.
+     *
+     * @param list<object> $rows The product's published rows.
+     * @param PriceContext $context The context.
+     * @param int[]|null $combinationIds The combinations whose rows are asked, or null for the product's own rows.
+     *
+     * @return list<object> The rows that apply.
+     *
+     * @since  2.3.0
+     */
+    private function applying(array $rows, PriceContext $context, ?array $combinationIds): array
+    {
+        $moment = $context->getReferenceDate() ?? ActiveDateCondition::now();
+        $none = '0000-00-00 00:00:00';
+        $currencyId = $context->getCurrencyId();
+        $currencies = $currencyId > 0 ? [0, $currencyId] : [0];
+        $groups = array_map('intval', explode(',', $context->getUserGroupsSql()));
+        $userId = $context->getUserId();
+        $users = $userId !== null && $userId > 0 ? [0, $userId] : [0];
+        $placeId = $context->getLocationId();
+        $places = $placeId !== null && $placeId > 0 ? [0, $placeId] : [0];
+        $combinations = $combinationIds === null ? null : array_flip(array_map('intval', $combinationIds));
+        $in = static fn (mixed $value, array $allowed): bool => $value !== null && \in_array((int) $value, $allowed, true);
+        $applying = [];
+
+        foreach ($rows as $row) {
+            $own = $row->combination_id === null;
+
+            if ($combinations === null ? !$own : ($own || !isset($combinations[(int) $row->combination_id]))) {
+                continue;
+            }
+
+            // A start that has not come, or an end that has passed, takes the row out; none, or the empty date, does not.
+            $up = $row->publish_up;
+            $down = $row->publish_down;
+
+            if (($up !== null && $up !== $none && $moment < (string) $up) || ($down !== null && $down !== $none && $moment > (string) $down)) {
+                continue;
+            }
+
+            if ($in($row->currency_id, $currencies) && $in($row->usergroup_id, $groups) && $in($row->user_id, $users) && $in($row->country_id, $places)) {
+                $applying[] = $row;
+            }
+        }
+
+        // No quantity start comes before any, as the database sorts an empty value first.
+        usort($applying, static fn (object $a, object $b): int => ([(int) $b->currency_id, (int) $b->usergroup_id, (int) $b->user_id, (int) $b->country_id]
+            <=> [(int) $a->currency_id, (int) $a->usergroup_id, (int) $a->user_id, (int) $a->country_id])
+            ?: ([$a->quantity_start !== null, (float) $a->quantity_start] <=> [$b->quantity_start !== null, (float) $b->quantity_start]));
+
+        return $applying;
     }
 
     /**
@@ -252,37 +365,19 @@ class PriceDataLoader
             return [];
         }
 
-        $db = $this->db;
+        // Item-level rows only: combination rows are the variants' own prices and must never win as the item's base
+        // price; the combination-aware stage resolves them separately. Most specific first, for the engine.
+        $grouped = [];
 
-        $query = $db->getQuery(true)
-            ->select('*')
-            ->from($db->qn('#__alfa_items_prices'))
-            ->whereIn($db->qn('item_id'), $productIds)
-            // Item-level rows ONLY: combination rows (combination_id set) are
-            // the variants' own prices and must never win as the item's base
-            // price. The combination-aware stage resolves them separately.
-            ->where($db->qn('combination_id') . ' IS NULL')
-            ->where('state = 1')
-            ->where($this->dateHelper->getActiveCondition('publish_up', 'publish_down', $context->getReferenceDate()));
+        foreach ($this->publishedRowsOf(itemIds: $productIds) as $itemId => $rows) {
+            $applying = $this->applying(rows: $rows, context: $context, combinationIds: null);
 
-        // Apply currency / usergroup / user / location filters from the visitor context.
-        // This was previously commented out; it MUST be active so the engine receives
-        // only the price rows relevant to this specific visitor / index slot.
-        $this->applyPriceContextFilters($query, $context);
+            if ($applying !== []) {
+                $grouped[$itemId] = $applying;
+            }
+        }
 
-        // Most specific prices first (for selectBasePrice in the engine)
-        $query->order([
-            'currency_id DESC',
-            'usergroup_id DESC',
-            'user_id DESC',
-            'country_id DESC',
-            'quantity_start ASC',
-        ]);
-
-        $db->setQuery($query);
-        $results = $db->loadObjectList();
-
-        return $this->groupByProductId($results, 'item_id');
+        return $grouped;
     }
 
     /**
@@ -307,39 +402,7 @@ class PriceDataLoader
             return [];
         }
 
-        // Per-request memo (static, like loadBatch): the product page resolves the
-        // same default-variant combination price from several render paths. Cache by
-        // item + combination + visitor context; the rows are read-only, so sharing
-        // them is safe.
-        static $cache = [];
-        $cacheKey = $itemId . '|' . $combinationId . '|' . $context->toCacheKey();
-
-        if (isset($cache[$cacheKey])) {
-            return $cache[$cacheKey];
-        }
-
-        $db = $this->db;
-        $query = $db->getQuery(true)
-            ->select('*')
-            ->from($db->qn('#__alfa_items_prices'))
-            ->where($db->qn('item_id') . ' = ' . $itemId)
-            ->where($db->qn('combination_id') . ' = ' . $combinationId)
-            ->where('state = 1')
-            ->where($this->dateHelper->getActiveCondition('publish_up', 'publish_down', $context->getReferenceDate()));
-
-        $this->applyPriceContextFilters($query, $context);
-
-        $query->order([
-            'currency_id DESC',
-            'usergroup_id DESC',
-            'user_id DESC',
-            'country_id DESC',
-            'quantity_start ASC',
-        ]);
-
-        $db->setQuery($query);
-
-        return $cache[$cacheKey] = $db->loadObjectList() ?: [];
+        return $this->applying(rows: $this->publishedRowsOf(itemIds: [$itemId])[$itemId], context: $context, combinationIds: [$combinationId]);
     }
 
     /**
@@ -366,28 +429,17 @@ class PriceDataLoader
             return [];
         }
 
-        $db = $this->db;
-        $query = $db->getQuery(true)
-            ->select('*')
-            ->from($db->qn('#__alfa_items_prices'))
-            ->whereIn($db->qn('item_id'), $itemIds)
-            ->whereIn($db->qn('combination_id'), $combinationIds)
-            ->where('state = 1')
-            ->where($this->dateHelper->getActiveCondition('publish_up', 'publish_down', $context->getReferenceDate()));
+        $grouped = [];
 
-        $this->applyPriceContextFilters($query, $context);
+        foreach ($this->publishedRowsOf(itemIds: $itemIds) as $itemId => $rows) {
+            $applying = $this->applying(rows: $rows, context: $context, combinationIds: $combinationIds);
 
-        $query->order([
-            'currency_id DESC',
-            'usergroup_id DESC',
-            'user_id DESC',
-            'country_id DESC',
-            'quantity_start ASC',
-        ]);
+            if ($applying !== []) {
+                $grouped[$itemId] = $applying;
+            }
+        }
 
-        $db->setQuery($query);
-
-        return $this->groupByProductId($db->loadObjectList() ?: [], 'item_id');
+        return $grouped;
     }
 
     /**
@@ -412,28 +464,15 @@ class PriceDataLoader
             return [];
         }
 
-        $db = $this->db;
-        $query = $db->getQuery(true)
-            ->select('*')
-            ->from($db->qn('#__alfa_items_prices'))
-            ->whereIn($db->qn('item_id'), $itemIds)
-            ->whereIn($db->qn('combination_id'), $combinationIds)
-            ->where('state = 1')
-            ->where($this->dateHelper->getActiveCondition('publish_up', 'publish_down', $context->getReferenceDate()));
+        $byCombination = [];
 
-        $this->applyPriceContextFilters($query, $context);
+        foreach ($this->publishedRowsOf(itemIds: $itemIds) as $rows) {
+            foreach ($this->applying(rows: $rows, context: $context, combinationIds: $combinationIds) as $row) {
+                $byCombination[(int) $row->combination_id][] = $row;
+            }
+        }
 
-        $query->order([
-            'currency_id DESC',
-            'usergroup_id DESC',
-            'user_id DESC',
-            'country_id DESC',
-            'quantity_start ASC',
-        ]);
-
-        $db->setQuery($query);
-
-        return $this->groupByProductId($db->loadObjectList() ?: [], 'combination_id');
+        return $byCombination;
     }
 
     /**
@@ -467,62 +506,6 @@ class PriceDataLoader
         $db->setQuery($query);
 
         return $db->loadObjectList() ?: [];
-    }
-
-    /**
-     * Apply context-based filters to a #__alfa_items_prices query.
-     *
-     * Every dimension uses the "0 = applies to all" convention so a price
-     * row with currency_id=0 is returned for every currency, and so on.
-     *
-     * NOTE: All properties of PriceContext are private: always use the
-     * public getters (getCurrencyId(), getUserGroups() etc.).
-     * Direct property access ($context->currencyId) is a PHP fatal error.
-     *
-     * @param mixed $query Joomla database query object
-     * @param PriceContext $context Pricing context
-     * @since  1.0.0
-     */
-    protected function applyPriceContextFilters($query, PriceContext $context): void
-    {
-        // Currency
-        // 0 in the DB means "applies to any currency".
-        $currencyId = $context->getCurrencyId();
-
-        if ($currencyId > 0) {
-            $query->where('(currency_id = 0 OR currency_id = ' . (int) $currencyId . ')');
-        } else {
-            // No specific currency in context: return only universal prices
-            $query->where('currency_id = 0');
-        }
-
-        // Usergroups
-        // getUserGroups() always includes 0 (the "any group" sentinel), so
-        // using IN() here naturally matches both public and group-specific rows.
-        $query->where('usergroup_id IN (' . $context->getUserGroupsSql() . ')');
-
-        // User
-        // 0 in the DB means "applies to any user" (public / not user-specific).
-        $userId = $context->getUserId();
-
-        if ($userId !== null && $userId > 0) {
-            $query->where('(user_id = 0 OR user_id = ' . (int) $userId . ')');
-        } else {
-            // Guest or index context: return only universal (non-user-specific) rows
-            $query->where('user_id = 0');
-        }
-
-        // Location / place
-        // country_id in #__alfa_items_prices stores a #__alfa_places id.
-        // 0 means "applies to any place".
-        $locationId = $context->getLocationId();
-
-        if ($locationId !== null && $locationId > 0) {
-            $query->where('(country_id = 0 OR country_id = ' . (int) $locationId . ')');
-        } else {
-            // Unknown location: return only universal (non-place-specific) rows
-            $query->where('country_id = 0');
-        }
     }
 
     // Discount fetching
