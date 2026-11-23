@@ -17,7 +17,7 @@ use Joomla\CMS\Table\Table;
  * The order builder's form seam.
  *
  * The builder reads its cart through {@see CartModel} and mutates it through the
- * B1B.1c request seam; this model exists only to carry the `com_alfa.cart` form
+ * cart controller's own tasks; this model exists only to carry the `com_alfa.cart` form
  * so a plugin's onAlfaAdminForm fieldset becomes a section at the end of the
  * builder page, contributed exactly as the Order and Item screens gain their
  * contributed tabs. It saves no record (the

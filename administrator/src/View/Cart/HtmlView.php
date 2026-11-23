@@ -132,7 +132,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * @var int The live cart this builder edits: the id the sections and the
-     *          B1B.1c endpoints operate on.
+     *          cart controller's tasks operate on.
      * @since  2.0.0
      */
     protected int $builderCartId = 0;
@@ -153,7 +153,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * @var array<int, object[]> Each line's chosen configuration, already
-     *                           resolved to names by the cart read model (R.1H), keyed by line id:
+     *                           resolved to names by the cart read model, keyed by line id:
      *                           the one source the Items section prints them from.
      * @since  2.0.0
      */
