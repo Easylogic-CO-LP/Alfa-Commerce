@@ -21,7 +21,7 @@ use Joomla\CMS\Language\Text;
  * Responsibilities:
  *  - Refuse the install before anything is touched when the site runs a Joomla this
  *    build is not tested on (older than 6.2, or 7 and later), a PHP that is too old
- *    or lacks a required extension, or an Alfa Commerce older than the schema baseline (preflight).
+ *    or lacks a required extension, or an Alfa Commerce older than the update floor (preflight).
  *  - Install / update bundled libraries, plugins and modules alongside the component.
  *  - Seed sensible default configuration parameters after install/update (postflight).
  *  - Bulk-sync existing Joomla users and usergroups into Alfa tables on install/update.
@@ -217,6 +217,16 @@ class com_alfaInstallerScript extends InstallerScript
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
     ];
+
+    /**
+     * The tables this release's update file drops (sql/updates/mysql, DROP TABLE IF EXISTS): Alfa tables an earlier
+     * release created that nothing reads or writes any more. The install SQL no longer creates them; the package's
+     * checks allow exactly these drops.
+     *
+     * @var string[]
+     * @since 2.3.0
+     */
+    public const REMOVED_TABLES = ['#__alfa_inventory_transfers'];
 
     /**
      * The notifications no code of this version raises or clears any more, by key: an update deletes them once, so
