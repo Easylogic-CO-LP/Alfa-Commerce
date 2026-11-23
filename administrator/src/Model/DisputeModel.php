@@ -170,7 +170,23 @@ class DisputeModel extends AdminModel
                 break;
 
             case 'reopen':
-                $ledger->open()->evidenceDueBy(utc: $utc('evidence_due_by'));
+                // Only a decided case opens again, for a new round.
+                if (!\in_array((string) $dispute->state, [DisputeLedger::STATE_WON, DisputeLedger::STATE_LOST], true)) {
+                    return new DisputeVerdict(
+                        kind: DisputeVerdict::REFUSED,
+                        code: DisputeVerdict::CODE_TRANSITION,
+                        message: sprintf('Dispute #%d is %s: only a won or lost case opens again.', (int) $dispute->id, (string) $dispute->state),
+                        disputeId: (int) $dispute->id,
+                        existing: true,
+                    );
+                }
+
+                $ledger->open();
+
+                if ($utc('evidence_due_by') !== null) {
+                    $ledger->evidenceDueBy(utc: $utc('evidence_due_by'));
+                }
+
                 break;
 
             case 'amount':

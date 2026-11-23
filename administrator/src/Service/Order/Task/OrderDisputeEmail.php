@@ -59,7 +59,6 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
             needsApplication: true,
             staffAction: TaskPolicy::ACTION_RESEND,
             attention: 'danger',
-            sequence: OrderStatusEmail::SEQUENCE,
         );
     }
 

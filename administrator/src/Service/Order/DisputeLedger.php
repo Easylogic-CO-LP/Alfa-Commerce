@@ -1148,6 +1148,11 @@ final class DisputeLedger
             $after['closed_reason'] = $this->closedWhy;
         }
 
+        // A new round opened again waits for its own evidence.
+        if ($reopening && $target === self::STATE_OPEN) {
+            $after['evidence_sent_at'] = null;
+        }
+
         // Evidence sent.
         if ($this->evidenceAsked) {
             if ($this->evidenceAt !== null || $after['evidence_sent_at'] === null || $reopening) {

@@ -1713,7 +1713,7 @@ class ActionRegistry
             return self::disputeForm(event: $event, payment: $payment, dispute: $dispute, act: $act, form: $form);
         }
 
-        $typed = (array) $input->post->get('jform', [], 'array');
+        $typed = (array) $input->get('jform', [], 'array');
         $valid = $model->validate($form, $typed);
 
         if ($valid === false) {
