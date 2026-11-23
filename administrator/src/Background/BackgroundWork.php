@@ -207,7 +207,7 @@ final class BackgroundWork
     }
 
     /**
-     * Whether a plugin is installed and enabled, read once a request.
+     * Whether a plugin is installed and enabled, as its extension row says now.
      *
      * @param PluginId $plugin The plugin.
      *
@@ -215,8 +215,6 @@ final class BackgroundWork
      */
     private static function enabled(PluginId $plugin): bool
     {
-        static $known = [];
-
-        return $known[(string) $plugin] ??= (new JoomlaPluginLayer())->rowEnabled($plugin) === true;
+        return (new JoomlaPluginLayer())->rowEnabled($plugin) === true;
     }
 }
