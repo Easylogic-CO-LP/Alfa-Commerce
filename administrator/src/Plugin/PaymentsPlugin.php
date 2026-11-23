@@ -42,6 +42,7 @@
  *  THE GATEWAY'S BOOKS:
  *    $due     = $this->orderBalance(orderId: $orderId);                          // signed Money: > 0 owed, < 0 overpaid
  *    $room    = $this->collectableNow(paymentId: $paymentId);                    // what your open row may still collect when settled
+ *    $answer  = $this->withLockWait(seconds: 8, work: fn () => ...);              // a notification's writes wait at most 8 s for the order
  *    $holders = $this->countReferenceHolders(reference: $txId, types: [self::TYPE_PAYMENT]);
  *    $rowId   = $this->findOwnRowByReference(reference: $refundId, types: [self::TYPE_REFUND]); // the one row, or null
  *    $kind    = $this->refundTypeFor(paymentId: $paymentId, amount: $refund);   // self::REFUND_FULL or self::REFUND_PARTIAL
@@ -119,6 +120,7 @@ use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Order\Payment;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
+use Closure;
 use InvalidArgumentException;
 use Joomla\CMS\Application\SiteApplication;
 use Joomla\CMS\Factory;
@@ -2381,6 +2383,36 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     final protected function collectableNow(int $paymentId): Money
     {
         return PaymentLedger::collectableNow(paymentId: $paymentId, gateway: (string) $this->_name);
+    }
+
+    /**
+     * Run ledger work with a bounded wait for the order's lock: inside $work, every write of the books on an order
+     * waits at most $seconds for the order another operation holds, then answers as for any lock it could not take (a
+     * verdict write VERDICT_LOCK_NOT_TAKEN, nothing written). Without it, a write waits the database server's own
+     * limit (50 seconds by default).
+     *
+     * For your provider's notification handler, which must answer within the provider's window: past the bound,
+     * answer "not accepted" (a 503) and let the provider deliver again; the next delivery writes once the order is
+     * free. A bound inside a bound keeps the shorter.
+     *
+     * Usage:
+     *   $verdict = $this->withLockWait(seconds: 8, work: fn () => $this->settleAttemptVerdict($write, $orderId, $txId));
+     *   if ($verdict->kind === self::VERDICT_LOCK_NOT_TAKEN) { ...answer 503: the provider delivers again... }
+     *
+     * @api ANSWERS: what $work returns; the books' writes inside it wait at most the bound for an order's lock.
+     *
+     * @param int $seconds The bound, 1 to 30 seconds.
+     * @param Closure $work The work, calls of this class's writes.
+     *
+     * @return mixed What $work returns.
+     *
+     * @throws InvalidArgumentException When the bound is outside 1 to 30; $work is not run.
+     *
+     * @since  2.3.0
+     */
+    final protected function withLockWait(int $seconds, Closure $work): mixed
+    {
+        return PaymentLedger::withLockWait(seconds: $seconds, work: $work);
     }
 
     /**

@@ -3431,6 +3431,42 @@ class PaymentLedger
     }
 
     /**
+     * Run ledger work whose wait for an order's lock is bounded: inside $work, each lock the ledger takes on an order
+     * waits at most $seconds, then the write answers as for any lock it could not take (a verdict write
+     * VERDICT_LOCK_NOT_TAKEN, nothing written). Outside it, a lock waits the server's own limit
+     * (innodb_lock_wait_timeout, 50 seconds by default), longer than a provider waits for a notification's answer.
+     *
+     * For a provider's notification handler that must answer within the provider's window: past the bound it answers
+     * "not accepted" and the provider delivers again. A bound inside a bound keeps the shorter. The session's own
+     * limit is set for each lock statement and given back right after it, so nothing else in the work, and nothing
+     * after it, waits differently.
+     *
+     * @param int $seconds The bound, 1 to 30.
+     * @param Closure $work The ledger work; its answer is returned.
+     *
+     * @return mixed What $work returns.
+     *
+     * @throws InvalidArgumentException When the bound is outside 1 to 30; $work is not run.
+     *
+     * @since  2.3.0
+     */
+    public static function withLockWait(int $seconds, Closure $work): mixed
+    {
+        if ($seconds < 1 || $seconds > 30) {
+            throw new InvalidArgumentException('withLockWait(): the bound is 1 to 30 seconds; got ' . $seconds . '.');
+        }
+
+        $outer = self::$lockWait;
+        self::$lockWait = $outer === null ? $seconds : min($outer, $seconds);
+
+        try {
+            return $work();
+        } finally {
+            self::$lockWait = $outer;
+        }
+    }
+
+    /**
      * Lock one or more order rows FOR UPDATE, in a canonical order.
      *
      * Ascending by id, de-duplicated: when a write touches two orders, two
@@ -3454,6 +3490,40 @@ class PaymentLedger
         $ids = array_values(array_unique(array_filter($orderIds, static fn (int $id): bool => $id > 0)));
         sort($ids);
 
+        // Inside withLockWait() the lock waits the caller's bound, set on the session for these statements alone.
+        $serverWait = null;
+
+        if (self::$lockWait !== null && $ids !== []) {
+            $serverWait = (int) $db->setQuery('SELECT @@SESSION.innodb_lock_wait_timeout')->loadResult();
+            $db->setQuery('SET SESSION innodb_lock_wait_timeout = ' . self::$lockWait)->execute();
+        }
+
+        try {
+            return self::lockOrderRows($db, $ids);
+        } finally {
+            if ($serverWait !== null) {
+                try {
+                    $db->setQuery('SET SESSION innodb_lock_wait_timeout = ' . $serverWait)->execute();
+                } catch (Throwable $e) {
+                    // The lock's own answer stands; the session keeps the shorter wait until it ends.
+                    Log::add('[PaymentLedger] lockOrders(): the session\'s lock wait could not be set back to ' . $serverWait . ' seconds: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+                }
+            }
+        }
+    }
+
+    /**
+     * Lock the order rows, in the order given ({@see self::lockOrders()}).
+     *
+     * @param object $db Database driver (already inside a transaction)
+     * @param int[] $ids Order PKs, ascending, above zero, each once
+     *
+     * @return bool False if any named order does not exist, or if the row cannot be locked (another writer holds it)
+     *
+     * @since  2.3.0
+     */
+    private static function lockOrderRows(object $db, array $ids): bool
+    {
         foreach ($ids as $id) {
             $db->setQuery(
                 'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_orders')
@@ -11307,6 +11377,14 @@ class PaymentLedger
 
     /** @var bool The current refundPayment() call's row write threw (a real failure to write: nothing is kept). */
     private static bool $writeThrew = false;
+
+    /**
+     * The bound on the wait for an order's lock inside {@see self::withLockWait()}, in seconds; null outside it, where
+     * the lock waits the server's own limit.
+     *
+     * @since  2.3.0
+     */
+    private static ?int $lockWait = null;
 
     /**
      * The refusal create() kept for the refund start it last decided under the
