@@ -20,8 +20,8 @@ use SimpleXMLElement;
 use Throwable;
 
 /**
- * The one installer gate of every Alfa extension, Alfa Commerce's own included: the minimum Alfa Commerce version an
- * extension needs, in one wording; and the warning, in one wording, that uninstalling an Alfa extension keeps its data.
+ * The one installer gate of every Alfa extension: the range of Alfa Commerce lines an extension is built for, in one
+ * wording; and the warning, in one wording, that uninstalling an Alfa extension keeps its data.
  *
  * NO INSTALLER LOCKING. Nothing is ever refused because Clear everything is running, paused or did not finish: an
  * administrator may install, update or uninstall any extension through Joomla at any time. Clear everything records an
@@ -31,9 +31,11 @@ use Throwable;
  * {@see AlfaCoreRange} only (loaded from beside this file when they are not loaded yet), never on another class of the
  * component: it runs from a package being installed and while the component's data may be half made.
  *
- * AN EXTENSION'S PREFLIGHT, exactly (the warning on uninstall is given by Alfa Commerce for every Alfa extension):
+ * THE RANGE OF ALFA COMMERCE LINES. An extension declares the lines of Alfa Commerce it is built for in its manifest
+ * (`<alfacore min="2.3" max="2.3"/>`, {@see AlfaCoreRange}) and is refused outside them by this gate, which reads the
+ * range from the extension's own manifest, the one place core's notice after an update reads it too.
  *
- *     public const MIN_ALFA_VERSION = '2.1.0';
+ * AN EXTENSION'S PREFLIGHT, exactly (the warning on uninstall is given by Alfa Commerce for every Alfa extension):
  *
  *     public function preflight($type, $parent): bool
  *     {
@@ -49,15 +51,14 @@ use Throwable;
  *         }
  *
  *         if (!class_exists($gate)) {
- *             // No Alfa Commerce, or one older than 2.1.0.
- *             Factory::getApplication()->enqueueMessage(sprintf('<Name> requires Alfa Commerce %1$s or later,'
- *                 . ' and this site has no Alfa Commerce %1$s or later installed. Install or update Alfa'
- *                 . ' Commerce first, then install <Name> again. Nothing was changed.', self::MIN_ALFA_VERSION), 'error');
+ *             // No Alfa Commerce installed.
+ *             Factory::getApplication()->enqueueMessage('<Name> requires Alfa Commerce. Install Alfa Commerce'
+ *                 . ' first, then install <Name> again. Nothing was changed.', 'error');
  *
  *             return false;
  *         }
  *
- *         $refusal = $gate::refusal(name: '<Name>', route: (string) $type, minimum: self::MIN_ALFA_VERSION);
+ *         $refusal = $gate::rangeRefusal(name: '<Name>', route: (string) $type, manifest: $parent->getManifest());
  *
  *         if ($refusal !== null) {
  *             Factory::getApplication()->enqueueMessage($refusal, 'error');
@@ -69,15 +70,6 @@ use Throwable;
  *     }
  *
  * The refusal is plain English: no language file exists yet at an install's preflight.
- *
- * THE RANGE OF ALFA COMMERCE VERSIONS. An extension that declares the lines of Alfa Commerce it is built for in
- * its manifest (`<alfacore min="2.2" max="2.2"/>`, {@see AlfaCoreRange}) is refused outside them by the same gate,
- * reading the range from its own manifest, the one place core's notice after an update reads it too:
- *
- *         $refusal = $gate::rangeRefusal(name: '<Name>', route: (string) $type, manifest: $parent->getManifest());
- *
- * in place of refusal() (a site whose Alfa Commerce has no rangeRefusal(): ask method_exists() first
- * and fall back to the extension's own minimum there).
  *
  * THE POLICY. Every Alfa extension declares both min and max, max being the last line it was tested on (2.2, never a
  * patch release). One that installs on its own enforces the range in its preflight exactly as above, so its install,
@@ -113,8 +105,8 @@ final class AlfaInstallerGate
     public const TABLE = '#__alfa_maintenance';
 
     /**
-     * The refusal of an extension that needs a newer Alfa Commerce. %1$s: the extension's name; %2$s:
-     * the minimum; %3$s: {@see self::VERSION_FOUND} or {@see self::VERSION_MISSING}.
+     * The refusal of an extension on a site with no Alfa Commerce. %1$s: the extension's name; %2$s: the first line
+     * of its range; %3$s: {@see self::VERSION_MISSING}.
      *
      * @var string
      *
@@ -122,15 +114,6 @@ final class AlfaInstallerGate
      */
     public const VERSION = '%1$s requires Alfa Commerce %2$s or later, and %3$s. Install or update Alfa Commerce first,'
         . ' then install %1$s again. Nothing was changed.';
-
-    /**
-     * What {@see self::VERSION} says of an older Alfa Commerce. %s: its version.
-     *
-     * @var string
-     *
-     * @since  2.1.0
-     */
-    public const VERSION_FOUND = 'this site has Alfa Commerce %s';
 
     /**
      * What {@see self::VERSION} says when no Alfa Commerce is installed. %s: the minimum.
@@ -219,41 +202,6 @@ final class AlfaInstallerGate
         $stored = self::stored();
 
         return $stored === null ? null : self::phaseOf(state: $stored['state']);
-    }
-
-    /**
-     * Why an installer must refuse now, or null when it may go on: on the routes that install code, an
-     * Alfa Commerce that is missing or older than the extension's minimum. Never for the state of Clear
-     * everything.
-     *
-     * @api READ ONLY: why an extension's installer must refuse now (Alfa Commerce missing or older than the minimum),
-     *      or null.
-     *
-     * @param string $name The extension's name, as the messages show it.
-     * @param string $route Joomla's route: install, update, discover_install or uninstall.
-     * @param string|null $minimum The extension's MIN_ALFA_VERSION; null for com_alfa itself.
-     *
-     * @since  2.1.0
-     */
-    public static function refusal(string $name, string $route, ?string $minimum = null): ?string
-    {
-        if ($minimum === null || !\in_array($route, self::INSTALL_ROUTES, true)) {
-            return null;
-        }
-
-        self::loadVersionReader();
-        $installed = AlfaVersion::installed();
-
-        if ($installed !== null && $installed->atLeast(minimum: $minimum)) {
-            return null;
-        }
-
-        return sprintf(
-            self::VERSION,
-            $name,
-            $minimum,
-            $installed === null ? sprintf(self::VERSION_MISSING, $minimum) : sprintf(self::VERSION_FOUND, $installed->toString()),
-        );
     }
 
     /**
