@@ -40,6 +40,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLinksRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuUnit;
@@ -903,14 +904,17 @@ class ItemModel extends AlfaAdminModel
             return $this->refuseSave(messages: [$categoryRefusal]);
         }
 
-        // RELATED PRODUCTS, judged before the transaction: the product itself, a product named twice or one that
-        // does not exist is refused and nothing is saved. A copy has no id yet, so none of its rows can name it. A form
-        // with no row carries no list, which empties the links as it empties the other lists.
-        $relatedIds = RelatedItems::posted(posted: $data['related'] ?? []);
-        $relatedRefusals = RelatedItems::refusals(db: $db, itemId: $pk, ids: $relatedIds);
+        // RELATED PRODUCTS, judged before the transaction: a link the product cannot take (itself, a product named
+        // twice or one that does not exist, a combination or a value that is not the linked product's) is refused and
+        // nothing is saved. A copy has no id yet, so none of its rows can name it. A form with no row carries no list,
+        // which empties the links as it empties the other lists.
+        $relatedLinks = RelatedItems::posted(posted: $data['related'] ?? []);
+        $relatedRefusals = RelatedItems::refusals(db: $db, itemId: $pk, links: $relatedLinks);
 
         if ($relatedRefusals !== []) {
-            return $this->refuseSave(messages: $relatedRefusals);
+            $this->setError(new RelatedLinksRefusedException(refusals: $relatedRefusals));
+
+            return false;
         }
 
         // A thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()):
@@ -1225,9 +1229,9 @@ class ItemModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
 
-            // The related products, in the posted order: each written only while its product exists, so a
-            // product deleted since the check above leaves no link.
-            RelatedItems::replace(db: $db, itemId: (int) $currentId, ids: $relatedIds);
+            // The related products, in the posted order: each written only while its product (and its combination)
+            // exists, so one deleted since the check above leaves no link.
+            RelatedItems::replace(db: $db, itemId: (int) $currentId, links: $relatedLinks);
 
             // ITEM FIELDS: options and specifications are ADDED by their pickers (item.addOptions, item.addInfoValues),
             // combinations by the generator. The item save writes the LIST edits through the one way they are written

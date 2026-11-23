@@ -45,6 +45,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\UnsavedItem;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
+use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
@@ -52,6 +53,7 @@ use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
 use Joomla\CMS\Response\JsonResponse;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Session\Session;
 use Joomla\CMS\Versioning\VersionableControllerTrait;
 use Joomla\Database\Exception\ConnectionFailureException;
 use Joomla\Database\Exception\ExecutionFailureException;
@@ -965,6 +967,49 @@ class ItemController extends FormController
         } catch (RuntimeException $e) {
             // Depth lock and friends: surfaced verbatim in the generator UI.
             echo new \Joomla\CMS\Response\JsonResponse($e);
+        }
+
+        $app->close();
+    }
+
+    /**
+     * A related row's variant cell (AJAX) for the product picked in it: the cell RelatedVariantField draws for that
+     * product under the row's control (jform[related][related<n>]), answered as JSON {html}. A GET carrying the form
+     * token, for staff who may edit products; a bad token or a missing permission answers 403, a control of any other
+     * shape 400.
+     *
+     * @return void Emits JSON and closes the application.
+     *
+     * @since  2.3.0
+     */
+    public function relatedVariant(): void
+    {
+        $app = Factory::getApplication();
+
+        try {
+            if (!Session::checkToken('get')) {
+                throw new RuntimeException(Text::_('JINVALID_TOKEN_NOTICE'), 403);
+            }
+
+            if (!AlfaHelper::can(section: 'items', action: 'edit', user: $app->getIdentity())) {
+                throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
+            }
+
+            $control = (string) $this->input->getString('control', '');
+
+            if (!preg_match('/^jform\[related\]\[related\d+\]$/', $control)) {
+                throw new RuntimeException(Text::_('JGLOBAL_VALIDATION_FORM_FAILED'), 400);
+            }
+
+            // The row's own form, bound to the product picked: its variant cell is drawn as the tab draws it.
+            $row = new Form('com_alfa.related_link', ['control' => $control]);
+            $row->loadFile(JPATH_ADMINISTRATOR . '/components/com_alfa/forms/related_link.xml');
+            $row->bind(['item_id' => RequestScalar::int($this->input, 'item_id')]);
+
+            echo new JsonResponse(['html' => $row->getInput('variant')]);
+        } catch (Throwable $e) {
+            $app->setHeader('status', \in_array((int) $e->getCode(), [400, 403], true) ? (int) $e->getCode() : 500, true);
+            echo new JsonResponse($e);
         }
 
         $app->close();

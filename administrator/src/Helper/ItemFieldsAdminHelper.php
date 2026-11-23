@@ -12,10 +12,12 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\RelatedLinksChangedEvent;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
@@ -2751,6 +2753,9 @@ class ItemFieldsAdminHelper
                     );
                     $db->execute();
                 }
+
+                // Related links to a removed combination, or to values no combination left carries, go with it.
+                RelatedItems::forgetVanished(db: $db, linkedItemIds: [$itemId], cause: RelatedLinksChangedEvent::CAUSE_COMBINATION);
             }
 
             // Last combination removed -> the per-item dimension order has no more

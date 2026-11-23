@@ -23,6 +23,22 @@
       "uri": "com_alfa/admin/multilingual-fields.min.css"
     },
     {
+      "name": "com_alfa.admin.related-products",
+      "type": "style",
+      "uri": "com_alfa/admin/related-products.min.css"
+    },
+    {
+      "name": "com_alfa.admin.related-products",
+      "type": "script",
+      "uri": "com_alfa/admin/related-products.min.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.admin-menu-presets",
       "type": "script",
       "uri": "com_alfa/admin/menu-presets.min.js",

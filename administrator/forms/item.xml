@@ -378,18 +378,12 @@
         </field>
     </fieldset>
 
-    <!-- The products this product's page shows as related, in this order. A link goes one way. The model
-         refuses the product itself, a product listed twice and one that does not exist (RelatedItems::refusals()). -->
+    <!-- The products this product's page shows as related, in this order, each as a product, one of its
+         combinations or values chosen for it. A link goes one way. The model refuses what a linked product does not
+         take (RelatedItems::refusals()). -->
     <fieldset name="related" label="COM_ALFA_TAB_ITEM_RELATED">
-        <field name="related" type="subform" multiple="true"
-               layout="joomla.form.field.subform.repeatable-table" buttons="add,remove,move"
-               label="COM_ALFA_FORM_LBL_ITEM_RELATED" description="COM_ALFA_FORM_DESC_ITEM_RELATED">
-            <form>
-                <field name="item_id" type="Modal_Item" required="true" filter="integer"
-                       select="true" new="false" edit="false" clear="false"
-                       label="COM_ALFA_FORM_LBL_ITEM_RELATED_ITEM"/>
-            </form>
-        </field>
+        <field name="related" type="RelatedProducts"
+               label="COM_ALFA_FORM_LBL_ITEM_RELATED" description="COM_ALFA_FORM_DESC_ITEM_RELATED"/>
     </fieldset>
 
     <!-- Layout overrides for THIS product; every key inherits category -> menu -> global when empty. -->

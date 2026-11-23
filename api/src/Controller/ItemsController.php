@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSaveBusyException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLinksRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\UnitBatch;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
@@ -246,15 +247,15 @@ class ItemsController extends ApiController
 
     /**
      * Save the write: prices changed since they were read answer 409 naming prices_state, a SKU another product or variant
-     * holds answers 409 with the refusal's sentence, a refused graph answers its refusals; nothing saved; a
-     * save that met another write of the same rows answers 409 with Retry-After, to be sent again.
+     * holds answers 409 with the refusal's sentence, related links the product cannot take answer 422 with each refusal
+     * led by its row (related[n]), a refused graph answers its refusals; nothing saved.
      *
      * @param int|null $recordKey The record's key.
      *
      * @return int The record's id.
      *
-     * @throws Save When the write's SKU is another unit's (409), another write held its rows (409, Retry-After), or the
-     *              save was refused otherwise.
+     * @throws Save When the write's SKU is another unit's (409), its related links are refused (422), another write
+     *              held its rows (409, Retry-After), or the save was refused otherwise.
      *
      * @since  2.3.0
      */
@@ -287,6 +288,10 @@ class ItemsController extends ApiController
                 foreach ($model->getErrors() as $error) {
                     if ($error instanceof SkuInUseException) {
                         throw new Save($error->refusal->placed(), $error->refusal->status, $e);
+                    }
+
+                    if ($error instanceof RelatedLinksRefusedException) {
+                        throw new Save($error->placed(), $error->getCode(), $e);
                     }
 
                     if ($error instanceof ItemSaveBusyException) {
@@ -410,10 +415,11 @@ class ItemsController extends ApiController
     }
 
     /**
-     * An item's options, combinations, item field values and downloads, and its related products (`related`, 2.2.2, set on
-     * the product's Related tab), which the API does not write: the four keys the item read publishes, then the keys the item edit form's grids post for the same writes and for the downloads
-     * grid, which the item save reads from the request as the form posts them. A list sent in the read's shape was
-     * taken by its positions, as value or combination ids (2.2.1).
+     * The keys the API does not write: the item read's `fields`, and the keys the item edit form's grids and lists post
+     * (the variants' grid, the option and specification lists, the field order, the downloads grid), which the item
+     * save reads from the request as the form posts them. Options, specifications, combinations and field values are
+     * written as the API's own lists, and the related products (`related`) with the item, as the Related tab writes
+     * them.
      *
      * @return string[]
      *
@@ -422,8 +428,7 @@ class ItemsController extends ApiController
     protected function unwrittenKeys(): array
     {
         return ['fields', 'combinations_default', 'deleted_combination_ids',
-            'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order', 'field_required', 'item_downloads',
-            'related'];
+            'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order', 'field_required', 'item_downloads'];
     }
 
     /**

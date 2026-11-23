@@ -1709,6 +1709,10 @@ class ItemsModel extends UrlListModel
         // collector, which then lists the fields read-only and leaves no add to cart; no card is priced.
         $sellsOnline = ShopMode::sellsOnline();
 
+        // What a related product's card opens on, by product: the dimensions and options its link chose
+        // (RelatedProducts::visible()). Every other card opens on its default.
+        $preselections = (array) $this->getState('card.selections', []);
+
         foreach ($items as &$item) {
             $item->sellsOnline = $sellsOnline;
             $item->categories = $this->mapIdsToNames($item->category_ids, $categoriesMapping);
@@ -1762,9 +1766,19 @@ class ItemsModel extends UrlListModel
                 $shownFieldIds = $item->listingFieldIds;
             }
 
-            // Resolve the default combination (sets $item->variant); its selection
+            // A card a related link preselects: its dimensions constrain the card whether it draws them or not, and
+            // its options are chosen.
+            $preset = $preselections[(int) $item->id] ?? null;
+            $picked = (array) ($preset['selection'] ?? []);
+            $chosen = (array) ($preset['optionValueIds'] ?? []);
+            $item->preselected = $preset === null ? null : ['selection' => $picked, 'optionValueIds' => $chosen];
+            $constrained = static fn (?array $shown): ?array => $shown === null || $picked === []
+                ? $shown
+                : array_values(array_unique(array_merge($shown, array_map('intval', array_keys($picked)))));
+
+            // Resolve the default combination, or the one the link preselects (sets $item->variant); its selection
             // feeds the batched price pass below.
-            $selection = VariantHelper::resolve($item, [], shownFieldIds: $shownFieldIds);
+            $selection = VariantHelper::resolve($item, $picked, $chosen, shownFieldIds: $constrained($shownFieldIds));
 
             // Card chrome: buy URLs (the cart endpoint always, the reload URL only when
             // there are variants or option extras to re-render), default cart region, and
@@ -1782,11 +1796,16 @@ class ItemsModel extends UrlListModel
                 // the card resolves again with it hidden and draws again.
                 if ($readOnly !== []) {
                     $item->listingFieldIds = ItemFieldsHelper::listingFieldIds($item, $readOnly);
-                    $selection = VariantHelper::resolve($item, [], shownFieldIds: array_values(array_diff($item->listingFieldIds, $readOnly)));
+                    $selection = VariantHelper::resolve($item, $picked, $chosen, shownFieldIds: $constrained(array_values(array_diff($item->listingFieldIds, $readOnly))));
                     $drawn = $this->drawCard($item, []);
                 }
 
                 $this->chooseOptionsCart($item, $drawn);
+            }
+
+            // The card's own link opens the product page on what the card shows, as its Choose options link does.
+            if ($preset !== null) {
+                $item->link = $this->preselectedAddress(item: $item, link: (string) $item->link);
             }
 
             if ($selection !== null) {
@@ -2138,6 +2157,11 @@ class ItemsModel extends UrlListModel
             return '';
         }
 
+        // A card opened on what a related link names carries it whole.
+        if (!empty($item->preselected)) {
+            return $this->preselectedAddress(item: $item, link: $link);
+        }
+
         $uri = new Uri(htmlspecialchars_decode($link, ENT_COMPAT));
         $shown = array_flip($item->listingFieldIds);
         $dimensions = $item->variant?->variantFieldIds ?? [];
@@ -2171,12 +2195,53 @@ class ItemsModel extends UrlListModel
     }
 
     /**
+     * The address of a product page opened on what a related card shows: the link given with sel[fieldId]=valueId
+     * for every dimension of the combination the card displays (the link's dimensions and the ones the card resolved)
+     * and opt[fieldId]=valueId for each option the link chose, read by the product page as any request selection
+     * ({@see VariantHelper::requestSelection()}). A plain URL, escaped where it is printed.
+     *
+     * @param object $item The resolved card (->variant, ->preselected).
+     * @param string $link The product page's address, routed.
+     *
+     * @since  2.3.0
+     */
+    protected function preselectedAddress(object $item, string $link): string
+    {
+        if ($link === '') {
+            return '';
+        }
+
+        $uri = new Uri(htmlspecialchars_decode($link, ENT_COMPAT));
+        $query = $uri->getQuery(true);
+
+        foreach ($item->variant->variantFieldIds ?? [] as $fieldId) {
+            $valueId = (int) ($item->variant->selection[$fieldId] ?? 0);
+
+            if ($valueId > 0) {
+                $query['sel'][(int) $fieldId] = $valueId;
+            }
+        }
+
+        foreach ((array) ($item->preselected['optionValueIds'] ?? []) as $fieldId => $valueId) {
+            $query['opt'][(int) $fieldId] = (int) $valueId;
+        }
+
+        $uri->setQuery($query);
+
+        return $uri->toString();
+    }
+
+    /**
      * Turn the card's core add-to-cart into cart.options (a Choose options link
      * to the product page) when the card did not draw a field the buyer must
      * answer: a variant dimension with two or more values, or a required field
      * that is not informational. Drawn means a buy-form selector was declared, so
      * a field shown only as text still counts as not drawn. A fixed dimension
      * (one value) is filled on add and never needed.
+     *
+     * A card a related link preselects turns too when it does not draw an option
+     * the link chose: its price holds that option, so its add to cart would not
+     * match it; the Choose options link carries it to the product page.
      *
      * Left alone: a MAIN a plugin set (never overridden), and a card with nothing
      * to sell (a plain item not salable, a variant item with no combination in
@@ -2217,6 +2282,7 @@ class ItemsModel extends UrlListModel
 
         $drawn = array_flip($drawnFieldIds);
         $dimensions = CombinationResolver::dimensionValues($item->fields, $item->combinations);
+        $preselectedOptions = (array) ($item->preselected['optionValueIds'] ?? []);
 
         foreach ($item->fields as $field) {
             $fieldId = (int) $field->id;
@@ -2227,7 +2293,7 @@ class ItemsModel extends UrlListModel
 
             $needed = isset($dimensions[$fieldId])
                 ? \count($dimensions[$fieldId]) > 1
-                : ItemConfigurationHelper::isFieldRequired(itemId: (int) $item->id, field: $field);
+                : isset($preselectedOptions[$fieldId]) || ItemConfigurationHelper::isFieldRequired(itemId: (int) $item->id, field: $field);
 
             if ($needed) {
                 $item->cart = [

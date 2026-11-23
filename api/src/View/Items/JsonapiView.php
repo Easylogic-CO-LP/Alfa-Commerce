@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\View\Items;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLink;
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
 use Alfa\Component\Alfa\Api\View\ListsTranslations;
 use Alfa\Component\Alfa\Api\View\PublishesStoredFigures;
@@ -163,9 +164,14 @@ class JsonApiView extends BaseApiView
             }, $item->options);
         }
 
-        // The related products: their ids, in their order (the form's rows hold one {item_id} each).
+        // The related products, in their order, each {item_id, combination_id (null for none), values (an object of
+        // field id to value id)}: the shape a write sends.
         if (isset($item->related) && \is_array($item->related)) {
-            $item->related = RelatedItems::posted(posted: $item->related);
+            $item->related = array_values(array_map(static fn (RelatedLink $link): array => [
+                'item_id' => $link->itemId,
+                'combination_id' => $link->combinationId > 0 ? $link->combinationId : null,
+                'values' => (object) array_combine(array_map('strval', array_keys($link->values)), array_values($link->values)),
+            ], RelatedItems::posted(posted: $item->related)));
         }
 
         // A product that tracks stock and holds no stock record has none on the shelf: its stock and available_quantity

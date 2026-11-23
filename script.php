@@ -273,6 +273,9 @@ class com_alfaInstallerScript extends InstallerScript
      * @since 2.2.1
      */
     private const NEW_COLUMNS = [
+        '#__alfa_items_links' => [
+            'linked_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination of the linked product its card opens on; 0 for none'", 'link_type'],
+        ],
         '#__alfa_places' => [
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
