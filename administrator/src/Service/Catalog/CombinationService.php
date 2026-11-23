@@ -41,7 +41,7 @@ use Throwable;
  *     $result = CombinationService::create(itemId: 42)
  *         ->values([5 => 12, 6 => 23])
  *         ->set('sku', 'SMX-WHT-512')
- *         ->prices([['mode' => 'adjust', 'operation' => '+', 'value' => '250.00']])
+ *         ->prices([['_mode' => 'adjust', 'operation' => '+', 'value' => '250.00']])
  *         ->save();
  *
  *     $result = CombinationService::change(itemId: 42, combinationId: 305)->set('sku', 'SMX-WHT-512-EU')->save();
@@ -280,7 +280,9 @@ final class CombinationService
     }
 
     /**
-     * The combination's price rows, as the window writes them: rows kept by id, rows not sent removed.
+     * The combination's price rows, in the window's keys (_mode price or adjust, operation, value, override_value,
+     * override_type, adjust_target for an adjust, price_status, the scope and the quantity band): rows kept by id, rows
+     * not sent removed.
      *
      * @param list<array> $rows The rows.
      *
