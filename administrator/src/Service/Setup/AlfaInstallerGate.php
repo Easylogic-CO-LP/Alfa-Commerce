@@ -11,7 +11,6 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -286,7 +285,9 @@ final class AlfaInstallerGate
         try {
             $range = AlfaCoreRange::declaredBy(manifest: $manifest);
         } catch (InvalidArgumentException $e) {
-            return sprintf(self::RANGE_UNREAD, $name, ErrorText::of($e));
+            // The range reader's own sentence, naming the manifest's attribute. Read as it is: the gate runs inside
+            // another extension's installation and loads no class of the component but its two readers.
+            return sprintf(self::RANGE_UNREAD, $name, $e->getMessage());
         }
 
         if ($range === null) {
