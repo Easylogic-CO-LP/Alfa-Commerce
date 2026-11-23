@@ -10,31 +10,44 @@
  *
  * A GENERIC payment attempt against a stored credential: the gateway never
  * learns WHY it is charging (renewal, admin re-charge, future capture): it
- * sees amount + currency + the opaque reference it stored earlier, executes
- * the merchant-initiated transaction, and reports the outcome.
+ * sees amount + currency + the opaque reference it stored earlier, books the
+ * attempt's payment row, executes the merchant-initiated transaction, and
+ * reports the outcome.
  *
- *   caller -> PaymentRequest (this event) -> plugin -> PaymentResult (this event)
- *          -> caller writes the #__alfa_order_payments row
- *          -> the method's status_on_<phase> automation map drives the order.
+ *   caller -> this event -> gateway: books its pending row first
+ *          (PaymentsPlugin::chargeAttempt()), calls the provider, settles its
+ *          own row and answers naming it -> the caller reads the answer and
+ *          the row it names; the method's status_on_<phase> map drives the
+ *          order when the row completes.
  *
  * Input:  getOrder() (the order being paid, e.g. a renewal order),
  *         getAmount(), getCurrencyCode(), getReference(), getOperation(),
- *         getAttempt() (which attempt this is, from 1, for the
- *         gateway's per-attempt idempotency key)
+ *         getAttempt() (which attempt this is, from 1: the same number sent
+ *         again is the same attempt, and finds the same row)
  * Output: exactly ONE of
- *         setSuccess($transactionId)       the provider confirmed the charge;
- *         setFailure($error)               the provider refused it, or it was
- *                                          never sent: no money moved;
- *         setPending($reference, $reason)  the provider may have taken the
- *                                          money and has not confirmed it: the
- *                                          caller records a PENDING row, never
- *                                          charges again, and the gateway's
- *                                          webhook or Reconcile settles it.
+ *         setSuccess($transactionId, $paymentId)  the provider confirmed the
+ *                                          charge; the row it booked;
+ *         setPending($reference, $reason, $paymentId)  the provider may have
+ *                                          taken the money and has not
+ *                                          confirmed it: the row stays
+ *                                          pending, the caller never charges
+ *                                          that attempt again, and the
+ *                                          gateway's webhook or Reconcile
+ *                                          settles it;
+ *         setFailure($error, $decline)     the provider refused it, or the
+ *                                          gateway refused to send it: the
+ *                                          attempt is spent, no money moved;
+ *                                          the kind says when a new attempt
+ *                                          may follow;
+ *         setNotSent($reason, $why)        nothing reached the provider: the
+ *                                          same attempt may be sent again, or
+ *                                          an earlier attempt of the order is
+ *                                          unresolved.
  *         A handler that throws, or returns without answering, is NOT a
  *         failure: nobody can say whether the request left, so the caller
- *         books nothing, never charges again and asks an operator to review.
- *         Once an answer says money may have moved (success or pending), a
- *         later setFailure() does not replace it.
+ *         never charges again and asks an operator to review. Once an answer
+ *         says money may have moved (success or pending), a later failure or
+ *         not-sent answer does not replace it.
  *
  * @since  2.0.0
  */
@@ -42,7 +55,6 @@
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
 use Alfa\Component\Alfa\Site\Service\Order\Order;
-use Joomla\CMS\Event\AbstractImmutableEvent;
 
 defined('_JEXEC') or die;
 
@@ -50,28 +62,16 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use InvalidArgumentException;
 
-class ChargeReferenceEvent extends AbstractImmutableEvent
+class ChargeReferenceEvent extends ChargeAnswerEvent
 {
     /**
-     * Outcome: the provider confirmed the charge.
+     * The event's name: the gateway's public method of this name handles it, addressed to the gateway of the stored
+     * credential alone (AlfaPluginHelper::bootSingle(), declares() and dispatchTo()).
      *
-     * @since  2.0.0
+     * @var string
+     * @since  2.3.0
      */
-    public const OUTCOME_SUCCESS = 'success';
-
-    /**
-     * Outcome: the provider refused the charge, or it was never sent.
-     *
-     * @since  2.0.0
-     */
-    public const OUTCOME_FAILURE = 'failure';
-
-    /**
-     * Outcome: the provider may have taken the money and has not said so.
-     *
-     * @since  2.0.0
-     */
-    public const OUTCOME_PENDING = 'pending';
+    public const NAME = 'onPaymentChargeReference';
 
     /**
      * The order this charge pays for.
@@ -128,8 +128,8 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     }
 
     /**
-     * Operation kind: 'charge' today; room for 'capture'/'void' later
-     * without a new event shape.
+     * The operation the caller asks of the stored reference: 'charge' when it
+     * names none.
      *
      * @since  2.0.0
      */
@@ -143,11 +143,12 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
      *
      * The dispatcher sets it (core never dispatches this event): 1 for the
      * first attempt, one more for each new attempt after a failure, and the
-     * same number again when it dispatches the same attempt again. A gateway
-     * builds its idempotency key from it (with the order and the reference),
-     * so a new attempt is a new request at the provider and the same attempt
-     * sent again is recognised as the same one. A dispatcher that does not set
-     * it (the October Subscriptions engine) dispatches attempt 1.
+     * same number again when it sends the same attempt again (after a not-sent
+     * answer with NOT_SENT_RETRY). The attempt's row reference is derived from
+     * it with the order and the credential (PaymentsPlugin::renewalReference()),
+     * so a new attempt is a new row and a new request at the provider, and the
+     * same attempt sent again finds its own row. A dispatcher that does not set
+     * it dispatches attempt 1.
      *
      * @return int The attempt's number, at least 1.
      *
@@ -180,153 +181,68 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     }
 
     /**
-     * Report a charge the provider confirmed, for exactly getAmount() in
-     * getCurrencyCode().
+     * Report a charge the provider confirmed, for exactly getAmount() in getCurrencyCode(), naming the payment row
+     * the gateway booked for this attempt (chargeAttempt()) and settled completed.
      *
-     * @param string $transactionId The provider's id of the new charge,
-     *                              exactly as it gave it. One that cannot be
-     *                              booked exactly as sent (see setPending())
-     *                              is not booked: the caller asks for review
-     *                              at once and never charges again.
+     * @param string $transactionId The provider's id of the new charge, exactly as it gave it.
+     * @param int $paymentId The payment row of this attempt, booked by the gateway before the provider was called.
      *
-     * @since  2.0.0
-     */
-    public function setSuccess(string $transactionId): void
-    {
-        $this->answer(outcome: self::OUTCOME_SUCCESS, reference: $transactionId, message: '');
-    }
-
-    /**
-     * Report a charge that did not happen: the provider refused it, or the
-     * plugin refused to send it. No money moved, so the caller may bill the
-     * cycle again: dunning retries it, and the renewal order stays owed.
-     *
-     * Ignored after setSuccess() or setPending(): an answer that says money
-     * may have moved is never taken back by a later error.
-     *
-     * @param string $error Operator-safe reason (translated, no secrets).
+     * @throws InvalidArgumentException When no row is named (an id under 1).
      *
      * @since  2.0.0
      */
-    public function setFailure(string $error): void
+    public function setSuccess(string $transactionId, int $paymentId): void
     {
-        $this->answer(outcome: self::OUTCOME_FAILURE, reference: '', message: $error);
+        $this->answer(outcome: self::OUTCOME_SUCCESS, reference: $transactionId, message: '', paymentId: self::bookedRow($paymentId, 'setSuccess'));
     }
 
     /**
-     * Report a charge whose outcome is unknown: the provider may have taken
-     * the money and has not confirmed it. The caller records a PENDING
-     * payment row carrying $reference and never charges the cycle again; the
-     * gateway's webhook or Reconcile settles that row through its finaliser.
+     * Report a charge whose outcome is unknown: the provider may have taken the money and has not confirmed it. The
+     * gateway's row of this attempt stays pending and the caller never charges the attempt again; the gateway's
+     * webhook or Reconcile settles the row.
      *
-     * @param string $reference What the webhook and Reconcile match the row by:
-     *                          the provider's id of this charge when it gave
-     *                          one, else the merchant reference sent with the
-     *                          request, exactly as sent (never trimmed or cut).
-     *                          One that is empty, carries a control character,
-     *                          is not UTF-8, or is longer than the ledger's
-     *                          reference column holds cannot be booked exactly
-     *                          as sent: the caller then books no row and asks
-     *                          for review at once.
+     * @param string $reference What the webhook and Reconcile match the row by: the provider's id of this charge when
+     *                          it gave one, else the reference the row was booked with, exactly as sent.
      * @param string $reason Operator-safe reason (translated, no secrets).
+     * @param int $paymentId The payment row of this attempt, booked by the gateway before the provider was called.
+     *
+     * @throws InvalidArgumentException When no row is named (an id under 1).
      *
      * @since  2.0.0
      */
-    public function setPending(string $reference, string $reason): void
+    public function setPending(string $reference, string $reason, int $paymentId): void
     {
-        $this->answer(outcome: self::OUTCOME_PENDING, reference: $reference, message: $reason);
+        $this->answer(outcome: self::OUTCOME_PENDING, reference: $reference, message: $reason, paymentId: self::bookedRow($paymentId, 'setPending'));
     }
 
     /**
-     * The plugin's answer: one of the OUTCOME_* constants, '' when it gave
-     * none.
+     * The payment row a success or a pending answer names (0 for any other answer, or none).
      *
-     * @since  2.0.0
+     * @since  2.3.0
      */
-    public function getOutcome(): string
+    public function getPaymentId(): int
     {
-        return (string) ($this->arguments['outcome'] ?? '');
+        return \in_array($this->getOutcome(), [self::OUTCOME_SUCCESS, self::OUTCOME_PENDING], true) ? (int) $this->arguments['answerPaymentId'] : 0;
     }
 
     /**
-     * Whether the provider confirmed the charge.
+     * The row an answer that says money may have moved must name.
      *
-     * @since  2.0.0
+     * @param int $paymentId The id given.
+     * @param string $answer The answer's method, for the message.
+     *
+     * @return int The id.
+     *
+     * @throws InvalidArgumentException When it is under 1.
+     *
+     * @since  2.3.0
      */
-    public function isSuccess(): bool
+    private static function bookedRow(int $paymentId, string $answer): int
     {
-        return $this->getOutcome() === self::OUTCOME_SUCCESS;
-    }
-
-    /**
-     * Whether the outcome is unknown and awaits the provider's confirmation.
-     *
-     * @since  2.0.0
-     */
-    public function isPending(): bool
-    {
-        return $this->getOutcome() === self::OUTCOME_PENDING;
-    }
-
-    /**
-     * The provider's id of a successful charge ('' otherwise).
-     *
-     * @since  2.0.0
-     */
-    public function getTransactionId(): string
-    {
-        return $this->isSuccess() ? (string) $this->arguments['answerReference'] : '';
-    }
-
-    /**
-     * The reference a pending charge is matched by ('' otherwise).
-     *
-     * @since  2.0.0
-     */
-    public function getPendingReference(): string
-    {
-        return $this->isPending() ? (string) $this->arguments['answerReference'] : '';
-    }
-
-    /**
-     * Why a pending charge is unconfirmed ('' otherwise).
-     *
-     * @since  2.0.0
-     */
-    public function getPendingReason(): string
-    {
-        return $this->isPending() ? (string) $this->arguments['answerMessage'] : '';
-    }
-
-    /**
-     * The reason of a failed charge ('' otherwise).
-     *
-     * @since  2.0.0
-     */
-    public function getError(): string
-    {
-        return $this->getOutcome() === self::OUTCOME_FAILURE ? (string) $this->arguments['answerMessage'] : '';
-    }
-
-    /**
-     * Record the plugin's answer; a later answer replaces an earlier one
-     * whole, so no field of it survives into the next. The exception: a
-     * failure never replaces an answer that says money may have moved.
-     *
-     * @param string $outcome One of the OUTCOME_* constants.
-     * @param string $reference Transaction id or pending reference.
-     * @param string $message Failure error or pending reason.
-     *
-     * @since  2.0.0
-     */
-    private function answer(string $outcome, string $reference, string $message): void
-    {
-        if ($outcome === self::OUTCOME_FAILURE && \in_array($this->getOutcome(), [self::OUTCOME_SUCCESS, self::OUTCOME_PENDING], true)) {
-            return;
+        if ($paymentId < 1) {
+            throw new InvalidArgumentException('ChargeReferenceEvent::' . $answer . '(): name the payment row booked for this attempt (chargeAttempt()); got ' . $paymentId . '.');
         }
 
-        $this->arguments['outcome'] = $outcome;
-        $this->arguments['answerReference'] = $reference;
-        $this->arguments['answerMessage'] = $message;
+        return $paymentId;
     }
 }

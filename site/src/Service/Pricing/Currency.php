@@ -248,6 +248,47 @@ class Currency
     }
 
     /**
+     * Every currency the shop trades in: the published ones, in the order the shop gave them (the currencies list's
+     * Ordering, then the id). An unpublished, archived or trashed currency is never listed; the currency of an
+     * existing order is read with loadById(), whatever its state.
+     *
+     * For an extension that must check its own settings against the shop's currencies (a gateway's checkup that the
+     * provider accepts each of them), without reading the currencies' table itself:
+     *
+     *   foreach (Currency::published() as $currency) { $currency->getCode(); $currency->getDecimalPlaces(); }
+     *
+     * Read on each call, so a currency published or unpublished earlier in the request is seen as it is now.
+     *
+     * @api READ ONLY: the published currencies; writes nothing.
+     *
+     * @return list<self> Empty when the shop publishes none.
+     *
+     * @throws RuntimeException When a published currency's stored decimals are not a supported scale (fromDatabase()).
+     *
+     * @since  2.3.0
+     */
+    public static function published(): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select('*')
+                ->from($db->quoteName('#__alfa_currencies'))
+                ->where($db->quoteName('state') . ' = 1')
+                ->order([$db->quoteName('ordering') . ' ASC', $db->quoteName('id') . ' ASC']),
+        )->loadObjectList() ?: [];
+        $currencies = [];
+
+        foreach ($rows as $row) {
+            $currency = self::fromDatabase($row);
+            self::cacheAll($currency, published: true);
+            $currencies[] = $currency;
+        }
+
+        return $currencies;
+    }
+
+    /**
      * Get default currency from component configuration
      * @since  1.0.0
      */

@@ -41,6 +41,8 @@
  *
  *  THE GATEWAY'S BOOKS:
  *    $due     = $this->orderBalance(orderId: $orderId);                          // signed Money: > 0 owed, < 0 overpaid
+ *    $room    = $this->collectableNow(paymentId: $paymentId);                    // what your open row may still collect when settled
+ *    $answer  = $this->withLockWait(seconds: 8, work: fn () => ...);              // a notification's writes wait at most 8 s for the order
  *    $holders = $this->countReferenceHolders(reference: $txId, types: [self::TYPE_PAYMENT]);
  *    $rowId   = $this->findOwnRowByReference(reference: $refundId, types: [self::TYPE_REFUND]); // the one row, or null
  *    $kind    = $this->refundTypeFor(paymentId: $paymentId, amount: $refund);   // self::REFUND_FULL or self::REFUND_PARTIAL
@@ -52,6 +54,8 @@
  *    $methods = $this->ownMethods();                                             // this plugin's published methods, by id
  *    $retry   = $this->failRefundAttempt($reservationId, $failedRefundId, $why); // keep the reservation for the retry
  *    $this->recordActionLog('PLG_ALFA_PAYMENTS_<YOU>_LOG_REFUND_STARTED', ['title' => '#12'], $orderId); // User Actions Log
+ *    $rowId   = $this->recordActionLogPending('PLG_ALFA_PAYMENTS_<YOU>_LOG_CLOSED', ['title' => '#12'], $orderId); // a row to take back
+ *    $gone    = $this->withdrawActionLog($rowId);                               // ...when the act it records did not stand
  *
  *  WRITES OF A BUYER'S VISIT, each answering WHY (a PaymentWriteVerdict: decide on ->kind, then ->code):
  *    $open    = $this->latestPendingPayment($orderId);                           // 0. your own open attempt first: resume, claim or close it
@@ -62,11 +66,19 @@
  *    $verdict = $this->paymentUpdate($rowId)->transactionId($providerId)->saveWithVerdict(); // 3. the provider's id on the row
  *    $verdict = $this->settleAttemptVerdict($write, $orderId, $txId);            // the settle, its CRITICAL or WARNING line kept
  *    $verdict = $this->supersedeAttemptVerdict($paymentId, 'New gateway visit'); // close your own attempt, never another gateway's
+ *    $verdict = $this->failCapture($paymentId, $providerReason);              // a capture your provider accepted did not stand
  *    $verdict = $this->claimPendingAttemptVerdict(paymentId: $paymentId, reference: $sessionId); // a placement row without a reference
  *    // WRITTEN with ->existing true on a pending row: your provider call may have been made; make it safe to repeat
  *    // (the provider's idempotency key from the reference) or ask the provider by the reference before creating anything
  *    // call these outside any transaction of your own: inside one that has already read, the reference lookup sees its
  *    // older snapshot
+ *
+ *  A RENEWAL (supportsRecurring() answers true; your onPaymentChargeReference(ChargeReferenceEvent $event)):
+ *    $verdict = $this->chargeAttempt($event)->saveWithVerdict();               // the attempt's row first, its reference renewalReference()
+ *    // only VERDICT_WRITTEN calls the provider, keyed on that reference; settle your row, then answer naming it:
+ *    $event->setSuccess($providerId, $verdict->rowId);                          // or setPending($ref, $why, $verdict->rowId)
+ *    $event->setFailure($why, ChargeReferenceEvent::DECLINE_FINAL);             // or setNotSent($why, ChargeReferenceEvent::NOT_SENT_RETRY)
+ *    $may = $this->renewalsAllowed($methodId);                                  // the gateway, the method published, its own setting
  *
  *  THE RULE: this class is the supported payment API. A gateway never calls
  *  PaymentLedger and never reads or writes #__alfa_order_payments itself;
@@ -75,6 +87,7 @@
  *
  *  LOGGING (inherited from Plugin.php):
  *    $logId = $this->log(['id_order' => $orderId, ...]);
+ *    $line  = ErrorText::of($e);                                               // an exception's text safe for a log line (no database user, host, schema or credential)
  *    $logs  = $this->loadLogs($orderId, $paymentId);
  *    $xml   = $this->getLogsSchema();
  *
@@ -94,6 +107,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
+use Alfa\Component\Alfa\Administrator\Event\Payments\ChargeReferenceEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\PaymentToken;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
@@ -101,6 +115,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasActionLogTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasOrderContextTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasTransportUrlsTrait;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Order\MethodState;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
@@ -110,6 +125,7 @@ use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Order\Payment;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
+use Closure;
 use InvalidArgumentException;
 use Joomla\CMS\Application\SiteApplication;
 use Joomla\CMS\Factory;
@@ -1376,6 +1392,37 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     }
 
     /**
+     * Record that a capture your provider accepted did not stand: the money did not arrive after all (a card scheme
+     * rejected the capture later). Your completed payment moves to failed, the order is owed its amount again, and
+     * staff are told on the order; nothing is refunded and nothing is sent to the customer. Bookkeeping: the method's
+     * status map does not run, so the order's status, its e-mails and its download access stay as they are; staff
+     * decide what follows.
+     *
+     * Answer your provider 200 on VERDICT_WRITTEN and on VERDICT_RACED (no longer completed: the same report again);
+     * VERDICT_REFUSED with REFUSAL_HISTORY_LOCKED means a refund or a chargeback names the payment: keep your staff
+     * record, the order is settled by hand; VERDICT_LOCK_NOT_TAKEN and VERDICT_WRITE_FAILED: 503, so the provider
+     * delivers again.
+     *
+     * Usage:
+     *   $verdict = $this->failCapture($paymentId, 'The card scheme rejected the capture (code 905).');
+     *
+     * @api ANSWERS: a PaymentWriteVerdict; this plugin's own completed payments only.
+     *
+     * @param int $paymentId Your completed payment whose capture did not stand.
+     * @param string $reason What your provider reported, operator-safe (no secrets).
+     *
+     * @return PaymentWriteVerdict What the write did.
+     *
+     * @throws Throwable A failure that ended a database transaction you hold open.
+     *
+     * @since  2.3.0
+     */
+    final protected function failCapture(int $paymentId, string $reason): PaymentWriteVerdict
+    {
+        return PaymentLedger::failCapture(paymentId: $paymentId, reason: $reason, writer: (string) $this->_name);
+    }
+
+    /**
      * Record that a booked refund, or a chargeback, did not stand at the provider.
      *
      * A fact the provider has already stated; no gateway is called. The refund
@@ -1452,7 +1499,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * RECURRING CONTRACT: whether this gateway can charge a stored
      * credential off-session (merchant-initiated transactions).
      *
-     * Gateways that return true implement two boot-and-call handlers:
+     * Gateways that return true implement these handlers, each the public
+     * method of the event's name, called on this gateway alone:
      *
      *   onPaymentStoreReference(StoreReferenceEvent $event): void
      *     After a successful customer-present payment: extract whatever the
@@ -1464,58 +1512,98 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *     A GENERIC payment attempt: charge getAmount()/getCurrencyCode()
      *     against getReference() with no customer present, then answer
      *     exactly once. The gateway never knows WHY it is charging (renewal,
-     *     re-charge, ...); the caller writes the payment row and the method's
-     *     status_on_<phase> automation map drives the order.
+     *     re-charge, ...). The attempt's payment row is the gateway's, booked
+     *     before the provider is called, as for a checkout payment; the
+     *     caller books nothing and reads the row the answer names.
      *
-     *     setSuccess($transactionId)
+     *     1. An earlier attempt of this order still unresolved (your own
+     *        pending row of the order under another reference,
+     *        latestPendingPayment(), or one your provider still holds): book
+     *        nothing, send nothing, answer
+     *        setNotSent($why, ChargeReferenceEvent::NOT_SENT_EARLIER_UNRESOLVED).
+     *     2. Book the attempt's row:
+     *          $verdict = $this->chargeAttempt($event)->saveWithVerdict();
+     *        a pending payment of your gateway for getAmount(), its reference
+     *        renewalReference() of the order, the credential and the attempt's
+     *        number. The same attempt sent again answers the same row and
+     *        writes nothing new. Only VERDICT_WRITTEN goes on to the provider.
+     *        VERDICT_LOCK_NOT_TAKEN and VERDICT_WRITE_FAILED: setNotSent()
+     *        with NOT_SENT_RETRY. VERDICT_REFUSED with REFUSAL_OPEN_ATTEMPT:
+     *        setNotSent() with NOT_SENT_EARLIER_UNRESOLVED. Any other refusal
+     *        (REFUSAL_OVER_TOTAL: the order is covered; REFUSAL_REFERENCE_TAKEN:
+     *        this attempt's row is already closed, so this number is spent):
+     *        setFailure() with DECLINE_CONFIGURATION.
+     *     3. Call the provider with the row's reference as the merchant
+     *        reference and the idempotency key. A provider that cannot take it
+     *        as it is may be sent a form derived from it alone; your webhook
+     *        and Reconcile still find the row by the row's own reference, or
+     *        by the provider's id once you write it on the row.
+     *     4. Settle your row as any attempt (settleAttemptVerdict(); the
+     *        method's status_on_<phase> map runs when it completes), then
+     *        answer, naming it:
+     *
+     *     setSuccess($transactionId, $verdict->rowId)
      *       The provider confirmed THIS charge as taken, for exactly the
-     *       amount and currency asked. Pass the provider's id of the new
-     *       charge, exactly as it gave it. The caller books it as completed;
-     *       an id it cannot book exactly as sent (see setPending) is not
-     *       booked, and the caller asks an operator to review at once.
+     *       amount and currency asked, and your row is settled completed with
+     *       the provider's id of the charge, exactly as it gave it.
      *
-     *     setFailure($error)
+     *     setPending($reference, $reason, $verdict->rowId)
+     *       The provider may have taken money: your row stays pending, the
+     *       caller never charges that attempt again, and your webhook or
+     *       Reconcile settles it (settleAttempt() with
+     *       ->expectStatus(self::STATUS_PENDING) and ->completed() when the
+     *       provider confirms, ->failed() when it definitively refuses). Use it
+     *       whenever the request may have reached the provider and you hold no
+     *       definite answer: a timeout or dropped connection after sending,
+     *       HTTP 0 or 5xx, an unreadable body, a status the provider itself
+     *       calls pending or processing, or a "success" whose amount, currency
+     *       or identity does not match what was asked. $reference is what your
+     *       webhook and Reconcile find the row by through
+     *       gatewayPaymentByReference(): the provider's id of this charge when
+     *       it gave one (write it on the row), else the row's reference.
+     *
+     *     setFailure($error, $decline)
      *       No money moved, and you know it: the provider answered with a
-     *       definite refusal (declined, expired or revoked token, insufficient
-     *       funds), or you refused to send the request (bad reference, wrong
-     *       currency or scale, missing credentials). The caller books nothing
-     *       and bills the cycle again: dunning retries it, and the renewal
-     *       order stays owed. Once you have answered success or pending, a
-     *       later setFailure() is ignored.
+     *       definite refusal, or you refused to send the request. Close your
+     *       row failed first. The attempt is spent; the kind says when the
+     *       caller may try a new one: DECLINE_NOW (declined for now: funds, a
+     *       generic decline; the default), DECLINE_FINAL (declined for good:
+     *       stolen, closed account, revoked mandate, expired card),
+     *       DECLINE_AUTHENTICATE (the customer must confirm the payment),
+     *       DECLINE_NEW_CREDENTIAL (the customer must give a new credential),
+     *       DECLINE_CONFIGURATION (the method's settings, the currency or scale,
+     *       a credential of the other credential set, the order's books: staff
+     *       must act). Once you have answered success or pending, a later
+     *       failure is ignored.
      *
-     *     setPending($reference, $reason)
-     *       The provider may have taken money; do not charge again; the
-     *       webhook or Reconcile settles it. Use it whenever the request may
-     *       have reached the provider and you hold no definite answer: a
-     *       timeout or dropped connection after sending, HTTP 0 or 5xx, an
-     *       unreadable body, a status the provider itself calls pending or
-     *       processing, or a "success" whose amount, currency or identity does
-     *       not match what was asked. $reference is what your webhook and
-     *       Reconcile will find the row by through gatewayPaymentByReference():
-     *       the provider's id of this charge when it gave one, else the
-     *       merchant reference you sent with the request, exactly as sent,
-     *       never trimmed or cut. The caller books a PENDING payment row of
-     *       your gateway with that transaction_id and the charged amount, and
-     *       never charges that cycle again. A reference that is empty,
-     *       carries a control character, is not UTF-8, or is longer than the
-     *       ledger's transaction_id column holds cannot be booked exactly as
-     *       sent, so the caller books no row and asks an operator to review
-     *       at once.
-     *       Settle the row with the same finaliser as any other pending
-     *       attempt: settleAttempt() with ->expectStatus(self::STATUS_PENDING) and
-     *       ->completed() when the provider confirms, ->failed() when it
-     *       definitively refuses.
+     *     setNotSent($reason, $why)
+     *       Nothing reached the provider for this attempt and no money moved.
+     *       NOT_SENT_RETRY (the default): leave your row pending as it is; the
+     *       caller sends the same attempt again, with the same number, and
+     *       finds it. NOT_SENT_EARLIER_UNRESOLVED: an earlier attempt of the
+     *       order is unresolved; book nothing.
      *
      *     Never throw and never return without answering: the caller treats
-     *     both as an unknown outcome with no row to settle, books nothing,
-     *     never charges again and asks an operator to review.
+     *     both as an unknown outcome, never charges again and asks an operator
+     *     to review (or asks you first, below).
      *
-     * Gateways without token support keep the default false; such methods
-     * fall back to manual renewals (pay-link email) automatically.
+     *   onPaymentChargeQuery(ChargeQueryEvent $event): void (optional)
+     *     The caller asks, before it sends again an attempt whose outcome it
+     *     does not know, what your provider holds for it: find it by what you
+     *     keyed the request on (the order, the credential, the attempt and the
+     *     amount) and answer setSuccess($transactionId), setPending($reference,
+     *     $reason), setFailure($error, $decline), or setNotSent($reason) when
+     *     the provider has no record of it. Read only: charge nothing, write
+     *     nothing. A gateway without the method cannot be asked; the caller
+     *     leaves the attempt to staff.
+     *
+     * Gateways without token support keep the default false: a renewal on
+     * such a method is never charged by the gateway; its order stays owed, for
+     * the customer to pay and staff to collect.
      *
      * This states only what the gateway can do. Whether a method actually
-     * renews on its own is renewalsAllowed(): this AND the method's own
-     * setting (methodAllowsRenewals()).
+     * renews on its own is renewalsAllowed(): this, the method published, and
+     * the method's own setting (methodAllowsRenewals()).
      *
      * @api HOOK: whether this gateway can charge a stored credential off-session; false by default.
      *
@@ -1592,15 +1680,17 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
 
     /**
      * Whether a renewal of this method may run without the customer: the
-     * gateway can do it at all (supportsRecurring()) and the method's saved
-     * settings allow it (methodAllowsRenewals()).
+     * gateway can do it at all (supportsRecurring()), the method is published
+     * (MethodState::of()), and the method's saved settings allow it
+     * (methodAllowsRenewals()).
      *
      * The one answer a subscriptions extension's billing engine asks, both before
      * it asks for a mandate and before it charges a stored one. A method of another gateway,
-     * or none, is false.
+     * or none, is false; so is an unpublished, archived or trashed method: no new renewal
+     * starts on it (settling an attempt already made stays the gateway's).
      *
-     * @api READ ONLY: whether a renewal of the method may run without the customer; another gateway's method, or none,
-     *      is false.
+     * @api READ ONLY: whether a renewal of the method may run without the customer; another gateway's method, a method
+     *      that is not published, or none, is false.
      *
      * @param int $methodId #__alfa_payments.id.
      *
@@ -1615,7 +1705,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
 
         $method = $this->loadPaymentMethod($methodId);
 
-        if ($method === null) {
+        if ($method === null || !MethodState::of(MethodState::PAYMENT, $methodId)->isPublished()) {
             return false;
         }
 
@@ -1641,6 +1731,73 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     protected function methodAllowsRenewals(array $params): bool
     {
         return false;
+    }
+
+    /**
+     * The reference of a renewal attempt's payment row: one value for the order, the stored credential and the
+     * attempt's number, the same every time they are the same, so the same attempt sent again finds its own row and a
+     * new attempt is a new row. The credential's keys are read in sorted order, so their order does not change it.
+     *
+     * The form: rn-<order id>-<16 hexadecimal digits of the credential's SHA-256>-a<attempt>, letters, digits and
+     * hyphens, at most 60 characters. The row is booked with it (chargeAttempt()), and it is what the provider is sent
+     * as the merchant reference and idempotency key.
+     *
+     * @api READ ONLY: a value computed from its arguments; reads and writes nothing.
+     *
+     * @param Order $order The order the attempt pays for.
+     * @param array $credential The stored credential, as ChargeReferenceEvent::getReference() gives it.
+     * @param int $attempt The attempt's number, from 1, as ChargeReferenceEvent::getAttempt() gives it.
+     *
+     * @return string The reference.
+     *
+     * @throws InvalidArgumentException An order without an id, an empty credential, or an attempt under 1.
+     *
+     * @since  2.3.0
+     */
+    final protected function renewalReference(Order $order, array $credential, int $attempt): string
+    {
+        if ($order->id() < 1 || $credential === [] || $attempt < 1) {
+            throw new InvalidArgumentException('renewalReference(): an order with an id, a stored credential and an attempt of at least 1 are required.');
+        }
+
+        $sorted = static function (array $value) use (&$sorted): array {
+            ksort($value, SORT_STRING);
+
+            return array_map(static fn (mixed $part): mixed => \is_array($part) ? $sorted($part) : $part, $value);
+        };
+        $digest = hash('sha256', json_encode($sorted($credential), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+        return 'rn-' . $order->id() . '-' . substr($digest, 0, 16) . '-a' . $attempt;
+    }
+
+    /**
+     * The builder of a renewal attempt's payment row, booked by the gateway before it calls the provider: a pending
+     * payment of this gateway for the charge's amount, its reference renewalReference() of the charge's order,
+     * credential and attempt. Finish it with ->saveWithVerdict() and go on to the provider only on VERDICT_WRITTEN; the
+     * same attempt sent again answers the same row and writes nothing (supportsRecurring() states the whole sequence).
+     *
+     * Usage:
+     *   $verdict = $this->chargeAttempt($event)->saveWithVerdict();
+     *   if ($verdict->kind !== self::VERDICT_WRITTEN) { ...answer not sent, or a failure, by the verdict... }
+     *
+     * @api ANSWERS: the ledger in builder mode with this plugin as the writer, its saveWithVerdict() the verdict.
+     *
+     * @param ChargeReferenceEvent $event The charge this gateway was handed.
+     *
+     * @return PaymentLedger The builder; finish with ->saveWithVerdict().
+     *
+     * @throws InvalidArgumentException When the charge's order, credential or attempt cannot make a reference.
+     *
+     * @since  2.3.0
+     */
+    final protected function chargeAttempt(ChargeReferenceEvent $event): PaymentLedger
+    {
+        $order = $event->getOrder();
+
+        return $this->payment($order)
+            ->pending()
+            ->amount($event->getAmount())
+            ->transactionId($this->renewalReference(order: $order, credential: $event->getReference(), attempt: $event->getAttempt()));
     }
 
     /**
@@ -2252,6 +2409,71 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
         }
 
         return PaymentLedger::balance(orderId: $orderId);
+    }
+
+    /**
+     * What one of this plugin's payment rows may still collect when it is settled: the order's total less what the
+     * order holds against it with this row left out (its pending, authorized and completed payments of every gateway,
+     * less its chargebacks and the settled refunds of money still recorded), never below zero, in the order's currency
+     * and scale.
+     *
+     * Ask it before the provider captures or charges an authorized or pending row, and take no more than it answers:
+     * the row's settle checks the same rule under the order's lock and refuses what does not fit
+     * (REFUSAL_OPEN_ATTEMPT while another payment of the order is open, REFUSAL_OVER_TOTAL otherwise), after the
+     * provider has already taken the money. orderBalance() is not that check: it counts completed payments only, so a
+     * capture it allows can still be refused at the settle.
+     *
+     * Read without the lock, so never a guarantee: the settle decides. A row of another gateway, a row that is not a
+     * payment, and a payment no longer pending or authorized answer zero.
+     *
+     * Usage:
+     *   $room = $this->collectableNow(paymentId: $paymentId);
+     *   if ($capture->greaterThan($room)) { ...capture no more than $room, or offer no capture... }
+     *
+     * @api READ ONLY: what the row may still collect; zero for another gateway's row, a row that is not a payment, or
+     *      a payment no longer pending or authorized.
+     *
+     * @param int $paymentId One of this plugin's payment rows.
+     *
+     * @return Money In the order's currency and scale, never negative.
+     *
+     * @throws OrderCurrencyException When the row's order does not exist or names no currency.
+     *
+     * @since  2.3.0
+     */
+    final protected function collectableNow(int $paymentId): Money
+    {
+        return PaymentLedger::collectableNow(paymentId: $paymentId, gateway: (string) $this->_name);
+    }
+
+    /**
+     * Run ledger work with a bounded wait for the order's lock: inside $work, every write of the books on an order
+     * waits at most $seconds for the order another operation holds, then answers as for any lock it could not take (a
+     * verdict write VERDICT_LOCK_NOT_TAKEN, nothing written). Without it, a write waits the database server's own
+     * limit (50 seconds by default).
+     *
+     * For your provider's notification handler, which must answer within the provider's window: past the bound,
+     * answer "not accepted" (a 503) and let the provider deliver again; the next delivery writes once the order is
+     * free. A bound inside a bound keeps the shorter.
+     *
+     * Usage:
+     *   $verdict = $this->withLockWait(seconds: 8, work: fn () => $this->settleAttemptVerdict($write, $orderId, $txId));
+     *   if ($verdict->kind === self::VERDICT_LOCK_NOT_TAKEN) { ...answer 503: the provider delivers again... }
+     *
+     * @api ANSWERS: what $work returns; the books' writes inside it wait at most the bound for an order's lock.
+     *
+     * @param int $seconds The bound, 1 to 30 seconds.
+     * @param Closure $work The work, calls of this class's writes.
+     *
+     * @return mixed What $work returns.
+     *
+     * @throws InvalidArgumentException When the bound is outside 1 to 30; $work is not run.
+     *
+     * @since  2.3.0
+     */
+    final protected function withLockWait(int $seconds, Closure $work): mixed
+    {
+        return PaymentLedger::withLockWait(seconds: $seconds, work: $work);
     }
 
     /**

@@ -3417,6 +3417,42 @@ class PaymentLedger
     }
 
     /**
+     * Run ledger work whose wait for an order's lock is bounded: inside $work, each lock the ledger takes on an order
+     * waits at most $seconds, then the write answers as for any lock it could not take (a verdict write
+     * VERDICT_LOCK_NOT_TAKEN, nothing written). Outside it, a lock waits the server's own limit
+     * (innodb_lock_wait_timeout, 50 seconds by default), longer than a provider waits for a notification's answer.
+     *
+     * For a provider's notification handler that must answer within the provider's window: past the bound it answers
+     * "not accepted" and the provider delivers again. A bound inside a bound keeps the shorter. The session's own
+     * limit is set for each lock statement and given back right after it, so nothing else in the work, and nothing
+     * after it, waits differently.
+     *
+     * @param int $seconds The bound, 1 to 30.
+     * @param Closure $work The ledger work; its answer is returned.
+     *
+     * @return mixed What $work returns.
+     *
+     * @throws InvalidArgumentException When the bound is outside 1 to 30; $work is not run.
+     *
+     * @since  2.3.0
+     */
+    public static function withLockWait(int $seconds, Closure $work): mixed
+    {
+        if ($seconds < 1 || $seconds > 30) {
+            throw new InvalidArgumentException('withLockWait(): the bound is 1 to 30 seconds; got ' . $seconds . '.');
+        }
+
+        $outer = self::$lockWait;
+        self::$lockWait = $outer === null ? $seconds : min($outer, $seconds);
+
+        try {
+            return $work();
+        } finally {
+            self::$lockWait = $outer;
+        }
+    }
+
+    /**
      * Lock one or more order rows FOR UPDATE, in a canonical order.
      *
      * Ascending by id, de-duplicated: when a write touches two orders, two
@@ -3440,6 +3476,40 @@ class PaymentLedger
         $ids = array_values(array_unique(array_filter($orderIds, static fn (int $id): bool => $id > 0)));
         sort($ids);
 
+        // Inside withLockWait() the lock waits the caller's bound, set on the session for these statements alone.
+        $serverWait = null;
+
+        if (self::$lockWait !== null && $ids !== []) {
+            $serverWait = (int) $db->setQuery('SELECT @@SESSION.innodb_lock_wait_timeout')->loadResult();
+            $db->setQuery('SET SESSION innodb_lock_wait_timeout = ' . self::$lockWait)->execute();
+        }
+
+        try {
+            return self::lockOrderRows($db, $ids);
+        } finally {
+            if ($serverWait !== null) {
+                try {
+                    $db->setQuery('SET SESSION innodb_lock_wait_timeout = ' . $serverWait)->execute();
+                } catch (Throwable $e) {
+                    // The lock's own answer stands; the session keeps the shorter wait until it ends.
+                    Log::add('[PaymentLedger] lockOrders(): the session\'s lock wait could not be set back to ' . $serverWait . ' seconds: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
+                }
+            }
+        }
+    }
+
+    /**
+     * Lock the order rows, in the order given ({@see self::lockOrders()}).
+     *
+     * @param object $db Database driver (already inside a transaction)
+     * @param int[] $ids Order PKs, ascending, above zero, each once
+     *
+     * @return bool False if any named order does not exist, or if the row cannot be locked (another writer holds it)
+     *
+     * @since  2.3.0
+     */
+    private static function lockOrderRows(object $db, array $ids): bool
+    {
         foreach ($ids as $id) {
             $db->setQuery(
                 'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_orders')
@@ -4837,6 +4907,124 @@ class PaymentLedger
     }
 
     /**
+     * A capture the provider reports did not stand: the payment was booked completed when the provider accepted the
+     * capture, and the money did not arrive after all (a card scheme rejected the capture later). The row moves from
+     * completed to failed, so the order is owed its amount again (its balance and what is still to collect count it
+     * no longer), and staff are told on the order (a notice). Nothing is refunded, nothing is sent to the customer.
+     *
+     * Written as bookkeeping, as a superseded attempt is: the method's status map does not run, so the order's status,
+     * its e-mails and its download access stay as they are; the write, its diff and the payment's activity entry are
+     * made. Staff decide what follows (ask the customer to pay again, or collect the money another way).
+     *
+     * Refused with REFUSAL_HISTORY_LOCKED when a refund that is not failed or cancelled, or a chargeback, names the
+     * payment: money given back or taken back from it would stand against money that never arrived, so staff settle
+     * that order by hand. Compare-and-set from completed: a payment no longer completed (the same report delivered
+     * again) is raced, nothing written.
+     *
+     * @param int $paymentId The payment row.
+     * @param string $reason What the provider reported, operator-safe (no secrets); stamped first into the row's note
+     *                       and shown in the notice.
+     * @param string $writer The payment plugin whose capture it was (PaymentsPlugin::failCapture()): another plugin's
+     *                       row is refused. '' for core.
+     *
+     * @return PaymentWriteVerdict Written when this call moved it; raced when it was no longer completed; refused with
+     *                             REFUSAL_ROW_MISSING (the row or its order is gone), REFUSAL_NOT_WRITER (another
+     *                             plugin's row, or a row that is not a payment) or REFUSAL_HISTORY_LOCKED;
+     *                             lock_not_taken; write_failed.
+     *
+     * @throws Throwable A failure that ended a database transaction the caller holds open.
+     *
+     * @since  2.3.0
+     */
+    public static function failCapture(int $paymentId, string $reason, string $writer = ''): PaymentWriteVerdict
+    {
+        return self::withVerdict(
+            write: static fn (): int => self::failCaptureWrite($paymentId, $reason, $writer),
+            create: false,
+            rowId: $paymentId,
+        );
+    }
+
+    /**
+     * The write of {@see self::failCapture()}.
+     *
+     * @param int $paymentId The payment row.
+     * @param string $reason What the provider reported.
+     * @param string $writer The payment plugin whose capture it was; '' for core.
+     *
+     * @return int WRITE_OK, WRITE_RACED or WRITE_FAILED, the verdict noted.
+     *
+     * @since  2.3.0
+     */
+    private static function failCaptureWrite(int $paymentId, string $reason, string $writer): int
+    {
+        $row = $paymentId > 0 ? self::getRaw($paymentId) : null;
+
+        if ($row === null || (int) ($row->id_order ?? 0) <= 0) {
+            self::warn("failCapture(): payment #{$paymentId} or its order does not exist");
+            self::noteVerdict(kind: self::VERDICT_REFUSED, code: self::REFUSAL_ROW_MISSING);
+
+            return self::WRITE_FAILED;
+        }
+
+        $orderId = (int) $row->id_order;
+
+        if ((string) ($row->payment_type ?? '') !== self::TYPE_PAYMENT
+            || ($writer !== '' && (string) ($row->payment_method_type ?? '') !== $writer)) {
+            self::warn("failCapture(): row #{$paymentId} is not a payment of the " . ($writer !== '' ? $writer : 'named') . ' plugin; only its own payment\'s capture can fail');
+            self::noteVerdict(kind: self::VERDICT_REFUSED, code: self::REFUSAL_NOT_WRITER, orderId: $orderId);
+
+            return self::WRITE_FAILED;
+        }
+
+        // Asked before the write and again under the order's lock, where a refund or chargeback written meanwhile is seen.
+        $unnamed = static fn (): bool => self::liveRefundsOf($paymentId) === []
+            && self::countFactsNaming(column: 'id_refunded_payment', rowId: $paymentId, type: self::TYPE_CHARGEBACK) === 0;
+
+        if (!$unnamed()) {
+            self::warn("failCapture(): payment #{$paymentId} has a refund or a chargeback; staff settle order #{$orderId} by hand");
+            self::noteVerdict(kind: self::VERDICT_REFUSED, code: self::REFUSAL_HISTORY_LOCKED, orderId: $orderId);
+
+            return self::WRITE_FAILED;
+        }
+
+        // The stamp goes first: note is varchar(255), and what is clipped is the older text.
+        $stamp = $reason !== '' ? 'Capture did not stand: ' . $reason : 'Capture did not stand';
+        $existing = trim((string) ($row->note ?? ''));
+        $note = $existing !== '' ? $stamp . ' | ' . $existing : $stamp;
+
+        $result = self::updateIfStatus(
+            $paymentId,
+            [
+                'id_order' => $orderId,
+                'transaction_status' => self::STATUS_FAILED,
+                'note' => mb_substr($note, 0, 255),
+            ],
+            self::STATUS_COMPLETED,
+            bookkeeping: true,
+            precondition: $unnamed,
+            writer: $writer,
+        );
+
+        if ($result === self::WRITE_OK) {
+            NotificationHelper::push(
+                'payments.capture.failed.' . $paymentId,
+                NotificationText::of('COM_ALFA_NOTIFY_PAYMENT_CAPTURE_FAILED_TITLE', $paymentId),
+                [
+                    'severity' => 'danger',
+                    'group' => NotificationHelper::GROUP_PAYMENTS,
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_PAYMENT_CAPTURE_FAILED_MSG', $reason !== '' ? $reason : '-'),
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                ],
+            );
+        }
+
+        return $result;
+    }
+
+    /**
      * Claim a gateway's pending attempt for a provider reference, and answer what the write did: the
      * claim {@see self::claimReference()} makes, as a {@see PaymentWriteVerdict}. Written when this call wrote the
      * reference; raced when the row is the gateway's but no longer a pending attempt without a reference (another
@@ -5024,7 +5212,9 @@ class PaymentLedger
      * @param array $options See above
      *
      * @return array ['outcome' => OUTCOME_*, 'refund_id' => int (0 when no
-     *               row was written), 'reason' => string (empty on success)]
+     *               row was written), 'reason' => string (empty on success),
+     *               'amount' => float (the amount the verdict concerns, in
+     *               major units)]
      *
      * @since  2.0.0
      */
@@ -11299,6 +11489,14 @@ class PaymentLedger
     private static bool $writeThrew = false;
 
     /**
+     * The bound on the wait for an order's lock inside {@see self::withLockWait()}, in seconds; null outside it, where
+     * the lock waits the server's own limit.
+     *
+     * @since  2.3.0
+     */
+    private static ?int $lockWait = null;
+
+    /**
      * The refusal create() kept for the refund start it last decided under the
      * order's lock, cleared as it is read.
      *
@@ -13824,6 +14022,52 @@ class PaymentLedger
         }
 
         return self::money(OrderFacts::forOrder($orderId)->still_held, $orderId);
+    }
+
+    /**
+     * What a payment row may still collect when it is settled: the order's total less what the order holds against it
+     * with this row left out (its pending, authorized and completed payments of every gateway, less its chargebacks and
+     * the settled refunds of money still recorded), never below zero. The rule the row's settle checks under the
+     * order's lock ({@see self::recheckCapsOnUpdate()}), read here without the lock: an answer, never a guarantee.
+     *
+     * Only an open payment answers more than zero: a row of type payment, pending or authorized. A row of another
+     * gateway (when $gateway names one), a refund, an authorization, a chargeback or a reversal, and a payment that is
+     * completed, failed, cancelled or refunded answer zero in the order's currency; an id with no row answers zero in
+     * the currency a new order takes.
+     *
+     * Not {@see self::balance()}, which counts completed payments only: the order's other open payments hold part of
+     * its total too, and the settle refuses what they leave no room for.
+     *
+     * @param int $paymentId The payment row.
+     * @param string|null $gateway The element of the gateway asking: a row of another gateway answers zero. Null reads
+     *                             the row whatever its gateway.
+     *
+     * @return Money In the order's currency and scale, never negative.
+     *
+     * @throws OrderCurrencyException When the row's order does not exist or names no currency.
+     *
+     * @since  2.3.0
+     */
+    public static function collectableNow(int $paymentId, ?string $gateway = null): Money
+    {
+        $row = $paymentId > 0 ? self::getRaw($paymentId) : null;
+
+        if ($row === null) {
+            return Money::zero(OrderCurrency::forNewOrder());
+        }
+
+        $orderId = (int) $row->id_order;
+        $open = (string) $row->payment_type === self::TYPE_PAYMENT
+            && \in_array((string) $row->transaction_status, [self::STATUS_PENDING, self::STATUS_AUTHORIZED], true)
+            && ($gateway === null || (string) ($row->payment_method_type ?? '') === $gateway);
+
+        if (!$open) {
+            return Money::zero(self::orderCurrency($orderId));
+        }
+
+        return self::money(self::orderGrandTotal(orderId: $orderId), $orderId)
+            ->subtract(self::heldAgainstTotal($orderId, excludeId: $paymentId))
+            ->nonNegative();
     }
 
     /**

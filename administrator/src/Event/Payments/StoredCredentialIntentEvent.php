@@ -31,6 +31,17 @@ defined('_JEXEC') or die;
 class StoredCredentialIntentEvent extends AbstractImmutableEvent
 {
     /**
+     * The event's name. Raised by a gateway that can charge stored credentials right before it creates its checkout
+     * order, for every enabled plugin that listens:
+     *
+     *   $intent = AlfaPluginHelper::get()->dispatch(new StoredCredentialIntentEvent(StoredCredentialIntentEvent::NAME, ['order' => $order]));
+     *
+     * @var string
+     * @since  2.3.0
+     */
+    public const NAME = 'onPaymentCredentialIntent';
+
+    /**
      * The order about to be paid.
      *
      * @since  2.0.0

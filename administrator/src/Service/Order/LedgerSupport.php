@@ -453,7 +453,7 @@ trait LedgerSupport
             throw new ValueException(sprintf(
                 '%s: the payload could not be encoded (%s).',
                 static::class,
-                $e->getMessage(),
+                ErrorText::of($e),
             ), 0, $e);
         }
     }
@@ -639,7 +639,7 @@ trait LedgerSupport
             mb_strlen($value),
             $column,
             $limit,
-            mb_substr($value, 0, 32),
+            ErrorText::of(mb_substr($value, 0, 32)),
         ));
     }
 

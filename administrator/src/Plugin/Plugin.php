@@ -66,6 +66,10 @@
  *   // Get XML schema (for the logs view template)
  *   $xml = $this->getLogsSchema();
  *
+ *   // An exception's text in a log line, a staff message or a log row: always through ErrorText, which removes the
+ *   // database user, host and schema and any credential the text carries
+ *   Log::add('Refund #' . $refundId . ' failed: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.payments.mygateway');
+ *
  *  METHOD-LEVEL LOG (facts about a method, not about an order)
  *
  * A setup checkup, a connection check or a verified notification belongs to
