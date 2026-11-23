@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 use Alfa\Component\Alfa\Administrator\Event\Api\ApiRequestEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -162,7 +163,7 @@ class ExtController extends ApiController
         try {
             $plugin = $plugins->resolve($id) ?? $plugins->bootSingle($id);
         } catch (PluginUnavailable $e) {
-            $this->refuseUnavailable($declaration->element, $e->reason, $e->getMessage());
+            $this->refuseUnavailable($declaration->element, $e->reason, ErrorText::of($e));
         }
 
         // A plugin without an onAlfaApiRequest() method takes no part: its addresses are not served.
@@ -187,7 +188,7 @@ class ExtController extends ApiController
         try {
             $plugins->dispatchTo($plugin, $event);
         } catch (Throwable $e) {
-            $this->fail($declaration, $e::class . ': ' . $e->getMessage());
+            $this->fail($declaration, $e::class . ': ' . ErrorText::of($e));
         }
 
         $answer = $event->answerGiven();
@@ -243,7 +244,7 @@ class ExtController extends ApiController
                     $document->addMeta((string) $key, $value);
                 }
             } catch (Throwable $e) {
-                $this->fail($declaration, $e::class . ': ' . $e->getMessage());
+                $this->fail($declaration, $e::class . ': ' . ErrorText::of($e));
             }
 
             $this->app->setHeader('status', (string) $status, true);
@@ -288,7 +289,7 @@ class ExtController extends ApiController
         try {
             return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         } catch (Throwable $e) {
-            $this->fail($declaration, $e::class . ': ' . $e->getMessage());
+            $this->fail($declaration, $e::class . ': ' . ErrorText::of($e));
         }
     }
 
@@ -329,7 +330,7 @@ class ExtController extends ApiController
         try {
             NotificationHelper::pluginUnavailable(PluginId::from(PanelDispatcher::PLATFORM_GROUP, $element), $reason);
         } catch (Throwable $e) {
-            Log::add('The alert for the extension ' . $element . ' could not be written (' . $e::class . ': ' . $e->getMessage() . ').', Log::ERROR, ApiRouteRegistrar::LOG);
+            Log::add('The alert for the extension ' . $element . ' could not be written (' . $e::class . ': ' . ErrorText::of($e) . ').', Log::ERROR, ApiRouteRegistrar::LOG);
         }
 
         $this->app->setHeader('Retry-After', (string) ApiRouteRegistrar::RETRY_AFTER, true);

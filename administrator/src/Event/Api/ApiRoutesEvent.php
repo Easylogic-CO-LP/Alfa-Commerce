@@ -36,7 +36,9 @@ use Joomla\CMS\Router\ApiRouter;
  * The router is one of the plugin's own for this call, empty: core reads the routes back, checks each against the rules
  * of {@see \Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRegistrar::accept()} and puts the accepted ones on the
  * application's router after core's own, under the plugin's prefix, v1/alfa/ext/<element>. A route that breaks a rule is
- * not added and is logged (com_alfa.api); the plugin's other routes are added.
+ * not added, and the plugin's other routes are; nothing is logged while a request is routed (before its token is
+ * checked): Tools, Security lists the refused route with the rule it breaks, and the log com_alfa.api gets a line for it
+ * when that screen reads the routes.
  *
  * @since  2.2.2
  */
