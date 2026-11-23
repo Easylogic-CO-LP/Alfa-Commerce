@@ -4796,15 +4796,20 @@ class ItemFieldsAdminHelper
             row: $row,
         );
 
+        // stock/available_quantity are inventory PROJECTIONS, written
+        // only by InventoryService, never here.
         $update = (object) [
             'id' => $combinationId,
-            'sku' => trim((string) ($row['sku'] ?? '')),
-            // stock/available_quantity are inventory PROJECTIONS, written
-            // only by InventoryService, never here.
-            'gtin' => (string) ($row['gtin'] ?? ''),
-            'mpn' => (string) ($row['mpn'] ?? ''),
             'modified_by' => (int) Factory::getApplication()->getIdentity()?->id,
         ];
+
+        // The identifiers the write sends: one it leaves out keeps its stored value (the variant window always posts
+        // all three; a REST PATCH or a service change sends only what changes). Clearing one sends ''.
+        foreach (['sku', 'gtin', 'mpn'] as $column) {
+            if (\array_key_exists($column, $row)) {
+                $update->{$column} = $column === 'sku' ? trim((string) $row[$column]) : (string) $row[$column];
+            }
+        }
 
         // Every scalar override, cast by the ONE registry the editor renders from:
         // no parallel column list to fall out of step with it.
