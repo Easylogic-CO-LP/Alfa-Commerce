@@ -1709,6 +1709,7 @@ class com_alfaInstallerScript extends InstallerScript
      *     repairTemplateLayouts()           - layout choices saved as "html:<name>", onto their template.
      *  1. applyDefaultParams()              - seeds / merges component config.
      *     seedDeliveryPlaceMapping()        - fresh installs only.
+     *     seedCustomerCancelStatus()        - fresh installs only.
      *     provisionDownloadStore()          - the download store and its Options path.
      *  2. InstallSteps::syncUsers()         - batch-inserts missing users.
      *  3. InstallSteps::syncUsergroups()    - batch-inserts missing groups.
@@ -1939,6 +1940,10 @@ class com_alfaInstallerScript extends InstallerScript
         // 1b. Point the shop's delivery destination at the country field the
         //     install SQL just seeded. Fresh installs only; see the method.
         $this->seedDeliveryPlaceMapping(type: $type);
+
+        // 1b2. Name the seeded Cancelled status as the one a customer's cancel moves
+        //      an order to. Fresh installs only: an update leaves it empty.
+        $this->seedCustomerCancelStatus(type: $type);
 
         // 1c. The download store: its recorded location, the folder, and the
         //     Options path that shows it (a reinstall resets the Options).
@@ -3730,6 +3735,27 @@ class com_alfaInstallerScript extends InstallerScript
 
         (new \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps(db: Factory::getContainer()->get('DatabaseDriver')))
             ->seedDeliveryPlaceMapping();
+    }
+
+    /**
+     * Name the install SQL's Cancelled status in the Options as the status a customer's cancel moves an order to
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps::seedCustomerCancelStatus()}), on a
+     * fresh install only: an update leaves the option empty, so the cancel stays off until the shop chooses.
+     *
+     * @param   string  $type  The installer's operation: only 'install' seeds.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function seedCustomerCancelStatus(string $type): void
+    {
+        if ($type !== 'install')
+        {
+            return;
+        }
+
+        (new \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps(db: Factory::getContainer()->get('DatabaseDriver')))
+            ->seedCustomerCancelStatus();
     }
 
     /**

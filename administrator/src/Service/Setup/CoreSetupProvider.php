@@ -215,6 +215,16 @@ final class CoreSetupProvider
                 views:    self::customerViews(),
             ));
 
+        // Optional: customers cancel their own orders only once the shop has chosen the status a cancelled order moves
+        // to and marked the statuses that allow it. Neither is ever inferred, so an updated shop starts with it off.
+        $this->check('orders.customer_cancel', 'COM_ALFA_SETUP_CHECK_CUSTOMER_CANCEL_LABEL')
+            ->tier(SetupCheck::TIER_OPTIONAL)
+            ->reason('COM_ALFA_SETUP_CHECK_CUSTOMER_CANCEL_REASON')
+            ->cta('index.php?option=com_config&view=component&component=com_alfa')
+            ->priority(640)
+            ->probe(static fn (): bool => \Alfa\Component\Alfa\Site\Service\Order\CustomerCancel::target() !== null
+                && self::exists(table: '#__alfa_orders_statuses', where: ['customer_can_cancel' => 1, 'state' => 1]));
+
         // Multilingual only: reachable in every language is half the contract: the
         // language switcher needs the copies ASSOCIATED or it drops the shopper on
         // the front page instead of the page they were reading. Silent on a

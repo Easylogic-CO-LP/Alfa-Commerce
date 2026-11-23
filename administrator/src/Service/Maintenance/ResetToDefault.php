@@ -27,11 +27,11 @@ use RuntimeException;
  * WHAT IT CHANGES, and nothing else:
  *   - the component Options, to what an installation of this version writes
  *     ({@see ComponentOptions::DEFAULTS}); an Option with no installed value is removed, so it
- *     reads its built-in default, as on a fresh install. Three are kept as they are: the download
+ *     reads its built-in default, as on a fresh install. Four are kept as they are: the download
  *     store's path (the store, and every file in it, stays where it is), the delivery destination
- *     the merchant mapped (a structural choice of the shop, not a default: kept, mapped or not), and
- *     the records kept among the Options ({@see ComponentOptions::CARRIED}: which menu items the
- *     setup created);
+ *     the merchant mapped and the status a customer's cancel moves an order to (structural choices
+ *     of the shop, not defaults: kept, set or not), and the records kept among the Options
+ *     ({@see ComponentOptions::CARRIED}: which menu items the setup created);
  *   - the price display of every customer group, the setting built from those Options: built
  *     again from the defaults, and each group following the shop's Options again.
  * The Options are saved through Joomla's own Options save, so whatever listens to an Options save
@@ -107,10 +107,12 @@ final class ResetToDefault
             $target['downloads_storage_path'] = $store;
         }
 
-        // The save replaces the Options wholesale: the mapping is written back as it is, or it would
-        // be lost. An unmapped shop stays unmapped.
-        if (\array_key_exists('delivery_place_field', $stored)) {
-            $target['delivery_place_field'] = $stored['delivery_place_field'];
+        // The save replaces the Options wholesale: the mapping and the customer cancel status are written back as they
+        // are, or they would be lost. A shop that set neither keeps neither.
+        foreach (['delivery_place_field', 'customer_cancel_status'] as $key) {
+            if (\array_key_exists($key, $stored)) {
+                $target[$key] = $stored[$key];
+            }
         }
 
         return $target;

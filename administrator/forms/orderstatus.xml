@@ -40,6 +40,18 @@
             <option value="1">COM_ALFA_ORDERSTATUS_STOCK_KEEP</option>
         </field>
 
+        <!-- Whether a customer may cancel their own order in this status, from their
+             account. A setting of its own, never inferred from the name or the role
+             flags; the cancel moves the order to the status Options name
+             (customer_cancel_status). -->
+        <field name="customer_can_cancel" type="radio" default="0" filter="integer"
+               layout="joomla.form.field.radio.switcher"
+               label="COM_ALFA_FORM_LBL_ORDER_STATUS_CUSTOMER_CAN_CANCEL"
+               description="COM_ALFA_FORM_LBL_ORDER_STATUS_CUSTOMER_CAN_CANCEL_DESC">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
         <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">
           <option value="1">JPUBLISHED</option>
           <option value="0">JUNPUBLISHED</option>

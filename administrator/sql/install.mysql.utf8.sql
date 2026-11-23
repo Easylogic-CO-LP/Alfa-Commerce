@@ -1522,6 +1522,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `is_initial` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Singleton: brand-new-order status. Exactly one row should hold this; OrderstatusModel enforces single-row uniqueness.',
   `is_cancelled` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Multi-row family: cancellation states (Returned, Refunded, Cancelled, ...). Drives stock-release and refund logic.',
   `is_completed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Multi-row family: terminal success states (Delivered, Picked up, Paid, ...).',
+  `customer_can_cancel` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'When 1, a customer may cancel their own order in this status from their account; the order moves to the status Options name (customer_cancel_status). Never inferred from the name or the role flags.',
   `notify_customer` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'When 1, EmailService sends the customer the status e-mail (its parts in email_positions_customer, its wrapper email_layout_customer) on transition INTO this status.',
   `email_layout_customer` varchar(190) NOT NULL DEFAULT 'emails.order.default' COMMENT 'LayoutHelper id for the customer notification wrapper (EmailService). Empty = emails.order.',
   `email_layout_admin` varchar(190) NOT NULL DEFAULT 'emails.order.default' COMMENT 'LayoutHelper id for the admin notification wrapper (EmailService). Empty = emails.order.',
@@ -1551,15 +1552,17 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
 -- Shipped -> Delivered (completed), plus the cancellation family. Names seed
 -- in en-GB (always present in Joomla); every other content language gets them
 -- in its own words when its language table is made (Service\Setup\SeededNames).
-INSERT INTO `#__alfa_orders_statuses` (`id`, `color`, `bg_color`, `stock_operation`, `is_initial`, `is_cancelled`, `is_completed`, `notify_customer`, `email_layout_customer`, `email_layout_admin`, `grants_downloads`, `state`, `created_by`, `modified`, `modified_by`, `ordering`)
+-- A customer may cancel a Pending order from their account; the installation
+-- names Cancelled (id 5) as the status it moves to (InstallSteps::seedCustomerCancelStatus()).
+INSERT INTO `#__alfa_orders_statuses` (`id`, `color`, `bg_color`, `stock_operation`, `is_initial`, `is_cancelled`, `is_completed`, `customer_can_cancel`, `notify_customer`, `email_layout_customer`, `email_layout_admin`, `grants_downloads`, `state`, `created_by`, `modified`, `modified_by`, `ordering`)
 SELECT * FROM (
-            SELECT 1 AS `id`, '#ffffff' AS `color`, '#f0ad4e' AS `bg_color`, 0 AS `stock_operation`, 1 AS `is_initial`, 0 AS `is_cancelled`, 0 AS `is_completed`, 0 AS `notify_customer`, 'emails.order.default' AS `email_layout_customer`, 'emails.order.default' AS `email_layout_admin`, 0 AS `grants_downloads`, 1 AS `state`, 0 AS `created_by`, NOW() AS `modified`, 0 AS `modified_by`, 1 AS `ordering`
-  UNION ALL SELECT 2, '#ffffff', '#0d6efd', 0, 0, 0, 0, 0, 'emails.order.default', 'emails.order.default', 0, 1, 0, NOW(), 0, 2
-  UNION ALL SELECT 3, '#ffffff', '#6f42c1', 0, 0, 0, 0, 0, 'emails.order.default', 'emails.order.default', 0, 1, 0, NOW(), 0, 3
+            SELECT 1 AS `id`, '#ffffff' AS `color`, '#f0ad4e' AS `bg_color`, 0 AS `stock_operation`, 1 AS `is_initial`, 0 AS `is_cancelled`, 0 AS `is_completed`, 1 AS `customer_can_cancel`, 0 AS `notify_customer`, 'emails.order.default' AS `email_layout_customer`, 'emails.order.default' AS `email_layout_admin`, 0 AS `grants_downloads`, 1 AS `state`, 0 AS `created_by`, NOW() AS `modified`, 0 AS `modified_by`, 1 AS `ordering`
+  UNION ALL SELECT 2, '#ffffff', '#0d6efd', 0, 0, 0, 0, 0, 0, 'emails.order.default', 'emails.order.default', 0, 1, 0, NOW(), 0, 2
+  UNION ALL SELECT 3, '#ffffff', '#6f42c1', 0, 0, 0, 0, 0, 0, 'emails.order.default', 'emails.order.default', 0, 1, 0, NOW(), 0, 3
   -- Delivered hands over the goods, so it is the status that releases files.
-  UNION ALL SELECT 4, '#ffffff', '#198754', 0, 0, 0, 1, 0, 'emails.order.default', 'emails.order.default', 1, 1, 0, NOW(), 0, 4
-  UNION ALL SELECT 5, '#ffffff', '#dc3545', 1, 0, 1, 0, 0, 'emails.order.default', 'emails.order.default', 0, 1, 0, NOW(), 0, 5
-  UNION ALL SELECT 6, '#ffffff', '#6c757d', 1, 0, 1, 0, 0, 'emails.order.default', 'emails.order.default', 0, 1, 0, NOW(), 0, 6
+  UNION ALL SELECT 4, '#ffffff', '#198754', 0, 0, 0, 1, 0, 0, 'emails.order.default', 'emails.order.default', 1, 1, 0, NOW(), 0, 4
+  UNION ALL SELECT 5, '#ffffff', '#dc3545', 1, 0, 1, 0, 0, 0, 'emails.order.default', 'emails.order.default', 0, 1, 0, NOW(), 0, 5
+  UNION ALL SELECT 6, '#ffffff', '#6c757d', 1, 0, 1, 0, 0, 0, 'emails.order.default', 'emails.order.default', 0, 1, 0, NOW(), 0, 6
 ) AS `seed`
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_orders_statuses`);
 

@@ -9512,6 +9512,38 @@ class PaymentLedger
     }
 
     /**
+     * Whether a payment of the order is still open at a payment provider: a payment or an authorisation taken through
+     * a gateway (a payment plugin with a provider: not the Standard method, not the customer's credit, not a row with
+     * no plugin) that is pending or authorized. Its money may still arrive or be captured, so what would end the order
+     * (its customer's cancel) waits until the attempt settles, fails or is closed. Read only.
+     *
+     * @param int $orderId The order.
+     *
+     * @since  2.3.0
+     */
+    public static function gatewayAttemptOpen(int $orderId): bool
+    {
+        if ($orderId <= 0) {
+            return false;
+        }
+
+        $db = self::db();
+        $outside = array_merge(['', self::STANDARD_METHOD], self::NON_GATEWAY_TYPES);
+
+        return (bool) $db->setQuery(
+            $db->getQuery(true)
+                ->select('1')
+                ->from($db->quoteName(self::TABLE))
+                ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                ->whereIn($db->quoteName('payment_type'), [self::TYPE_PAYMENT, self::TYPE_AUTHORIZATION], ParameterType::STRING)
+                ->whereIn($db->quoteName('transaction_status'), [self::STATUS_PENDING, self::STATUS_AUTHORIZED], ParameterType::STRING)
+                ->whereNotIn($db->quoteName('payment_method_type'), $outside, ParameterType::STRING),
+            0,
+            1,
+        )->loadResult();
+    }
+
+    /**
      * The one figure every refund form of a payment offers as its maximum, a refund start or a record-only form
      * alike: what may still be refunded on the payment ({@see self::refundableRemainder()}: its books remainder
      * less its own reservations) held to what the order may still refund ({@see self::refundableNow()}: its books

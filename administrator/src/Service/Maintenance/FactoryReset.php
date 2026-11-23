@@ -746,6 +746,7 @@ final class FactoryReset
 
         $this->at(step: $step = 'options');
         $steps->applyDefaultOptions(replace: true);
+        $steps->seedCustomerCancelStatus();
 
         $this->at(step: $step = 'delivery_mapping');
         $steps->seedDeliveryPlaceMapping();

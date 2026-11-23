@@ -39,6 +39,7 @@ class JsonApiView extends BaseApiView
         'is_initial',
         'is_cancelled',
         'is_completed',
+        'customer_can_cancel',
         'notify_customer',
         'ordering',
         'state',
