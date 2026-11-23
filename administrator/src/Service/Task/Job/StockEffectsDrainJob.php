@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
@@ -18,7 +19,6 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
-use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 
 /**
  * Apply the stock movements orders and documents still owe: the stock effect outbox drained.
@@ -46,7 +46,7 @@ final class StockEffectsDrainJob implements JobHandler
      */
     public static function enqueue(): void
     {
-        Runner::enqueue(handler: self::NAME, scopeKey: self::NAME, payload: []);
+        BackgroundWork::core()->job(self::NAME)->enqueue();
     }
 
     public function policy(): JobPolicy

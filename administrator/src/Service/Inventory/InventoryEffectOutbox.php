@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
@@ -899,7 +900,7 @@ final class InventoryEffectOutbox
             $rerunInFlight = $standing !== null && (string) $standing->state === Tasks::STATE_RUNNING && isset($standingPayload['rerun_of']);
 
             if ($standing === null || $rerunInFlight) {
-                Tasks::single(handler: $handler, subjectType: $subjectType, subjectId: $orderId, payload: ['document' => $documentId]);
+                BackgroundWork::core()->task($handler)->about($subjectType, $orderId)->with(['document' => $documentId])->enqueue();
             } elseif (\in_array((string) $standing->state, [Tasks::STATE_FAILED, Tasks::STATE_HELD], true)) {
                 Tasks::failedAgain(id: (int) $standing->id, error: OrderDocumentStock::refusalError(documentId: $documentId, refusal: $reason), trigger: 'request');
             }

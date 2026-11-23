@@ -485,8 +485,9 @@ final class Runner
     /**
      * The work a tick owes before it looks for due jobs: a job for each waiting price set with no job of its scope
      * (one whose job failed is not among them), the drain while movements are owed, the catalogue job for a rebuild
-     * mark older than the grace that no job was asked for, the prune of finished tasks once an hour
-     * (TasksPruneJob::owe()), the tidy of the price index once a day (PriceIndexTidyJob::owe()), and the
+     * mark older than the grace that no job was asked for, every owner's scheduled jobs (core's prune once an hour and
+     * tidy of the price index once a day among them, WorkDeclarations::oweSchedules()), the deliveries owed to the
+     * consumers of the shop's changes, the hourly check of the plugins owning background work, and the
      * announcement of the stored price periods that began
      * (PriceIndexSyncService::announceOpenedWindows()). Each is logged and left on a failure: the tick goes on.
      *
@@ -523,18 +524,6 @@ final class Runner
         }
 
         try {
-            Job\TasksPruneJob::owe(db: $db);
-        } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the prune of finished tasks could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
-        }
-
-        try {
-            Job\PriceIndexTidyJob::owe(db: $db);
-        } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the tidy of the price index could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
-        }
-
-        try {
             Job\OutboundDeliveryJob::owe(db: $db);
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the deliveries owed to the consumers of the shop\'s changes could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
@@ -561,6 +550,8 @@ final class Runner
 
     /**
      * Owe a job: a new one for the scope, or the scope's active one joined (one statement on the unique active key).
+     * The engine's write behind the one chain: core's code and an extension's ask through BackgroundWork, and the
+     * runner's own owe step through it or here. A job's claim order is its policy's.
      *
      * A job joined once it has started (running, or pending with progress after a yield, a failure or a settle) is
      * marked to run once more from the start when its handler asks for it; one that never ran merges as it is. Its
@@ -571,8 +562,6 @@ final class Runner
      * @param string $handler The handler's name.
      * @param string $scopeKey What it covers: one active job per scope.
      * @param array<string, mixed> $payload What the handler needs.
-     * @param int|null $priority Its claim order when it must go ahead of its handler's own (the daily backstop of
-     *                           tasks.prune); null for the handler's. A join keeps the higher of the two.
      * @param string $owner Whose work it is: com_alfa, or the plugin that declared it; one active job per owner and
      *                      scope.
      * @param DateTimeInterface|null $notBefore Not before this moment; null for now. Joining a job that waits keeps the
@@ -580,9 +569,11 @@ final class Runner
      *
      * @throws InvalidArgumentException When no job handler has that name, or the scope key is not the handler's.
      *
+     * @internal
+     *
      * @since  2.2.0
      */
-    public static function enqueue(string $handler, string $scopeKey, array $payload, ?int $priority = null, string $owner = DueRead::CORE_OWNER, ?DateTimeInterface $notBefore = null): EnqueueResult
+    public static function enqueue(string $handler, string $scopeKey, array $payload, string $owner = DueRead::CORE_OWNER, ?DateTimeInterface $notBefore = null): EnqueueResult
     {
         $implementation = self::handler(name: $handler, owner: $owner);
 
@@ -598,7 +589,7 @@ final class Runner
         $db = self::db();
         $json = json_encode(['version' => $policy->version] + $payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $weight = $policy->weight === JobPolicy::HEAVY ? JobPolicy::HEAVY : JobPolicy::LIGHT;
-        $priority ??= $policy->priority;
+        $priority = $policy->priority;
         $rerun = $policy->rerunOnMerge ? 1 : 0;
         $origin = Tasks::origin();
         $userId = Tasks::userId();
@@ -614,7 +605,6 @@ final class Runner
                     . ' VALUES (' . $db->quote(Tasks::TYPE_JOB) . ', :owner, :handler, :scope, :weight, :priority, :payload, ' . $runAfter . ', :maxFailures, :origin, :user, UTC_TIMESTAMP(6), UTC_TIMESTAMP(3))'
                     . ' ON DUPLICATE KEY UPDATE ' . $db->quoteName('id') . ' = LAST_INSERT_ID(' . $db->quoteName('id') . '), '
                     . $db->quoteName('rerun') . ' = IF(:rerunOnMerge = 1 AND (' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' OR ' . $db->quoteName('done_units') . ' > 0), 1, ' . $db->quoteName('rerun') . '), '
-                    . $db->quoteName('priority') . ' = GREATEST(' . $db->quoteName('priority') . ', :mergePriority), '
                     // A waiting job joined keeps the earlier moment; one waiting out a failure's backoff keeps its wait.
                     . $db->quoteName('run_after') . ' = IF(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING) . ' AND ' . $db->quoteName('failures') . ' = 0, LEAST('
                     . $db->quoteName('run_after') . ', ' . ($at === null ? 'UTC_TIMESTAMP(3)' : 'GREATEST(UTC_TIMESTAMP(3), :joinAfter)') . '), ' . $db->quoteName('run_after') . '), '
@@ -625,7 +615,6 @@ final class Runner
                     ->bind(':scope', $scopeKey)
                     ->bind(':weight', $weight)
                     ->bind(':priority', $priority, ParameterType::INTEGER)
-                    ->bind(':mergePriority', $priority, ParameterType::INTEGER)
                     ->bind(':payload', $json)
                     ->bind(':maxFailures', $maxFailures, ParameterType::INTEGER)
                     ->bind(':origin', $origin)

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
@@ -18,7 +19,6 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
-use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 use Joomla\CMS\Log\Log;
 use Throwable;
@@ -61,7 +61,7 @@ final class CatalogueRebuildJob implements JobHandler
      */
     public static function enqueue(): int
     {
-        return Runner::enqueue(handler: self::NAME, scopeKey: self::NAME, payload: [])->id;
+        return BackgroundWork::core()->job(self::NAME)->enqueue()->id;
     }
 
     public function policy(): JobPolicy

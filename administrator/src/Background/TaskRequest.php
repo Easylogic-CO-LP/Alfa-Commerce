@@ -157,6 +157,10 @@ final class TaskRequest
     {
         $payload = $this->owner === DueRead::CORE_OWNER ? $this->data : ['data' => $this->data];
 
+        if ($this->once === null && $this->owner === DueRead::CORE_OWNER) {
+            return new Enqueued(id: Tasks::single(handler: $this->name, subjectType: $this->subjectType, subjectId: $this->subjectId, payload: $payload));
+        }
+
         if ($this->once === null) {
             return new Enqueued(id: Tasks::write(
                 handler: $this->name,

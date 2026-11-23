@@ -306,7 +306,8 @@ final class Tasks
     private static array $requestNotes = [];
 
     /**
-     * Owe one thing after the commit of the change being made.
+     * Owe one of core's own things after the commit of the change being made: the engine's write behind
+     * BackgroundWork::core(), which is how core's code asks for it.
      *
      * Inside a transaction the row joins the batch of the outermost transaction, which runs once that transaction
      * has committed and Alfa's named locks are released; a rollback removes it. With no transaction open it is
@@ -320,6 +321,8 @@ final class Tasks
      * @return int The task's id.
      *
      * @throws InvalidArgumentException When no handler has that name.
+     *
+     * @internal
      *
      * @since  2.1.4
      */

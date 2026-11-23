@@ -120,6 +120,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
@@ -137,7 +138,6 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentAutomation;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentRefundFlip;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -3417,7 +3417,7 @@ class PaymentLedger
      */
     private static function oweRefundFlip(int $paymentId, int $orderId): void
     {
-        Tasks::single(handler: PaymentRefundFlip::NAME, subjectType: 'order', subjectId: $orderId, payload: ['payment' => $paymentId]);
+        BackgroundWork::core()->task(PaymentRefundFlip::NAME)->about('order', $orderId)->with(['payment' => $paymentId])->enqueue();
     }
 
     /**
@@ -10673,27 +10673,27 @@ class PaymentLedger
             // and freshly minted raw tokens are cached when the transition's
             // status email renders links.
             if ($to === self::STATUS_COMPLETED) {
-                Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['payment' => $id]);
+                BackgroundWork::core()->task(OrderEntitlements::NAME)->about('order', $orderId)->with(['payment' => $id])->enqueue();
             }
 
             // A status that issues documents only when paid skipped at
             // transition time while money was due; the order will not
             // transition again, so settling it is the second chance: for the
             // status the order is in when it runs.
-            Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['current' => true]);
+            BackgroundWork::core()->task(OrderDocuments::NAME)->about('order', $orderId)->with(['current' => true])->enqueue();
 
             // The method's status map, read from the snapshot's method as the
             // automation reads it, run after the commit and the lock release.
             $methodId = (int) ($oldSnapshot->id_payment_method ?? 0);
 
             if (self::automationMethod(methodId: $methodId, status: $to) !== null) {
-                Tasks::single(handler: PaymentAutomation::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+                BackgroundWork::core()->task(PaymentAutomation::NAME)->about('order', $orderId)->with([
                     'payment' => $id,
                     'method' => $methodId,
                     'from' => $from,
                     'to' => $to,
                     'order_status' => self::lockedOrderStatus(orderId: $orderId),
-                ]);
+                ])->enqueue();
             }
         }
 
