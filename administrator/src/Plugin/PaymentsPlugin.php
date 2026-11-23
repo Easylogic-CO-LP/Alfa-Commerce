@@ -1553,6 +1553,30 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
         return false;
     }
 
+    /**
+     * May an order of this gateway that still owes money be paid again: does its process view open a new attempt?
+     *
+     * Pay now (the order's confirmation page, the customer's order e-mail, the payment link staff send from the order
+     * screen) brings the buyer back to onOrderProcessView for an order that may already hold an earlier attempt of
+     * yours: abandoned, declined or expired. Return true only when your process view then opens a new attempt for what
+     * is owed (amountToCollect()): the earlier one made unpayable at your provider and closed with
+     * supersedeAttemptVerdict(), or placement's reference-less row claimed; the new pending row written first; a new
+     * payment page made for exactly that row. A process view that only sends the buyer back to a page made at
+     * placement does not qualify: once that page has expired or its attempt is closed, there is nothing to pay on.
+     *
+     * DEFAULT NO, and the default is the point: core cannot see inside a process view, so a gateway that does not
+     * answer offers no Pay now and no payment link. A method that takes no payment on the process page (an offline
+     * one) keeps the default.
+     *
+     * @api HOOK: whether the process view opens a new attempt for an existing order with money owed; false by default.
+     *
+     * @since  2.3.0
+     */
+    public function supportsPayAgain(): bool
+    {
+        return false;
+    }
+
     //  Credential sets and automatic renewals
 
     /**

@@ -11,14 +11,21 @@ namespace Alfa\Component\Alfa\Site\Service\Order;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PaymentToken;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use Throwable;
 
 /**
  * Paying an existing order again: whether its buyer may go back to its payment step, and the address that leads there.
@@ -36,8 +43,9 @@ use Joomla\Database\ParameterType;
  * - its status is neither in the cancelled family nor in the completed one;
  * - no payment of it is held (authorized) at a provider;
  * - no refund of it is unsettled (PaymentLedger::orderDeleteRefusal());
- * - its payment method is published and its gateway plugin enabled, and it is not core's Standard method, whose orders
- *   are paid outside the shop (cash on delivery, a bank transfer) and whose payment step has nothing to show.
+ * - its payment method is published, and its gateway plugin is available and answers
+ *   PaymentsPlugin::supportsPayAgain() true: its process view opens a new attempt for an existing order. A gateway that
+ *   does not answer, or fails to, is refused; core's Standard method, paid outside the shop, keeps the default.
  *
  * @since  2.3.0
  */
@@ -61,11 +69,8 @@ final class PayAgain
     /** A refund of the order is not settled. */
     public const REFUND = 'refund';
 
-    /** The order's payment method or its gateway is not available, or it is paid outside the shop. */
+    /** The order's payment method or its gateway is not available, or the gateway does not open a new attempt. */
     public const GATEWAY = 'gateway';
-
-    /** Core's method for payments made outside the shop. */
-    private const OFFLINE_ELEMENT = 'standard';
 
     /**
      * The order's row when the address's token is the order's payment token; null otherwise (no such order, an order
@@ -195,7 +200,8 @@ final class PayAgain
     }
 
     /**
-     * Whether the order's payment method is published and its gateway plugin enabled.
+     * Whether the order's payment method is published and its gateway, booted through the plugin helper (the one
+     * availability authority), declares that its process view opens a new attempt (PaymentsPlugin::supportsPayAgain()).
      *
      * @param object $order The order's row.
      *
@@ -206,7 +212,7 @@ final class PayAgain
         $methodId = (int) ($order->id_payment_method ?? 0);
         $element = (string) ($order->payment_method_type ?? '');
 
-        if ($methodId <= 0 || $element === '' || $element === self::OFFLINE_ELEMENT) {
+        if ($methodId <= 0 || $element === '') {
             return false;
         }
 
@@ -224,16 +230,18 @@ final class PayAgain
             return false;
         }
 
-        return (int) $db->setQuery(
-            $db->getQuery(true)
-                ->select('COUNT(*)')
-                ->from($db->quoteName('#__extensions'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
-                ->where($db->quoteName('folder') . ' = ' . $db->quote('alfa-payments'))
-                ->where($db->quoteName('element') . ' = :element')
-                ->where($db->quoteName('enabled') . ' = 1')
-                ->bind(':element', $element),
-        )->loadResult() > 0;
+        // The gateway's own answer, never assumed: one that is not available, does not answer or fails is refused.
+        $plugins = AlfaPluginHelper::get();
+
+        try {
+            return (bool) $plugins->invoke($plugins->bootSingle(PluginId::from('alfa-payments', $element)), 'supportsPayAgain');
+        } catch (PluginUnavailable|InvalidArgumentException) {
+            return false;
+        } catch (Throwable $e) {
+            Log::add('Pay again: the payment plugin ' . $element . ' failed while answering whether it opens a new attempt: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.payments');
+
+            return false;
+        }
     }
 
     /**

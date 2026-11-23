@@ -90,7 +90,7 @@ final class AlfaPluginHelper
      * @since  2.2.0
      */
     private const OPERATIONS = [
-        PaymentsPlugin::class => ['unbookedProviderRefunds', 'supportsOperatorPlacement', 'renewalsAllowed'],
+        PaymentsPlugin::class => ['unbookedProviderRefunds', 'supportsOperatorPlacement', 'supportsPayAgain', 'renewalsAllowed'],
         FormFieldsPlugin::class => ['prepareDom'],
     ];
 
@@ -737,7 +737,7 @@ final class AlfaPluginHelper
      *
      * @param LoadedPlugin $plugin The plugin, from bootSingle() or resolve().
      * @param string $operation The operation (PaymentsPlugin: unbookedProviderRefunds, supportsOperatorPlacement,
-     *                          renewalsAllowed; FormFieldsPlugin: prepareDom).
+     *                          supportsPayAgain, renewalsAllowed; FormFieldsPlugin: prepareDom).
      * @param mixed ...$arguments Its arguments.
      *
      * @throws PluginUnavailable NO_HANDLER when the operation is not one of its family's.
