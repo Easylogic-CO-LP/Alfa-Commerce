@@ -1794,6 +1794,11 @@ class com_alfaInstallerScript extends InstallerScript
         if ($type === 'update')
         {
             $this->cleanCachesOnUpdate();
+        }
+
+        // On update, a filters module saved with a cache setting loses it: the module is never cached.
+        if ($type === 'update')
+        {
             $this->uncacheFiltersModules();
         }
 
