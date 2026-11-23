@@ -39,7 +39,8 @@ class JsonApiView extends BaseApiView
         'field_label',
         'field_description',
         'type',
-        'required',
+        // Whether a field is required is its level in each section: registration, billing and shipping, each 0
+        // hidden, 1 optional or 2 required.
         'registration',
         'billing',
         'shipping',
@@ -67,7 +68,6 @@ class JsonApiView extends BaseApiView
         'field_name',
         'name',
         'type',
-        'required',
         'registration',
         'billing',
         'shipping',

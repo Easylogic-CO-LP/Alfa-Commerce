@@ -43,8 +43,9 @@ class InventorymovementsController extends ApiController
      * Inventorymovements list view amended to add filtering of data
      *
      * Each filter goes onto the model state under the name the movements screen's filter form gives it, and the list
-     * model applies it as it does for the screen (the date window, shop-local bounds as the screen's calendars
-     * hold them; and item_id, the movements of one product).
+     * model applies it as it does for the screen (the date window; and item_id, the movements of one product), except
+     * that the window's bounds are UTC, as every date bound of the API: a bound without a zone is a UTC time, a day the
+     * UTC day, and a bound with Z or an offset keeps its own zone.
      *
      * @return static A BaseController object to support chaining.
      *

@@ -833,9 +833,8 @@ class ShipmentLedger
 
         // A parcel entered with no charge states no tax rate: whatever rate it carries, or none, it is frozen
         // with the shipping tax that applies and that tax's combined rate, so a charge given to it later is judged on
-        // that chain, as any change of an entered parcel's charge is. Before, a free parcel had to state the rate
-        // that applies (the full triple 0.00, 0.00 and 24), and the method alone, 0.00 alone or a rate of 0 was
-        // refused on a taxed order.
+        // that chain, as any change of an entered parcel's charge is: the method alone, 0.00 alone or a rate of 0
+        // is taken on a taxed order.
         $free = $entered && $chain !== null
             && ExactAmount::of((string) $data['shipping_cost_tax_incl'])->isZero()
             && ExactAmount::of((string) $data['shipping_cost_tax_excl'])->isZero();

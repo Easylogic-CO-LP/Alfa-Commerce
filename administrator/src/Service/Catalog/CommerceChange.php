@@ -29,7 +29,8 @@ use Joomla\Database\ParameterType;
  * own save (its prices) and its removal (CombinationService::remove()), the REST API's units batch (UnitBatch, a unit's
  * prices), and the price index's announcement of the periods that begin.
  *
- * @api READ ONLY: the time a product's stock or prices last changed, and the reading of a changed_since bound.
+ * @api WRITE: mark() records on the products the time their stock, prices or own fields changed; now() and bound()
+ *      read the time and a changed_since bound.
  *
  * @since  2.2.2
  */

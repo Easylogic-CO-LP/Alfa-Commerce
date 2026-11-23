@@ -34,7 +34,7 @@ use InvalidArgumentException;
  * part refused is an OrderPartRefusedException naming it as a JSON pointer into the body (/lines/1/quantity).
  *
  * @api READ ONLY: the parts of an order create's data (lines, shipment, payment), checked and turned into the data
- *      OrderModel::saveOrderItem(), saveOrderShipment() and saveOrderPayment() take; a refusal names the part.
+ *      the order's line, parcel and payment writers take; a refusal names the part.
  *
  * @since  2.2.2
  */
