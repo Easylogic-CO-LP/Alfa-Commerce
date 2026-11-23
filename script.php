@@ -1557,7 +1557,7 @@ class com_alfaInstallerScript extends InstallerScript
             $this->listSiteTemplateEmailLayouts();
         }
 
-        // 7. The installed Alfa extensions not known to work with this version (2.2.1): named on this page,
+        // 7. The installed Alfa extensions not known to work with this version: named on this page,
         //    in the maintenance log and to the administrators.
         $this->reportExtensionCompatibility(type: $type);
 
