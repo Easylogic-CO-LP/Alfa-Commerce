@@ -40,8 +40,8 @@ if (\is_object($firstCard) ? (bool) ($firstCard->sellsOnline ?? true) : \Alfa\Co
 
 // Price display settings, resolved per user group by the view. To change what the
 // price layout shows on this page, override with an Alfa\Component\Alfa\Site\Helper\
-// PriceSettings preset (except()/only()/minimal()/full()/compact(), or the make()
-// builder); the full API is documented in the manual.
+// PriceSettings preset (minimal(), or the make() builder with each figure's one
+// name, such as final_price); the full API is documented in the manual.
 $priceSettings = $this->priceSettings;
 
 // One h1 per page: the page heading when it shows, the category title then an h2; else the title is the h1.
