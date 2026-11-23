@@ -53,6 +53,7 @@ use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
@@ -3520,6 +3521,8 @@ class ItemModel extends AlfaAdminModel
             return false;
         }
 
+        // The rows change here: the pricing of this process reads them again.
+        PriceDataLoader::forgetLoaded();
         $db = $this->getDatabase();
 
         // Get the existing ITEM-LEVEL price IDs for the product. The
