@@ -1157,21 +1157,34 @@ class OrderopsController extends OrdersController
      */
     private function disputeVerb(Closure $verb)
     {
-        $this->refusedField = null;
-
         try {
             return $verb();
         } catch (Save $e) {
-            if ($this->refusedField === null) {
+            $field = $this->takeRefusedField();
+
+            if ($field === null) {
                 throw $e;
             }
 
             $document = $this->app->getDocument();
-            $document->setErrors([['title' => $e->getMessage(), 'code' => 422, 'source' => ['pointer' => '/' . $this->refusedField]]]);
+            $document->setErrors([['title' => $e->getMessage(), 'code' => 422, 'source' => ['pointer' => '/' . $field]]]);
             $this->app->setHeader('status', '422', true);
 
             return $this;
         }
+    }
+
+    /**
+     * The field the last refusal named, cleared as it is read; null when a refusal named none.
+     *
+     * @since  2.2.2
+     */
+    private function takeRefusedField(): ?string
+    {
+        $field = $this->refusedField;
+        $this->refusedField = null;
+
+        return $field;
     }
 
     /**
