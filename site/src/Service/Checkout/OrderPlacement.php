@@ -1863,6 +1863,9 @@ class OrderPlacement
             // unknown one lands initial, a requires-paid one is refused) so
             // nothing here needs to police it.
             'id_order_status' => $this->placedStatusId(),
+            // A total of zero leaves nothing due: the order is paid, and a status
+            // that requires payment takes it.
+            'nothing_due' => $this->cart->grandTotal()->isZero(),
             'payment_method_name' => $this->getPaymentMethodName($paymentMethodId),
             'shipment_method_name' => $this->getShipmentMethodName($shipmentMethodId),
             // The plugin elements, already resolved by triggerBeforePlaceEvents()
