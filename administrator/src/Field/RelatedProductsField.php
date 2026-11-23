@@ -111,6 +111,8 @@ class RelatedProductsField extends SubformField
             $value = $value === '' ? [] : json_decode($value, true);
         }
 
+        // The form's filter hands the post through a Registry, which turns every keyed array into an object.
+        $value = self::plain(value: $value);
         $rows = [];
 
         foreach (\is_array($value) ? $value : [] as $row) {
@@ -120,12 +122,12 @@ class RelatedProductsField extends SubformField
                 continue;
             }
 
-            $row = \is_object($row) ? get_object_vars($row) : (\is_array($row) ? $row : ['item_id' => $row]);
+            $row = \is_array($row) ? $row : ['item_id' => $row];
             $variant = \is_array($row['variant'] ?? null) ? $row['variant'] : null;
             $own = $variant === null ? $row : RelatedVariantField::posted(variant: $variant);
             $values = [];
 
-            foreach (\is_array($own['values'] ?? null) || \is_object($own['values'] ?? null) ? (array) $own['values'] : [] as $fieldId => $valueId) {
+            foreach (\is_array($own['values'] ?? null) ? $own['values'] : [] as $fieldId => $valueId) {
                 // A value that is not one id (a list, an object) names no value of its field and is refused as such.
                 $values[(int) $fieldId] = is_numeric($valueId) ? (int) $valueId : 0;
             }
@@ -139,6 +141,26 @@ class RelatedProductsField extends SubformField
         }
 
         return $rows;
+    }
+
+    /**
+     * A value with every object in it, at any depth, as an array; a link stays a link.
+     *
+     * @param mixed $value The value.
+     *
+     * @since  2.3.0
+     */
+    private static function plain(mixed $value): mixed
+    {
+        if ($value instanceof RelatedLink) {
+            return $value;
+        }
+
+        if (\is_object($value)) {
+            $value = get_object_vars($value);
+        }
+
+        return \is_array($value) ? array_map(static fn (mixed $item): mixed => self::plain(value: $item), $value) : $value;
     }
 
     /**
