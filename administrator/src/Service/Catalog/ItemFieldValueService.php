@@ -588,7 +588,8 @@ final class ItemFieldValueService
 
     /**
      * Remove values with everything that names them: the products' uses (none, once refusals() passed; the field's
-     * own deletion removes them with it), the cart selections that chose them, the value rows and their texts.
+     * own deletion removes them with it), the cart selections that chose them, the value rows and their texts, and the
+     * related links that preselect them.
      *
      * @internal The field's deletion removes its values through it, after its own check of their use.
      *
@@ -614,6 +615,9 @@ final class ItemFieldValueService
         $db->setQuery($db->getQuery(true)->delete($db->quoteName('#__alfa_item_field_values'))->whereIn($db->quoteName('id'), $valueIds))->execute();
 
         MultilingualHelper::deleteMultilingualData(ids: $valueIds, primaryColumnName: 'id_item_field_value', tableName: '#__alfa_item_field_values');
+
+        // Related links that preselect a removed value go with it.
+        RelatedItems::forgetValues(db: $db, valueIds: $valueIds);
     }
 
     /**

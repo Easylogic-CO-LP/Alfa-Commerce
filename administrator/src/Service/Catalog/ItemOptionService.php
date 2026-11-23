@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\RelatedLinksChangedEvent;
 use Alfa\Component\Alfa\Administrator\Filter\DecimalFilter;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
@@ -245,6 +246,11 @@ final class ItemOptionService
                         default:
                             $this->replaceInformational(db: $db, valueIds: $step['ids']);
                     }
+                }
+
+                // Related links that preselect a removed option go with it.
+                if ($removed !== []) {
+                    RelatedItems::forgetVanished(db: $db, linkedItemIds: [$this->itemId], cause: RelatedLinksChangedEvent::CAUSE_VALUE);
                 }
 
                 TransactionState::commitLevel(db: $db);
