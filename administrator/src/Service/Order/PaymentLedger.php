@@ -2132,14 +2132,9 @@ class PaymentLedger
     }
 
     /**
-     * Resolve payment amount from the order's grand total.
-     *
-     * total_paid_tax_incl is always correct regardless of context:
-     *   - Checkout: overridden by OrderPlacement from the placement cart
-     *   - Admin/API: computed by OrderModel::getItem() from items + shipping - discounts
-     *
-     * Falls back to OrderTotalHelper if total_paid_tax_incl is not set
-     * (defensive: shouldn't happen in normal flow).
+     * Resolve payment amount: what is still to collect on the order
+     * (amountToCollectMoney(): the grand total minus what the shop still holds
+     * of it, clamped at zero).
      *
      * Called automatically by doBuilderCreate() when ->amount() was not called.
      * The amount is the order's Money, so the storage door writes its digits.

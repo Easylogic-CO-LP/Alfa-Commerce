@@ -430,10 +430,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * Create a new payment (returns fluent builder in CREATE mode).
      *
-     * Amount is auto-resolved from the best available source:
-     *   Primary: $order->total_paid_tax_incl (always correct, Money object)
-     *   Priority 2: OrderTotalHelper (items + shipping - discounts from DB)
-     *   Priority 3: ->amount($x) manual override (always wins when called)
+     * The amount, when ->amount($x) is not called, is amountToCollect($order) as the order's Money: the grand total
+     * minus what the shop still holds of it. ->amount($x) sets it.
      *
      * Usage:
      *   $paymentId = $this->payment($order)->pending()->save();
@@ -464,8 +462,10 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * The amount YOUR gateway should collect for this order: the one
      * number every payment plugin must build on.
      *
-     * Grand total minus money already collected (e.g. a customer-credit
-     * payment applied at placement). Contract for gateway authors:
+     * Grand total minus what the shop still holds of it (money collected less
+     * anything given back), clamped at zero: a customer-credit payment applied
+     * at placement counts, and money refunded is owed again. Contract for
+     * gateway authors:
      *
      *   - Charge amountToCollect($order), NEVER a raw order total field;
      *     with split payment the raw total over-charges the customer.
@@ -515,7 +515,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @param object $order The hydrated order.
      *
-     * @return float Refundable amount, never negative.
+     * @return Money Refundable amount in the order's currency, never negative.
      *
      * @since  2.0.0
      */
@@ -2173,7 +2173,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @param int $orderId Order PK.
      *
-     * @return array Raw rows with plain floats, newest first.
+     * @return array The rows, newest first, their amounts as the order's Money (PaymentLedger::hydrateAll()).
      *
      * @since  1.0.0
      */
