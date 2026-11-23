@@ -34,7 +34,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *
  *     public function onCollectCatalogProjections(CollectCatalogProjectionsEvent $event): void
  *     {
- *         $event->addProjection(new ExampleProjection(), 'alfa-search.example');
+ *         $event->addProjection('alfa-search.example', new ExampleProjection());
  *     }
  *
  * A projection that materialises VISIBILITY needs one more thing, because a
@@ -62,19 +62,22 @@ class CollectCatalogProjectionsEvent extends AbstractEvent
     /**
      * Contribute a projection under its owning plugin's identity.
      *
-     * A registry's entry names its plugin second, after the object it registers: the four registries (addProjection(),
-     * addEngine(), and addProvider() of the document types and of the stock allocation) share that shape, while a
-     * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
+     * Every contribution names its plugin first, then what it contributes: the four registries (addProjection(),
+     * addEngine(), and addProvider() of the document types and of the stock allocation) as the contributions that build
+     * an entry (item(), column(), action() and the others). A registry answers the event, so a plugin's contributions
+     * chain in one statement.
      *
-     * @param ProjectionInterface $projection The projection instance.
      * @param string $contributor The owning plugin, group.element (attribution, never an authorisation).
+     * @param ProjectionInterface $projection The projection instance.
      * @param string $version The package version.
+     *
+     * @return static The event, for the next contribution.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function addProjection(ProjectionInterface $projection, string $contributor, string $version = ''): void
+    public function addProjection(string $contributor, ProjectionInterface $projection, string $version = ''): static
     {
         $owner = PluginId::of($contributor);
 
@@ -83,6 +86,8 @@ class CollectCatalogProjectionsEvent extends AbstractEvent
             'contributor' => $owner->key(),
             'version' => trim($version),
         ];
+
+        return $this;
     }
 
     /**

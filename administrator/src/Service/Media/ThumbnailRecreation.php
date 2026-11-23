@@ -20,8 +20,10 @@ use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseDriver;
+use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use Joomla\Filesystem\File;
+use LogicException;
 use Throwable;
 
 /**
@@ -652,12 +654,14 @@ final class ThumbnailRecreation
     }
 
     /**
-     * The connection.
+     * The connection, as the driver whose transaction levels TransactionState keeps ({@see TransactionState::driver()}).
+     *
+     * @throws LogicException When the container's connection is not a database driver.
      *
      * @since  2.2.0
      */
     private static function db(): DatabaseDriver
     {
-        return Factory::getContainer()->get('DatabaseDriver');
+        return TransactionState::driver(db: Factory::getContainer()->get(DatabaseInterface::class));
     }
 }

@@ -287,7 +287,7 @@ class ManufacturerModel extends AlfaAdminModel
             return false;
         }
 
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
 
         $affectedItems = [];
 

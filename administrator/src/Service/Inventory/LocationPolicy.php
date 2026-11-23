@@ -31,8 +31,7 @@ use Joomla\Database\DatabaseInterface;
  *     no new sale            it does not count toward what the shop can sell
  *     no allocation          no reservation is ever placed there
  *     no receiving/restock   a positive delta is refused
- *     transfers OUT allowed  the escape route off a retired shelf
- *     transfers IN forbidden
+ *     stock may leave        a negative delta is allowed: the way goods come off a retired shelf
  *     existing reservations  still fulfillable: goods already promised ship
  *     always visible         admin and reports keep showing it and its stock
  *

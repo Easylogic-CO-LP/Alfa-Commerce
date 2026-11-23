@@ -19,7 +19,6 @@ use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryCommittedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReleasedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReservedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryRestoredEvent;
-use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryTransferredEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
@@ -36,7 +35,6 @@ use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
 use RuntimeException;
@@ -105,11 +103,13 @@ use WeakMap;
  * delivered at once. BEFORE events run before the level opens and veto by throwing.
  *
  * Commands:
- *   reserve() / release() / releaseLine() / expireDueReservations()   claims, no movement
+ *   reserve() / release() / releaseLine()   claims, no movement
  *   prioritiseReservations()   the audited override that serves a source's claims first
  *   commitReservation()   fulfilment: reservations become deductions
  *   restore() / reverseRestores() / scrapRestored()   reversal on the line's acting identity
- *   receive() / adjust() / adjustTo() / transfer()     physical changes of a tracked unit
+ *   adjust() / adjustTo()   physical changes of a tracked unit: adjust() by a signed delta, adjustTo() to an
+ *                           absolute figure; core's own, under InventoryCommands, the one way an extension and
+ *                           the stock editors set or correct stock
  *   changeTracking() / changeCombinationState() / changeLocationState()   structural state
  *   archiveUnits() / reactivateUnits()                 combinations kept for order history
  *   changeItemArchive()   a product leaves current commerce, or is restored to it after checks
@@ -121,7 +121,7 @@ use WeakMap;
  *
  * Reservation floor: the reserved quantity of a stock record is a floor under that
  * record's on-hand for every command that lowers it: adjustments, stock editors,
- * transfers, tracking openings, write-offs, scraps, reversals and the unreserved
+ * tracking openings, write-offs, scraps, reversals and the unreserved
  * remainder of a fulfilment. Converting a line's own reservations is not judged by
  * it: on-hand and reserved fall together on the reservation's record. A fulfilment
  * converts every reservation it consumes first and then draws each line's
@@ -162,7 +162,7 @@ use WeakMap;
  * ({@see self::lockUnitRecords()}), before it reads one of them for a decision,
  * writes one, or takes the unit's combination or item row: a reservation, a
  * fulfilment (before a line's reservations are converted or its remainder is
- * drawn), a transfer, a release, the expiry sweep, the override that serves a
+ * drawn), a release, the override that serves a
  * source first, a restore, the reversal of a source's restores and the write-off
  * of restored stock. So two such commands on one unit queue on its first record:
  * neither holds one of the unit's records while the other holds another. A record created after the command named the
@@ -193,7 +193,7 @@ use WeakMap;
  * item row, so a command that held that row while it still asked for the next
  * variant's records would wait for a command that holds those records and asks
  * for the row. Reservation rows come after the unit's records in every command
- * that locks them (a fulfilment, a release, the expiry sweep, the override that
+ * that locks them (a fulfilment, a release, the override that
  * serves a source first); the commands that judge a unit read them under a shared
  * lock, after the unit's records too, as a fulfilment and that override read the
  * order of claims of a record.
@@ -206,7 +206,7 @@ use WeakMap;
  * reservation's row; and a few records are still created after the command holds
  * records that sort after them: a record a reservation places a line on, or a
  * fulfilment draws from, at a location where a unit that has records has none;
- * a transfer's destination on its own unit; the opening records of a tracking
+ * the opening records of a tracking
  * switch, after the item's records. Such a command and another one that holds
  * what it asks for while asking for what it holds can therefore still wait for
  * each other: the database then ends one, which fails whole and leaves nothing.
@@ -257,12 +257,9 @@ final class InventoryService
     public const SOURCE_RETURN = 'return';
     public const SOURCE_DOCUMENT = 'document';
 
-    public const MOVE_RECEIVE = 'receive';
     public const MOVE_DEDUCT = 'deduct';
     public const MOVE_RESTORE = 'restore';
     public const MOVE_ADJUST = 'adjust';
-    public const MOVE_TRANSFER_OUT = 'transfer_out';
-    public const MOVE_TRANSFER_IN = 'transfer_in';
 
     public const BACKORDER_DENY = 'deny';
     public const BACKORDER_ALLOW = 'allow';
@@ -820,127 +817,6 @@ final class InventoryService
             'toState' => $toState,
             'result' => $result,
         ]));
-
-        return $result;
-    }
-
-    /**
-     * Expire every due TTL reservation (the scheduler worker's engine).
-     *
-     * Candidates are picked without locks, then EACH row is settled in
-     * its own transaction: lock the stock records of the reservation's unit,
-     * in location order, and then the reservation (the order in which a
-     * fulfilment and a release take them),
-     * RE-CHECK the state and deadline under the lock (a concurrent
-     * conversion may have won the race; the loser no-ops), release the
-     * remainder, state -> EXPIRED. Core order reservations carry no
-     * expiry (NULL) and are never touched here.
-     *
-     * A reservation that cannot be expired is logged and the sweep goes on to the
-     * next. Run inside a caller's transaction, each row is a savepoint of it, and a
-     * failure that ended that transaction (a deadlock) is logged and thrown:
-     * otherwise the rows after it would be settled, and the caller would carry on,
-     * outside the transaction the caller believes it holds.
-     *
-     * THE CLOCK. The deadline is judged by the process's clock (Factory::getDate(), which keeps the time of its first
-     * call): called late in a long run (a task, a console command, a queue), the sweep leaves the reservations that
-     * fell due since the run began for a later process. Core has no caller of it.
-     *
-     * @param int $limit Batch cap per run.
-     * @param InventoryContext|null $context Audit context.
-     *
-     * @return array{expired: int, released_quantity: float}
-     *
-     * @throws Throwable The failure of a row, when it ended the transaction the sweep was called in.
-     *
-     * @since  2.0.0
-     */
-    public function expireDueReservations(int $limit = 200, ?InventoryContext $context = null): array
-    {
-        $context ??= new InventoryContext();
-        $now = Factory::getDate('now', 'UTC')->toSql();
-
-        $query = $this->db->getQuery(true)
-            ->select(columns: $this->db->quoteName(name: ['id', 'item_id', 'combination_id']))
-            ->from($this->db->quoteName('#__alfa_inventory_reservations'))
-            ->where($this->db->quoteName('state') . ' = ' . $this->db->quote(self::STATE_ACTIVE))
-            ->where($this->db->quoteName('expires_at') . ' IS NOT NULL')
-            ->where($this->db->quoteName('expires_at') . ' <= ' . $this->db->quote($now))
-            ->order($this->db->quoteName('id'));
-        $candidates = $this->db->setQuery(query: $query, offset: 0, limit: $limit)->loadObjectList() ?: [];
-
-        $expired = 0;
-        $totalReleased = 0.0;
-
-        // A row's failure can end only a transaction the sweep was called inside.
-        $nested = TransactionState::isOpen(db: $this->db);
-
-        foreach ($candidates as $candidate) {
-            $id = (int) $candidate->id;
-            $this->db->transactionStart(true);
-
-            try {
-                // Every record the reservation's unit has, in location order, before
-                // the reservation row: the order a fulfilment of its line takes them in.
-                $unit = ['item' => (int) $candidate->item_id, 'combination' => (int) $candidate->combination_id];
-                $this->lockUnitRecords(unit: $unit);
-
-                $query = $this->db->getQuery(true)
-                    ->select('*')
-                    ->from($this->db->quoteName('#__alfa_inventory_reservations'))
-                    ->where($this->db->quoteName('id') . ' = ' . $id)
-                    ->where($this->db->quoteName('state') . ' = ' . $this->db->quote(self::STATE_ACTIVE))
-                    ->where($this->db->quoteName('expires_at') . ' <= ' . $this->db->quote($now));
-                $reservation = $this->db->setQuery((string) $query . ' FOR UPDATE')->loadObject();
-
-                // Race loser: someone converted/released it meanwhile.
-                if ($reservation === null) {
-                    TransactionState::commitLevel(db: $this->db);
-                    continue;
-                }
-
-                $stock = $this->lockExistingStockRow(
-                    itemId: (int) $reservation->item_id,
-                    combinationId: (int) $reservation->combination_id,
-                    locationId: (int) $reservation->location_id,
-                );
-
-                $remainder = $this->remainderOf($reservation);
-                $this->transitionReservation(reservation: $reservation, releasedDelta: $remainder, state: self::STATE_EXPIRED);
-                $this->releaseReservedOn(stock: $stock, reservation: $reservation, quantity: $remainder);
-
-                $this->evaluateUnitNotices(itemId: (int) $reservation->item_id, combinationId: (int) $reservation->combination_id);
-                TransactionState::commitLevel(db: $this->db);
-
-                $expired++;
-                $totalReleased += $remainder;
-            } catch (Throwable $e) {
-                $transactionEnded = $this->rollBackCommand(failure: $e);
-                Log::add(
-                    entry:    "Inventory expiry failed for reservation #{$id}: " . ErrorText::of($e),
-                    priority: Log::ERROR,
-                    category: 'com_alfa.inventory',
-                );
-
-                // The row's failure ended the transaction the sweep was called
-                // in: its caller is told, not handed a result.
-                if ($nested && $transactionEnded) {
-                    throw $e;
-                }
-            }
-        }
-
-        $result = ['expired' => $expired, 'released_quantity' => $totalReleased];
-
-        if ($expired > 0) {
-            $this->recordOperation(operationId: $this->newOperationId(), command: 'expire', sourceType: 'system', sourceId: 0, context: $context);
-            $this->announce(label: 'onInventoryReleased', event: new InventoryReleasedEvent('onInventoryReleased', [
-                'sourceType' => '',
-                'sourceId' => 0,
-                'toState' => self::STATE_EXPIRED,
-                'result' => $result,
-            ]));
-        }
 
         return $result;
     }
@@ -3538,60 +3414,14 @@ final class InventoryService
     }
 
     /**
-     * Receive goods into a location (+physical).
+     * Change a unit's stock at one location by a signed delta. Core's own: an
+     * extension (a return, an import, a receipt of goods) moves stock through
+     * InventoryCommands, which calls it.
      *
-     * Only a tracked stock unit receives. An untracked unit, a combination that
-     * no longer exists for the item, a missing item and the bare item of a
-     * product with combinations are refused and nothing is written: a receipt
-     * either moves what it says or refuses.
-     *
-     * @param int $itemId The product.
-     * @param int|null $combinationId The combination, or null.
-     * @param float $quantity Positive quantity received.
-     * @param int|null $locationId Target; null = default location.
-     * @param string $sourceType Command source domain.
-     * @param int $sourceId Source row id.
-     * @param InventoryContext|null $context Audit context.
-     *
-     * @return array{operation_id: string}
-     *
-     * @throws InventoryUnitException When the unit is not a tracked stock unit.
-     * @throws InventoryIntegrityException When the unit's figures claim stock its records do not hold.
-     * @throws RuntimeException When the location cannot take stock.
-     *
-     * @since  2.0.0
-     */
-    public function receive(
-        int $itemId,
-        ?int $combinationId,
-        float $quantity,
-        ?int $locationId = null,
-        string $sourceType = 'manual',
-        int $sourceId = 0,
-        ?InventoryContext $context = null,
-    ): array {
-        if ($quantity <= self::EPS) {
-            throw new RuntimeException('InventoryService: receive() takes a positive quantity.');
-        }
-
-        return $this->singleDelta(
-            itemId: $itemId,
-            combinationId: $combinationId,
-            quantityDelta: $quantity,
-            movementType: self::MOVE_RECEIVE,
-            locationId: $locationId,
-            sourceType: $sourceType,
-            sourceId: $sourceId,
-            context: $context,
-        );
-    }
-
-    /**
-     * Manual or import correction by a signed delta.
-     *
-     * Only a tracked stock unit is adjusted; every other unit is refused with
-     * nothing written (see receive()). Stock editors that hold an absolute
-     * figure use adjustTo() instead.
+     * Only a tracked stock unit is adjusted. An untracked unit, a combination
+     * that no longer exists for the item, a missing item and the bare item of a
+     * product with combinations are refused and nothing is written. Stock
+     * editors that hold an absolute figure use adjustTo() instead.
      *
      * @param int $itemId The product.
      * @param int|null $combinationId The combination, or null.
@@ -3756,175 +3586,6 @@ final class InventoryService
         return $result;
     }
 
-    /**
-     * Move quantity between locations: one transfer header owning an
-     * out/in movement pair, all in one transaction. Instantaneous in this
-     * phase (state 'completed'); an in-transit state can arrive later
-     * without reshaping the ledger.
-     *
-     * Only a tracked stock unit is transferred; every other unit is refused. The
-     * source record may not go below what active reservations hold on it.
-     *
-     * @param int $itemId The product.
-     * @param int|null $combinationId The combination, or null.
-     * @param float $quantity Positive quantity to move.
-     * @param int $sourceLocationId From.
-     * @param int $destinationLocationId To.
-     * @param InventoryContext|null $context Audit context.
-     *
-     * @return array{transfer_id: int, operation_id: string}
-     *
-     * @throws InventoryUnitException When the unit is not a tracked stock unit.
-     * @throws InventoryIntegrityException When the unit's figures claim stock its records do not hold.
-     * @throws InventoryReservedFloorException When the source would go below its reservations.
-     *
-     * @since  2.0.0
-     */
-    public function transfer(
-        int $itemId,
-        ?int $combinationId,
-        float $quantity,
-        int $sourceLocationId,
-        int $destinationLocationId,
-        ?InventoryContext $context = null,
-    ): array {
-        if ($quantity <= self::EPS) {
-            throw new RuntimeException('InventoryService: transfer() takes a positive quantity.');
-        }
-
-        if ($sourceLocationId === $destinationLocationId) {
-            throw new RuntimeException('InventoryService: transfer() needs two distinct locations.');
-        }
-
-        if ($sourceLocationId <= 0) {
-            throw new RuntimeException('InventoryService: transfer() needs a real source location.');
-        }
-
-        $unit = $this->resolveUnit(itemId: $itemId, combinationId: $combinationId);
-
-        if ($unit === null) {
-            throw new InventoryUnitException(
-                itemId: $itemId,
-                combinationId: (int) ($combinationId ?? 0),
-                reason: $this->unresolvedReason(itemId: $itemId, combinationId: (int) ($combinationId ?? 0)),
-            );
-        }
-
-        $context ??= new InventoryContext();
-        $operationId = $this->newOperationId();
-
-        $this->db->transactionStart(true);
-
-        try {
-            // Every record the unit has, in location order, before the source and
-            // the destination are taken in the transfer's own order: the one order
-            // in which every command takes a unit's records.
-            $this->lockUnitRecords(unit: $unit);
-
-            $source = $this->lockStockRow(
-                itemId: $unit['item'],
-                combinationId: $unit['combination'],
-                locationId: $sourceLocationId,
-                refuseLedgerDefect: true,
-                historical: false,
-                command: 'transfer',
-                lineId: null,
-            );
-
-            // The source's reservations are judged before the destination record is
-            // locked or created, so a refused transfer writes nothing at all.
-            $this->guardReservedFloor(stock: $source, deduction: $quantity, unit: $unit, command: 'transfer');
-
-            $destination = $this->lockStockRow(
-                itemId: $unit['item'],
-                combinationId: $unit['combination'],
-                locationId: $destinationLocationId,
-                refuseLedgerDefect: true,
-                historical: false,
-                command: 'transfer',
-                lineId: null,
-            );
-
-            if (!$source->unit_tracked || !$destination->unit_tracked) {
-                throw new InventoryUnitException(
-                    itemId: $unit['item'],
-                    combinationId: $unit['combination'],
-                    reason: InventoryUnitException::NOT_TRACKED,
-                );
-            }
-
-            // Transfers OUT of a disabled location are allowed and transfers
-            // IN are not. Moving goods off a shelf the merchant is retiring is the
-            // only way to empty it; moving goods onto it is receiving under
-            // another name. Read under a shared lock, after the stock rows.
-            if (!LocationPolicy::isEnabled(db: $this->db, locationId: $destinationLocationId, lockInShareMode: true)) {
-                throw new RuntimeException(sprintf(
-                    'InventoryService: location %d is disabled and cannot be a transfer destination.',
-                    $destinationLocationId,
-                ));
-            }
-
-            $this->guardPhysical(stock: $source, deduction: $quantity);
-
-            $header = (object) [
-                'source_location_id' => $sourceLocationId,
-                'destination_location_id' => $destinationLocationId,
-                'state' => 'completed',
-                'operation_id' => $operationId,
-                'correlation_id' => $context->correlationId,
-                'note' => $context->note,
-                'created' => Factory::getDate('now', 'UTC')->toSql(),
-                'created_by' => $context->userId,
-            ];
-            $this->db->insertObject('#__alfa_inventory_transfers', $header, 'id');
-            $transferId = (int) $header->id;
-
-            $this->applyStockDelta(stockId: (int) $source->id, quantityDelta: -$quantity, reservedDelta: 0);
-            $this->applyStockDelta(stockId: (int) $destination->id, quantityDelta: $quantity, reservedDelta: 0);
-
-            foreach ([
-                [self::MOVE_TRANSFER_OUT, $sourceLocationId, -$quantity, $destinationLocationId],
-                [self::MOVE_TRANSFER_IN, $destinationLocationId, $quantity, $sourceLocationId],
-            ] as [$type, $locationId, $delta, $counterparty]) {
-                $this->appendMovement(
-                    unit: $unit,
-                    locationId: $locationId,
-                    qtyChange: $delta,
-                    movementType: $type,
-                    sourceType: 'transfer',
-                    sourceId: $transferId,
-                    sourceLineId: null,
-                    operationId: $operationId,
-                    context: $context,
-                    counterpartyType: 'location',
-                    counterpartyId: $counterparty,
-                    transferId: $transferId,
-                );
-            }
-
-            $this->evaluateUnitNotices(itemId: $unit['item'], combinationId: $unit['combination']);
-            $this->recordOperation(operationId: $operationId, command: 'transfer', sourceType: 'transfer', sourceId: $transferId, context: $context);
-
-            TransactionState::commitLevel(db: $this->db);
-        } catch (Throwable $e) {
-            $this->rollBackCommand(failure: $e);
-            throw $e;
-        }
-
-        $result = ['transfer_id' => $transferId, 'operation_id' => $operationId];
-
-        $this->announce(label: 'onInventoryTransferred', event: new InventoryTransferredEvent('onInventoryTransferred', [
-            'itemId' => $unit['item'],
-            'combinationId' => $unit['combination'],
-            'quantity' => $quantity,
-            'sourceLocationId' => $sourceLocationId,
-            'destinationLocationId' => $destinationLocationId,
-            'result' => $result,
-        ]));
-
-        return $result;
-    }
-
     //  Shared command internals
 
     /**
@@ -3979,12 +3640,12 @@ final class InventoryService
     }
 
     /**
-     * One-unit signed delta with movement: the receive()/adjust() core.
+     * One-unit signed delta with movement: the core of adjust().
      *
      * @param int $itemId The product.
      * @param int|null $combinationId The combination, or null.
      * @param float $quantityDelta Signed quantity.
-     * @param string $movementType receive | adjust.
+     * @param string $movementType The movement written (adjust).
      * @param int|null $locationId Target; null = default location.
      * @param string $sourceType Command source domain.
      * @param int $sourceId Source row id.
@@ -4079,13 +3740,13 @@ final class InventoryService
      * Apply one signed delta to a locked stock record of a tracked unit: the
      * location guard, the reservation and physical floors for a reduction, the
      * record, one movement, the unit's notices and the operation row. Shared by
-     * receive(), adjust() and adjustTo().
+     * adjust() and adjustTo().
      *
      * @param array{item: int, combination: int} $unit The unit.
      * @param object $stock The locked stock record.
      * @param int $locationId Its location.
      * @param float $delta Signed quantity.
-     * @param string $movementType receive | adjust.
+     * @param string $movementType The movement written (adjust).
      * @param string $sourceType Command source domain.
      * @param int $sourceId Source row id.
      * @param string $operationId The command's operation id.
@@ -4142,7 +3803,7 @@ final class InventoryService
 
     /**
      * Resolve the stock unit a command names, for the commands that take IN stock
-     * or claims (reserve, receive, adjust, adjustTo, transfer) and for the ceiling:
+     * or claims (reserve, adjust, adjustTo) and for the ceiling:
      * a CURRENT unit that tracks stock.
      *
      * A product with current combinations stocks ONLY through them: a combination
@@ -10856,8 +10517,8 @@ final class InventoryService
      * order).
      *
      * A command that can reach more than one record of a unit (a line reserved at
-     * several locations, a remainder drawn from several shelves, a transfer's two
-     * ends) calls this where it first reaches the unit. Every such command then
+     * several locations, a remainder drawn from several shelves) calls this where it
+     * first reaches the unit. Every such command then
      * takes the unit's records in the same order, whatever order it goes on to
      * read or write them in, so two of them on one unit queue on its first record
      * instead of each holding one record the other waits for.

@@ -12,6 +12,7 @@ namespace Alfa\Plugin\Console\Alfa\Extension;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Plugin\Console\Alfa\Console\InventoryAuditCommand;
 use Alfa\Plugin\Console\Alfa\Console\TasksPruneCommand;
@@ -23,10 +24,8 @@ use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\Console\Application;
 use Joomla\Database\DatabaseAwareInterface;
 use Joomla\Database\DatabaseAwareTrait;
-use Joomla\Database\DatabaseDriver;
 use Joomla\Event\SubscriberInterface;
 use Throwable;
-use UnexpectedValueException;
 
 /**
  * Alfa Commerce's one registration point with the Joomla console: alfa:tasks:run, alfa:tasks:prune and
@@ -85,19 +84,9 @@ final class Alfa extends CMSPlugin implements SubscriberInterface, DatabaseAware
         foreach ([
             static fn (): object => new TasksRunCommand(),
             static fn (): object => new TasksPruneCommand(),
-            function (): object {
-                // The audit closes its snapshot through TransactionState, which reads the transaction depth only a
-                // driver keeps. Joomla's container hands every extension a driver; anything else is refused here.
-                $db = $this->getDatabase();
-
-                if (!$db instanceof DatabaseDriver) {
-                    throw new UnexpectedValueException(
-                        sprintf('alfa:inventory:audit needs a Joomla database driver, the connection is %s.', get_debug_type($db)),
-                    );
-                }
-
-                return new InventoryAuditCommand(db: $db);
-            },
+            // The audit closes its snapshot through TransactionState, which reads the transaction depth only a driver
+            // keeps; TransactionState::driver() narrows the connection once and refuses any other.
+            fn (): object => new InventoryAuditCommand(db: TransactionState::driver(db: $this->getDatabase())),
         ] as $make) {
             try {
                 $application->addCommand(command: $make());

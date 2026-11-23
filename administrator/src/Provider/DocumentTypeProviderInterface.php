@@ -21,7 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\DocumentTypes\DocumentTypeRegistry
  * implements provider interfaces and subscribes to the collection
  * events; no manifest metadata duplicates this. A listener of the
  * `onCollectDocumentTypeProviders` collection event (any loaded listener)
- * adds its provider with addProvider(provider, contributor,
+ * adds its provider with addProvider(contributor, provider,
  * version); the registry sync then calls register() and persists the
  * declared types under the contributor's ownership.
  *

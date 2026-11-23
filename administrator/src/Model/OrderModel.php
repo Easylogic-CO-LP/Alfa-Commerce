@@ -3875,7 +3875,7 @@ class OrderModel extends AlfaAdminModel
         ?array $configuration = null,
         ?ManualDiscountScope $manualDiscountScope = null,
     ): bool {
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $app = Factory::getApplication();
 
         try {
@@ -4233,7 +4233,7 @@ class OrderModel extends AlfaAdminModel
     public function deleteOrderItem(int $id, int $orderId): bool
     {
         $app = Factory::getApplication();
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
 
         // Load item to get quantity and product ID for stock restore
         $item = $this->loadExistingItemRow($id);
@@ -4824,7 +4824,7 @@ class OrderModel extends AlfaAdminModel
                 // The currency the submission names, a published one, is read
                 // first: a refusal writes nothing.
                 $currencyId = $this->sentCurrencyId(data: $data);
-                $db = $this->getDatabase();
+                $db = $this->alfaDriver();
                 $db->transactionStart(true);
 
                 try {
@@ -4950,7 +4950,7 @@ class OrderModel extends AlfaAdminModel
         // after-events are heard once the save has committed: Alfa's
         // own through PostCommit, Joomla's onContentAfterSave captured and
         // heard again then (AlfaAdminModel::alfaAfterTheCommit()).
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $orderId = $pk;
 
         // The other system's id of the order is written once: an order without one may be given one that no other
@@ -5671,7 +5671,7 @@ class OrderModel extends AlfaAdminModel
     public function delete(&$pks)
     {
         $app = Factory::getApplication();
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $orders = [];
 
         // The API hands this a SCALAR id (ApiController::delete), while the

@@ -576,7 +576,7 @@ class ItemfieldModel extends AlfaAdminModel
      */
     public function delete(&$pks)
     {
-        $db = $this->getDatabase();
+        $db = $this->alfaDriver();
         $pks = array_map('intval', (array) $pks);
 
         // Permission first: the usage guard below reads the value pool and explains which

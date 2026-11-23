@@ -113,7 +113,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
      */
     public function onCollectSearchEngines(CollectSearchEnginesEvent $event): void
     {
-        $event->addEngine($this->engine(), $this->_type . '.' . $this->_name, $this->extensionVersion());
+        $event->addEngine($this->_type . '.' . $this->_name, $this->engine(), $this->extensionVersion());
     }
 
     /**

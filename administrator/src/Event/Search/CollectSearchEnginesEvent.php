@@ -28,7 +28,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *
  *     public function onCollectSearchEngines(CollectSearchEnginesEvent $event): void
  *     {
- *         $event->addEngine(new ExampleEngine(), 'alfa-search.example', '1.0.0');
+ *         $event->addEngine('alfa-search.example', new ExampleEngine(), '1.0.0');
  *     }
  *
  * The typed signature IS the developer contract: a wrong type fails loudly at the
@@ -50,27 +50,32 @@ class CollectSearchEnginesEvent extends AbstractEvent
     /**
      * Contribute an engine, owned by the plugin that names itself.
      *
-     * A registry's entry names its plugin second, after the object it registers: the four registries (addProjection(),
-     * addEngine(), and addProvider() of the document types and of the stock allocation) share that shape, while a
-     * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
+     * Every contribution names its plugin first, then what it contributes: the four registries (addProjection(),
+     * addEngine(), and addProvider() of the document types and of the stock allocation) as the contributions that build
+     * an entry (item(), column(), action() and the others). A registry answers the event, so a plugin's contributions
+     * chain in one statement.
      *
-     * @param SearchEngineInterface $engine The engine instance.
      * @param string $contributor The contributing plugin, group.element (in place of the extension name; attribution,
      *                            never an authorisation). The configured engine's plugin is the one asked for the search
      *                            input when it is an alfa-search plugin.
+     * @param SearchEngineInterface $engine The engine instance.
      * @param string $version The package version.
+     *
+     * @return static The event, for the next contribution.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function addEngine(SearchEngineInterface $engine, string $contributor, string $version = ''): void
+    public function addEngine(string $contributor, SearchEngineInterface $engine, string $version = ''): static
     {
         $this->engines[] = [
             'engine' => $engine,
             'element' => PluginId::of($contributor)->key(),
             'version' => trim($version),
         ];
+
+        return $this;
     }
 
     /**

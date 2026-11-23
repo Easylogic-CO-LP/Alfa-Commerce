@@ -49,8 +49,6 @@ use Throwable;
  *     one recipient at a time, each recipient's outcome reported as it comes (sent, failed before or at the
  *     server's answer, or unknown: handed over with no answer). The order's status e-mail and placement e-mail
  *     tasks send through it.
- *   EmailService::sendForStatusChange(int $orderId, int $newStatusId): void
- *     every recipient at once, failures logged only.
  *
  * A status change queues the order.status_email task, which sends
  * through deliverForStatus() once the change has committed; a mail failure is
@@ -564,7 +562,7 @@ class EmailService
      * Send a real test email for the picked combination.
      *
      * Used by the admin "Send test" button on the orderstatus edit
-     * screen. Unlike sendForStatusChange() this:
+     * screen. Unlike the live dispatch (deliverForStatus()) this:
      *   - Takes the destination address directly (not derived from
      *     `notify_customer` / `admin_recipient_ids`).
      *   - Builds tokens against the specific order admin picked (not
@@ -762,50 +760,6 @@ class EmailService
     public static function clearPositionsCache(): void
     {
         self::$positionsCache = [];
-    }
-
-    /**
-     * Send customer + admin status-change notifications for an order
-     * transitioning INTO $newStatusId.
-     *
-     * Customer email: gated by `notify_customer` on the status row,
-     * sent to the order's customer (#__users.email via id_user).
-     *
-     * Admin emails: one mail per user listed in `admin_recipient_ids`
-     * (JSON array of #__users.id values). Each recipient gets its own
-     * Mailer instance so a failure on one doesn't poison the rest;
-     * blocked / missing users are filtered out by resolveAdminRecipientEmails().
-     *
-     * @param int $orderId Order whose status just changed.
-     * @param int $newStatusId Status the order is transitioning into.
-     *
-     *
-     * @since  1.0.0
-     */
-    public static function sendForStatusChange(int $orderId, int $newStatusId): void
-    {
-        try {
-            // Every recipient, each failure logged by dispatch() as it happens.
-            self::deliverForStatus(
-                orderId: $orderId,
-                statusId: $newStatusId,
-                attempt: static fn (string $unit): bool => true,
-                outcome: static function (string $unit, string $outcome, string $error): void {
-                },
-            );
-        } catch (Throwable $e) {
-            // Mail dispatch must never block the order save: log and move on.
-            Log::add(
-                entry:    Text::sprintf(
-                    'COM_ALFA_ORDEREMAIL_LOG_SEND_FAILED',
-                    $orderId,
-                    $newStatusId,
-                    ErrorText::of($e),
-                ),
-                priority: Log::ERROR,
-                category: 'com_alfa.orderemail',
-            );
-        }
     }
 
     /**

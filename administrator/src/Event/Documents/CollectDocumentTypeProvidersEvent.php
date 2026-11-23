@@ -24,7 +24,8 @@ use Joomla\CMS\Event\AbstractEvent;
  *     public function onCollectDocumentTypeProviders(
  *         CollectDocumentTypeProvidersEvent $event
  *     ): void {
- *         $event->addProvider(new MyDocumentProvider(), 'alfa.mypack', '1.0.0');
+ *         $event->addProvider('alfa.mypack', new MyDocumentProvider(), '1.0.0')
+ *             ->addProvider('alfa.mypack', new MyCreditProvider(), '1.0.0');
  *     }
  *
  * The registry keeps a provider's types under Joomla's name for the plugin,
@@ -53,20 +54,23 @@ class CollectDocumentTypeProvidersEvent extends AbstractEvent
     /**
      * Contribute a provider, owned by the plugin that names itself.
      *
-     * A registry's entry names its plugin second, after the object it registers: the four registries (addProjection(),
-     * addEngine(), and addProvider() of the document types and of the stock allocation) share that shape, while a
-     * contribution that builds an entry (item(), column(), action() and the others) names its plugin first.
+     * Every contribution names its plugin first, then what it contributes: the four registries (addProjection(),
+     * addEngine(), and addProvider() of the document types and of the stock allocation) as the contributions that build
+     * an entry (item(), column(), action() and the others). A registry answers the event, so a plugin's contributions
+     * chain in one statement.
      *
-     * @param DocumentTypeProviderInterface $provider The provider instance.
      * @param string $contributor The contributing plugin, group.element (in place of the extension name; attribution,
      *                            never an authorisation).
+     * @param DocumentTypeProviderInterface $provider The provider instance.
      * @param string $version The package version.
+     *
+     * @return static The event, for the next contribution.
      *
      * @throws InvalidArgumentException When the contributor is not group.element.
      *
      * @since  2.0.0
      */
-    public function addProvider(DocumentTypeProviderInterface $provider, string $contributor, string $version = ''): void
+    public function addProvider(string $contributor, DocumentTypeProviderInterface $provider, string $version = ''): static
     {
         $owner = PluginId::of($contributor);
 
@@ -77,6 +81,8 @@ class CollectDocumentTypeProvidersEvent extends AbstractEvent
             'contributor' => $owner->key(),
             'version' => trim($version),
         ];
+
+        return $this;
     }
 
     /**

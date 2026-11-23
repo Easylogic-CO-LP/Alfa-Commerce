@@ -43,6 +43,7 @@ use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
+use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use RuntimeException;
 use stdClass;
@@ -2382,12 +2383,7 @@ class PriceIndexSyncService
      */
     public static function announceOpenedWindows(): void
     {
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
-        if (!$db instanceof DatabaseDriver) {
-            return;
-        }
-
+        $db = TransactionState::driver(db: Factory::getContainer()->get(DatabaseInterface::class));
         $until = DueRead::windowsUntil();
         $cursor = self::windowCursor(db: $db, lock: false);
 

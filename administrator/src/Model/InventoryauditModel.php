@@ -51,7 +51,7 @@ class InventoryauditModel extends BaseDatabaseModel
      */
     public function getReport(): array
     {
-        $db = $this->getDatabase();
+        $db = TransactionState::driver(db: $this->getDatabase());
 
         // The next transaction read-only, opened by the driver: MySQL cannot prepare START
         // TRANSACTION, and the MySQLi driver prepares every statement it is handed. Under

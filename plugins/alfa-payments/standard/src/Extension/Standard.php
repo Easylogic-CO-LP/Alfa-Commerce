@@ -111,7 +111,6 @@
  *   OrderAfterPlaceEvent     getOrder()  -> the committed order
  *   OrderProcessViewEvent    getOrder()  -> order awaiting payment
  *   OrderCompleteViewEvent   getOrder()  -> order on the thank-you page
- *   PaymentResponseEvent     getOrder()  -> order the buyer returned for
  *   AdminOrderDeleteEvent    getOrder()  -> order being deleted in the admin
  *
  * BOTH work. ALWAYS PREFER THE ALIAS: it names what you actually got,
@@ -530,9 +529,6 @@
  *          ->icon('icon-name')       // Joomla icon class (without 'icon-')
  *          ->css('btn-success')      // Bootstrap button class
  *          ->confirm('Are you sure?') // Optional confirmation dialog
- *          ->modal('layout_name')                // marks it a UI action;
- *                                                // the popup title is the
- *                                                // button label, always
  *          ->priority(200);          // Higher = more prominent
  *
  * 2. onExecuteAction($event): HANDLE button click.
@@ -678,7 +674,7 @@ final class Standard extends PaymentsPlugin
      * Cart page: show payment method selector or payment form.
      *
      * Available on $event:
-     *   $event->getRequest()  -> MethodViewRequest (methodId, methodType, methodParams, isSelected, cartTotal)
+     *   $event->getRequest()  -> MethodViewRequest: ->method (the Method, entire) and ->cart (the Cart, entire)
      *                           (alias of getSubject())
      *   $event->getMethod()   -> Payment method record
      *
@@ -783,7 +779,9 @@ final class Standard extends PaymentsPlugin
     //
     //      public function onPaymentResponse($event): void
     //      {
-    //          $order  = $event->getOrder();
+    //          // The event carries no order: the plugin finds it from its own
+    //          // reference, here the signed return link the plugin built.
+    //          $order  = $this->orderFromReturnLink();
     //          $status = Factory::getApplication()->getInput()->getString('<gateway>_status', '');
     //
     //          if ($status === 'paid') {   // gateway confirmed the payment on return
@@ -1198,8 +1196,8 @@ final class Standard extends PaymentsPlugin
     //  grants nothing and moves no order status. Only
     //  $this->paymentUpdate($id)->completed() does.
     //
-    //  getPaymentsByOrder() returns RAW rows (plain floats), unlike the
-    //  order object's ->payments, whose amounts are Money objects.
+    //  getPaymentsByOrder() returns the rows with their amounts as Money,
+    //  as the order object's ->payments holds them.
     //
     //  Only completed rows of type 'payment' count, so a pending deposit
     //  leaves the order 'unpaid' until it is flipped to ->completed().
@@ -1229,16 +1227,8 @@ final class Standard extends PaymentsPlugin
      *
      * EVERY action opens the same way: the button loads the action page in
      * a modal iframe, and what appears there is whatever your
-     * onExecuteAction() sets with setLayout(). ->modal() only records the
-     * intent for readers:
-     *
-     *   $event->add('view_details', 'Details')
-     *       ->icon('eye')
-     *       ->modal('action_view_details');   // documentation, not wiring
-     *
-     * Its title and size arguments are NOT read by anything: the popup is
-     * always modal-xl and its title is the BUTTON LABEL. Same for
-     * $event->setModalTitle() in the handler: a dead write today.
+     * onExecuteAction() sets with setLayout(). The popup is always modal-xl
+     * and its title is the BUTTON LABEL.
      *
      * Available on $event:
      *   $event->getPayment()  -> Payment record (with Money objects, params)
@@ -1260,14 +1250,12 @@ final class Standard extends PaymentsPlugin
         // View Details: opens a modal with payment information
         $event->add('view_details', Text::_('PLG_ALFA_PAYMENTS_STANDARD_VIEW_DETAILS'))
             ->icon('eye')->css('btn-outline-secondary')
-            ->modal('action_view_details', Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_DETAILS') . ' #' . $payment->id)
             ->readOnly()
             ->priority(10);
 
         // View Logs: opens a modal with this payment's plugin log history
         $event->add('view_logs', Text::_('PLG_ALFA_PAYMENTS_STANDARD_VIEW_LOGS'))
             ->icon('list')->css('btn-outline-info')
-            ->modal('default_order_logs_view', Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_LOGS') . ' #' . $payment->id, 'lg')
             ->readOnly()
             ->priority(5);
 
@@ -1320,7 +1308,6 @@ final class Standard extends PaymentsPlugin
                 ->mutating()
                 ->startsRefund()
                 ->icon('undo-2')->css('btn-outline-warning')
-                ->modal('action_refund_partial', Text::_('PLG_ALFA_PAYMENTS_STANDARD_REFUND_PARTIAL'), 'sm')
                 ->priority(140);
         }
 
@@ -1346,9 +1333,8 @@ final class Standard extends PaymentsPlugin
      *   $event->setError()     -> error message shown to admin
      *   $event->setRefresh()   -> true to reload the page after action
      *   $event->setLayout()    -> render template (for modal actions)
-     *   $event->setLayoutData() -> data for the template
-     *   $event->setModalTitle() -> currently READ BY NOTHING; the popup
-     *                            title is the button's label
+     *   $event->setLayoutData() -> data for the template (the popup's
+     *                            title is the button's label)
      *   $event->addButton()    -> footer button on the action page; with
      *                            ['action' => 'x'] it runs another action
      *                            of THIS payment in the same popup
@@ -1973,7 +1959,8 @@ final class Standard extends PaymentsPlugin
     //  Modal action handlers
     //
     //  These open templates in a Bootstrap modal rather than
-    //  performing an action. Registered with ->modal() in onGetActions().
+    //  performing an action. Registered as read-only actions in
+    //  onGetActions(); the layout set here is what the popup shows.
 
     /**
      * Show payment details in a modal.
@@ -1994,7 +1981,6 @@ final class Standard extends PaymentsPlugin
             'payment' => $payment,
             'order' => $event->getOrder(),
         ]);
-        $event->setModalTitle(Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_DETAILS') . ' #' . $payment->id);
     }
 
     /**
@@ -2022,7 +2008,6 @@ final class Standard extends PaymentsPlugin
             'logData' => $logData ?? [],
             'xml' => $this->getLogsSchema(),
         ]);
-        $event->setModalTitle(Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_LOGS') . ' #' . $payment->id);
     }
 
     //  SETUP CHECKUP: the checklist in the method's settings, read-only

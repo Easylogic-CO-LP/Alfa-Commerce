@@ -55,8 +55,7 @@ use Throwable;
  * (every stamp and every read of what has not expired, through its now()), PriceIndexSyncService::writeChunk() (one
  * instant per chunk, the global boundaries read on their own fresh clock before it) and
  * InventoryEffectOutbox::enqueue() (UTC_TIMESTAMP()). The other reads of the cached clock are stamps that no window of
- * a run is measured from, or windows of a short administrator, storefront or API request; the one exception is
- * InventoryService::expireDueReservations(), which core never calls (its docblock says what it means for a caller).
+ * a run is measured from, or windows of a short administrator, storefront or API request.
  * Each place above compares like with like, a row stamped by PHP's clock with PHP's and one stamped by the database's
  * with the database's, so a drift between the web server's and the database server's clocks moves none of its windows.
  *

@@ -59,15 +59,6 @@ class PluginAction
     /** @var ?string Custom button layout override */
     public ?string $button_layout;
 
-    /** @var ?string Response layout (modal after execution) */
-    public ?string $response_layout;
-
-    /** @var ?string Modal popup title */
-    public ?string $modal_title;
-
-    /** @var string Modal size: sm, md, lg, xl */
-    public string $modal_size;
-
     /** @var bool Does running this action change state? True unless declared read-only. */
     public bool $mutates;
 
@@ -102,9 +93,6 @@ class PluginAction
         $this->metadata = $config['metadata'] ?? [];
         $this->priority = $config['priority'] ?? 100;
         $this->button_layout = $config['button_layout'] ?? null;
-        $this->response_layout = $config['response_layout'] ?? null;
-        $this->modal_title = $config['modal_title'] ?? null;
-        $this->modal_size = $config['modal_size'] ?? 'md';
         $this->data = $config['data'] ?? [];
         $this->starts_refund = $config['starts_refund'] ?? false;
     }
@@ -265,7 +253,8 @@ class PluginAction
     }
 
     /**
-     * Disable this action (button appears grayed out).
+     * Disable this action: it is left out of the actions the plugin offers (getActions() keeps only valid, enabled
+     * actions), so no button is shown for it.
      *
      * @return static For chaining
      * @since  1.0.0
@@ -306,38 +295,7 @@ class PluginAction
         return $this;
     }
 
-    /**
-     * Record a response layout, a modal title and a size; nothing reads them. The action's window shows the layout
-     * the plugin's onExecuteAction() handler sets, under the action's label.
-     *
-     * @param string $layout Layout name
-     * @param string $title Modal title
-     * @param string $size Modal size: 'sm', 'md', 'lg', 'xl'
-     * @return static For chaining
-     * @deprecated 2.2.1 Kept in 2.2 because extensions call it (the bundled Standard plugins); removed in 2.3.0.
-     * @since  1.0.0
-     */
-    public function modal(string $layout, string $title = '', string $size = 'md'): static
-    {
-        $this->response_layout = $layout;
-        $this->modal_title = $title ?: null;
-        $this->modal_size = $size;
-
-        return $this;
-    }
-
     //  Utility
-
-    /**
-     * Whether modal() recorded a response layout; nothing reads it.
-     *
-     * @deprecated 2.2.1 Removed in 2.3.0 with modal().
-     * @since  1.0.0
-     */
-    public function hasResponseLayout(): bool
-    {
-        return !empty($this->response_layout);
-    }
 
     /**
      * Check if the action is valid (has required id and label).

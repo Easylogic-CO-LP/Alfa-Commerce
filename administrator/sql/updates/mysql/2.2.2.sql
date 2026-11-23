@@ -157,3 +157,10 @@ ALTER TABLE `#__alfa_item_field_values` ADD UNIQUE KEY `uq_field_code` (`item_fi
 -- The extension job is gone: a plugin declares its own tasks and jobs. Its rows, which no handler runs any more, are
 -- deleted; a second run deletes nothing.
 DELETE FROM `#__alfa_tasks` WHERE `handler` = 'extension.job';
+
+-- The transfer headers
+--
+-- No command moves stock between locations, and Alfa Commerce itself never made a transfer: nothing writes or reads
+-- #__alfa_inventory_transfers. It is dropped; the install SQL no longer creates it.
+
+DROP TABLE IF EXISTS `#__alfa_inventory_transfers` /** CAN FAIL **/;
