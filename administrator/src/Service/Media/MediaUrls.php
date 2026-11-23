@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Media;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\MediaFetchJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
@@ -125,7 +126,7 @@ final class MediaUrls
                 $rows[$key]['fetched'] = self::hold(file: $fetched['file'], name: $fetched['name'], url: $url);
                 unset($rows[$key]['fetch']);
             } catch (MediaFetchRefused $e) {
-                self::refuse(pointer: (string) ($row['pointer'] ?? ''), url: $url, reason: $e->getMessage());
+                self::refuse(pointer: (string) ($row['pointer'] ?? ''), url: $url, reason: ErrorText::of($e));
                 unset($rows[$key]);
             }
         }
