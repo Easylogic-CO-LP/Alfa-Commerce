@@ -23,28 +23,6 @@ defined('_JEXEC') or die;
  * it never enforces dynamic visibility (state / usergroup / ACL), which stays
  * the sole responsibility of the catalog query.
  *
- * Optional set-shaped delete
- *
- * Beyond the three declared methods a projection MAY also expose:
- *
- * ```php
- * public function deleteForItems(array $itemIds): void;
- * ```
- *
- * the delete counterpart of {@see self::syncItems()}. {@see ProjectionManager}
- * detects it and hands the whole selection over in one call, so trashing a page
- * of items costs one statement per projection instead of one per item; a
- * projection that declares only {@see self::deleteForItem()} still receives one
- * call per id and stays correct. The parameter name `$itemIds` is part of that
- * optional contract: the manager invokes it as a named argument, and a
- * projection that spells the parameter differently is driven one id at a time
- * rather than silently skipped.
- *
- * It is deliberately not declared abstract here: adding an abstract method to
- * this interface would fatal every implementer that has not been updated in the
- * same commit, including projections contributed by installed extensions.
- * Declare it on your projection and it will be used automatically.
- *
  * @since  2.0.0
  */
 interface ProjectionInterface
@@ -81,12 +59,33 @@ interface ProjectionInterface
      * catalog immediately without waiting for a rebuild.
      *
      * Fan-out over a selection MUST NOT be built from N calls to this method:
-     * declare the optional `deleteForItems(array $itemIds): void` documented in
-     * the class docblock and {@see ProjectionManager} will batch for you.
+     * {@see self::deleteForItems()} takes the selection.
      *
      * @param int $itemId The item primary key.
      *
      * @since  2.0.0
      */
     public function deleteForItem(int $itemId): void;
+
+    /**
+     * Rebuild the projection rows of several items and let a failure reach the caller: the catalogue rebuild job's
+     * path, which marks the items owed when it fails.
+     *
+     * @param int[] $itemIds The item primary keys.
+     *
+     * @throws \Throwable Whatever the rebuild met.
+     *
+     * @since  2.2.0
+     */
+    public function syncItemsOrFail(array $itemIds): void;
+
+    /**
+     * Remove every projection row of a selection of items in one call: the delete counterpart of
+     * {@see self::syncItems()}, so trashing a page of items costs one statement per projection.
+     *
+     * @param int[] $itemIds The item primary keys.
+     *
+     * @since  2.0.0
+     */
+    public function deleteForItems(array $itemIds): void;
 }

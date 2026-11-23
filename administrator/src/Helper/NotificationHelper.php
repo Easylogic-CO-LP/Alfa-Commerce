@@ -235,8 +235,8 @@ class NotificationHelper
             $previous = $open ? (NotificationText::arguments(row: $row)['message'] ?? []) : [];
             $now = self::now();
             $count = (int) ($previous[1] ?? 0) + 1;
-            // The first time as stored: a time parameter ({dt}), or the time itself in an older notice.
-            $first = (string) (\is_array($previous[2] ?? null) ? ($previous[2]['dt'] ?? $now) : ($previous[2] ?? $now));
+            // The first time as stored: the time parameter ({dt}).
+            $first = (string) ($previous[2]['dt'] ?? $now);
             $carrier = $plugin->group === 'alfa-shipments';
             // The plugin by the name Extensions: Plugins shows, the times in the reader's zone, and why it could not take
             // the updates.

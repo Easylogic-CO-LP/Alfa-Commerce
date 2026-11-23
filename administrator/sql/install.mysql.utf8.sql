@@ -689,13 +689,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_inventory_movements` (
   `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '0 = item-level unit',
   `location_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
   `qty_change` float NOT NULL COMMENT 'Signed delta, same float semantics as stock',
-  `movement_type` varchar(30) NOT NULL DEFAULT '' COMMENT 'receive | deduct | restore | adjust | transfer_out | transfer_in | migration',
+  `movement_type` varchar(30) NOT NULL DEFAULT '' COMMENT 'receive | deduct | restore | adjust | migration',
   `source_type` varchar(30) NOT NULL DEFAULT '' COMMENT 'Command source domain (order, document, manual, import, migration, catalog_edit, inventory_repair, location, stock_writeoff, ...)',
   `source_id` int(11) UNSIGNED DEFAULT NULL,
   `source_line_id` int(11) UNSIGNED DEFAULT NULL COMMENT 'Source line: per-line cumulative deduction ledger anchor',
   `counterparty_type` varchar(30) NOT NULL DEFAULT '' COMMENT 'Conceptual other side (supplier, customer, location), optional',
   `counterparty_id` int(11) UNSIGNED DEFAULT NULL,
-  `transfer_id` int(11) UNSIGNED DEFAULT NULL,
   `operation_id` varchar(40) NOT NULL DEFAULT '' COMMENT 'Domain identity of the writing command',
   `correlation_id` varchar(64) NOT NULL DEFAULT '' COMMENT 'External chain thread passed in by callers',
   `note` varchar(255) DEFAULT '',
@@ -707,7 +706,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_inventory_movements` (
   KEY `idx_location` (`location_id`),
   KEY `idx_source` (`source_type`, `source_id`),
   KEY `idx_source_line` (`source_line_id`),
-  KEY `idx_transfer` (`transfer_id`),
   KEY `idx_created` (`created`),
   -- Serves the admin movements list filtered by type: InventorymovementsModel
   -- issues `WHERE movement_type = ? ORDER BY id DESC LIMIT n`. Unindexed, that
@@ -816,7 +814,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_inventory_reservations` (
 CREATE TABLE IF NOT EXISTS `#__alfa_inventory_operations` (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `operation_id` varchar(40) NOT NULL,
-  `command` varchar(20) NOT NULL COMMENT 'reserve | release | commit | restore | reverse_restore | receive | adjust | transfer | expire | reconcile | retire | location_state | unit_state | track_open | track_close | write_off | resolve_line | archive | unarchive | sale_rules | prioritise',
+  `command` varchar(20) NOT NULL COMMENT 'reserve | release | commit | restore | reverse_restore | receive | adjust | expire | reconcile | retire | location_state | unit_state | track_open | track_close | write_off | resolve_line | archive | unarchive | sale_rules | prioritise',
   `source_type` varchar(30) NOT NULL DEFAULT '',
   `source_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
   `correlation_id` varchar(64) NOT NULL DEFAULT '',

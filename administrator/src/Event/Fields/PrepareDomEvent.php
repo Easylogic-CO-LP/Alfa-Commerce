@@ -27,16 +27,6 @@ use Joomla\CMS\Form\Form;
 class PrepareDomEvent extends FieldsEvent
 {
     /**
-     * The argument names, in order expected by legacy plugins.
-     *
-     * @var array
-     *
-     * @since  1.0.0
-     * @deprecated 5.0 will be removed in 6.0
-     */
-    // protected $legacyArgumentsOrder = ['subject', 'fieldset', 'form'];
-
-    /**
      * Constructor.
      *
      * @param string $name The event name.

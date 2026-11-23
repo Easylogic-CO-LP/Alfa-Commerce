@@ -391,3 +391,14 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_excluded_categories` (
   PRIMARY KEY (`shipment_id`, `category_id`),
   KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The movements' link to a transfer
+
+-- With no transfer headers, a movement links to none: the movements lose transfer_id and its key, and the movements'
+-- type and the stock commands' log no longer name the transfer types in their comments. A site with the column or the
+-- key already gone goes on: both drops carry the CAN FAIL marker. The install SQL makes the same tables.
+
+ALTER TABLE `#__alfa_inventory_movements` DROP KEY `idx_transfer` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_inventory_movements` DROP COLUMN `transfer_id` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_inventory_movements` MODIFY `movement_type` varchar(30) NOT NULL DEFAULT '' COMMENT 'receive | deduct | restore | adjust | migration';
+ALTER TABLE `#__alfa_inventory_operations` MODIFY `command` varchar(20) NOT NULL COMMENT 'reserve | release | commit | restore | reverse_restore | receive | adjust | expire | reconcile | retire | location_state | unit_state | track_open | track_close | write_off | resolve_line | archive | unarchive | sale_rules | prioritise';

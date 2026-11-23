@@ -97,7 +97,7 @@ use WeakMap;
  * savepoint inside its caller's, committed through TransactionState::commitLevel()
  * and closed after a failure through TransactionState::rollBackLevel(), on either
  * MySQL driver. Its AFTER events (onInventoryReserved, onInventoryReleased,
- * onInventoryCommitted, onInventoryRestored, onInventoryAdjusted, onInventoryTransferred) and its
+ * onInventoryCommitted, onInventoryRestored, onInventoryAdjusted) and its
  * success log lines wait for the outermost commit and are delivered once after it,
  * never after a rollback ({@see PostCommit}); with no transaction open they are
  * delivered at once. BEFORE events run before the level opens and veto by throwing.
@@ -6121,7 +6121,6 @@ final class InventoryService
         InventoryContext $context,
         string $counterpartyType = '',
         ?int $counterpartyId = null,
-        ?int $transferId = null,
     ): void {
         $row = (object) [
             'item_id' => $unit['item'],
@@ -6134,7 +6133,6 @@ final class InventoryService
             'source_line_id' => $sourceLineId,
             'counterparty_type' => $counterpartyType,
             'counterparty_id' => $counterpartyId,
-            'transfer_id' => $transferId,
             'operation_id' => $operationId,
             'correlation_id' => $context->correlationId,
             'note' => $context->note,

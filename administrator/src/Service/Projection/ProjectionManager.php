@@ -23,8 +23,6 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
 use ReflectionClass;
-use ReflectionException;
-use ReflectionMethod;
 use Throwable;
 
 /**
@@ -396,8 +394,7 @@ class ProjectionManager
     }
 
     /**
-     * Ask one projection to rebuild items, through its failing variant when it has one, so a failure reaches the
-     * manager.
+     * Ask one projection to rebuild items through its failing variant, so a failure reaches the manager.
      *
      * @param ProjectionInterface $projection The projection.
      * @param int[] $itemIds The items.
@@ -408,13 +405,7 @@ class ProjectionManager
      */
     private static function rebuild(ProjectionInterface $projection, array $itemIds): void
     {
-        if (method_exists($projection, 'syncItemsOrFail')) {
-            $projection->syncItemsOrFail($itemIds);
-        } elseif (\count($itemIds) === 1) {
-            $projection->syncItem((int) reset($itemIds));
-        } else {
-            $projection->syncItems($itemIds);
-        }
+        $projection->syncItemsOrFail(itemIds: $itemIds);
     }
 
     /**
@@ -429,9 +420,7 @@ class ProjectionManager
      * the catalogue job brings its rows in line with what it is then. The marks of the items removed are cleared by
      * compare-and-set on the value read after the grant, as a rebuild clears them.
      *
-     * Projections that expose the optional `deleteForItems(array $itemIds)` get
-     * the whole chunk in one call; the rest are driven one id at a time so an
-     * implementer written against the older single-item contract keeps working.
+     * Each projection gets the whole chunk in one call (deleteForItems()).
      *
      * @param int[] $itemIds The item primary keys.
      * @param string $cause Why, as onAlfaPricesChanged says it (a PricesChangedEvent::CAUSE_ constant).
@@ -479,12 +468,6 @@ class ProjectionManager
                 $failed = false;
 
                 foreach ($this->projections as $projection) {
-                    if (!self::acceptsItemIdBatch(projection: $projection)) {
-                        $this->deleteOneByOne(projection: $projection, itemIds: $granted);
-
-                        continue;
-                    }
-
                     try {
                         $projection->deleteForItems(itemIds: $granted);
                     } catch (Throwable $e) {
@@ -500,60 +483,6 @@ class ProjectionManager
                 }
             } finally {
                 $lock->release(itemIds: $granted);
-            }
-        }
-    }
-
-    /**
-     * Whether a projection can take the whole selection in one call.
-     *
-     * The optional `deleteForItems()` is invoked as a named argument, so the
-     * parameter name is part of the contract: an implementer that spells it
-     * differently would throw `Unknown named parameter`, and a caught throw here
-     * means the projection silently keeps rows for deleted items. Checking the
-     * signature up front sends such a projection down the one-by-one path
-     * instead: slower, but its rows still go away.
-     *
-     * @param ProjectionInterface $projection The projection to probe.
-     *
-     * @return bool True when `deleteForItems(array $itemIds)` is callable as declared.
-     *
-     * @since  2.0.0
-     */
-    private static function acceptsItemIdBatch(ProjectionInterface $projection): bool
-    {
-        if (!is_callable([$projection, 'deleteForItems'])) {
-            return false;
-        }
-
-        try {
-            // Magic __call() exposes no signature to name an argument against.
-            $parameters = (new ReflectionMethod($projection, 'deleteForItems'))->getParameters();
-        } catch (ReflectionException) {
-            return false;
-        }
-
-        return isset($parameters[0]) && $parameters[0]->getName() === 'itemIds';
-    }
-
-    /**
-     * Drive a projection that only implements the single-item delete.
-     *
-     * Each id keeps its own try/catch so one unremovable item never costs the
-     * rest of the selection its removal.
-     *
-     * @param ProjectionInterface $projection The projection to drive.
-     * @param int[] $itemIds The item primary keys.
-     *
-     * @since  2.0.0
-     */
-    private function deleteOneByOne(ProjectionInterface $projection, array $itemIds): void
-    {
-        foreach ($itemIds as $itemId) {
-            try {
-                $projection->deleteForItem(itemId: $itemId);
-            } catch (Throwable $e) {
-                $this->logFailure($projection, 'deleteForItem(' . $itemId . ')', $e);
             }
         }
     }

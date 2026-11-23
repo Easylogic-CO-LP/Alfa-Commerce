@@ -214,47 +214,6 @@ final class CardLook
     ];
 
     /**
-     * @var array<string, string> The form field each setting was stored in before a level became one value.
-     * @since  1.0.0
-     */
-    private const LEGACY = [
-        'display' => 'display',
-        'columns' => 'columns',
-        'gap' => 'gap',
-        'perView' => 'per_view',
-        'spacing' => 'slide_spacing',
-        'autoplay' => 'slider_autoplay',
-        'loop' => 'slider_loop',
-        'arrows' => 'show_arrows',
-        'dots' => 'show_dots',
-        'style' => 'card_style',
-        'textPosition' => 'card_text_position',
-        'overlayBackground' => 'card_overlay_background',
-        'imagePosition' => 'card_image_position',
-        'imageWidth' => 'card_image_width',
-        'imageHeight' => 'card_image_height',
-        'fit' => 'card_image_fit',
-        'ratio' => 'card_image_ratio',
-        'focus' => 'card_image_focus',
-        'titleLines' => 'card_title_lines',
-        'titleWeight' => 'card_title_weight',
-        'border' => 'card_border',
-        'radius' => 'card_radius',
-        'imageRadius' => 'card_image_radius',
-        'shadow' => 'card_shadow',
-        'shadowHover' => 'card_shadow_hover',
-    ];
-
-    /**
-     * @var array<string, array<string, string>> The form field a setting was stored in for one of the module's two widths, before a level became one value.
-     * @since  1.0.0
-     */
-    private const LEGACY_BP = [
-        'columns' => ['tablet' => 'columns_tablet', 'mobile' => 'columns_mobile'],
-        'perView' => ['tablet' => 'per_view_tablet', 'mobile' => 'per_view_mobile'],
-    ];
-
-    /**
      * @var string A card inside the module (`%s` = its place, as attribute selectors).
      * @since  1.0.0
      */
@@ -328,11 +287,7 @@ final class CardLook
     }
 
     /**
-     * A level from a form's values: its `card` value (with a `card_box` beside it, where
-     * the module kept the card's outline for a while). What a level was stored in before
-     * it became one value (a form field per setting) fills in whatever the value does
-     * not hold: a form saved since has none of those fields left, so they only ever
-     * speak for a module that was not saved yet.
+     * A level from a form's values: its `card` value.
      *
      * @param array $values The module's parameters, or a tab row.
      *
@@ -342,35 +297,7 @@ final class CardLook
      */
     public static function level(array $values): array
     {
-        $level = ['base' => [], 'bp' => []];
-
-        foreach ([$values['card'] ?? '', $values['card_box'] ?? ''] as $value) {
-            $part = self::fromValue($value);
-            $level['base'] += $part['base'];
-
-            foreach ($part['bp'] as $key => $settings) {
-                $level['bp'][$key] = ($level['bp'][$key] ?? []) + $settings;
-            }
-        }
-
-        $before = [];
-
-        foreach (self::LEGACY as $key => $field) {
-            if (isset($values[$field]) && !\array_key_exists($key, $level['base'])) {
-                $before[$key] = $values[$field];
-            }
-        }
-
-        $level['base'] += self::partial($before);
-
-        foreach (self::LEGACY_BP as $key => $fields) {
-            foreach ($fields as $breakpoint => $field) {
-                if (isset($values[$field]) && !isset($level['bp'][$breakpoint][$key])) {
-                    $level['bp'][$breakpoint] = ($level['bp'][$breakpoint] ?? []) + self::partial([$key => $values[$field]]);
-                }
-            }
-        }
-
+        $level = self::fromValue($values['card'] ?? '');
         $level['bp'] = array_filter($level['bp']);
 
         return $level;

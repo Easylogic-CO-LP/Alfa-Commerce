@@ -15,7 +15,6 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
-use Alfa\Component\Alfa\Administrator\Service\Setup\CollationCheck;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageNotice;
 use Alfa\Component\Alfa\Administrator\Service\Setup\InformationNotices;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
@@ -85,9 +84,6 @@ class NotificationsController extends BaseController
 
         // A site language with no published content language is said here too.
         ContentLanguageNotice::sync();
-
-        // And an Alfa table an update left in another collation (raised or cleared, never converted).
-        CollationCheck::syncNotice();
 
         // And what the administrators are told rather than asked to do: Joomla's page cache, a library a
         // feature needs that is missing or disabled, online sales off, the products priced only from a larger

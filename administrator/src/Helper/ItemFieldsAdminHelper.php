@@ -1927,53 +1927,6 @@ class ItemFieldsAdminHelper
     }
 
     /**
-     * @deprecated 1.3.0 superseded by {@see self::getShowonDisplay()} (state + summary).
-     */
-    public static function getShowonStateMap(int $itemId, array $fieldIds): array
-    {
-        $fieldIds = array_values(array_unique(array_map('intval', array_filter($fieldIds))));
-
-        if ($itemId <= 0 || !$fieldIds) {
-            return [];
-        }
-
-        $itemAll = FieldParams::getItemAll(itemId: $itemId);
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $db->setQuery(
-            $db->getQuery(true)
-                ->select([$db->qn('id'), $db->qn('params')])
-                ->from($db->qn('#__alfa_item_fields'))
-                ->whereIn($db->qn('id'), $fieldIds),
-        );
-
-        $fieldRule = [];
-
-        foreach ($db->loadObjectList() ?: [] as $row) {
-            $params = json_decode((string) $row->params, true) ?: [];
-            $fieldRule[(int) $row->id] = (string) ($params['showon'] ?? '');
-        }
-
-        $isRule = static fn (string $rule): bool => $rule !== '' && $rule !== '{}' && $rule !== 'null' && $rule !== '[]';
-
-        $out = [];
-
-        foreach ($fieldIds as $fieldId) {
-            $itemRule = isset($itemAll[$fieldId]) ? (string) $itemAll[$fieldId]->get('showon', '') : '';
-
-            if ($isRule($itemRule)) {
-                $out[$fieldId] = 'set';
-            } elseif ($isRule($fieldRule[$fieldId] ?? '')) {
-                $out[$fieldId] = 'inherited';
-            } else {
-                $out[$fieldId] = 'none';
-            }
-        }
-
-        return $out;
-    }
-
-    /**
      * Persist the per-item GROUP order: the relative order of the option/info
      * fields, set by dragging their group headers. Each group posts its field id
      * (jform[field_order][]) in document order, so the running position IS the

@@ -120,16 +120,6 @@ final class ClearDataExtensions
     private static array $packagesUninstalling = [];
 
     /**
-     * The plugins Alfa Commerce's own update retires in this request, by id: their removal is the update's, and its
-     * message says so, so no warning about their data is raised. Request memory only: nothing is stored.
-     *
-     * @var array<int, true>
-     *
-     * @since  2.2.0
-     */
-    private static array $retiring = [];
-
-    /**
      * The site's connection, as the driver whose transaction levels TransactionState keeps, so the levels an
      * extension leaves open are always found and closed.
      *
@@ -717,25 +707,11 @@ final class ClearDataExtensions
     }
 
     /**
-     * A plugin Alfa Commerce's own update is about to uninstall (a bundled plugin it no longer ships): its uninstall
-     * raises no warning about its data.
-     *
-     * @param int $extensionId The plugin's id.
-     *
-     * @since  2.2.0
-     */
-    public static function retiring(int $extensionId): void
-    {
-        self::$retiring[$extensionId] = true;
-    }
-
-    /**
      * The extension Joomla is about to uninstall, when its uninstall is warned that its data stays: an Alfa plugin, or
      * an Alfa package with plugins, that Alfa Commerce does not bundle; a module, Alfa Commerce and another vendor's
      * extension never. A plugin uninstalled with its package is warned through the package (Joomla asks about the
      * package first, then uninstalls its extensions in the same request); a plugin of a package uninstalled on its
-     * own (Joomla allows it unless the package's manifest blocks it) is warned itself. A plugin Alfa Commerce's update
-     * retires ({@see self::retiring()}) never is.
+     * own (Joomla allows it unless the package's manifest blocks it) is warned itself.
      *
      * @param int $extensionId The extension's id.
      *
@@ -745,10 +721,6 @@ final class ClearDataExtensions
      */
     public function uninstalling(int $extensionId): ?array
     {
-        if (isset(self::$retiring[$extensionId])) {
-            return null;
-        }
-
         $listed = $this->separate();
         $entry = $listed[$extensionId] ?? null;
 
