@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Card\CardRegistry;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\CombinationsChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
@@ -670,7 +671,8 @@ final class CombinationService
     }
 
     /**
-     * onAlfaCombinationsChanged once the write commits, to each listener on its own.
+     * Once the write commits: the dashboard cards' cache dropped, and onAlfaCombinationsChanged to each listener on its
+     * own.
      *
      * @param list<int> $created
      * @param list<int> $changed
@@ -682,6 +684,9 @@ final class CombinationService
     private static function announce(DatabaseDriver $db, int $itemId, array $created, array $changed, array $archived, array $removed, string $origin): void
     {
         PostCommit::defer(db: $db, label: 'the combinations of #' . $itemId, work: static function () use ($itemId, $created, $changed, $archived, $removed, $origin): void {
+            // The dashboard's cards count combinations (low stock, the catalogue's units): their cache goes with the write.
+            CardRegistry::invalidateFor(entity: 'combination');
+
             try {
                 $plugins = AlfaPluginHelper::get();
                 $plugins->importGroup('alfa');
