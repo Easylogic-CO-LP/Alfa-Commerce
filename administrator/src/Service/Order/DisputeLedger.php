@@ -785,6 +785,29 @@ final class DisputeLedger
     }
 
     /**
+     * The ids of an order's disputes the bank has not decided (an inquiry, open, under review), oldest first.
+     *
+     * @param int $orderId The order.
+     *
+     * @return list<int>
+     *
+     * @since 2.2.2
+     */
+    public static function undecidedOf(int $orderId): array
+    {
+        $db = self::db();
+
+        return array_map('intval', $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName(self::TABLE))
+                ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                ->whereIn($db->quoteName('state'), self::UNDECIDED_STATES, ParameterType::STRING)
+                ->order($db->quoteName('id') . ' ASC'),
+        )->loadColumn() ?: []);
+    }
+
+    /**
      * One record as stored, or null.
      *
      * @param int $disputeId The record.

@@ -41,6 +41,7 @@ use Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger;
 use Alfa\Component\Alfa\Administrator\Service\Document\OrderItemLines;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
@@ -5599,6 +5600,23 @@ class OrderModel extends AlfaAdminModel
                         (int) $pk,
                         htmlspecialchars(string: $refusal, flags: ENT_QUOTES, encoding: 'UTF-8'),
                     ),
+                    type: 'warning',
+                );
+            }
+        }
+
+        // An order whose dispute the bank has not decided stays out of the trash: it is the record of the case.
+        if ((int) $value === -2) {
+            foreach ($pks as $index => $pk) {
+                $undecided = DisputeLedger::undecidedOf(orderId: (int) $pk);
+
+                if ($undecided === []) {
+                    continue;
+                }
+
+                unset($pks[$index]);
+                Factory::getApplication()->enqueueMessage(
+                    msg:  Text::sprintf('COM_ALFA_ORDERS_TRASH_DISPUTE_REFUSED', (int) $pk, '#' . implode(', #', $undecided)),
                     type: 'warning',
                 );
             }
