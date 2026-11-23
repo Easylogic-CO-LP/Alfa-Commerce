@@ -87,7 +87,7 @@ class MediaHelper
 
     /**
      * The placeholder image the package ships: what a gallery image with no thumbnail of its own is drawn as when the
-     * site sets no placeholder of its own in Options, Media.
+     * site sets no placeholder of its own in Options, Images.
      *
      * @var string
      * @since  2.2.2
