@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\Search\ResultSetRenderEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Search\ResultAttribution;
@@ -401,7 +402,7 @@ class HtmlView extends BaseHtmlView
             $plugins->dispatchIsolated($event);
         } catch (Throwable $e) {
             try {
-                Log::add('Items view: a listener of onAlfaResultSetRender failed; the listing renders: ' . $e->getMessage(), Log::WARNING, 'com_alfa.search');
+                Log::add('Items view: a listener of onAlfaResultSetRender failed; the listing renders: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.search');
             } catch (Throwable) {
                 // A log that cannot be written must not break the listing.
             }

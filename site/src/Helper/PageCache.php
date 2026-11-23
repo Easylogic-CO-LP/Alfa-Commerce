@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Closure;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
@@ -76,7 +77,7 @@ final class PageCache
                 ->createCacheController('callback', ['defaultgroup' => 'page', 'cachebase' => JPATH_SITE . '/cache'])
                 ->clean();
         } catch (Throwable $e) {
-            \Joomla\CMS\Log\Log::add('The stored pages of Joomla\'s page cache could not be dropped: ' . $e->getMessage(), \Joomla\CMS\Log\Log::WARNING, 'com_alfa');
+            \Joomla\CMS\Log\Log::add('The stored pages of Joomla\'s page cache could not be dropped: ' . ErrorText::of($e), \Joomla\CMS\Log\Log::WARNING, 'com_alfa');
         }
     }
 }

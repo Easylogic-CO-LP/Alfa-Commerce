@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -406,7 +407,7 @@ class HtmlView extends BaseHtmlView
         try {
             $plugins->dispatchTo($plugin, $event);
         } catch (Throwable $e) {
-            Log::add('Product page: ' . $id . ' failed in onItemView (' . $e::class . ': ' . $e->getMessage() . '); the page renders without it.', Log::ERROR, 'com_alfa');
+            Log::add('Product page: ' . $id . ' failed in onItemView (' . $e::class . ': ' . ErrorText::of($e) . '); the page renders without it.', Log::ERROR, 'com_alfa');
         }
     }
 

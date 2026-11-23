@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Cart\AdoptionMemory;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartLocator;
@@ -68,7 +69,7 @@ final class CartOpener
             ))->resolve($subject, $mode ?? CartResolution::Mutable, $namedCartId, (string) $recognizeKey);
         } catch (Throwable $e) {
             AlfaLog::register();
-            Log::add('Guest cart adoption failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            Log::add('Guest cart adoption failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
 
             $identity = CartIdentity::of($namedCartId, (string) $recognizeKey, $mode ?? CartResolution::Mutable, $namedCartId);
         }

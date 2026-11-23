@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Event\Payments\CartViewEvent as PaymentsCa
 use Alfa\Component\Alfa\Administrator\Event\Shipments\CalculateShippingCostEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\CartViewAssetsEvent as ShipmentsCartViewAssetsEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\CartViewEvent as ShipmentsCartViewEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -500,7 +501,7 @@ final class CartPluginDispatch
 
         Log::add(
             'Shipping quote failed (' . $type . '), method withdrawn: '
-            . $e::class . ' - ' . $e->getMessage(),
+            . $e::class . ' - ' . ErrorText::of($e),
             Log::WARNING,
             'com_alfa.cart',
         );
@@ -538,7 +539,7 @@ final class CartPluginDispatch
         }
 
         Log::add(
-            $what . ': ' . $e::class . ' - ' . $e->getMessage(),
+            $what . ': ' . $e::class . ' - ' . ErrorText::of($e),
             Log::WARNING,
             'com_alfa.cart',
         );

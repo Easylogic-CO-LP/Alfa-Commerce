@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
@@ -377,7 +378,7 @@ class PriceSettings
     {
         try {
             Log::add(
-                $message . ': ' . $exception->getMessage(),
+                $message . ': ' . ErrorText::of($exception),
                 Log::WARNING,
                 'com_alfa.prices',
             );

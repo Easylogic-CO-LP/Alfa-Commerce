@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\FormErrors;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
@@ -256,7 +257,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
             // after register(), because an unregistered category is dropped in
             // silence and the detail would be lost rather than redirected.
             AlfaLog::register();
-            Log::add('Cart add failed: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('Cart add failed: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
             $this->app->enqueueMessage($failMessage, 'error');
         }
 
@@ -801,7 +802,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
             // Log the error
             \Joomla\CMS\Log\Log::add(
-                'Order placement exception: ' . $e->getMessage(),
+                'Order placement exception: ' . ErrorText::of($e),
                 \Joomla\CMS\Log\Log::ERROR,
                 'com_alfa.orders',
             );

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
@@ -193,7 +194,7 @@ class RegistrationModel extends FormModel
         } catch (Throwable $e) {
             AlfaLog::register();
             Log::add(
-                'Registration' . ($userId > 0 ? ' of user #' . $userId : '') . ': the customer details were not stored: ' . $e->getMessage(),
+                'Registration' . ($userId > 0 ? ' of user #' . $userId : '') . ': the customer details were not stored: ' . ErrorText::of($e),
                 Log::ERROR,
                 'com_alfa.admin',
             );
