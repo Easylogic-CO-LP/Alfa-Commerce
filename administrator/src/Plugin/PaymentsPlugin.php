@@ -910,17 +910,13 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * refused (a rule refused it: repeating the settle is useless; $code says which), lock_not_taken (the settle waits
      * for the provider's next delivery or the buyer's return; the row stays pending and is settled once then), or
      * write_failed. Its line in this plugin's log: CRITICAL for refused and write_failed (the money moved and the books
-     * did not: reconcile), WARNING for lock_not_taken, none for written and raced. What the gateway answers its provider
-     * stays the plugin's decision.
+     * did not: reconcile), WARNING for lock_not_taken, none for written and raced. The gateway answers its provider
+     * with the verdict's providerStatus(): 200 when the word is in the books (written or raced), 503 otherwise, so the
+     * provider sends it again.
      *
      * Usage:
      *   $verdict = $this->settleAttemptVerdict($write, (int) $order->id, $txId);
-     *   switch ($verdict->kind) {
-     *       case self::VERDICT_WRITTEN:
-     *       case self::VERDICT_RACED:          ... fire the success answer
-     *       case self::VERDICT_LOCK_NOT_TAKEN: ... ask the provider to deliver again
-     *       default:                           ... reconcile; repeating is useless for refused
-     *   }
+     *   return $verdict->providerStatus();
      *
      * @api ANSWERS: a PaymentWriteVerdict for the settle (written, raced, refused, lock_not_taken or write_failed).
      *
