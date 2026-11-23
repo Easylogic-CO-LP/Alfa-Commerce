@@ -45,6 +45,7 @@ use Alfa\Component\Alfa\Administrator\Event\Payments\OrderAfterPlaceEvent as Pay
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderBeforePlaceEvent as PaymentOrderBeforePlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderAfterPlaceEvent as ShipmentOrderAfterPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderBeforePlaceEvent as ShipmentOrderBeforePlaceEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
@@ -1584,7 +1585,7 @@ class OrderPlacement
                     Log::add(
                         'Shipment plugin "' . $this->shipment_type . '" failed in onOrderAfterPlace for order #'
                         . (int) ($this->order->id ?? 0) . ': its parcel #' . $parcelId . ' carries the charge and the items,'
-                        . ' without what the carrier adds to it: ' . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                        . ' without what the carrier adds to it: ' . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                         Log::CRITICAL,
                         'com_alfa.orders',
                     );
