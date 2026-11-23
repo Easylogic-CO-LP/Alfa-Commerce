@@ -1547,9 +1547,12 @@ class ItemsModel extends UrlListModel
      */
     private function savingExpression(): string
     {
+        $db = $this->getDatabase();
+
+        // Quoted by name, as every column a list sorts or filters by.
         return PriceSettings::netSaving(settings: PriceSettings::get())
-            ? 'GREATEST(pf.base_price - pf.base_price_with_discounts, 0)'
-            : 'pf.discount_amount';
+            ? 'GREATEST(' . $db->quoteName('pf.base_price') . ' - ' . $db->quoteName('pf.base_price_with_discounts') . ', 0)'
+            : $db->quoteName('pf.discount_amount');
     }
 
     /**
