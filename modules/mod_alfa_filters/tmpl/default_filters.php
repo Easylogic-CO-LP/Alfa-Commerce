@@ -247,27 +247,37 @@ $esc = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTE
     $groupId = 'af-' . $moduleId . '-' . $groupName;
     ?>
     <fieldset class="<?= $groupClass ?>" data-af-group="<?= $esc($groupName) ?>"<?= $groupAttr ?>>
+        <?php // The heading is the group's opener: a button inside the legend, so the group
+              // keeps its name and the button says whether it is open. filters.js turns it
+              // and marks the group shut (data-af-closed); the stylesheet hides the body. ?>
         <div class="af-fieldset-header">
-            <legend><?= $esc($groupLabel) ?></legend>
+            <legend>
+                <button type="button" class="af-group-toggle" aria-expanded="true" aria-controls="<?= $esc($groupId . '-body') ?>">
+                    <span class="af-group-name"><?= $esc($groupLabel) ?></span>
+                    <?php require ModuleHelper::getLayoutPath('mod_alfa_filters', 'default_group_icon'); ?>
+                </button>
+            </legend>
             <?= $resetButton ?>
         </div>
 
-        <?php // The search box narrows this group's options as the shopper types (filters.js
-              // marks what matches, the stylesheet hides the rest); it is no filter itself:
-              // it has no name, so it never travels with the form. ?>
-        <?php if ($searchable && $groupSettings['search'] > 0 && $optionCount >= $groupSettings['search']): ?>
-            <div class="af-group-search">
-                <input type="search" class="af-group-search-input" id="<?= $esc($groupId . '-search') ?>"
-                       placeholder="<?= $esc(Text::_('MOD_ALFAFILTERS_GROUP_SEARCH_PLACEHOLDER')) ?>"
-                       aria-label="<?= $esc(Text::sprintf('MOD_ALFAFILTERS_GROUP_SEARCH_LABEL', $groupLabel)) ?>"
-                       autocomplete="off" spellcheck="false" data-af-search>
+        <div class="af-group-body" id="<?= $esc($groupId . '-body') ?>">
+            <?php // The search box narrows this group's options as the shopper types (filters.js
+                  // marks what matches, the stylesheet hides the rest); it is no filter itself:
+                  // it has no name, so it never travels with the form. ?>
+            <?php if ($searchable && $groupSettings['search'] > 0 && $optionCount >= $groupSettings['search']): ?>
+                <div class="af-group-search">
+                    <input type="search" class="af-group-search-input" id="<?= $esc($groupId . '-search') ?>"
+                           placeholder="<?= $esc(Text::_('MOD_ALFAFILTERS_GROUP_SEARCH_PLACEHOLDER')) ?>"
+                           aria-label="<?= $esc(Text::sprintf('MOD_ALFAFILTERS_GROUP_SEARCH_LABEL', $groupLabel)) ?>"
+                           autocomplete="off" spellcheck="false" data-af-search>
+                </div>
+            <?php endif; ?>
+
+            <div class="af-group-options"<?= $optionsAttr ?>>
+                <?= $optionsHtml ?>
             </div>
-        <?php endif; ?>
 
-        <div class="af-group-options"<?= $optionsAttr ?>>
-            <?= $optionsHtml ?>
+            <p class="af-group-empty" data-af-search-empty hidden><?= $esc(Text::_('MOD_ALFAFILTERS_GROUP_NOTHING_FOUND')) ?></p>
         </div>
-
-        <p class="af-group-empty" data-af-search-empty hidden><?= $esc(Text::_('MOD_ALFAFILTERS_GROUP_NOTHING_FOUND')) ?></p>
     </fieldset>
 <?php endforeach; ?>

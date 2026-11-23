@@ -1114,8 +1114,20 @@ document.addEventListener('DOMContentLoaded', () => {
         initGroups() {
             this.groupQueries ??= new Map();
 
+            this.closedGroups ??= new Set();
+
             if (!this._groupsBound) {
                 this._groupsBound = true;
+
+                // A group's heading opens and shuts it; the form outlives the refresh, so one
+                // listener serves every heading the refresh draws.
+                this.filterForm.addEventListener('click', (event) => {
+                    const toggle = event.target.closest('.af-group-toggle');
+
+                    if (toggle) {
+                        this.toggleGroup(toggle);
+                    }
+                });
 
                 // The search box narrows its group and is no filter: its typing and its
                 // change never reach the form's refresh, and Enter in it submits nothing.
@@ -1141,12 +1153,42 @@ document.addEventListener('DOMContentLoaded', () => {
             qsAll('[data-af-group]', this.filterForm).forEach((group) => {
                 const input = qs('[data-af-search]', group);
                 const query = this.groupQueries.get(group.dataset.afGroup);
+                const toggle = qs('.af-group-toggle', group);
+
+                if (toggle && this.closedGroups.has(group.dataset.afGroup)) {
+                    toggle.setAttribute('aria-expanded', 'false');
+                    group.setAttribute('data-af-closed', '');
+                }
 
                 if (input && query) {
                     input.value = query;
                     this.searchGroup(input);
                 }
             });
+        }
+
+        /**
+         * Open or shut a group from its heading, and remember it across the refresh.
+         *
+         * @param {HTMLButtonElement} toggle The group's heading button.
+         */
+        toggleGroup(toggle) {
+            const group = toggle.closest('[data-af-group]');
+
+            if (!group) {
+                return;
+            }
+
+            const open = toggle.getAttribute('aria-expanded') !== 'true';
+
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            group.toggleAttribute('data-af-closed', !open);
+
+            if (open) {
+                this.closedGroups.delete(group.dataset.afGroup);
+            } else {
+                this.closedGroups.add(group.dataset.afGroup);
+            }
         }
 
         /**

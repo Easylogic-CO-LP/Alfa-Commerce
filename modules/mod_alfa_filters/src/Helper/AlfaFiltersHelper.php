@@ -228,12 +228,18 @@ class AlfaFiltersHelper
      *
      * @param Registry $params The module parameters.
      *
-     * @return array{search: int} search: the fewest options a group holds to get a search
+     * @return array{icon: string, turn: bool, search: int} icon: the opener's icon (chevron,
+     *                            caret, plus or none); turn: whether it turns while its group is
+     *                            open; search: the fewest options a group holds to get a search
      *                            box, 0 when no group gets one.
      */
     public static function getGroupSettings(Registry $params): array
     {
+        $icon = (string) $params->get('group_icon', 'chevron');
+
         return [
+            'icon' => \in_array($icon, ['chevron', 'caret', 'plus', 'none'], true) ? $icon : 'chevron',
+            'turn' => (int) $params->get('group_icon_turn', 1) === 1,
             'search' => (int) $params->get('group_search', 1) === 1 ? max(1, (int) $params->get('group_search_min', 8)) : 0,
         ];
     }

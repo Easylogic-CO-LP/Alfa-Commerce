@@ -459,6 +459,7 @@ html.alfa-filters-noscroll {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: var(--alfa-filters-space-sm);
 }
 
 .af-fieldset-header legend {
@@ -752,6 +753,59 @@ html.alfa-filters-noscroll {
 .mod-alfa-filters-wrapper .af-children .af-list {
     margin-left: var(--alfa-filters-indent);
     padding-top: var(--alfa-filters-space-xs);
+}
+
+/*
+ * Option groups: the heading opens and shuts the group
+ */
+
+.mod-alfa-filters .af-fieldset-header legend {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.mod-alfa-filters .af-group-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--alfa-filters-space-sm);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-align: start;
+    color: inherit;
+    cursor: pointer;
+}
+
+.mod-alfa-filters .af-group-icon {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+}
+
+.mod-alfa-filters [data-af-closed] > .af-group-body {
+    display: none;
+}
+
+/* The icon turns while its group is open, unless the module keeps it still; a plus turns
+   into a cross. */
+.mod-alfa-filters-wrapper[data-af-icon-turn] .af-group-toggle[aria-expanded="true"] .af-group-icon {
+    transform: rotate(var(--alfa-filters-group-icon-turn, 180deg));
+}
+
+.mod-alfa-filters-wrapper[data-af-icon="plus"] {
+    --alfa-filters-group-icon-turn: 45deg;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .mod-alfa-filters .af-group-icon {
+        transition: transform var(--alfa-filters-duration) var(--alfa-filters-ease);
+    }
 }
 
 /*

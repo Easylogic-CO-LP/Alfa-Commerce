@@ -66,8 +66,9 @@ $updateFiltersAction = Route::_(
 $moduleId = $module->id;
 
 ?>
+<?php // The group opener's icon and whether it turns while open: the stylesheet reads both here. ?>
 <div class="mod-alfa-filters-wrapper mod-alfa-filters-<?= $moduleId ?> <?= $fixed ? 'alfa-filters-fixed ' . $fixed_pos :
- '' ?>" data-module-id="<?= $moduleId ?>">
+ '' ?>" data-module-id="<?= $moduleId ?>" data-af-icon="<?= htmlspecialchars($groupSettings['icon'], ENT_QUOTES, 'UTF-8') ?>"<?= $groupSettings['turn'] ? ' data-af-icon-turn' : '' ?>>
     <button class="alfa-filters-offcanvas-toggler"
             aria-controls="alfa-filters-offcanvas-<?=$moduleId?>"
             aria-expanded="false">

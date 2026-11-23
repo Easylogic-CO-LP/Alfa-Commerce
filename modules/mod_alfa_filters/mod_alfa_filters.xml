@@ -312,6 +312,31 @@
                        label="MOD_ALFAFILTERS_GROUPS_NOTE"
                        class="alert alert-info" />
 
+                <field name="group_icon" type="radio" class="btn-group" default="chevron"
+                       filter="cmd" validate="options"
+                       label="MOD_ALFAFILTERS_GROUP_ICON_LBL"
+                       description="MOD_ALFAFILTERS_GROUP_ICON_DESC"
+                >
+                    <option value="chevron">MOD_ALFAFILTERS_GROUP_ICON_CHEVRON</option>
+                    <option value="caret">MOD_ALFAFILTERS_GROUP_ICON_CARET</option>
+                    <option value="plus">MOD_ALFAFILTERS_GROUP_ICON_PLUS</option>
+                    <option value="none">MOD_ALFAFILTERS_GROUP_ICON_NONE</option>
+                </field>
+
+                <field
+                        name="group_icon_turn"
+                        type="radio"
+                        label="MOD_ALFAFILTERS_GROUP_ICON_TURN_LBL"
+                        description="MOD_ALFAFILTERS_GROUP_ICON_TURN_DESC"
+                        layout="joomla.form.field.radio.switcher"
+                        default="1"
+                        filter="integer"
+                        showon="group_icon!:none"
+                >
+                    <option value="0">MOD_ALFAFILTERS_NO_OPTION</option>
+                    <option value="1">MOD_ALFAFILTERS_YES_OPTION</option>
+                </field>
+
                 <field
                         name="group_search"
                         type="radio"
