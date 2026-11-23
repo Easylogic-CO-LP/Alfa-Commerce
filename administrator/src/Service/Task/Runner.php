@@ -1124,10 +1124,11 @@ final class Runner
                     ->bind(':id', $id, ParameterType::INTEGER)
                     ->bind(':owner', $owner),
             ) === 1;
-            $cancelled = $settled && (string) $db->setQuery('SELECT ' . $db->quoteName('state') . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadResult() === Tasks::STATE_CANCELLED;
+            $row = $settled ? $db->setQuery('SELECT ' . $db->quoteName(['state', 'history']) . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadAssoc() : null;
+            $cancelled = \is_array($row) && (string) $row['state'] === Tasks::STATE_CANCELLED;
 
             if ($cancelled) {
-                WorkSettled::owe(owner: $jobOwner, id: $id);
+                WorkSettled::owe(owner: $jobOwner, id: $id, reason: self::cancelReason(history: Tasks::decodeHistory($row['history'])));
             }
 
             TransactionState::commitLevel($db);
@@ -1305,6 +1306,27 @@ final class Runner
                 ->bind(':same', $owner)
                 ->bind(':name', $name),
         ) === 1;
+    }
+
+    /**
+     * The reason given with the cancel of a running job, as its history recorded it when the cancel was asked: the
+     * plugin is told it when the job ends cancelled, as it is for a job cancelled while it waited.
+     *
+     * @param list<array<string, mixed>> $history The job's history.
+     *
+     * @return string The reason, or '' when none was given.
+     *
+     * @since  2.3.0
+     */
+    private static function cancelReason(array $history): string
+    {
+        foreach (array_reverse($history) as $entry) {
+            if (($entry['outcome'] ?? null) === 'cancel_requested') {
+                return (string) ($entry['reason'] ?? '');
+            }
+        }
+
+        return '';
     }
 
     /**
