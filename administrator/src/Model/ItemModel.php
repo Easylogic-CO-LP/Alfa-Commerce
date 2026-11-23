@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemAfterSaveEvent;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemPrepareFormEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldParams;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
@@ -719,8 +720,9 @@ class ItemModel extends AlfaAdminModel
      * the list's Archive is. Otherwise publish() makes the move after everything
      * else, projections included, so the inventory service judges it under its own
      * locks with what this save changed; a refusal there leaves the product where
-     * it was while the rest of the save stands, and publish() reports it as an
-     * error. A save that posts any other state for an archived product is refused
+     * it was while the rest of the save stands, and the save's warnings say why
+     * (an error, as the screen's messages and the REST API's meta.warnings read
+     * it). A save that posts any other state for an archived product is refused
      * whole: an archived product returns to the active catalogue only through
      * restoreArchived(). The row write itself never crosses the archive either
      * way (ItemTable::store()), so an archive or a restore that commits while the
@@ -1079,7 +1081,7 @@ class ItemModel extends AlfaAdminModel
                     $trackingError = $refusal;
                 }
 
-                $this->reportTrackingChange(itemId: $currentId, result: $trackingChange, error: $trackingError);
+                $this->reportTrackingChange(itemId: $currentId, result: $trackingChange, error: $trackingError, write: $write);
             }
 
             // MULTILINGUAL: persist per-language translations (name, alias, short_desc,
@@ -1315,14 +1317,19 @@ class ItemModel extends AlfaAdminModel
             }
 
             // The move into the archive held out of the row write, made as the list
-            // makes it, inside this save's transaction; publish() reports a refusal and
-            // removes an archived product from the projections.
+            // makes it, inside this save's transaction; publish() removes an archived
+            // product from the projections. A refused move leaves the product where it
+            // was while the rest of the save stands: the save's warning says why.
             $archived = false;
 
             if ($archiveMove !== null) {
                 $moved = [$currentId];
 
-                $archived = $this->publish(pks: $moved, value: $archiveMove);
+                $archived = $this->publish(pks: $moved, value: $archiveMove, queueRefusal: false);
+
+                if (!$archived) {
+                    $write->warn(msg: (string) $this->getError(), type: 'error');
+                }
             }
 
             // The product's SKUs and its combinations' in the registry, in this transaction: a SKU another product or
@@ -2921,23 +2928,22 @@ class ItemModel extends AlfaAdminModel
      * @param int $itemId The saved product.
      * @param array|null $result What InventoryService::changeTracking() returned; null when it threw.
      * @param Throwable|null $error What it threw, or null.
-     *
+     * @param ItemWriteService $write The write, whose warnings the save's caller shows (the screen's messages, the
+     *                                REST API's meta.warnings).
      *
      * @since  2.0.0
      */
-    private function reportTrackingChange(int $itemId, ?array $result, ?Throwable $error): void
+    private function reportTrackingChange(int $itemId, ?array $result, ?Throwable $error, ItemWriteService $write): void
     {
-        $app = Factory::getApplication();
-
         if ($error !== null) {
             Log::add(
                 entry:    'Item ' . $itemId . ' saved, but its stock tracking was not changed: '
-                          . $error->getMessage(),
+                          . ErrorText::of($error),
                 priority: Log::ERROR,
                 category: 'com_alfa.inventory',
             );
 
-            $app->enqueueMessage(
+            $write->warn(
                 msg:  Text::sprintf(
                     'COM_ALFA_ITEM_SAVED_TRACKING_REFUSED',
                     $this->inventoryRefusalMessage(error: $error),
@@ -2949,7 +2955,7 @@ class ItemModel extends AlfaAdminModel
         }
 
         if ((int) ($result['kept_rows'] ?? 0) > 0) {
-            $app->enqueueMessage(
+            $write->warn(
                 msg:  Text::sprintf(
                     'COM_ALFA_INVENTORY_TRACKING_OFF_STOCK_KEPT',
                     (int) $result['kept_rows'],
