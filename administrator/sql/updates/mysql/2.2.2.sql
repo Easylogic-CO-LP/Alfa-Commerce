@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
 -- sends the same order again after a lost answer is answered with the order it made and never makes a second one. A
 -- row with neither column set holds no place in the unique key, so every existing order keeps NULL in both. Additions
 -- only; each statement carries the CAN FAIL marker, so an update run again finds the column or the key and goes on.
--- The install SQL creates the same columns and key.
+-- A site that ran an earlier copy of this file gets the columns from script.php. The install SQL creates the same
+-- columns and key.
 
 ALTER TABLE `#__alfa_orders` ADD COLUMN `external_source` varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once' AFTER `source` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_orders` ADD COLUMN `external_reference` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source' AFTER `external_source` /** CAN FAIL **/;
@@ -45,7 +46,8 @@ ALTER TABLE `#__alfa_orders` MODIFY `source` varchar(32) NOT NULL DEFAULT 'store
 -- transaction as the change; the REST API filter[changed_since] reads it on its key. The two additions carry the CAN
 -- FAIL marker, so an update run again finds them and goes on. The products already in the shop are then marked changed
 -- at the moment of the update, once: a client that reads the changes since a time before the update reads every
--- product once, and none is missed. The install SQL creates the same column and key.
+-- product once, and none is missed. A site that ran an earlier copy of this file gets the column from script.php. The
+-- install SQL creates the same column and key.
 
 ALTER TABLE `#__alfa_items` ADD COLUMN `commerce_changed_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]' AFTER `modified` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_items` ADD KEY `idx_commerce_changed` (`commerce_changed_at`) /** CAN FAIL **/;

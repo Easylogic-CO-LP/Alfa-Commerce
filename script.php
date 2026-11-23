@@ -276,6 +276,13 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_places' => [
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
+        '#__alfa_orders' => [
+            'external_source' => ["varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once'", 'source'],
+            'external_reference' => ["varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source'", 'external_source'],
+        ],
+        '#__alfa_items' => [
+            'commerce_changed_at' => ["datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]'", 'modified'],
+        ],
     ];
 
     /**
