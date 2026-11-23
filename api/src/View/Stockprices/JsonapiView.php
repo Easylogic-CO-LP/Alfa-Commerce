@@ -62,6 +62,7 @@ class JsonApiView extends BaseApiView
         $items = [];
 
         foreach ($rows as $row) {
+            $tracked = (int) ($row->manage_stock ?? 0) === 1;
             $items[] = (object) [
                 'id' => (int) $row->item_id . ':' . (int) $row->combination_id,
                 'item_id' => (int) $row->item_id,
@@ -71,8 +72,8 @@ class JsonApiView extends BaseApiView
                 'state' => (int) $row->state,
                 'item_state' => (int) $row->item_state,
                 'manage_stock' => $row->manage_stock === null ? null : (int) $row->manage_stock,
-                'available_quantity' => (float) $row->available_quantity,
-                'stock' => (float) $row->stock,
+                'available_quantity' => self::figure(value: $row->available_quantity, tracked: $tracked),
+                'stock' => self::figure(value: $row->stock, tracked: $tracked),
                 // The figures as the index holds them, exact to the eighth place; none when it has no valid price.
                 'price' => $row->gross === null ? null : ['gross' => (string) $row->gross, 'net' => (string) $row->net, 'currency' => $currency],
                 'changed_at' => $row->changed_at,
@@ -98,5 +99,24 @@ class JsonApiView extends BaseApiView
         $this->getDocument()->setData($collection);
 
         return $this->getDocument()->render();
+    }
+
+    /**
+     * A stock figure of a unit as the list gives it: a unit that tracks stock and holds no stock record has none on the
+     * shelf, so 0; a unit that does not track stock and holds no figure reads null (stock not tracked), as the
+     * product's own read gives its stock. A stored figure is given as stored.
+     *
+     * @param mixed $value The stored figure (null when the unit holds none).
+     * @param bool $tracked Whether the unit tracks stock.
+     *
+     * @since  2.2.2
+     */
+    private static function figure(mixed $value, bool $tracked): ?float
+    {
+        if ($value === null) {
+            return $tracked ? 0.0 : null;
+        }
+
+        return (float) $value;
     }
 }
