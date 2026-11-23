@@ -41,6 +41,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\Exception\ExecutionFailureException;
 use Joomla\Database\ParameterType;
@@ -1779,7 +1780,12 @@ class ActionRegistry
         try {
             AlfaPluginHelper::get()->dispatchTo($plugin, $asked);
         } catch (Throwable $e) {
-            self::warn('Dispute #' . (int) $dispute->id . ': ' . $asked->getName() . ' failed: ' . ErrorText::of($e));
+            // The answer tells staff the reason is in the payments log: it is written there.
+            Log::add(
+                entry: 'Dispute #' . (int) $dispute->id . ': ' . $asked->getName() . ' failed: ' . ErrorText::of($e),
+                priority: Log::WARNING,
+                category: 'com_alfa.payments',
+            );
 
             return self::disputeAnswer(event: $event, message: Text::_('COM_ALFA_DISPUTE_PROVIDER_FAILED'), success: false);
         }
