@@ -74,6 +74,8 @@ $configColspan = $visibleColumns + 1;
 <?php if (!empty($items)): ?>
     <?php // Below 480 px a row folds (alfa-fold): its cells wrap, each named by its column, the actions on a
           // line of their own. ?>
+    <?php // Wider than the screen (from 480 px up, where it no longer folds), it scrolls in its own box. ?>
+    <div class="table-responsive">
     <table class="table table-striped table-bordered alfa-fold">
         <thead>
         <tr>
@@ -198,6 +200,7 @@ $configColspan = $visibleColumns + 1;
 		<?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 <?php else: ?>
     <div class="alert alert-info">
 		<?php echo Text::_('COM_ALFA_NO_ORDER_ITEMS_YET'); ?>
