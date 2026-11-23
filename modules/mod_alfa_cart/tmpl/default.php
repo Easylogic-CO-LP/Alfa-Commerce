@@ -16,7 +16,7 @@ defined('_JEXEC') or die;
 $imageType = $params->get('imageType', '3');
 $imageFile = $params->get('imageFile', '');
 $imageInline = $params->get('imageInline', '');
-$animation = $params->get('animation', 'fromTop');
+$animation = $params->get('animation', 'zoomIn');
 // What the module does when a product is added anywhere on the page (cart.js reads it).
 $onAdd = $params->get('on_add', 'refresh') === 'open' ? 'open' : 'refresh';
 

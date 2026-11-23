@@ -1,10 +1,14 @@
+// Every cart module on the page is wired on its own: its button, its drawer, its re-reads.
 document.addEventListener("DOMContentLoaded", () => {
-    const cartOuter = document.querySelector('[data-mod-cart-outer]');
+    document.querySelectorAll('[data-mod-cart-outer]').forEach(setUpCart);
+});
 
-    if (!cartOuter) {
-        return;
-    }
-
+/**
+ * Wire one cart module.
+ *
+ * @param {HTMLElement} cartOuter The module's root ([data-mod-cart-outer]).
+ */
+function setUpCart(cartOuter) {
     const cartToggler = cartOuter.querySelector('.cart-toggler');
     const cartItemsWrapper = cartOuter.querySelector('[data-cart-items]').parentElement;
 
@@ -12,8 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // (which each send the absolute new quantity) can't render out of order.
     let quantityUpdateController = new AbortController();
 
-    // The drawer announces alfa:cart:changed under this name and ignores its own.
+    // The drawer announces alfa:cart:changed under this name and ignores its own
+    // announcement; another cart module's, under the same name, it re-reads for.
     const CART_CHANGED_SOURCE = 'cart-module';
+    let announcing = false;
 
     // A newer re-read supersedes an older one, so the last answer is the one shown.
     let reloadController = new AbortController();
@@ -133,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Another surface changed the cart: re-read the drawer. The drawer's own
     // changes are applied from their answer, so its own signal is ignored.
     document.addEventListener("alfa:cart:changed", (event) => {
-        if (event.detail && event.detail.source === CART_CHANGED_SOURCE) {
+        if (announcing && event.detail && event.detail.source === CART_CHANGED_SOURCE) {
             return;
         }
 
@@ -232,10 +238,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // The contents changed here; the other cart surfaces re-read theirs. A
             // remove is the quantity 0 write, read from what was posted.
+            announcing = true;
             document.dispatchEvent(new CustomEvent('alfa:cart:changed', {
                 bubbles: true,
                 detail: { source: CART_CHANGED_SOURCE, action: Number(params.get('quantity')) === 0 ? 'remove' : 'quantity' },
             }));
+            announcing = false;
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('mod_alfa_cart: update error', error);
@@ -316,7 +324,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /** Open the drawer if it is not already visible. */
     function openCart() {
-        if (!cartItemsWrapper.classList.contains("cart--visible")) {
+        // One drawer at a time: with another cart module's drawer open, this one stays shut.
+        if (!cartItemsWrapper.classList.contains("cart--visible") && !document.querySelector(".mod-alfa-cart-data[open]")) {
             toggleCart();
         }
     }
@@ -365,4 +374,4 @@ document.addEventListener("DOMContentLoaded", () => {
     function onTransitionCartEnd() {
         cartItemsWrapper.classList.remove("cart--animatable");
     }
-});
+}
