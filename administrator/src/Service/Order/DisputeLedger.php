@@ -1924,7 +1924,12 @@ final class DisputeLedger
         $db = self::db();
         $id = (int) $record->id;
         $orderId = (int) $record->id_order;
-        $payment = $db->setQuery('SELECT ' . $db->quoteName(['id', 'payment_method']) . ' FROM ' . $db->quoteName(self::PAYMENTS) . ' WHERE ' . $db->quoteName('id') . ' = ' . (int) $record->id_payment)->loadObject();
+        $payment = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'payment_method']))
+                ->from($db->quoteName(self::PAYMENTS))
+                ->where($db->quoteName('id') . ' = ' . (int) $record->id_payment),
+        )->loadObject();
         $provider = (string) ($payment->payment_method ?? '');
         $paymentId = (int) $record->id_payment;
         $currency = OrderCurrency::find(orderId: $orderId);
