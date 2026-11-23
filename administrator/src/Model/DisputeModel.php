@@ -15,11 +15,14 @@ use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\DisputeVerdict;
 use Alfa\Component\Alfa\Administrator\Service\Order\DisputeWriter;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
 use Closure;
 use InvalidArgumentException;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\User\User;
 
@@ -123,6 +126,28 @@ class DisputeModel extends AdminModel
     public function act(string $act, object $payment, ?object $dispute, array $values, User $user): DisputeVerdict
     {
         $staff = DisputeWriter::staff(user: $user);
+        $orderCurrency = OrderCurrency::of(orderId: (int) $payment->id_order);
+        $typedCode = strtoupper(trim((string) ($values['currency'] ?? '')));
+
+        // An amount in the order's currency is read as every money field is: exactly, in the order's money, an operator's
+        // comma taken as the decimal point; what it cannot take is refused in the reader's words, naming the field.
+        if (trim((string) ($values['amount'] ?? '')) !== '' && ($typedCode === '' || $typedCode === $orderCurrency->getCode())) {
+            try {
+                $values['amount'] = PublishedDecimal::money(money: ExactMoney::of(value: trim((string) $values['amount']), currency: $orderCurrency, commaDecimal: true));
+            } catch (ExactMoneyRefusal $e) {
+                return new DisputeVerdict(
+                    kind: DisputeVerdict::REFUSED,
+                    code: DisputeVerdict::CODE_AMOUNT,
+                    message: $e->words(field: Text::_(match ($act) {
+                        'close' => 'COM_ALFA_DISPUTE_FIELD_FINAL_AMOUNT',
+                        'amount' => 'COM_ALFA_DISPUTE_FIELD_ORDER_AMOUNT',
+                        default => 'COM_ALFA_DISPUTE_FIELD_AMOUNT',
+                    })),
+                    disputeId: (int) ($dispute->id ?? 0),
+                );
+            }
+        }
+
         $text = static fn (string $name): string => trim((string) ($values[$name] ?? ''));
         $utc = static fn (string $name): ?string => self::utc(value: $values[$name] ?? null);
 

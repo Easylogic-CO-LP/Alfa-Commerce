@@ -28,6 +28,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceCommand;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
 use Closure;
@@ -1203,6 +1204,18 @@ class OrderopsController extends OrdersController
      */
     private function disputeAct(int $orderId, string $act, object $payment, ?object $dispute, array $values)
     {
+        $orderCurrency = OrderCurrency::of(orderId: $orderId);
+
+        // A body states a point: an amount in the order's currency is read exactly, without the screen's comma, and handed
+        // on in the order's money.
+        if (($values['amount'] ?? '') !== '' && \in_array((string) ($values['currency'] ?? ''), ['', $orderCurrency->getCode()], true)) {
+            try {
+                $values['amount'] = PublishedDecimal::money(money: ExactMoney::of(value: (string) $values['amount'], currency: $orderCurrency));
+            } catch (ExactMoneyRefusal $e) {
+                $this->refuseField(field: 'amount', sentence: $e->words(field: 'amount'));
+            }
+        }
+
         $model = $this->getModel('dispute', 'Administrator', ['ignore_request' => true]);
 
         if (!$model instanceof DisputeModel) {
