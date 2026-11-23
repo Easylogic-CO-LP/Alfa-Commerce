@@ -29,6 +29,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\ShippingCostRequest;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
+use Alfa\Component\Alfa\Site\Service\Shipping\CarrierAnswers;
 use Alfa\Component\Alfa\Site\Service\Shipping\ShipmentPricingContext;
 use Alfa\Component\Alfa\Site\Service\Shipping\ShippingCharge;
 use Alfa\Component\Alfa\Site\Service\Shipping\ShippingPriceEntryModeResolver;
@@ -126,58 +127,32 @@ final class CartPluginDispatch
             return ShippingQuote::free();
         }
 
-        $eventName = 'onCalculateShippingCost';
-        // NO SEEDED COST. A zero here is indistinguishable from a carrier
-        // quoting free, and seeding one is what made an unanswered hook look
-        // like an answer. The event starts with nothing and the carrier has to
-        // put something in it.
-        $event = new CalculateShippingCostEvent($eventName, [
-            'subject' => $this->shippingCostRequest($currentMethod, $cart, $merchandiseTotal(), $chosen),
-        ]);
+        // ONE ANSWER PER CART STATE PER REQUEST. The carrier is asked only for a state this request has not asked it
+        // about: the cart module and the page, the offer list and the totals, placement's test and its pricing all
+        // read the one answer (CarrierAnswers). The entry mode and the tax are applied below on every reading.
+        $subtotal = $merchandiseTotal();
+        [$delivery, $invoice] = $this->pending($cart);
+        $key = CarrierAnswers::keyOf(
+            method:   $currentMethod,
+            chosen:   $chosen,
+            cart:     $cart->withLines($cart->payableLines()),
+            subtotal: (string) $subtotal,
+            delivery: $delivery,
+            invoice:  $invoice,
+        );
+        $answer = CarrierAnswers::recall($key) ?? $this->askCarrier(
+            type:    (string) $currentType,
+            request: $this->shippingCostRequest($currentMethod, $cart, $subtotal, $chosen),
+            key:     $key,
+        );
+        $event = $answer['event'];
 
-        // WAS THE CARRIER ACTUALLY ASKED? Silence only means something if a
-        // question was put. A plugin that is switched off, or that does not
-        // implement the hook, has not been asked and cannot be said to have
-        // stayed silent, and the shop already knows exactly what is wrong with
-        // it, which is a better diagnosis than "no answer" and is made by
-        // OrderPlacement's own withdrawn-plugin guard and by the offer filter
-        // that drops the method on the next request. Overwriting that with a
-        // generic refusal here would replace a precise cause with a vague one.
-        $asked = false;
-
-        // The cart's chosen carrier, through the plugin helper (targeted): disabled, missing or unloadable, not
-        // asked; one that declares no quote handler, not asked either.
-        $plugins = AlfaPluginHelper::get();
-
-        try {
-            $carrier = $plugins->bootSingle(PluginId::from('alfa-shipments', (string) $currentType));
-        } catch (PluginUnavailable|InvalidArgumentException) {
-            $carrier = null;
+        // A carrier that throws is a carrier that cannot price: withdrawn, as askCarrier() logged once.
+        if ($answer['failed']) {
+            return ShippingQuote::unavailable('COM_ALFA_SHIPMENT_QUOTE_FAILED');
         }
 
-        if ($carrier !== null && $plugins->declares($carrier, $eventName)) {
-            try {
-                $plugins->dispatchTo($carrier, $event);
-                $asked = true;
-            } catch (Throwable $e) {
-                // A carrier that throws is a carrier that cannot price
-                //
-                // This runs while a SHOPPER is looking at their cart, so a
-                // stored value the carrier cannot read (a postcode column
-                // holding something that is not a postcode, a payload
-                // written by hand) has to come out as "this method is not
-                // available", the same as any other refusal. Uncaught, it
-                // was a white page over a cart with goods in it.
-                //
-                // NOT the presentation policy, deliberately. That one logs
-                // and carries on, which is right for an optional badge
-                // beside a method and wrong for the price of carrying the
-                // goods: this WITHDRAWS the method instead.
-                $this->quoteFailed($currentType, $e);
-
-                return ShippingQuote::unavailable('COM_ALFA_SHIPMENT_QUOTE_FAILED');
-            }
-        }
+        $asked = $answer['asked'];
 
         // A refusal outranks anything the plugin may also have set: a carrier
         // that says it cannot carry the cart has not quoted a price, and
@@ -215,6 +190,59 @@ final class CartPluginDispatch
         }
 
         return ShippingQuote::of($charge);
+    }
+
+    /**
+     * Put the question to the carrier and keep its answer for the request.
+     *
+     * WAS THE CARRIER ACTUALLY ASKED? Silence only means something if a question was put. A plugin that is switched
+     * off, or that does not implement the hook, has not been asked and cannot be said to have stayed silent, and the
+     * shop already knows exactly what is wrong with it, which is a better diagnosis than "no answer" and is made by
+     * OrderPlacement's own withdrawn-plugin guard and by the offer filter that drops the method on the next request.
+     *
+     * A CARRIER THAT THROWS CANNOT PRICE. This runs while a shopper is looking at their cart, so a stored value the
+     * carrier cannot read (a postcode column holding something that is not a postcode, a payload written by hand) has
+     * to come out as "this method is not available", the same as any other refusal, never a white page over a cart
+     * with goods in it. Unlike an optional badge beside a method, which is logged and carried on without, this
+     * withdraws the method; the failure is logged once and remembered for the state.
+     *
+     * @param string $type The carrier's plugin element.
+     * @param ShippingCostRequest $request The question.
+     * @param string $key The question's key ({@see CarrierAnswers::keyOf()}).
+     *
+     * @return array{event: CalculateShippingCostEvent, asked: bool, failed: bool}
+     *
+     * @since  2.2.2
+     */
+    private function askCarrier(string $type, ShippingCostRequest $request, string $key): array
+    {
+        $eventName = 'onCalculateShippingCost';
+        // NO SEEDED COST. A zero here is indistinguishable from a carrier quoting free, and seeding one is what made an
+        // unanswered hook look like an answer. The event starts with nothing and the carrier has to put something in it.
+        $event = new CalculateShippingCostEvent($eventName, ['subject' => $request]);
+        $plugins = AlfaPluginHelper::get();
+
+        // The cart's chosen carrier, through the plugin helper (targeted): disabled, missing or unloadable, not
+        // asked; one that declares no quote handler, not asked either.
+        try {
+            $carrier = $plugins->bootSingle(PluginId::from('alfa-shipments', $type));
+        } catch (PluginUnavailable|InvalidArgumentException) {
+            $carrier = null;
+        }
+
+        if ($carrier === null || !$plugins->declares($carrier, $eventName)) {
+            return CarrierAnswers::remember(key: $key, event: $event, asked: false, failed: false);
+        }
+
+        try {
+            $plugins->dispatchTo($carrier, $event);
+        } catch (Throwable $e) {
+            $this->quoteFailed($type, $e);
+
+            return CarrierAnswers::remember(key: $key, event: $event, asked: true, failed: true);
+        }
+
+        return CarrierAnswers::remember(key: $key, event: $event, asked: true, failed: false);
     }
 
     /**
@@ -590,15 +618,29 @@ final class CartPluginDispatch
      */
     private function reader(HydratedCart $cart, ?Money $subtotal = null, ?Money $payable = null): Cart
     {
+        [$delivery, $invoice] = $this->pending($cart);
+
+        return Cart::of($cart, $delivery, $invoice, $subtotal, $payable);
+    }
+
+    /**
+     * The delivery and invoice values the checkout submitted, the delivery ones with this request's destination: what
+     * the reader is built with ({@see self::reader()}), and part of the state a carrier's answer is kept for.
+     *
+     * @param HydratedCart $cart The settled cart.
+     *
+     * @return array{0: array, 1: array} The delivery values and the invoice values, by column name.
+     *
+     * @since  2.2.2
+     */
+    private function pending(HydratedCart $cart): array
+    {
         $form = $cart->subject()->isOperatorPlacement() ? [] : (array) $this->app->getUserState('com_alfa.cart.form_data', []);
 
-        return Cart::of(
-            $cart,
+        return [
             $this->withBoundDestination((array) ($form[FieldsHelper::FIELDS_KEY] ?? [])),
             (array) ($form[FieldsHelper::BILLING_FIELDS_KEY] ?? []),
-            $subtotal,
-            $payable,
-        );
+        ];
     }
 
     /**
