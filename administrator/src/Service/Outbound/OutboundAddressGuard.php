@@ -62,7 +62,7 @@ final class OutboundAddressGuard
         }
 
         if ($scheme !== 'https' && ($httpsOnly || $scheme !== 'http')) {
-            throw new OutboundAddressRefused(reason: OutboundAddressRefused::SCHEME);
+            throw new OutboundAddressRefused(reason: $httpsOnly ? OutboundAddressRefused::HTTPS_ONLY : OutboundAddressRefused::SCHEME);
         }
 
         $addresses = self::publicAddresses(host: $host);
