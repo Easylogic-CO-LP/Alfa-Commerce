@@ -327,6 +327,7 @@ class com_alfaInstallerScript extends InstallerScript
         'com_alfa.categories',
         'com_alfa.collation',
         'com_alfa.integrity',
+        'com_alfa.notices',
         'com_alfa.notifications',
         'com_alfa.stockeffects',
         'com_alfa.tasks',

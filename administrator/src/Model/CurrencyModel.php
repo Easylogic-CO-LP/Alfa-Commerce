@@ -104,7 +104,7 @@ class CurrencyModel extends AlfaAdminModel
         }
 
         if ($blocked) {
-            $refusal = Text::sprintf('COM_ALFA_CURRENCY_IN_USE_CANNOT_DELETE', implode(', ', $blocked));
+            $refusal = Text::sprintf('COM_ALFA_CURRENCY_IN_USE_CANNOT_DELETE', $this->currencyNames(ids: $blocked));
             $pks = array_values(array_diff($pks, $blocked));
 
             if (!$pks) {
@@ -275,7 +275,7 @@ class CurrencyModel extends AlfaAdminModel
         }
 
         if ($defaultId > 0 && \in_array($defaultId, $pks, true)) {
-            $refusals[] = Text::sprintf('COM_ALFA_CURRENCY_ERR_DEFAULT_PROTECTED', $defaultId);
+            $refusals[] = Text::sprintf('COM_ALFA_CURRENCY_ERR_DEFAULT_PROTECTED', $this->currencyNames(ids: [$defaultId]));
 
             $pks = array_values(array_diff($pks, [$defaultId]));
 
@@ -296,12 +296,43 @@ class CurrencyModel extends AlfaAdminModel
         // The batch would take every published currency out of service: keep the
         // active ones standing and let the rest of the batch proceed.
         if ($activeIds && \count($affectedActive) >= \count($activeIds)) {
-            $refusals[] = Text::sprintf('COM_ALFA_CURRENCY_ERR_LAST_ACTIVE', implode(', ', $affectedActive));
+            $refusals[] = Text::sprintf('COM_ALFA_CURRENCY_ERR_LAST_ACTIVE', $this->currencyNames(ids: $affectedActive));
 
             $pks = array_values(array_diff($pks, $affectedActive));
         }
 
         return ['keep' => $pks, 'refusals' => $refusals];
+    }
+
+    /**
+     * The currencies as a refusal names them, for the person who reads it: each one's name with its ISO code in
+     * brackets when it has one ("Euro (EUR)"), in the order of the ids, separated by commas. An id with no row left is
+     * said as the id, the only name it still has.
+     *
+     * @param list<int> $ids The currency ids.
+     *
+     * @return string The names.
+     *
+     * @since  2.3.0
+     */
+    private function currencyNames(array $ids): string
+    {
+        $db = $this->getDatabase();
+        $rows = $ids === [] ? [] : $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'name', 'code']))
+                ->from($db->quoteName('#__alfa_currencies'))
+                ->whereIn($db->quoteName('id'), $ids),
+        )->loadObjectList('id');
+        $names = [];
+
+        foreach ($ids as $id) {
+            $row = $rows[$id] ?? null;
+            $code = trim((string) ($row->code ?? ''));
+            $names[] = $row === null ? (string) $id : trim((string) $row->name) . ($code !== '' ? ' (' . $code . ')' : '');
+        }
+
+        return implode(', ', $names);
     }
 
     /**
