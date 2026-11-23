@@ -674,7 +674,7 @@ final class Standard extends PaymentsPlugin
      * Cart page: show payment method selector or payment form.
      *
      * Available on $event:
-     *   $event->getRequest()  -> MethodViewRequest (methodId, methodType, methodParams, isSelected, cartTotal)
+     *   $event->getRequest()  -> MethodViewRequest: ->method (the Method, entire) and ->cart (the Cart, entire)
      *                           (alias of getSubject())
      *   $event->getMethod()   -> Payment method record
      *
