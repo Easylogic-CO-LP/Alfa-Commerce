@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Extensions;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
@@ -120,7 +121,7 @@ class HtmlView extends BaseHtmlView
             $this->compatibility = ExtensionCompatibility::verdicts();
             ExtensionCompatibility::follow(verdicts: $this->compatibility);
         } catch (Throwable $e) {
-            Log::add('Tools > Extensions could not read which extensions are built for this version: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
+            Log::add('Tools > Extensions could not read which extensions are built for this version: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.setup');
         }
 
         $this->mayClear = ClearDataExtensions::permitted(user: $user);
