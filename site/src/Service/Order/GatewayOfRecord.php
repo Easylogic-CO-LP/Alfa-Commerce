@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\CheckoutSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -59,7 +60,7 @@ final class GatewayOfRecord
             $id = PluginId::from('alfa-payments', $paymentType);
             $gateway = $plugins->bootSingle($id);
         } catch (PluginUnavailable|InvalidArgumentException $e) {
-            Log::add('Order page: the gateway of record cannot be loaded (' . $e->getMessage() . '); the page shows the neutral line.', Log::WARNING, 'com_alfa.payments');
+            Log::add('Order page: the gateway of record cannot be loaded (' . ErrorText::of($e) . '); the page shows the neutral line.', Log::WARNING, 'com_alfa.payments');
 
             return self::UNAVAILABLE;
         }
@@ -70,7 +71,7 @@ final class GatewayOfRecord
             try {
                 $plugins->dispatchTo($gateway, $event);
             } catch (Throwable $e) {
-                Log::add('Order page: ' . $id . ' failed in ' . $event->getName() . ' (' . $e::class . ': ' . $e->getMessage() . '); the page renders without it.', Log::ERROR, 'com_alfa.payments');
+                Log::add('Order page: ' . $id . ' failed in ' . $event->getName() . ' (' . $e::class . ': ' . ErrorText::of($e) . '); the page renders without it.', Log::ERROR, 'com_alfa.payments');
 
                 return self::FAILED;
             }

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfLibraryMissingException;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
@@ -147,7 +148,7 @@ class OrderController extends BaseController
             $bytes = PdfRenderer::pdfBytes(documentId: $documentId);
         } catch (Throwable $e) {
             // The reason goes to the log; the customer reads that the document cannot be had now.
-            Log::add('Customer document ' . $documentId . ' could not be made into a PDF (' . $e::class . ': ' . $e->getMessage() . ').', $e instanceof PdfLibraryMissingException ? Log::WARNING : Log::ERROR, 'com_alfa.documents');
+            Log::add('Customer document ' . $documentId . ' could not be made into a PDF (' . $e::class . ': ' . ErrorText::of($e) . ').', $e instanceof PdfLibraryMissingException ? Log::WARNING : Log::ERROR, 'com_alfa.documents');
             $app->enqueueMessage(Text::_('COM_ALFA_ORDER_DOCUMENT_UNAVAILABLE'), 'warning');
             $app->redirect($back);
 
