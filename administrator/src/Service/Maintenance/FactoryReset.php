@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
 use Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
+use Alfa\Component\Alfa\Administrator\Service\Task\WorkDeclarations;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\User\User;
@@ -111,7 +112,7 @@ final class FactoryReset
      */
     public const CORE_STEPS = [
         'ids', 'files', 'tables', 'schema', 'schema_version', 'options', 'delivery_mapping', 'download_store',
-        'users', 'usergroups', 'languages', 'id_floors', 'verify',
+        'users', 'usergroups', 'languages', 'work', 'id_floors', 'verify',
     ];
 
     /**
@@ -776,6 +777,11 @@ final class FactoryReset
                 array_values($languages['errors']),
             )));
         }
+
+        // The background work each owner declares, read again: core's from its classes and every enabled alfa
+        // plugin's from the plugin, so the schedules resume.
+        $this->at(step: $step = 'work');
+        WorkDeclarations::readAllAgain();
 
         $this->at(step: $step = 'id_floors');
         $core->applyFloors(floors: $floors);

@@ -1925,6 +1925,21 @@ class com_alfaInstallerScript extends InstallerScript
             ), 'warning');
         }
 
+        // Core's background work as its handler classes declare it, which the runner's schedules and Tools > Tasks read.
+        // A failure is said, never a failed install: core's own work still runs; its schedules wait for the rows.
+        try
+        {
+            \Alfa\Component\Alfa\Administrator\Service\Task\WorkDeclarations::writeCore();
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_WORK_DECLARATIONS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not write the background work it declares: %2$s Install the package again.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+        }
+
         // 0b. Each shipping method owns its shipping taxes and the entry mode of its
         //     prices: the two former Options are moved onto every method once.
         $this->moveShippingOptions();

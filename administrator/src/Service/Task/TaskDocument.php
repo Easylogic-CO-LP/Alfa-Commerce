@@ -63,7 +63,7 @@ final class TaskDocument
     public const COLUMNS = [
         'id', 'type', 'handler', 'state', 'subject_type', 'subject_id', 'scope_key', 'done_units', 'total_units',
         'run_after', 'created_at', 'started_at', 'finished_at', 'updated_at', 'origin', 'last_error', 'created_by',
-        'checkpoint',
+        'checkpoint', 'owner', 'result',
     ];
 
     /**

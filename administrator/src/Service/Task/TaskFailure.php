@@ -53,10 +53,11 @@ final class TaskFailure extends RuntimeException
      * @param string $message What happened.
      * @param string $kind One of the constants.
      * @param Throwable|null $previous The cause.
+     * @param int $after Seconds a retry waits at least.
      *
      * @since  2.1.4
      */
-    private function __construct(string $message, public readonly string $kind, ?Throwable $previous = null)
+    private function __construct(string $message, public readonly string $kind, ?Throwable $previous = null, public readonly int $after = 0)
     {
         parent::__construct(message: $message, previous: $previous);
     }
@@ -66,12 +67,14 @@ final class TaskFailure extends RuntimeException
      *
      * @param string $message What happened.
      * @param Throwable|null $previous The cause.
+     * @param int $after Seconds to wait at least before the next try (a receiver's Retry-After); the ladder's step when
+     *                   it is longer.
      *
      * @since  2.1.4
      */
-    public static function retry(string $message, ?Throwable $previous = null): self
+    public static function retry(string $message, ?Throwable $previous = null, int $after = 0): self
     {
-        return new self(message: $message, kind: self::RETRY, previous: $previous);
+        return new self(message: $message, kind: self::RETRY, previous: $previous, after: max(0, $after));
     }
 
     /**

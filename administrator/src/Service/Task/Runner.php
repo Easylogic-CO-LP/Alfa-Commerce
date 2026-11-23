@@ -14,12 +14,15 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\ParameterType;
 use Throwable;
@@ -208,6 +211,15 @@ final class Runner
     private static array $handlers = [];
 
     /**
+     * The extensions' job handlers made in this request, by owner and name.
+     *
+     * @var array<string, JobHandler>
+     *
+     * @since  2.3.0
+     */
+    private static array $extensionHandlers = [];
+
+    /**
      * One trigger's turn, bounded by its budget: the singles recovery owes, then due jobs chunk by chunk.
      *
      * The singles take the whole budget when no job is due and at most half of it when one is, so a job always
@@ -238,13 +250,7 @@ final class Runner
 
         // The work recovery runs is no visitor's and no member of staff's: the tick acts as the neutral system actor,
         // an empty user, and gives the request its own identity back afterwards.
-        $identity = self::actAsSystem();
-
-        try {
-            return self::tickAsSystem(db: $db, trigger: $trigger, budgetMs: max(1, $budgetMs), onlyJob: $onlyJob, start: $start);
-        } finally {
-            self::restoreIdentity(identity: $identity);
-        }
+        return SystemActor::around(static fn (): TickResult => self::tickAsSystem(db: $db, trigger: $trigger, budgetMs: max(1, $budgetMs), onlyJob: $onlyJob, start: $start));
     }
 
     /**
@@ -400,9 +406,9 @@ final class Runner
         $job = $db->quoteName('type') . ' = ' . $db->quote(DueRead::TYPE_JOB);
         $probes = [
             'SELECT 1 FROM ' . $tasks . ' WHERE ' . $job . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(DueRead::STATE_PENDING)
-                . ' AND ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)',
+                . ' AND ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3) AND ' . DueRead::runnableOwner(db: $db),
             'SELECT 1 FROM ' . $tasks . ' WHERE ' . $job . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(DueRead::STATE_RUNNING)
-                . ' AND ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3)',
+                . ' AND ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3) AND ' . DueRead::runnableOwner(db: $db),
         ];
 
         foreach (DueRead::singleProbes(db: $db) as $single) {
@@ -436,8 +442,8 @@ final class Runner
 
         return $db->quoteName('projection_dirty_at') . ' <= UTC_TIMESTAMP(6) - INTERVAL ' . DueRead::GRACE_SECONDS . ' SECOND'
             . ' AND ' . $db->quoteName('projection_dirty_at') . ' > COALESCE((SELECT MAX(' . $db->quoteName('created_at') . ') FROM ' . $tasks
-            . ' WHERE ' . $db->quoteName('handler') . ' = ' . $handler . "), '1000-01-01 00:00:00')"
-            . ' AND NOT EXISTS (SELECT 1 FROM ' . $tasks . ' WHERE ' . $db->quoteName('active_key') . ' = ' . $handler . ')';
+            . ' WHERE ' . $db->quoteName('owner') . ' = ' . $db->quote(DueRead::CORE_OWNER) . ' AND ' . $db->quoteName('handler') . ' = ' . $handler . "), '1000-01-01 00:00:00')"
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $tasks . ' WHERE ' . $db->quoteName('owner') . ' = ' . $db->quote(DueRead::CORE_OWNER) . ' AND ' . $db->quoteName('active_key') . ' = ' . $handler . ')';
     }
 
     /**
@@ -452,7 +458,7 @@ final class Runner
     private static function waitingSetWithoutJob(DatabaseDriver $db): string
     {
         return $db->quoteName('s.prepared_at') . ' IS NULL AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(DueRead::TABLE, 't')
-            . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(DueRead::PRICE_SET_PREPARE)
+            . ' WHERE ' . $db->quoteName('t.owner') . ' = ' . $db->quote(DueRead::CORE_OWNER) . ' AND ' . $db->quoteName('t.handler') . ' = ' . $db->quote(DueRead::PRICE_SET_PREPARE)
             . ' AND ' . $db->quoteName('t.state') . ' IN (' . implode(', ', array_map([$db, 'quote'], [DueRead::STATE_PENDING, DueRead::STATE_RUNNING, DueRead::STATE_FAILED])) . ')'
             . ' AND ' . $db->quoteName('t.scope_key') . ' = CONCAT(' . $db->quote(DueRead::PRICE_SET_PREPARE . ':') . ', CAST(' . $db->quoteName('s.id') . ' AS CHAR)) COLLATE utf8mb4_unicode_ci)';
     }
@@ -471,7 +477,7 @@ final class Runner
         return '(' . $db->quoteName('status') . ' = ' . $db->quote(DueRead::MOVEMENT_PENDING)
             . ' OR ' . DueRead::abandonedClaimWhere($db) . ')'
             . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(DueRead::TABLE, 't')
-            . ' WHERE ' . $db->quoteName('t.handler') . ' = ' . $db->quote(DueRead::STOCK_EFFECTS_DRAIN)
+            . ' WHERE ' . $db->quoteName('t.owner') . ' = ' . $db->quote(DueRead::CORE_OWNER) . ' AND ' . $db->quoteName('t.handler') . ' = ' . $db->quote(DueRead::STOCK_EFFECTS_DRAIN)
             . ' AND ' . $db->quoteName('t.state') . ' IN (' . $db->quote(DueRead::STATE_PENDING) . ', ' . $db->quote(DueRead::STATE_RUNNING) . '))';
     }
 
@@ -534,43 +540,15 @@ final class Runner
         }
 
         try {
+            WorkDeclarations::checkEnabled(db: $db);
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Runner: the plugins owning background work could not be compared with the extensions: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+        }
+
+        try {
             PriceIndexSyncService::announceOpenedWindows();
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the price periods that began could not be announced: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
-        }
-    }
-
-    /**
-     * Make the application's identity the neutral system actor for the tick: an empty user. Answers the identity to
-     * give back, or null where there is no application.
-     *
-     * @since  2.2.0
-     */
-    private static function actAsSystem(): ?User
-    {
-        try {
-            $app = Factory::getApplication();
-        } catch (Throwable) {
-            return null;
-        }
-
-        $identity = $app->getIdentity() ?? new User();
-        $app->loadIdentity(new User());
-
-        return $identity;
-    }
-
-    /**
-     * Give the request its own identity back after the tick.
-     *
-     * @param User|null $identity What actAsSystem() answered.
-     *
-     * @since  2.2.0
-     */
-    private static function restoreIdentity(?User $identity): void
-    {
-        if ($identity !== null) {
-            Factory::getApplication()->loadIdentity($identity);
         }
     }
 
@@ -588,17 +566,21 @@ final class Runner
      * @param array<string, mixed> $payload What the handler needs.
      * @param int|null $priority Its claim order when it must go ahead of its handler's own (the daily backstop of
      *                           tasks.prune); null for the handler's. A join keeps the higher of the two.
+     * @param string $owner Whose work it is: com_alfa, or the plugin that declared it; one active job per owner and
+     *                      scope.
+     * @param DateTimeInterface|null $notBefore Not before this moment; null for now. Joining a job that waits keeps the
+     *                                          earlier of the two moments, unless it waits out a failure's backoff.
      *
      * @throws InvalidArgumentException When no job handler has that name, or the scope key is not the handler's.
      *
      * @since  2.2.0
      */
-    public static function enqueue(string $handler, string $scopeKey, array $payload, ?int $priority = null): EnqueueResult
+    public static function enqueue(string $handler, string $scopeKey, array $payload, ?int $priority = null, string $owner = DueRead::CORE_OWNER, ?DateTimeInterface $notBefore = null): EnqueueResult
     {
-        $implementation = self::handler(name: $handler);
+        $implementation = self::handler(name: $handler, owner: $owner);
 
         if ($implementation === null) {
-            throw new InvalidArgumentException('No job handler is named ' . $handler . '.');
+            throw new InvalidArgumentException('No job handler is named ' . $handler . ' for ' . $owner . '.');
         }
 
         if ($scopeKey !== $handler && !str_starts_with($scopeKey, $handler . ':')) {
@@ -613,19 +595,25 @@ final class Runner
         $rerun = $policy->rerunOnMerge ? 1 : 0;
         $origin = Tasks::origin();
         $userId = Tasks::userId();
-        $maxFailures = self::MAX_FAILURES;
+        $maxFailures = $policy->callsOut ? \count(Tasks::BACKOFF_SECONDS) : self::MAX_FAILURES;
+        $at = $notBefore === null ? null : DateTimeImmutable::createFromInterface($notBefore)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v');
+        $runAfter = $at === null ? 'UTC_TIMESTAMP(3)' : 'GREATEST(UTC_TIMESTAMP(3), :runAfter)';
 
         for ($attempt = 1; ; $attempt++) {
             try {
                 $query = $db->getQuery(true)->setQuery(
                     'INSERT INTO ' . $db->quoteName(Tasks::TABLE)
-                    . ' (' . implode(', ', $db->quoteName(['type', 'handler', 'scope_key', 'weight', 'priority', 'payload', 'run_after', 'max_failures', 'origin', 'created_by', 'created_at', 'updated_at'])) . ')'
-                    . ' VALUES (' . $db->quote(Tasks::TYPE_JOB) . ', :handler, :scope, :weight, :priority, :payload, UTC_TIMESTAMP(3), :maxFailures, :origin, :user, UTC_TIMESTAMP(6), UTC_TIMESTAMP(3))'
+                    . ' (' . implode(', ', $db->quoteName(['type', 'owner', 'handler', 'scope_key', 'weight', 'priority', 'payload', 'run_after', 'max_failures', 'origin', 'created_by', 'created_at', 'updated_at'])) . ')'
+                    . ' VALUES (' . $db->quote(Tasks::TYPE_JOB) . ', :owner, :handler, :scope, :weight, :priority, :payload, ' . $runAfter . ', :maxFailures, :origin, :user, UTC_TIMESTAMP(6), UTC_TIMESTAMP(3))'
                     . ' ON DUPLICATE KEY UPDATE ' . $db->quoteName('id') . ' = LAST_INSERT_ID(' . $db->quoteName('id') . '), '
                     . $db->quoteName('rerun') . ' = IF(:rerunOnMerge = 1 AND (' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' OR ' . $db->quoteName('done_units') . ' > 0), 1, ' . $db->quoteName('rerun') . '), '
                     . $db->quoteName('priority') . ' = GREATEST(' . $db->quoteName('priority') . ', :mergePriority), '
+                    // A waiting job joined keeps the earlier moment; one waiting out a failure's backoff keeps its wait.
+                    . $db->quoteName('run_after') . ' = IF(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING) . ' AND ' . $db->quoteName('failures') . ' = 0, LEAST('
+                    . $db->quoteName('run_after') . ', ' . ($at === null ? 'UTC_TIMESTAMP(3)' : 'GREATEST(UTC_TIMESTAMP(3), :joinAfter)') . '), ' . $db->quoteName('run_after') . '), '
                     . $db->quoteName('updated_at') . ' = UTC_TIMESTAMP(3)',
                 )
+                    ->bind(':owner', $owner)
                     ->bind(':handler', $handler)
                     ->bind(':scope', $scopeKey)
                     ->bind(':weight', $weight)
@@ -636,6 +624,11 @@ final class Runner
                     ->bind(':origin', $origin)
                     ->bind(':user', $userId, ParameterType::INTEGER)
                     ->bind(':rerunOnMerge', $rerun, ParameterType::INTEGER);
+
+                if ($at !== null) {
+                    $query->bind(':runAfter', $at)->bind(':joinAfter', $at);
+                }
+
                 $db->setQuery($query)->execute();
                 $result = new EnqueueResult(id: (int) $db->insertid(), merged: $db->getAffectedRows() !== 1);
                 Tasks::noteForRequest(id: $result->id, merged: $result->merged);
@@ -655,15 +648,32 @@ final class Runner
     }
 
     /**
-     * A job handler by name, made once per request; null when this version has none of that name. The registry is
-     * closed: core's handlers only; a plugin's work runs through extension.job.
+     * The handler of an owner's job of a name, made once per request; null when there is none: core's from its own
+     * map; an extension's built from its declaration ({@see PluginJob}), while the plugin declares a job of that name.
      *
      * @param string $name The handler's name.
+     * @param string $owner Whose work it is: com_alfa, or the plugin that declared it.
      *
      * @since  2.2.0
      */
-    public static function handler(string $name): ?JobHandler
+    public static function handler(string $name, string $owner = DueRead::CORE_OWNER): ?JobHandler
     {
+        if ($owner !== DueRead::CORE_OWNER) {
+            $key = $owner . '|' . $name;
+
+            if (isset(self::$extensionHandlers[$key])) {
+                return self::$extensionHandlers[$key];
+            }
+
+            $declaration = WorkDeclarations::find(owner: $owner, name: $name);
+
+            if ($declaration === null || $declaration['kind'] !== Tasks::TYPE_JOB) {
+                return null;
+            }
+
+            return self::$extensionHandlers[$key] = new PluginJob(owner: PluginId::of($owner), declaration: $declaration);
+        }
+
         if (isset(self::$handlers[$name])) {
             return self::$handlers[$name];
         }
@@ -693,6 +703,18 @@ final class Runner
 
             return true;
         }
+    }
+
+    /**
+     * The names of core's own job handlers, from which core's declarations are written ({@see WorkDeclarations}).
+     *
+     * @return list<string>
+     *
+     * @since  2.3.0
+     */
+    public static function coreHandlerNames(): array
+    {
+        return array_keys(self::coreHandlers());
     }
 
     /**
@@ -741,6 +763,7 @@ final class Runner
                 ->select($db->quoteName(['id', 'state', 'done_units', 'total_units', 'last_error']))
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('type') . ' = :type')
+                ->where($db->quoteName('owner') . ' = ' . $db->quote(DueRead::CORE_OWNER))
                 ->where($db->quoteName('scope_key') . ' = :scope')
                 ->order($db->quoteName('id') . ' DESC')
                 ->bind(':type', $type)
@@ -859,7 +882,7 @@ final class Runner
             return 'lost';
         }
 
-        $handler = self::handler(name: (string) $row['handler']);
+        $handler = self::handler(name: (string) $row['handler'], owner: (string) $row['owner']);
 
         if ($handler === null) {
             self::fail(db: $db, id: $id, owner: $owner, error: Tasks::errorKey('COM_ALFA_TASKS_ERROR_NO_HANDLER', (string) $row['handler']), final: true);
@@ -898,6 +921,7 @@ final class Runner
             doneUnits: (int) $row['done_units'],
             totalUnits: (int) $row['total_units'],
             trigger: $trigger,
+            owner: (string) $row['owner'],
         );
 
         try {
@@ -931,6 +955,7 @@ final class Runner
                 return $chunk;
             }
 
+            $total = $chunk->total ?? $total;
             $tally['chunks']++;
             $tally['units'] += $chunk->units;
 
@@ -971,6 +996,8 @@ final class Runner
         if ($handler->policy()->ownTransactions) {
             try {
                 $done = $handler->chunk($run, $units);
+            } catch (OwnerUnavailable $e) {
+                return self::waitForOwner(db: $db, run: $run, owner: $owner, why: $e->getMessage());
             } catch (Throwable $e) {
                 $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;
                 self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id));
@@ -993,6 +1020,10 @@ final class Runner
             }
 
             $kept = (!$heavy || self::renewSlot(db: $db, owner: $owner)) && self::fence(db: $db, run: $run, chunk: $chunk, owner: $owner);
+        } catch (OwnerUnavailable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            return self::waitForOwner(db: $db, run: $run, owner: $owner, why: $e->getMessage());
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;
@@ -1026,6 +1057,27 @@ final class Runner
     }
 
     /**
+     * A job whose plugin is disabled or gone: back to waiting with its bookmark, no attempt counted, its lease cleared;
+     * its declarations are marked disabled, so it is neither due nor claimed until the plugin is enabled.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param JobRun $run The job.
+     * @param string $owner The claim.
+     * @param string $why Why, for the log.
+     *
+     * @return string waits.
+     *
+     * @since  2.3.0
+     */
+    private static function waitForOwner(DatabaseDriver $db, JobRun $run, string $owner, string $why): string
+    {
+        self::yieldJob(db: $db, id: $run->id, owner: $owner);
+        Tasks::log(entry: 'Runner: job #' . $run->id . ' (' . $run->handler . ') waits for its plugin: ' . $why, priority: Log::INFO);
+
+        return 'waits';
+    }
+
+    /**
      * The fenced update of a chunk: progress, or the finish (done, or pending again when a merge asked for one more run,
      * from the start), only while the claim is this tick's.
      *
@@ -1040,7 +1092,7 @@ final class Runner
     {
         $id = $run->id;
         $done = max(0, $chunk->units);
-        $total = max($run->totalUnits, $run->doneUnits + $done);
+        $total = max($chunk->total ?? $run->totalUnits, $run->doneUnits + $done);
         $checkpoint = $chunk->checkpoint === null ? null : json_encode($chunk->checkpoint, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $query = $db->getQuery(true)->update($db->quoteName(Tasks::TABLE));
 
@@ -1054,6 +1106,7 @@ final class Runner
                 ->set($db->quoteName('finished_at') . ' = IF(' . $db->quoteName('rerun') . ' = 1, NULL, UTC_TIMESTAMP(3))')
                 ->set($db->quoteName('checkpoint') . ' = IF(' . $db->quoteName('rerun') . ' = 1, NULL, ' . ($checkpoint === null ? 'NULL' : ':checkpoint') . ')')
                 ->set($db->quoteName('run_after') . ' = IF(' . $db->quoteName('rerun') . ' = 1, UTC_TIMESTAMP(3), ' . $db->quoteName('run_after') . ')')
+                ->set($db->quoteName('result') . ' = IF(' . $db->quoteName('rerun') . ' = 1, NULL, ' . ($chunk->result === null ? 'NULL' : ':result') . ')')
                 ->set($db->quoteName('rerun') . ' = 0')
                 ->set($db->quoteName('lease_owner') . ' = NULL')
                 ->set($db->quoteName('lease_until') . ' = NULL');
@@ -1078,6 +1131,12 @@ final class Runner
 
         if ($checkpoint !== null) {
             $query->bind(':checkpoint', $checkpoint);
+        }
+
+        $result = $chunk->result;
+
+        if ($chunk->finished && $result !== null) {
+            $query->bind(':result', $result);
         }
 
         if (Tasks::changed(db: $db, query: $query) === 1) {
@@ -1114,6 +1173,7 @@ final class Runner
             ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
             ->where('((' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING) . ' AND ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3))'
                 . ' OR (' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' AND ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3)))')
+            ->where(DueRead::runnableOwner(db: $db))
             ->bind(':owner', $owner)
             ->bind(':trigger', $trigger)
             ->bind(':id', $id, ParameterType::INTEGER);
@@ -1367,14 +1427,17 @@ final class Runner
 
             $handler = $run->handler;
             $scope = $run->scopeKey;
+            $runOwner = $run->owner;
             $failed = $db->setQuery(
                 $db->getQuery(true)
                     ->select($db->quoteName(['id', 'history']))
                     ->from($db->quoteName(Tasks::TABLE))
+                    ->where($db->quoteName('owner') . ' = :runOwner')
                     ->where($db->quoteName('handler') . ' = :handler')
                     ->where($db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_FAILED))
                     ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
                     ->where($db->quoteName('scope_key') . ' = :scope')
+                    ->bind(':runOwner', $runOwner)
                     ->bind(':handler', $handler)
                     ->bind(':scope', $scope),
             )->loadAssocList() ?: [];
@@ -1426,6 +1489,7 @@ final class Runner
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
                 ->where($due)
+                ->where(DueRead::runnableOwner(db: $db))
                 ->order($db->quoteName('priority') . ' DESC, ' . $db->quoteName('run_after') . ' ASC, ' . $db->quoteName('id') . ' ASC');
 
             if ($onlyJob !== null) {

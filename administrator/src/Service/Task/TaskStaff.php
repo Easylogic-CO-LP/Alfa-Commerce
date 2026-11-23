@@ -104,7 +104,7 @@ final class TaskStaff
         $db = self::db();
         $rows = $db->setQuery(
             $db->getQuery(true)
-                ->select($db->quoteName(['id', 'handler', 'state', 'subject_type', 'subject_id', 'failures', 'claims', 'last_error', 'last_trigger', 'created_at', 'finished_at', 'history']))
+                ->select($db->quoteName(['id', 'owner', 'handler', 'state', 'subject_type', 'subject_id', 'failures', 'claims', 'last_error', 'last_trigger', 'created_at', 'finished_at', 'history']))
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_SINGLE))
                 ->whereIn($db->quoteName('state'), [Tasks::STATE_FAILED, Tasks::STATE_HELD], ParameterType::STRING)
@@ -114,7 +114,7 @@ final class TaskStaff
         )->loadAssocList() ?: [];
 
         foreach ($rows as &$row) {
-            $policy = Tasks::handler(name: (string) $row['handler'])?->policy();
+            $policy = Tasks::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy();
             $row['label'] = $policy->label ?? '';
             $row['action'] = $policy->staffAction ?? '';
             $row['history'] = Tasks::decodeHistory($row['history']);
@@ -229,7 +229,7 @@ final class TaskStaff
             . ' THEN 1 WHEN ' . $db->quote(Tasks::STATE_FAILED) . ' THEN 2 ELSE 3 END';
         $rows = $db->setQuery(
             $db->getQuery(true)
-                ->select($db->quoteName(['id', 'handler', 'state', 'scope_key', 'done_units', 'total_units', 'failures', 'last_error', 'run_after', 'created_at', 'started_at', 'finished_at']))
+                ->select($db->quoteName(['id', 'owner', 'handler', 'state', 'scope_key', 'done_units', 'total_units', 'failures', 'last_error', 'run_after', 'created_at', 'started_at', 'finished_at', 'result', 'cancel_requested']))
                 // Driven: running, or started, due and advanced within DRIVEN_SECONDS (a step's end writes updated_at;
                 // a failed step sets its retry in the future, so a job waiting out its retry is not driven).
                 ->select('(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' OR (' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING)
@@ -261,7 +261,7 @@ final class TaskStaff
         )->loadAssocList('id', 'group_list') ?: []);
 
         foreach ($rows as &$row) {
-            $row['label'] = Runner::handler(name: (string) $row['handler'])?->policy()->label ?? '';
+            $row['label'] = Runner::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy()->label ?? '';
             $row['driven'] = (bool) $row['driven'];
             $list = str_starts_with((string) $row['scope_key'], $prefix) ? (string) ($lists[(int) substr((string) $row['scope_key'], \strlen($prefix))] ?? '') : '';
             $row['groups'] = $list === '' ? [] : array_map('intval', explode(',', $list));
@@ -309,8 +309,8 @@ final class TaskStaff
 
         return [
             'id' => (int) $row['id'],
-            'label' => Runner::handler(name: (string) $row['handler'])?->policy()->label ?? '',
-            'heavy' => Runner::handler(name: (string) $row['handler'])?->policy()->weight === JobPolicy::HEAVY,
+            'label' => Runner::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy()->label ?? '',
+            'heavy' => Runner::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy()->weight === JobPolicy::HEAVY,
             'state' => (string) $row['state'],
             'done' => (int) $row['done_units'],
             'total' => (int) $row['total_units'],
@@ -528,7 +528,7 @@ final class TaskStaff
     {
         $db = self::db();
         $row = self::actionable(db: $db, id: $id);
-        $policy = Tasks::handler(name: (string) $row['handler'])?->policy();
+        $policy = Tasks::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy();
 
         if ($policy === null || $policy->staffAction !== $action) {
             throw new DomainException('COM_ALFA_TASKS_ACTION_NOT_OFFERED', self::REFUSED_NOT_OFFERED);
@@ -558,6 +558,7 @@ final class TaskStaff
                 trigger: 'staff',
                 userId: $userId,
                 history: $carried,
+                owner: (string) $row['owner'],
             );
             $history = [...Tasks::decodeHistory($row['history']), Tasks::entry(trigger: 'staff', userId: $userId, outcome: $outcome, more: ['task' => $newId])];
 
@@ -609,7 +610,7 @@ final class TaskStaff
     {
         $row = $db->setQuery(
             $db->getQuery(true)
-                ->select($db->quoteName(['id', 'type', 'handler', 'state', 'subject_type', 'subject_id', 'payload', 'history']))
+                ->select($db->quoteName(['id', 'type', 'owner', 'handler', 'state', 'subject_type', 'subject_id', 'payload', 'history']))
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('id') . ' = :id')
                 ->bind(':id', $id, ParameterType::INTEGER),
