@@ -1009,7 +1009,7 @@ class MediaHelper
                     $safeExtension = self::validatedImageExtension($fetched['file'], $allowedMimes);
 
                     if ($safeExtension === null) {
-                        MediaUrls::refuse(pointer: (string) ($media['pointer'] ?? ''), url: $fetched['url'], reason: 'its content is not an image of a type the shop takes (Options, Media)');
+                        MediaUrls::refuse(pointer: (string) ($media['pointer'] ?? ''), url: $fetched['url'], reason: 'its content is not an image of a type the shop takes (Options, Images, Allowed Image Types)');
                         @unlink($fetched['file']);
                         $ordering++;
                         continue;
