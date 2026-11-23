@@ -23,7 +23,7 @@ use Throwable;
  * com_alfa's Permissions field: Joomla's rules field, opened to plugins.
  *
  * Joomla's {@see RulesField} already merges any `<action>` children of the field into the
- * permissions it renders. So all this does is ask every alfa* plugin, on
+ * permissions it renders. So all this does is ask every loaded listener (the alfa group imported first), on
  * {@see GetAccessActionsEvent}, for the ACL actions its own screens enforce, and add them as
  * those children before delegating; no copy of Joomla's rendering, no drift. The result:
  * a plugin's permissions appear in the same Permissions tab as com_alfa's own, granted or
@@ -52,7 +52,7 @@ class AlfarulesField extends RulesField
      * While this ran at render time, every plugin action was drawn as a
      * checkbox, posted back, and then rejected as unknown: the Options screen
      * could not be saved at all ("Invalid field: Permissions") on any site with
-     * an alfa* plugin that contributes ACL actions.
+     * a plugin that contributes ACL actions.
      *
      * @param SimpleXMLElement $element The field XML element
      * @param mixed $value The field value
