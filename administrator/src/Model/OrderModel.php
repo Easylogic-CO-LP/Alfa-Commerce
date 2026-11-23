@@ -5417,13 +5417,13 @@ class OrderModel extends AlfaAdminModel
         // A refused delete is one error, as Joomla's list controllers report a failed delete, and never a success message
         // when nothing was deleted: the refusals are the delete's error when no order is left, else each is said
         // beside the count of the ones deleted. As a refusal of the model's own rule, which the REST delete answers 409
-        // with its sentence rather than a bare 500.
+        // with its sentence rather than a bare 500; a veto that gives no sentence is said by the delete's own one.
         $refusals = array_values(array_unique($this->deleteRefusals));
         $this->deleteRefusals = [];
 
         if ($pks === []) {
-            $refusal = implode(' ', $refusals);
-            $this->setError($refusals !== [] ? new DeleteRefusedException(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'), $refusal) : Text::plural('COM_ALFA_N_ITEMS_DELETED', 0));
+            $refusal = $refusals !== [] ? implode(' ', $refusals) : Text::_('COM_ALFA_ERROR_ORDER_DELETE_FAILED');
+            $this->setError(new DeleteRefusedException(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'), $refusal));
 
             return false;
         }
