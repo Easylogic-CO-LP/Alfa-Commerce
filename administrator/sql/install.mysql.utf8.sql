@@ -808,26 +808,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_inventory_reservations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Stock reservations: order lifecycle governs creation/release; documents consume';
 
 --
--- Transfer headers: v1 transfers are instantaneous (completed); the header
--- exists so an in-transit state can be added later without reshaping the ledger.
---
-
-CREATE TABLE IF NOT EXISTS `#__alfa_inventory_transfers` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `source_location_id` int(11) UNSIGNED NOT NULL,
-  `destination_location_id` int(11) UNSIGNED NOT NULL,
-  `state` varchar(12) NOT NULL DEFAULT 'completed' COMMENT 'completed (v1); in_transit reserved for a later phase',
-  `operation_id` varchar(40) NOT NULL DEFAULT '',
-  `correlation_id` varchar(64) NOT NULL DEFAULT '',
-  `note` varchar(255) NOT NULL DEFAULT '',
-  `created` datetime DEFAULT NULL,
-  `created_by` int(11) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_source_location` (`source_location_id`),
-  KEY `idx_destination_location` (`destination_location_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Transfer headers: each owns a movement pair (out/in)';
-
---
 -- Operation registry: one row per executed inventory command, written
 -- inside the command's own transaction: the audit spine tying an
 -- operation_id to its source and correlation chain.

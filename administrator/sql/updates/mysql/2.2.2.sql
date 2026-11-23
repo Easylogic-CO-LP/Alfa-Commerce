@@ -15,3 +15,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
   KEY `idx_linked_item_id` (`linked_item_id`),
   KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
+
+-- The transfer headers
+--
+-- No command moves stock between locations, and Alfa Commerce itself never made a transfer: nothing writes or reads
+-- #__alfa_inventory_transfers. It is dropped; the install SQL no longer creates it.
+
+DROP TABLE IF EXISTS `#__alfa_inventory_transfers` /** CAN FAIL **/;

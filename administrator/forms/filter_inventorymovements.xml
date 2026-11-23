@@ -17,13 +17,9 @@
                 onchange="this.form.submit();"
         >
             <option value="">COM_ALFA_INVENTORY_FILTER_TYPE</option>
-            <option value="receive">COM_ALFA_INVENTORY_MOVE_RECEIVE</option>
             <option value="deduct">COM_ALFA_INVENTORY_MOVE_DEDUCT</option>
             <option value="restore">COM_ALFA_INVENTORY_MOVE_RESTORE</option>
             <option value="adjust">COM_ALFA_INVENTORY_MOVE_ADJUST</option>
-            <!-- transfer_out / transfer_in are not offered: no code path writes them
-                 yet (InventoryService has no transfer()), so they would only ever
-                 return an empty list. Restore them with the transfers feature. -->
             <option value="migration">COM_ALFA_INVENTORY_MOVE_MIGRATION</option>
         </field>
 

@@ -188,7 +188,7 @@ use WeakMap;
  * item row, so a command that held that row while it still asked for the next
  * variant's records would wait for a command that holds those records and asks
  * for the row. Reservation rows come after the unit's records in every command
- * that locks them (a fulfilment, a release, the expiry sweep, the override that
+ * that locks them (a fulfilment, a release, the override that
  * serves a source first); the commands that judge a unit read them under a shared
  * lock, after the unit's records too, as a fulfilment and that override read the
  * order of claims of a record.
@@ -252,12 +252,9 @@ final class InventoryService
     public const SOURCE_RETURN = 'return';
     public const SOURCE_DOCUMENT = 'document';
 
-    public const MOVE_RECEIVE = 'receive';
     public const MOVE_DEDUCT = 'deduct';
     public const MOVE_RESTORE = 'restore';
     public const MOVE_ADJUST = 'adjust';
-    public const MOVE_TRANSFER_OUT = 'transfer_out';
-    public const MOVE_TRANSFER_IN = 'transfer_in';
 
     public const BACKORDER_DENY = 'deny';
     public const BACKORDER_ALLOW = 'allow';
@@ -10445,8 +10442,8 @@ final class InventoryService
      * order).
      *
      * A command that can reach more than one record of a unit (a line reserved at
-     * several locations, a remainder drawn from several shelves, a transfer's two
-     * ends) calls this where it first reaches the unit. Every such command then
+     * several locations, a remainder drawn from several shelves) calls this where it
+     * first reaches the unit. Every such command then
      * takes the unit's records in the same order, whatever order it goes on to
      * read or write them in, so two of them on one unit queue on its first record
      * instead of each holding one record the other waits for.

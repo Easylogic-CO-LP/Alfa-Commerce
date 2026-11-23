@@ -24,7 +24,7 @@ use Throwable;
 /**
  * A stock command named a unit the kernel cannot move stock for.
  *
- * Thrown by receive() and adjust() for every unit that is not a tracked stock unit,
+ * Thrown by adjust() for every unit that is not a tracked stock unit,
  * by the identity check taken under the unit's row locks, and by the commands that
  * need a tracked unit when its tracking changed while they waited for the lock.
  * Nothing is written when this is thrown.
