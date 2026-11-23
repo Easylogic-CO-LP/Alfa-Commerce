@@ -14,7 +14,9 @@ defined('_JEXEC') or die;
 /**
  * Fluent descriptor for ONE field surface (what to render in a given slot):
  *
- *   $event->surface(ItemSurface::Title)->setLayout('badge')->setData([...]);
+ *   $event->title()->setLayout('badge')->setData([...]);
+ *
+ * The event names each slot by a method of its own (title(), buyForm(), nearAddToCart() and the others).
  *
  * Holds only render METADATA (layout name + data + optional owner), never HTML,
  * never the event. The orchestrator turns it into a plain descriptor array
