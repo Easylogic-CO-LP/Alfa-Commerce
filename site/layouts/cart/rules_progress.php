@@ -21,6 +21,7 @@
  *                          'currency' => \Alfa\Component\Alfa\Site\Service\Pricing\Currency]
  */
 
+use Alfa\Component\Alfa\Site\Helper\CartShows;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Language\Text;
 
@@ -30,6 +31,15 @@ $rules    = $displayData['progress'] ?? [];
 $currency = $displayData['currency'] ?? null;
 
 if ($rules === [] || $currency === null) {
+    return;
+}
+
+// An amount goal states what the cart's goods come to, so it shows only where the cart shows its subtotal; a rule
+// with nothing else to show is then left out.
+$amountGoals = CartShows::options()->subtotal;
+$rules = $amountGoals ? $rules : array_values(array_filter($rules, static fn (object $rule): bool => !empty($rule->groups)));
+
+if ($rules === []) {
     return;
 }
 
@@ -43,7 +53,7 @@ $money = static fn (float $amount): string => Money::of($amount, $currency)->for
             </div>
 
             <?php // Amount goal -> milestone bar?>
-            <?php if ($rule->min_amount !== null && !$rule->min_amount->satisfied):
+            <?php if ($amountGoals && $rule->min_amount !== null && !$rule->min_amount->satisfied):
                 // The two amounts the engine compared, in minor units: the bar
                 // is full only when nothing remains, and the goal shown is the
                 // amount that reaches the rule.

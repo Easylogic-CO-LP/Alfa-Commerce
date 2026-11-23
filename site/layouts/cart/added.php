@@ -10,6 +10,7 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
+use Alfa\Component\Alfa\Site\Helper\CartShows;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Joomla\CMS\Language\Text;
@@ -133,15 +134,18 @@ $surfaces  = $line->surfaces[CartSurface::Main->value] ?? [];
                 <?php endif; ?>
                 <div class="cart-added-meta">
                     <span><?php echo Text::_('COM_ALFA_QUANTITY_LABEL'); ?>: <strong><?php echo (int) $line->quantity; ?></strong></span>
+                    <?php // The line's price and the cart's total as the cart shows them (CartShows). ?>
+                    <?php if (CartShows::options()->linePrice): ?>
                     <div class="cart-added-price"><?php echo Layout::render('item.price', ['item' => $item, 'settings' => $priceSettings, 'options' => ['show_totals' => true]]); ?></div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
 
         <div class="cart-added-summary">
             <span><?php echo Text::plural('COM_ALFA_CART_ADDED_ITEMS', $quantity); ?></span>
-            <?php // A total of zero the Options hide is not drawn. ?>
-            <?php $grandShown = PriceDisplay::price(price: $grandTotal); ?>
+            <?php // A total the cart does not show, or one of zero the Options hide, is not drawn. ?>
+            <?php $grandShown = CartShows::options()->total ? PriceDisplay::price(price: $grandTotal) : ''; ?>
             <?php if ($grandShown !== ''): ?>
             <span><?php echo Text::_('COM_ALFA_CART_TOTAL'); ?>: <strong><?php echo $grandShown; ?></strong></span>
             <?php endif; ?>

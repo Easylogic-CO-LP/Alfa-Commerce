@@ -13,10 +13,14 @@
  * Cart items sub-template: the heading row (the Items label, Clear cart at its end), the
  * line-item table (name, quantity, price, tax, discount, total; the money columns are
  * .cart-money), the money summary (layout cart.summary) read as the table's continuation,
- * then the held coupon codes, the coupon form and the rule nudges.
+ * then the held coupon codes, the coupon form and the rule nudges. The money columns and
+ * rows are those the Options' switches show (CartShows): Line price draws the price, discount
+ * and total columns, Tax the tax column; with every switch off the table has the name and
+ * the quantity only.
  */
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
+use Alfa\Component\Alfa\Site\Helper\CartShows;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
@@ -30,6 +34,7 @@ use Joomla\CMS\Router\Route;
 // cannot add a line, take a coupon or empty anything, and every number below
 // belongs to the same moment.
 $snapshot = !empty($displayData) ? $displayData : $this->snapshot;
+$shows = CartShows::options();
 
 // One translated name per column, printed by the header and carried by every
 // cell for the stacked phone layout, so the two cannot drift apart.
@@ -63,10 +68,16 @@ $columnLabels = array_map(
         <tr>
             <th><?php echo $columnLabels['name']; ?></th>
             <th><?php echo $columnLabels['quantity']; ?></th>
+            <?php if ($shows->linePrice): ?>
             <th class="cart-money"><?php echo $columnLabels['price']; ?></th>
+            <?php endif; ?>
+            <?php if ($shows->tax): ?>
             <th class="cart-money"><?php echo $columnLabels['tax']; ?></th>
+            <?php endif; ?>
+            <?php if ($shows->linePrice): ?>
             <th class="cart-money"><?php echo $columnLabels['discount']; ?></th>
             <th class="cart-money"><?php echo $columnLabels['total']; ?></th>
+            <?php endif; ?>
         </tr>
         </thead>
         <tbody>
@@ -179,14 +190,19 @@ $columnLabels = array_map(
                     </div>
                 </td>
 
+                <?php if ($shows->linePrice): ?>
                 <td data-label="<?php echo $columnLabels['price']; ?>" class="cart-item-col-price cart-item-col cart-money">
 		            <?= $price ? PriceDisplay::figure(formatted: $unitPrice, zero: $baseTotalWithTax->isZero()) : '-'; ?>
                 </td>
+                <?php endif; ?>
 
+                <?php if ($shows->tax): ?>
                 <td data-label="<?php echo $columnLabels['tax']; ?>" class="cart-item-col-tax cart-item-col cart-money">
 	                <?= $payable ? $price->getTaxTotal()->format() : '-'; ?>
                 </td>
+                <?php endif; ?>
 
+                <?php if ($shows->linePrice): ?>
                 <td data-label="<?php echo $columnLabels['discount']; ?>" class="cart-item-col-discount cart-item-col cart-money">
 					<?= $discountTotal; ?>
                 </td>
@@ -208,6 +224,7 @@ $columnLabels = array_map(
 					<?php endif; ?>
 					<?php endif; ?>
                 </td>
+                <?php endif; ?>
             </tr>
 		<?php endforeach; ?>
         </tbody>
@@ -250,10 +267,11 @@ $columnLabels = array_map(
 	//     row (the discount is shown on the shipping row instead), and the remove
 	//     form lives inside the row it skips.
 	//
-	// So the exclusion is not "applied"; it is "already removable above".
+	// So the exclusion is not "applied"; it is "already removable above". With the Options'
+	// Total switch off the rule rows are not drawn, so every held code is listed here.
 	$codesWithARemoveControl = [];
 
-	foreach ($snapshot->rules->applied as $appliedRule) {
+	foreach ($shows->total ? $snapshot->rules->applied : [] as $appliedRule) {
 		if ($appliedRule->code !== null && $appliedRule->discountClass !== 'shipping') {
 			$codesWithARemoveControl[] = strtoupper((string) $appliedRule->code);
 		}

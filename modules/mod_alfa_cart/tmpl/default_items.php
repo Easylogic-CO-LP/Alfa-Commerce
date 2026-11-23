@@ -8,6 +8,7 @@
  */
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
+use Alfa\Component\Alfa\Site\Helper\CartShows;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Joomla\CMS\Language\Text;
@@ -25,6 +26,10 @@ if (isset($displayData)) {
 $snapshot = ($snapshot ?? null);
 
 $priceSettings = ($priceSettings ?? null);
+
+// The amounts the cart shows, as the Options' switches set them for the cart page (CartShows): a line's price, the
+// shipping row and the total row.
+$shows = CartShows::options();
 
 $items = $snapshot === null ? [] : $snapshot->lines;
 $itemsCount = count($items);
@@ -92,9 +97,10 @@ $itemsCount = count($items);
 									<?php endforeach; ?>
                                 </ul>
 							<?php endif; ?>
+                            <?php if ($shows->linePrice || $unavailable): ?>
                             <div class="cart-item-price">
 								<?php if ($unavailable): ?>
-									<?php if ($outOfStock): ?>
+									<?php if ($outOfStock && $shows->linePrice): ?>
 										<?php
 				                        // One unit figure, the one the cart page prints for the line:
 				                        // the unit price with tax, before discounts. The module's price
@@ -125,6 +131,7 @@ $itemsCount = count($items);
 								    ?>
 								<?php endif; ?>
                             </div>
+                            <?php endif; ?>
 
                         </div>
 
@@ -186,7 +193,7 @@ $itemsCount = count($items);
             <div class="cart-totals">
 
                 <!-- Shipping Row -->
-				<?php //if (!$snapshot->totals->shipment->isZero()):?>
+				<?php if ($shows->shipping): ?>
                 <div class="totals-row shipping-row">
                     <div class="totals-label">
                         <strong><?php echo Text::_('MOD_ALFA_CART_SHIPPING'); ?>:</strong>
@@ -196,10 +203,10 @@ $itemsCount = count($items);
 						<?php echo $snapshot->shippingAwaitsChoice() ? Text::_('MOD_ALFA_CART_SHIPPING_LATER') : $snapshot->totals->shipment->format(); ?>
                     </div>
                 </div>
-				<?php //endif;?>
+				<?php endif; ?>
 
                 <!-- Grand Total Row: a total of zero the Options hide is not drawn -->
-				<?php $grandShown = PriceDisplay::price(price: $snapshot->totals->grand); ?>
+				<?php $grandShown = $shows->total ? PriceDisplay::price(price: $snapshot->totals->grand) : ''; ?>
 				<?php if ($grandShown !== ''): ?>
                 <div class="totals-row grand-total-row">
                     <div class="totals-label">
