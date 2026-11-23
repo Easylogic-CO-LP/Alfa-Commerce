@@ -197,22 +197,27 @@ final class OrderCreateParts
     }
 
     /**
-     * The parcel's data for the shipments ledger (saveOrderShipment()), its charge read in the order's money.
+     * The parcel's data for the shipments ledger (saveOrderShipment()), its charge read in the order's money. The parcel
+     * carries the lines the create wrote, as the checkout's parcel carries the order's, so the ledger judges its method
+     * against them (a method that does not deliver one of them is refused) and the order screen shows what it holds.
      *
      * @param array $shipment The parcel as read() answered it.
      * @param int $orderId The order, written in this transaction.
+     * @param int[] $lines The order lines the create wrote.
      *
      * @throws OrderPartRefusedException When a figure is not an amount of the order's money (MALFORMED).
      *
      * @since  2.2.2
      */
-    public static function shipmentData(array $shipment, int $orderId): array
+    public static function shipmentData(array $shipment, int $orderId, array $lines): array
     {
         $data = [
             'id_order' => $orderId,
             'id_shipment_method' => (int) self::id($shipment['id_shipment_method']),
             'tracking_number' => (string) ($shipment['tracking_number'] ?? ''),
             'status' => ShipmentLedger::STATUS_PENDING,
+            // Every unit of each line, still unshipped.
+            'items' => array_values(array_map('intval', $lines)),
         ];
 
         // The carrier company's name is the parcel's carrier_name, as on POST v1/alfa/orders/:id/shipments.

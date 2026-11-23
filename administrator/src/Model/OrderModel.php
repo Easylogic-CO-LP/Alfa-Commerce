@@ -4711,7 +4711,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         if ($parts['shipment'] !== null) {
-            $shipmentData = OrderCreateParts::shipmentData(shipment: $parts['shipment'], orderId: $orderId);
+            $shipmentData = OrderCreateParts::shipmentData(shipment: $parts['shipment'], orderId: $orderId, lines: $lineIds);
             $told = \count($app->getMessageQueue());
 
             if (!$this->saveOrderShipment($shipmentData)) {
