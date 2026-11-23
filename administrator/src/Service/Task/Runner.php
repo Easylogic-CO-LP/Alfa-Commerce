@@ -1146,7 +1146,12 @@ final class Runner
                     ->bind(':id', $id, ParameterType::INTEGER)
                     ->bind(':owner', $owner),
             ) === 1;
-            $row = $settled ? $db->setQuery('SELECT ' . $db->quoteName(['state', 'history']) . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadAssoc() : null;
+            $row = $settled ? $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['state', 'history']))
+                    ->from($db->quoteName(Tasks::TABLE))
+                    ->where($db->quoteName('id') . ' = ' . $id),
+            )->loadAssoc() : null;
             $cancelled = \is_array($row) && (string) $row['state'] === Tasks::STATE_CANCELLED;
 
             if ($cancelled) {
