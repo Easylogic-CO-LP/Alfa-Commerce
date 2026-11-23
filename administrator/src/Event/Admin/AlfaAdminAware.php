@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Session\Session;
@@ -90,7 +91,7 @@ trait AlfaAdminAware
         try {
             $plugins->dispatch($event);
         } catch (Throwable $e) {
-            Log::add('Alfa admin events: ' . $event->getName() . ' - ' . $context->key() . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa.admin');
+            Log::add('Alfa admin events: ' . $event->getName() . ' - ' . $context->key() . ': ' . ErrorText::of($e), Log::WARNING, 'com_alfa.admin');
 
             throw $e;
         }

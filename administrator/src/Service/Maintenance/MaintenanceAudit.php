@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Maintenance;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -82,7 +83,7 @@ final class MaintenanceAudit
                 ->createModel('Actionlog', 'Administrator', ['ignore_request' => true]);
             $model->addLog([$message], $languageKey, self::CONTEXT, (int) $user->id);
         } catch (Throwable $e) {
-            $failures[] = 'the action log refused it (' . $e->getMessage() . ')';
+            $failures[] = 'the action log refused it (' . ErrorText::of($e) . ')';
         }
 
         if ($failures === []) {
@@ -91,7 +92,7 @@ final class MaintenanceAudit
                     $failures[] = 'it is not in the action log';
                 }
             } catch (Throwable $e) {
-                $failures[] = 'the action log cannot be read back (' . $e->getMessage() . ')';
+                $failures[] = 'the action log cannot be read back (' . ErrorText::of($e) . ')';
             }
         }
 
@@ -106,7 +107,7 @@ final class MaintenanceAudit
                 category: self::CATEGORY,
             );
         } catch (Throwable $e) {
-            $failures[] = 'the log file refused it (' . $e->getMessage() . ')';
+            $failures[] = 'the log file refused it (' . ErrorText::of($e) . ')';
         }
 
         clearstatcache(true, $file);

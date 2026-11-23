@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
@@ -218,7 +219,7 @@ class UserController extends FormController
             try {
                 CustomerCreditLedger::ensureLogger();
                 Log::add(
-                    entry:    sprintf('Customer profile %d: a manual %s of %s could not be recorded: %s', $profileId, $direction, $typed, $e->getMessage()),
+                    entry:    sprintf('Customer profile %d: a manual %s of %s could not be recorded: %s', $profileId, $direction, $typed, ErrorText::of($e)),
                     priority: Log::WARNING,
                     category: 'com_alfa.credit',
                 );
@@ -313,7 +314,7 @@ class UserController extends FormController
 
         if (!$form->validate($posted)) {
             foreach ($form->getErrors() as $error) {
-                $errors[] = $error instanceof Throwable ? $error->getMessage() : (string) $error;
+                $errors[] = $error instanceof Throwable ? ErrorText::of($error) : (string) $error;
             }
 
             return [];

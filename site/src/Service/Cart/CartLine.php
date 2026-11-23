@@ -130,9 +130,15 @@ final class CartLine
     }
 
     /**
-     * Whether the product has left the catalogue: the line survives, named as
-     * what it was, and nothing may be priced against it.
+     * Whether the line cannot be bought as it stands. The cart keeps it, named, its money in no total, and placement
+     * refuses it by name; the line's unavailable_reason says which of the five holds:
      *
+     * - the product has left the catalogue: the line is named as what it was and nothing may be priced against it;
+     * - a field the line carries, or a required field, has a plugin that cannot answer: the line is not priced;
+     * - no price applies to the product at the line's quantity for the cart's terms (in the order builder: the line
+     *   waits for its custom price);
+     * - the quantity is too small to be charged: the reason names the smallest quantity that can be;
+     * - the unit is not sellable: out of stock, or a combination since deleted or archived.
      *
      * @since  2.0.0
      */

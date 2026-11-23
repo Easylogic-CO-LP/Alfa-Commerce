@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
@@ -249,7 +250,7 @@ class ManufacturerModel extends AlfaAdminModel
         } catch (Throwable $e) {
             Log::add(
                 '[ManufacturerModel] Search re-sync failed for manufacturer(s) '
-                . implode(', ', $manufacturerIds) . ': ' . $e->getMessage(),
+                . implode(', ', $manufacturerIds) . ': ' . ErrorText::of($e),
                 Log::WARNING,
                 'com_alfa',
             );

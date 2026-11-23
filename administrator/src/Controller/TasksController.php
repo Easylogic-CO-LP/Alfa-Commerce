@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasToolsAjaxTrait;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Card\CoreCardProvider;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
@@ -299,7 +300,7 @@ class TasksController extends BaseController
         } catch (DomainException $e) {
             $this->setRedirect($page, Text::_(self::REFUSALS[$e->getCode()] ?? 'COM_ALFA_TASKS_ACTION_ERROR'), 'warning');
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools > Tasks (' . $this->getTask() . ') on task #' . $id . ' stopped with ' . $e::class . ': ' . $e->getMessage()
+            Tasks::log(entry: 'Tools > Tasks (' . $this->getTask() . ') on task #' . $id . ' stopped with ' . $e::class . ': ' . ErrorText::of($e)
                 . ' (' . $e->getFile() . ':' . $e->getLine() . ')', priority: Log::ERROR);
             TaskAttention::sync();
             $this->setRedirect($page, Text::_('COM_ALFA_TASKS_ACTION_ERROR'), 'error');

@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
@@ -246,7 +247,7 @@ class TaxModel extends AlfaAdminModel
                 $previousAffectedItemIds = $priceIndexSyncService->getItemIdsForTax((int) $data['id']);
             } catch (Throwable $scopeException) {
                 Log::add(
-                    '[TaxModel::save] Could not capture pre-save scope for tax ' . (int) $data['id'] . ': ' . $scopeException->getMessage(),
+                    '[TaxModel::save] Could not capture pre-save scope for tax ' . (int) $data['id'] . ': ' . ErrorText::of($scopeException),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -324,7 +325,7 @@ class TaxModel extends AlfaAdminModel
             } catch (Throwable $scopeException) {
                 $affectedItemIds = [];
                 Log::add(
-                    '[TaxModel::save] Could not read the saved scope of tax ' . $currentId . ': ' . $scopeException->getMessage(),
+                    '[TaxModel::save] Could not read the saved scope of tax ' . $currentId . ': ' . ErrorText::of($scopeException),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -337,7 +338,7 @@ class TaxModel extends AlfaAdminModel
             );
         } catch (Throwable $syncException) {
             Log::add(
-                '[TaxModel::save] Price index sync failed for tax ' . $currentId . ': ' . $syncException->getMessage(),
+                '[TaxModel::save] Price index sync failed for tax ' . $currentId . ': ' . ErrorText::of($syncException),
                 Log::WARNING,
                 'com_alfa',
             );
@@ -389,7 +390,7 @@ class TaxModel extends AlfaAdminModel
                 $priceIndexSyncService->syncByTax($pk);
             } catch (Throwable $syncException) {
                 Log::add(
-                    '[TaxModel::publish] Price index sync failed for tax ' . $pk . ': ' . $syncException->getMessage(),
+                    '[TaxModel::publish] Price index sync failed for tax ' . $pk . ': ' . ErrorText::of($syncException),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -461,7 +462,7 @@ class TaxModel extends AlfaAdminModel
                 $affectedItemIds = array_unique(array_merge($affectedItemIds, $itemIdsForThisTax));
             } catch (Throwable $collectException) {
                 Log::add(
-                    '[TaxModel::delete] Could not collect affected item ids for tax ' . $pk . ': ' . $collectException->getMessage(),
+                    '[TaxModel::delete] Could not collect affected item ids for tax ' . $pk . ': ' . ErrorText::of($collectException),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -507,7 +508,7 @@ class TaxModel extends AlfaAdminModel
                 $priceIndexSyncService->syncItems($affectedItemIds, cause: PricesChangedEvent::CAUSE_TAX, causeId: \count($pks) === 1 ? (int) reset($pks) : 0);
             } catch (Throwable $syncException) {
                 Log::add(
-                    '[TaxModel::delete] Price index re-sync failed after deleting taxes: ' . $syncException->getMessage(),
+                    '[TaxModel::delete] Price index re-sync failed after deleting taxes: ' . ErrorText::of($syncException),
                     Log::WARNING,
                     'com_alfa',
                 );

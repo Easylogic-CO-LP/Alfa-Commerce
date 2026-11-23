@@ -42,7 +42,7 @@ use Joomla\Registry\Registry;
  *  - Value-level  params/value.xml  -> #__alfa_item_field_values.params
  *  - Item-level   #__alfa_item_field_overrides
  *  - Variant-level (combination|option) #__alfa_item_combination_field_params
- *  - Order-level  the order-line snapshot (order schema, task #7)
+ *  - Order-level  the order-line snapshot
  *
  * These surface hooks are invoked by DIRECT booted-plugin calls: the view/model
  * boot the field's OWN plugin by type ($app->bootPlugin($field->type,
@@ -232,8 +232,8 @@ abstract class ItemFieldsPlugin extends Plugin
     }
 
     /**
-     * Validate the posted configuration, set the snapshot + price impact
-     * (dispatch lands with task #7).
+     * Validate the posted configuration: accept it, or refuse it with the
+     * reason the shopper reads. The snapshot is stored by onPrepareForCart.
      *
      * @param object $event ValidateCartAddEvent (type-guard before acting)
      *

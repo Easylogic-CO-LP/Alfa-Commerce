@@ -1026,9 +1026,10 @@ class PackageHelper
      * before a package is cut. Two independent findings:
      *
      *   - the web-asset registry version: media/<destination>/joomla.asset.json must
-     *     declare the same version as the manifest, or every cached asset URL keeps
-     *     the previous release's query string and browsers serve stale CSS and JS
-     *     after an update;
+     *     declare the same version as the manifest, the release it belongs to. Joomla
+     *     does not put it in the asset addresses (they carry the site's media version,
+     *     which Joomla changes on every install and update), so a mismatch serves no
+     *     stale file: it is a registry that names another release;
      *   - the package census: any file a built package would install that the source
      *     tree does not have ({@see self::census()}), which only a caller holding a
      *     built archive can ask for; pass $zipPath to run it.

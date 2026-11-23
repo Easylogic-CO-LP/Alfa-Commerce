@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -120,7 +121,7 @@ class PaymentReferenceVault
             return $row;
         } catch (Exception $e) {
             Log::add(
-                entry:    'PaymentReferenceVault::findActive failed for #' . $id . ': ' . $e->getMessage(),
+                entry:    'PaymentReferenceVault::findActive failed for #' . $id . ': ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.orders',
             );

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Log\Log;
@@ -86,7 +87,7 @@ final class PanelDispatcher
                 $plugins->dispatchTo($plugin, $event);
             }
         } catch (Throwable $e) {
-            self::log($identity->key() . ': ' . $method . ': ' . $e->getMessage());
+            self::log($identity->key() . ': ' . $method . ': ' . ErrorText::of($e));
 
             if (!$silent) {
                 throw $e;

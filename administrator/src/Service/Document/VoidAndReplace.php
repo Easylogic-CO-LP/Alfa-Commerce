@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -159,7 +160,7 @@ final class VoidAndReplace
             $frozenBuyer = DocumentIssuer::buyerBlock(self::replacementBuyer($source, $buyer));
         } catch (RuntimeException $e) {
             $frozenBuyer = DocumentIssuer::buyerBlock([]);
-            $noBuyer = $e->getMessage();
+            $noBuyer = ErrorText::of($e);
         }
 
         // An external issuer owns the documents: com_alfa voids and issues none.
@@ -205,7 +206,7 @@ final class VoidAndReplace
         } catch (Throwable $e) {
             // A refusal the issuer can put in the operator's words is shown in
             // them; its technical message stays the exception's.
-            return self::refused(self::REASON_ISSUER_REFUSED, DocumentRefusedException::in($e)?->operatorText() ?? $e->getMessage(), $source, $frozenBuyer);
+            return self::refused(self::REASON_ISSUER_REFUSED, DocumentRefusedException::in($e)?->operatorText() ?? ErrorText::of($e), $source, $frozenBuyer);
         }
 
         if ($built->draft === null) {

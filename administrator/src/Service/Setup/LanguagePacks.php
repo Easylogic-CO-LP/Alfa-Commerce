@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
@@ -134,7 +135,7 @@ final class LanguagePacks
         try {
             $errors = MaintenanceState::active() ? [] : SyncHelper::syncLanguageSchema()['errors'];
         } catch (Throwable $e) {
-            $errors = ['sync' => $e->getMessage()];
+            $errors = ['sync' => ErrorText::of($e)];
         }
 
         if ($errors !== []) {
@@ -150,7 +151,7 @@ final class LanguagePacks
                 $app->enqueueMessage(Text::sprintf('COM_ALFA_LANGUAGE_PACK_NO_JOOMLA_LANGUAGE', $tag, implode(', ', $missing)), 'warning');
             }
         } catch (Throwable $e) {
-            self::log(message: $element . ': Joomla\'s own ' . $tag . ' language could not be checked: ' . $e->getMessage());
+            self::log(message: $element . ': Joomla\'s own ' . $tag . ' language could not be checked: ' . ErrorText::of($e));
         }
     }
 
@@ -190,7 +191,7 @@ final class LanguagePacks
                 $installer->setDatabase(self::db());
                 $removed = $installer->uninstall('package', $extensionId);
             } catch (Throwable $e) {
-                self::log(message: $pack['element'] . ': not uninstalled: ' . $e->getMessage());
+                self::log(message: $pack['element'] . ': not uninstalled: ' . ErrorText::of($e));
                 $removed = false;
             }
 

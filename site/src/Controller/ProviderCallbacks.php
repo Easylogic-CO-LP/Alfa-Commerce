@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentWebhookEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\ShipmentWebhookEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -81,7 +82,7 @@ trait ProviderCallbacks
         try {
             $plugins->dispatchTo($plugin, $event);
         } catch (Throwable $e) {
-            Log::add('Webhook: ' . $id . ' failed while processing (' . $e::class . ': ' . $e->getMessage() . '); answered 500 so the provider retries.', Log::ERROR, 'com_alfa.plugins');
+            Log::add('Webhook: ' . $id . ' failed while processing (' . $e::class . ': ' . ErrorText::of($e) . '); answered 500 so the provider retries.', Log::ERROR, 'com_alfa.plugins');
             $this->answerWebhook(500, '');
 
             return;
@@ -108,12 +109,12 @@ trait ProviderCallbacks
             return;
         }
 
-        Log::add('Webhook: ' . $id . ' cannot take the delivery (' . $unavailable->reason . ': ' . $unavailable->getMessage() . '); answered 503, the provider retries.', Log::WARNING, 'com_alfa.plugins');
+        Log::add('Webhook: ' . $id . ' cannot take the delivery (' . $unavailable->reason . ': ' . ErrorText::of($unavailable) . '); answered 503, the provider retries.', Log::WARNING, 'com_alfa.plugins');
 
         try {
             NotificationHelper::pluginUnavailable($id, $unavailable->reason);
         } catch (Throwable $e) {
-            Log::add('Webhook: the alert for ' . $id . ' could not be written: ' . $e->getMessage(), Log::ERROR, 'com_alfa.plugins');
+            Log::add('Webhook: the alert for ' . $id . ' could not be written: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.plugins');
         }
 
         $this->app->setHeader('Retry-After', (string) self::$retryAfterSeconds, true);

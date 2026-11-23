@@ -3426,7 +3426,7 @@ class ItemFieldsAdminHelper
         try {
             $plan['targets'] = self::changedLocationFigures(posted: $postedStock, baseline: $postedBaseline);
         } catch (RuntimeException $e) {
-            $plan['refusals'][] = $e->getMessage();
+            $plan['refusals'][] = ErrorText::of($e);
 
             return $plan;
         }
@@ -4692,7 +4692,7 @@ class ItemFieldsAdminHelper
             }
         }
 
-        return $refusal->getMessage();
+        return ErrorText::of($refusal);
     }
 
     /**

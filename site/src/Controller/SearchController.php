@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchPayload;
@@ -280,7 +281,7 @@ class SearchController extends BaseController
             // died, the account the site connects as. A caller still gets 400
             // and a reason it can act on; the rest is in the log.
             AlfaLog::register();
-            Log::add('Search endpoint failed: ' . $e->getMessage(), Log::ERROR, 'com_alfa.search');
+            Log::add('Search endpoint failed: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.search');
 
             $this->app->setHeader('status', 400, true);
             $response = new JsonResponse(null, Text::_('COM_ALFA_SEARCH_FAILED'), true);

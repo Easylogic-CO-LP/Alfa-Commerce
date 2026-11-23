@@ -17,7 +17,7 @@
  *    CREATE:
  *      $paymentId = $this->payment($order)->pending()->save();
  *      $paymentId = $this->payment($order)->authorized()->transactionId('ch_3M..')->save();
- *      $paymentId = $this->payment($order)->refund()->amount(50)->completed()->save();
+ *      (a refund: $this->refundPayment($paymentId, $money), never a refund row built here)
  *
  *    UPDATE:
  *      $this->paymentUpdate($paymentId)->completed()->save();
@@ -94,6 +94,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\PaymentToken;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasActionLogTrait;
@@ -430,15 +431,12 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * Create a new payment (returns fluent builder in CREATE mode).
      *
-     * Amount is auto-resolved from the best available source:
-     *   Primary: $order->total_paid_tax_incl (always correct, Money object)
-     *   Priority 2: OrderTotalHelper (items + shipping - discounts from DB)
-     *   Priority 3: ->amount($x) manual override (always wins when called)
+     * The amount, when ->amount($x) is not called, is amountToCollect($order) as the order's Money: the grand total
+     * minus what the shop still holds of it. ->amount($x) sets it.
      *
      * Usage:
      *   $paymentId = $this->payment($order)->pending()->save();
      *   $paymentId = $this->payment($order)->authorized()->transactionId('ch_3M..')->save();
-     *   $paymentId = $this->payment($order)->refund()->amount(50)->completed()->save();
      *
      * The row records this plugin's element, never the live type of a
      * method row: the method it names (the order's, or ->method($id)) must be one
@@ -464,8 +462,10 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * The amount YOUR gateway should collect for this order: the one
      * number every payment plugin must build on.
      *
-     * Grand total minus money already collected (e.g. a customer-credit
-     * payment applied at placement). Contract for gateway authors:
+     * Grand total minus what the shop still holds of it (money collected less
+     * anything given back), clamped at zero: a customer-credit payment applied
+     * at placement counts, and money refunded is owed again. Contract for
+     * gateway authors:
      *
      *   - Charge amountToCollect($order), NEVER a raw order total field;
      *     with split payment the raw total over-charges the customer.
@@ -515,7 +515,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @param object $order The hydrated order.
      *
-     * @return float Refundable amount, never negative.
+     * @return Money Refundable amount in the order's currency, never negative.
      *
      * @since  2.0.0
      */
@@ -1105,7 +1105,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *                       (OUTCOME_REFUSED); money moved on it is kept for
      *                       staff (OUTCOME_UNRECONCILED).
      *
-     * @return array ['outcome' => self::OUTCOME_*, 'refund_id' => int, 'reason' => string]
+     * @return array ['outcome' => self::OUTCOME_*, 'refund_id' => int, 'amount' => the amount refunded, 'reason' => string]
      *
      * @since  2.0.0
      */
@@ -1780,10 +1780,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
             return null;
         }
 
-        // NO OTHER STEP. A method id that names nothing of this plugin's used to fall to the order's chosen method,
-        // and an order chosen elsewhere to the newest of this plugin's own rows: both could answer a sibling method,
-        // another set of credentials. Before 2.0 a further step took "the oldest published method of this type";
-        // method deletion is refused while orders or ledger rows reference a method (PaymentModel::delete).
+        // NO OTHER STEP. A method id that names nothing of this plugin's is not resolved to another of its methods (the
+        // order's chosen one, the newest or the oldest of its type): that could answer a sibling method, another set of
+        // credentials. Method deletion is refused while orders or ledger rows reference a method (PaymentModel::delete).
         return $this->loadPaymentMethod((int) $header->id_payment_method);
     }
 
@@ -1887,6 +1886,9 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * decision whether a link hint is worth anything; the controller knows
      * how the message arrived, not what it means.
      *
+     * @api READ ONLY: the order a browser-return link names when its payment token proves the browser may see it; never
+     *      proof that a payment was made.
+     *
      * @return Order|null The order, or NULL when the link proves nothing.
      *
      * @since  2.0.0
@@ -1980,7 +1982,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
             SessionOrder::authenticatedReturn($app, $orderId);
         } catch (Throwable $e) {
             AlfaLog::register();
-            Log::add('authenticatedReturnFor(' . $orderId . ') could not write the session (' . $e::class . ': ' . $e->getMessage() . '); the order pages will refuse it.', Log::ERROR, 'com_alfa.payments');
+            Log::add('authenticatedReturnFor(' . $orderId . ') could not write the session (' . $e::class . ': ' . ErrorText::of($e) . '); the order pages will refuse it.', Log::ERROR, 'com_alfa.payments');
         }
     }
 
@@ -2173,7 +2175,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @param int $orderId Order PK.
      *
-     * @return array Raw rows with plain floats, newest first.
+     * @return array The rows, newest first, their amounts as the order's Money (PaymentLedger::hydrateAll()).
      *
      * @since  1.0.0
      */
@@ -2567,7 +2569,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * the claim claimPendingAttempt() makes, as a verdict. Written when this call claimed it; raced when it is
      * this gateway's but no longer a pending attempt without a reference (another visit or delivery owns it: agree with
      * the winner); refused with REFUSAL_ROW_MISSING (the row or its order is gone) or REFUSAL_NOT_WRITER (another
-     * gateway's row, or not a payment or authorization); lock_not_taken where claimPendingAttempt() throws today (the
+     * gateway's row, or not a payment or authorization); lock_not_taken where claimPendingAttempt() throws (the
      * attempt stays claimable: try again); write_failed. A plugin never reads a refusal or a lock as "make a new row".
      *
      * @api ANSWERS: a PaymentWriteVerdict for the claim; another gateway's row is refused (REFUSAL_NOT_WRITER).

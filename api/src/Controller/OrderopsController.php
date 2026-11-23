@@ -1295,7 +1295,7 @@ class OrderopsController extends OrdersController
         $errors = method_exists($model, 'getErrors') ? $model->getErrors() : [];
         $first = $errors[0] ?? ($model->getError() ?? '');
 
-        return $first instanceof Throwable ? $first->getMessage() : ((string) $first ?: $fallback);
+        return $first instanceof Throwable ? ErrorText::of($first) : ((string) $first ?: $fallback);
     }
 
     /**

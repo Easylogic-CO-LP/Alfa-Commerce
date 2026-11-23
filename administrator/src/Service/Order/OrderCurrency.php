@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -295,7 +296,7 @@ final class OrderCurrency
             $currency = Currency::loadById($currencyId);
         } catch (Throwable $e) {
             return [
-                'detail' => 'order #' . $orderId . ' stores id_currency ' . $currencyId . ', which cannot be read: ' . $e->getMessage(),
+                'detail' => 'order #' . $orderId . ' stores id_currency ' . $currencyId . ', which cannot be read: ' . ErrorText::of($e),
                 'cause' => $e,
             ];
         }

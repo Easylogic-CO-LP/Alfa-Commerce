@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Download;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -337,7 +338,7 @@ class Storage
             }
         } catch (Exception $e) {
             Log::add(
-                entry:    'Storage::isReferenced failed: ' . $e->getMessage(),
+                entry:    'Storage::isReferenced failed: ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.downloads',
             );

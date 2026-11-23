@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
@@ -399,7 +400,7 @@ final class CollationCheck
             );
             Log::add('Alfa tables not in ' . self::COLLATION . ' after an update: ' . implode(', ', $pending) . '.', Log::WARNING, 'com_alfa.setup');
         } catch (Throwable $e) {
-            Log::add('The collation look of the Alfa tables failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
+            Log::add('The collation look of the Alfa tables failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.setup');
         }
 
         return true;
@@ -537,7 +538,7 @@ final class CollationCheck
      */
     private static function diagnose(DatabaseDriver $db, string $table, Throwable $error): array
     {
-        $failure = ['error' => trim($error->getMessage()), 'index' => '', 'columns' => [], 'rows' => []];
+        $failure = ['error' => trim(ErrorText::of($error)), 'index' => '', 'columns' => [], 'rows' => []];
 
         if (!preg_match("/for key '(?:[^']*\\.)?([^']+)'/", $failure['error'], $match)) {
             return $failure;

@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Card;
 
 use Alfa\Component\Alfa\Administrator\Event\Card\CollectCardsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Card\CoreCardProvider;
@@ -365,7 +366,7 @@ final class CardRegistry
         if ($failures !== []) {
             // Never silent: a dashboard that is quietly missing a panel looks healthy.
             Log::add(
-                entry:    'CardRegistry: skipped broken card contributors on screen ' . $screen . ': ' . implode('; ', array_map(static fn ($f): string => $f->listener . ' (' . $f->error->getMessage() . ')', $failures)),
+                entry:    'CardRegistry: skipped broken card contributors on screen ' . $screen . ': ' . implode('; ', array_map(static fn ($f): string => $f->listener . ' (' . ErrorText::of($f->error) . ')', $failures)),
                 priority: Log::WARNING,
                 category: 'com_alfa.cards',
             );

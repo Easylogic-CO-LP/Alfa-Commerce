@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentIssuer;
 use Alfa\Component\Alfa\Administrator\Service\Document\OrderChargeLines;
 use Joomla\CMS\Form\FormField;
@@ -91,7 +92,7 @@ class DocumentCreditBuyerField extends FormField
             } catch (RuntimeException $e) {
                 // A stored buyer that cannot be read is said, not guessed at;
                 // the issuer refuses a credit against it in the same words.
-                $html[] = '<p class="small text-danger mb-1">' . $escape($e->getMessage()) . '</p></div>';
+                $html[] = '<p class="small text-danger mb-1">' . $escape(ErrorText::of($e)) . '</p></div>';
 
                 continue;
             }

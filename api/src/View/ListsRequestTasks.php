@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\View;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskDocument;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Factory;
@@ -57,7 +58,7 @@ trait ListsRequestTasks
         try {
             $tasks = TaskDocument::noted(reader: Factory::getApplication()->getIdentity() ?? new User(), subjectType: $subjectType, subjectId: $subjectId);
         } catch (Throwable $e) {
-            Tasks::log(entry: 'API: the tasks of this request could not be listed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'API: the tasks of this request could not be listed: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
 
             return;
         }

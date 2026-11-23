@@ -9,6 +9,7 @@
 
 namespace Alfa\Module\AlfaItems\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
@@ -660,7 +661,7 @@ final class AlfaItemsHelper
         try {
             return array_map('intval', (array) $db->setQuery($query)->loadColumn());
         } catch (Throwable $e) {
-            Log::add('mod_alfa_items best-sellers ranking failed: ' . $e->getMessage(), Log::ERROR, 'com_alfa');
+            Log::add('mod_alfa_items best-sellers ranking failed: ' . ErrorText::of($e), Log::ERROR, 'com_alfa');
 
             return [];
         }

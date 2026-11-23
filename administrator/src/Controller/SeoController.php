@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper as FrontendAlfaHelper;
 use Exception;
@@ -118,7 +119,7 @@ class SeoController extends BaseController
                 'html' => $html,
             ], Text::_('COM_ALFA_SEO_PREVIEW_SUCCESS'), false);
         } catch (Exception $e) {
-            echo new JsonResponse(null, $e->getMessage(), true);
+            echo new JsonResponse(null, ErrorText::of($e), true);
         }
 
         $app->close();

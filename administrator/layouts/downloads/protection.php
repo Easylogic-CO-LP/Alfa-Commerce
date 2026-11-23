@@ -21,6 +21,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -48,7 +49,7 @@ try {
     $warning = $result === null ? null : $protection->warning($result);
 } catch (Throwable $e) {
     // The reason's own words go to the log, never to the page.
-    Log::add('Download store protection: the status could not be read: ' . $e->getMessage(), Log::ERROR, 'com_alfa.downloads');
+    Log::add('Download store protection: the status could not be read: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.downloads');
     $result = null;
     $warning = null;
     $failed = true;

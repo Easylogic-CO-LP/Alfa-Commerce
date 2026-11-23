@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
@@ -89,7 +90,7 @@ class ExtensionsController extends BaseController
                 return;
             }
 
-            $this->setRedirect($this->page(), self::escape(text: $e->getMessage()), 'error');
+            $this->setRedirect($this->page(), self::escape(text: ErrorText::of($e)), 'error');
 
             return;
         } catch (Throwable $e) {
@@ -131,7 +132,7 @@ class ExtensionsController extends BaseController
                 return;
             }
 
-            $this->setRedirect($this->page(), self::escape(text: $e->getMessage()), 'error');
+            $this->setRedirect($this->page(), self::escape(text: ErrorText::of($e)), 'error');
 
             return;
         } catch (Throwable $e) {
@@ -179,7 +180,7 @@ class ExtensionsController extends BaseController
             'Tools > Extensions (%s) stopped with %s: %s (%s:%d)',
             $task,
             $error::class,
-            ClearDataStatus::clean(text: $error->getMessage()),
+            ClearDataStatus::clean(text: ErrorText::of($error)),
             $error->getFile(),
             $error->getLine(),
         ));

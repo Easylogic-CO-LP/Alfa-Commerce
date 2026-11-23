@@ -149,7 +149,7 @@ final class ToolRegistry
         }
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
-            $skipped[] = $failure->listener . ' (' . $failure->error->getMessage() . ')';
+            $skipped[] = $failure->listener . ' (' . ErrorText::of($failure->error) . ')';
         }
 
         if ($skipped !== []) {
@@ -572,7 +572,7 @@ final class ToolRegistry
         try {
             $plugin = $plugins->bootSingle(PluginId::from($group, $name));
         } catch (PluginUnavailable|InvalidArgumentException $e) {
-            return ['actions' => [], 'why' => 'unavailable', 'text' => $e->getMessage()];
+            return ['actions' => [], 'why' => 'unavailable', 'text' => ErrorText::of($e)];
         }
 
         // A tool is confirmed only when its owner can run it: an owner that declares no onExecuteToolAction
@@ -587,11 +587,11 @@ final class ToolRegistry
             $failure = $plugins->askSubscriber($plugin, $answer);
         } catch (PluginUnavailable $e) {
             // Not a subscriber, or its map naming nothing for the event: it lists no tool itself.
-            return ['actions' => [], 'why' => 'unlisted', 'text' => $e->getMessage()];
+            return ['actions' => [], 'why' => 'unlisted', 'text' => ErrorText::of($e)];
         }
 
         if ($failure !== null) {
-            return ['actions' => [], 'why' => 'failed', 'text' => $failure->listener . ': ' . $failure->error->getMessage()];
+            return ['actions' => [], 'why' => 'failed', 'text' => $failure->listener . ': ' . ErrorText::of($failure->error)];
         }
 
         $own = [];

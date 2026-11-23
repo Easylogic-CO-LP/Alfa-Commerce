@@ -1866,6 +1866,12 @@ class com_alfaInstallerScript extends InstallerScript
             $this->cleanCachesOnUpdate();
         }
 
+        // On update, a filters module saved with a cache setting loses it: the module is never cached.
+        if ($type === 'update')
+        {
+            $this->uncacheFiltersModules();
+        }
+
         // File integrity is verified online against the signed canonical checksums on the
         // CDN (single source of truth: IntegrityHelper::verifyAgainstOfficial), so there
         // is no local baseline to capture. The verdict is cached for 24h, though, and an
@@ -2373,7 +2379,7 @@ class com_alfaInstallerScript extends InstallerScript
                     array_map(
                         fn (int $id, array $names): string => '#' . $id . ' ' . $names[0] . ' ' . $this->installerText(
                             key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT_SHIPS',
-                            fallback: '(2.2.1 ships %s)',
+                            fallback: '(shipped as %s)',
                             values:   [$names[1]],
                         ),
                         array_keys($result['kept']),
@@ -2382,7 +2388,7 @@ class com_alfaInstallerScript extends InstallerScript
                     array_map(
                         fn (int $id, array $country): string => $this->installerText(
                             key:      'COM_ALFA_INSTALL_PLACES_SEED_KEPT_CURRENCY',
-                            fallback: '#%1$s %2$s (2.2.1 gives it the default currency %3$s)',
+                            fallback: '#%1$s %2$s (shipped with the default currency %3$s)',
                             values:   [(string) $id, $country[0], $country[1]],
                         ),
                         array_keys($result['currencyKept']),
@@ -2408,7 +2414,7 @@ class com_alfaInstallerScript extends InstallerScript
         {
             $left[] = $this->installerText(
                 key:      'COM_ALFA_INSTALL_PLACES_SEED_LARISA',
-                fallback: 'The place #%1$d %2$s, inside Greece, came from Alfa Commerce\'s own test data up to 2.2.0 and is no longer shipped. It was kept, since addresses, prices and rules may name it. Once Greece\'s regions are added, publish Thessaly and then move it under Thessaly, or unpublish it if the shop does not use it.',
+                fallback: 'The place #%1$d %2$s, inside Greece, came from Alfa Commerce\'s own test data and is no longer shipped. It was kept, since addresses, prices and rules may name it. Once Greece\'s regions are added, publish Thessaly and then move it under Thessaly, or unpublish it if the shop does not use it.',
                 values:   [(string) $larisa, $result['noSuccessor'][$larisa]],
             );
         }
@@ -2475,8 +2481,8 @@ class com_alfaInstallerScript extends InstallerScript
 
         Factory::getApplication()->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_THUMBNAILS_NOT_IMAGES',
-            fallback: 'Alfa Commerce %1$s found files among the product images that are not images: %2$s. Up to 2.2.0 a'
-                . ' thumbnail could be a copy of any file of the site, published for anyone to download. Nothing was'
+            fallback: 'Alfa Commerce %1$s found files among the product images that are not images: %2$s. Such a file may'
+                . ' be a copy of a file of the site that a thumbnail once named, published for anyone to download. Nothing was'
                 . ' deleted: look at each file and, if it is not yours to publish, delete it by hand and choose a new'
                 . ' thumbnail for the rows named.',
             values:   [$this->packageVersion, implode('; ', $named)],
@@ -3356,6 +3362,55 @@ class com_alfaInstallerScript extends InstallerScript
             if ($cleaned === false) {
                 self::maintenanceLog(line: sprintf('Update to %s: the cache group %s could not be cleaned.', self::SCHEMA_VERSION, $group), priority: \Joomla\CMS\Log\Log::WARNING);
             }
+        }
+    }
+
+    /**
+     * The filters module is never cached: what it draws depends on the page (the category or search it filters, the
+     * filters chosen), and Joomla's module cache would store one copy a module and language for every page. Its
+     * manifest declares no cache setting, so Joomla never caches it; a filters module saved while the manifest declared
+     * one keeps "cache" and "cache_time" among its parameters, which Joomla still reads, so they are dropped from every
+     * filters module here. A failure is written to the maintenance log and the update goes on.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function uncacheFiltersModules(): void
+    {
+        try
+        {
+            $db   = Factory::getContainer()->get('DatabaseDriver');
+            $rows = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'params']))
+                    ->from($db->quoteName('#__modules'))
+                    ->where($db->quoteName('module') . ' = ' . $db->quote('mod_alfa_filters'))
+            )->loadObjectList() ?: [];
+
+            foreach ($rows as $row)
+            {
+                $params = json_decode((string) $row->params, true);
+
+                if (!\is_array($params) || (!\array_key_exists('cache', $params) && !\array_key_exists('cache_time', $params)))
+                {
+                    continue;
+                }
+
+                unset($params['cache'], $params['cache_time']);
+                $db->setQuery(
+                    $db->getQuery(true)
+                        ->update($db->quoteName('#__modules'))
+                        ->set($db->quoteName('params') . ' = ' . $db->quote((string) json_encode($params)))
+                        ->where($db->quoteName('id') . ' = ' . (int) $row->id)
+                )->execute();
+            }
+        }
+        catch (\Throwable $e)
+        {
+            self::maintenanceLog(
+                line:     sprintf('Update to %s: the cache setting of the filters modules could not be dropped: %s', self::SCHEMA_VERSION, $e->getMessage()),
+                priority: \Joomla\CMS\Log\Log::WARNING,
+            );
         }
     }
 
@@ -4349,7 +4404,7 @@ class com_alfaInstallerScript extends InstallerScript
         $app->enqueueMessage($this->installerText(
             key:      'COM_ALFA_INSTALL_PLUGINS_KEPT_DISABLED',
             fallback: 'Alfa Commerce %1$s kept these plugins of its package disabled, as they were before the update: %2$s.'
-                . ' Up to 2.2.0 an update enabled them again. Enable one in System > Manage > Plugins if the shop needs it.',
+                . ' Enable one in System > Manage > Plugins if the shop needs it.',
             values:   [$this->packageVersion, implode(', ', $kept)],
         ), 'notice');
         self::maintenanceLog(

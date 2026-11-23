@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
@@ -234,7 +235,7 @@ class DiscountModel extends AlfaAdminModel
                 $previousAffectedItemIds = $priceIndexSyncService->getItemIdsForDiscount((int) $data['id']);
             } catch (Throwable $scopeException) {
                 Log::add(
-                    '[DiscountModel::save] Could not capture pre-save scope for discount ' . (int) $data['id'] . ': ' . $scopeException->getMessage(),
+                    '[DiscountModel::save] Could not capture pre-save scope for discount ' . (int) $data['id'] . ': ' . ErrorText::of($scopeException),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -312,7 +313,7 @@ class DiscountModel extends AlfaAdminModel
             } catch (Throwable $scopeException) {
                 $affectedItemIds = [];
                 Log::add(
-                    '[DiscountModel::save] Could not read the saved scope of discount ' . $currentId . ': ' . $scopeException->getMessage(),
+                    '[DiscountModel::save] Could not read the saved scope of discount ' . $currentId . ': ' . ErrorText::of($scopeException),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -325,7 +326,7 @@ class DiscountModel extends AlfaAdminModel
             );
         } catch (Throwable $syncException) {
             Log::add(
-                '[DiscountModel::save] Price index sync failed for discount ' . $currentId . ': ' . $syncException->getMessage(),
+                '[DiscountModel::save] Price index sync failed for discount ' . $currentId . ': ' . ErrorText::of($syncException),
                 Log::WARNING,
                 'com_alfa',
             );
@@ -378,7 +379,7 @@ class DiscountModel extends AlfaAdminModel
                 $priceIndexSyncService->syncByDiscount($pk);
             } catch (Throwable $syncException) {
                 Log::add(
-                    '[DiscountModel::publish] Price index sync failed for discount ' . $pk . ': ' . $syncException->getMessage(),
+                    '[DiscountModel::publish] Price index sync failed for discount ' . $pk . ': ' . ErrorText::of($syncException),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -450,7 +451,7 @@ class DiscountModel extends AlfaAdminModel
                 $affectedItemIds = array_unique(array_merge($affectedItemIds, $itemIdsForThisDiscount));
             } catch (Throwable $collectException) {
                 Log::add(
-                    '[DiscountModel::delete] Could not collect affected item ids for discount ' . $pk . ': ' . $collectException->getMessage(),
+                    '[DiscountModel::delete] Could not collect affected item ids for discount ' . $pk . ': ' . ErrorText::of($collectException),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -494,7 +495,7 @@ class DiscountModel extends AlfaAdminModel
                 $priceIndexSyncService->syncItems($affectedItemIds, cause: PricesChangedEvent::CAUSE_DISCOUNT, causeId: \count($pks) === 1 ? (int) reset($pks) : 0);
             } catch (Throwable $syncException) {
                 Log::add(
-                    '[DiscountModel::delete] Price index re-sync failed after deleting discounts: ' . $syncException->getMessage(),
+                    '[DiscountModel::delete] Price index re-sync failed after deleting discounts: ' . ErrorText::of($syncException),
                     Log::WARNING,
                     'com_alfa',
                 );

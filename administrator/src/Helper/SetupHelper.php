@@ -309,7 +309,7 @@ final class SetupHelper
         try {
             self::status();
         } catch (Throwable $e) {
-            Log::add('SetupHelper: ambient sync failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
+            Log::add('SetupHelper: ambient sync failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.setup');
         }
     }
 
@@ -460,9 +460,9 @@ final class SetupHelper
             } catch (Throwable $e) {
                 // Whatever half-happened, the next evaluation must look again.
                 self::invalidate();
-                Log::add('SetupHelper: provision ' . $checkId . ' failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
+                Log::add('SetupHelper: provision ' . $checkId . ' failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.setup');
 
-                return ['ok' => false, 'error' => $e->getMessage()];
+                return ['ok' => false, 'error' => ErrorText::of($e)];
             }
         }
 
@@ -647,7 +647,7 @@ final class SetupHelper
         $plugins->importGroup(PanelDispatcher::PLATFORM_GROUP);
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
-            $skipped[] = $failure->listener . ' (' . $failure->error->getMessage() . ')';
+            $skipped[] = $failure->listener . ' (' . ErrorText::of($failure->error) . ')';
         }
 
         if ($skipped !== []) {
@@ -724,7 +724,7 @@ final class SetupHelper
                 ],
             );
         } catch (Throwable $e) {
-            Log::add('SetupHelper: notification reconcile failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
+            Log::add('SetupHelper: notification reconcile failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.setup');
         }
     }
 
@@ -913,7 +913,7 @@ final class SetupHelper
 
             $db->insertObject('#__user_profiles', $row);
         } catch (Throwable $e) {
-            Log::add('SetupHelper: card state save failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
+            Log::add('SetupHelper: card state save failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.setup');
         }
     }
 

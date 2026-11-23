@@ -70,7 +70,7 @@ final class FormErrors
             }
 
             if (\in_array($error::class, self::VALIDATION_CLASSES, true)) {
-                $messages[] = $error->getMessage();
+                $messages[] = ErrorText::of($error);
 
                 continue;
             }
@@ -92,7 +92,7 @@ final class FormErrors
     public static function detail(array $failures): string
     {
         return implode('; ', array_map(
-            static fn (Throwable $e): string => $e::class . ': ' . $e->getMessage(),
+            static fn (Throwable $e): string => $e::class . ': ' . ErrorText::of($e),
             $failures,
         ));
     }

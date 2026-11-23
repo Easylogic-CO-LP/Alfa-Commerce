@@ -151,7 +151,8 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
 
             // Storefront catalogue (the SITE models' view of a product): only
             // published, in-window, access-allowed items, priced and variant
-            // resolved. READ ONLY by design; back-office editing is v1/alfa/items.
+            // resolved; the list leaves out a product hidden while it has no
+            // salable stock. READ ONLY by design; back-office editing is v1/alfa/items.
             new Route(['GET'], 'v1/alfa/catalog/items', 'catalogitems.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/catalog/items/:id', 'catalogitems.displayItem', ['id' => '\d+'], $defaults),
 

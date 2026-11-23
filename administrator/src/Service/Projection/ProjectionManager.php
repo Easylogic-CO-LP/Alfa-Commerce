@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\CollectCatalogProjectionsEvent;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
@@ -126,7 +127,7 @@ class ProjectionManager
         } catch (Throwable $e) {
             Log::add(
                 '[ProjectionManager] collecting extension projections failed; NO extension projections'
-                . ' were registered for this request: ' . $e->getMessage(),
+                . ' were registered for this request: ' . ErrorText::of($e),
                 Log::ERROR,
                 'com_alfa',
             );
@@ -639,7 +640,7 @@ class ProjectionManager
         $short = (new ReflectionClass($projection))->getShortName();
 
         Log::add(
-            '[ProjectionManager] ' . $short . '::' . $operation . ' failed: ' . $e->getMessage(),
+            '[ProjectionManager] ' . $short . '::' . $operation . ' failed: ' . ErrorText::of($e),
             Log::WARNING,
             'com_alfa',
         );
@@ -762,7 +763,7 @@ class ProjectionManager
             CatalogueRebuildJob::enqueue();
         } catch (Throwable $e) {
             Log::add(
-                '[ProjectionManager] items ' . implode(', ', $itemIds) . ' are owed a rebuild that could not be recorded: ' . $e->getMessage(),
+                '[ProjectionManager] items ' . implode(', ', $itemIds) . ' are owed a rebuild that could not be recorded: ' . ErrorText::of($e),
                 Log::ERROR,
                 IndexRebuildLock::LOG_CATEGORY,
             );
@@ -862,7 +863,7 @@ class ProjectionManager
                 . ' WHERE ' . $db->quoteName('projection_dirty_at') . ' IS NOT NULL AND ' . $db->quoteName('id') . ' IN (' . implode(',', self::ascending(itemIds: $itemIds)) . ')',
             )->loadAssocList('id', 'projection_dirty_at') ?: []);
         } catch (Throwable $e) {
-            Log::add('[ProjectionManager] the marks of items ' . implode(', ', $itemIds) . ' could not be read; they stay: ' . $e->getMessage(), Log::WARNING, IndexRebuildLock::LOG_CATEGORY);
+            Log::add('[ProjectionManager] the marks of items ' . implode(', ', $itemIds) . ' could not be read; they stay: ' . ErrorText::of($e), Log::WARNING, IndexRebuildLock::LOG_CATEGORY);
 
             return [];
         }
@@ -880,7 +881,7 @@ class ProjectionManager
         try {
             self::clearMarks(read: $read);
         } catch (Throwable $e) {
-            Log::add('[ProjectionManager] rebuilt items kept their marks: ' . $e->getMessage(), Log::WARNING, IndexRebuildLock::LOG_CATEGORY);
+            Log::add('[ProjectionManager] rebuilt items kept their marks: ' . ErrorText::of($e), Log::WARNING, IndexRebuildLock::LOG_CATEGORY);
         }
     }
 

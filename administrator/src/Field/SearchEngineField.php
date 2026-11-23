@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -62,7 +63,7 @@ class SearchEngineField extends ListField
                 $ready = $registry->readyOrFalse($engine, (string) $key);
             } catch (Throwable $e) {
                 Log::add(
-                    entry:    "SearchEngineField: engine '{$key}' failed to give its label: " . $e->getMessage(),
+                    entry:    "SearchEngineField: engine '{$key}' failed to give its label: " . ErrorText::of($e),
                     priority: Log::WARNING,
                     category: 'com_alfa.search',
                 );

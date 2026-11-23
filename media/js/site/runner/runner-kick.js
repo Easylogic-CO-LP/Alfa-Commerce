@@ -11,21 +11,21 @@
  * nothing from the request and answers 204 with no body; a failure is ignored.
  */
 (() => {
-  'use strict';
+    'use strict';
 
-  const options = (window.Joomla && Joomla.getOptions('com_alfa.runner')) || {};
+    const options = (window.Joomla && Joomla.getOptions('com_alfa.runner')) || {};
 
-  if (!options.url) {
-    return;
-  }
+    if (!options.url) {
+        return;
+    }
 
-  const kick = () => {
-    fetch(options.url, { method: 'POST', credentials: 'same-origin', keepalive: true }).catch(() => {});
-  };
+    const kick = () => {
+        fetch(options.url, { method: 'POST', credentials: 'same-origin', keepalive: true }).catch(() => {});
+    };
 
-  if (document.readyState === 'complete') {
-    kick();
-  } else {
-    window.addEventListener('load', kick, { once: true });
-  }
+    if (document.readyState === 'complete') {
+        kick();
+    } else {
+        window.addEventListener('load', kick, { once: true });
+    }
 })();

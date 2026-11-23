@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Documents\CollectDocumentTypeProvidersEvent;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Provider\DocumentTypeProviderInterface;
@@ -521,9 +522,9 @@ final class DocumentTypeRegistry
                     array_values(array_diff($this->aliasesOf(provider: $element), $before)),
                 );
             } catch (Throwable $e) {
-                $summary['errors'][$element] = $e->getMessage();
+                $summary['errors'][$element] = ErrorText::of($e);
                 Log::add(
-                    entry:    "DocumentTypeRegistry: provider '{$element}' failed: " . $e->getMessage(),
+                    entry:    "DocumentTypeRegistry: provider '{$element}' failed: " . ErrorText::of($e),
                     priority: Log::WARNING,
                     category: 'com_alfa.documents',
                 );
@@ -553,7 +554,7 @@ final class DocumentTypeRegistry
         $failed = [];
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
-            $failed[$failure->listener] = $failure->error->getMessage();
+            $failed[$failure->listener] = ErrorText::of($failure->error);
         }
 
         return $failed;
@@ -615,7 +616,7 @@ final class DocumentTypeRegistry
             // Aux tables absent (pre-sync installs): names fall back to
             // the humanised alias until the language schema sync runs.
             Log::add(
-                entry:    'DocumentTypeRegistry: translations skipped: ' . $e->getMessage(),
+                entry:    'DocumentTypeRegistry: translations skipped: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.documents',
             );

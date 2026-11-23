@@ -2,7 +2,7 @@
 
 A full-featured eCommerce component for Joomla 6.1+, developed by [Easylogic](https://easylogic.gr).
 
-> **Status:** Stable. 2.0.0 is the first stable release. Sites on a 1.x beta need a clean install ([how](https://manual.alfacommerce.gr/docs/getting-started/installation/#from-a-1x-beta)).
+> **Status:** Stable. The current release is 2.3.0.
 
 ## Features
 

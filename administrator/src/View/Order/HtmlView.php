@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Order;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\View\HasAdminEvents;
@@ -563,7 +564,7 @@ class HtmlView extends BaseHtmlView
         }
 
         $this->item = $this->order;
-        $this->currencyRefusal = $refusal->getMessage();
+        $this->currencyRefusal = ErrorText::of($refusal);
         $this->statusName = (string) (AlfaHelper::getOrderStatuses()[(int) ($this->order->id_order_status ?? 0)]->name ?? '');
 
         Factory::getApplication()->getInput()->set('hidemainmenu', true);

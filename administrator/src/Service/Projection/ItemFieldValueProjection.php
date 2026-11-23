@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Projection;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -103,7 +104,7 @@ class ItemFieldValueProjection implements ProjectionInterface
                 throw $e;
             }
 
-            $this->logWarning('syncItem(' . $itemId . ') failed: ' . $e->getMessage());
+            $this->logWarning('syncItem(' . $itemId . ') failed: ' . ErrorText::of($e));
         }
     }
 
@@ -174,7 +175,7 @@ class ItemFieldValueProjection implements ProjectionInterface
                     throw $e;
                 }
 
-                $this->logWarning('syncItems() chunk failed: ' . $e->getMessage());
+                $this->logWarning('syncItems() chunk failed: ' . ErrorText::of($e));
             }
         }
     }
@@ -222,7 +223,7 @@ class ItemFieldValueProjection implements ProjectionInterface
             try {
                 $this->deleteRows($chunk);
             } catch (Throwable $e) {
-                $this->logWarning('deleteForItems() chunk failed: ' . $e->getMessage());
+                $this->logWarning('deleteForItems() chunk failed: ' . ErrorText::of($e));
             }
         }
     }

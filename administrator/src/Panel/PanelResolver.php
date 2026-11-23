@@ -38,7 +38,7 @@ final class PanelResolver
 {
     /**
      * Resolve the identity from request input, or null when it is absent, out of the
-     * alfa* boundary, or not a live plugin.
+     * alfa group boundary, or not a live plugin.
      *
      * @param Input $input Request input.
      *
@@ -94,7 +94,7 @@ final class PanelResolver
     }
 
     /**
-     * Is this an installed, enabled plugin in an alfa* group? Asked of the plugin helper, the one availability
+     * Is this an installed, enabled plugin of the alfa group? Asked of the plugin helper, the one availability
      * authority (PluginHelper::isEnabled(), the list a plugin's provider reads its configuration from), so an
      * identity can never name a plugin that is not live for this request.
      *

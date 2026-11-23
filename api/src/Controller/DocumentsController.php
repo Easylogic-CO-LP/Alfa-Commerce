@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentIssuer;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentRefusedException;
@@ -166,7 +167,7 @@ class DocumentsController extends ApiController
         } catch (RuntimeException $e) {
             // A refusal the issuer can put in the operator's words is answered
             // in them; any other keeps the issuer's own.
-            throw new Save(DocumentRefusedException::in($e)?->operatorText() ?? $e->getMessage(), 409, $e);
+            throw new Save(DocumentRefusedException::in($e)?->operatorText() ?? ErrorText::of($e), 409, $e);
         }
 
         return $this->displayItem($documentId);
@@ -221,7 +222,7 @@ class DocumentsController extends ApiController
         } catch (PdfLibraryMissingException $e) {
             throw new Save(Text::_('COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING'), 503, $e);
         } catch (Throwable $e) {
-            throw new Save('The document could not be rendered: ' . $e->getMessage(), 500);
+            throw new Save('The document could not be rendered: ' . ErrorText::of($e), 500);
         }
 
         $this->app->setHeader('Content-Type', 'application/pdf', true);

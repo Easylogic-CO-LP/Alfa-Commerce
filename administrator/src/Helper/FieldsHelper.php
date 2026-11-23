@@ -301,7 +301,7 @@ class FieldsHelper
                 try {
                     $plugin = self::boot($field->type ?? '');
                 } catch (Throwable $unavailable) {
-                    self::unavailable(field: $field, fieldset: $fieldset, context: $context, customerId: $customerId, reason: $unavailable->getMessage());
+                    self::unavailable(field: $field, fieldset: $fieldset, context: $context, customerId: $customerId, reason: ErrorText::of($unavailable));
 
                     continue;
                 }
@@ -326,7 +326,7 @@ class FieldsHelper
                     Log::add(
                         'onAlfaFormFieldsPrepareDom threw in plugin "' . $plugin->id
                         . '" for field #' . (int) ($field->id ?? 0) . ' in context "' . $context . '": '
-                        . $e->getMessage(),
+                        . ErrorText::of($e),
                         Log::ERROR,
                         'com_alfa.cart',
                     );

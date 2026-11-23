@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Model\Traits\HasDateRangeFilterTrait;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartActivity;
@@ -289,7 +290,7 @@ class CartsModel extends AlfaListModel
             // broken summary query is indistinguishable from a store nobody is
             // shopping in, and the operator has nothing to chase.
             AlfaLog::register();
-            Log::add('Cart summary failed: ' . $e->getMessage(), Log::ERROR, 'com_alfa.admin');
+            Log::add('Cart summary failed: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.admin');
 
             return ['active' => 0, 'abandoned' => 0, 'empty' => 0];
         }

@@ -11,6 +11,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin\Traits;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Joomla\CMS\Factory;
 
@@ -72,8 +73,8 @@ trait HasOrderContextTrait
      * The ORDER's language, not the admin's and not whatever the storefront is
      * showing: a webhook, a carrier callback or a cron-driven retry runs with
      * no customer session at all, and the buyer still deserves their own
-     * language on a payment page or a tracking email. Falls back to the site
-     * language when the order names none.
+     * language on a payment page or a tracking email. When the order names
+     * none, the site's default language (Joomla's Languages options).
      *
      * Returns the full tag ('el-GR'). Gateways and carriers accept different
      * shapes (two-letter ISO, full tag, their own whitelist), so narrowing is
@@ -119,6 +120,8 @@ trait HasOrderContextTrait
             }
         }
 
-        return (string) Factory::getApplication()->getLanguage()->getTag();
+        // The site's default language as Alfa Commerce defines it, the one definition: never the language of the
+        // request that runs this (an administrator's own, a webhook's), which is not the buyer's.
+        return MultilingualHelper::getDefaultLanguageCode();
     }
 }

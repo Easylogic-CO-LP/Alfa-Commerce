@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -98,7 +99,7 @@ final class ContentLanguageNotice
                 'com_alfa.setup',
             );
         } catch (Throwable $e) {
-            Log::add('The content language check failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
+            Log::add('The content language check failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.setup');
         }
     }
 }

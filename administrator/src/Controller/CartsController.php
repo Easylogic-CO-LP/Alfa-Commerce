@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartPurge;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRetention;
@@ -82,7 +83,7 @@ class CartsController extends BaseController
                 $result['skipped'],
             ));
         } catch (Throwable $e) {
-            $this->setMessage($e->getMessage(), 'error');
+            $this->setMessage(ErrorText::of($e), 'error');
         }
 
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=carts', false));

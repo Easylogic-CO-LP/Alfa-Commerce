@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\VisibilityChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Log\Log;
 use Throwable;
@@ -121,7 +122,7 @@ final class VisibilityNotifier
             Log::add(
                 entry:    'VisibilityNotifier: listeners failed for '
                           . \count($itemIds) . ' item(s) / ' . \count($categoryIds) . ' category(ies): '
-                          . $e->getMessage(),
+                          . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.catalog',
             );

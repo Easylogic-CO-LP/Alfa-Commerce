@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemAfterSaveEvent;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemPrepareFormEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldParams;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
@@ -139,10 +140,11 @@ class ItemModel extends AlfaAdminModel
      *   with the opening stock of a switch to tracked. A save that moves the product into
      *   or out of the archive leaves state out of $data (a new product is written
      *   unpublished): publish() makes the move once the save is done.
-     * - onAlfaAdminAfterSave fires right after the ROW write, before multilingual, media,
-     *   prices, associations, item-fields, combinations, stock and projections. A handler
-     *   that needs the FINISHED item listens to onItemAfterSave (the domain event at the
-     *   end of save()) instead.
+     * - onAlfaAdminAfterSave fires once the whole save has committed (the row, multilingual,
+     *   media, prices, associations, item-fields, combinations, stock and the archive move are
+     *   one transaction), never after a rollback, with the record read as committed; inside a
+     *   caller's transaction, at the caller's commit. onItemAfterSave, the domain event, is
+     *   heard at the same commit.
      * - save() re-invokes getForm() to merge multilingual data, so the form/prepare-data
      *   pair dispatches a second time during a save request; handlers must be idempotent.
      *
@@ -439,7 +441,7 @@ class ItemModel extends AlfaAdminModel
             $plugins->dispatchIsolated($event);
         } catch (Throwable $e) {
             Log::add(
-                entry:    'onItemPrepareForm listener failed: ' . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                entry:    'onItemPrepareForm listener failed: ' . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                 priority: Log::ERROR,
                 category: 'com_alfa',
             );
@@ -1260,13 +1262,13 @@ class ItemModel extends AlfaAdminModel
 
                 Log::add(
                     entry:    'Item ' . $currentId . ' saved, but its combination changes were refused: '
-                              . $combinationError->getMessage(),
+                              . ErrorText::of($combinationError),
                     priority: Log::ERROR,
                     category: 'com_alfa.inventory',
                 );
 
                 $write->warn(
-                    msg:  Text::sprintf('COM_ALFA_ITEM_SAVED_VARIANTS_NOT_CHANGED', $combinationError->getMessage()),
+                    msg:  Text::sprintf('COM_ALFA_ITEM_SAVED_VARIANTS_NOT_CHANGED', ErrorText::of($combinationError)),
                     type: 'error',
                 );
             }
@@ -1312,7 +1314,7 @@ class ItemModel extends AlfaAdminModel
 
                     Log::add(
                         entry:    'Item ' . $currentId . ' saved, but its stock could not be adjusted: '
-                                  . $stockError->getMessage(),
+                                  . ErrorText::of($stockError),
                         priority: Log::ERROR,
                         category: 'com_alfa.inventory',
                     );
@@ -1327,7 +1329,7 @@ class ItemModel extends AlfaAdminModel
                                 'COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED',
                                 $this->inventoryRefusalMessage(error: $stockError),
                             ),
-                            default => Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_REFUSED', $stockError->getMessage()),
+                            default => Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_REFUSED', ErrorText::of($stockError)),
                         },
                         type: 'error',
                     );
@@ -1358,7 +1360,7 @@ class ItemModel extends AlfaAdminModel
 
                     Log::add(
                         entry:    'Item ' . $currentId . ' saved, but its sale rule change was not recorded: '
-                                  . $recordError->getMessage(),
+                                  . ErrorText::of($recordError),
                         priority: Log::ERROR,
                         category: 'com_alfa.inventory',
                     );
@@ -1426,7 +1428,7 @@ class ItemModel extends AlfaAdminModel
                     } catch (Throwable $e) {
                         Log::add(
                             entry:    'onItemAfterSave listener failed for item ' . $currentId . ': '
-                                      . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                                      . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                             priority: Log::ERROR,
                             category: 'com_alfa',
                         );
@@ -1455,7 +1457,7 @@ class ItemModel extends AlfaAdminModel
             }
 
             Log::add(
-                entry:    'Item ' . ($pk > 0 ? '#' . $pk : '(new)') . ' was not saved; its save was rolled back: ' . $e->getMessage(),
+                entry:    'Item ' . ($pk > 0 ? '#' . $pk : '(new)') . ' was not saved; its save was rolled back: ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa',
             );
@@ -1822,7 +1824,7 @@ class ItemModel extends AlfaAdminModel
                     // archived, the detail goes to the log, and the request goes on.
                     Log::add(
                         entry:    'Product ' . $itemId . ' was not restored to the active catalogue: '
-                                  . $e::class . ': ' . $e->getMessage(),
+                                  . $e::class . ': ' . ErrorText::of($e),
                         priority: Log::ERROR,
                         category: 'com_alfa.inventory',
                     );
@@ -2975,7 +2977,7 @@ class ItemModel extends AlfaAdminModel
         if ($error !== null) {
             Log::add(
                 entry:    'Item ' . $itemId . ' saved, but its stock tracking was not changed: '
-                          . $error->getMessage(),
+                          . ErrorText::of($error),
                 priority: Log::ERROR,
                 category: 'com_alfa.inventory',
             );
@@ -3036,8 +3038,8 @@ class ItemModel extends AlfaAdminModel
                 ),
                 InventoryTrackingException::TARGET => $this->targetRefusals(
                     problems: [['location_id' => (int) $error->locationId, 'code' => (string) $error->targetCode]],
-                )[0] ?? $error->getMessage(),
-                default => $error->getMessage(),
+                )[0] ?? ErrorText::of($error),
+                default => ErrorText::of($error),
             };
         }
 
@@ -3053,7 +3055,7 @@ class ItemModel extends AlfaAdminModel
             return htmlspecialchars(string: $error->operatorMessage(), flags: ENT_QUOTES, encoding: 'UTF-8');
         }
 
-        return $error->getMessage();
+        return ErrorText::of($error);
     }
 
     /**
@@ -3623,7 +3625,7 @@ class ItemModel extends AlfaAdminModel
 
                 // The removal met another writer: nothing was deleted, and the merchant is told so.
                 if ($e === $busyRemoval) {
-                    Log::add('Item delete: the price index rows of item(s) ' . implode(', ', $existing) . ' could not be removed, nothing was deleted: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+                    Log::add('Item delete: the price index rows of item(s) ' . implode(', ', $existing) . ' could not be removed, nothing was deleted: ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
                     $this->refuseDelete(sentence: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
 
                     return false;
@@ -3837,9 +3839,6 @@ class ItemModel extends AlfaAdminModel
             $priceObject->usergroup_id = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
             $priceObject->user_id = isset($price['user_id']) ? intval($price['user_id']) : 0;
             $priceObject->currency_id = isset($price['currency_id']) ? intval($price['currency_id']) : 0;
-            $priceObject->modify = isset($price['modify']) ? intval($price['modify']) : 0;
-            $priceObject->modify_function = $price['modify_function'] ?? null;
-            $priceObject->modify_type = $price['modify_type'] ?? null;
             $priceObject->publish_up = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : null;
             $priceObject->publish_down = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : null;
             $priceObject->quantity_start = !empty($price['quantity_start']) ? intval($price['quantity_start']) : null;

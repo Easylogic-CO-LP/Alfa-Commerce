@@ -1236,7 +1236,7 @@ final class CoreToolProvider
                 return Text::sprintf('COM_ALFA_SEARCH_REBUILD_DONE', $job['done'], $scope === [] ? Text::_('COM_ALFA_SEARCH_REBUILD_CORE_ONLY') : implode(', ', $scope));
             });
         } catch (Throwable $e) {
-            $event->setError(Text::sprintf('COM_ALFA_SEARCH_REBUILD_FAILED', $e->getMessage()));
+            $event->setError(Text::sprintf('COM_ALFA_SEARCH_REBUILD_FAILED', ErrorText::of($e)));
         }
     }
 

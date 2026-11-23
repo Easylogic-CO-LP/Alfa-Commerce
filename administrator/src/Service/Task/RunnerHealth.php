@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
@@ -120,7 +121,7 @@ final class RunnerHealth
                 ],
             );
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tasks: the background work notice could not be brought up to date: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Tasks: the background work notice could not be brought up to date: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         return true;

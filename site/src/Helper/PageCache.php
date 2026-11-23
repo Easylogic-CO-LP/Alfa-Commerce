@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Closure;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
@@ -64,8 +65,10 @@ final class PageCache
     /**
      * Drop every page Joomla's page cache stored for the site (its `page` group), so the next visitor of each page is
      * served it as the shop is now (online sales switched on or off; a stored guest page would keep its prices
-     * and its buy buttons, or keep showing none). Joomla's own Options save cleans only the cache of the client it runs
-     * in, and the page cache is the site's. A cache that cannot be cleaned is said in the log and expires on its own.
+     * and its buy buttons, or keep showing none). Joomla's own Options save cleans the component records, never the
+     * stored pages. The pages are cleaned where System - Page Cache stores them: Joomla's cache folder (the Global
+     * Configuration's cache path, administrator/cache when none is set), which the site and the administrator share. A
+     * cache that cannot be cleaned is said in the log and expires on its own.
      *
      * @since  2.2.2
      */
@@ -73,10 +76,10 @@ final class PageCache
     {
         try {
             Factory::getContainer()->get(CacheControllerFactoryInterface::class)
-                ->createCacheController('callback', ['defaultgroup' => 'page', 'cachebase' => JPATH_SITE . '/cache'])
+                ->createCacheController('callback', ['defaultgroup' => 'page'])
                 ->clean();
         } catch (Throwable $e) {
-            \Joomla\CMS\Log\Log::add('The stored pages of Joomla\'s page cache could not be dropped: ' . $e->getMessage(), \Joomla\CMS\Log\Log::WARNING, 'com_alfa');
+            \Joomla\CMS\Log\Log::add('The stored pages of Joomla\'s page cache could not be dropped: ' . ErrorText::of($e), \Joomla\CMS\Log\Log::WARNING, 'com_alfa');
         }
     }
 }

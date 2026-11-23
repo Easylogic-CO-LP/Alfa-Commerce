@@ -45,6 +45,7 @@ use Alfa\Component\Alfa\Administrator\Event\Payments\OrderAfterPlaceEvent as Pay
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderBeforePlaceEvent as PaymentOrderBeforePlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderAfterPlaceEvent as ShipmentOrderAfterPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderBeforePlaceEvent as ShipmentOrderBeforePlaceEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
@@ -249,7 +250,7 @@ class OrderPlacement
                 'com_alfa.orders',
             );
         } catch (Exception $e) {
-            Log::add('OrderPlacement init failed: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('OrderPlacement init failed: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
             throw new RuntimeException('Failed to initialize OrderPlacement: ' . $e->getMessage(), 0, $e);
         }
     }
@@ -269,7 +270,7 @@ class OrderPlacement
             // silently dropped.
             AlfaLog::register();
         } catch (Exception $e) {
-            error_log('Failed to configure logging: ' . $e->getMessage());
+            error_log('Failed to configure logging: ' . ErrorText::of($e));
         }
     }
 
@@ -521,7 +522,7 @@ class OrderPlacement
                 // makes a failed checkout diagnosable. COM_ALFA_ORDER_PLACE_FAILED
                 // interpolates it, so the shopper was shown table and constraint
                 // names at the worst possible moment.
-                Log::add('Error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+                Log::add('Error: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
 
                 // A stock plugin that refused the reservation on purpose (InventoryRefusedException, thrown by a
                 // listener of onInventoryBeforeReserve) wrote its sentence for people to read: the shopper reads it,
@@ -578,7 +579,7 @@ class OrderPlacement
                     ],
                 );
             } catch (Exception $notifyError) {
-                Log::add('New-order notification failed: ' . $notifyError->getMessage(), Log::WARNING, 'com_alfa.orders');
+                Log::add('New-order notification failed: ' . ErrorText::of($notifyError), Log::WARNING, 'com_alfa.orders');
             }
 
             // The reload is not the order
@@ -703,7 +704,7 @@ class OrderPlacement
                 }
             } catch (Throwable $e) {
                 Log::add(
-                    'onAlfaOrderPlaced listener failed for order ' . $orderId . ': ' . $e->getMessage(),
+                    'onAlfaOrderPlaced listener failed for order ' . $orderId . ': ' . ErrorText::of($e),
                     Log::ERROR,
                     'com_alfa.orders',
                 );
@@ -714,7 +715,7 @@ class OrderPlacement
         } catch (Throwable $e) {
             // \Throwable: the last net before the buyer sees a white page.
             Log::add(
-                'CRITICAL ERROR: ' . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                'CRITICAL ERROR: ' . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                 Log::CRITICAL,
                 'com_alfa.orders',
             );
@@ -929,7 +930,7 @@ class OrderPlacement
         try {
             return AlfaPluginHelper::get()->bootSingle(PluginId::from($group, $type));
         } catch (PluginUnavailable|InvalidArgumentException $e) {
-            Log::add('Placement: the plugin behind a ' . $group . ' method cannot be used: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            Log::add('Placement: the plugin behind a ' . $group . ' method cannot be used: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
 
             return null;
         }
@@ -1210,7 +1211,7 @@ class OrderPlacement
                 $this->fail(
                     'COM_ALFA_PLUGIN_NOT_LOADED_FOR_OPERATOR',
                     ['plugin' => $unavailable->plugin === null ? '' : $plugins->name($unavailable->plugin)],
-                    'Placement refused: ' . $unavailable->getMessage(),
+                    'Placement refused: ' . ErrorText::of($unavailable),
                 );
 
                 return false;
@@ -1241,7 +1242,7 @@ class OrderPlacement
                     $this->fail(
                         'COM_ALFA_ORDER_PLACE_PLUGIN_FAILED',
                         ['plugin' => $plugins->name($validator)],
-                        'Placement refused: ' . $validator . ' threw on onOrderPlaceValidate: ' . $thrown::class . ': ' . $thrown->getMessage(),
+                        'Placement refused: ' . $validator . ' threw on onOrderPlaceValidate: ' . $thrown::class . ': ' . ErrorText::of($thrown),
                         Text::sprintf('COM_ALFA_ORDER_PLACE_PLUGIN_FAILED', $plugins->name($validator)),
                     );
 
@@ -1291,7 +1292,7 @@ class OrderPlacement
             // \Throwable: this runs the payment/shipment method checks, which
             // reach plugin code. An Exception-only net lets a listener's
             // TypeError past and fatals checkout instead of refusing it.
-            Log::add('Validation error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('Validation error: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
             return false;
         }
     }
@@ -1423,7 +1424,7 @@ class OrderPlacement
                     // checkout request outright.
                     Log::add(
                         'Payment plugin "' . $this->payment_type . '" failed in onOrderBeforePlace: '
-                        . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                        . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                         Log::ERROR,
                         'com_alfa.orders',
                     );
@@ -1457,7 +1458,7 @@ class OrderPlacement
                 } catch (Throwable $e) {
                     Log::add(
                         'Shipment plugin "' . $this->shipment_type . '" failed in onOrderBeforePlace: '
-                        . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                        . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                         Log::ERROR,
                         'com_alfa.orders',
                     );
@@ -1468,7 +1469,7 @@ class OrderPlacement
 
             return true;
         } catch (Throwable $e) {
-            Log::add('Before-place events error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('Before-place events error: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
             return false;
         }
     }
@@ -1537,7 +1538,7 @@ class OrderPlacement
                     Log::add(
                         'Payment plugin "' . $this->payment_type . '" failed in onOrderAfterPlace for order #'
                         . (int) ($this->order->id ?? 0) . ': THE PAYMENT ROW WAS NOT CREATED, so this order'
-                        . ' has no ledger entry to collect against: ' . $e->getMessage()
+                        . ' has no ledger entry to collect against: ' . ErrorText::of($e)
                         . "\n" . $e->getTraceAsString(),
                         Log::CRITICAL,
                         'com_alfa.orders',
@@ -1569,7 +1570,7 @@ class OrderPlacement
                     Log::add(
                         'Shipment plugin "' . $this->shipment_type . '" failed in onOrderAfterPlace for order #'
                         . (int) ($this->order->id ?? 0) . ': the shipment row was not created: '
-                        . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                        . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                         Log::CRITICAL,
                         'com_alfa.orders',
                     );
@@ -1584,7 +1585,7 @@ class OrderPlacement
             }
         } catch (Throwable $e) {
             $failed[] = 'unknown';
-            Log::add('After-place events error: ' . $e->getMessage(), Log::CRITICAL, 'com_alfa.orders');
+            Log::add('After-place events error: ' . ErrorText::of($e), Log::CRITICAL, 'com_alfa.orders');
         }
 
         return $failed;
@@ -1660,7 +1661,7 @@ class OrderPlacement
             TransactionState::rollBackLevel($db, $e);
             Log::add(
                 'Order #' . $orderId . ': the carrier "' . $carrier . '" recorded no parcel, and core could not record it: '
-                    . $e::class . ': ' . $e->getMessage(),
+                    . $e::class . ': ' . ErrorText::of($e),
                 Log::CRITICAL,
                 'com_alfa.orders',
             );
@@ -1733,7 +1734,7 @@ class OrderPlacement
                 ],
             );
         } catch (Throwable $e) {
-            Log::add('Order #' . $orderId . ': the notice of its parcel was not written: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('Order #' . $orderId . ': the notice of its parcel was not written: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
         }
     }
 
@@ -2111,7 +2112,7 @@ class OrderPlacement
             // order total is already correct in order_items). Logged loudly so it is
             // caught and the line can be backfilled.
             Log::add(
-                'Order item-fields snapshot failed for order item ' . $orderItemId . ': ' . $e->getMessage(),
+                'Order item-fields snapshot failed for order item ' . $orderItemId . ': ' . ErrorText::of($e),
                 Log::ERROR,
                 'com_alfa.orders',
             );
@@ -2558,7 +2559,7 @@ class OrderPlacement
 
             return (object) ['id' => $id];
         } catch (Exception $e) {
-            Log::add('User info save error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('User info save error: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
             return null;
         }
     }
@@ -2616,7 +2617,7 @@ class OrderPlacement
             $this->db->setQuery($query);
             return $this->db->loadColumn() ?: [];
         } catch (Exception $e) {
-            Log::add('Failed to load unique form fields: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            Log::add('Failed to load unique form fields: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
             return [];
         }
     }
@@ -2671,7 +2672,7 @@ class OrderPlacement
             $this->db->setQuery($unionQuery);
             $collisions = $this->db->loadColumn();
         } catch (Exception $e) {
-            Log::add('Unique check query failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            Log::add('Unique check query failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
             return [];
         }
 
@@ -2858,7 +2859,7 @@ class OrderPlacement
             // and a key shaped to interpolate an exception is an invitation to
             // wire it back into something a shopper reads.
             $this->warn('COM_ALFA_ORDER_MODEL_LOAD_FAILED', [], null, 'error');
-            Log::add('Could not load the placed order: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('Could not load the placed order: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
 
             return null;
         }
@@ -2900,7 +2901,7 @@ class OrderPlacement
 
         Log::add(
             'Transaction-fatal database error (' . $this->errorNumber($e) . ') inside a tolerated step: '
-            . $e->getMessage() . '; refusing the placement rather than continuing outside a transaction.',
+            . ErrorText::of($e) . '; refusing the placement rather than continuing outside a transaction.',
             Log::ERROR,
             'com_alfa.orders',
         );
@@ -3102,7 +3103,7 @@ class OrderPlacement
             // IN: a silent degrade is indistinguishable from being charged
             // twice, so they must be told before the gateway page.
             Log::add(
-                'Order #' . (int) $this->order->id . ': customer credit not applied: ' . $e->getMessage(),
+                'Order #' . (int) $this->order->id . ': customer credit not applied: ' . ErrorText::of($e),
                 Log::WARNING,
                 'com_alfa.orders',
             );

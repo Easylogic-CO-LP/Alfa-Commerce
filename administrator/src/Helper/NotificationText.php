@@ -13,7 +13,6 @@ use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Language;
-use Joomla\CMS\Language\Text;
 use JsonSerializable;
 use Throwable;
 use ValueError;
@@ -37,6 +36,10 @@ use ValueError;
  *   - {@see self::join()}: items joined, optionally with a word before the last ("a, b and c").
  *
  *   NotificationHelper::push('stock-low:item:7', NotificationText::of('COM_ALFA_NOTIFY_LOW_STOCK_TITLE', $name), [...]);
+ *
+ * @api READ ONLY: the text a plugin gives NotificationHelper::push(): from() with its own language file's key, and
+ *      key(), plural(), date(), number(), content() and join() for the parameters. of() and sentences() are core's own
+ *      texts.
  *
  * @since  2.1.4
  */
@@ -769,7 +772,8 @@ final class NotificationText implements JsonSerializable
         }
 
         if (isset($arg['dt'])) {
-            return (string) $arg['dt'] === '' ? '' : HTMLHelper::_('date', (string) $arg['dt'], Text::_('DATE_FORMAT_LC5'));
+            // The format of the language the text is said in (its joomla.ini), never the request's.
+            return (string) $arg['dt'] === '' ? '' : HTMLHelper::_('date', (string) $arg['dt'], $language->_('DATE_FORMAT_LC5'));
         }
 
         if (isset($arg['num'])) {

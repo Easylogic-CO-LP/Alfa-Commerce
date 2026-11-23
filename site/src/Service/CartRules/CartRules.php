@@ -28,6 +28,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\CartRules;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartPersistenceException;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
@@ -130,7 +131,7 @@ final class CartRules
                 ],
             );
         } catch (Throwable $e) {
-            Log::add('Cart rules evaluation failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.cartrules');
+            Log::add('Cart rules evaluation failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.cartrules');
 
             // DEGRADE TO THE ENGINE'S OWN NO-RULES ANSWER, not to a smaller
             // object. The hand-built one this replaces carried three of the
@@ -258,7 +259,7 @@ final class CartRules
             // mini-cart renders on every page. An unreadable coupon store costs
             // the shopper their discount, not their session.
             AlfaLog::register();
-            Log::add('Cart #' . $cartId . ' coupon codes could not be read: ' . $e->getMessage(), Log::WARNING, 'com_alfa.cartrules');
+            Log::add('Cart #' . $cartId . ' coupon codes could not be read: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.cartrules');
 
             return $this->codes = [];
         }

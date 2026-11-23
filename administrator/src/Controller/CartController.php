@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Administrator\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
@@ -1175,7 +1176,7 @@ class CartController extends BaseController
      */
     private function emitThrowable(Throwable $e): void
     {
-        $this->emit([], $e->getMessage() !== '' ? $e->getMessage() : Text::_('COM_ALFA_CART_CHECKOUT_FAILED'), true);
+        $this->emit([], ErrorText::of($e) !== '' ? ErrorText::of($e) : Text::_('COM_ALFA_CART_CHECKOUT_FAILED'), true);
     }
 
     /**

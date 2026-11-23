@@ -54,8 +54,9 @@
  *    $cart->delivery()  invoice()    AddressView
  *
  *  THE ADDRESS: read any field the merchant pointed you at with a
- *  `checkoutfield` param. The core holds no postcode role and hardcodes no
- *  column; a postcode is your concern.
+ *  `checkoutfield` param. The core hardcodes no column: a postcode setting
+ *  starts on the shop's postcode field (the postcode role, RoleRegistry), and
+ *  the merchant may point it at another.
  *
  *    $cart->delivery()->field($id)->value()          string|null
  *    $cart->delivery()->field($id)->int()            int|null
@@ -289,7 +290,7 @@ abstract class ShipmentsPlugin extends Plugin
      * @api ANSWERS: the ledger in builder mode with this plugin as the writer; its save() writes only on this plugin's
      *      own methods.
      *
-     * @param object $order Full order object (->id, ->items, ->id_shipment_method)
+     * @param object $order The order: the reader the plugin was handed, or a loaded row (read through Order::of())
      *
      * @return ShipmentLedger Builder: chain setters, finish with ->save()
      *
@@ -591,7 +592,9 @@ abstract class ShipmentsPlugin extends Plugin
      * checkout has not given yet: {@see self::REFUSAL_NEEDS_PLACE} and {@see self::REFUSAL_NEEDS_POSTCODE},
      * worded in core's language file, so a carrier needs no key of its own for them.
      *
-     * @api READ ONLY: the reason key the last pricing call recorded, for setUnavailable().
+     * A pricing call that prices the cart records none: the answer is then ''.
+     *
+     * @api READ ONLY: the reason key the last pricing call recorded, for setUnavailable(); '' when it priced the cart.
      *
      * @since  2.0.0
      */
@@ -636,7 +639,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * An unset, empty or zero ceiling is NO ceiling (the reading
      * {@see Plugin::isWithinLimits()} gives every configured limit), so a
-     * carrier that has not been told its maxima behaves exactly as before.
+     * carrier that has not been told its maxima has no maximum.
      *
      * OVERRIDABLE, because this is the generic answer for a carrier configured
      * by numbers. A carrier that knows its own cabinet (a locker network with
@@ -705,29 +708,28 @@ abstract class ShipmentsPlugin extends Plugin
      * list; between zones at the same distance, the one higher in the list. It
      * is the order the discounts and taxes of a place follow (RulePrecedence),
      * each zone ranked by its position in the list, so a shop whose zones name
-     * countries only prices exactly as before. A zone with no places is the
+     * countries only prices by the first matching zone. A zone with no places is the
      * catch-all, used only when no zone matches.
      *
      * The nearest zone decides alone: a cart none of its rows fit is refused,
-     * never priced by a farther zone or the catch-all (as the first matching
-     * zone decided alone before).
+     * never priced by a farther zone or the catch-all.
      *
      * A REFUSAL FOR A FACT NOT YET GIVEN SAYS SO, in core's words: with no destination at all and no zone for
      * it (no place, no catch-all), the refusal is {@see self::REFUSAL_NEEDS_PLACE}; with the carrier's postcode field
      * unanswered ('') and a zone whose every row that would fit has a postcode band, it is
      * {@see self::REFUSAL_NEEDS_POSTCODE}. A carrier that reads no postcode field passes null, and is refused
-     * NO_BAND_FITS as before: no shopper could give it one. The cart's offer read takes such a carrier off the list
+     * NO_BAND_FITS: no shopper could give it one. The cart's offer read takes such a carrier off the list
      * until the checkout has the fact, and names it, instead of offering a carrier that refuses the shopper's first
      * click. The places are read in the order given, nearest first, as AddressView::places() and PlaceTree::placesFor()
      * give them; a caller passing them in another order gets another zone. A place
-     * of the chain is matched whether or not it is published, as before: only a
+     * of the chain is matched whether or not it is published: only a
      * stored address can hold an unpublished one (the address and zone pickers
      * offer published places), and the checkout asks for it again.
      *
      * THREE OUTCOMES, NOT TWO. A configured price; carriage at no charge; and
      * a refusal: the merchant drew zones and this cart fits none of their
-     * rows, so they have said by omission that they do not carry it. Before
-     * 1.10 all three were the float 0.00, and the third one shipped free.
+     * rows, so they have said by omission that they do not carry it. A refusal
+     * is never 0.00, so a cart no zone carries never ships free.
      *
      * @api READ ONLY: the price, or NULL when this carrier cannot carry the cart (the nearest zone decides alone), its
      *      reason then read with refusal(): a key of this carrier's language namespace, or core's REFUSAL_NEEDS_PLACE
@@ -774,6 +776,8 @@ abstract class ShipmentsPlugin extends Plugin
         // In both, a 40 kg parcel was accepted for a locker at no charge. So
         // the envelope is judged first, on its own, and a parcel outside it is
         // refused whatever the zone table says or does not say.
+        // Each pricing call records its own refusal: one that prices the cart leaves none.
+        $this->refusal = '';
         $refusal = $this->parcelRefusal($lines, $limits);
 
         if ($refusal !== null) {

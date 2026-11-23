@@ -104,8 +104,8 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
     }
 
     /**
-     * The value rows to report on, keyed by value id. Each carries at least `id`, `name`
-     * and the raw `params` the type itself wrote.
+     * The value rows to report on, keyed by value id. Each carries `id` and `params`, the
+     * settings the type itself wrote, decoded to an array.
      *
      * @return array<int, array>
      *

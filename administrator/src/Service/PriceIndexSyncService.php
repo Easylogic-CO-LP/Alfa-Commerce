@@ -386,7 +386,7 @@ class PriceIndexSyncService
             try {
                 $this->writeIndexRows(itemIds: [$itemId], contexts: $this->alignContexts());
             } catch (Throwable $e) {
-                $this->logWarning("syncItem({$itemId}) failed: " . $e->getMessage());
+                $this->logWarning("syncItem({$itemId}) failed: " . ErrorText::of($e));
                 ProjectionManager::owe(itemIds: [$itemId]);
             }
         });
@@ -421,7 +421,7 @@ class PriceIndexSyncService
 
                 return $this->rebuildItems(itemIds: $itemIds, strict: false);
             } catch (Throwable $e) {
-                $this->logWarning('syncItems() failed: ' . $e->getMessage());
+                $this->logWarning('syncItems() failed: ' . ErrorText::of($e));
                 ProjectionManager::owe(itemIds: $itemIds);
 
                 return 0;
@@ -555,7 +555,7 @@ class PriceIndexSyncService
 
             return $this->lastRequested;
         } catch (Throwable $e) {
-            $this->logWarning(message: 'syncGroupSets() failed: ' . $e->getMessage());
+            $this->logWarning(message: 'syncGroupSets() failed: ' . ErrorText::of($e));
 
             return 0;
         }
@@ -580,7 +580,7 @@ class PriceIndexSyncService
 
                 return $this->writeIndexRows(itemIds: $this->getAllPublishedItemIds(), contexts: $contexts);
             } catch (Throwable $e) {
-                $this->logWarning('syncAll() failed: ' . $e->getMessage());
+                $this->logWarning('syncAll() failed: ' . ErrorText::of($e));
 
                 return 0;
             }
@@ -645,7 +645,7 @@ class PriceIndexSyncService
                         throw $e;
                     }
 
-                    $this->logWarning('deleteForItems() failed for a chunk of ' . \count($chunk) . ' item(s): ' . $e->getMessage());
+                    $this->logWarning('deleteForItems() failed for a chunk of ' . \count($chunk) . ' item(s): ' . ErrorText::of($e));
                 }
             }
         });

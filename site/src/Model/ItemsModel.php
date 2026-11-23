@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemsListPrepareEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ValueFacetGroupsEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ListLimitsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
@@ -2524,7 +2525,7 @@ class ItemsModel extends UrlListModel
                 Log::add(
                     'onItemListPrepare failed for the field "' . (string) ($field->field_name ?? '') . '" (#' . (int) $field->id
                     . ') of the plugin alfa-item-fields.' . (string) $field->type . ', its part of the card left out: '
-                    . $e->getMessage(),
+                    . ErrorText::of($e),
                     Log::ERROR,
                     'com_alfa',
                 );
@@ -3263,7 +3264,7 @@ class ItemsModel extends UrlListModel
             ];
         } catch (Throwable $e) {
             Log::add(
-                'onItemFieldValueFacetGroups failed for field type "' . $type . '": ' . $e->getMessage(),
+                'onItemFieldValueFacetGroups failed for field type "' . $type . '": ' . ErrorText::of($e),
                 Log::WARNING,
                 'com_alfa',
             );

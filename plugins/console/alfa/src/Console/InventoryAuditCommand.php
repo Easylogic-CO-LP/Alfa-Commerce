@@ -11,6 +11,7 @@ namespace Alfa\Plugin\Console\Alfa\Console;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityReader;
@@ -124,7 +125,7 @@ final class InventoryAuditCommand extends AbstractCommand
         try {
             $itemIds = $this->itemIds(values: (array) $input->getOption(name: 'item'));
         } catch (InvalidArgumentException $e) {
-            $io->getErrorStyle()->error(message: Text::sprintf('PLG_CONSOLE_ALFA_AUDIT_INVALID_ITEM', $e->getMessage()));
+            $io->getErrorStyle()->error(message: Text::sprintf('PLG_CONSOLE_ALFA_AUDIT_INVALID_ITEM', ErrorText::of($e)));
 
             return self::EXIT_ERROR;
         }
@@ -149,7 +150,7 @@ final class InventoryAuditCommand extends AbstractCommand
                 $this->render(io: $io, report: $report, total: $total);
             }
         } catch (Throwable $e) {
-            $io->getErrorStyle()->error(message: Text::sprintf('PLG_CONSOLE_ALFA_AUDIT_ERROR', $e->getMessage()));
+            $io->getErrorStyle()->error(message: Text::sprintf('PLG_CONSOLE_ALFA_AUDIT_ERROR', ErrorText::of($e)));
 
             return self::EXIT_ERROR;
         }

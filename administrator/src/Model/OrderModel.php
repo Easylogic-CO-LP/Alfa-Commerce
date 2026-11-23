@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderDeleteEvent as S
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
@@ -951,7 +952,7 @@ class OrderModel extends AlfaAdminModel
             try {
                 $this->sentCurrencyId(data: $data);
             } catch (InvalidArgumentException $e) {
-                $this->setError($e->getMessage());
+                $this->setError(ErrorText::of($e));
 
                 return false;
             }
@@ -3195,7 +3196,7 @@ class OrderModel extends AlfaAdminModel
                 }
             } catch (Throwable $e) {
                 // The configuration still freezes; only its analytical amounts are missing.
-                Log::add('Order line configuration pricing failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+                Log::add('Order line configuration pricing failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
             }
 
             $plan['snapshot'] = [
@@ -3824,7 +3825,7 @@ class OrderModel extends AlfaAdminModel
         try {
             $plugin = $plugins->bootSingle(PluginId::from($group, $type));
         } catch (PluginUnavailable|InvalidArgumentException $e) {
-            Log::add('Order ' . $orderId . ' was not deleted: its plugin of record cannot be asked (' . $e->getMessage() . ').', Log::WARNING, 'com_alfa.orders');
+            Log::add('Order ' . $orderId . ' was not deleted: its plugin of record cannot be asked (' . ErrorText::of($e) . ').', Log::WARNING, 'com_alfa.orders');
             // The plugin by the name Extensions: Plugins shows, and why it cannot be asked: delete() says it
             // once, as the delete's own error.
             $name = $plugins->name(PluginId::from($group, $type));
@@ -3886,7 +3887,7 @@ class OrderModel extends AlfaAdminModel
                 manualDiscountScope: $manualDiscountScope,
             );
         } catch (Throwable $e) {
-            $this->refuseOrderItem($e->getMessage());
+            $this->refuseOrderItem(ErrorText::of($e));
 
             return false;
         }
@@ -4033,7 +4034,7 @@ class OrderModel extends AlfaAdminModel
 
             $this->refuseOrderItem(Text::sprintf(
                 $isNew ? 'COM_ALFA_ORDER_ITEM_INSERT_ERROR' : 'COM_ALFA_ORDER_ITEM_UPDATE_ERROR',
-                $e->getMessage(),
+                ErrorText::of($e),
             ));
 
             return false;
@@ -4258,7 +4259,7 @@ class OrderModel extends AlfaAdminModel
         try {
             $orderCurrency = OrderCurrency::of(orderId: $orderId);
         } catch (OrderCurrencyException $e) {
-            $this->refuseOrderItem(message: $e->getMessage());
+            $this->refuseOrderItem(message: ErrorText::of($e));
 
             return false;
         }
@@ -4367,7 +4368,7 @@ class OrderModel extends AlfaAdminModel
 
             // Escaped, as the task's own catch escapes: the driver's words
             // can quote a stored value.
-            Factory::getApplication()->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            Factory::getApplication()->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
 
             return false;
         }
@@ -4918,7 +4919,7 @@ class OrderModel extends AlfaAdminModel
 
                 return false;
             } catch (Exception $e) {
-                $this->setError($e->getMessage());
+                $this->setError(ErrorText::of($e));
 
                 return false;
             }
@@ -5115,7 +5116,7 @@ class OrderModel extends AlfaAdminModel
                 // message; the detail goes where it can be read safely.
                 Log::add(
                     'Order #' . (int) $orderId . ': the edit was rolled back: '
-                    . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                    . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                     Log::CRITICAL,
                     'com_alfa.orders',
                 );
@@ -5276,7 +5277,7 @@ class OrderModel extends AlfaAdminModel
 
             Log::add(
                 'Order #' . $orderId . ': the status transition ' . $from . ' -> ' . $target
-                . ' failed after the order itself had been saved: ' . $e->getMessage()
+                . ' failed after the order itself had been saved: ' . ErrorText::of($e)
                 . "\n" . $e->getTraceAsString(),
                 Log::CRITICAL,
                 'com_alfa.orders',
@@ -5445,7 +5446,7 @@ class OrderModel extends AlfaAdminModel
                 // untidy, never wrong. Say so instead of failing the save.
                 Log::add(
                     'Order #' . $this->getState('order.id') . ': the superseded address row #' . $id
-                    . ' could not be removed - ' . $e->getMessage(),
+                    . ' could not be removed - ' . ErrorText::of($e),
                     Log::WARNING,
                     'com_alfa',
                 );
@@ -5619,7 +5620,7 @@ class OrderModel extends AlfaAdminModel
     protected function alfaDeleteRefusedBy(Throwable $failure, array $pks): void
     {
         Log::add(
-            entry: 'Orders ' . implode(separator: ', ', array: $pks) . ' were not deleted; nothing was changed: ' . $failure->getMessage(),
+            entry: 'Orders ' . implode(separator: ', ', array: $pks) . ' were not deleted; nothing was changed: ' . ErrorText::of($failure),
             priority: Log::ERROR,
             category: 'com_alfa.orders',
         );
@@ -5714,7 +5715,7 @@ class OrderModel extends AlfaAdminModel
                 OrderCurrency::of(orderId: $pk);
             } catch (OrderCurrencyException $e) {
                 if ($e->orderExists()) {
-                    $this->setError($e->getMessage());
+                    $this->setError(ErrorText::of($e));
 
                     return false;
                 }
@@ -5800,13 +5801,13 @@ class OrderModel extends AlfaAdminModel
         // A refused delete is one error, as Joomla's list controllers report a failed delete, and never a success message
         // when nothing was deleted: the refusals are the delete's error when no order is left, else each is said
         // beside the count of the ones deleted. As a refusal of the model's own rule, which the REST delete answers 409
-        // with its sentence rather than a bare 500.
+        // with its sentence rather than a bare 500; a veto that gives no sentence is said by the delete's own one.
         $refusals = array_values(array_unique($this->deleteRefusals));
         $this->deleteRefusals = [];
 
         if ($pks === []) {
-            $refusal = implode(' ', $refusals);
-            $this->setError($refusals !== [] ? new DeleteRefusedException(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'), $refusal) : Text::plural('COM_ALFA_N_ITEMS_DELETED', 0));
+            $refusal = $refusals !== [] ? implode(' ', $refusals) : Text::_('COM_ALFA_ERROR_ORDER_DELETE_FAILED');
+            $this->setError(new DeleteRefusedException(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'), $refusal));
 
             return false;
         }
@@ -5905,7 +5906,7 @@ class OrderModel extends AlfaAdminModel
             // The caller reads the plain sentence; the failure's own words go
             // to the log.
             Log::add(
-                entry: 'Orders ' . implode(separator: ', ', array: $pks) . ' were not deleted; nothing was changed: ' . $e->getMessage(),
+                entry: 'Orders ' . implode(separator: ', ', array: $pks) . ' were not deleted; nothing was changed: ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.orders',
             );
@@ -6244,7 +6245,7 @@ class OrderModel extends AlfaAdminModel
                     // customer had been repaid.
                     Log::add(
                         'CRITICAL: order #' . $spentOrderId . ' deletion could not return the wallet money it held ('
-                        . $held->getAmount() . ') to user #' . $userId . ': ' . $e->getMessage(),
+                        . $held->getAmount() . ') to user #' . $userId . ': ' . ErrorText::of($e),
                         Log::CRITICAL,
                         'com_alfa.orders',
                     );
@@ -6660,7 +6661,7 @@ class OrderModel extends AlfaAdminModel
                 $data[$pkColumn] = $filteredData[$pkColumn];
             }
         } catch (Exception $e) {
-            Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
+            Factory::getApplication()->enqueueMessage(ErrorText::of($e), 'error');
             return false;
         }
 
@@ -6686,7 +6687,7 @@ class OrderModel extends AlfaAdminModel
             $db->setQuery($query);
             $db->execute();
         } catch (Exception $e) {
-            Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
+            Factory::getApplication()->enqueueMessage(ErrorText::of($e), 'error');
             return false;
         }
 
@@ -6970,7 +6971,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         Log::add(
-            'Activity log failed for order ' . $orderId . ' (' . $event . '): ' . $failure->getMessage(),
+            'Activity log failed for order ' . $orderId . ' (' . $event . '): ' . ErrorText::of($failure),
             Log::CRITICAL,
             'com_alfa.orders',
         );

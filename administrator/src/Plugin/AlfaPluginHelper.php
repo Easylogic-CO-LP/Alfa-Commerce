@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use Alfa\Component\Alfa\Administrator\Service\Cart\OperatorCheckout;
@@ -268,7 +269,7 @@ final class AlfaPluginHelper
             } catch (Throwable $e) {
                 $this->rethrowWhenTransactionEnded($e);
                 $this->importFailed[$group . '.' . $element] = true;
-                Log::add('Plugins: ' . $group . '.' . $element . ' could not be imported (' . $e::class . ': ' . $e->getMessage() . '); the other plugins of the group are imported.', Log::WARNING, self::LOG);
+                Log::add('Plugins: ' . $group . '.' . $element . ' could not be imported (' . $e::class . ': ' . ErrorText::of($e) . '); the other plugins of the group are imported.', Log::WARNING, self::LOG);
             }
         }
 
@@ -310,7 +311,7 @@ final class AlfaPluginHelper
                 $listener($event);
             } catch (Throwable $e) {
                 $this->rethrowWhenTransactionEnded($e);
-                Log::add('Plugins: ' . $event->getName() . ': the listener ' . $name . ' failed (' . $e::class . ': ' . $e->getMessage() . '); the next listeners run.', Log::ERROR, self::LOG);
+                Log::add('Plugins: ' . $event->getName() . ': the listener ' . $name . ' failed (' . $e::class . ': ' . ErrorText::of($e) . '); the next listeners run.', Log::ERROR, self::LOG);
                 $failures[] = new ListenerFailure(listener: $name, error: $e);
             }
         }
@@ -351,7 +352,7 @@ final class AlfaPluginHelper
         } catch (Throwable $e) {
             $this->rethrowWhenTransactionEnded($e);
             $listener = $instance::class . '::' . $method;
-            Log::add('Plugins: ' . $name . ', asked of ' . $plugin->id . ': ' . $listener . ' failed (' . $e::class . ': ' . $e->getMessage() . ').', Log::ERROR, self::LOG);
+            Log::add('Plugins: ' . $name . ', asked of ' . $plugin->id . ': ' . $listener . ' failed (' . $e::class . ': ' . ErrorText::of($e) . ').', Log::ERROR, self::LOG);
 
             return new ListenerFailure(listener: $listener, error: $e);
         }
@@ -780,7 +781,7 @@ final class AlfaPluginHelper
 
             if (!isset($this->isolatedFailures[$key])) {
                 $this->isolatedFailures[$key] = true;
-                Log::add('Plugins: ' . $event->getName() . ': the plugin ' . $plugin->id . ' failed for ' . $for . ' (' . $e::class . ': ' . $e->getMessage() . '); it is shown without that plugin\'s part.', Log::ERROR, self::LOG);
+                Log::add('Plugins: ' . $event->getName() . ': the plugin ' . $plugin->id . ' failed for ' . $for . ' (' . $e::class . ': ' . ErrorText::of($e) . '); it is shown without that plugin\'s part.', Log::ERROR, self::LOG);
             }
 
             return false;
@@ -1044,7 +1045,7 @@ final class AlfaPluginHelper
                 $this->callFor($id, $event, static fn () => $instance->{$name}($event));
             } catch (Throwable $e) {
                 $this->rethrowWhenTransactionEnded($e);
-                Log::add('Plugins: ' . $event->getName() . ': the plugin ' . $id . ' failed (' . $e::class . ': ' . $e->getMessage() . '); the next plugins run.', Log::ERROR, self::LOG);
+                Log::add('Plugins: ' . $event->getName() . ': the plugin ' . $id . ' failed (' . $e::class . ': ' . ErrorText::of($e) . '); the next plugins run.', Log::ERROR, self::LOG);
                 $failures[] = new ListenerFailure(listener: $id->key(), error: $e);
             }
         }
@@ -1106,14 +1107,14 @@ final class AlfaPluginHelper
                         continue;
                     }
 
-                    Log::add('Plugins: ' . $event->getName() . ': ' . $unavailable->getMessage() . ' It cannot take its part here.', Log::WARNING, self::LOG);
+                    Log::add('Plugins: ' . $event->getName() . ': ' . ErrorText::of($unavailable) . ' It cannot take its part here.', Log::WARNING, self::LOG);
                     $notLoaded[] = $unavailable;
 
                     continue;
                 }
 
                 $level = \in_array($unavailable->reason, [PluginUnavailable::MISSING, PluginUnavailable::UNLOADABLE], true) ? Log::WARNING : Log::DEBUG;
-                Log::add('Plugins: ' . $event->getName() . ': ' . $unavailable->getMessage() . ' It takes no part.', $level, self::LOG);
+                Log::add('Plugins: ' . $event->getName() . ': ' . ErrorText::of($unavailable) . ' It takes no part.', $level, self::LOG);
 
                 continue;
             }

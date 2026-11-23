@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Closure;
@@ -288,7 +289,7 @@ final class PluginLogTable
 
             return true;
         } catch (Throwable $e) {
-            $report('Log table ' . $this->tableName . ' could not be created (' . $e->getCode() . ') ' . $e->getMessage());
+            $report('Log table ' . $this->tableName . ' could not be created (' . $e->getCode() . ') ' . ErrorText::of($e));
 
             return false;
         }
@@ -461,7 +462,7 @@ final class PluginLogTable
             } catch (Throwable $e) {
                 // One bad field declaration must not stop the others.
                 $report(
-                    'Log column "' . $name . '" could not be added to ' . $this->tableName . ' (' . $e->getCode() . ') ' . $e->getMessage(),
+                    'Log column "' . $name . '" could not be added to ' . $this->tableName . ' (' . $e->getCode() . ') ' . ErrorText::of($e),
                 );
             }
         }
@@ -504,7 +505,7 @@ final class PluginLogTable
         } catch (Throwable $e) {
             // A missing index slows method-level reads; it never stops a write.
             $report(
-                'Log index "' . $index['name'] . '" could not be added to ' . $this->tableName . ' (' . $e->getCode() . ') ' . $e->getMessage(),
+                'Log index "' . $index['name'] . '" could not be added to ' . $this->tableName . ' (' . $e->getCode() . ') ' . ErrorText::of($e),
             );
         }
     }

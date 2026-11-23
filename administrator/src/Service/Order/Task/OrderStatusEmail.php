@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
@@ -117,10 +118,10 @@ class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
             throw $e;
         } catch (OrderCurrencyException $e) {
             // No e-mail states an amount of an order that names no currency: a retry meets the same refusal.
-            throw TaskFailure::failed(message: $e->getMessage(), previous: $e);
+            throw TaskFailure::failed(message: ErrorText::of($e), previous: $e);
         } catch (Throwable $e) {
             // Raised before any recipient was sent to: nothing was delivered.
-            throw TaskFailure::retry(message: $e->getMessage(), previous: $e);
+            throw TaskFailure::retry(message: ErrorText::of($e), previous: $e);
         }
 
         if ($unknown !== []) {

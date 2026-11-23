@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Event\Documents\DocumentIssuedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Documents\DocumentVoidedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
@@ -605,7 +606,7 @@ final class DocumentIssuer
                     self::reportStockDeferred(
                         documentId: $documentId,
                         number:     (string) $numberFormatted,
-                        reason:     $e->getMessage(),
+                        reason:     ErrorText::of($e),
                     );
                 }
             } else {
@@ -749,7 +750,7 @@ final class DocumentIssuer
         try {
             $currency = self::documentCurrency(order: $order);
         } catch (DocumentRefusedException $e) {
-            return $answer(false, $e->getMessage(), null, refusalKey: $e->key(), refusalValues: $e->values());
+            return $answer(false, ErrorText::of($e), null, refusalKey: $e->key(), refusalValues: $e->values());
         }
 
         try {
@@ -781,7 +782,7 @@ final class DocumentIssuer
             // where the refusal carries them.
             $refusal = DocumentRefusedException::in($e);
 
-            return $answer(false, $e->getMessage(), $currency, refusalKey: $refusal?->key() ?? '', refusalValues: $refusal?->values() ?? []);
+            return $answer(false, ErrorText::of($e), $currency, refusalKey: $refusal?->key() ?? '', refusalValues: $refusal?->values() ?? []);
         }
 
         return $answer(true, '', $currency, $normalized, self::sumTotals(lines: $normalized));
@@ -1424,7 +1425,7 @@ final class DocumentIssuer
             // "staged"; this is the line that tells a reader it went nowhere.
             self::logQuietly(
                 entry:    'DocumentIssuer: Void & Replace of ' . self::describe($source ?? $unlocked, $sourceId)
-                          . ' rolled back; nothing was voided or issued: ' . $e->getMessage(),
+                          . ' rolled back; nothing was voided or issued: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.documents',
             );
@@ -3881,14 +3882,14 @@ final class DocumentIssuer
 
             foreach ($plugins->dispatchIsolated($event) as $failure) {
                 self::logQuietly(
-                    entry:    "{$name} listener {$failure->listener} failed: " . $failure->error->getMessage(),
+                    entry:    "{$name} listener {$failure->listener} failed: " . ErrorText::of($failure->error),
                     priority: Log::ERROR,
                     category: 'com_alfa.documents',
                 );
             }
         } catch (Throwable $e) {
             self::logQuietly(
-                entry:    "{$name} listener failed: " . $e->getMessage() . "\n" . $e->getTraceAsString(),
+                entry:    "{$name} listener failed: " . ErrorText::of($e) . "\n" . $e->getTraceAsString(),
                 priority: Log::ERROR,
                 category: 'com_alfa.documents',
             );

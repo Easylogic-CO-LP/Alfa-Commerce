@@ -76,8 +76,7 @@ use Throwable;
  *
  *         $refusal = $gate::rangeRefusal(name: '<Name>', route: (string) $type, manifest: $parent->getManifest());
  *
- * in place of refusal() (a site whose Alfa Commerce has no rangeRefusal(): ask method_exists() first
- * and fall back to the extension's own minimum there).
+ * in place of refusal().
  *
  * THE POLICY. Every Alfa extension declares both min and max, max being the last line it was tested on (2.2, never a
  * patch release). One that installs on its own enforces the range in its preflight exactly as above, so its install,
@@ -286,6 +285,8 @@ final class AlfaInstallerGate
         try {
             $range = AlfaCoreRange::declaredBy(manifest: $manifest);
         } catch (InvalidArgumentException $e) {
+            // The range reader's own sentence, naming the manifest's attribute. Read as it is: the gate runs inside
+            // another extension's installation and loads no class of the component but its two readers.
             return sprintf(self::RANGE_UNREAD, $name, $e->getMessage());
         }
 

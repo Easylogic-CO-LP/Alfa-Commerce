@@ -18,7 +18,8 @@ use InvalidArgumentException;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
- * The Alfa admin menu, open for additions: fired at every alfa* plugin (onAlfaBuildMenu).
+ * The Alfa admin menu, open for additions (onAlfaBuildMenu): the alfa group is imported, and every loaded listener
+ * hears it, whatever its group.
  *
  * The core entries and headings come from menu.xml and enter through the event's constructor,
  * before any plugin is asked (the coreItems and coreSections arguments, MenuBuilder::collect());

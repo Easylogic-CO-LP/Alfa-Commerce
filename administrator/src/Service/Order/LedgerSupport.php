@@ -30,6 +30,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Site\Service\Data\PluginPayload;
@@ -593,7 +594,7 @@ trait LedgerSupport
                 throw $e;
             }
 
-            return ['detail' => 'saveToTable() failed: ' . $e->getMessage(), 'shown' => 'saveToTable() failed'];
+            return ['detail' => 'saveToTable() failed: ' . ErrorText::of($e), 'shown' => 'saveToTable() failed'];
         }
 
         return null;
@@ -887,7 +888,7 @@ trait LedgerSupport
         try {
             return StoredDecimal::of(Money::of($value === null || $value === '' ? 0 : $value, $currency));
         } catch (InvalidArgumentException | TypeError $e) {
-            self::warn(sprintf('%s of order #%d is not an amount of its money (%s); nothing was written', $field, $orderId, $e->getMessage()));
+            self::warn(sprintf('%s of order #%d is not an amount of its money (%s); nothing was written', $field, $orderId, ErrorText::of($e)));
             self::noteVerdict(kind: 'refused', code: 'amount_invalid', orderId: $orderId);
 
             return false;
@@ -994,7 +995,7 @@ trait LedgerSupport
      */
     private static function warnFailure(string $message, Throwable $failure, string $context = ''): void
     {
-        self::warn(message: $message . ': ' . $failure->getMessage(), context: $context, shown: $message);
+        self::warn(message: $message . ': ' . ErrorText::of($failure), context: $context, shown: $message);
     }
 
     /**

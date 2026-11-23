@@ -18,6 +18,7 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Search\SearchInputLayoutEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
@@ -105,7 +106,7 @@ if ($searchField && $searchField->getAttribute('data-alfa-search')) {
 				$engine = $plugins->bootSingle($enginePlugin);
 			} catch (PluginUnavailable $unavailable) {
 				$engine = null;
-				Log::add('Search input: ' . $unavailable->getMessage() . ' The stock input renders.', Log::DEBUG, 'com_alfa.search');
+				Log::add('Search input: ' . ErrorText::of($unavailable) . ' The stock input renders.', Log::DEBUG, 'com_alfa.search');
 			}
 
 			// Anything leaving the engine's own handler is its failure: the stock input renders.
@@ -113,7 +114,7 @@ if ($searchField && $searchField->getAttribute('data-alfa-search')) {
 				try {
 					$plugins->dispatchTo($engine, $inputEvent);
 				} catch (Throwable $e) {
-					Log::add('Search input: ' . $enginePlugin . ' failed (' . $e::class . ': ' . $e->getMessage() . '); the stock input renders.', Log::WARNING, 'com_alfa.search');
+					Log::add('Search input: ' . $enginePlugin . ' failed (' . $e::class . ': ' . ErrorText::of($e) . '); the stock input renders.', Log::WARNING, 'com_alfa.search');
 					$inputEvent = new SearchInputLayoutEvent('onAlfaSearchInputLayout', ['subject' => $view, 'method' => '', 'context' => 'com_alfa.' . $view->getName()]);
 				}
 			}

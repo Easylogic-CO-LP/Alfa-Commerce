@@ -326,7 +326,7 @@ class ItemConfigurationHelper
             AlfaLog::register();
             Log::add(
                 entry: 'Booting the item-fields plugin "' . (string) ($field->type ?? '') . '" failed for field #'
-                    . (int) ($field->id ?? 0) . ': ' . $e->getMessage(),
+                    . (int) ($field->id ?? 0) . ': ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.cart',
             );
@@ -380,7 +380,7 @@ class ItemConfigurationHelper
             self::$unavailableLogged[$type] = true;
             AlfaLog::register();
             Log::add(
-                entry: 'Item fields: ' . $unavailable->getMessage() . ' Its fields take no part in this request; a cart line that carries one of their compositions, or a required one, is not priced and cannot be ordered.',
+                entry: 'Item fields: ' . ErrorText::of($unavailable) . ' Its fields take no part in this request; a cart line that carries one of their compositions, or a required one, is not priced and cannot be ordered.',
                 priority: Log::WARNING,
                 category: 'com_alfa.pricing',
             );
@@ -437,7 +437,7 @@ class ItemConfigurationHelper
         AlfaLog::register();
         Log::add(
             entry: $event . ' threw in plugin "' . ($plugin instanceof LoadedPlugin ? (string) $plugin->id : (string) ($field->type ?? ''))
-                . '" for field #' . (int) ($field->id ?? 0) . ': ' . $e->getMessage(),
+                . '" for field #' . (int) ($field->id ?? 0) . ': ' . ErrorText::of($e),
             priority: Log::ERROR,
             category: 'com_alfa.cart',
         );

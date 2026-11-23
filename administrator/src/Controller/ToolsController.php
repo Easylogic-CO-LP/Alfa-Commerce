@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
@@ -92,7 +93,7 @@ class ToolsController extends BaseController
             $this->setRedirect($redirect, Text::_('COM_ALFA_DOWNLOADS_PROTECTION_CHECKED'));
         } catch (Throwable $e) {
             // The reason's own words go to the log, never to the page.
-            Log::add(entry: 'Download store protection: Check again failed: ' . $e->getMessage(), priority: Log::ERROR, category: 'com_alfa.downloads');
+            Log::add(entry: 'Download store protection: Check again failed: ' . ErrorText::of($e), priority: Log::ERROR, category: 'com_alfa.downloads');
             $this->setRedirect($redirect, Text::_('COM_ALFA_DOWNLOADS_PROTECTION_FAILED'), 'error');
         }
     }
@@ -208,7 +209,7 @@ class ToolsController extends BaseController
      */
     private function exportFailed(Throwable $error): void
     {
-        Log::add(entry: 'Package export failed: ' . $error::class . ': ' . $error->getMessage(), priority: Log::ERROR, category: 'com_alfa.tools');
+        Log::add(entry: 'Package export failed: ' . $error::class . ': ' . ErrorText::of($error), priority: Log::ERROR, category: 'com_alfa.tools');
         $this->setMessage(Text::_('COM_ALFA_TOOLS_PACKAGE_ERROR'), 'error');
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));
     }

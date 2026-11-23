@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
@@ -20,7 +21,6 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Exception;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageFactoryInterface;
@@ -755,8 +755,8 @@ class FormfieldModel extends AlfaAdminModel
      */
     public static function columnName(string $name): string
     {
-        $siteLanguage = (string) ComponentHelper::getParams('com_languages')->get('site', 'en-GB');
-        $language = Factory::getContainer()->get(LanguageFactoryInterface::class)->createLanguage($siteLanguage);
+        // The site's default language as Alfa Commerce has it, the one definition (a published content language).
+        $language = Factory::getContainer()->get(LanguageFactoryInterface::class)->createLanguage(MultilingualHelper::getDefaultLanguageCode());
 
         // As Joomla's own alias rule, with the underscore kept: a hyphen joins words, so it is read as a space first.
         $text = StringHelper::strtolower(trim((string) $language->transliterate(str_replace('-', ' ', $name))));
@@ -942,7 +942,7 @@ class FormfieldModel extends AlfaAdminModel
             $db->setQuery($query);
             $db->execute();
         } catch (Exception $e) {
-            Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
+            Factory::getApplication()->enqueueMessage(ErrorText::of($e), 'error');
         }
     }
 

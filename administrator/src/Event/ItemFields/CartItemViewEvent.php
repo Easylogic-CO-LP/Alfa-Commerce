@@ -21,7 +21,7 @@ use Joomla\Registry\Registry;
  * Cart line render hook (onCartItemView): the plugin sets a layout fragment
  * to render the customer's stored configuration on the cart line. Frontend =
  * layout only: anything (buttons, an edit link, a thumbnail) lives in the
- * layout. Same LayoutEvent contract as payments. Dispatch lands with task #7.
+ * layout. Same LayoutEvent contract as payments.
  *
  * Arguments: subject = the cart line, method = the field definition row,
  * snapshot = the stored configuration snapshot of this line+field.
@@ -67,7 +67,7 @@ class CartItemViewEvent extends LayoutEvent
     }
 
     /**
-     * The stored payload snapshot (what onValidateCartAdd accepted).
+     * The stored payload snapshot (what onPrepareForCart stored).
      *
      * @since  2.0.0
      */

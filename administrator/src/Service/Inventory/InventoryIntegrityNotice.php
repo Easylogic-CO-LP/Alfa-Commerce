@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
@@ -110,7 +111,7 @@ final class InventoryIntegrityNotice
                 );
             } catch (Throwable $e) {
                 Log::add(
-                    entry: sprintf('Inventory integrity notification for item #%d could not be written: %s', $itemId, $e->getMessage()),
+                    entry: sprintf('Inventory integrity notification for item #%d could not be written: %s', $itemId, ErrorText::of($e)),
                     priority: Log::WARNING,
                     category: 'com_alfa.inventory',
                 );
@@ -134,7 +135,7 @@ final class InventoryIntegrityNotice
             NotificationHelper::clear(dedupKey: self::key(itemId: $itemId), hard: true);
         } catch (Throwable $e) {
             Log::add(
-                entry: sprintf('Inventory integrity notification for item #%d could not be cleared: %s', $itemId, $e->getMessage()),
+                entry: sprintf('Inventory integrity notification for item #%d could not be cleared: %s', $itemId, ErrorText::of($e)),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );

@@ -271,7 +271,7 @@ class ItemController extends FormController
 
             throw new RuntimeException(Text::_('COM_ALFA_INLINE_UNSUPPORTED_FIELD'));
         } catch (Throwable $e) {
-            $this->sendInlineJson(false, $e->getMessage());
+            $this->sendInlineJson(false, ErrorText::of($e));
         }
     }
 
@@ -515,7 +515,7 @@ class ItemController extends FormController
                             $e instanceof InventoryUnitException => $e->reason === InventoryUnitException::ITEM_ARCHIVED
                                 ? Text::_('COM_ALFA_ITEM_STOCK_REASON_ARCHIVED')
                                 : Text::_('COM_ALFA_INLINE_STOCK_NOT_EDITABLE'),
-                            default => $e->getMessage(),
+                            default => ErrorText::of($e),
                         };
                     }
                 }
@@ -566,7 +566,7 @@ class ItemController extends FormController
 
             throw new RuntimeException(Text::_('COM_ALFA_INLINE_UNSUPPORTED_FIELD'));
         } catch (Throwable $e) {
-            $this->sendInlineJson(false, $e->getMessage());
+            $this->sendInlineJson(false, ErrorText::of($e));
         }
     }
 
@@ -1200,7 +1200,7 @@ class ItemController extends FormController
             $app->close();
         } catch (Throwable $e) {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => ErrorText::of($e)]);
             $app->close();
         }
     }
@@ -1379,7 +1379,7 @@ class ItemController extends FormController
         try {
             AlfaLog::register();
             Log::add(
-                sprintf('%s of item #%d: the database refused it: %s: %s', $endpoint, $itemId, $failure::class, $failure->getMessage()),
+                sprintf('%s of item #%d: the database refused it: %s: %s', $endpoint, $itemId, $failure::class, ErrorText::of($failure)),
                 Log::ERROR,
                 'com_alfa.items',
             );
@@ -1468,7 +1468,7 @@ class ItemController extends FormController
                 // (a failed query's SQL and table names among them) never reaches the page.
                 try {
                     Log::add(
-                        sprintf('Price preview of item #%d (0: a product not saved yet) failed: %s: %s', $itemId, $e::class, $e->getMessage()),
+                        sprintf('Price preview of item #%d (0: a product not saved yet) failed: %s: %s', $itemId, $e::class, ErrorText::of($e)),
                         Log::ERROR,
                         'com_alfa.prices',
                     );

@@ -131,6 +131,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
@@ -245,8 +246,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Called during cart rendering for each active method.
      *
      * Available on $event:
-     *   $event->getRequest() -> MethodViewRequest: methodId, methodType,
-     *                          methodParams, isSelected, cartTotal (Money)
+     *   $event->getRequest() -> MethodViewRequest: ->method (the Method,
+     *                          entire) and ->cart (the Cart, entire)
      *   $event->setLayout('default_cart_view')   -> Layout file in tmpl/
      *   $event->setLayoutData([...])             -> Data for the layout
      *
@@ -355,7 +356,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * UPDATE (an 'id' that exists): ONLY the columns you pass are written.
      * Every other column keeps the value it already had; defaults are NOT
-     * re-applied. So amending one field is genuinely one field:
+     * re-applied. An id no row has is refused: nothing is written and 0 is
+     * answered. So amending one field is genuinely one field:
      *
      *   $this->log(['id' => $logId, 'id_order' => $order->id, 'status' => 'refunded']);
      *   // transaction_id, amount, created_on ... all untouched
@@ -480,7 +482,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * error. Inside an open transaction a table that lacks something is left
      * as it is, and reads as "nothing logged" too.
      *
-     * @api READ ONLY: the method's own log rows, newest first.
+     * @api WRITE: the method's own log rows, newest first; the first call of a request creates or completes the log
+     *      table.
      *
      * @param int $methodId The payment/shipment method id.
      * @param array $filters Optional extra filters (see loadLogs()).
@@ -516,7 +519,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         } catch (Throwable $e) {
             $this->reportLogFailure(
                 'loadMethodLogs(): the method-level log of method #' . $methodId . ' could not be read ('
-                . $e->getCode() . ') ' . $e->getMessage(),
+                . $e->getCode() . ') ' . ErrorText::of($e),
             );
 
             return [];
@@ -550,7 +553,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                     ->where($db->quoteName($this->logMethodField) . ' = ' . $methodId),
             )->loadResult() === 1;
         } catch (Throwable $e) {
-            $this->reportLogFailure('logForMethod(): row #' . $logId . ' could not be read (' . $e->getCode() . ') ' . $e->getMessage());
+            $this->reportLogFailure('logForMethod(): row #' . $logId . ' could not be read (' . $e->getCode() . ') ' . ErrorText::of($e));
 
             return false;
         }
@@ -587,6 +590,17 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         try {
             if ($logId > 0) {
+                // An id names a row that is there: one that is not is refused, never answered as written.
+                $exists = (int) $db->setQuery(
+                    'SELECT COUNT(*) FROM ' . $db->quoteName($tableName) . ' WHERE ' . $db->quoteName('id') . ' = ' . $logId,
+                )->loadResult();
+
+                if ($exists === 0) {
+                    $this->reportLogFailure('Log row #' . $logId . ' ' . $this->logRowLabel($data) . ' not written to ' . $tableName . ': no row has that id.');
+
+                    return 0;
+                }
+
                 // UPDATE: only what the caller passed
                 $assignments = [];
 
@@ -636,7 +650,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         } catch (Throwable $e) {
             $this->reportLogFailure(
                 'Log row ' . ($logId > 0 ? '#' . $logId . ' ' : '') . $this->logRowLabel($data)
-                . ' not written to ' . $tableName . ' (' . $e->getCode() . ') ' . $e->getMessage(),
+                . ' not written to ' . $tableName . ' (' . $e->getCode() . ') ' . ErrorText::of($e),
             );
 
             return 0;
@@ -1107,7 +1121,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
             $lacks = $table->lacks();
         } catch (Throwable $e) {
             $this->reportLogFailure(
-                'Log table ' . $table->name() . ' could not be read (' . $e->getCode() . ') ' . $e->getMessage(),
+                'Log table ' . $table->name() . ' could not be read (' . $e->getCode() . ') ' . ErrorText::of($e),
             );
 
             return false;

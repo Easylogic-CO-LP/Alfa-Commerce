@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartPersistenceException;
 use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityDecision;
@@ -56,7 +57,7 @@ final class CartMessaging
         AlfaLog::register();
         Log::add(
             $operation . ' failed for cart #' . $cartId . ': '
-            . ($e instanceof CartPersistenceException ? $e->getLogDetail() : $e->getMessage()),
+            . ($e instanceof CartPersistenceException ? $e->getLogDetail() : ErrorText::of($e)),
             Log::ERROR,
             $category,
         );

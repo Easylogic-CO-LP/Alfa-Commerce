@@ -18,7 +18,7 @@
  *   'option'       an option row on the item edit
  *   'item'         the item-level field setup
  *   'order'        an order line on the admin order edit (the customer's saved
- *                  snapshot, order stage, task #7)
+ *                  snapshot, order stage)
  *
  *   public function onGetFieldActions($event) {
  *       if ($event->getScope() === 'combination') {

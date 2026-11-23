@@ -15,7 +15,7 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
 /**
  * WHO a panel request is for: the shared admin MVC's discriminator, as a pure value object.
  *
- * A panel is an admin screen an alfa* plugin owns. Every request to the shared Panel
+ * A panel is an admin screen a plugin of the alfa group owns. Every request to the shared Panel
  * controller/model/view carries three reserved params that name which plugin and which
  * of its screens is being served, the same words Joomla identifies a plugin by:
  *
@@ -29,7 +29,7 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
  *
  * This class is deliberately inert: constructing one asserts nothing and touches nothing:
  * no Input, no database, no plugin boot. RESOLUTION (reading the request, enforcing the
- * alfa* boundary, checking the plugin is live) and BOOTING both live in {@see PanelResolver},
+ * alfa group boundary, checking the plugin is live) and BOOTING both live in {@see PanelResolver},
  * so a plugin handed an identity on an event can read it and build URLs from it but can never
  * trigger a side effect through it. It is the "vars bag" idea from another shop system made an immutable value.
  *
@@ -38,7 +38,7 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
 final readonly class PanelIdentity
 {
     /**
-     * @param string $group Owning plugin group (alfa*).
+     * @param string $group Owning plugin group (alfa).
      * @param string $element Owning plugin element.
      * @param string $panel Screen id within the plugin.
      *

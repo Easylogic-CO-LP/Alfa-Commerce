@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Joomla\CMS\Factory;
@@ -111,11 +112,11 @@ class OrderstatusController extends FormController
             echo $html;
         } catch (Throwable $e) {
             Log::add(
-                entry:    'OrderstatusController::previewEmail failed: ' . $e->getMessage(),
+                entry:    'OrderstatusController::previewEmail failed: ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.orderemail',
             );
-            $this->emitPreviewError(message: $e->getMessage());
+            $this->emitPreviewError(message: ErrorText::of($e));
         }
 
         $app->close();
@@ -474,9 +475,9 @@ class OrderstatusController extends FormController
                 destinationEmail: $destination,
             );
         } catch (Throwable $e) {
-            $error = $e->getMessage();
+            $error = ErrorText::of($e);
             Log::add(
-                entry:    'OrderstatusController::sendTestEmail failed: ' . $e->getMessage(),
+                entry:    'OrderstatusController::sendTestEmail failed: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.orderemail',
             );

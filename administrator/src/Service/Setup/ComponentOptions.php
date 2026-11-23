@@ -328,23 +328,21 @@ final class ComponentOptions
     }
 
     /**
-     * Drop Joomla's cached component records (the `_system` cache group) of the site and the
-     * administrator, so the next request of either reads the row as it is now.
-     *
-     * Joomla's own Options save cleans only the cache of the client it runs in.
+     * Drop Joomla's cached component records (the `_system` cache group), so the next request of the site or the
+     * administrator reads the row as it is now. Both keep them in Joomla's cache folder (the Global Configuration's
+     * cache path, administrator/cache when none is set). Joomla's own Options save cleans them itself; every other write
+     * of the Options asks this.
      *
      * @since  2.1.0
      */
     public static function forgetCachedRecords(): void
     {
-        foreach ([JPATH_SITE . '/cache', JPATH_ADMINISTRATOR . '/cache'] as $cacheBase) {
-            try {
-                Factory::getContainer()->get(CacheControllerFactoryInterface::class)
-                    ->createCacheController('callback', ['defaultgroup' => '_system', 'cachebase' => $cacheBase])
-                    ->clean();
-            } catch (Throwable) {
-                // A cache that cannot be cleaned expires on its own; the row is right.
-            }
+        try {
+            Factory::getContainer()->get(CacheControllerFactoryInterface::class)
+                ->createCacheController('callback', ['defaultgroup' => '_system'])
+                ->clean();
+        } catch (Throwable) {
+            // A cache that cannot be cleaned expires on its own; the row is right.
         }
     }
 }

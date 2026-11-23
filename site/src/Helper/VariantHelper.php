@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CalculateItemPriceEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
@@ -568,7 +569,7 @@ final class VariantHelper
                 }
 
                 \Joomla\CMS\Log\Log::add(
-                    'Item price contribution failed (' . ($field->type ?? '?') . '): ' . $e->getMessage(),
+                    'Item price contribution failed (' . ($field->type ?? '?') . '): ' . ErrorText::of($e),
                     \Joomla\CMS\Log\Log::WARNING,
                     'com_alfa.pricing',
                 );
