@@ -33,7 +33,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseDriver;
-use Joomla\Database\ParameterType;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -1771,7 +1771,7 @@ final class DisputeLedger
         );
 
         if (!$written) {
-            throw new \RuntimeException(sprintf('The action log row of dispute #%d could not be written.', (int) $record['id']));
+            throw new RuntimeException(sprintf('The action log row of dispute #%d could not be written.', (int) $record['id']));
         }
     }
 
