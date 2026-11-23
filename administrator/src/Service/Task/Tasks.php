@@ -111,8 +111,9 @@ final class Tasks
     public const STATE_RESOLVED = 'resolved';
 
     /**
-     * A reserved state: core never sets it; an extension may. The retention rules keep a row in it KEEP_DAYS after it
-     * finished, as a resolved one, and the Tasks list offers it as a filter state.
+     * A reserved state: no code of Alfa Commerce sets it and no API offers to; a row reaches it only by a direct write
+     * of the table. The retention rules keep a row in it KEEP_DAYS after it finished, as a resolved one, and the Tasks
+     * list offers it as a filter state.
      *
      * @since  2.2.0
      */

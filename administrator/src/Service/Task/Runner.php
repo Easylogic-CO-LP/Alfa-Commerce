@@ -34,7 +34,10 @@ use Throwable;
  *
  * - A job is claimed by compare-and-set on its id (never SKIP LOCKED): the affected row count is the answer.
  * - A chunk commits the handler's domain writes, the heavy slot's renewal and the job's progress in one transaction,
- *   fenced by the claim: when either UPDATE finds the claim gone, the chunk is rolled back.
+ *   fenced by the claim: when either UPDATE finds the claim gone, the chunk is rolled back. A handler whose policy
+ *   names ownTransactions (its domain service keeps transactions of its own) works before that transaction opens and
+ *   its writes are committed by its service; the chunk's transaction then carries only the slot's renewal and the
+ *   progress, so a lost claim loses only the progress, and the handler's own claims make a second run harmless.
  * - One heavy job at a time: the heavy slot, taken by compare-and-set, renewed in every chunk, released on yield;
  *   taking it settles the running heavy rows nobody owns any more.
  * - A failed chunk is rolled back and the job retried after 30 s, doubling to an hour; failed after 8 in a row.
@@ -926,7 +929,9 @@ final class Runner
     }
 
     /**
-     * One chunk: the handler's writes, the heavy slot's renewal and the fenced progress (or finish) in one transaction.
+     * One chunk: the handler's writes, the heavy slot's renewal and the fenced progress (or finish) in one transaction;
+     * a handler whose policy names ownTransactions works before that transaction opens, its writes committed by its
+     * domain service.
      *
      * @param DatabaseDriver $db The connection.
      * @param JobHandler $handler The handler.
