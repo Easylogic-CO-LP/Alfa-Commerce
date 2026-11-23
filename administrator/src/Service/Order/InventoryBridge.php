@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CommitmentRequest;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\DefaultReservationPolicy;
@@ -1438,7 +1439,7 @@ class InventoryBridge
             }
         } catch (Throwable $e) {
             Log::add(
-                entry:    'InventoryBridge: the administrator strings could not be loaded: ' . $e->getMessage(),
+                entry:    'InventoryBridge: the administrator strings could not be loaded: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );

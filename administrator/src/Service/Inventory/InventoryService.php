@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReleasedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReservedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryRestoredEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryTransferredEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -898,7 +899,7 @@ final class InventoryService
             } catch (Throwable $e) {
                 $transactionEnded = $this->rollBackCommand(failure: $e);
                 Log::add(
-                    entry:    "Inventory expiry failed for reservation #{$id}: " . $e->getMessage(),
+                    entry:    "Inventory expiry failed for reservation #{$id}: " . ErrorText::of($e),
                     priority: Log::ERROR,
                     category: 'com_alfa.inventory',
                 );
@@ -1871,7 +1872,7 @@ final class InventoryService
             $found[$entry['key']][] = [
                 'line_id' => $entry['line_id'],
                 'code' => 'reserved_floor',
-                'text' => $refusal->getMessage(),
+                'text' => ErrorText::of($refusal),
                 'refusal' => $refusal,
             ];
         }
@@ -4904,7 +4905,7 @@ final class InventoryService
 
         $refusal = new InventoryLineUnresolvedException(command: $command, lines: $refused);
 
-        Log::add(entry: $refusal->getMessage(), priority: Log::ERROR, category: 'com_alfa.inventory');
+        Log::add(entry: ErrorText::of($refusal), priority: Log::ERROR, category: 'com_alfa.inventory');
 
         throw $refusal;
     }
@@ -4951,7 +4952,7 @@ final class InventoryService
             previous: $failure,
         );
 
-        Log::add(entry: $refusal->getMessage(), priority: Log::ERROR, category: 'com_alfa.inventory');
+        Log::add(entry: ErrorText::of($refusal), priority: Log::ERROR, category: 'com_alfa.inventory');
 
         return $refusal;
     }
@@ -5430,7 +5431,7 @@ final class InventoryService
                 }
 
                 Log::add(
-                    entry:    "Inventory allocation provider '{$entry['element']}' failed: " . $e->getMessage(),
+                    entry:    "Inventory allocation provider '{$entry['element']}' failed: " . ErrorText::of($e),
                     priority: Log::WARNING,
                     category: 'com_alfa.inventory',
                 );
@@ -6641,7 +6642,7 @@ final class InventoryService
                     'Inventory: the stock notices of item #%d%s could not be retired: %s',
                     $itemId,
                     $combinationId > 0 ? ' combination #' . $combinationId : '',
-                    $e->getMessage(),
+                    ErrorText::of($e),
                 ),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',

@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Tools\ExecuteToolActionEvent;
 use Alfa\Component\Alfa\Administrator\Event\Tools\GetToolActionsEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
@@ -445,7 +446,7 @@ final class CoreToolProvider
                 return $refused > 0 ? $message . ' ' . Text::sprintf('COM_ALFA_TOOLS_STOCK_EFFECTS_REFUSED', $refused) : $message;
             });
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -498,7 +499,7 @@ final class CoreToolProvider
             $event->setMessage($message);
             $event->setRefresh();
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -536,7 +537,7 @@ final class CoreToolProvider
             $event->setMessage($total === 0 ? Text::_('COM_ALFA_TOOLS_TASKS_PRUNE_NONE') : Text::plural('COM_ALFA_TOOLS_TASKS_PRUNE_DONE', $total));
             $event->setRefresh();
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -574,7 +575,7 @@ final class CoreToolProvider
 
             $this->stepJob(event: $event, scope: CatalogueRebuildJob::NAME, done: static fn (array $job): string => Text::sprintf('COM_ALFA_TOOLS_PROJECTIONS_DONE', $job['done']));
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -606,7 +607,7 @@ final class CoreToolProvider
                 return Text::sprintf('COM_ALFA_TOOLS_THUMBNAILS_DONE', (int) $report['made'], (int) $report['kept'], (int) $report['missing'], (int) $report['failed']);
             });
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -653,7 +654,7 @@ final class CoreToolProvider
             $event->setMessage($this->priceSetsState()['text']);
             $event->setRefresh();
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -783,7 +784,7 @@ final class CoreToolProvider
 
             $event->setMessage($message);
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -907,7 +908,7 @@ final class CoreToolProvider
             $event->setMessage(Text::_('COM_ALFA_TOOLS_BACKFILL_DONE'));
             ContentLanguageAddedNotice::afterBackfill();
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -1005,7 +1006,7 @@ final class CoreToolProvider
                 (int) ($counts['required_missing'] ?? 0),
             ));
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -1034,7 +1035,7 @@ final class CoreToolProvider
                 \count($result['removed']),
             ));
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -1053,7 +1054,7 @@ final class CoreToolProvider
 
             $event->setMessage(Text::sprintf('COM_ALFA_TOOLS_TOURS_EXPORT_DONE', \count($written), implode(', ', $written)));
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -1075,7 +1076,7 @@ final class CoreToolProvider
 
             $event->setMessage(Text::sprintf('COM_ALFA_SYNC_USERS_DONE', $users, $groups));
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 
@@ -1131,7 +1132,7 @@ final class CoreToolProvider
                 return Text::sprintf('COM_ALFA_SEARCH_REBUILD_DONE', $job['done'], $scope === [] ? Text::_('COM_ALFA_SEARCH_REBUILD_CORE_ONLY') : implode(', ', $scope));
             });
         } catch (Throwable $e) {
-            $event->setError(Text::sprintf('COM_ALFA_SEARCH_REBUILD_FAILED', $e->getMessage()));
+            $event->setError(Text::sprintf('COM_ALFA_SEARCH_REBUILD_FAILED', ErrorText::of($e)));
         }
     }
 

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Projection;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Order\NamedLock;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -213,7 +214,7 @@ final class IndexRebuildLock
             $this->db->setQuery('SELECT ' . implode(', ', array_map(fn (int $itemId): string => 'RELEASE_LOCK(' . $this->db->quote($this->name(itemId: $itemId)) . ')', $free)))->loadRow();
         } catch (Throwable $e) {
             // Each lock still ends with the connection, at the end of the request.
-            Log::add('The rebuild locks of items ' . implode(', ', $free) . ' could not be released: ' . $e->getMessage(), Log::WARNING, self::LOG_CATEGORY);
+            Log::add('The rebuild locks of items ' . implode(', ', $free) . ' could not be released: ' . ErrorText::of($e), Log::WARNING, self::LOG_CATEGORY);
         }
     }
 
@@ -286,7 +287,7 @@ final class IndexRebuildLock
         try {
             $got = $this->db->setQuery('SELECT GET_LOCK(' . $this->db->quote($name) . ', ' . $wait . ')')->loadResult();
         } catch (Throwable $e) {
-            self::log(itemId: $itemId, name: $name, why: 'could not be asked: ' . $e->getMessage());
+            self::log(itemId: $itemId, name: $name, why: 'could not be asked: ' . ErrorText::of($e));
 
             return self::FAILED;
         }
@@ -344,7 +345,7 @@ final class IndexRebuildLock
             try {
                 $this->db->setQuery('SELECT ' . implode(', ', array_map(static fn (string $name): string => 'RELEASE_LOCK(' . $name . ')', $taken)))->loadRow();
             } catch (Throwable $e) {
-                Log::add('A try for several rebuild locks could not give back the ones it took: ' . $e->getMessage(), Log::WARNING, self::LOG_CATEGORY);
+                Log::add('A try for several rebuild locks could not give back the ones it took: ' . ErrorText::of($e), Log::WARNING, self::LOG_CATEGORY);
             }
         }
 

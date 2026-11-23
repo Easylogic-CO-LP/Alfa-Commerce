@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Throwable;
 
 /**
@@ -224,7 +225,7 @@ final class SearchWriteCoordinator
                     $failures[$key . '@' . $generation->handle] = $reason;
                 }
             } catch (Throwable $e) {
-                $failures['generation:' . $generation->handle] = $e->getMessage();
+                $failures['generation:' . $generation->handle] = ErrorText::of($e);
             }
         }
 

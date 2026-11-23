@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\CatalogEntityChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Log\Log;
 use Throwable;
@@ -80,7 +81,7 @@ final class EntityChangeNotifier
         } catch (Throwable $e) {
             Log::add(
                 entry:    'EntityChangeNotifier: listeners failed for ' . \count($ids)
-                          . ' ' . $entity . ' row(s): ' . $e->getMessage(),
+                          . ' ' . $entity . ' row(s): ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.catalog',
             );

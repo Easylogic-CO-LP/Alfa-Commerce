@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -696,7 +697,7 @@ class Transition
         try {
             OrderCurrency::of(orderId: $orderId);
         } catch (OrderCurrencyException $e) {
-            return $refuse(rtrim($e->getMessage(), '.'));
+            return $refuse(rtrim(ErrorText::of($e), '.'));
         }
 
         // A status that holds a reservation takes no order with a line that
@@ -1098,7 +1099,7 @@ class Transition
             : 'the database ended the change twice to resolve a deadlock';
 
         Log::add(
-            entry:    'Transition refused for order ' . $this->orderId . ': ' . $reason . ' - ' . $failure->getMessage(),
+            entry:    'Transition refused for order ' . $this->orderId . ': ' . $reason . ' - ' . ErrorText::of($failure),
             priority: Log::WARNING,
             category: 'com_alfa.orders',
         );
@@ -1247,7 +1248,7 @@ class Transition
 
             Log::add(
                 entry:    'Transition for order ' . $this->orderId . ': the ' . $handler . ' guard could not be read; the single is written and its handler decides when it runs: '
-                          . $e::class . ': ' . $e->getMessage(),
+                          . $e::class . ': ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.orders',
             );
@@ -1354,15 +1355,15 @@ class Transition
             // a plugin's type error, a missing class, must not escape: the
             // obligation stays owed and is reported.
             $outcome['result'] = null;
-            $outcome['failure'] = $e->getMessage();
+            $outcome['failure'] = ErrorText::of($e);
 
             self::reportStockDeferred(
                 orderId:     $orderId,
                 oldStatusId: $oldStatusId,
                 toStatusId:  $toStatusId,
-                reason:      $e->getMessage(),
+                reason:      ErrorText::of($e),
                 refused:     false,
-                notice:      $e->getMessage(),
+                notice:      ErrorText::of($e),
                 noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_MSG',
             );
         }

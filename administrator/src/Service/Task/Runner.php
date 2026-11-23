@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
@@ -349,7 +350,7 @@ final class Runner
 
             return (bool) $db->setQuery(implode(' UNION ALL ', $union) . ' LIMIT 1')->loadResult();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: ' . $failure . ': ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: ' . $failure . ': ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
 
             return false;
         }
@@ -376,7 +377,7 @@ final class Runner
 
             return $db->getAffectedRows() === 1;
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the gate ' . $gate . ' could not be taken: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the gate ' . $gate . ' could not be taken: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
 
             return false;
         }
@@ -492,7 +493,7 @@ final class Runner
                 Job\PriceSetPrepareJob::enqueueFor(digest: (string) $digest);
             }
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the waiting price sets could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the waiting price sets could not be queued: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         try {
@@ -500,7 +501,7 @@ final class Runner
                 Job\StockEffectsDrainJob::enqueue();
             }
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the stock movements owed could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the stock movements owed could not be queued: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         try {
@@ -508,19 +509,19 @@ final class Runner
                 Job\CatalogueRebuildJob::enqueue();
             }
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the rebuilds owed could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the rebuilds owed could not be queued: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         try {
             Job\TasksPruneJob::owe(db: $db);
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the prune of finished tasks could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the prune of finished tasks could not be queued: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         try {
             PriceIndexSyncService::announceOpenedWindows();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the price periods that began could not be announced: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the price periods that began could not be announced: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 
@@ -673,7 +674,7 @@ final class Runner
                 . ' AND ' . $db->quoteName('value') . " > DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%d %H:%i:%s')",
             )->loadResult();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the pause could not be read; the tick does nothing: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the pause could not be read; the tick does nothing: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
 
             return true;
         }
@@ -1206,7 +1207,7 @@ final class Runner
                     ->bind(':owner', $owner),
             );
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the heavy slot stays held until its lease lapses (' . self::LEASE_SECONDS . ' s), its release failed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the heavy slot stays held until its lease lapses (' . self::LEASE_SECONDS . ' s), its release failed: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 
@@ -1237,7 +1238,7 @@ final class Runner
                     ->bind(':owner', $owner),
             );
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: job #' . $id . ' stays claimed until its lease lapses (' . self::LEASE_SECONDS . ' s), its yield failed: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: job #' . $id . ' stays claimed until its lease lapses (' . self::LEASE_SECONDS . ' s), its yield failed: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 
@@ -1315,7 +1316,7 @@ final class Runner
                     ->bind(':owner', $owner),
             );
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the failure of job #' . $id . ' could not be recorded; its lease lapses (' . self::LEASE_SECONDS . ' s): ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the failure of job #' . $id . ' could not be recorded; its lease lapses (' . self::LEASE_SECONDS . ' s): ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         Tasks::log(entry: 'Runner: job #' . $id . ' failed' . ($final ? ' for good' : ' and is retried with backoff') . ': ' . $error, priority: $final ? Log::ERROR : Log::WARNING);
@@ -1374,7 +1375,7 @@ final class Runner
                 );
             }
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the failed jobs of scope ' . $run->scopeKey . ' could not be closed by job #' . $run->id . ': ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the failed jobs of scope ' . $run->scopeKey . ' could not be closed by job #' . $run->id . ': ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 
@@ -1474,7 +1475,7 @@ final class Runner
             return $statement();
         } catch (Throwable $e) {
             $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;
-            Tasks::log(entry: 'Runner: a claim statement failed and is not taken: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: a claim statement failed and is not taken: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
 
             return false;
         }
@@ -1511,7 +1512,7 @@ final class Runner
                 ->bind(':again', $again);
             $db->setQuery($query)->execute();
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: runner.last_tick could not be written: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: runner.last_tick could not be written: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
     }
 

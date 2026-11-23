@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use RuntimeException;
 use Throwable;
 
@@ -95,6 +96,6 @@ final class CartPersistenceException extends RuntimeException
      */
     public function getLogDetail(): string
     {
-        return $this->getMessage() . ' ' . $this->getPrevious()?->getMessage();
+        return ErrorText::of($this->getMessage() . ' ' . ($this->getPrevious()?->getMessage() ?? ''));
     }
 }

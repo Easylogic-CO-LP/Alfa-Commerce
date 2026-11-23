@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -285,7 +286,7 @@ final class AlfaInstallerGate
         try {
             $range = AlfaCoreRange::declaredBy(manifest: $manifest);
         } catch (InvalidArgumentException $e) {
-            return sprintf(self::RANGE_UNREAD, $name, $e->getMessage());
+            return sprintf(self::RANGE_UNREAD, $name, ErrorText::of($e));
         }
 
         if ($range === null) {

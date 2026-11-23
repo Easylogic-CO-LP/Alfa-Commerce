@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -125,7 +126,7 @@ final class ContentLanguageAddedNotice
 
             return $new;
         } catch (Throwable $e) {
-            self::warn(message: 'The new content languages could not be read: ' . $e->getMessage());
+            self::warn(message: 'The new content languages could not be read: ' . ErrorText::of($e));
 
             return [];
         }
@@ -153,7 +154,7 @@ final class ContentLanguageAddedNotice
                     }
                 }
             } catch (Throwable $e) {
-                self::warn(message: 'The notice of the added language ' . $code . ' failed: ' . $e->getMessage());
+                self::warn(message: 'The notice of the added language ' . $code . ' failed: ' . ErrorText::of($e));
             }
         }
     }
@@ -197,7 +198,7 @@ final class ContentLanguageAddedNotice
                 }
             }
         } catch (Throwable $e) {
-            self::warn(message: 'The notices of removed content languages were not cleared: ' . $e->getMessage());
+            self::warn(message: 'The notices of removed content languages were not cleared: ' . ErrorText::of($e));
         }
     }
 
@@ -226,7 +227,7 @@ final class ContentLanguageAddedNotice
                 self::refresh(langCode: $code);
             }
         } catch (Throwable $e) {
-            self::warn(message: 'The translation counts were not brought up to date after a save: ' . $e->getMessage());
+            self::warn(message: 'The translation counts were not brought up to date after a save: ' . ErrorText::of($e));
         }
     }
 
@@ -242,7 +243,7 @@ final class ContentLanguageAddedNotice
                 self::refresh(langCode: $code);
             }
         } catch (Throwable $e) {
-            self::warn(message: 'The translation counts were not brought up to date after Backfill: ' . $e->getMessage());
+            self::warn(message: 'The translation counts were not brought up to date after Backfill: ' . ErrorText::of($e));
         }
     }
 

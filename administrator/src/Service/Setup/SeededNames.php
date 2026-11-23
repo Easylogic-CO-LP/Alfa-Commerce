@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -128,7 +129,7 @@ final class SeededNames
 
             $existing = array_flip($this->db->getTableList());
         } catch (Throwable $e) {
-            $result['errors'][$table !== '' ? $table : 'content languages'] = $e->getMessage();
+            $result['errors'][$table !== '' ? $table : 'content languages'] = ErrorText::of($e);
 
             return $result;
         }
@@ -149,7 +150,7 @@ final class SeededNames
                     existing: $existing,
                 );
             } catch (Throwable $e) {
-                $result['errors'][$base] = $e->getMessage();
+                $result['errors'][$base] = ErrorText::of($e);
             }
         }
 

@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PriceChange;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -292,7 +293,7 @@ class PriceIndexSyncService
                 [, $groupSets] = $this->alignGroupSets();
                 $this->writeIndexRows([$itemId], $this->getActiveContextCombinations(groupSets: $groupSets));
             } catch (Throwable $e) {
-                $this->logWarning("syncItem({$itemId}) failed: " . $e->getMessage());
+                $this->logWarning("syncItem({$itemId}) failed: " . ErrorText::of($e));
                 ProjectionManager::owe(itemIds: [$itemId]);
             }
         });
@@ -321,7 +322,7 @@ class PriceIndexSyncService
             try {
                 return $this->rebuildItems(itemIds: $itemIds, strict: false);
             } catch (Throwable $e) {
-                $this->logWarning('syncItems() failed: ' . $e->getMessage());
+                $this->logWarning('syncItems() failed: ' . ErrorText::of($e));
                 ProjectionManager::owe(itemIds: $itemIds);
 
                 return 0;
@@ -432,7 +433,7 @@ class PriceIndexSyncService
 
             return $this->writeIndexRows($itemIds, $this->getActiveContextCombinations(groupSets: $groupSets));
         } catch (Throwable $e) {
-            $this->logWarning("syncByDiscount({$discountId}) failed: " . $e->getMessage());
+            $this->logWarning("syncByDiscount({$discountId}) failed: " . ErrorText::of($e));
             return 0;
         }
     }
@@ -489,7 +490,7 @@ class PriceIndexSyncService
 
             return $this->writeIndexRows($itemIds, $this->getActiveContextCombinations(groupSets: $groupSets));
         } catch (Throwable $e) {
-            $this->logWarning("syncByTax({$taxId}) failed: " . $e->getMessage());
+            $this->logWarning("syncByTax({$taxId}) failed: " . ErrorText::of($e));
             return 0;
         }
     }
@@ -518,7 +519,7 @@ class PriceIndexSyncService
         try {
             return $this->alignGroupSets()[0];
         } catch (Throwable $e) {
-            $this->logWarning(message: 'syncGroupSets() failed: ' . $e->getMessage());
+            $this->logWarning(message: 'syncGroupSets() failed: ' . ErrorText::of($e));
 
             return 0;
         }
@@ -557,7 +558,7 @@ class PriceIndexSyncService
                     $this->getActiveContextCombinations(groupSets: $groupSets),
                 );
             } catch (Throwable $e) {
-                $this->logWarning('syncAll() failed: ' . $e->getMessage());
+                $this->logWarning('syncAll() failed: ' . ErrorText::of($e));
 
                 return 0;
             }
@@ -625,7 +626,7 @@ class PriceIndexSyncService
                         throw $e;
                     }
 
-                    $this->logWarning('deleteForItems() failed for a chunk of ' . \count($chunk) . ' item(s): ' . $e->getMessage());
+                    $this->logWarning('deleteForItems() failed for a chunk of ' . \count($chunk) . ' item(s): ' . ErrorText::of($e));
                 }
             }
         });
@@ -1195,7 +1196,7 @@ class PriceIndexSyncService
                     throw $e;
                 }
 
-                $this->logWarning('A chunk of the price index failed and is left to the catalogue rebuild: ' . $e->getMessage());
+                $this->logWarning('A chunk of the price index failed and is left to the catalogue rebuild: ' . ErrorText::of($e));
                 $chunkWritten = null;
             } finally {
                 $lock->release(itemIds: $granted);
@@ -1451,7 +1452,7 @@ class PriceIndexSyncService
                 try {
                     $results = $this->calculator->calculate($items, array_intersect_key($opening, array_flip($items)), $context);
                 } catch (Throwable $e) {
-                    $this->lastFailure = $e->getMessage();
+                    $this->lastFailure = ErrorText::of($e);
 
                     // The delete above already wiped this chunk's prior rows, so
                     // committing now would leave its items with partial / missing
@@ -1463,7 +1464,7 @@ class PriceIndexSyncService
                     $this->logWarning(
                         "Calculation failed for currency={$currencyId} place={$placeId} "
                         . "set={$groupSetId} at=" . ($group['start'] ?? 'now')
-                        . '; rolling this chunk back: ' . $e->getMessage(),
+                        . '; rolling this chunk back: ' . ErrorText::of($e),
                     );
 
                     return null;
@@ -1848,7 +1849,7 @@ class PriceIndexSyncService
 
             return $plugins->hasListeners(PricesChangedEvent::NAME);
         } catch (Throwable $e) {
-            Log::add('[PriceIndexSyncService] Whether anything listens to ' . PricesChangedEvent::NAME . ' could not be asked; nothing is announced: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            Log::add('[PriceIndexSyncService] Whether anything listens to ' . PricesChangedEvent::NAME . ' could not be asked; nothing is announced: ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
 
             return false;
         }
@@ -1978,7 +1979,7 @@ class PriceIndexSyncService
                 'changes' => $announcement->changes,
             ]));
         } catch (Throwable $e) {
-            Log::add('[PriceIndexSyncService] ' . PricesChangedEvent::NAME . ' was not delivered: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            Log::add('[PriceIndexSyncService] ' . PricesChangedEvent::NAME . ' was not delivered: ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
         }
     }
 
@@ -2716,7 +2717,7 @@ class PriceIndexSyncService
             }
 
             $this->chunkFailure = $e;
-            $this->logWarning(message: "Preparing set {$setId} stopped at a chunk, which was rolled back: " . $e->getMessage());
+            $this->logWarning(message: "Preparing set {$setId} stopped at a chunk, which was rolled back: " . ErrorText::of($e));
 
             return null;
         }

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
@@ -103,7 +104,7 @@ final class ExtensionCompatibility
             try {
                 $range = AlfaCoreRange::ofFile(path: self::manifestPath(entry: $entry));
             } catch (InvalidArgumentException $e) {
-                $named[] = ['key' => $entry['key'], 'name' => $extensions->displayName(entry: $entry), 'verdict' => self::NOT_STATED, 'why' => $e->getMessage()];
+                $named[] = ['key' => $entry['key'], 'name' => $extensions->displayName(entry: $entry), 'verdict' => self::NOT_STATED, 'why' => ErrorText::of($e)];
 
                 continue;
             }
