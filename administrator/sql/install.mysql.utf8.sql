@@ -1833,7 +1833,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_inventory_line_provenance` (
 
 --
 -- Each cart rule's share of each order line: the money a product or order rule took off that line, as the rules engine
--- shared the rule out, frozen at placement. The order's rule row (#__alfa_order_cart_rule) is the sum of its shares.
+-- shared the rule out, frozen at placement, or when staff add a coupon to the order. The order's rule row
+-- (#__alfa_order_cart_rule) is the sum of its shares.
 -- Documents and credits read a line's shares; a quantity change on the line rescales them. Shipping rules have none:
 -- they reduce the shipping, not a line. An order placed before these rows existed has none, and its documents share a
 -- rule out over the goods as before. Removed with its order line by the database, which is why it is created after
@@ -1852,7 +1853,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_item_cart_rule` (
   KEY `idx_order` (`id_order`),
   KEY `idx_order_cart_rule` (`id_order_cart_rule`),
   CONSTRAINT `fk_rule_share_order_item` FOREIGN KEY (`id_order_item`) REFERENCES `#__alfa_order_items` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Each cart rule''s share of each order line, frozen at placement';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Each cart rule''s share of each order line, frozen at placement and when staff add a coupon to the order (OrderCoupons)';
 
 --
 -- Table structure for table `#__alfa_order_payments`

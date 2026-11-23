@@ -52,9 +52,10 @@ use Throwable;
  * Each change is made under the order's row lock (and the rule's, for a code added, so two redemptions of its last use
  * queue), written with its history entry, and commits whole or not at all.
  *
- * Usage: OrderCoupons::add(orderId: 42, code: 'WELCOME10') answers an object {outcome, rule, ruleId}; outcome is
- * CouponOutcome::APPLIED when the code was added, otherwise the reason it was not (a CouponOutcome constant or one of
- * this class's). OrderCoupons::remove(orderId: 42, orderRuleId: 7) answers self::REMOVED or the reason it did not.
+ * Usage: OrderCoupons::add(orderId: 42, code: 'WELCOME10') answers an object {outcome, rule, ruleId, replaced}; outcome
+ * is CouponOutcome::APPLIED when the code was added, otherwise the reason it was not (a CouponOutcome constant or one
+ * of this class's); replaced names the code it took the place of, when it did. OrderCoupons::remove(orderId: 42,
+ * orderRuleId: 7) answers self::REMOVED or the reason it did not.
  *
  * @since  2.3.0
  */
@@ -329,8 +330,9 @@ final class OrderCoupons
      *
      * @param int $orderId The order.
      *
-     * @return object{coupons: list<object>, changeable: bool} Each coupon: id_order_cart_rule, code, name,
-     *                                                         value_tax_incl, discount_class, free_shipping.
+     * @return object{coupons: list<object>, changeable: bool} Each coupon: id_order_cart_rule, id_cart_rule, name,
+     *                                                         code, value_tax_incl, value_tax_excl, discount_class,
+     *                                                         free_shipping, line_shares.
      *
      * @since  2.3.0
      */
