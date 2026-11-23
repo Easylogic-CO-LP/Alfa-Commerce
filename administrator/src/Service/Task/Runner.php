@@ -1160,6 +1160,8 @@ final class Runner
      */
     private static function waitForOwner(DatabaseDriver $db, JobRun $run, string $owner, string $why): string
     {
+        // Marked here, after the step's transaction was rolled back, so the mark is kept.
+        WorkDeclarations::setEnabled(owner: $run->owner, enabled: false);
         self::yieldJob(db: $db, id: $run->id, owner: $owner);
         Tasks::log(entry: 'Runner: job #' . $run->id . ' (' . $run->handler . ') waits for its plugin: ' . $why, priority: Log::INFO);
 

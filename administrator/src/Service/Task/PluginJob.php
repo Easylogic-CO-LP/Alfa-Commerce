@@ -66,8 +66,6 @@ final class PluginJob implements JobHandler
             return $helper->bootForWork($owner);
         } catch (PluginUnavailable $e) {
             if (\in_array($e->reason, [PluginUnavailable::DISABLED, PluginUnavailable::MISSING], true)) {
-                WorkDeclarations::setEnabled(owner: (string) $owner, enabled: false);
-
                 throw new OwnerUnavailable($e->getMessage(), 0, $e);
             }
 

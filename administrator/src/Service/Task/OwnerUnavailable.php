@@ -15,7 +15,8 @@ use RuntimeException;
 
 /**
  * The plugin that owns a task or job is disabled or no longer installed: its work goes back to waiting with no attempt
- * counted, and waits until the plugin is enabled again (its declarations are marked disabled when this is thrown).
+ * counted, and waits until the plugin is enabled again (the engine marks its declarations disabled as it puts the row
+ * back).
  *
  * @since  2.3.0
  */
