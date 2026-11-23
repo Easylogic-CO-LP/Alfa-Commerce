@@ -594,7 +594,9 @@ final class Runner
         $rerun = $policy->rerunOnMerge ? 1 : 0;
         $origin = Tasks::origin();
         $userId = Tasks::userId();
-        $maxFailures = $policy->callsOut ? \count(Tasks::BACKOFF_SECONDS) : self::MAX_FAILURES;
+        // A job that calls other systems waits every step of the tasks' ladder: a failure is counted before it is
+        // compared, so it is allowed one failure more than the ladder has waits, and fails at the one after the last.
+        $maxFailures = $policy->callsOut ? \count(Tasks::BACKOFF_SECONDS) + 1 : self::MAX_FAILURES;
         $at = $notBefore === null ? null : DateTimeImmutable::createFromInterface($notBefore)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v');
         $runAfter = $at === null ? 'UTC_TIMESTAMP(3)' : 'GREATEST(UTC_TIMESTAMP(3), :runAfter)';
 
