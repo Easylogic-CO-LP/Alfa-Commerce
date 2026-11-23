@@ -1794,6 +1794,7 @@ class com_alfaInstallerScript extends InstallerScript
         if ($type === 'update')
         {
             $this->cleanCachesOnUpdate();
+            $this->uncacheFiltersModules();
         }
 
         // File integrity is verified online against the signed canonical checksums on the
@@ -3267,6 +3268,55 @@ class com_alfaInstallerScript extends InstallerScript
             if ($cleaned === false) {
                 self::maintenanceLog(line: sprintf('Update to %s: the cache group %s could not be cleaned.', self::SCHEMA_VERSION, $group), priority: \Joomla\CMS\Log\Log::WARNING);
             }
+        }
+    }
+
+    /**
+     * The filters module is never cached: what it draws depends on the page (the category or search it filters, the
+     * filters chosen), and Joomla's module cache would store one copy a module and language for every page. Its
+     * manifest declares no cache setting, so Joomla never caches it; a filters module saved while the manifest declared
+     * one keeps "cache" and "cache_time" among its parameters, which Joomla still reads, so they are dropped from every
+     * filters module here. A failure is written to the maintenance log and the update goes on.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function uncacheFiltersModules(): void
+    {
+        try
+        {
+            $db   = Factory::getContainer()->get('DatabaseDriver');
+            $rows = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'params']))
+                    ->from($db->quoteName('#__modules'))
+                    ->where($db->quoteName('module') . ' = ' . $db->quote('mod_alfa_filters'))
+            )->loadObjectList() ?: [];
+
+            foreach ($rows as $row)
+            {
+                $params = json_decode((string) $row->params, true);
+
+                if (!\is_array($params) || (!\array_key_exists('cache', $params) && !\array_key_exists('cache_time', $params)))
+                {
+                    continue;
+                }
+
+                unset($params['cache'], $params['cache_time']);
+                $db->setQuery(
+                    $db->getQuery(true)
+                        ->update($db->quoteName('#__modules'))
+                        ->set($db->quoteName('params') . ' = ' . $db->quote((string) json_encode($params)))
+                        ->where($db->quoteName('id') . ' = ' . (int) $row->id)
+                )->execute();
+            }
+        }
+        catch (\Throwable $e)
+        {
+            self::maintenanceLog(
+                line:     sprintf('Update to %s: the cache setting of the filters modules could not be dropped: %s', self::SCHEMA_VERSION, $e->getMessage()),
+                priority: \Joomla\CMS\Log\Log::WARNING,
+            );
         }
     }
 
