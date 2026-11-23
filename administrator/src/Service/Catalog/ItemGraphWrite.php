@@ -25,7 +25,6 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
-use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use RuntimeException;
 use Throwable;
