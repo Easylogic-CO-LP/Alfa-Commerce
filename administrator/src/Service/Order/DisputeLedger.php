@@ -1927,8 +1927,8 @@ final class DisputeLedger
     private function utc(string $value, string $what, bool $micro = false): string
     {
         $pattern = $micro ? '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?$/' : '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/';
-        $valid = preg_match($pattern, $value) === 1
-            && DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', substr($value, 0, 19), new DateTimeZone('UTC'))?->format('Y-m-d H:i:s') === substr($value, 0, 19);
+        $parsed = preg_match($pattern, $value) === 1 ? DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', substr($value, 0, 19), new DateTimeZone('UTC')) : false;
+        $valid = $parsed !== false && $parsed->format('Y-m-d H:i:s') === substr($value, 0, 19);
 
         if (!$valid) {
             $this->malform(code: DisputeVerdict::CODE_VALUE, sentence: sprintf('%s takes a UTC time as Y-m-d H:i:s, not "%s"', $what, $value));

@@ -1234,6 +1234,12 @@ parameters:
 			message: '#^Dead catch \- TypeError is never thrown in the try block\.$#'
 			identifier: catch.neverThrown
 			count: 1
+			path: administrator/src/Service/Order/DisputeLedger.php
+
+		-
+			message: '#^Dead catch \- TypeError is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
 			path: administrator/src/Service/Order/PaymentLedger.php
 
 		-

@@ -506,14 +506,14 @@ trait LedgerSupport
                 }
 
                 self::warnFailure(message: "lockOrders(): order #{$id} is held by another writer", failure: $e);
-                self::noteVerdict(kind: self::VERDICT_LOCK_NOT_TAKEN, code: '', orderId: $id);
+                self::noteVerdict(kind: PaymentLedger::VERDICT_LOCK_NOT_TAKEN, code: '', orderId: $id);
 
                 return false;
             }
 
             if ($locked !== $id) {
                 self::warn("lockOrders(): order #{$id} does not exist");
-                self::noteVerdict(kind: self::VERDICT_REFUSED, code: 'order_missing', orderId: $id);
+                self::noteVerdict(kind: PaymentLedger::VERDICT_REFUSED, code: 'order_missing', orderId: $id);
 
                 return false;
             }
