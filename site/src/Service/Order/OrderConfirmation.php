@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Service\Order;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -39,8 +40,8 @@ use Joomla\Database\ParameterType;
  * by e-mail or name.
  *
  * WHAT IT HOLDS. read() reads the order once, in a handful of batched reads, into the
- * value the template prints and nothing else: the number, the date, the status's name,
- * the lines with their chosen options, the summary rows (OrderSummary::rows(), the
+ * value the template prints and nothing else: the number, the date, the status's name as
+ * a customer reads it, the lines with their chosen options, the summary rows (OrderSummary::rows(), the
  * order's frozen money), the delivery and invoice addresses, the two method names the
  * order recorded, the payment state from the payments balance, the e-mail the
  * confirmation went to and whether downloads were granted. Never the phone, the notes,
@@ -78,7 +79,8 @@ final class OrderConfirmation
      * @param int $id The order id.
      * @param string $number The number the customer knows the order by (its invoice number, else its id).
      * @param string $created When the order was placed, UTC, as stored.
-     * @param string $status The order status's name in the current language.
+     * @param string $status The name a customer reads for the order's status, in the current language
+     *                       (OrderStatusHelper::customerName()).
      * @param object[] $lines Each line: name, options (each label and value), quantity, total (Money).
      * @param SummaryRow[] $summary The money summary rows.
      * @param object[] $delivery The delivery address: each field shown, label and value.
@@ -254,12 +256,7 @@ final class OrderConfirmation
             id: $orderId,
             number: EmailService::orderNumber(order: $order),
             created: (string) ($order->created ?? ''),
-            status: MultilingualHelper::getTranslatedValue(
-                id: (int) ($order->id_order_status ?? 0),
-                tableName: '#__alfa_orders_statuses',
-                primaryColumnName: 'id_orderstatus',
-                field: 'name',
-            ),
+            status: OrderStatusHelper::customerName(statusId: (int) ($order->id_order_status ?? 0)),
             lines: array_map(
                 static fn (object $item): object => (object) [
                     'name' => (string) $item->name,

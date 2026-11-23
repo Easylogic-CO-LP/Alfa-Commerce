@@ -33,7 +33,8 @@
  *    Site     {{SITE_NAME}}  {{SITE_URL}}   (also {site_name} / {site_url})
  *    Order    {order_id}  {order_number}  {order_date}  {order_total}
  *    Status   {status}            - internal name (admin-facing)
- *             {status_customer}   - customer-facing name (required)
+ *             {status_customer}   - the name customers read (the customer-facing
+ *                                   name, else the internal one)
  *    Methods  {payment_method}    - the order's chosen payment method
  *             {shipment_method}   - the order's chosen shipment method
  *    Customer {user_name}  {user_email}  {user_username}  {user_registered}

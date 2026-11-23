@@ -6,16 +6,18 @@
 
         <field name="name" type="MultilingualText"
                multilingual_table="#__alfa_orders_statuses" multilingual_pk="id_orderstatus"
-               maxlength="400" filter="safehtml" required="true" translateLabel="true"
+               maxlength="255" filter="safehtml" required="true" translateLabel="true"
                label="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME"
                description="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME_DESC"/>
 
-        <!-- Customer-facing status name. Internal `name` stays the admin
-             label; this is what {status_customer} renders in customer
-             emails. Required; no fallback. -->
+        <!-- Customer-facing status name, optional. The internal `name` stays the
+             administration's; customers read this one (the account's orders, the
+             order pages, {status_customer} in the e-mails), and where it is empty
+             in a language they read the internal name of that language
+             (OrderStatusHelper::customerName()). -->
         <field name="name_customer" type="MultilingualText"
                multilingual_table="#__alfa_orders_statuses" multilingual_pk="id_orderstatus"
-               maxlength="400" filter="safehtml" required="true" translateLabel="true"
+               maxlength="255" filter="safehtml" translateLabel="true"
                label="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME_CUSTOMER"
                description="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME_CUSTOMER_DESC"/>
 

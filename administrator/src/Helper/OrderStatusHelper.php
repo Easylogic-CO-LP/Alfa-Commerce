@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\ParameterType;
 
 /**
  * OrderStatusHelper
@@ -58,6 +59,15 @@ class OrderStatusHelper
      * @var array<string, array<int, object>>
      */
     protected static array $statusesCache = [];
+
+    /**
+     * Request-scoped cache of the names customers read, keyed "<status id>|<language tags tried>".
+     *
+     * @var array<string, string>
+     *
+     * @since  2.3.0
+     */
+    private static array $customerNames = [];
 
     /**
      * Load every status row keyed by id, ordered by the requested column.
@@ -125,6 +135,69 @@ class OrderStatusHelper
     public static function clearCache(): void
     {
         self::$statusesCache = [];
+        self::$customerNames = [];
+    }
+
+    /**
+     * The name a customer reads for a status, in one language: the customer-facing name the shop gave it in that
+     * language, else its internal name in that language; a language that has neither reads the default content
+     * language the same way. The internal name stays the administration's.
+     *
+     * Every surface a customer reads asks this, so the rule lives here alone: the account's orders and its order page,
+     * the order-completed page and the {status_customer} token of the status e-mails.
+     *
+     * @param int $statusId The status.
+     * @param string $langTag The language, as Joomla writes it ("el-GR") or as the tables do ("el_gr"); '' for the
+     *                        language of the request.
+     *
+     * @return string '' when the status has no name in either language.
+     *
+     * @since  2.3.0
+     */
+    public static function customerName(int $statusId, string $langTag = ''): string
+    {
+        if ($statusId <= 0) {
+            return '';
+        }
+
+        $tags = array_values(array_unique([
+            $langTag !== '' ? MultilingualHelper::normaliseTag(tag: $langTag) : MultilingualHelper::getCurrentLanguageTag(),
+            MultilingualHelper::getDefaultLanguageTag(),
+        ]));
+        $key = $statusId . '|' . implode(',', $tags);
+
+        if (isset(self::$customerNames[$key])) {
+            return self::$customerNames[$key];
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $name = '';
+
+        foreach ($tags as $tag) {
+            if (!MultilingualHelper::hasLanguageTable(tableName: '#__alfa_orders_statuses', langTag: $tag)) {
+                continue;
+            }
+
+            $row = $db->setQuery(
+                $db->getQuery(true)
+                    ->select('*')
+                    ->from($db->quoteName('#__alfa_orders_statuses_' . $tag))
+                    ->where($db->quoteName('id_orderstatus') . ' = :id')
+                    ->bind(':id', $statusId, ParameterType::INTEGER),
+            )->loadObject();
+
+            foreach (['name_customer', 'name'] as $column) {
+                $value = trim((string) ($row->{$column} ?? ''));
+
+                if ($value !== '') {
+                    $name = $value;
+
+                    break 2;
+                }
+            }
+        }
+
+        return self::$customerNames[$key] = $name;
     }
 
     /**
