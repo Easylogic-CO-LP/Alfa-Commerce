@@ -156,6 +156,11 @@ final class WorkCancel
                     ->bind(':id', $id, ParameterType::INTEGER),
             )->execute();
             $cancelled = $db->getAffectedRows() === 1;
+
+            if ($cancelled) {
+                WorkSettled::owe(owner: (string) $row['owner'], id: $id, reason: $reason);
+            }
+
             TransactionState::commitLevel($db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);

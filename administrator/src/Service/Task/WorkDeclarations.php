@@ -501,6 +501,33 @@ final class WorkDeclarations
     }
 
     /**
+     * From the tick's owe step: every schedule owed, of every owner (core's prune and tidy among them), asked as its
+     * job with no scope and no data ({@see DueRead::scheduleOwedWhere()}), one statement for what is owed.
+     *
+     * @param DatabaseDriver $db The connection.
+     *
+     * @since  2.3.0
+     */
+    public static function oweSchedules(DatabaseDriver $db): void
+    {
+        $owed = $db->setQuery(
+            'SELECT ' . $db->quoteName('wd.owner') . ', ' . $db->quoteName('wd.name') . ' FROM ' . $db->quoteName(self::TABLE, 'wd')
+            . ' WHERE ' . DueRead::scheduleOwedWhere(db: $db),
+        )->loadAssocList() ?: [];
+
+        foreach ($owed as $row) {
+            $owner = (string) $row['owner'];
+            $name = (string) $row['name'];
+
+            try {
+                Runner::enqueue(handler: $name, scopeKey: $name, payload: $owner === DueRead::CORE_OWNER ? [] : ['data' => []], owner: $owner);
+            } catch (Throwable $e) {
+                Tasks::log(entry: 'Background work: the schedule ' . $name . ' of ' . $owner . ' could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            }
+        }
+    }
+
+    /**
      * Forget what this request read: the next read asks the table.
      *
      * @since  2.3.0

@@ -1436,6 +1436,8 @@ final class Tasks
             PaymentAutomation::NAME => PaymentAutomation::class,
             ShipmentAutomation::NAME => ShipmentAutomation::class,
             PaymentRefundFlip::NAME => PaymentRefundFlip::class,
+            // An extension told how its task or job ended.
+            WorkSettled::NAME => WorkSettled::class,
         ];
     }
 
@@ -2245,7 +2247,10 @@ final class Tasks
      */
     public static function notifySettled(array $row, string $event, string $state, array $history, string $error = '', int $userId = 0, int $newTaskId = 0, string $reason = ''): void
     {
-        $handler = self::handler(name: (string) $row['handler'], owner: (string) ($row['owner'] ?? DueRead::CORE_OWNER));
+        $owner = (string) ($row['owner'] ?? DueRead::CORE_OWNER);
+        $handler = ($row['type'] ?? self::TYPE_SINGLE) === self::TYPE_JOB
+            ? Runner::handler(name: (string) $row['handler'], owner: $owner)
+            : self::handler(name: (string) $row['handler'], owner: $owner);
 
         if (!$handler instanceof TaskSettleListener) {
             return;
@@ -2541,7 +2546,7 @@ final class Tasks
 
                 return;
             }
-        } elseif (!self::settle(db: $db, id: $id, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay, result: $result)) {
+        } elseif (!self::settleTelling(db: $db, row: $row, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay, result: $result)) {
             $counts['lost']++;
             self::log(entry: 'Task #' . $id . ': its claim was taken over before its outcome (' . $state . ') could be recorded.', priority: Log::WARNING);
 
@@ -2555,6 +2560,51 @@ final class Tasks
             default => 'failed',
         }]++;
         self::notifySettled(row: $row, event: TaskSettlement::RUN, state: $state, history: $history, error: $error);
+    }
+
+    /**
+     * Settle a run; an extension's task that ends (done, failed, held) owes its plugin the news in the same transaction
+     * ({@see WorkSettled}).
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param array<string, mixed> $row The task.
+     * @param string $lease The claim.
+     * @param string $state The state it ends in.
+     * @param list<array<string, mixed>> $history Its history.
+     * @param string $error The last error.
+     * @param int $failures Its consecutive known failures.
+     * @param int $delay Seconds before a retry.
+     * @param string|null $result What the work reported, as JSON.
+     *
+     * @return bool False when the claim was no longer this run's.
+     *
+     * @since  2.3.0
+     */
+    private static function settleTelling(DatabaseDriver $db, array $row, string $lease, string $state, array $history, string $error, int $failures, int $delay, ?string $result): bool
+    {
+        $id = (int) $row['id'];
+
+        if ((string) $row['owner'] === DueRead::CORE_OWNER || $state === self::STATE_PENDING) {
+            return self::settle(db: $db, id: $id, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay, result: $result);
+        }
+
+        $db->transactionStart(true);
+
+        try {
+            $settled = self::settle(db: $db, id: $id, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay, result: $result);
+
+            if ($settled) {
+                WorkSettled::owe(owner: (string) $row['owner'], id: $id);
+            }
+
+            TransactionState::commitLevel($db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
+        }
+
+        return $settled;
     }
 
     /**
@@ -2721,7 +2771,32 @@ final class Tasks
                 ->bind(':error', $last);
         }
 
-        if (self::changed(db: $db, query: $query) !== 1) {
+        // An extension's task held is told to its plugin in the same transaction.
+        $tells = !$again && (string) $candidate['owner'] !== DueRead::CORE_OWNER;
+
+        if ($tells) {
+            $db->transactionStart(true);
+        }
+
+        try {
+            $changed = self::changed(db: $db, query: $query) === 1;
+
+            if ($tells && $changed) {
+                WorkSettled::owe(owner: (string) $candidate['owner'], id: $id);
+            }
+
+            if ($tells) {
+                TransactionState::commitLevel($db);
+            }
+        } catch (Throwable $e) {
+            if ($tells) {
+                TransactionState::rollBackLevel(db: $db, failure: $e);
+            }
+
+            throw $e;
+        }
+
+        if (!$changed) {
             return false;
         }
 

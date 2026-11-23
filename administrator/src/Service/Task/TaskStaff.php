@@ -500,8 +500,24 @@ final class TaskStaff
         $row = self::actionable(db: $db, id: $id);
         $history = [...Tasks::decodeHistory($row['history']), Tasks::entry(trigger: 'staff', userId: $userId, outcome: Tasks::STATE_RESOLVED, more: ['reason' => $reason])];
 
-        if (!self::close(db: $db, id: $id, history: $history)) {
-            throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
+        // Closed, and an extension's plugin told, in one transaction.
+        $db->transactionStart(true);
+
+        try {
+            if (!self::close(db: $db, id: $id, history: $history)) {
+                TransactionState::rollBackLevel(db: $db);
+
+                throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
+            }
+
+            WorkSettled::owe(owner: (string) $row['owner'], id: $id, reason: $reason);
+            TransactionState::commitLevel($db);
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
         }
 
         // Its handler records it where staff look for it (the order's timeline): who, when and why.
@@ -567,6 +583,8 @@ final class TaskStaff
 
                 throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
             }
+
+            WorkSettled::owe(owner: (string) $row['owner'], id: $id);
 
             // Recorded with the act, in its transaction (the order's timeline: who resent or ran it again).
             Tasks::notifySettled(

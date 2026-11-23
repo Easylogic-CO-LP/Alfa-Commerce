@@ -420,6 +420,7 @@ final class Runner
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName('#__alfa_items') . ' WHERE ' . self::markWithoutCatalogueJob(db: $db);
         $probes[] = DueRead::windowsProbe(db: $db, until: DueRead::windowsUntil());
         $probes[] = 'SELECT 1 FROM ' . $db->quoteName(DueRead::OUTBOUND_DELIVERIES, 'd') . ' WHERE ' . DueRead::outboundOwedWhere(db: $db);
+        $probes[] = 'SELECT 1 FROM ' . $db->quoteName(DueRead::DECLARATIONS, 'wd') . ' WHERE ' . DueRead::scheduleOwedWhere(db: $db);
 
         return $probes;
     }
@@ -537,6 +538,12 @@ final class Runner
             Job\OutboundDeliveryJob::owe(db: $db);
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the deliveries owed to the consumers of the shop\'s changes could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+        }
+
+        try {
+            WorkDeclarations::oweSchedules(db: $db);
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Runner: the scheduled jobs could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
         }
 
         try {
@@ -882,6 +889,11 @@ final class Runner
             return 'lost';
         }
 
+        // Cancelled while it ran, and its worker stopped: settled cancelled at the claim, no step run.
+        if ((int) $row['cancel_requested'] === 1) {
+            return self::settleCancelled(db: $db, id: $id, owner: $owner, jobOwner: (string) $row['owner'], handler: (string) $row['handler']);
+        }
+
         $handler = self::handler(name: (string) $row['handler'], owner: (string) $row['owner']);
 
         if ($handler === null) {
@@ -927,7 +939,7 @@ final class Runner
         try {
             $total = max(0, $handler->total($run));
         } catch (Throwable $e) {
-            self::fail(db: $db, id: $id, owner: $owner, error: Tasks::failureLine($e, $id));
+            self::fail(db: $db, id: $id, owner: $owner, error: Tasks::failureLine($e, $id), failure: $e, longLadder: $policy->callsOut);
             $tally['failed']++;
 
             return 'failed';
@@ -1000,7 +1012,7 @@ final class Runner
                 return self::waitForOwner(db: $db, run: $run, owner: $owner, why: $e->getMessage());
             } catch (Throwable $e) {
                 $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;
-                self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id));
+                self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id), failure: $e, longLadder: $handler->policy()->callsOut);
                 $tally['failed']++;
 
                 return 'failed';
@@ -1027,15 +1039,22 @@ final class Runner
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;
-            self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id));
+            self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id), failure: $e, longLadder: $handler->policy()->callsOut);
             $tally['failed']++;
 
             return 'failed';
         }
 
         if (!$kept) {
-            // The claim is another tick's now: nothing of this chunk is kept.
+            // Cancelled while this step ran: the step keeps nothing (a step that calls other systems moves no
+            // bookmark), and the job is settled cancelled now that its step has ended.
             TransactionState::rollBackLevel($db);
+
+            if (self::cancelRequested(db: $db, id: $run->id, owner: $owner)) {
+                return self::settleCancelled(db: $db, id: $run->id, owner: $owner, jobOwner: $run->owner, handler: $run->handler);
+            }
+
+            // The claim is another tick's now: nothing of this chunk is kept.
             $tally['lost']++;
             Tasks::log(entry: 'Runner: job #' . $run->id . ' (' . $run->handler . '): its lease passed to another tick; the chunk was rolled back.', priority: Log::WARNING);
 
@@ -1047,13 +1066,95 @@ final class Runner
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;
-            self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id));
+            self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id), failure: $e, longLadder: $handler->policy()->callsOut);
             $tally['failed']++;
 
             return 'failed';
         }
 
         return $chunk;
+    }
+
+    /**
+     * Whether a job this claim still holds was cancelled while it ran.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param int $id The job.
+     * @param string $owner The claim.
+     *
+     * @since  2.3.0
+     */
+    private static function cancelRequested(DatabaseDriver $db, int $id, string $owner): bool
+    {
+        return (bool) $db->setQuery(
+            'SELECT 1 FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING)
+            . ' AND ' . $db->quoteName('lease_owner') . ' = ' . $db->quote($owner) . ' AND ' . $db->quoteName('cancel_requested') . ' = 1',
+        )->loadResult();
+    }
+
+    /**
+     * Settle a job cancelled while it ran, once no step of it runs any more: cancelled, its lease cleared, so its scope
+     * is free only now; its plugin told in the same transaction. A request of the same scope that came after the cancel
+     * joined the running row (rerun): the cancelled walk goes, and that request's walk starts from the beginning now,
+     * never beside the cancelled step.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param int $id The job.
+     * @param string $owner The claim.
+     * @param string $jobOwner Whose work it is.
+     * @param string $handler Its name, for the log.
+     *
+     * @return string cancelled, or lost when the claim is no longer this tick's.
+     *
+     * @since  2.3.0
+     */
+    private static function settleCancelled(DatabaseDriver $db, int $id, string $owner, string $jobOwner, string $handler): string
+    {
+        $rerun = $db->quoteName('rerun') . ' = 1';
+        $db->transactionStart(true);
+
+        try {
+            // rerun is read before it is cleared: assignments run left to right on both release databases.
+            $settled = Tasks::changed(
+                db: $db,
+                query: $db->getQuery(true)
+                    ->update($db->quoteName(Tasks::TABLE))
+                    ->set($db->quoteName('state') . ' = IF(' . $rerun . ', ' . $db->quote(Tasks::STATE_PENDING) . ', ' . $db->quote(Tasks::STATE_CANCELLED) . ')')
+                    ->set($db->quoteName('checkpoint') . ' = IF(' . $rerun . ', NULL, ' . $db->quoteName('checkpoint') . ')')
+                    ->set($db->quoteName('done_units') . ' = IF(' . $rerun . ', 0, ' . $db->quoteName('done_units') . ')')
+                    ->set($db->quoteName('run_after') . ' = IF(' . $rerun . ', UTC_TIMESTAMP(3), ' . $db->quoteName('run_after') . ')')
+                    ->set($db->quoteName('finished_at') . ' = IF(' . $rerun . ', NULL, UTC_TIMESTAMP(3))')
+                    ->set($db->quoteName('cancel_requested') . ' = IF(' . $rerun . ', 0, 1)')
+                    ->set($db->quoteName('rerun') . ' = 0')
+                    ->set($db->quoteName('lease_owner') . ' = NULL')
+                    ->set($db->quoteName('lease_until') . ' = NULL')
+                    ->set($db->quoteName('updated_at') . ' = UTC_TIMESTAMP(3)')
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->where($db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING))
+                    ->where($db->quoteName('lease_owner') . ' = :owner')
+                    ->where($db->quoteName('cancel_requested') . ' = 1')
+                    ->bind(':id', $id, ParameterType::INTEGER)
+                    ->bind(':owner', $owner),
+            ) === 1;
+            $cancelled = $settled && (string) $db->setQuery('SELECT ' . $db->quoteName('state') . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadResult() === Tasks::STATE_CANCELLED;
+
+            if ($cancelled) {
+                WorkSettled::owe(owner: $jobOwner, id: $id);
+            }
+
+            TransactionState::commitLevel($db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+            Tasks::log(entry: 'Runner: job #' . $id . ' (' . $handler . ') could not be settled cancelled; its lease lapses and the next claim settles it: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+
+            return 'lost';
+        }
+
+        if ($settled) {
+            Tasks::log(entry: 'Runner: job #' . $id . ' (' . $handler . ' of ' . $jobOwner . ') ' . ($cancelled ? 'was cancelled; its step had ended.' : 'was cancelled and asked again: it starts again from the beginning.'), priority: Log::INFO);
+        }
+
+        return $settled ? 'cancelled' : 'lost';
     }
 
     /**
@@ -1124,6 +1225,8 @@ final class Runner
             ->where($db->quoteName('id') . ' = :id')
             ->where($db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING))
             ->where($db->quoteName('lease_owner') . ' = :owner')
+            // A job cancelled while it runs moves no bookmark and does not finish: the runner settles it cancelled.
+            ->where($db->quoteName('cancel_requested') . ' = 0')
             ->bind(':units', $done, ParameterType::INTEGER)
             ->bind(':total', $total, ParameterType::INTEGER)
             ->bind(':id', $id, ParameterType::INTEGER)
@@ -1140,12 +1243,19 @@ final class Runner
         }
 
         if (Tasks::changed(db: $db, query: $query) === 1) {
+            // An extension's job done (not run again) tells its plugin, in this transaction.
+            if ($chunk->finished && $run->owner !== DueRead::CORE_OWNER
+                && (string) $db->setQuery('SELECT ' . $db->quoteName('state') . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadResult() === Tasks::STATE_DONE) {
+                WorkSettled::owe(owner: $run->owner, id: $id);
+            }
+
             return true;
         }
 
         // A row matched but left as it was (the same millisecond) changes nothing: asked under its lock.
         return !$chunk->finished && self::stillOwned(db: $db, sql: 'SELECT 1 FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id
-            . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' AND ' . $db->quoteName('lease_owner') . ' = ' . $db->quote($owner) . ' FOR UPDATE');
+            . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' AND ' . $db->quoteName('lease_owner') . ' = ' . $db->quote($owner)
+            . ' AND ' . $db->quoteName('cancel_requested') . ' = 0 FOR UPDATE');
     }
 
     /**
@@ -1357,33 +1467,42 @@ final class Runner
     }
 
     /**
-     * Record a failed chunk (already rolled back): one more failure, retried after 30 s doubling to an hour, failed
-     * for staff once failures reach max_failures (or at once when $final), the lease cleared.
+     * Record a failed chunk (already rolled back): one more failure, retried after 30 s doubling to an hour, or on the
+     * tasks' ladder (1 min to 24 h) for a job whose steps call other systems, at least as long as the failure asked;
+     * failed for staff once failures reach max_failures, or at once when no retry can help (no handler, or a failure
+     * that says so); the lease cleared. An extension's job that fails tells its plugin in the same transaction.
      *
      * @param DatabaseDriver $db The connection.
      * @param int $id The job.
      * @param string $owner The claim.
      * @param string $error What failed.
      * @param bool $final Whether no retry can help (no handler).
+     * @param Throwable|null $failure What failed: a TaskFailure says whether a retry can help and how long to wait.
+     * @param bool $longLadder Whether the job waits the tasks' ladder between tries.
      *
      * @since  2.2.0
      */
-    private static function fail(DatabaseDriver $db, int $id, string $owner, string $error, bool $final = false): void
+    private static function fail(DatabaseDriver $db, int $id, string $owner, string $error, bool $final = false, ?Throwable $failure = null, bool $longLadder = false): void
     {
         $error = mb_substr($error !== '' ? $error : 'unknown failure', 0, 1000);
+        $final = $final || ($failure instanceof TaskFailure && $failure->kind === TaskFailure::FAILED);
         $gone = $final ? '1' : $db->quoteName('failures') . ' >= ' . $db->quoteName('max_failures');
+        $step = $longLadder
+            ? 'ELT(LEAST(' . $db->quoteName('failures') . ', ' . \count(Tasks::BACKOFF_SECONDS) . '), ' . implode(', ', Tasks::BACKOFF_SECONDS) . ')'
+            : 'LEAST(' . self::BACKOFF_CAP_SECONDS . ', ' . self::BACKOFF_SECONDS . ' * POW(2, ' . $db->quoteName('failures') . ' - 1))';
+        $wait = 'GREATEST(' . ($failure instanceof TaskFailure ? $failure->after : 0) . ', ' . $step . ')';
 
         try {
+            $db->transactionStart(true);
             // failures first: the later assignments read the new count (left to right on both release databases).
-            Tasks::changed(
+            $changed = Tasks::changed(
                 db: $db,
                 query: $db->getQuery(true)
                     ->update($db->quoteName(Tasks::TABLE))
                     ->set($db->quoteName('failures') . ' = ' . $db->quoteName('failures') . ' + 1')
                     ->set($db->quoteName('state') . ' = IF(' . $gone . ', ' . $db->quote(Tasks::STATE_FAILED) . ', ' . $db->quote(Tasks::STATE_PENDING) . ')')
                     ->set($db->quoteName('finished_at') . ' = IF(' . $gone . ', UTC_TIMESTAMP(3), NULL)')
-                    ->set($db->quoteName('run_after') . ' = IF(' . $gone . ', ' . $db->quoteName('run_after') . ', UTC_TIMESTAMP(3) + INTERVAL LEAST('
-                        . self::BACKOFF_CAP_SECONDS . ', ' . self::BACKOFF_SECONDS . ' * POW(2, ' . $db->quoteName('failures') . ' - 1)) SECOND)')
+                    ->set($db->quoteName('run_after') . ' = IF(' . $gone . ', ' . $db->quoteName('run_after') . ', UTC_TIMESTAMP(3) + INTERVAL ' . $wait . ' SECOND)')
                     ->set($db->quoteName('last_error') . ' = :error')
                     // A failure recorded is a claim that settled: the count of the claims that did not goes with it.
                     ->set($db->quoteName('checkpoint') . ' = IF(JSON_VALID(' . $db->quoteName('checkpoint') . '), JSON_REMOVE(' . $db->quoteName('checkpoint')
@@ -1398,7 +1517,18 @@ final class Runner
                     ->bind(':id', $id, ParameterType::INTEGER)
                     ->bind(':owner', $owner),
             );
+
+            if ($changed === 1) {
+                $ended = $db->setQuery('SELECT ' . $db->quoteName('owner') . ', ' . $db->quoteName('state') . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadAssoc();
+
+                if (\is_array($ended) && $ended['state'] === Tasks::STATE_FAILED) {
+                    WorkSettled::owe(owner: (string) $ended['owner'], id: $id);
+                }
+            }
+
+            TransactionState::commitLevel($db);
         } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
             Tasks::log(entry: 'Runner: the failure of job #' . $id . ' could not be recorded; its lease lapses (' . self::LEASE_SECONDS . ' s): ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
         }
 
@@ -1445,7 +1575,7 @@ final class Runner
             foreach ($failed as $row) {
                 $history = Tasks::encodeHistory([...Tasks::decodeHistory($row['history']), Tasks::entry(trigger: $trigger, userId: Tasks::userId(), outcome: 'closed', more: ['job' => $id])]);
                 $failedId = (int) $row['id'];
-                Tasks::changed(
+                $closed = Tasks::changed(
                     db: $db,
                     query: $db->getQuery(true)
                         ->update($db->quoteName(Tasks::TABLE))
@@ -1459,6 +1589,10 @@ final class Runner
                         ->bind(':history', $history)
                         ->bind(':id', $failedId, ParameterType::INTEGER),
                 );
+
+                if ($closed === 1) {
+                    WorkSettled::owe(owner: $runOwner, id: $failedId);
+                }
             }
         } catch (Throwable $e) {
             Tasks::log(entry: 'Runner: the failed jobs of scope ' . $run->scopeKey . ' could not be closed by job #' . $run->id . ': ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
