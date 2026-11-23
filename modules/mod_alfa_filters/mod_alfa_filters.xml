@@ -338,6 +338,43 @@
                 </field>
 
                 <field
+                        name="group_length"
+                        type="number"
+                        label="MOD_ALFAFILTERS_GROUP_LENGTH_LBL"
+                        description="MOD_ALFAFILTERS_GROUP_LENGTH_DESC"
+                        default="8"
+                        min="0"
+                        filter="integer"
+                />
+
+                <field
+                        name="group_lengths"
+                        type="subform"
+                        multiple="true"
+                        layout="joomla.form.field.subform.repeatable-table"
+                        buttons="add,remove"
+                        label="MOD_ALFAFILTERS_GROUP_LENGTHS_LBL"
+                        description="MOD_ALFAFILTERS_GROUP_LENGTHS_DESC"
+                >
+                    <form>
+                        <field
+                                name="group"
+                                type="FilterGroup"
+                                addfieldprefix="Alfa\Module\AlfaFilters\Site\Field"
+                                label="MOD_ALFAFILTERS_GROUP_LENGTHS_GROUP"
+                        />
+                        <field
+                                name="length"
+                                type="number"
+                                label="MOD_ALFAFILTERS_GROUP_LENGTHS_LENGTH"
+                                default="8"
+                                min="0"
+                                filter="integer"
+                        />
+                    </form>
+                </field>
+
+                <field
                         name="group_search"
                         type="radio"
                         label="MOD_ALFAFILTERS_GROUP_SEARCH_LBL"

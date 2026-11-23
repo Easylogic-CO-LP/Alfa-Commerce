@@ -1115,6 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.groupQueries ??= new Map();
 
             this.closedGroups ??= new Set();
+            this.expandedGroups ??= new Set();
 
             if (!this._groupsBound) {
                 this._groupsBound = true;
@@ -1126,6 +1127,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (toggle) {
                         this.toggleGroup(toggle);
+                    }
+
+                    const more = event.target.closest('[data-af-more-toggle]');
+
+                    if (more) {
+                        this.toggleMore(more);
                     }
                 });
 
@@ -1155,9 +1162,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const query = this.groupQueries.get(group.dataset.afGroup);
                 const toggle = qs('.af-group-toggle', group);
 
+                const more = qs('[data-af-more-toggle]', group);
+
                 if (toggle && this.closedGroups.has(group.dataset.afGroup)) {
                     toggle.setAttribute('aria-expanded', 'false');
                     group.setAttribute('data-af-closed', '');
+                }
+
+                if (more && this.expandedGroups.has(group.dataset.afGroup)) {
+                    more.setAttribute('aria-expanded', 'true');
+                    group.setAttribute('data-af-expanded', '');
                 }
 
                 if (input && query) {
@@ -1188,6 +1202,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.closedGroups.delete(group.dataset.afGroup);
             } else {
                 this.closedGroups.add(group.dataset.afGroup);
+            }
+        }
+
+        /**
+         * Show a group's options past its length, or hide them again, and remember it across
+         * the refresh.
+         *
+         * @param {HTMLButtonElement} more The group's Show more / Show less button.
+         */
+        toggleMore(more) {
+            const group = more.closest('[data-af-group]');
+
+            if (!group) {
+                return;
+            }
+
+            const expanded = more.getAttribute('aria-expanded') !== 'true';
+
+            more.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            group.toggleAttribute('data-af-expanded', expanded);
+
+            if (expanded) {
+                this.expandedGroups.add(group.dataset.afGroup);
+            } else {
+                this.expandedGroups.delete(group.dataset.afGroup);
             }
         }
 

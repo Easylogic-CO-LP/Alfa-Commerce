@@ -53,9 +53,27 @@ ob_start();
 require ModuleHelper::getLayoutPath('mod_alfa_filters', 'default_arrow');
 $arrowSvg = ob_get_clean();
 
-// Recursive category rendering with <ul>/<li> and depth classes
-$renderCategories = function (array $categories, array $activeCategories, int $depth = 0) use (
+// Whether a category, or any category under it, is ticked.
+$hasTicked = static function ($category, array $activeCategories) use (&$hasTicked): bool {
+    if (\in_array((int) $category->id, $activeCategories)) {
+        return true;
+    }
+
+    foreach ((array) ($category->children ?? []) as $child) {
+        if ($hasTicked($child, $activeCategories)) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+// Recursive category rendering with <ul>/<li> and depth classes. Past the group's length
+// (top level only, $moreFrom options shown) a category is marked data-af-more, unless it or
+// a category under it is ticked: a shopper's own choice is never hidden.
+$renderCategories = function (array $categories, array $activeCategories, int $depth = 0, int $moreFrom = PHP_INT_MAX) use (
     &$renderCategories,
+    $hasTicked,
     $includeSubcategories,
     $arrowSvg,
     $moduleId
@@ -65,6 +83,7 @@ $renderCategories = function (array $categories, array $activeCategories, int $d
 
     foreach ($categories as $category) {
         $index++;
+        $more = $depth === 0 && $index > $moreFrom && !$hasTicked($category, $activeCategories);
         $catId = (int) $category->id;
         $inputId = 'af-' . $moduleId . '-cat-' . $catId;
         $checked = in_array($catId, $activeCategories) ? 'checked' : '';
@@ -76,7 +95,7 @@ $renderCategories = function (array $categories, array $activeCategories, int $d
             $liClasses .= ' parent';
         }
 
-        $html .= '<li class="' . $liClasses . '" data-id="' . $catId . '">';
+        $html .= '<li class="' . $liClasses . '" data-id="' . $catId . '"' . ($more ? ' data-af-more' : '') . '>';
         $html .= '<div class="af-option">';
 
         $html .= '<input type="checkbox" name="filter[category][]" value="' . $catId . '" '
@@ -124,6 +143,14 @@ $countCategories = static function (array $categories) use (&$countCategories): 
 };
 
 $esc = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+
+// The position after which a group's options wait behind Show more: its own length, else
+// the module's; none when the group has no length or holds at most one option past it.
+$moreFrom = static function (string $sectionKey, int $options) use ($groupSettings): int {
+    $length = (int) ($groupSettings['lengths'][$sectionKey] ?? $groupSettings['length']);
+
+    return $length > 0 && $options > $length + 1 ? $length : PHP_INT_MAX;
+};
 
 ?>
 
@@ -194,6 +221,7 @@ $esc = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTE
                 'activeGroups' => (array) ($alfa_active_filters['groups'][$fieldId] ?? []),
                 'fieldType' => (string) ($fieldData['type'] ?? ''),
                 'groupValues' => (bool) ($fieldData['group_default'] ?? false),
+                'groupLength' => (int) ($groupSettings['lengths'][$afSectionKey] ?? $groupSettings['length']),
             ],
             JPATH_SITE . '/modules/mod_alfa_filters/tmpl',
         );
@@ -212,9 +240,10 @@ $esc = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTE
 
         if ($afSectionKey === 'category') {
             $optionCount = $countCategories($options);
-            $optionsHtml = $renderCategories($options, $alfa_active_filters['category'] ?? [], 0);
+            $optionsHtml = $renderCategories($options, $alfa_active_filters['category'] ?? [], 0, $moreFrom($afSectionKey, \count($options)));
         } else {
             $optionCount = \count($options);
+            $mMoreFrom = $moreFrom($afSectionKey, $optionCount);
             ob_start(); ?>
             <ul class="af-list">
             <?php $mIndex = 0;
@@ -226,7 +255,7 @@ $esc = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTE
                 $isChecked = in_array($manufacturerId, $alfa_active_filters['manufacturer'] ?? []);
                 $inputId = 'af-' . $moduleId . '-mfr-' . (int) $manufacturerId;
                 ?>
-                <li class="af-item af-item-<?= $mIndex ?> depth-0" data-id="<?= (int) $manufacturerId ?>">
+                <li class="af-item af-item-<?= $mIndex ?> depth-0" data-id="<?= (int) $manufacturerId ?>"<?= $mIndex > $mMoreFrom && !$isChecked ? ' data-af-more' : '' ?>>
                     <div class="af-option">
                         <input
                             type="checkbox"
@@ -245,6 +274,8 @@ $esc = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTE
     }
 
     $groupId = 'af-' . $moduleId . '-' . $groupName;
+    // The options each layout marked as waiting behind Show more.
+    $moreCount = substr_count($optionsHtml, ' data-af-more');
     ?>
     <fieldset class="<?= $groupClass ?>" data-af-group="<?= $esc($groupName) ?>"<?= $groupAttr ?>>
         <?php // The heading is the group's opener: a button inside the legend, so the group
@@ -273,11 +304,21 @@ $esc = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTE
                 </div>
             <?php endif; ?>
 
-            <div class="af-group-options"<?= $optionsAttr ?>>
+            <div class="af-group-options" id="<?= $esc($groupId . '-options') ?>"<?= $optionsAttr ?>>
                 <?= $optionsHtml ?>
             </div>
 
             <p class="af-group-empty" data-af-search-empty hidden><?= $esc(Text::_('MOD_ALFAFILTERS_GROUP_NOTHING_FOUND')) ?></p>
+
+            <?php // One button shows the options past the group's length and hides them again;
+                  // filters.js turns it and marks the group (data-af-expanded), the stylesheet
+                  // shows the marked options and the button's matching words. ?>
+            <?php if ($moreCount > 0): ?>
+                <button type="button" class="af-more" aria-expanded="false" aria-controls="<?= $esc($groupId . '-options') ?>" data-af-more-toggle>
+                    <span class="af-more-show"><?= $esc(Text::sprintf('MOD_ALFAFILTERS_GROUP_SHOW_MORE', $moreCount)) ?></span>
+                    <span class="af-more-hide"><?= $esc(Text::_('MOD_ALFAFILTERS_GROUP_SHOW_LESS')) ?></span>
+                </button>
+            <?php endif; ?>
         </div>
     </fieldset>
 <?php endforeach; ?>

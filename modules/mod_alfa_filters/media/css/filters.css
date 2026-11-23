@@ -809,6 +809,36 @@ html.alfa-filters-noscroll {
 }
 
 /*
+ * Option groups: Show more / Show less
+ */
+
+/* Past the group's length an option waits until the group is opened out, or searched. */
+.mod-alfa-filters [data-af-group]:not([data-af-expanded], [data-af-filtering]) .af-item[data-af-more] {
+    display: none;
+}
+
+.mod-alfa-filters .af-more {
+    align-self: flex-start;
+    margin: 0;
+    padding: var(--alfa-filters-space-xs) 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--alfa-filters-text-sm);
+    font-weight: var(--alfa-filters-weight-medium);
+    color: var(--alfa-filters-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.mod-alfa-filters .af-more[aria-expanded="true"] .af-more-show,
+.mod-alfa-filters .af-more[aria-expanded="false"] .af-more-hide,
+.mod-alfa-filters [data-af-filtering] .af-more {
+    display: none;
+}
+
+/*
  * Option groups: the search box
  */
 
