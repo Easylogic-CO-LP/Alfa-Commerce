@@ -156,7 +156,7 @@ final class IdempotencyKeys
     {
         $db = self::db();
         $hash = hash('sha256', $key);
-        $json = json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $json = json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
         $db->setQuery(
             $db->getQuery(true)
                 ->update($db->quoteName(self::TABLE))
