@@ -18,6 +18,7 @@
  *   order.saveOrderItem        - Order item CRUD (form POST)
  *   order.previewOrderItem     - Order item save dry run, the popup's preview (AJAX POST)
  *   order.searchProducts       - Product search (AJAX)
+ *   order.sendPaymentLink      - The order's payment link e-mailed to its customer (form POST)
  *
  * @since  1.0.0
  */
@@ -27,6 +28,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
+use Alfa\Component\Alfa\Administrator\Helper\ActionLogHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
@@ -50,8 +52,10 @@ use Alfa\Component\Alfa\Administrator\Service\Document\OrderChargeLines;
 use Alfa\Component\Alfa\Administrator\Service\Document\OrderItemLines;
 use Alfa\Component\Alfa\Administrator\Service\Document\VoidAndReplace;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
+use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
+use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceAction;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceCommand;
@@ -1581,6 +1585,87 @@ class OrderController extends FormController
         }
 
         $this->setRedirect(Route::_($redirect, false));
+    }
+
+    /**
+     * E-mail the customer the order's payment link: the payments panel's "Send payment link" button.
+     *
+     * POST with the form token (the button posts the page's sibling form, alfa-order-credit-form), Orders: Edit. The
+     * order must be one its customer may pay again (PayAgain::verdict(), the rule the confirmation page and the order
+     * e-mail read); the link it carries is the confirmation page's Pay now, so every use of it is checked again. Staff
+     * never pay here: the customer pays on the shop's payment page. A sent link is written to Joomla's User Actions
+     * Log; the operator reads the outcome at once.
+     *
+     * @since  2.3.0
+     */
+    public function sendPaymentLink(): void
+    {
+        $this->checkToken();
+        $this->assertCanEdit();
+
+        $app = $this->app;
+        $orderId = RequestScalar::int($this->input, 'id_order');
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false));
+
+        $verdict = PayAgain::verdict(orderId: $orderId);
+
+        if ($verdict !== PayAgain::OPEN) {
+            $app->enqueueMessage(Text::_(match ($verdict) {
+                PayAgain::NOTHING_DUE => 'COM_ALFA_ORDER_PAYMENT_LINK_REFUSED_NOTHING_DUE',
+                PayAgain::CLOSED => 'COM_ALFA_ORDER_PAYMENT_LINK_REFUSED_CLOSED',
+                PayAgain::HELD => 'COM_ALFA_ORDER_PAYMENT_LINK_REFUSED_HELD',
+                PayAgain::REFUND => 'COM_ALFA_ORDER_PAYMENT_LINK_REFUSED_REFUND',
+                PayAgain::GATEWAY => 'COM_ALFA_ORDER_PAYMENT_LINK_REFUSED_GATEWAY',
+                default => 'COM_ALFA_ORDER_PAYMENT_LINK_REFUSED_NOT_AVAILABLE',
+            }), 'warning');
+
+            return;
+        }
+
+        // The operator's sentences are read now: the e-mail loads the order's language over this request's.
+        $said = [
+            EmailService::OUTCOME_SENT => Text::_('COM_ALFA_ORDER_PAYMENT_LINK_SENT'),
+            EmailService::OUTCOME_UNKNOWN => Text::_('COM_ALFA_ORDER_PAYMENT_LINK_UNKNOWN'),
+            EmailService::OUTCOME_MAIL_OFF => Text::_('COM_ALFA_ORDER_PAYMENT_LINK_MAIL_OFF'),
+            EmailService::OUTCOME_FAILED => Text::_('COM_ALFA_ORDER_PAYMENT_LINK_FAILED'),
+            'no_address' => Text::_('COM_ALFA_ORDER_PAYMENT_LINK_NO_ADDRESS'),
+        ];
+
+        try {
+            $sent = EmailService::sendPaymentLink(orderId: $orderId);
+        } catch (Throwable $e) {
+            $app->enqueueMessage(sprintf($said[EmailService::OUTCOME_FAILED], htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8')), 'error');
+
+            return;
+        }
+
+        $recipient = htmlspecialchars($sent['recipient'], ENT_QUOTES, 'UTF-8');
+
+        // Sent, or handed over with no answer and so perhaps delivered: either is on the record.
+        if ($sent['outcome'] === EmailService::OUTCOME_SENT || $sent['outcome'] === EmailService::OUTCOME_UNKNOWN) {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $order = $db->setQuery('SELECT * FROM ' . $db->quoteName('#__alfa_orders') . ' WHERE ' . $db->quoteName('id') . ' = ' . $orderId)->loadObject();
+
+            ActionLogHelper::write(
+                extension: 'com_alfa',
+                languageKey: 'COM_ALFA_ACTIONLOG_ORDER_PAYMENT_LINK_SENT',
+                facts: [
+                    'title' => \is_object($order) ? EmailService::orderNumber(order: $order) : '#' . $orderId,
+                    'itemlink' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'email' => $sent['recipient'],
+                ],
+                itemId: $orderId,
+                actor: $app->getIdentity(),
+            );
+        }
+
+        match (true) {
+            $sent['outcome'] === EmailService::OUTCOME_SENT => $app->enqueueMessage(sprintf($said[EmailService::OUTCOME_SENT], $recipient), 'success'),
+            $sent['outcome'] === EmailService::OUTCOME_UNKNOWN => $app->enqueueMessage(sprintf($said[EmailService::OUTCOME_UNKNOWN], $recipient), 'warning'),
+            $sent['outcome'] === EmailService::OUTCOME_MAIL_OFF => $app->enqueueMessage($said[EmailService::OUTCOME_MAIL_OFF], 'error'),
+            $sent['recipient'] === '' => $app->enqueueMessage($said['no_address'], 'error'),
+            default => $app->enqueueMessage(sprintf($said[EmailService::OUTCOME_FAILED], htmlspecialchars($sent['error'], ENT_QUOTES, 'UTF-8')), 'error'),
+        };
     }
 
     /**

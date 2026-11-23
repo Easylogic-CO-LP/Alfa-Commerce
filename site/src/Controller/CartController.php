@@ -28,6 +28,8 @@ use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
 use Alfa\Component\Alfa\Site\Service\CartRules\CouponOutcome;
 use Alfa\Component\Alfa\Site\Service\Checkout\OrderPlacement;
 use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
+use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
+use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
 use Exception;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
@@ -671,6 +673,83 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         echo new JsonResponse(['saved' => true]);
         $this->app->close();
+    }
+
+    /**
+     * Pay an existing order again: the address of the confirmation page's and the order e-mail's Pay now
+     * (PayAgain::link()). It carries the order's id and its payment token; an account's order needs its customer
+     * logged in, as the confirmation page does. The order is read under its row lock and may be paid again only as
+     * PayAgain allows; then the session names the order and the visitor goes to the existing payment step. Nothing is
+     * placed, so no second order, stock movement or order e-mail. Refused: the shop's home page (no such order for this
+     * address) or the order's confirmation page, with the reason.
+     *
+     * @since  2.3.0
+     */
+    public function pay(): void
+    {
+        $app = $this->app;
+
+        // The address carries the order's payment token: the answer is never stored, never indexed, and the address
+        // never leaves the site in a Referer.
+        $app->allowCache(false);
+        $app->setHeader('X-Robots-Tag', 'noindex, nofollow', true);
+        $app->setHeader('Referrer-Policy', 'same-origin', true);
+
+        $orderId = (int) RequestScalar::read($this->input, 'id_order', 0, 'uint');
+        $token = (string) RequestScalar::read($this->input, 'token', '', 'alnum');
+        $order = PayAgain::orderFromLink(orderId: $orderId, token: $token);
+
+        if ($order === null) {
+            $app->enqueueMessage(PayAgain::sentence(PayAgain::NOT_AVAILABLE), 'warning');
+            $app->redirect(Uri::root());
+
+            return;
+        }
+
+        // A customer account's order is paid by its customer, logged in, as its confirmation page is shown.
+        $access = OrderConfirmation::access(orderId: $orderId, key: (string) $order->secure_key, viewerId: (int) $app->getIdentity()->id);
+
+        if ($access === OrderConfirmation::LOGIN) {
+            $app->enqueueMessage(Text::_('COM_ALFA_PAY_AGAIN_LOGIN_REQUIRED'), 'notice');
+            $app->redirect(Route::_('index.php?option=com_users&view=login&return=' . base64_encode(Uri::getInstance()->toString()), false));
+
+            return;
+        }
+
+        if ($access !== OrderConfirmation::GRANTED) {
+            $app->enqueueMessage(PayAgain::sentence(PayAgain::NOT_AVAILABLE), 'warning');
+            $app->redirect(Uri::root());
+
+            return;
+        }
+
+        // Read under the order's row lock, so a settle that is being written finishes first and is counted.
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $db->transactionStart();
+
+        try {
+            $db->setQuery('SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_orders') . ' WHERE ' . $db->quoteName('id') . ' = ' . $orderId . ' FOR UPDATE')->execute();
+            $verdict = PayAgain::verdict(orderId: $orderId);
+            $db->transactionCommit();
+        } catch (Throwable $e) {
+            $db->transactionRollback();
+
+            throw $e;
+        }
+
+        $completed = Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed&id=' . $orderId . '&key=' . rawurlencode((string) $order->secure_key), false);
+
+        if ($verdict !== PayAgain::OPEN) {
+            $app->enqueueMessage(PayAgain::sentence($verdict), 'notice');
+            $app->redirect($completed, 303);
+
+            return;
+        }
+
+        // The existing payment step, never a new placement: the session names the order and the process page asks its
+        // gateway of record, which opens the attempt as on a first visit.
+        SessionOrder::payAgain($app, $orderId);
+        $app->redirect(Route::_('index.php?option=com_alfa&view=cart&layout=default_order_process', false), 303);
     }
 
     /**

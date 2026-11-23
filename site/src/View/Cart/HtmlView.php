@@ -27,6 +27,7 @@ use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
 use Alfa\Component\Alfa\Site\Service\Checkout\SessionOrder;
 use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
+use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
 use InvalidArgumentException;
@@ -98,6 +99,13 @@ class HtmlView extends BaseHtmlView
      * @since  2.2.0
      */
     protected bool $providerUnavailable = false;
+
+    /**
+     * The confirmation page's Pay now address, while the order may be paid again (PayAgain); '' otherwise.
+     *
+     * @since  2.3.0
+     */
+    protected string $payAgainUrl = '';
 
     /**
      * The process page when the gateway of record cannot be loaded: the number the customer quotes, and
@@ -266,14 +274,31 @@ class HtmlView extends BaseHtmlView
                 $app->redirect(Uri::root());
             }
 
-            // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, or a return a gateway authenticated. Any other
-            // id is one a request named, and the page would ask that order's gateway for a payment page; refused
+            // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, a return a gateway authenticated, or opened by its pay
+            // again address. Any other id is one a request named, and the page would ask that order's gateway for a payment page; refused
             // before the order is read, with nothing of it shown.
             if (!SessionOrder::isEntitled($app, $orderId)) {
                 SessionOrder::refuse($app, $orderId, 'process');
                 $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));
 
                 return;
+            }
+
+            // PAY AGAIN: an order the buyer came back to pay is asked again whether it may still be paid, right before
+            // its gateway is asked. Refused, the session forgets it and the buyer reads why on its confirmation page.
+            if (SessionOrder::isPayAgain($app, $orderId)) {
+                $verdict = PayAgain::verdict(orderId: $orderId);
+
+                if ($verdict !== PayAgain::OPEN) {
+                    SessionOrder::clear($app);
+                    $app->enqueueMessage(PayAgain::sentence($verdict), 'notice');
+                    $key = $this->getModel()->getCompletedOrderKey(id: $orderId);
+                    $app->redirect(Route::_($key === ''
+                        ? 'index.php?option=com_alfa&view=cart'
+                        : 'index.php?option=com_alfa&view=cart&layout=default_order_completed&id=' . $orderId . '&key=' . rawurlencode($key), false), 303);
+
+                    return;
+                }
             }
 
             $ordersModel = Factory::getApplication()->bootComponent('com_alfa')
@@ -461,6 +486,12 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
+        // PAY NOW, while the order still owes money and may be paid again: the address of its payment step. Never in
+        // the print view.
+        if (!RequestScalar::bool($input, 'print', false) && PayAgain::verdict(orderId: (int) $id) === PayAgain::OPEN) {
+            $this->payAgainUrl = PayAgain::link((object) ['id' => (int) $id, 'secure_key' => (string) $key]);
+        }
+
         // THE GATEWAY'S BLOCK (targeted): the completion view goes to the order's gateway of record alone,
         // the plugin the order recorded, with the order's own row as its subject. A gateway that cannot be loaded or
         // whose handler throws leaves its block out, and the page says so in neutral words: never a word of payment
@@ -511,8 +542,8 @@ class HtmlView extends BaseHtmlView
     /**
      * The arrival address: the session's order, cleared once, then 303 to its keyed address. The query a gateway added
      * to the arrival address (a result flag its completion view reads) goes along, so no gateway changes. The order
-     * must be one this session placed or a gateway authenticated a return for: any other is refused, and the
-     * visitor goes to the cart with the neutral message.
+     * must be one this session placed, a gateway authenticated a return for, or the buyer opened by its pay again
+     * address: any other is refused, and the visitor goes to the cart with the neutral message.
      *
      * @param string|null $tpl Template name.
      *
@@ -532,8 +563,8 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, or a return a gateway authenticated. Any other id
-        // is one a request named, and its keyed address would open that order's page to whoever sent it.
+        // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, a return a gateway authenticated, or opened by its pay again
+        // address. Any other id is one a request named, and its keyed address would open that order's page to whoever sent it.
         if (!SessionOrder::isEntitled($app, $orderId)) {
             SessionOrder::refuse($app, $orderId, 'completed');
             $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));

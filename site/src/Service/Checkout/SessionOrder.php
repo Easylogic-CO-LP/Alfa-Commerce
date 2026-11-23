@@ -28,11 +28,14 @@ defined('_JEXEC') or die;
  *
  * - placed: this session placed the order (the storefront's placement writes it);
  * - return: a gateway authenticated a browser return for the order (PaymentsPlugin::authenticatedReturnFor(), in any
- *   session, a fresh one included: a hosted payment page outlives the PHP session).
+ *   session, a fresh one included: a hosted payment page outlives the PHP session);
+ * - pay: the buyer opened the order's pay again address (its payment token, PayAgain), which the process page checks
+ *   again before it asks the gateway.
  *
- * An order id with neither mark is refused by both pages: the visitor goes to the cart with one neutral message, the
- * same whether the order exists or not, and nothing of the order is shown. The mark is written and cleared only with
- * the id: a new placement or another authenticated return replaces both, the arrival and a refusal clear both.
+ * An order id with none of these marks is refused by both pages: the visitor goes to the cart with one neutral message,
+ * the same whether the order exists or not, and nothing of the order is shown. The mark is written and cleared only
+ * with the id: a new placement, another authenticated return or a pay again replaces both, the arrival and a refusal
+ * clear both.
  *
  * @since  2.2.1
  */
@@ -49,6 +52,9 @@ final class SessionOrder
 
     /** A gateway authenticated a browser return for the order. */
     public const AUTHENTICATED_RETURN = 'return';
+
+    /** The buyer opened the order's pay again address. */
+    public const PAY_AGAIN = 'pay';
 
     /**
      * This session placed the order: the storefront's placement, the buyer's own flow.
@@ -79,6 +85,32 @@ final class SessionOrder
         }
 
         self::point($app, $orderId, self::AUTHENTICATED_RETURN);
+    }
+
+    /**
+     * The buyer opened the order's pay again address: the session names the order for the payment step.
+     *
+     * @param CMSApplicationInterface $app The storefront request.
+     * @param int $orderId The order the address names, 1 or more.
+     *
+     * @since  2.3.0
+     */
+    public static function payAgain(CMSApplicationInterface $app, int $orderId): void
+    {
+        self::point($app, $orderId, self::PAY_AGAIN);
+    }
+
+    /**
+     * Whether the session names the order through its pay again address.
+     *
+     * @param CMSApplicationInterface $app The storefront request.
+     * @param int $orderId The session's order id.
+     *
+     * @since  2.3.0
+     */
+    public static function isPayAgain(CMSApplicationInterface $app, int $orderId): bool
+    {
+        return $orderId > 0 && $app->getUserState(self::ORIGIN) === $orderId . ':' . self::PAY_AGAIN;
     }
 
     /**
@@ -139,8 +171,8 @@ final class SessionOrder
 
         AlfaLog::register();
         Log::add(
-            'Order pages: the ' . $page . ' page refused order ' . $orderId . ', which this session neither placed nor had a'
-            . ' gateway authenticate a return for; client ' . IpHelper::getIp() . ', a cart (account or cart key): ' . $cart . '.',
+            'Order pages: the ' . $page . ' page refused order ' . $orderId . ', which this session neither placed, nor had a'
+            . ' gateway authenticate a return for, nor opened with its pay again address; client ' . IpHelper::getIp() . ', a cart (account or cart key): ' . $cart . '.',
             Log::WARNING,
             'com_alfa.orders',
         );
@@ -151,7 +183,7 @@ final class SessionOrder
      *
      * @param CMSApplicationInterface $app The storefront request.
      * @param int $orderId The order.
-     * @param string $origin PLACED or AUTHENTICATED_RETURN.
+     * @param string $origin PLACED, AUTHENTICATED_RETURN or PAY_AGAIN.
      *
      * @since  2.2.1
      */
@@ -172,7 +204,7 @@ final class SessionOrder
     {
         $mark = $app->getUserState(self::ORIGIN);
 
-        if (!\is_string($mark) || !preg_match('/^([1-9][0-9]*):(' . self::PLACED . '|' . self::AUTHENTICATED_RETURN . ')$/', $mark, $found)) {
+        if (!\is_string($mark) || !preg_match('/^([1-9][0-9]*):(' . self::PLACED . '|' . self::AUTHENTICATED_RETURN . '|' . self::PAY_AGAIN . ')$/', $mark, $found)) {
             return 0;
         }
 

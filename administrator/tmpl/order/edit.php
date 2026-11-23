@@ -191,11 +191,12 @@ foreach ($this->form->getFieldsets() as $fieldsetName => $fieldset) {
 
 </form>
 
-<?php // Sibling form for the order's customer-credit actions, Pay from credit
-      // (Payments panel) and Pay in the customer credit (Documents panel),
-      // same reasoning as the user Credit tab: no nested forms, and no hidden
-      // `task` (a POSTed empty task beats the query string and lands on the
-      // default view). Each button names its own task in its formaction. ?>
+<?php // Sibling form for the order's actions that post the order id alone: Pay from
+      // credit and Send payment link (Payments panel) and Pay in the customer
+      // credit (Documents panel), same reasoning as the user Credit tab: no
+      // nested forms, and no hidden `task` (a POSTed empty task beats the query
+      // string and lands on the default view). Each button names its own task
+      // in its formaction. ?>
 <form id="alfa-order-credit-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
     <input type="hidden" name="id_order" value="<?php echo (int) $this->order->id; ?>"/>
 	<?php echo HTMLHelper::_('form.token'); ?>
