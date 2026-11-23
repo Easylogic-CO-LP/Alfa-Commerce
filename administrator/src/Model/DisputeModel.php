@@ -70,7 +70,8 @@ class DisputeModel extends AdminModel
             return false;
         }
 
-        $form = $this->loadForm('com_alfa.dispute.' . $act, self::FORMS[$act], ['control' => 'jform', 'load_data' => false]);
+        // Built fresh each time: the close form is trimmed to one record's outcomes, never another's.
+        $form = $this->loadForm('com_alfa.dispute.' . $act, self::FORMS[$act], ['control' => 'jform', 'load_data' => false], true);
 
         if (!$form instanceof Form) {
             return false;
