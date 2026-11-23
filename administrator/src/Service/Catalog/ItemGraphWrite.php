@@ -264,7 +264,8 @@ final class ItemGraphWrite
                     return [self::unknownField(field: $field, pointer: $at)];
                 }
 
-                $valueId = $this->valueId(value: \is_string($value) && !ctype_digit($value) ? ['field' => $fieldId, 'code' => $value] : (int) $value, pointer: $at);
+                // A number names a value by its id, text by its code: a code made of digits ("512") is a code.
+                $valueId = $this->valueId(value: \is_int($value) ? $value : ['field' => $fieldId, 'code' => (string) $value], pointer: $at);
 
                 if ($valueId instanceof Refusal) {
                     return [$valueId];
