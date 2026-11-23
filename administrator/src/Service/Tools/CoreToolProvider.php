@@ -650,7 +650,7 @@ final class CoreToolProvider
 
             $event->setMessage($message);
         } catch (Throwable $e) {
-            $event->setError($e->getMessage());
+            $event->setError(ErrorText::of($e));
         }
     }
 

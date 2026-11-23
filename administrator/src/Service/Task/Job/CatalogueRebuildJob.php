@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
@@ -147,7 +148,7 @@ final class CatalogueRebuildJob implements JobHandler
         try {
             (new PriceIndexSyncService())->finishBuild();
         } catch (Throwable $e) {
-            Log::add('[CatalogueRebuildJob] The price index could not switch from the previous one: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            Log::add('[CatalogueRebuildJob] The price index could not switch from the previous one: ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
         }
     }
 }

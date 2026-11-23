@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PriceChange;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\OutboundDeliveryJob;
@@ -129,7 +130,7 @@ final class OutboundFeed
 
             Log::add(
                 'Outgoing notifications: the ' . $topic . ' change of #' . $subjectId . ($unitId > 0 ? ' (combination ' . $unitId . ')' : '')
-                . ' was not recorded, so no consumer is told of it: ' . $e::class . ': ' . $e->getMessage(),
+                . ' was not recorded, so no consumer is told of it: ' . $e::class . ': ' . ErrorText::of($e),
                 Log::CRITICAL,
                 self::LOG,
             );
@@ -197,7 +198,7 @@ final class OutboundFeed
         try {
             return self::consumersOf(db: $db, topic: $topic) !== [];
         } catch (Throwable $e) {
-            Log::add('Outgoing notifications: the consumers could not be read: ' . $e::class . ': ' . $e->getMessage(), Log::WARNING, self::LOG);
+            Log::add('Outgoing notifications: the consumers could not be read: ' . $e::class . ': ' . ErrorText::of($e), Log::WARNING, self::LOG);
 
             return false;
         }

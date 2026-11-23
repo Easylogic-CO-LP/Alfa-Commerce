@@ -535,7 +535,7 @@ class PriceIndexSyncService
 
             return $ids === [] ? 0 : $this->writeIndexRows(itemIds: $ids, contexts: $contexts);
         } catch (Throwable $e) {
-            $this->logWarning("{$label} failed: " . $e->getMessage());
+            $this->logWarning("{$label} failed: " . ErrorText::of($e));
 
             return 0;
         }
@@ -788,7 +788,7 @@ class PriceIndexSyncService
                 $this->alignContexts();
             }
         } catch (Throwable $e) {
-            $this->logWarning(message: 'the sets left by a change of the pricing groups could not be dropped after a preparation: ' . $e->getMessage());
+            $this->logWarning(message: 'the sets left by a change of the pricing groups could not be dropped after a preparation: ' . ErrorText::of($e));
         }
 
         return 'prepared';
@@ -2171,10 +2171,10 @@ class PriceIndexSyncService
                         $priceContext,
                     );
                 } catch (Throwable $e) {
-                    $this->lastFailure = $e->getMessage();
+                    $this->lastFailure = ErrorText::of($e);
                     // The delete above already took the chunk's rows: the caller rolls the chunk back, keeping them.
                     $this->logWarning(
-                        'Calculation failed for context ' . $context['id'] . ' at ' . ($group['start'] ?? 'now') . '; rolling this chunk back: ' . $e->getMessage(),
+                        'Calculation failed for context ' . $context['id'] . ' at ' . ($group['start'] ?? 'now') . '; rolling this chunk back: ' . ErrorText::of($e),
                     );
 
                     return null;
@@ -3354,7 +3354,7 @@ class PriceIndexSyncService
             }
 
             $this->chunkFailure = $e;
-            $this->logWarning(message: "Preparing context {$contextId} stopped at a chunk, which was rolled back: " . $e->getMessage());
+            $this->logWarning(message: "Preparing context {$contextId} stopped at a chunk, which was rolled back: " . ErrorText::of($e));
 
             return null;
         }

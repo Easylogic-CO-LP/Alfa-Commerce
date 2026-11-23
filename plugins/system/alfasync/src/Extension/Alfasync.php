@@ -37,6 +37,7 @@ namespace Alfa\Plugin\System\Alfasync\Extension;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Card\CardRegistry;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
@@ -994,7 +995,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             ComponentHelper::getComponent('com_alfa')->setParams(new Registry($after));
             OpeningCombination::refreshAll();
         } catch (Throwable $e) {
-            $this->logError(caller: 'onExtensionAfterSave', message: 'the opening combinations were not decided again after the stock settings changed, every item is owed: ' . $e->getMessage());
+            $this->logError(caller: 'onExtensionAfterSave', message: 'the opening combinations were not decided again after the stock settings changed, every item is owed: ' . ErrorText::of($e));
 
             // Every item owed instead: the catalogue job's writer decides the pointers of the products it writes.
             OpeningCombination::afterCommand(itemIds: [], all: true);

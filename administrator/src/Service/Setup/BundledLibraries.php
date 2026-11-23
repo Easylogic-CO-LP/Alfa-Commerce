@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
@@ -111,7 +112,7 @@ final class BundledLibraries
         try {
             return self::unavailable(libraries: $libraries) === [];
         } catch (Throwable $e) {
-            Log::add('The bundled libraries could not be read (' . implode(', ', array_keys($libraries)) . '): ' . $e::class . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            Log::add('The bundled libraries could not be read (' . implode(', ', array_keys($libraries)) . '): ' . $e::class . ': ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
 
             return false;
         }

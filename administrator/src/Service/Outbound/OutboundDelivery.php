@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
 
 use Alfa\Component\Alfa\Administrator\Event\Outbound\OutboundChange;
 use Alfa\Component\Alfa\Administrator\Event\Outbound\OutboundDeliverEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -220,7 +221,7 @@ final class OutboundDelivery
         } catch (OutboundAddressRefused $e) {
             return ['answers' => $all('retry', $e->reason), 'retryAfter' => null, 'ok' => false, 'result' => $e->reason];
         } catch (Throwable $e) {
-            Log::add('Outgoing notifications: the webhook #' . (int) $consumer->id . ' could not be posted: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, OutboundFeed::LOG);
+            Log::add('Outgoing notifications: the webhook #' . (int) $consumer->id . ' could not be posted: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, OutboundFeed::LOG);
 
             return ['answers' => $all('retry', $e::class), 'retryAfter' => null, 'ok' => false, 'result' => $e::class];
         }
@@ -269,7 +270,7 @@ final class OutboundDelivery
             $plugin = PluginId::of((string) $consumer->plugin);
             $loaded = $helper->bootForWork($plugin);
         } catch (PluginUnavailable $e) {
-            return ['answers' => $all('hold', $e->getMessage()), 'retryAfter' => null, 'ok' => false, 'result' => $e->getMessage()];
+            return ['answers' => $all('hold', ErrorText::of($e)), 'retryAfter' => null, 'ok' => false, 'result' => ErrorText::of($e)];
         }
 
         if (!$helper->declares($loaded, OutboundDeliverEvent::NAME)) {
@@ -299,7 +300,7 @@ final class OutboundDelivery
         try {
             $helper->dispatchTo($loaded, $event);
         } catch (Throwable $e) {
-            Log::add('Outgoing notifications: the plugin ' . $plugin . ' failed on a batch of ' . \count($ids) . ' changes; every one is retried: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, OutboundFeed::LOG);
+            Log::add('Outgoing notifications: the plugin ' . $plugin . ' failed on a batch of ' . \count($ids) . ' changes; every one is retried: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, OutboundFeed::LOG);
             $reason = 'The plugin ' . $plugin . ' failed (' . $e::class . '); see the log ' . OutboundFeed::LOG . '.';
 
             return ['answers' => $all('retry', $reason), 'retryAfter' => null, 'ok' => false, 'result' => $reason];

@@ -438,7 +438,7 @@ class HtmlView extends BaseHtmlView
         try {
             return ['rows' => OutboundConsumers::cardRows(), 'unreadable' => false];
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the consumers of the shop\'s changes could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Tools: the consumers of the shop\'s changes could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
 
             return ['rows' => [], 'unreadable' => true];
         }

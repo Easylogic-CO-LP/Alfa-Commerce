@@ -1207,7 +1207,7 @@ class OrderopsController extends OrdersController
         try {
             return OrderCreateParts::rate(value: $value, field: 'shipping_tax_rate');
         } catch (InvalidArgumentException $e) {
-            throw new Save($e->getMessage(), 400);
+            throw new Save(ErrorText::of($e), 400);
         }
     }
 
@@ -1263,7 +1263,7 @@ class OrderopsController extends OrdersController
         try {
             return OrderCreateParts::amount(value: $value, field: $field, currency: $currency);
         } catch (InvalidArgumentException $e) {
-            throw new Save($e->getMessage(), 400, $e);
+            throw new Save(ErrorText::of($e), 400, $e);
         }
     }
 

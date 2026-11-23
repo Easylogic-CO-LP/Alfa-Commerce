@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
@@ -387,7 +388,7 @@ class ItemsController extends ApiController
                 $model->checkin($e->itemId);
             }
 
-            throw new Save($e->getMessage(), 409, $e);
+            throw new Save(ErrorText::of($e), 409, $e);
         }
     }
 
