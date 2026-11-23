@@ -31,8 +31,8 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
-use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
@@ -60,6 +60,7 @@ use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Closure;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -108,10 +109,10 @@ class ItemModel extends AlfaAdminModel
     /**
      * The steps of the product's graph a REST write sends with it, laid on the write the save builds.
      *
-     * @var (\Closure(ItemWriteService): void)|null
+     * @var (Closure(ItemWriteService): void)|null
      * @since  2.3.0
      */
-    private ?\Closure $graph = null;
+    private ?Closure $graph = null;
 
     /**
      * @var string Alias to manage history control
@@ -660,11 +661,11 @@ class ItemModel extends AlfaAdminModel
      * and their stock): the steps laid on the write this model's save builds, so the product and its graph are saved
      * in one transaction ({@see ItemWriteService}).
      *
-     * @param \Closure(ItemWriteService): void $steps The steps.
+     * @param Closure(ItemWriteService): void $steps The steps.
      *
      * @since  2.3.0
      */
-    public function expectGraph(\Closure $steps): void
+    public function expectGraph(Closure $steps): void
     {
         $this->graph = $steps;
     }

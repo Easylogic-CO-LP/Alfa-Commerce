@@ -386,8 +386,11 @@ final class ItemOptionService
                     )->loadColumn() ?: []);
 
                     foreach (array_diff($new, $valid) as $valueId) {
-                        $refusals[] = new Refusal(code: 'value_invalid', sentence: Text::sprintf('COM_ALFA_SPECIFICATION_VALUE_INVALID', (string) $valueId),
-                            pointer: $at . '/' . array_search($valueId, $step['ids'], true));
+                        $refusals[] = new Refusal(
+                            code: 'value_invalid',
+                            sentence: Text::sprintf('COM_ALFA_SPECIFICATION_VALUE_INVALID', (string) $valueId),
+                            pointer: $at . '/' . array_search($valueId, $step['ids'], true),
+                        );
                     }
 
                     $specifications = array_fill_keys($step['ids'], true);

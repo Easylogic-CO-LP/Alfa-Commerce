@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
+use Closure;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
@@ -86,10 +87,10 @@ class ItemsController extends ApiController
     /**
      * The steps of the product's graph the request sends, laid on the item model's write; null for a write without one.
      *
-     * @var (\Closure(ItemWriteService): void)|null
+     * @var (Closure(ItemWriteService): void)|null
      * @since  2.3.0
      */
-    private ?\Closure $graph = null;
+    private ?Closure $graph = null;
 
     /**
      * The warnings of the graph's keys a part does not take.
@@ -503,8 +504,13 @@ class ItemsController extends ApiController
             array_push($refusals, ...$partRefusals);
 
             if ($value !== null) {
-                $steps[] = static fn (ItemWriteService $write) => $write->option(value: $value, operation: $delta['operation'] ?? null, amount: $delta['amount'] ?? null,
-                    applyOn: $delta['apply_on'] ?? null, pointer: $at);
+                $steps[] = static fn (ItemWriteService $write) => $write->option(
+                    value: $value,
+                    operation: $delta['operation'] ?? null,
+                    amount: $delta['amount'] ?? null,
+                    applyOn: $delta['apply_on'] ?? null,
+                    pointer: $at,
+                );
             }
         }
 
@@ -527,8 +533,12 @@ class ItemsController extends ApiController
                 continue;
             }
 
-            array_push($warnings, ...$this->unknownKeys(body: $entry, keys: ['values', 'sku', 'gtin', 'mpn', 'state', 'manage_stock', 'default', 'overrides', 'translations', 'prices', 'stock'],
-                what: 'a combination', pointer: $at));
+            array_push($warnings, ...$this->unknownKeys(
+                body: $entry,
+                keys: ['values', 'sku', 'gtin', 'mpn', 'state', 'manage_stock', 'default', 'overrides', 'translations', 'prices', 'stock'],
+                what: 'a combination',
+                pointer: $at,
+            ));
             [$fields, $prices, $partRefusals, $partWarnings] = $this->combinationFields(body: $entry, pointer: $at);
             [$stock, $stockRefusals] = \array_key_exists('stock', $entry) ? $this->stockFigures(lines: $entry['stock'], pointer: $at . '/stock') : [[], []];
             array_push($refusals, ...$partRefusals, ...$stockRefusals);

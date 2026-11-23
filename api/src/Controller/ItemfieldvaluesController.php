@@ -14,7 +14,6 @@ namespace Alfa\Component\Alfa\Api\Controller;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemFieldValueService;
-use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
