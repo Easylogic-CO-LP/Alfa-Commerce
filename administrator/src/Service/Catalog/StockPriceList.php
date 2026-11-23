@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
@@ -57,8 +58,8 @@ final class StockPriceList
     public const PAGE_DEFAULT = 100;
 
     /**
-     * The states a unit of the list may have: published and unpublished; an archived or trashed product or
-     * combination is not one.
+     * The states a product of the list may have: published and unpublished; an archived or trashed product is not one.
+     * A combination is one while it is current ({@see CombinationState::currentSql()}: anything but archived).
      *
      * @since  2.2.2
      */
@@ -95,13 +96,13 @@ final class StockPriceList
         $units = '(SELECT a.id AS item_id, 0 AS combination_id, a.sku, a.gtin, a.state, a.state AS item_state, a.manage_stock,'
             . ' a.available_quantity, a.stock, a.' . CommerceChange::COLUMN . ' AS changed_at FROM ' . $items . ' AS a'
             . ' WHERE a.state IN (' . self::STATES . ') AND a.id > ' . $afterItem . $changed
-            . ' AND NOT EXISTS (SELECT 1 FROM ' . $combinations . ' AS x WHERE x.item_id = a.id AND x.state IN (' . self::STATES . '))'
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $combinations . ' AS x WHERE x.item_id = a.id AND ' . CombinationState::currentSql(column: 'x.state') . ')'
             . ' ORDER BY a.id LIMIT ' . $limit . ')'
             . ' UNION ALL'
             . ' (SELECT oc.item_id, oc.id, oc.sku, oc.gtin, oc.state, a.state, COALESCE(oc.manage_stock, a.manage_stock),'
             . ' oc.available_quantity, oc.stock, a.' . CommerceChange::COLUMN . ' FROM ' . $combinations . ' AS oc'
             . ' INNER JOIN ' . $items . ' AS a ON a.id = oc.item_id AND a.state IN (' . self::STATES . ')'
-            . ' WHERE oc.state IN (' . self::STATES . ') AND (oc.item_id > ' . $afterItem . ' OR (oc.item_id = ' . $afterItem . ' AND oc.id > ' . $afterCombination . '))'
+            . ' WHERE ' . CombinationState::currentSql(column: 'oc.state') . ' AND (oc.item_id > ' . $afterItem . ' OR (oc.item_id = ' . $afterItem . ' AND oc.id > ' . $afterCombination . '))'
             . $changed
             . ' ORDER BY oc.item_id, oc.id LIMIT ' . $limit . ')';
 
