@@ -128,6 +128,10 @@ final class AlfaLog
         // Reset to default and Clear everything: the audit trail that outlives the Alfa tables.
         'com_alfa.maintenance' => 'com_alfa_maintenance.php',
 
+        // A request that ended in a server error (ErrorRecorder). System - Alfa Commerce Sync records it on requests
+        // that never boot com_alfa too, registering the same category with the same options.
+        'com_alfa.errors' => 'com_alfa_errors.php',
+
         // Plugin-owned categories
         // These two ALSO register themselves, because their requests can
         // run without com_alfa booting at all (a system plugin's event, a
