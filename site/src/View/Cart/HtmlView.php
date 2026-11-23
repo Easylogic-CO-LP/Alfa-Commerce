@@ -413,12 +413,13 @@ class HtmlView extends BaseHtmlView
         }
 
         // The address's two values, read raw and judged here: each one plain value, the id a positive whole
-        // number as the arrival writes it. Anything else (an array such as id[]=, a malformed number) is no order of
+        // number as the arrival writes it, the key not empty (this is the keyed address; a customer's own order with no
+        // key is the account's order page). Anything else (an array such as id[]=, a malformed number) is no order of
         // this visitor's and gets the page's own answer, never a thrown error page.
         $id = $input->get('id', null, 'raw');
         $key = $input->get('key', null, 'raw');
 
-        if (!self::isPlain($id) || !preg_match('/^[1-9][0-9]{0,9}$/', (string) $id) || !self::isPlain($key)) {
+        if (!self::isPlain($id) || !preg_match('/^[1-9][0-9]{0,9}$/', (string) $id) || !self::isPlain($key) || (string) $key === '') {
             $this->displayOrderNotAvailable($tpl);
 
             return;
