@@ -66,7 +66,8 @@ final class BackgroundWork
      */
     public static function of(CMSPlugin $plugin): self
     {
-        $identity = (new JoomlaPluginLayer())->identity($plugin);
+        $layer = new JoomlaPluginLayer();
+        $identity = $layer->identity($plugin);
 
         if ($identity === null || !str_starts_with($identity[0], 'alfa')) {
             throw new InvalidArgumentException('BackgroundWork::of() takes a plugin of an alfa group, as Joomla booted it (given: ' . $plugin::class . ').');
@@ -77,7 +78,8 @@ final class BackgroundWork
         $app = Factory::getApplication();
         $app->bootComponent('com_alfa');
 
-        if ($app->bootPlugin($element, $group) !== $plugin) {
+        // The instance Joomla holds for it, asked through the one layer that speaks to Joomla's plugin system.
+        if ($layer->boot(app: $app, id: $id) !== $plugin) {
             throw new InvalidArgumentException('BackgroundWork::of() takes the plugin ' . $id . ' as Joomla booted it, not another instance of its class.');
         }
 
