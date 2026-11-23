@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
@@ -295,7 +296,7 @@ class OrderopsController extends OrdersController
         try {
             return LinePricing::fromPayload(payload: $body);
         } catch (InvalidArgumentException $e) {
-            throw new Save($e->getMessage(), 400);
+            throw new Save(ErrorText::of($e), 400);
         }
     }
 
@@ -1336,7 +1337,7 @@ class OrderopsController extends OrdersController
         try {
             return OrderCreateParts::rate(value: $value, field: 'shipping_tax_rate');
         } catch (InvalidArgumentException $e) {
-            throw new Save($e->getMessage(), 400);
+            throw new Save(ErrorText::of($e), 400);
         }
     }
 
@@ -1392,7 +1393,7 @@ class OrderopsController extends OrdersController
         try {
             return OrderCreateParts::amount(value: $value, field: $field, currency: $currency);
         } catch (InvalidArgumentException $e) {
-            throw new Save($e->getMessage(), 400, $e);
+            throw new Save(ErrorText::of($e), 400, $e);
         }
     }
 
