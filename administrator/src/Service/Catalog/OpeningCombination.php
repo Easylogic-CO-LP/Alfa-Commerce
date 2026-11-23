@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
@@ -22,8 +23,11 @@ use Joomla\Database\DatabaseDriver;
 use Throwable;
 
 /**
- * The combination a product's card opens on, stored as #__alfa_items.opening_combination_id: the price index
- * keeps a row for every published combination, and a listing reads the row of this one by key.
+ * The combination a product's card opens on, stored as #__alfa_items.opening_combination_id, and beside it the
+ * combination whose price the card shows, #__alfa_items.price_combination_id: the opening combination when it has price
+ * rows of its own, else 0 (a combination without them is priced from the product's rows). The price index keeps a row
+ * for the product and for each combination with price rows of its own, and a listing reads the price combination's row
+ * by key.
  *
  * The pointer is decided by the card's own rule and by no other: the product's published combinations with the stock
  * verdict ItemFieldsHelper gives each (the shared stock rule), then CombinationResolver::defaultSelection() and
@@ -34,11 +38,12 @@ use Throwable;
  * integrity holds, tracking, sale rules) has committed, under the product's rebuild lock and from what is committed
  * then ({@see self::afterCommand()}; a location's state owes every product to the catalogue job); by the price index
  * writer for the products it writes, under their locks (the item save with its combinations, the catalogue job); and
- * for the whole catalogue when the shop-wide stock settings are saved. A refresh that changes the pointer writes no
- * price row: only the row the listing reads moves.
+ * for the whole catalogue when the shop-wide stock settings are saved. The price combination is decided in the same
+ * refresh; a combination's own price rows are saved with its product, whose index write refreshes it. A refresh that
+ * changes either writes no price row: only the row the listing reads moves.
  *
- * The same choice in SQL ({@see self::choiceSql()}) is kept for checks only: Tools compares it with the stored pointer,
- * and the suites use it as an oracle. No listing reads it.
+ * The same choices in SQL ({@see self::choiceSql()}, {@see self::priceCombinationSql()}) are kept for checks only:
+ * Tools compares them with the stored values, and the suites use them as an oracle. No listing reads them.
  *
  * @since  2.2.2
  */
@@ -89,11 +94,11 @@ final class OpeningCombination
     }
 
     /**
-     * Decide the pointers of some products and store the ones that changed.
+     * Decide the pointers of some products, with their price combinations, and store the ones that changed.
      *
      * @param int[] $itemIds The products.
      *
-     * @return int[] The products whose pointer changed.
+     * @return int[] The products whose opening or price combination changed.
      *
      * @since  2.2.2
      */
@@ -110,24 +115,60 @@ final class OpeningCombination
 
         foreach (array_chunk($itemIds, self::WRITE_CHUNK) as $chunk) {
             foreach ($db->setQuery(
-                'SELECT ' . $db->quoteName('id') . ', ' . $db->quoteName('opening_combination_id') . ' FROM ' . $db->quoteName('#__alfa_items')
+                'SELECT ' . implode(', ', $db->quoteName(['id', 'opening_combination_id', 'price_combination_id'])) . ' FROM ' . $db->quoteName('#__alfa_items')
                 . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', $chunk) . ')',
-            )->loadAssocList('id', 'opening_combination_id') ?: [] as $id => $pointer) {
-                $stored[(int) $id] = (int) $pointer;
+            )->loadAssocList() ?: [] as $row) {
+                $stored[(int) $row['id']] = [(int) $row['opening_combination_id'], (int) $row['price_combination_id']];
             }
         }
 
+        $decided = self::decide(itemIds: array_keys($stored));
+        $ownPriced = self::ownPriced(combinationIds: array_values(array_filter($decided)));
         $changed = [];
 
-        foreach (self::decide(itemIds: array_keys($stored)) as $itemId => $pointer) {
-            if ($stored[$itemId] !== $pointer) {
-                $changed[$itemId] = $pointer;
+        foreach ($decided as $itemId => $pointer) {
+            $price = isset($ownPriced[$pointer]) ? $pointer : 0;
+
+            if ($stored[$itemId] !== [$pointer, $price]) {
+                $changed[$itemId] = [$pointer, $price];
             }
         }
 
         self::store(pointers: $changed);
 
         return array_keys($changed);
+    }
+
+    /**
+     * The combinations among some that have price rows of their own.
+     *
+     * @param int[] $combinationIds The combinations.
+     *
+     * @return array<int, true> By combination id.
+     *
+     * @since  2.2.2
+     */
+    private static function ownPriced(array $combinationIds): array
+    {
+        $combinationIds = self::ids(itemIds: $combinationIds);
+        $out = [];
+
+        if ($combinationIds === []) {
+            return [];
+        }
+
+        $db = self::db();
+
+        foreach (array_chunk($combinationIds, self::WRITE_CHUNK) as $chunk) {
+            foreach ($db->setQuery(
+                'SELECT oc.id FROM ' . $db->quoteName('#__alfa_item_combinations', 'oc') . ' WHERE oc.id IN (' . implode(',', $chunk) . ')'
+                . ' AND ' . PriceIndexSyncService::ownPriceSql(combinationAlias: 'oc'),
+            )->loadColumn() ?: [] as $id) {
+                $out[(int) $id] = true;
+            }
+        }
+
+        return $out;
     }
 
     /**
@@ -241,7 +282,27 @@ final class OpeningCombination
     }
 
     /**
-     * The products whose stored pointer differs from the SQL choice (the Tools check).
+     * The price combination in SQL, from the stored pointer: the opening combination when it has price rows of its own,
+     * else 0. For checks and suites only.
+     *
+     * @param string $itemAlias The alias of #__alfa_items in the caller's statement.
+     *
+     * @return string An SQL expression: the combination id, 0 for the product's own row.
+     *
+     * @since  2.2.2
+     */
+    public static function priceCombinationSql(string $itemAlias = 'a'): string
+    {
+        $db = self::db();
+
+        return '(CASE WHEN ' . $itemAlias . '.opening_combination_id > 0 AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_item_combinations') . ' AS pc'
+            . ' WHERE pc.id = ' . $itemAlias . '.opening_combination_id AND ' . PriceIndexSyncService::ownPriceSql(combinationAlias: 'pc') . ')'
+            . ' THEN ' . $itemAlias . '.opening_combination_id ELSE 0 END)';
+    }
+
+    /**
+     * The products whose stored pointer differs from the SQL choice, or whose stored price combination differs from the
+     * one the pointer gives (the Tools check).
      *
      * @param int $limit At most this many listed.
      *
@@ -252,7 +313,8 @@ final class OpeningCombination
     public static function disagreements(int $limit = 20): array
     {
         $db = self::db();
-        $where = ' FROM ' . $db->quoteName('#__alfa_items', 'a') . ' WHERE a.state = 1 AND a.opening_combination_id <> ' . self::choiceSql(itemAlias: 'a');
+        $where = ' FROM ' . $db->quoteName('#__alfa_items', 'a') . ' WHERE a.state = 1 AND (a.opening_combination_id <> ' . self::choiceSql(itemAlias: 'a')
+            . ' OR a.price_combination_id <> ' . self::priceCombinationSql(itemAlias: 'a') . ')';
 
         return [
             'count' => (int) $db->setQuery('SELECT COUNT(*)' . $where)->loadResult(),
@@ -261,9 +323,9 @@ final class OpeningCombination
     }
 
     /**
-     * Store pointers, one statement per chunk.
+     * Store pointers and price combinations, one statement per chunk.
      *
-     * @param array<int, int> $pointers By product id.
+     * @param array<int, array{0: int, 1: int}> $pointers By product id: the opening combination, the price combination.
      *
      * @since  2.2.2
      */
@@ -272,14 +334,17 @@ final class OpeningCombination
         $db = self::db();
 
         foreach (array_chunk($pointers, self::WRITE_CHUNK, true) as $part) {
-            $case = '';
+            $opening = '';
+            $price = '';
 
-            foreach ($part as $itemId => $combinationId) {
-                $case .= ' WHEN ' . (int) $itemId . ' THEN ' . (int) $combinationId;
+            foreach ($part as $itemId => [$pointer, $priceCombination]) {
+                $opening .= ' WHEN ' . (int) $itemId . ' THEN ' . (int) $pointer;
+                $price .= ' WHEN ' . (int) $itemId . ' THEN ' . (int) $priceCombination;
             }
 
             $db->setQuery(
-                'UPDATE ' . $db->quoteName('#__alfa_items') . ' SET ' . $db->quoteName('opening_combination_id') . ' = CASE ' . $db->quoteName('id') . $case . ' END'
+                'UPDATE ' . $db->quoteName('#__alfa_items') . ' SET ' . $db->quoteName('opening_combination_id') . ' = CASE ' . $db->quoteName('id') . $opening . ' END, '
+                . $db->quoteName('price_combination_id') . ' = CASE ' . $db->quoteName('id') . $price . ' END'
                 . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', array_map('intval', array_keys($part))) . ')',
             )->execute();
         }

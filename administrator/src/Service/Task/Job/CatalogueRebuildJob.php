@@ -80,8 +80,9 @@ final class CatalogueRebuildJob implements JobHandler
 
         if ($marked === []) {
             // The pass is over: while the storefront still reads the previous price index, the switch is asked
-            // here, so the new index is read from the moment it is complete.
+            // here, so the new index is read from the moment it is complete; the index's statistics follow its rows.
             self::finishPriceIndexBuild();
+            PriceIndexSyncService::analyze();
 
             return new JobChunk(units: 0, checkpoint: null, finished: true);
         }
@@ -110,6 +111,7 @@ final class CatalogueRebuildJob implements JobHandler
 
         if ($finished) {
             self::finishPriceIndexBuild();
+            PriceIndexSyncService::analyze();
         }
 
         if ($failed !== [] && $rebuilt === 0 && $busy === []) {

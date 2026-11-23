@@ -16,7 +16,12 @@ namespace Alfa\Component\Alfa\Administrator\Event\Catalog;
  * key: the pricing context, the product, the combination and valid_from; the context's currency class, the
  * place it is priced at, its set of pricing groups and its customer beside it), its window's end, and its final price
  * before and after, as the column's exact decimal text. No old price: the row is new, or had no valid price (a NULL
- * row); no new price: the row is removed, or has no valid price now.
+ * row); no new price: the row is removed, or has no valid price now. A price of 0 is a price (the product is free).
+ *
+ * The index keeps a row for the product (combination 0) and for each combination with price rows of its own; a
+ * combination without them is priced from the product's row. So a change of combination 0 is the change of the product
+ * and of every combination of it without its own price rows, and a combination gaining or losing its own price rows
+ * shows as its row new or removed.
  *
  * @since  2.2.0
  */
@@ -24,7 +29,8 @@ final readonly class PriceChange
 {
     /**
      * @param int $itemId The product.
-     * @param int $combinationId The combination; 0 for the product's own row.
+     * @param int $combinationId The combination with price rows of its own; 0 for the product's own row, the price of
+     *                           every combination without its own price rows.
      * @param int $currencyId The context's currency class; 0 for every currency no price row names.
      * @param int $placeId The place the context is priced at; 0 for none.
      * @param int $groupSetId The context's set of pricing groups (#__alfa_price_group_sets.id).
