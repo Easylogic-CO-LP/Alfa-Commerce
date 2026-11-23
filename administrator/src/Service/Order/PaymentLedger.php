@@ -13797,6 +13797,52 @@ class PaymentLedger
     }
 
     /**
+     * What a payment row may still collect when it is settled: the order's total less what the order holds against it
+     * with this row left out (its pending, authorized and completed payments of every gateway, less its chargebacks and
+     * the settled refunds of money still recorded), never below zero. The rule the row's settle checks under the
+     * order's lock ({@see self::recheckCapsOnUpdate()}), read here without the lock: an answer, never a guarantee.
+     *
+     * Only an open payment answers more than zero: a row of type payment, pending or authorized. A row of another
+     * gateway (when $gateway names one), a refund, an authorization, a chargeback or a reversal, and a payment that is
+     * completed, failed, cancelled or refunded answer zero in the order's currency; an id with no row answers zero in
+     * the currency a new order takes.
+     *
+     * Not {@see self::balance()}, which counts completed payments only: the order's other open payments hold part of
+     * its total too, and the settle refuses what they leave no room for.
+     *
+     * @param int $paymentId The payment row.
+     * @param string|null $gateway The element of the gateway asking: a row of another gateway answers zero. Null reads
+     *                             the row whatever its gateway.
+     *
+     * @return Money In the order's currency and scale, never negative.
+     *
+     * @throws OrderCurrencyException When the row's order does not exist or names no currency.
+     *
+     * @since  2.3.0
+     */
+    public static function collectableNow(int $paymentId, ?string $gateway = null): Money
+    {
+        $row = $paymentId > 0 ? self::getRaw($paymentId) : null;
+
+        if ($row === null) {
+            return Money::zero(OrderCurrency::forNewOrder());
+        }
+
+        $orderId = (int) $row->id_order;
+        $open = (string) $row->payment_type === self::TYPE_PAYMENT
+            && \in_array((string) $row->transaction_status, [self::STATUS_PENDING, self::STATUS_AUTHORIZED], true)
+            && ($gateway === null || (string) ($row->payment_method_type ?? '') === $gateway);
+
+        if (!$open) {
+            return Money::zero(self::orderCurrency($orderId));
+        }
+
+        return self::money(self::orderGrandTotal(orderId: $orderId), $orderId)
+            ->subtract(self::heldAgainstTotal($orderId, excludeId: $paymentId))
+            ->nonNegative();
+    }
+
+    /**
      * How much may still be refunded on this order, once every reservation the
      * core counts is kept apart.
      *

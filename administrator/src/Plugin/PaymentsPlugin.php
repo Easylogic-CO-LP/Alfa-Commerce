@@ -41,6 +41,7 @@
  *
  *  THE GATEWAY'S BOOKS:
  *    $due     = $this->orderBalance(orderId: $orderId);                          // signed Money: > 0 owed, < 0 overpaid
+ *    $room    = $this->collectableNow(paymentId: $paymentId);                    // what your open row may still collect when settled
  *    $holders = $this->countReferenceHolders(reference: $txId, types: [self::TYPE_PAYMENT]);
  *    $rowId   = $this->findOwnRowByReference(reference: $refundId, types: [self::TYPE_REFUND]); // the one row, or null
  *    $kind    = $this->refundTypeFor(paymentId: $paymentId, amount: $refund);   // self::REFUND_FULL or self::REFUND_PARTIAL
@@ -2226,6 +2227,41 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
         }
 
         return PaymentLedger::balance(orderId: $orderId);
+    }
+
+    /**
+     * What one of this plugin's payment rows may still collect when it is settled: the order's total less what the
+     * order holds against it with this row left out (its pending, authorized and completed payments of every gateway,
+     * less its chargebacks and the settled refunds of money still recorded), never below zero, in the order's currency
+     * and scale.
+     *
+     * Ask it before the provider captures or charges an authorized or pending row, and take no more than it answers:
+     * the row's settle checks the same rule under the order's lock and refuses what does not fit
+     * (REFUSAL_OPEN_ATTEMPT while another payment of the order is open, REFUSAL_OVER_TOTAL otherwise), after the
+     * provider has already taken the money. orderBalance() is not that check: it counts completed payments only, so a
+     * capture it allows can still be refused at the settle.
+     *
+     * Read without the lock, so never a guarantee: the settle decides. A row of another gateway, a row that is not a
+     * payment, and a payment no longer pending or authorized answer zero.
+     *
+     * Usage:
+     *   $room = $this->collectableNow(paymentId: $paymentId);
+     *   if ($capture->greaterThan($room)) { ...capture no more than $room, or offer no capture... }
+     *
+     * @api READ ONLY: what the row may still collect; zero for another gateway's row, a row that is not a payment, or
+     *      a payment no longer pending or authorized.
+     *
+     * @param int $paymentId One of this plugin's payment rows.
+     *
+     * @return Money In the order's currency and scale, never negative.
+     *
+     * @throws OrderCurrencyException When the row's order does not exist or names no currency.
+     *
+     * @since  2.3.0
+     */
+    final protected function collectableNow(int $paymentId): Money
+    {
+        return PaymentLedger::collectableNow(paymentId: $paymentId, gateway: (string) $this->_name);
     }
 
     /**
