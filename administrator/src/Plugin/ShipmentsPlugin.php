@@ -290,7 +290,7 @@ abstract class ShipmentsPlugin extends Plugin
      * @api ANSWERS: the ledger in builder mode with this plugin as the writer; its save() writes only on this plugin's
      *      own methods.
      *
-     * @param object $order Full order object (->id, ->items, ->id_shipment_method)
+     * @param object $order The order: the reader the plugin was handed, or a loaded row (read through Order::of())
      *
      * @return ShipmentLedger Builder: chain setters, finish with ->save()
      *
