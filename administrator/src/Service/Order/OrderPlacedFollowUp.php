@@ -24,7 +24,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
  * that dies leaves them to recovery; each handler decides again when it runs (a status that tells nobody sends
  * nothing).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OrderPlacedFollowUp
 {
@@ -36,7 +36,7 @@ final class OrderPlacedFollowUp
      * @param bool $customer Whether the customer is told; false for a creation made silent for the customer, whose
      *                       e-mail goes to the status's administrator recipients alone, as a silent status change's.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function owe(int $orderId, int $statusId, bool $customer = true): void
     {

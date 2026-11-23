@@ -647,7 +647,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function withoutUnsentStock(array $data, array $sent): array
     {
@@ -665,7 +665,7 @@ class ItemModel extends AlfaAdminModel
     /**
      * The state of the product's own prices the writer read, when it sent one ({@see self::expectPricesState()}).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?string $expectedPricesState = null;
 
@@ -675,7 +675,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @param string $state The state the writer read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function expectPricesState(string $state): void
     {
@@ -3122,7 +3122,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return string[] One refusal per figure refused.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function priceRefusals(array $rows): array
     {
@@ -3326,7 +3326,7 @@ class ItemModel extends AlfaAdminModel
      * @param string $sentence The refusal.
      * @param bool $escaped Whether the sentence is already escaped for HTML.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refuseDelete(string $sentence, bool $escaped = false): void
     {

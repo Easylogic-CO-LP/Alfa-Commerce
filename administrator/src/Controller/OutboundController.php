@@ -27,14 +27,14 @@ use Throwable;
  * The actions of Tools, Tasks' card of outgoing notifications: a consumer's changes given up put back in the queue or
  * discarded, a consumer paused or resumed. Each a POST with the form token, by staff holding alfa.tools.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class OutboundController extends BaseController
 {
     /**
      * Put the consumer's changes given up back in the queue.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function retry(): void
     {
@@ -44,7 +44,7 @@ class OutboundController extends BaseController
     /**
      * Discard the consumer's changes given up.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function discard(): void
     {
@@ -54,7 +54,7 @@ class OutboundController extends BaseController
     /**
      * Pause the consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function pause(): void
     {
@@ -68,7 +68,7 @@ class OutboundController extends BaseController
     /**
      * Resume the consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function resume(): void
     {
@@ -84,7 +84,7 @@ class OutboundController extends BaseController
      *
      * @param callable(int): string $call The action, given the consumer's id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function act(callable $call): void
     {

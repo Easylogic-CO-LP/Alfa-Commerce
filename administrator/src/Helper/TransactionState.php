@@ -62,7 +62,7 @@ final class TransactionState
      *
      * @throws LogicException When the connection is not a database driver.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function driver(DatabaseInterface $db): DatabaseDriver
     {

@@ -162,7 +162,7 @@ final class MethodReconciliation
      * @param ShippingQuote $quote The carrier's answer.
      * @param string $name The carrier's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function refusalNotice(ShippingQuote $quote, string $name): string
     {

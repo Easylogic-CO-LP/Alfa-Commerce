@@ -48,7 +48,7 @@ use Tobscure\JsonApi\Resource;
  * shape, or bytes of the route's media type. A handler that throws is answered 500 with a sentence that names no
  * detail; the log (com_alfa.api) holds the plugin, the route, the exception's class and its message.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class ExtController extends ApiController
 {
@@ -58,7 +58,7 @@ class ExtController extends ApiController
      * The content type; the routes are the plugins' own, so it names no resource.
      *
      * @var string
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $contentType = 'ext';
 
@@ -66,14 +66,14 @@ class ExtController extends ApiController
      * The default view; this controller renders none of its own.
      *
      * @var string
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $default_view = 'ext';
 
     /**
      * The matched route's declaration, once the permission passed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?ApiRouteDeclaration $declaration = null;
 
@@ -81,7 +81,7 @@ class ExtController extends ApiController
      * The matched route's variables (its defaults and the path's values).
      *
      * @var array<string, mixed>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $routeVars = [];
 
@@ -95,7 +95,7 @@ class ExtController extends ApiController
      * @throws NotAllowed When the identity lacks the route's permission.
      * @throws Save When the plugin cannot be loaded (503).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function assertAuthorisedForTask(string $task): void
     {
@@ -138,7 +138,7 @@ class ExtController extends ApiController
      *              plugin throws, gives no answer, or gives one that does not fit the route.
      * @throws ResourceNotFound 404 when the plugin has no onAlfaApiRequest() method: it takes no part.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function dispatch(): void
     {
@@ -210,7 +210,7 @@ class ExtController extends ApiController
      * @param array<string, mixed> $answer Its answer.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function answer(ApiRouteDeclaration $declaration, ApiRequestEvent $event, array $answer): void
     {
@@ -282,7 +282,7 @@ class ExtController extends ApiController
      * @param ApiRouteDeclaration $declaration The route.
      * @param array<mixed> $payload The answer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function encode(ApiRouteDeclaration $declaration, array $payload): string
     {
@@ -301,7 +301,7 @@ class ExtController extends ApiController
      *
      * @throws Save Always (500).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function fail(ApiRouteDeclaration $declaration, string $detail): never
     {
@@ -319,7 +319,7 @@ class ExtController extends ApiController
      *
      * @throws Save Always (503).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refuseUnavailable(string $element, string $reason, string $detail): never
     {
@@ -343,7 +343,7 @@ class ExtController extends ApiController
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function matchedRoute(): array
     {
@@ -359,7 +359,7 @@ class ExtController extends ApiController
      *
      * @return array<string, int|string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function variables(ApiRouteDeclaration $declaration): array
     {
@@ -378,7 +378,7 @@ class ExtController extends ApiController
      *
      * @return array<string, string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function requestHeaders(): array
     {
@@ -408,7 +408,7 @@ class ExtController extends ApiController
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function form(ApiRouteDeclaration $declaration): array
     {
@@ -432,7 +432,7 @@ class ExtController extends ApiController
      *
      * @param ApiRouteDeclaration $declaration The route.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function routeName(ApiRouteDeclaration $declaration): string
     {

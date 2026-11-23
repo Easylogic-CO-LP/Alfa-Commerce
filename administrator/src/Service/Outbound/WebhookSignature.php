@@ -18,21 +18,21 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
  * constant-time comparison and refuses a moment older than {@see self::TOLERANCE_SECONDS}, so a request captured
  * on the way cannot be sent again later.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class WebhookSignature
 {
     /**
      * The header that carries the signature.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const HEADER = 'X-Alfa-Signature';
 
     /**
      * How old a signed moment a receiver takes, in seconds.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const TOLERANCE_SECONDS = 300;
 
@@ -43,7 +43,7 @@ final class WebhookSignature
      * @param int $timestamp The moment, Unix seconds.
      * @param string $body The body as sent.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function header(string $secret, int $timestamp, string $body): string
     {
@@ -59,7 +59,7 @@ final class WebhookSignature
      * @param string $body The body as received.
      * @param int $now The receiver's clock, Unix seconds.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function verify(string $secret, string $header, string $body, int $now): bool
     {
@@ -79,7 +79,7 @@ final class WebhookSignature
     /**
      * A new secret: 32 random bytes as 64 hex digits.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function newSecret(): string
     {

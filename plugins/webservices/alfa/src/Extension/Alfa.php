@@ -239,7 +239,7 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
      *
      * @param ErrorEvent $event The application's error.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function onError(ErrorEvent $event): void
     {

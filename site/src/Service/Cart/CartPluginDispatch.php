@@ -214,7 +214,7 @@ final class CartPluginDispatch
      *
      * @return array{event: CalculateShippingCostEvent, asked: bool, failed: bool}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function askCarrier(string $type, ShippingCostRequest $request, string $key): array
     {
@@ -633,7 +633,7 @@ final class CartPluginDispatch
      *
      * @return array{0: array, 1: array} The delivery values and the invoice values, by column name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function pending(HydratedCart $cart): array
     {

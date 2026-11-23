@@ -19,14 +19,14 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
  *
  * A plugin without the method takes no part, and the dispute's card offers no button for it.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class DisputeRefreshEvent extends DisputeEvent
 {
     /**
      * The event's name, the method a gateway writes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'onAlfaDisputeRefresh';
 }

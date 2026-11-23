@@ -38,7 +38,7 @@ use Throwable;
  * {@see self::EXTENSIONS_MINUTES} minutes for the whole site (an installation through Joomla already brings that
  * notice up to date, {@see ExtensionCompatibility::notify()}).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class InformationNotices
 {
@@ -47,7 +47,7 @@ final class InformationNotices
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PAGE_CACHE = 'alfa.page_cache';
 
@@ -56,7 +56,7 @@ final class InformationNotices
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PDF_LIBRARY = 'alfa.library.pdf';
 
@@ -65,7 +65,7 @@ final class InformationNotices
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PHONE_LIBRARY = 'alfa.library.phone';
 
@@ -74,7 +74,7 @@ final class InformationNotices
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CATALOGUE_ONLY = 'alfa.catalogue_only';
 
@@ -83,7 +83,7 @@ final class InformationNotices
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const MINIMUM_UNDER_TIER = 'alfa.minimum_under_tier';
 
@@ -93,7 +93,7 @@ final class InformationNotices
      *
      * @var int
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const MINIMUM_FACTS = 1000;
 
@@ -103,7 +103,7 @@ final class InformationNotices
      *
      * @var int
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const PRICES_MINUTES = 10;
 
@@ -112,7 +112,7 @@ final class InformationNotices
      *
      * @var int
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const EXTENSIONS_MINUTES = 60;
 
@@ -121,7 +121,7 @@ final class InformationNotices
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const CACHE_GROUP = 'com_alfa.notices';
 
@@ -129,7 +129,7 @@ final class InformationNotices
      * Bring every notice up to date with the site as it is now. Advisory: a notice that cannot be brought up to date
      * is logged and the others still are.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function sync(): void
     {
@@ -157,7 +157,7 @@ final class InformationNotices
      * not logged in, a warning when it does not. Only a worse state raises it again: the note after a warning is
      * calm, so the notice is brought up to date in place and stays read or dismissed as the administrator left it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function followPageCache(): void
     {
@@ -196,7 +196,7 @@ final class InformationNotices
      * @param string $title The title's key.
      * @param string $message The message's key; its parameter is the libraries' names.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function followLibraries(string $key, array $libraries, string $title, string $message): void
     {
@@ -226,7 +226,7 @@ final class InformationNotices
      * @param string $look The public static look of this class, the cache callback.
      * @param int $minutes The throttle.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function throttled(string $look, int $minutes): void
     {
@@ -253,7 +253,7 @@ final class InformationNotices
      *
      * @return bool Always true, for the cache callback.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function lookAtExtensions(): bool
     {
@@ -269,7 +269,7 @@ final class InformationNotices
      *
      * @return bool Always true, for the cache callback.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function lookAtMinimums(): bool
     {
@@ -299,7 +299,7 @@ final class InformationNotices
      * Online sales: while the shop shows its catalogue only, a note that nothing can be bought online; withdrawn when
      * it sells again. One read of the Options, which Joomla holds for the request.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function followCatalogueOnly(): void
     {
@@ -325,7 +325,7 @@ final class InformationNotices
     /**
      * Whether Joomla's System - Page Cache is enabled: one indexed read of its extension row.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function pageCacheEnabled(): bool
     {
@@ -362,7 +362,7 @@ final class InformationNotices
      * @return array{count: int, names: list<string>, ids: list<int>} How many, the names of the first ten in the default
      *                                                                language, and the ids of the first MINIMUM_FACTS.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function minimumUnderTier(): array
     {

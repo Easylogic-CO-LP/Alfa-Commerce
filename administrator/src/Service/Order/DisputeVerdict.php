@@ -29,57 +29,57 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
  *
  * @api ANSWERS: a read-only value; providerStatus() is the HTTP status a gateway answers its provider with.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class DisputeVerdict
 {
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const WRITTEN = 'written';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REFUSED = 'refused';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const LOCK_NOT_TAKEN = 'lock_not_taken';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const WRITE_FAILED = 'write_failed';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const STALE = 'stale';
 
     /**
      * The payment collected nothing a bank can claim back: not a payment row, or not completed or refunded.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_NOT_COLLECTED = 'dispute_not_collected';
 
     /**
      * The payment was paid from the customer's wallet: no bank stands behind it.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_WALLET = 'dispute_wallet';
 
     /**
      * The payment, or the record, is another gateway's.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_NOT_OWN = 'dispute_not_own';
 
     /**
      * The move between the two states is not one a dispute makes.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_TRANSITION = 'dispute_transition';
 
     /**
      * The record is closed: a later dispute is a new case.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_CLOSED = 'dispute_closed';
 
@@ -87,63 +87,63 @@ final class DisputeVerdict
      * The amount is missing, not a positive decimal, finer than the order's scale, above the payment, or given in the
      * order's currency where only another currency's figure is asked.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_AMOUNT = 'dispute_amount';
 
     /**
      * A call only staff make: a close as recorded in error, the reconcile answer, a reference typed by hand.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_STAFF_ONLY = 'dispute_staff_only';
 
     /**
      * Staff changing a fact of a record that follows its provider (its amount, deadline, reason, reference, fee, link).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_FOLLOWS_PROVIDER = 'dispute_follows_provider';
 
     /**
      * A gateway's word without the provider's dispute id.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_NO_REFERENCE = 'dispute_no_reference';
 
     /**
      * The amount's currency is not an ISO 4217 code.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_NO_CURRENCY = 'dispute_no_currency';
 
     /**
      * The payments ledger refused the booking the decision owes (its reason in the message).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_BOOKS_REFUSED = 'dispute_books_refused';
 
     /**
      * The record's booking counter and its money rows disagree: staff look.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_BOOKS_OUT_OF_STEP = 'dispute_books_out_of_step';
 
     /**
      * A value the chain was given is malformed: a date, a link, a reason, a fee.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_VALUE = 'dispute_value';
 
     /**
      * The record asked for does not exist.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CODE_MISSING = 'dispute_missing';
 
@@ -155,7 +155,7 @@ final class DisputeVerdict
      * @param bool $existing True when the record was found, not made.
      * @param bool $waitsForStaff True when the record waits for a decision of staff before it books money.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function __construct(
         public readonly string $kind,
@@ -170,7 +170,7 @@ final class DisputeVerdict
     /**
      * The record is written, or already exactly as asked.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function isWritten(): bool
     {
@@ -180,7 +180,7 @@ final class DisputeVerdict
     /**
      * A rule refused the write; $code says which.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function isRefused(): bool
     {
@@ -190,7 +190,7 @@ final class DisputeVerdict
     /**
      * An older provider word than the one applied: nothing was written.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function isStale(): bool
     {
@@ -202,7 +202,7 @@ final class DisputeVerdict
      * refused with core's notice to staff kept, stale), 503 when nothing was written for a reason a later delivery can
      * overcome (lock_not_taken, write_failed), so the provider sends it again.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function providerStatus(): int
     {

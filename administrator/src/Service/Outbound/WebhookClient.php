@@ -18,21 +18,21 @@ use RuntimeException;
  * vetted address (the host name still sent, so TLS checks the receiver's certificate against it), redirects are not
  * followed, the connection is given 5 seconds and the whole request 15.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class WebhookClient
 {
     /**
      * Seconds to connect.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CONNECT_SECONDS = 5;
 
     /**
      * Seconds for the whole request.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const TOTAL_SECONDS = 15;
 
@@ -48,7 +48,7 @@ final class WebhookClient
      *
      * @throws RuntimeException When PHP has no curl.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function post(string $url, array $vetted, string $body, array $headers): array
     {

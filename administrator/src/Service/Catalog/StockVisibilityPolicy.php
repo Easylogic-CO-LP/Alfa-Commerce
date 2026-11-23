@@ -360,7 +360,7 @@ final class StockVisibilityPolicy
      *
      * @return string A boolean SQL expression.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function combinationSellableExpression(string $combinationAlias, string $itemAlias = 'a'): string
     {

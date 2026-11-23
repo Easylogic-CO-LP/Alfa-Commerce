@@ -53,7 +53,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var array<string, array{key: string, name: string, verdict: string, range: ?\Alfa\Component\Alfa\Administrator\Service\Setup\AlfaCoreRange, why: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public array $compatibility = [];
 

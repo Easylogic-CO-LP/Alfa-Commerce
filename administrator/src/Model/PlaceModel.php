@@ -204,7 +204,7 @@ class PlaceModel extends AlfaAdminModel
      *
      * @return bool True on success.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function publish(&$pks, $value = 1)
     {

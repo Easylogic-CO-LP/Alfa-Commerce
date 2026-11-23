@@ -90,7 +90,7 @@ class Dispatcher extends AbstractModuleDispatcher
      * Whether the module's cards sell: the first drawn item's word ($item->sellsOnline, set by the model that
      * drew it); a module whose tabs are all drawn later, on demand, has no item yet and asks the shop's switch.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function cardsSell(): bool
     {

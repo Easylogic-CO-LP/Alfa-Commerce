@@ -68,7 +68,7 @@ final class PriceContributionBuilder
     /**
      * Whether the plugin's contributions are the whole price of the product.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private bool $suppliesBase = false;
 
@@ -207,7 +207,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function suppliesBase(): static
     {

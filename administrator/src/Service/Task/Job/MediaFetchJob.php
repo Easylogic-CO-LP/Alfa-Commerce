@@ -38,42 +38,42 @@ use Throwable;
  * that address, or refused with the reason). An image refused does not stop the others. The fetch is a call outside
  * the shop, so the job keeps its own transactions (ownTransactions): no chunk transaction is held while it waits.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class MediaFetchJob implements JobHandler
 {
     /**
      * The handler's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'media.fetch';
 
     /**
      * An image stored.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const STORED = 'stored';
 
     /**
      * An image the record already holds, from the same address: not fetched again.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const KEPT = 'kept';
 
     /**
      * An image not stored, with the reason.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSED = 'refused';
 
     /**
      * The fetch a test gives the job; null for the guarded one with the Options' limits.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(private readonly ?MediaFetch $fetch = null)
     {
@@ -82,7 +82,7 @@ final class MediaFetchJob implements JobHandler
     /**
      * A light job of one image a chunk to begin with; the runner grows the chunk from the time it measures.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function policy(): JobPolicy
     {
@@ -94,7 +94,7 @@ final class MediaFetchJob implements JobHandler
      *
      * @param JobRun $run The job.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function total(JobRun $run): int
     {
@@ -107,7 +107,7 @@ final class MediaFetchJob implements JobHandler
      * @param JobRun $run The job.
      * @param int $units At most this many images.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function chunk(JobRun $run, int $units): JobChunk
     {
@@ -134,7 +134,7 @@ final class MediaFetchJob implements JobHandler
      *
      * @return list<array<string, mixed>>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function result(?array $checkpoint): ?array
     {
@@ -153,7 +153,7 @@ final class MediaFetchJob implements JobHandler
      *
      * @return array{pointer: string, url: string, outcome: string, media_id: int|null, reason: string|null}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function one(array $image, string $origin, int $recordId): array
     {
@@ -225,7 +225,7 @@ final class MediaFetchJob implements JobHandler
      * @param string $origin The record's kind.
      * @param int $recordId The record.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function recordExists(string $origin, int $recordId): bool
     {

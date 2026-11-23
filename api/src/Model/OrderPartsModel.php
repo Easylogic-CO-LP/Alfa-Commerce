@@ -19,14 +19,14 @@ use Joomla\CMS\MVC\Model\ListModel;
  * own projection ({@see OrderModel::getItem()}), so GET v1/alfa/orders/:id and GET v1/alfa/orders/:id/<part> answer the
  * same values. The order is the state's filter.order_id; the page is the request's page[offset] and page[limit].
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 abstract class OrderPartsModel extends ListModel
 {
     /**
      * The order read's name for the part: payments or shipments.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected const PART = '';
 
@@ -35,7 +35,7 @@ abstract class OrderPartsModel extends ListModel
      *
      * @var list<object>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?array $rows = null;
 
@@ -44,7 +44,7 @@ abstract class OrderPartsModel extends ListModel
      *
      * @return list<object>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getItems()
     {
@@ -56,7 +56,7 @@ abstract class OrderPartsModel extends ListModel
     /**
      * How many rows the part has.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getTotal()
     {
@@ -69,7 +69,7 @@ abstract class OrderPartsModel extends ListModel
      *
      * @return non-empty-list<string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function fields(): array
     {
@@ -81,7 +81,7 @@ abstract class OrderPartsModel extends ListModel
      *
      * @return list<object>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function rows(): array
     {

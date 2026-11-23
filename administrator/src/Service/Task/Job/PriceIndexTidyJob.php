@@ -29,14 +29,14 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
  * deletes nothing more: a merge never asks a rerun. It keeps its own transactions: the switch is one, each removal a
  * statement.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class PriceIndexTidyJob implements JobHandler
 {
     /**
      * The handler's name, and its one scope.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'price.index.tidy';
 
@@ -45,7 +45,7 @@ final class PriceIndexTidyJob implements JobHandler
      *
      * @return int The job.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function enqueue(): int
     {

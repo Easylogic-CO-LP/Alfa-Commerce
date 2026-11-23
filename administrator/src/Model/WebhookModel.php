@@ -27,21 +27,21 @@ use Joomla\CMS\Language\Text;
  * whenever staff ask for a new one; it is shown once, in the message after that save, and never again: no read of
  * this model, no list and no REST route returns it.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class WebhookModel extends AlfaAdminModel
 {
     /**
      * The admin-contract entity of this screen.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected string $alfaEntity = 'webhook';
 
     /**
      * @var string Message prefix for translations.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $text_prefix = 'COM_ALFA_WEBHOOK';
 
@@ -50,7 +50,7 @@ class WebhookModel extends AlfaAdminModel
      *
      * @var string[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const PROTECTED_COLUMNS = ['kind', 'plugin', 'secret', 'last_attempt_at', 'last_ok', 'last_result', 'created', 'created_by', 'modified', 'modified_by'];
 
@@ -62,7 +62,7 @@ class WebhookModel extends AlfaAdminModel
      *
      * @return \Joomla\CMS\Form\Form|false
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -76,7 +76,7 @@ class WebhookModel extends AlfaAdminModel
      *
      * @return mixed
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function loadFormData()
     {
@@ -100,7 +100,7 @@ class WebhookModel extends AlfaAdminModel
      *
      * @return object|false
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getItem($pk = null)
     {
@@ -132,7 +132,7 @@ class WebhookModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function save($data)
     {
@@ -211,7 +211,7 @@ class WebhookModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function delete(&$pks)
     {
@@ -241,7 +241,7 @@ class WebhookModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function publish(&$pks, $value = 1)
     {

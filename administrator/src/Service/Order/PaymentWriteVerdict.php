@@ -38,7 +38,7 @@ use Throwable;
  * @api ANSWERS: a read-only value; a code's value never changes and is never reused within the major version, and a
  *      later release may add codes, never kinds.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class PaymentWriteVerdict
 {
@@ -53,7 +53,7 @@ final class PaymentWriteVerdict
      * @param array<string, Money> $figures For the plugin's log only: the money a cap refusal compared (amount, total,
      *                                      held, pending, left; for a refund cap amount, total, left); empty otherwise.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(
         public readonly string $kind,
@@ -68,7 +68,7 @@ final class PaymentWriteVerdict
     /**
      * The row is written, already as asked, or found by its reference.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function isWritten(): bool
     {
@@ -78,7 +78,7 @@ final class PaymentWriteVerdict
     /**
      * A money or business rule refused the write; $code says which.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function isRefused(): bool
     {
@@ -88,7 +88,7 @@ final class PaymentWriteVerdict
     /**
      * The row left the expected status first: another writer won.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function isRaced(): bool
     {
@@ -103,7 +103,7 @@ final class PaymentWriteVerdict
      *
      * @api ANSWERS: 200 or 503; the one way a gateway decides what to answer its provider for a payment write.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function providerStatus(): int
     {

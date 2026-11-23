@@ -316,7 +316,7 @@ final class ComponentOptions
      * @param array<string, mixed> $before The Options before the write.
      * @param array<string, mixed> $after The Options written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function followOnlineSales(array $before, array $after): void
     {

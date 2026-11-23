@@ -83,7 +83,7 @@ class MediaHelper
      * stored side below it as this.
      *
      * @var int
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const THUMBNAIL_BOX_MIN = 100;
 
@@ -92,7 +92,7 @@ class MediaHelper
      * site sets no placeholder of its own in Options, Images.
      *
      * @var string
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PLACEHOLDER = 'media/com_alfa/images/placeholders/no-image.webp';
 
@@ -101,7 +101,7 @@ class MediaHelper
      * stored side above it as this.
      *
      * @var int
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const THUMBNAIL_BOX_MAX = 5000;
 
@@ -113,7 +113,7 @@ class MediaHelper
      * as a PNG, the most.
      *
      * @var array<int, float>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const DECODE_BYTES_PER_PIXEL = [IMAGETYPE_PNG => 8.7, IMAGETYPE_JPEG => 4.7, IMAGETYPE_WEBP => 4.7, IMAGETYPE_GIF => 1.1];
 
@@ -122,7 +122,7 @@ class MediaHelper
      * up), in bytes.
      *
      * @var int
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const DECODE_FIXED = 4194304;
 
@@ -130,7 +130,7 @@ class MediaHelper
      * The margin over the measured need: a quarter more.
      *
      * @var float
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const DECODE_SAFETY = 1.25;
 
@@ -421,7 +421,7 @@ class MediaHelper
      *
      * @return string The address to draw.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function displayUrl(?string $url): string
     {
@@ -1602,7 +1602,7 @@ class MediaHelper
      *
      * @return string Relative path of the file written (a plugin may change its extension), or '' when none was.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function writeThumbnail(string $source, string $dest, ?object $params, bool &$guarded, string $sourceName = ''): string
     {
@@ -1708,7 +1708,7 @@ class MediaHelper
      *
      * @param string $file Absolute path of the file.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function sizeText(string $file): string
     {
@@ -1728,7 +1728,7 @@ class MediaHelper
      *
      * @return array{0: int, 1: int} Width, height.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function thumbnailSize(int $width, int $height, int $boxWidth, int $boxHeight): array
     {
@@ -1750,7 +1750,7 @@ class MediaHelper
      * @param int $boxWidth The box's width.
      * @param int $boxHeight The box's height.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function decodeNeed(int $width, int $height, int $type, int $boxWidth, int $boxHeight): int
     {
@@ -1775,7 +1775,7 @@ class MediaHelper
      *                                                                               the bytes left (null with no limit)
      *                                                                               and the image's size.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function decodeCheck(string $file, ?int $boxWidth = null, ?int $boxHeight = null): array
     {
@@ -1813,7 +1813,7 @@ class MediaHelper
      * @param int $boxWidth The box's width.
      * @param int $boxHeight The box's height.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function breaksThumbnailRule(string $source, string $thumbnail, int $boxWidth, int $boxHeight): bool
     {
@@ -1842,7 +1842,7 @@ class MediaHelper
      *
      * @return string Relative path of the thumbnail, or '' when none could be written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function rewriteThumbnail(string $source, string $written, string $dest, int $boxWidth, int $boxHeight): string
     {

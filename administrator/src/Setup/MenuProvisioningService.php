@@ -213,7 +213,7 @@ final class MenuProvisioningService
      * Whether Joomla accepts sign-ups, as the one reader answers it (SignUpHelper::open()).
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function signUpsOpen(): bool
     {
@@ -229,7 +229,7 @@ final class MenuProvisioningService
      * @param string $language The language tag the item is written in.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function title(string $key, string $language): string
     {

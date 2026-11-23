@@ -695,7 +695,7 @@ class PriceComputationEngine
      * @param array $prices The price rows.
      * @param int $quantity The quantity asked.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function pricedFrom(array $prices, int $quantity): ?int
     {

@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
  * check and the connection cannot point inside; its transport follows no redirect, a redirect's address is vetted
  * here as a new one.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundAddressGuard
 {
@@ -30,7 +30,7 @@ final class OutboundAddressGuard
      *
      * @param string $host The host.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function isPublicHost(string $host): bool
     {
@@ -49,7 +49,7 @@ final class OutboundAddressGuard
      *
      * @throws OutboundAddressRefused When the URL is refused, with the reason staff read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function vet(string $url, bool $httpsOnly = true): array
     {
@@ -81,7 +81,7 @@ final class OutboundAddressGuard
      *
      * @return string[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function publicAddresses(string $host): array
     {

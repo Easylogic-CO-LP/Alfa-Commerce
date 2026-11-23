@@ -46,91 +46,91 @@ use Throwable;
  * A plugin adds routes of its own under its prefix; it never replaces, removes or shadows a core route: its routes are
  * put after core's, under v1/alfa/ext/, where no core route is registered.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiRouteRegistrar
 {
     /**
      * The start of every address an extension adds; no core route is ever registered under it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PREFIX = 'v1/alfa/ext/';
 
     /**
      * The element of Alfa's plugin of the webservices group, which registers core's routes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const WEBSERVICES_PLUGIN = 'alfa';
 
     /**
      * The log category of the routes extensions add.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const LOG = 'com_alfa.api';
 
     /**
      * The largest body a route takes when it declares none, in bytes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DEFAULT_MAX_BODY = 1048576;
 
     /**
      * The largest body a route may declare, in bytes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const MAX_BODY_LIMIT = 8388608;
 
     /**
      * How long a caller waits before it asks again an extension that cannot be loaded, in seconds.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const RETRY_AFTER = 600;
 
     /**
      * The JSON:API media type, the default of a route that names none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const JSONAPI = 'application/vnd.api+json';
 
     /**
      * The plain JSON media type.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const JSON = 'application/json';
 
     /**
      * The methods a route may answer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const METHODS = ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'];
 
     /**
      * The rules a variable may have, after one outer pair of parentheses is taken off.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const VARIABLE_RULES = ['\d+', '[A-Za-z0-9_-]{1,64}'];
 
     /**
      * The defaults a route may carry.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const DEFAULT_KEYS = ['component', 'alfa_permission', 'format', 'alfa_max_body', 'public'];
 
     /**
      * The most segments a route may have after its prefix.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const MAX_SEGMENTS = 6;
 
@@ -147,7 +147,7 @@ final class ApiRouteRegistrar
      *
      * @param ApiRouter $router The application's router.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function registerFor(ApiRouter $router): void
     {
@@ -237,7 +237,7 @@ final class ApiRouteRegistrar
      *
      * @return list<array{element: string, name: string, accepted: list<ApiRouteDeclaration>, refused: list<ApiRouteRefusal>, unavailable: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function collect(): array
     {
@@ -301,7 +301,7 @@ final class ApiRouteRegistrar
      * @throws RuntimeException When the webservices plugin cannot be loaded, maps no onBeforeApiRoute handler, or its
      *                          handler fails.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function collectCore(): array
     {
@@ -354,7 +354,7 @@ final class ApiRouteRegistrar
      * @param Route $route The route.
      * @param string $key The route's key within the plugin.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function accept(PluginId $owner, Route $route, string $key = '0'): ApiRouteDeclaration|ApiRouteRefusal
     {
@@ -524,7 +524,7 @@ final class ApiRouteRegistrar
      *
      * @param string $element The element.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function reservedElement(string $element): bool
     {
@@ -562,7 +562,7 @@ final class ApiRouteRegistrar
      *
      * @return array{accepted: list<ApiRouteDeclaration>, refused: list<ApiRouteRefusal>}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function acceptAll(PluginId $owner, array $routes): array
     {
@@ -608,7 +608,7 @@ final class ApiRouteRegistrar
      * @param string $reason The PluginUnavailable reason.
      * @param string $detail What happened, for the log after the login.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function unavailable(ApiRouter $router, string $element, string $reason, string $detail): void
     {
@@ -628,7 +628,7 @@ final class ApiRouteRegistrar
      *
      * @param string $message What to say.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function warn(string $message): void
     {

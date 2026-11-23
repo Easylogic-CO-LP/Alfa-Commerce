@@ -124,7 +124,7 @@ final class PricesChangedEvent extends AbstractImmutableEvent
     /**
      * @var string A stored price period began: a period of a price, a discount or a tax stored ahead of time is now the
      *             one read; announced by the task runner, not by a write; causeId 0.
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CAUSE_WINDOW = 'window';
 

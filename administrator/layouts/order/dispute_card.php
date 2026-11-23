@@ -18,7 +18,7 @@
  *   currency  \Alfa\Component\Alfa\Site\Service\Pricing\Currency  the order's currency at its frozen scale
  *   actions   \Alfa\Component\Alfa\Administrator\Plugin\PluginAction[]  the card's actions for this user
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 
 \defined('_JEXEC') or die;

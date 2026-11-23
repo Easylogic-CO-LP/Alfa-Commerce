@@ -284,7 +284,7 @@ class PriceCalculator
      *
      * @return array<int, array<int, PriceResult>> Results by product id, then by combination id (0 for the product).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function calculateUnits(array $units, $quantities, PriceContext $context): array
     {

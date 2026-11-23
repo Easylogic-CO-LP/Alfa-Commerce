@@ -80,7 +80,7 @@ class JsonApiView extends BaseApiView
      *
      * @return object
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function prepareItem($item)
     {
@@ -98,7 +98,7 @@ class JsonApiView extends BaseApiView
      *
      * @return array{0: string, 1: string, 2: string[]}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function translationSource(): array
     {

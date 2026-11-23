@@ -478,7 +478,7 @@ class OrdersModel extends AlfaListModel
      * @param \Joomla\Database\DatabaseInterface $db The connection.
      * @param string $filter The value: undecided, inquiry, open, under_review, won, lost, closed or due.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function disputeCondition(\Joomla\Database\DatabaseInterface $db, string $filter): ?string
     {

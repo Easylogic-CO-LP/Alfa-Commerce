@@ -18,7 +18,7 @@ use RuntimeException;
  * since they were read ({@see PricesState::assertUnchanged()}): nothing of the write is kept, and the writer reads the
  * prices again.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class PricesStateChanged extends RuntimeException
 {
@@ -26,7 +26,7 @@ final class PricesStateChanged extends RuntimeException
      * @param int $itemId The product.
      * @param int $combinationId The combination whose prices were written; 0 for the product's own.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(public readonly int $itemId, public readonly int $combinationId = 0)
     {

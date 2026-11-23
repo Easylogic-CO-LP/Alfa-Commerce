@@ -453,7 +453,7 @@ class PriceDataLoader
      *
      * @return array<int, object[]> The rows by combination id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function loadCombinationPriceRowsFor(array $itemIds, array $combinationIds, PriceContext $context): array
     {

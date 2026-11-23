@@ -21,21 +21,21 @@ use Joomla\CMS\User\User;
  * nothing about who wrote is read from the request. A payment plugin never names one: its one way in is its base class's
  * dispute(), which writes as that plugin.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class DisputeWriter
 {
     /**
      * A member of staff.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const STAFF = 'staff';
 
     /**
      * A payment plugin, from its provider's word.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const GATEWAY = 'gateway';
 
@@ -44,7 +44,7 @@ final class DisputeWriter
      * @param User|null $user The member of staff; null for a gateway.
      * @param string $element The payment plugin's element; '' for staff.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function __construct(
         public readonly string $kind,
@@ -60,7 +60,7 @@ final class DisputeWriter
      *
      * @throws InvalidArgumentException For a guest: a dispute is never written by nobody.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function staff(User $user): self
     {
@@ -78,7 +78,7 @@ final class DisputeWriter
      *
      * @throws InvalidArgumentException For an empty element.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function gateway(string $element): self
     {
@@ -92,7 +92,7 @@ final class DisputeWriter
     /**
      * Whether a member of staff writes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function isStaff(): bool
     {
@@ -102,7 +102,7 @@ final class DisputeWriter
     /**
      * Whether a payment plugin writes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function isGateway(): bool
     {
@@ -112,7 +112,7 @@ final class DisputeWriter
     /**
      * The user id the record and the timeline name: the member of staff, 0 for a gateway.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function userId(): int
     {

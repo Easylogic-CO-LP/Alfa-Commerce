@@ -30,21 +30,21 @@ use DateTimeZone;
  * writes the reminder e-mail (order.dispute_email) and calls nothing else. A case decided, answered or moved before its
  * time needs no cancel: the step ends with nothing.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class DisputeRemindJob implements JobHandler
 {
     /**
      * The handler's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'order.dispute.remind';
 
     /**
      * How long before the deadline staff are reminded.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DAYS_BEFORE = 3;
 
@@ -55,7 +55,7 @@ final class DisputeRemindJob implements JobHandler
      * @param int $disputeId The dispute.
      * @param string $dueBy Its deadline, UTC Y-m-d H:i:s.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function owe(int $disputeId, string $dueBy): void
     {
@@ -77,7 +77,7 @@ final class DisputeRemindJob implements JobHandler
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function policy(): JobPolicy
     {
@@ -87,7 +87,7 @@ final class DisputeRemindJob implements JobHandler
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function total(JobRun $run): int
     {
@@ -97,7 +97,7 @@ final class DisputeRemindJob implements JobHandler
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function chunk(JobRun $run, int $units): JobChunk
     {

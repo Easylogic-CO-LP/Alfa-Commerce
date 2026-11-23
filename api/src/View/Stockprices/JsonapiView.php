@@ -20,7 +20,7 @@ use Tobscure\JsonApi\Collection;
  * The light list of stock and prices: a page of units, each with its key as its id (item_id:combination_id), and the
  * link to the next page by key. No total and no last page: the list is walked by key, one statement a page.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class JsonApiView extends BaseApiView
 {
@@ -28,7 +28,7 @@ class JsonApiView extends BaseApiView
      * The fields of a row.
      *
      * @var array
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $fieldsToRenderList = [
         'id',
@@ -55,7 +55,7 @@ class JsonApiView extends BaseApiView
      *
      * @return string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function displayPage(array $rows, ?string $next, string $currency, bool $priced): string
     {
@@ -109,7 +109,7 @@ class JsonApiView extends BaseApiView
      * @param mixed $value The stored figure (null when the unit holds none).
      * @param bool $tracked Whether the unit tracks stock.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function figure(mixed $value, bool $tracked): ?float
     {

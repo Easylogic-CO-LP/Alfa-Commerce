@@ -33,34 +33,34 @@ use Throwable;
  * row of a plugin consumer kept in step with the plugin (its topics when it is saved, paused when it is disabled,
  * removed with it).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundConsumers
 {
-    /** Core posts signed JSON to an address. @since 2.2.2 */
+    /** Core posts signed JSON to an address. @since 2.3.0 */
     public const KIND_WEBHOOK = 'webhook';
 
-    /** An alfa plugin delivers through its own client. @since 2.2.2 */
+    /** An alfa plugin delivers through its own client. @since 2.3.0 */
     public const KIND_PLUGIN = 'plugin';
 
     /**
      * The prefix of the notice of a consumer's changes given up: the consumer's id follows.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NOTICE = 'alfa.outbound.dead:';
 
     /**
      * Where the notice leads.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const URL = 'index.php?option=com_alfa&view=tools#tasks';
 
     /**
      * The connection, as the driver whose transaction levels Alfa keeps.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function db(): DatabaseDriver
     {
@@ -72,7 +72,7 @@ final class OutboundConsumers
      *
      * @param int $id The consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function find(int $id): ?object
     {
@@ -94,7 +94,7 @@ final class OutboundConsumers
      *
      * @param PluginId $plugin The plugin.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ofPlugin(PluginId $plugin): ?int
     {
@@ -113,7 +113,7 @@ final class OutboundConsumers
      *
      * @return list<array<string, mixed>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function cardRows(): array
     {
@@ -165,7 +165,7 @@ final class OutboundConsumers
      *
      * @throws DomainException When there is no such consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function retryDead(int $id): int
     {
@@ -226,7 +226,7 @@ final class OutboundConsumers
      *
      * @throws DomainException When there is no such consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function discardDead(int $id): int
     {
@@ -250,7 +250,7 @@ final class OutboundConsumers
      *
      * @throws DomainException When there is no such consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function setDelivering(int $id, bool $delivering): void
     {
@@ -270,7 +270,7 @@ final class OutboundConsumers
      * @param bool $ok Whether it was taken.
      * @param string $result The answer, or why it failed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function noteAttempt(int $id, bool $ok, string $result): void
     {
@@ -290,7 +290,7 @@ final class OutboundConsumers
      *
      * @param int $consumerId The consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function syncNotice(int $consumerId): void
     {
@@ -340,7 +340,7 @@ final class OutboundConsumers
      *
      * @throws DomainException When there is no such webhook.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function sendTest(int $id, OutboundDelivery $delivery = new OutboundDelivery()): array
     {
@@ -371,7 +371,7 @@ final class OutboundConsumers
      *
      * @param int[] $ids The consumers.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function removeDeliveries(array $ids): void
     {
@@ -401,7 +401,7 @@ final class OutboundConsumers
      *
      * @param int[] $extensionIds Extension ids saved, enabled or disabled.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function followPlugins(array $extensionIds): void
     {
@@ -434,7 +434,7 @@ final class OutboundConsumers
      * Remove the rows of plugin consumers whose plugin is no longer installed, with what they were owed. Never breaks
      * the caller.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function forgetMissingPlugins(): void
     {
@@ -464,7 +464,7 @@ final class OutboundConsumers
      * @param string $name Its name, as staff read it.
      * @param bool $enabled Whether it is enabled.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function follow(DatabaseDriver $db, PluginId $plugin, string $name, bool $enabled): void
     {
@@ -528,7 +528,7 @@ final class OutboundConsumers
      *
      * @return string[]|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function topicsOf(PluginId $plugin): ?array
     {
@@ -561,7 +561,7 @@ final class OutboundConsumers
      *
      * @throws DomainException When there is no such consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function existing(int $id): object
     {

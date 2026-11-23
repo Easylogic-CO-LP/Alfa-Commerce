@@ -26,14 +26,14 @@ use RuntimeException;
  * The installer asks it on an update from an earlier version, where a box a site stored while the default was
  * 200 x 200 was kept by ComponentOptions, so the default of 500 never reached it.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ThumbnailBoxUpdate
 {
     /**
      * The two Options of the box, width then height.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const SIDES = ['media_thumbnail_width', 'media_thumbnail_height'];
 
@@ -45,7 +45,7 @@ final class ThumbnailBoxUpdate
      *
      * @throws RuntimeException When the Options cannot be written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function raise(): ?array
     {

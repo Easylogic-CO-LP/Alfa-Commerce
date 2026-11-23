@@ -113,7 +113,7 @@ final class CartMessaging
      *
      * @param StockLimit $limit What the cart holds of that stock, and whether more went in.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function stock(StockLimit $limit): void
     {
@@ -137,7 +137,7 @@ final class CartMessaging
      *
      * @return string The sentence in the shopper's language, the figure in it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function stockSentence(StockLimit $limit): string
     {
@@ -158,7 +158,7 @@ final class CartMessaging
      *
      * @return string The sentence in the staff member's language, the figure in it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function builderHeldSentence(StockLimit $limit): string
     {
@@ -174,7 +174,7 @@ final class CartMessaging
      * @param int $figure The figure.
      * @param string $basePath The folder whose language file holds the key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function figureSentence(string $key, int $figure, string $basePath): string
     {

@@ -20,14 +20,14 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  *
  *     public function onAlfaDisputeChanged(DisputeChangedEvent $event): void
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class DisputeChangedEvent extends AbstractImmutableEvent
 {
     /**
      * The event's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'onAlfaDisputeChanged';
 
@@ -38,7 +38,7 @@ final class DisputeChangedEvent extends AbstractImmutableEvent
      *
      * @api READ ONLY: the record.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getDispute(): ?object
     {
@@ -50,7 +50,7 @@ final class DisputeChangedEvent extends AbstractImmutableEvent
     /**
      * The dispute's id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getDisputeId(): int
     {
@@ -60,7 +60,7 @@ final class DisputeChangedEvent extends AbstractImmutableEvent
     /**
      * The order of the disputed payment.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getOrderId(): int
     {
@@ -70,7 +70,7 @@ final class DisputeChangedEvent extends AbstractImmutableEvent
     /**
      * The disputed payment.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getPaymentId(): int
     {
@@ -80,7 +80,7 @@ final class DisputeChangedEvent extends AbstractImmutableEvent
     /**
      * The state before the change; '' for a new record.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getStateBefore(): string
     {
@@ -90,7 +90,7 @@ final class DisputeChangedEvent extends AbstractImmutableEvent
     /**
      * The state after the change.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getStateAfter(): string
     {
@@ -101,7 +101,7 @@ final class DisputeChangedEvent extends AbstractImmutableEvent
      * What the change booked in the order's currency, as decimal text: positive a chargeback (a loss), negative its
      * reversal, '0' when the books did not move.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getBooked(): string
     {

@@ -131,7 +131,7 @@ class ActionRegistry
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DISPUTE_PREFIX = 'ledger_dispute_';
 
@@ -140,7 +140,7 @@ class ActionRegistry
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DISPUTE_FIELD = 'dispute';
 
@@ -1217,7 +1217,7 @@ class ActionRegistry
      *
      * @return PluginAction[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function disputeActions(object $dispute, object $payment): array
     {
@@ -1286,7 +1286,7 @@ class ActionRegistry
      *
      * @return PluginAction[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function paymentDisputeActions(object $payment): array
     {
@@ -1315,7 +1315,7 @@ class ActionRegistry
      * @param bool $mutates It writes at once (no form): submitted with a one-time key.
      * @param string $confirm The key of the question asked before it writes at once; '' for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeAction(string $act, string $labelKey, string $icon, string $class, array $data, int $labelArgument = 0, bool $mutates = false, string $confirm = ''): PluginAction
     {
@@ -1341,7 +1341,7 @@ class ActionRegistry
      *
      * @return list<object>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputesOfPayment(int $paymentId): array
     {
@@ -1358,7 +1358,7 @@ class ActionRegistry
      *
      * @return list<int>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function candidatesOf(object $dispute): array
     {
@@ -1652,7 +1652,7 @@ class ActionRegistry
      * @param string $action ledger_dispute_<act>, or its _do arm.
      * @param Input $input The request: 'dispute', and the form's jform values.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function executeDisputeAction(ExecutePaymentActionEvent $event, object $payment, object $order, string $action, Input $input): ExecutePaymentActionEvent
     {
@@ -1732,7 +1732,7 @@ class ActionRegistry
      * @param bool $submitted The confirmation was submitted (accept).
      * @param Input $input The request.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function askProvider(ExecutePaymentActionEvent $event, object $payment, object $dispute, string $act, bool $submitted, Input $input): ExecutePaymentActionEvent
     {
@@ -1801,7 +1801,7 @@ class ActionRegistry
      * @param \Joomla\CMS\Form\Form|false $form The act's form.
      * @param string $refusal Why a submission was refused, plain text; '' for a fresh form.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeForm(ExecutePaymentActionEvent $event, object $payment, ?object $dispute, string $act, mixed $form, string $refusal = ''): ExecutePaymentActionEvent
     {
@@ -1828,7 +1828,7 @@ class ActionRegistry
      * @param ExecutePaymentActionEvent $event The event.
      * @param DisputeVerdict $verdict The verdict.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeVerdictAnswer(ExecutePaymentActionEvent $event, DisputeVerdict $verdict): ExecutePaymentActionEvent
     {
@@ -1844,7 +1844,7 @@ class ActionRegistry
      * @param string $message The sentence, plain text.
      * @param bool $success It was done.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeAnswer(ExecutePaymentActionEvent $event, string $message, bool $success): ExecutePaymentActionEvent
     {
@@ -1863,7 +1863,7 @@ class ActionRegistry
     /**
      * The dispute model.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeModel(): DisputeModel
     {

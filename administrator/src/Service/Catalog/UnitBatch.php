@@ -51,33 +51,33 @@ use Throwable;
  * after the last unit, in chunks, under each product's lock; a product whose rebuild cannot run now keeps its mark and
  * the catalogue job rebuilds it. Stock writes keep their read models in the inventory service's own transaction.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class UnitBatch
 {
     /**
      * The most units one request writes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const MAX_UNITS = 100;
 
     /**
      * The keys a unit takes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const KEYS = ['item_id', 'combination_id', 'prices', 'prices_state', 'stock', 'inventory_stock'];
 
     /**
      * The connection.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private DatabaseDriver $db;
 
     /**
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct()
     {
@@ -93,7 +93,7 @@ final class UnitBatch
      *                                    combination_id, and either prices_state, stock and available_quantity (200)
      *                                    or title (a refusal).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function write(array $units): array
     {
@@ -149,7 +149,7 @@ final class UnitBatch
      *
      * @return array<string, mixed>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refusal(mixed $unit, string $pointer, array $seen): ?array
     {
@@ -292,7 +292,7 @@ final class UnitBatch
      *
      * @return array<string, mixed> The unit's answer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function writeUnit(array $unit, int $itemId, int $combinationId, string $pointer): array
     {
@@ -377,7 +377,7 @@ final class UnitBatch
      * @throws PricesStateChanged When the unit's prices changed since the state sent was read.
      * @throws RuntimeException When a row names a place deleted since.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function writePrices(array $unit, int $itemId, int $combinationId): void
     {
@@ -447,7 +447,7 @@ final class UnitBatch
      *
      * @throws UnitBatchRefusal When the unit can be stocked at more than one location.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function plainTarget(int $itemId, int $combinationId, string $figure, InventoryService $inventory): array
     {
@@ -468,7 +468,7 @@ final class UnitBatch
      *
      * @return list<array<string, mixed>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function withFigures(array $answers): array
     {
@@ -542,7 +542,7 @@ final class UnitBatch
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function failed(string $at, int $itemId, int $combinationId, Throwable $failure): array
     {
@@ -562,7 +562,7 @@ final class UnitBatch
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function refused(string $pointer, int $status, string $title, int $itemId = 0, int $combinationId = 0): array
     {
@@ -581,7 +581,7 @@ final class UnitBatch
      * @param mixed $value The value.
      * @param bool $positive Whether 0 is refused.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function id(mixed $value, bool $positive): bool
     {
@@ -595,7 +595,7 @@ final class UnitBatch
      *
      * @param mixed $value The value.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function figure(mixed $value): bool
     {
@@ -613,7 +613,7 @@ final class UnitBatch
      *
      * @param string $key The key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function segment(string $key): string
     {

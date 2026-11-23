@@ -34,56 +34,56 @@ use LogicException;
  *       }
  *   }
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiRequestEvent extends AbstractEvent
 {
     /**
      * The answer kind of a JSON:API route.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const KIND_JSONAPI = 'jsonapi';
 
     /**
      * The answer kind of an application/json route.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const KIND_JSON = 'json';
 
     /**
      * The answer kind of a route of any other media type.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const KIND_RAW = 'raw';
 
     /**
      * The statuses refuse() takes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSALS = [400, 403, 404, 405, 409, 422, 429];
 
     /**
      * The statuses the respond methods take.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const SUCCESSES = [200, 201, 202];
 
     /**
      * The headers header() sets.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const HEADERS = ['location', 'retry-after', 'etag', 'cache-control', 'content-disposition'];
 
     /**
      * The headers getHeader() never gives: the credential stays Joomla's.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const HIDDEN_HEADERS = ['x-joomla-token', 'authorization'];
 
@@ -92,7 +92,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @var array{kind: string, status: int, type?: string, attributes?: array, id?: int|string|null, rows?: array, meta?: array, payload?: array, body?: string, title?: string}|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?array $answer = null;
 
@@ -101,7 +101,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @var array<string, array{name: string, value: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $headers = [];
 
@@ -116,7 +116,7 @@ final class ApiRequestEvent extends AbstractEvent
      * @param array<string, mixed> $form The form fields of a form-encoded body.
      * @param User $identity The token's user.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(
         private readonly string $task,
@@ -136,7 +136,7 @@ final class ApiRequestEvent extends AbstractEvent
      * The task of the route's controller.task: what the plugin wrote after the dot (connector for base.connector;
      * displayList, displayItem, add, edit and delete for the five routes createCRUDRoutes() makes).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getTask(): string
     {
@@ -146,7 +146,7 @@ final class ApiRequestEvent extends AbstractEvent
     /**
      * The HTTP method, upper case.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getMethod(): string
     {
@@ -158,7 +158,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @return array<string, int|string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getVariables(): array
     {
@@ -170,7 +170,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getQuery(): array
     {
@@ -182,7 +182,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @param string $name The header's name, in any case.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getHeader(string $name): string
     {
@@ -194,7 +194,7 @@ final class ApiRequestEvent extends AbstractEvent
     /**
      * The body as it was sent.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getRawBody(): string
     {
@@ -206,7 +206,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @return array<mixed>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getJsonBody(): ?array
     {
@@ -224,7 +224,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getForm(): array
     {
@@ -234,7 +234,7 @@ final class ApiRequestEvent extends AbstractEvent
     /**
      * The account whose token the request carries.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getIdentity(): User
     {
@@ -253,7 +253,7 @@ final class ApiRequestEvent extends AbstractEvent
      * @throws LogicException When the route is not a JSON:API route, an answer was already given, or the status is
      *                        not one of 200, 201 and 202.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function respondData(string $type, array $attributes, int|string|null $id = null, array $meta = [], int $status = 200): void
     {
@@ -271,7 +271,7 @@ final class ApiRequestEvent extends AbstractEvent
      * @throws LogicException When the route is not a JSON:API route, an answer was already given, or the status is
      *                        not one of 200, 201 and 202.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function respondList(string $type, array $rows, array $meta = [], int $status = 200): void
     {
@@ -287,7 +287,7 @@ final class ApiRequestEvent extends AbstractEvent
      * @throws LogicException When the route is not an application/json route, an answer was already given, or the
      *                        status is not one of 200, 201 and 202.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function respondJson(array $payload, int $status = 200): void
     {
@@ -303,7 +303,7 @@ final class ApiRequestEvent extends AbstractEvent
      * @throws LogicException When the route is a JSON:API or application/json route, an answer was already given, or
      *                        the status is not one of 200, 201 and 202.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function respondRaw(string $body, int $status = 200): void
     {
@@ -319,7 +319,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @throws LogicException When an answer was already given or the status is not one refuse() takes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function refuse(int $status, string $sentence): void
     {
@@ -338,7 +338,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @throws LogicException When the header is not one of those, or its value holds a line break.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function header(string $name, string $value): void
     {
@@ -356,7 +356,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @return array<string, mixed>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function answerGiven(): ?array
     {
@@ -368,7 +368,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @return list<array{name: string, value: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function headersGiven(): array
     {
@@ -378,7 +378,7 @@ final class ApiRequestEvent extends AbstractEvent
     /**
      * The route's answer kind (core's to read).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function kind(): string
     {
@@ -394,7 +394,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @throws LogicException When the route is of another kind or the status is not a success.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function answer(string $kind, int $status, array $answer): void
     {
@@ -416,7 +416,7 @@ final class ApiRequestEvent extends AbstractEvent
      *
      * @throws LogicException When an answer was already given.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function give(array $answer): void
     {

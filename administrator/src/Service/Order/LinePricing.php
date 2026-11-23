@@ -33,7 +33,7 @@ use InvalidArgumentException;
  * @api READ ONLY: the line pricing instructions of a payload (custom_unit_price_tax_incl, manual_discount_percent,
  *      manual_discount_scope), validated, as the order's line writer takes them; a refusal names the field.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class LinePricing
 {
@@ -46,7 +46,7 @@ final class LinePricing
      *
      * @throws InvalidArgumentException When an input is not a usable instruction; the message names the field.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function fromPayload(array $payload): array
     {

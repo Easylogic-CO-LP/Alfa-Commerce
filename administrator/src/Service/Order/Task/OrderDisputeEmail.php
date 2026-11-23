@@ -36,28 +36,28 @@ use Throwable;
  * Handed over with no answer: held for staff (Resend). Sending mail switched off: failed at once, never retried by
  * itself. With no store address set nothing is owed: the save writes no such task.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleRecorder
 {
     /**
      * The handler's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'order.dispute_email';
 
     /**
      * The state the reminder e-mail is owed for: the deadline is three days away and no evidence is marked sent.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REMINDER = 'reminder';
 
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function policy(): TaskPolicy
     {
@@ -73,7 +73,7 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
     /**
      * The shop's address the dispute e-mails go to; '' when none is set.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function recipient(): string
     {
@@ -83,7 +83,7 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function run(TaskRun $run): void
     {
@@ -141,7 +141,7 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
      *
      * @param TaskSettlement $settlement The run.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function recordDone(TaskSettlement $settlement): void
     {
@@ -168,7 +168,7 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function what(array $payload): array
     {
@@ -178,7 +178,7 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function alreadySent(TaskSettlement $settlement): array
     {
@@ -188,7 +188,7 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function failedSummary(TaskSettlement $settlement, array $what): ?array
     {
@@ -200,7 +200,7 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function outcomeEvent(string $state): string
     {

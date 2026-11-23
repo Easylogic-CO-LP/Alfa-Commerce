@@ -51,7 +51,7 @@ final class CartLineWriter
     /**
      * What the shelf said about the last add or quantity change made here.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?StockLimit $stockLimit = null;
 
@@ -481,7 +481,7 @@ final class CartLineWriter
      *
      * @return StockLimit|null The figure and whether more went in; null when the shelf said nothing.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function stockLimit(): ?StockLimit
     {
@@ -722,7 +722,7 @@ final class CartLineWriter
      * @param int|null $held What the cart holds of that stock, when the caller has read it after the write; null
      *                       reads it here.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function tell(QuantityDecision $decision, object $item, ?int $combinationId, bool $added, bool $lowered = false, ?int $held = null): void
     {

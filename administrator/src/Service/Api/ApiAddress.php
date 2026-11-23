@@ -16,7 +16,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
  * One address of the REST API as Tools, Security lists it: who adds it, its methods and pattern, the
  * permissions it asks and who holds them.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiAddress
 {
@@ -34,7 +34,7 @@ final class ApiAddress
      * @param string $mediaType The one media type it answers.
      * @param int|null $maxBody The largest body it takes, in bytes; null when the server's own limit applies.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(
         public readonly string $source,
@@ -55,7 +55,7 @@ final class ApiAddress
     /**
      * Whether it is added by a plugin rather than by Alfa Commerce.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function fromPlugin(): bool
     {

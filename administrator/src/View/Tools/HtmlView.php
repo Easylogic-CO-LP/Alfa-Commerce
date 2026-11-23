@@ -50,7 +50,7 @@ class HtmlView extends BaseHtmlView
     /**
      * Where the user's filters of the endpoints' card are kept between visits, as a Joomla list keeps its own.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const API_FILTER_STATE = 'com_alfa.tools.apiroutes.filter';
 
@@ -125,7 +125,7 @@ class HtmlView extends BaseHtmlView
      * sign-in and the webservices plugin are enabled. Drawn from a fixed-path partial, as the integrity verdict is.
      *
      * @var array{shown: list<ApiAddress>, filtered: bool, summary: array{addresses: int, plugins: int, accounts: int, superUsers: int}, sections: array{core: array{all: int, shown: list<ApiAddress>}, extensions: list<array{source: string, name: string, all: int, shown: list<ApiAddress>, refused: list<\Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRefusal>, unavailable: string}>}, holders: list<array{permissions: list<string>, endpoints: int, groups: list<array<string, mixed>>, accounts: list<array<string, mixed>>}>, titles: array<string, string>, sources: array<string, string>, tokenGroups: array{every: bool, titles: list<string>}, tokenPlugin: bool, webservices: bool, unreadable: bool}
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public array $apiRoutes = [
         'shown' => [], 'filtered' => false, 'summary' => ['addresses' => 0, 'plugins' => 0, 'accounts' => 0, 'superUsers' => 0],
@@ -136,7 +136,7 @@ class HtmlView extends BaseHtmlView
     /**
      * The filters of the REST API addresses' table (forms/filter_apiroutes.xml), drawn by Joomla's search tools.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public ?Form $filterForm = null;
 
@@ -144,14 +144,14 @@ class HtmlView extends BaseHtmlView
      * The filters of that table a request sets: name => value.
      *
      * @var array<string, string>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public array $activeFilters = [];
 
     /**
      * The card of the REST API addresses, pre-rendered from a fixed-path partial.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public string $apiRoutesHtml = '';
 
@@ -168,7 +168,7 @@ class HtmlView extends BaseHtmlView
      * The Tasks tab's card of outgoing notifications: each consumer of the shop's changes ({@see OutboundConsumers::cardRows()}).
      *
      * @var array{rows: list<array<string, mixed>>, unreadable: bool}
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public array $outbound = ['rows' => [], 'unreadable' => false];
 
@@ -324,7 +324,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array{shown: list<ApiAddress>, filtered: bool, summary: array{addresses: int, plugins: int, accounts: int, superUsers: int}, sections: array{core: array{all: int, shown: list<ApiAddress>}, extensions: list<array{source: string, name: string, all: int, shown: list<ApiAddress>, refused: list<\Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRefusal>, unavailable: string}>}, holders: list<array{permissions: list<string>, endpoints: int, groups: list<array<string, mixed>>, accounts: list<array<string, mixed>>}>, titles: array<string, string>, sources: array<string, string>, tokenGroups: array{every: bool, titles: list<string>}, tokenPlugin: bool, webservices: bool, unreadable: bool}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function apiRoutes(): array
     {
@@ -383,7 +383,7 @@ class HtmlView extends BaseHtmlView
      * @param array<string, string> $titles Permission => title.
      * @param array{search: string, source: string, permission: string} $chosen The request's filters.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function apiRoutesFilterForm(array $sources, array $titles, array $chosen): ?Form
     {
@@ -431,7 +431,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array{rows: list<array<string, mixed>>, unreadable: bool}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function outbound(): array
     {

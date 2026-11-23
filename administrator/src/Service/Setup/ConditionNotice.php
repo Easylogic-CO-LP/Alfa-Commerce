@@ -28,7 +28,7 @@ use Joomla\Database\ParameterType;
  * The facts last told are kept in `#__alfa_meta` (`notice.<dedup key>`), so the notice is raised once for each change
  * and not again when its dismissed row has expired from the history.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ConditionNotice
 {
@@ -37,7 +37,7 @@ final class ConditionNotice
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const META_PREFIX = 'notice.';
 
@@ -53,7 +53,7 @@ final class ConditionNotice
      *
      * @throws InvalidArgumentException When the key is too long for its meta row.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function follow(string $key, array $facts, callable $push, array $calm = []): void
     {
@@ -103,7 +103,7 @@ final class ConditionNotice
      *
      * @throws InvalidArgumentException When the key is too long for its meta row.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function told(string $key): ?array
     {
@@ -133,7 +133,7 @@ final class ConditionNotice
      *
      * @return list<string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function normalise(array $facts): array
     {
@@ -149,7 +149,7 @@ final class ConditionNotice
      * @param string $key The notice's dedup key.
      * @param list<string> $facts The facts.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function remember(string $key, array $facts): void
     {
@@ -167,7 +167,7 @@ final class ConditionNotice
      *
      * @param string $key The notice's dedup key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function forget(string $key): void
     {
@@ -188,7 +188,7 @@ final class ConditionNotice
      *
      * @throws InvalidArgumentException When the key is too long for the row's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function name(string $key): string
     {
@@ -204,7 +204,7 @@ final class ConditionNotice
     /**
      * The database driver.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function db(): DatabaseInterface
     {

@@ -17,7 +17,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
  * or that the record decides. The controller's check (HasApiGuards::assertAuthorisedForTask()) and the table of
  * Tools, Security (ApiAddressListing) read the same declaration, so the two cannot differ.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiTaskAccess
 {
@@ -28,7 +28,7 @@ final class ApiTaskAccess
      *                        account that made it); the permissions listed are then asked by the task itself, after
      *                        the record.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function __construct(
         public readonly array $permissions,
@@ -41,7 +41,7 @@ final class ApiTaskAccess
      *
      * @param string ...$permissions The permissions, alfa.<section>.<action> or alfa.tools.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function asks(string ...$permissions): self
     {
@@ -53,7 +53,7 @@ final class ApiTaskAccess
      *
      * @param string ...$permissions The permissions the task asks besides the record's own rule.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function perRecord(string ...$permissions): self
     {

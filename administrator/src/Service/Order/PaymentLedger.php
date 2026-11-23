@@ -808,217 +808,217 @@ class PaymentLedger
     /**
      * @var string The row is written, or already exactly as asked, or found by its reference.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const VERDICT_WRITTEN = 'written';
 
     /**
      * @var string A money or business rule refused it; permanent for the order as it stands.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const VERDICT_REFUSED = 'refused';
 
     /**
      * @var string Another operation on the order held its lock; nothing was written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const VERDICT_LOCK_NOT_TAKEN = 'lock_not_taken';
 
     /**
      * @var string The database refused the row, or a failure was caught; nothing was written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const VERDICT_WRITE_FAILED = 'write_failed';
 
     /**
      * @var string The row left the expected status first (an update with an expected status, a claim).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const VERDICT_RACED = 'raced';
 
     /**
      * @var string The write names no order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_NO_ORDER = 'no_order';
 
     /**
      * @var string The order does not exist or names no currency.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_ORDER_UNREADABLE = 'order_unreadable';
 
     /**
      * @var string The amount is money of another currency than the order's.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_AMOUNT_CURRENCY = 'amount_currency';
 
     /**
      * @var string The amount is finer than the order's money.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_AMOUNT_SCALE = 'amount_scale';
 
     /**
      * @var string The amount is not an amount.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_AMOUNT_INVALID = 'amount_invalid';
 
     /**
      * @var string The amount is negative (the direction is the row's type).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_AMOUNT_NEGATIVE = 'amount_negative';
 
     /**
      * @var string The payment does not fit the order's total even without its open attempts: covered, stop.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_OVER_TOTAL = 'over_total';
 
     /**
      * @var string The payment would fit if the order's open attempts (its pending payment rows) were not counted.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_OPEN_ATTEMPT = 'open_attempt';
 
     /**
      * @var string The row names a currency other than the order's.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_CURRENCY_MISMATCH = 'currency_mismatch';
 
     /**
      * @var string No method of this plugin, a method or a row of another plugin, or another plugin's money.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_NOT_WRITER = 'not_writer';
 
     /**
      * @var string The customer-credit rules of a wallet spend.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_WALLET = 'wallet';
 
     /**
      * @var string A reversal or chargeback through a write that does not record them, or a reversed row named by another type.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_FACT_TYPE = 'fact_type';
 
     /**
      * @var string The create's reference is on another row.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_REFERENCE_TAKEN = 'reference_taken';
 
     /**
      * @var string The row addressed, or its order, is gone.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_ROW_MISSING = 'row_missing';
 
     /**
      * @var string The row is history the ledger may not rewrite.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_HISTORY_LOCKED = 'history_locked';
 
     /**
      * @var string The payment keeps its method while refunds or facts name it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_METHOD_FIXED = 'method_fixed';
 
     /**
      * @var string A settled refund is never set back to pending or authorized.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_SETTLED_REFUND = 'settled_refund';
 
     /**
      * @var string A wallet spend or a linked refund keeps the classification the ledger gave it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_CLASSIFICATION = 'classification';
 
     /**
      * @var string The refund names a payment that is missing, not a payment, or of another order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_REFUND_SOURCE = 'refund_source';
 
     /**
      * @var string The provider's refund reference is already booked on this payment.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_REFUND_DUPLICATE = 'refund_duplicate';
 
     /**
      * @var string The refund is more than the payment still gives back.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_REFUND_PAST_PAYMENT = 'refund_past_payment';
 
     /**
      * @var string The refund is more than the order still gives back.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_REFUND_PAST_ORDER = 'refund_past_order';
 
     /**
      * @var string The refund block or the reservations of the order's provider refunds hold it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_REFUND_START = 'refund_start';
 
     /**
      * @var string The document it names is voided, of another order, or past its credit note.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_REFUND_DOCUMENT = 'refund_document';
 
     /**
      * @var string The message of a verdict whose lock was not taken: for the plugin's log only.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const LOCK_NOT_TAKEN_SENTENCE = 'Another operation on this order was in progress; nothing was written.';
 
     /**
      * @var string The message of a verdict whose write failed: for the plugin's log only.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const WRITE_FAILED_SENTENCE = 'The payment record could not be written; nothing was written. The reason is in the orders log.';
 
@@ -1199,14 +1199,14 @@ class PaymentLedger
     /**
      * The disputes table: read here for the refund block and the guards, written by DisputeLedger only.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const DISPUTES_TABLE = '#__alfa_order_disputes';
 
     /**
      * The dispute states in which the bank has not decided yet.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const DISPUTE_UNDECIDED_STATES = ['inquiry', 'open', 'under_review'];
 
@@ -1214,7 +1214,7 @@ class PaymentLedger
      * The dispute states that hold the refund block: a chargeback the shop answers or the bank decides. An inquiry
      * does not: a refund is a usual answer to one.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const DISPUTE_BLOCKING_STATES = ['open', 'under_review'];
 
@@ -1894,7 +1894,7 @@ class PaymentLedger
      * @throws RuntimeException The builder used wrongly: create mode without a status, update mode without a row.
      * @throws Throwable A failure that ended a database transaction the caller holds open.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function saveWithVerdict(): PaymentWriteVerdict
     {
@@ -1921,7 +1921,7 @@ class PaymentLedger
      *
      * @throws RuntimeException When no status was set.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function assertCreatable(): void
     {
@@ -2230,7 +2230,7 @@ class PaymentLedger
      * The body of {@see self::create()}, run one write level deeper: a ledger write nested in it, and
      * the verdict of the write a verdict method wraps, are told apart by that level ({@see self::noteVerdict()}).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function createWrite(array $data, Money|float $grandTotalHint, bool $refundStart, string $writer): int|false
     {
@@ -3125,7 +3125,7 @@ class PaymentLedger
      * The body of {@see self::update()}, run one write level deeper: a ledger write nested in it, and
      * the verdict of the write a verdict method wraps, are told apart by that level ({@see self::noteVerdict()}).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function updateWrite(int $id, array $data, bool $bookkeeping, ?Closure $payloadMerge, bool $staff, string $writer): bool
     {
@@ -3715,7 +3715,7 @@ class PaymentLedger
      * The body of {@see self::updateIfStatus()}, run one write level deeper: a ledger write nested in it, and
      * the verdict of the write a verdict method wraps, are told apart by that level ({@see self::noteVerdict()}).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function updateIfStatusWrite(
         int $id,
@@ -4840,7 +4840,7 @@ class PaymentLedger
      *
      * @throws Throwable A failure that ended a database transaction the caller holds open.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function supersedeAttemptVerdict(int $paymentId, string $reason = '', string $writer = ''): PaymentWriteVerdict
     {
@@ -4984,7 +4984,7 @@ class PaymentLedger
      * @throws InvalidArgumentException An id under 1, an empty gateway, or a blank reference.
      * @throws Throwable A failure that ended a database transaction the caller holds open.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function claimReferenceVerdict(int $id, string $gateway, string $reference): PaymentWriteVerdict
     {
@@ -12772,7 +12772,7 @@ class PaymentLedger
      * @param Money $total The total the cap compared against.
      * @param int $excludeId The row being written (0 on a create).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function paymentCapRefusal(string $log, int $orderId, Money $amount, Money $total, int $excludeId): void
     {
@@ -12833,7 +12833,7 @@ class PaymentLedger
      *
      * @return array<string, Money>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function documentFigures(array $refusal): array
     {
@@ -12911,7 +12911,7 @@ class PaymentLedger
      * @param int $orderId The order, 0 when none is known.
      * @param string $kind self::VERDICT_LOCK_NOT_TAKEN or self::VERDICT_WRITE_FAILED.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function failWrite(string $detail, int $orderId, string $kind): void
     {
@@ -12926,7 +12926,7 @@ class PaymentLedger
      * @param int $orderId The order, 0 when none is known.
      * @param (Closure(string): string)|string|null $plain See {@see self::refuse()}.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function tellStaff(int $orderId, Closure|string|null $plain): void
     {
@@ -12951,7 +12951,7 @@ class PaymentLedger
      * @param int $orderId The order, 0 when none is known.
      * @param (Closure(string): string)|string|null $plain See {@see self::refuse()}.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function staffSentence(int $orderId, Closure|string|null $plain): string
     {
@@ -12979,7 +12979,7 @@ class PaymentLedger
      * How deep the running ledger writes are nested.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static int $writeDepth = 0;
 
@@ -12988,7 +12988,7 @@ class PaymentLedger
      *
      * @var list<int>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $verdictScopes = [];
 
@@ -12997,7 +12997,7 @@ class PaymentLedger
      *
      * @var array<int, array{kind: string, code: string, orderId: int, plain: Closure|string|null, figures: array<string, Money>, rowId: int, existing: bool}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $verdictNotes = [];
 
@@ -13005,7 +13005,7 @@ class PaymentLedger
      * The depth whose create looks its reference up first (the idempotent create), 0 for none.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static int $idempotentDepth = 0;
 
@@ -13013,7 +13013,7 @@ class PaymentLedger
      * The row the idempotent create found by its reference, until its create() closes.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static int $foundByReference = 0;
 
@@ -13032,7 +13032,7 @@ class PaymentLedger
      *
      * @return int|false|null The found row's id; false when refused; null when no row carries the reference.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function rowOfReference(array $data, int $orderId, string $writer): int|false|null
     {
@@ -13105,7 +13105,7 @@ class PaymentLedger
      * @param int $rowId The row the note names.
      * @param bool $existing A create's reference found its row.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function noteVerdict(
         string $kind,
@@ -13141,7 +13141,7 @@ class PaymentLedger
      *
      * @throws Throwable A failure that ended a database transaction the caller holds open.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function withVerdict(Closure $write, bool $create, int $rowId = 0, bool $idempotent = false): PaymentWriteVerdict
     {
@@ -13204,7 +13204,7 @@ class PaymentLedger
      *
      * @return array<string, mixed>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function shallowestNote(int $base): ?array
     {
@@ -13221,7 +13221,7 @@ class PaymentLedger
      * @param bool $create The write was a create.
      * @param int $rowId The row an update addressed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function verdictOfNote(?array $note, bool $create, int $rowId): PaymentWriteVerdict
     {
@@ -13258,7 +13258,7 @@ class PaymentLedger
      * answers are in that catalogue only. The storefront's own com_alfa strings are loaded again over it, so a string
      * both catalogues hold keeps its storefront wording for the rest of the request.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function loadStaffLanguage(): void
     {
@@ -14879,7 +14879,7 @@ class PaymentLedger
      *                          its own reports from inside that report would ask itself again without end, so the
      *                          second asking is refused, and the first reads the payment as unread.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $askingGateway = [];
 
@@ -14888,7 +14888,7 @@ class PaymentLedger
      *
      * @param string $element The payment plugin's element.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function askedItself(string $element): bool
     {
@@ -16301,7 +16301,7 @@ class PaymentLedger
      * @param string|null $transactionId The provider's transaction id to write, or null to keep it.
      * @param string|null $note The note to write, or null to keep it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function staffSettle(object $payment, int $orderId, string $toStatus, string $fromStatus = '', ?string $transactionId = null, ?string $note = null): StaffSettleResult
     {
@@ -16396,7 +16396,7 @@ class PaymentLedger
      * @param \Joomla\CMS\Application\CMSApplicationInterface $app The application.
      * @param int $told How many messages were queued before the write.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function queuedRefusal(\Joomla\CMS\Application\CMSApplicationInterface $app, int $told): string
     {
@@ -16541,7 +16541,7 @@ class PaymentLedger
      * @param int $orderId The order.
      * @param array $unbooked The one read of the gateways' answers ({@see self::unbookedProviderRefunds()}).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function blockRefusal(int $orderId, array $unbooked): ?string
     {
@@ -16558,7 +16558,7 @@ class PaymentLedger
      *
      * @return string|null The reason, translated, naming each such dispute with its amount and deadline.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeBlockRefusal(int $orderId): ?string
     {
@@ -16600,7 +16600,7 @@ class PaymentLedger
      * @param object $row The refund or chargeback row (id, payment_type, id_dispute).
      * @param int $disputeId The dispute the call names; 0 for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeLinkRefusal(object $row, int $disputeId): ?string
     {
@@ -16624,7 +16624,7 @@ class PaymentLedger
      *
      * @param int $disputeId The dispute.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputedPaymentOf(int $disputeId): int
     {
@@ -16647,7 +16647,7 @@ class PaymentLedger
      *
      * @return list<int>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeIds(int $paymentId = 0, int $orderId = 0, bool $undecidedOnly = false): array
     {
@@ -16674,7 +16674,7 @@ class PaymentLedger
      *
      * @param int $paymentId The payment.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputesNaming(int $paymentId): int
     {

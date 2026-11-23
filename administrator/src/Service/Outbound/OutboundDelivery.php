@@ -47,56 +47,56 @@ use Throwable;
  * Settled rows are removed by the consumer's own deliveries: a sent change, or one no consumer took, after
  * {@see self::SENT_KEEP_DAYS} days, a given up or discarded one after {@see self::DEAD_KEEP_DAYS}.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundDelivery
 {
-    /** A change that waits to be told. @since 2.2.2 */
+    /** A change that waits to be told. @since 2.3.0 */
     public const STATE_PENDING = 'pending';
 
-    /** A change the consumer took. @since 2.2.2 */
+    /** A change the consumer took. @since 2.3.0 */
     public const STATE_SENT = 'sent';
 
-    /** A change given up: after the last retry, or refused by the consumer for good. @since 2.2.2 */
+    /** A change given up: after the last retry, or refused by the consumer for good. @since 2.3.0 */
     public const STATE_DEAD = 'dead';
 
-    /** A change given up that staff discarded: never sent, no longer counted. @since 2.2.2 */
+    /** A change given up that staff discarded: never sent, no longer counted. @since 2.3.0 */
     public const STATE_DISCARDED = 'discarded';
 
-    /** A change its plugin does not take (the plugin has no onAlfaOutboundDeliver): settled, never an error. @since 2.2.2 */
+    /** A change its plugin does not take (the plugin has no onAlfaOutboundDeliver): settled, never an error. @since 2.3.0 */
     public const STATE_NO_CONSUMER = 'no_consumer';
 
     /**
      * The most changes in one batch.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const BATCH = 100;
 
     /**
      * The retries a change is given before it is given up.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const RETRIES = 6;
 
-    /** Days a sent change is kept. @since 2.2.2 */
+    /** Days a sent change is kept. @since 2.3.0 */
     public const SENT_KEEP_DAYS = 7;
 
-    /** Days a change given up or discarded is kept. @since 2.2.2 */
+    /** Days a change given up or discarded is kept. @since 2.3.0 */
     public const DEAD_KEEP_DAYS = 30;
 
     /**
      * The User-Agent of a webhook's request.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const USER_AGENT = 'AlfaCommerce-Webhook';
 
     /**
      * Rows removed at most a delivery when it tidies its consumer's settled rows.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const PRUNE_LIMIT = 500;
 
@@ -106,7 +106,7 @@ final class OutboundDelivery
      *
      * @var Closure(string): array{host: string, port: int, ip: string}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private readonly Closure $vet;
 
@@ -114,7 +114,7 @@ final class OutboundDelivery
      * @param WebhookClient $client The client that posts a webhook's request.
      * @param Closure|null $vet How an address is vetted; null for OutboundAddressGuard::vet().
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(private readonly WebhookClient $client = new WebhookClient(), ?Closure $vet = null)
     {
@@ -128,7 +128,7 @@ final class OutboundDelivery
      *
      * @return array{units: int, more: bool} The changes handed over, and whether more are due now.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function run(int $consumerId): array
     {
@@ -164,7 +164,7 @@ final class OutboundDelivery
      *
      * @param list<array<string, mixed>> $changes The changes as they are told.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function body(array $changes): string
     {
@@ -185,7 +185,7 @@ final class OutboundDelivery
      *
      * @throws OutboundAddressRefused When the address is refused; nothing was sent.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function post(object $consumer, string $body, string $deliveryId): array
     {
@@ -209,7 +209,7 @@ final class OutboundDelivery
      *
      * @return array{answers: array<int, array{0: string, 1: string}>, retryAfter: int|null, ok: bool, result: string}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function toWebhook(object $consumer, array $rows, array $values): array
     {
@@ -258,7 +258,7 @@ final class OutboundDelivery
      *
      * @return array{answers: array<int, array{0: string, 1: string}>, retryAfter: int|null, ok: bool, result: string}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function toPlugin(object $consumer, array $rows, array $values): array
     {
@@ -322,7 +322,7 @@ final class OutboundDelivery
      *
      * @param int $status The status.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function retriable(int $status): bool
     {
@@ -339,7 +339,7 @@ final class OutboundDelivery
      *
      * @return list<object>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function due(DatabaseDriver $db, int $consumerId, int $limit = self::BATCH): array
     {
@@ -411,7 +411,7 @@ final class OutboundDelivery
      * @param array<int, array{0: string, 1: string}> $answers By row id: delivered, retry, refused, none or hold, and why.
      * @param int|null $retryAfter Seconds the consumer asked to wait, or null.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function settle(DatabaseDriver $db, array $rows, array $answers, ?int $retryAfter): void
     {
@@ -469,7 +469,7 @@ final class OutboundDelivery
      * @param DatabaseDriver $db The connection.
      * @param int $consumerId The consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function prune(DatabaseDriver $db, int $consumerId): void
     {

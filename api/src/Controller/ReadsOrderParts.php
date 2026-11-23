@@ -22,14 +22,14 @@ use Joomla\Database\ParameterType;
  * The section asked is the order's (orders view), the list is the order read's own projection of that part
  * ({@see \Alfa\Component\Alfa\Api\Model\OrderPartsModel}), and an order that does not exist answers 404.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 trait ReadsOrderParts
 {
     /**
      * An order's part is read with the order's own permission.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function aclSection(): string
     {
@@ -43,7 +43,7 @@ trait ReadsOrderParts
      *
      * @throws ResourceNotFound 404 when the order does not exist.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function displayList()
     {

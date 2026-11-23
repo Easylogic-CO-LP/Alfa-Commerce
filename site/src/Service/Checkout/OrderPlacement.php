@@ -1622,7 +1622,7 @@ class OrderPlacement
      *
      * @return int The order's parcel; 0 when core could not record it (logged CRITICAL, staff told).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function recordParcel(string $carrier): int
     {
@@ -1699,7 +1699,7 @@ class OrderPlacement
      * @param Order $order The order.
      * @param string $carrier The element of the order's shipment plugin.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function noticeMissingParcel(Order $order, string $carrier): void
     {

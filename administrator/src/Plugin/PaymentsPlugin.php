@@ -943,7 +943,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return PaymentWriteVerdict What the write did.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function settleAttemptVerdict(PaymentLedger $write, int $orderId, string $reference = ''): PaymentWriteVerdict
     {
@@ -1039,7 +1039,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return PaymentWriteVerdict What the write did.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function supersedeAttemptVerdict(int $paymentId, string $reason = ''): PaymentWriteVerdict
     {
@@ -1363,7 +1363,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @throws LogicException When called from this plugin's own unbookedProviderRefunds().
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     final protected function unbookedProviderRefundsOfPayment(int $paymentId): array
     {
@@ -1483,7 +1483,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * @param int $paymentId One of this gateway's payment rows (completed or refunded).
      * @param string $reference The provider's dispute id: one per case, the same across its rounds; required.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function dispute(int $paymentId, string $reference): DisputeLedger
     {
@@ -2843,7 +2843,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @throws InvalidArgumentException A payment id under 1 or a blank reference.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function claimPendingAttemptVerdict(int $paymentId, string $reference): PaymentWriteVerdict
     {

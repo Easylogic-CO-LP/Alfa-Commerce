@@ -172,7 +172,7 @@ final class CartService
      *
      * @param OpenedCart $cart The cart the add was made on.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function notAdded(OpenedCart $cart): CartAddResult
     {
@@ -504,7 +504,7 @@ final class CartService
      *
      * @throws InvalidArgumentException When asked to read under a creating mode.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function summary(CartResolution $mode, int $cartId = 0): CartSnapshot
     {

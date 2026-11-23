@@ -33,7 +33,7 @@ class JsonApiView extends BaseApiView
      * category id => {own, descendants}.
      *
      * @var array<int, array{own: int, descendants: int}>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $productCounts = [];
 
@@ -98,7 +98,7 @@ class JsonApiView extends BaseApiView
      *
      * @return string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function displayList(?array $items = null)
     {
@@ -120,7 +120,7 @@ class JsonApiView extends BaseApiView
      *
      * @return object
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function prepareItem($item)
     {
@@ -142,7 +142,7 @@ class JsonApiView extends BaseApiView
      *
      * @return array{0: string, 1: string, 2: string[]}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function translationSource(): array
     {

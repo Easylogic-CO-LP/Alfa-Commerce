@@ -24,21 +24,21 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * provider answered, or setError($sentence), the plugin's own words for staff when the provider could not be asked or
  * refused. A handler that answers neither leaves staff told that the provider gave no answer.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 abstract class DisputeEvent extends AbstractImmutableEvent
 {
     /**
      * The verdict the plugin's write answered.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?DisputeVerdict $verdict = null;
 
     /**
      * The plugin's sentence for staff.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private string $error = '';
 
@@ -47,7 +47,7 @@ abstract class DisputeEvent extends AbstractImmutableEvent
      *
      * @api READ ONLY: the record (id, id_order, id_payment, reference, state, stage, amount, stated_amount, stated_currency, evidence_due_by).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getDispute(): object
     {
@@ -57,7 +57,7 @@ abstract class DisputeEvent extends AbstractImmutableEvent
     /**
      * The order of the disputed payment.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getOrderId(): int
     {
@@ -67,7 +67,7 @@ abstract class DisputeEvent extends AbstractImmutableEvent
     /**
      * The disputed payment.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getPaymentId(): int
     {
@@ -77,7 +77,7 @@ abstract class DisputeEvent extends AbstractImmutableEvent
     /**
      * The provider's dispute id the record carries; '' when none is known.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getReference(): string
     {
@@ -91,7 +91,7 @@ abstract class DisputeEvent extends AbstractImmutableEvent
      *
      * @param DisputeVerdict $verdict The verdict.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function setVerdict(DisputeVerdict $verdict): void
     {
@@ -106,7 +106,7 @@ abstract class DisputeEvent extends AbstractImmutableEvent
      *
      * @param string $sentence The sentence, plain text.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function setError(string $sentence): void
     {
@@ -117,7 +117,7 @@ abstract class DisputeEvent extends AbstractImmutableEvent
     /**
      * The verdict the plugin set, or null.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getVerdict(): ?DisputeVerdict
     {
@@ -127,7 +127,7 @@ abstract class DisputeEvent extends AbstractImmutableEvent
     /**
      * The sentence the plugin set, or ''.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getError(): string
     {

@@ -82,7 +82,7 @@ final class SubmitAuthority
      *
      * @return string[] The hidden field names.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function hiddenFields(array $fields, array $values, array $extra = []): array
     {

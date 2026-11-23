@@ -18,7 +18,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  * One part of an order as a list: each row with every field the order read gives it, so a field the order read gains
  * is listed here too.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 abstract class OrderPartsJsonApiView extends BaseApiView
 {
@@ -29,7 +29,7 @@ abstract class OrderPartsJsonApiView extends BaseApiView
      *
      * @return string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function displayList(?array $items = null)
     {

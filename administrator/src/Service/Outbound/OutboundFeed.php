@@ -37,35 +37,35 @@ use Throwable;
  * is rethrown, as any write of the change would be; any other is logged CRITICAL, naming the topic and the subject,
  * and the change commits without its notification (the integrator's daily reconciliation read heals it).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundFeed
 {
     /**
      * The table of consumers.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CONSUMERS = '#__alfa_outbound_consumers';
 
     /**
      * The table of what each consumer is owed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DELIVERIES = '#__alfa_outbound_deliveries';
 
     /**
      * The log category of outgoing notifications.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const LOG = 'com_alfa.outbound';
 
     /**
      * Seconds the consumers read once are kept, so a long run of the task runner sees a consumer saved meanwhile.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const MEMO_SECONDS = 30;
 
@@ -74,14 +74,14 @@ final class OutboundFeed
      *
      * @var array<string, int[]>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static ?array $byTopic = null;
 
     /**
      * When the consumers were read (time()).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static int $readAt = 0;
 
@@ -91,7 +91,7 @@ final class OutboundFeed
      *
      * @var array<int, int>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $owed = [];
 
@@ -110,7 +110,7 @@ final class OutboundFeed
      *
      * @throws Throwable A failure that ended the caller's transaction.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function record(DatabaseDriver $db, string $topic, int $subjectId, int $unitId = 0, string $payload = ''): void
     {
@@ -148,7 +148,7 @@ final class OutboundFeed
      *
      * @throws Throwable A failure that ended the caller's transaction.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function recordPriceChanges(DatabaseDriver $db, array $changes, string $now): void
     {
@@ -192,7 +192,7 @@ final class OutboundFeed
      * @param DatabaseDriver $db The connection.
      * @param string $topic One of {@see OutboundTopics::ALL}.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function wants(DatabaseDriver $db, string $topic): bool
     {
@@ -217,7 +217,7 @@ final class OutboundFeed
      * @param int $itemId The product.
      * @param int $unitId The combination; 0 for a product without combinations.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function waiting(int $consumerId, string $topic, int $itemId, int $unitId = 0): bool
     {
@@ -246,7 +246,7 @@ final class OutboundFeed
     /**
      * Forget the consumers read: one was saved, paused or resumed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function forget(): void
     {
@@ -262,7 +262,7 @@ final class OutboundFeed
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function consumersOf(DatabaseDriver $db, string $topic): array
     {
@@ -296,7 +296,7 @@ final class OutboundFeed
      * @param int $unitId The unit.
      * @param string $payload The payload.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function write(DatabaseDriver $db, int $consumerId, string $topic, int $subjectId, int $unitId, string $payload): void
     {
@@ -347,7 +347,7 @@ final class OutboundFeed
      * @param int $subjectId The product.
      * @param int $unitId The combination, or 0.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function waitsAlready(DatabaseDriver $db, int $consumerId, string $topic, int $subjectId, int $unitId): bool
     {

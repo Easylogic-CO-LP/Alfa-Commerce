@@ -18,7 +18,7 @@ use Joomla\CMS\Component\ComponentHelper;
  * it (com_users' own model, which creates the account, never reads the option), and the setup checklist decides with
  * it whether to make the sign-up page, so the two never disagree.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class SignUpHelper
 {
@@ -27,7 +27,7 @@ final class SignUpHelper
      * reads Joomla's own default, which is No.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function open(): bool
     {

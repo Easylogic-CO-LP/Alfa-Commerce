@@ -33,7 +33,7 @@ use Joomla\Database\ParameterType;
  * only while the order had none, so a cancelled method stayed on the order when another one paid, and no parcel ever
  * wrote it.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OrderMethods
 {
@@ -42,7 +42,7 @@ final class OrderMethods
      *
      * @param int $orderId The order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function followPayments(int $orderId): void
     {
@@ -81,7 +81,7 @@ final class OrderMethods
      *
      * @param int $orderId The order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function followShipments(int $orderId): void
     {
@@ -122,7 +122,7 @@ final class OrderMethods
      * @param array{0: string, 1: int} $id The id column and the method's id.
      * @param array<string, string> $texts The name and plugin columns and the row's values.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function write(int $orderId, array $id, array $texts): void
     {
@@ -158,7 +158,7 @@ final class OrderMethods
     /**
      * The site's database.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function db(): DatabaseDriver
     {

@@ -32,7 +32,7 @@ use Joomla\Database\ParameterType;
  * category or lies anywhere below it. A line is refused when none of its categories is inside the served list, or when
  * any of them is inside the excluded list: the exclusion wins.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class MethodCategoryScope
 {
@@ -41,7 +41,7 @@ final class MethodCategoryScope
      *
      * @var array<int, int>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static ?array $parents = null;
 
@@ -49,7 +49,7 @@ final class MethodCategoryScope
      * @param int[]|null $served The categories the method serves only; null when it serves every category.
      * @param int[] $excluded The categories it does not serve; empty for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function __construct(
         private readonly ?array $served,
@@ -63,7 +63,7 @@ final class MethodCategoryScope
      *
      * @param object $method The method row (categories, excluded_categories).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function of(object $method): self
     {
@@ -81,7 +81,7 @@ final class MethodCategoryScope
      *
      * @param int $methodId The shipping method.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ofShipment(int $methodId): self
     {
@@ -104,7 +104,7 @@ final class MethodCategoryScope
      * Whether the method's lists restrict anything at all: a method that serves every category and excludes none
      * refuses no line, and its lines' categories are never read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function restricts(): bool
     {
@@ -119,7 +119,7 @@ final class MethodCategoryScope
      *
      * @return array<int|string, array> The refused lines, their keys kept.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function refused(array $lines): array
     {
@@ -153,7 +153,7 @@ final class MethodCategoryScope
      *
      * @return array<int, array{categories: int[], name: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function orderLines(int $orderId, array $orderLineIds): array
     {
@@ -196,7 +196,7 @@ final class MethodCategoryScope
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function withAncestors(array $categories): array
     {
@@ -221,7 +221,7 @@ final class MethodCategoryScope
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function ids(string $list): array
     {

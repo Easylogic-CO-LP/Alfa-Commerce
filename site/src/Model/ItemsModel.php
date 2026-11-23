@@ -282,7 +282,7 @@ class ItemsModel extends UrlListModel
      *
      * @return array{0: string, 1: string} The column and the direction.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function effectiveOrdering(): array
     {
@@ -1545,7 +1545,7 @@ class ItemsModel extends UrlListModel
      * leaves it out and the sort places it last. The sale filter needs no basis: a product is on sale when either
      * saving is above zero, and the stored one is.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function savingExpression(): string
     {
@@ -1565,7 +1565,7 @@ class ItemsModel extends UrlListModel
      *
      * @param \Joomla\Database\QueryInterface $query Mutated in place
      * @param bool $pricedOnly Whether the read lists only the products with a figure for the visitor.
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function applyPreviousPriceIndexJoin($query, bool $pricedOnly): void
     {
@@ -2095,7 +2095,7 @@ class ItemsModel extends UrlListModel
      *
      * @param object $item The card, priced.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function withdrawCartWithoutPrice(object $item): void
     {
@@ -2648,7 +2648,7 @@ class ItemsModel extends UrlListModel
      *
      * @param object $item The drawn card (->sellsOnline, ->fields, ->listingFieldIds, ->surfaces).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function catalogueOnlyBuyArea(object $item): void
     {

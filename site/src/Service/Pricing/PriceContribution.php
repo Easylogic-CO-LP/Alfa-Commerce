@@ -61,7 +61,7 @@ final class PriceContribution
      *
      * @param string $source The owning plugin element.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function withSource(string $source): self
     {

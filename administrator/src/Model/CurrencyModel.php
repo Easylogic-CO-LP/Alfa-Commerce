@@ -252,7 +252,7 @@ class CurrencyModel extends AlfaAdminModel
      *
      * @return array{keep: list<int>, refusals: list<string>}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function protectedCurrencies(array $pks): array
     {

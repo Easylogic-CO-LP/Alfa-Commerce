@@ -719,7 +719,7 @@ class ProjectionManager
      *
      * @return int The items marked.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function markForRebuildWhere(string $condition): int
     {

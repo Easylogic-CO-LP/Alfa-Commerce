@@ -27,14 +27,14 @@ use LogicException;
  * A change left unanswered is retried. A handler that throws has every change of the batch retried, and its failure
  * logged. The batch is handed over outside any transaction, so the handler may call another system.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundDeliverEvent extends AbstractEvent
 {
     /**
      * The event's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'onAlfaOutboundDeliver';
 
@@ -43,7 +43,7 @@ final class OutboundDeliverEvent extends AbstractEvent
      *
      * @var array<int, array{0: string, 1: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $answers = [];
 
@@ -51,7 +51,7 @@ final class OutboundDeliverEvent extends AbstractEvent
      * @param int $consumerId The consumer the plugin is.
      * @param list<OutboundChange> $changes The changes, oldest first.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(private readonly int $consumerId, private readonly array $changes)
     {
@@ -61,7 +61,7 @@ final class OutboundDeliverEvent extends AbstractEvent
     /**
      * The consumer the plugin is: what OutboundFeed::waiting() asks with.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getConsumerId(): int
     {
@@ -73,7 +73,7 @@ final class OutboundDeliverEvent extends AbstractEvent
      *
      * @return list<OutboundChange>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getChanges(): array
     {
@@ -85,7 +85,7 @@ final class OutboundDeliverEvent extends AbstractEvent
      *
      * @param int $id The change.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function delivered(int $id): static
     {
@@ -98,7 +98,7 @@ final class OutboundDeliverEvent extends AbstractEvent
      * @param int $id The change.
      * @param string $reason Why, for staff (never a credential).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function retry(int $id, string $reason): static
     {
@@ -111,7 +111,7 @@ final class OutboundDeliverEvent extends AbstractEvent
      * @param int $id The change.
      * @param string $reason Why, for staff (never a credential).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function refused(int $id, string $reason): static
     {
@@ -123,7 +123,7 @@ final class OutboundDeliverEvent extends AbstractEvent
      *
      * @return array<int, array{0: string, 1: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function answers(): array
     {
@@ -139,7 +139,7 @@ final class OutboundDeliverEvent extends AbstractEvent
      *
      * @throws LogicException When the change is not of the batch.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function answer(int $id, string $answer, string $reason): static
     {

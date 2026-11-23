@@ -108,7 +108,7 @@ final class SetupHelper
      * again ({@see self::status()}): its rows mean something else.
      *
      * @var int
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const STATUS_VERSION = 4;
 
@@ -118,7 +118,7 @@ final class SetupHelper
      * Options, so a reset of the Options keeps it.
      *
      * @var string
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const IGNORED_META = 'setup.ignored';
 
@@ -474,7 +474,7 @@ final class SetupHelper
      *
      * @return list<string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ignored(): array
     {
@@ -503,7 +503,7 @@ final class SetupHelper
      *
      * @return array{ok: bool, error: string} The error is a language key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ignore(string $owner, string $checkId): array
     {
@@ -534,7 +534,7 @@ final class SetupHelper
      *
      * @return array{ok: bool, error: string} The error is a language key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function showAgain(string $owner, string $checkId): array
     {
@@ -551,7 +551,7 @@ final class SetupHelper
      * @param string $checkId The step's id.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function identity(string $owner, string $checkId): string
     {
@@ -572,7 +572,7 @@ final class SetupHelper
      *
      * @return array{ok: bool, error: string} The error is a language key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function changeIgnored(callable $change): array
     {

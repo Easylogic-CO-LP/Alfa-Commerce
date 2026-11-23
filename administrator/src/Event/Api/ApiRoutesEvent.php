@@ -40,7 +40,7 @@ use Joomla\CMS\Router\ApiRouter;
  * checked): Tools, Security lists the refused route with the rule it breaks, and the log com_alfa.api gets a line for it
  * when that screen reads the routes.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiRoutesEvent extends AbstractEvent
 {
@@ -48,7 +48,7 @@ final class ApiRoutesEvent extends AbstractEvent
      * @param ApiRouter $router The plugin's own router for this call, empty.
      * @param string $element The plugin's element, as it stands in its addresses.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(private readonly ApiRouter $router, private readonly string $element)
     {
@@ -59,7 +59,7 @@ final class ApiRoutesEvent extends AbstractEvent
      * The router the plugin writes its routes on: createCRUDRoutes(), addRoutes(), addRoute(), get(), post(), patch(),
      * put() and delete(), as on Joomla's own.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getRouter(): ApiRouter
     {
@@ -69,7 +69,7 @@ final class ApiRoutesEvent extends AbstractEvent
     /**
      * The plugin's element, as it stands in its addresses (base for plg_alfa_base).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getElement(): string
     {
@@ -79,7 +79,7 @@ final class ApiRoutesEvent extends AbstractEvent
     /**
      * The start every route of the plugin's has: v1/alfa/ext/<element>, without a closing slash.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getPrefix(): string
     {

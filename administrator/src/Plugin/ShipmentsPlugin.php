@@ -197,7 +197,7 @@ abstract class ShipmentsPlugin extends Plugin
      *             unknown destination: core's own reason, worded in core's language file, since the destination field
      *             is core's. The checkout keeps such a carrier off its list and names the country instead.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_NEEDS_PLACE = 'COM_ALFA_SHIPMENT_NEEDS_PLACE';
 
@@ -205,7 +205,7 @@ abstract class ShipmentsPlugin extends Plugin
      * @var string The refusal costFromZones() records when the carrier's postcode field is unanswered and a row with a
      *             postcode band would fit: core's own reason, as {@see self::REFUSAL_NEEDS_PLACE}.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSAL_NEEDS_POSTCODE = 'COM_ALFA_SHIPMENT_NEEDS_POSTCODE';
 

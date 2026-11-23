@@ -36,7 +36,7 @@ class OrderAfterPlaceEvent extends ShipmentsEvent
     /**
      * The order's parcel Alfa recorded before this event, for the carrier to complete.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getShipmentId(): int
     {

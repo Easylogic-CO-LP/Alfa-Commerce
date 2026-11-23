@@ -287,7 +287,7 @@ trait LedgerSupport
      * @return Closure|null fn(): string, the column's new text; null when
      *                      nothing is staged.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function payloadMergeFor(int $id): ?Closure
     {
@@ -1098,7 +1098,7 @@ trait LedgerSupport
      * @param Throwable $failure The failure; its text goes to the log only.
      * @param string $context The call it concerns, for the log only; empty when the message names it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function warnFailure(string $message, Throwable $failure, string $context = ''): void
     {
@@ -1118,7 +1118,7 @@ trait LedgerSupport
      * @param int $rowId Unused here.
      * @param bool $existing Unused here.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function noteVerdict(
         string $kind,

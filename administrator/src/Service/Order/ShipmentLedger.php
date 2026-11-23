@@ -989,7 +989,7 @@ class ShipmentLedger
      * @param int $methodId The parcel's method; none judges nothing.
      * @param array $items The parcel's lines as a call names them (ids, a line => quantity map, or the REST objects).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function categoryRefusal(int $orderId, int $methodId, array $items): ?string
     {
@@ -2193,7 +2193,7 @@ class ShipmentLedger
      *
      * @throws OrderCurrencyException When the order names no currency: nothing is written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function updateIfStatusWrite(int $id, array $data, string $expectedStatus, string $writer = '', ?Closure $payloadMerge = null): int
     {
@@ -2555,7 +2555,7 @@ class ShipmentLedger
      *
      * @param int $orderId Order PK
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function lockOrderRow(int $orderId): void
     {
@@ -2576,7 +2576,7 @@ class ShipmentLedger
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function lineIdsOf(int $orderId): array
     {
@@ -2598,7 +2598,7 @@ class ShipmentLedger
      * @param int $asked The units asked for.
      * @param int $assigned The units the parcel carries now.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function noteCut(int $itemId, int $asked, int $assigned): void
     {
@@ -2664,7 +2664,7 @@ class ShipmentLedger
      * @return array<int, array<int, int>> [ shipmentId => [ orderItemId => quantity ] ], the lines in id order; a parcel
      *                                     that carries no line is absent.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function itemQuantitiesOfOrder(int $orderId): array
     {

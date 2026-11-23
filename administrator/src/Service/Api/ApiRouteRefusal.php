@@ -15,56 +15,56 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 /**
  * A route an alfa plugin declared and core refused: the rule it broke, for the log and for Tools, Security.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiRouteRefusal
 {
     /**
      * The owner is not a plugin that may own routes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const OWNER = 'owner';
 
     /**
      * The pattern is not under the plugin's prefix, or a segment or a variable breaks the rules.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PATTERN = 'pattern';
 
     /**
      * A variable has no rule, or a rule core does not take.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const RULES = 'rules';
 
     /**
      * A method is not one of GET, POST, PATCH, PUT and DELETE.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const METHODS = 'methods';
 
     /**
      * The controller is not <element>.<task>.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CONTROLLER = 'controller';
 
     /**
      * A default is missing, has a value core does not take, or is a key core does not take.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DEFAULTS = 'defaults';
 
     /**
      * The plugin declared the same method and pattern twice.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DUPLICATE = 'duplicate';
 
@@ -75,7 +75,7 @@ final class ApiRouteRefusal
      * @param string $rule The rule it broke (one of the constants).
      * @param string $detail What exactly, in English, for the log and the listing.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(
         public readonly string $element,

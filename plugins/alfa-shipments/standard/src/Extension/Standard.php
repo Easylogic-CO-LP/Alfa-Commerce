@@ -512,7 +512,7 @@ final class Standard extends ShipmentsPlugin
      * @param Method $method The carrier being asked.
      * @param Cart $cart The cart being quoted.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function postcodeOf(Method $method, Cart $cart): ?string
     {

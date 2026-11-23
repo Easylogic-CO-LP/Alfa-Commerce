@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\ApiController;
 /**
  * GET v1/alfa/orders/:id/shipments: the shipments of one order, as the order read gives them.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class OrdershipmentsController extends ApiController
 {
@@ -28,7 +28,7 @@ class OrdershipmentsController extends ApiController
      * The content type of the item.
      *
      * @var string
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $contentType = 'ordershipments';
 
@@ -36,7 +36,7 @@ class OrdershipmentsController extends ApiController
      * The default view for the display method.
      *
      * @var string
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $default_view = 'ordershipments';
 }

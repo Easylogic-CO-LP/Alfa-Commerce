@@ -35,7 +35,7 @@ use Alfa\Component\Alfa\Site\Service\Cart\HydratedCart;
  * method's settings as they are. A carrier's answer must follow from the cart it is handed: state of its own that
  * changes within the request (a session value, a table of its own) is read on the next request.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class CarrierAnswers
 {
@@ -43,7 +43,7 @@ final class CarrierAnswers
      * How many answers one request keeps; past it the store starts again, so a long command-line run that prices many
      * carts does not hold every answer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const LIMIT = 256;
 
@@ -52,7 +52,7 @@ final class CarrierAnswers
      *
      * @var array<string, array{event: CalculateShippingCostEvent, asked: bool, failed: bool}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $answers = [];
 
@@ -66,7 +66,7 @@ final class CarrierAnswers
      * @param array $delivery The delivery values the checkout submitted, with the bound destination.
      * @param array $invoice The invoice values the checkout submitted.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function keyOf(object $method, bool $chosen, HydratedCart $cart, string $subtotal, array $delivery, array $invoice): string
     {
@@ -103,7 +103,7 @@ final class CarrierAnswers
      *
      * @return array{event: CalculateShippingCostEvent, asked: bool, failed: bool}|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function recall(string $key): ?array
     {
@@ -120,7 +120,7 @@ final class CarrierAnswers
      *
      * @return array{event: CalculateShippingCostEvent, asked: bool, failed: bool}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function remember(string $key, CalculateShippingCostEvent $event, bool $asked, bool $failed): array
     {

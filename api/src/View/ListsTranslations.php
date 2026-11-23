@@ -25,7 +25,7 @@ use Alfa\Component\Alfa\Api\Helper\ApiInclude;
  *
  * A view that uses this names its translations' table and key in {@see self::translationSource()}.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 trait ListsTranslations
 {
@@ -35,7 +35,7 @@ trait ListsTranslations
      *
      * @return array{0: string, 1: string, 2: string[]}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     abstract protected function translationSource(): array;
 
@@ -46,7 +46,7 @@ trait ListsTranslations
      *
      * @return string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function displayList(?array $items = null)
     {

@@ -32,21 +32,21 @@ use Throwable;
  * @api READ ONLY: the shape of an order's external reference (external_source a lower-case name of up to 32 characters,
  *      external_reference the other system's id, up to 64 characters) and the order a pair names.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OrderExternalReference
 {
     /**
      * external_source: lower-case letters, digits, underscore and hyphen, 1 to 32 characters, as an order's source.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const SOURCE_PATTERN = '/^[a-z0-9_-]{1,32}$/';
 
     /**
      * The longest external_reference, in characters (the column's width).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFERENCE_MAX = 64;
 
@@ -60,7 +60,7 @@ final class OrderExternalReference
      *
      * @throws OrderPartRefusedException When one is sent without the other, or one is not in its shape (MALFORMED).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function read(array $data): ?array
     {
@@ -89,7 +89,7 @@ final class OrderExternalReference
      *
      * @throws OrderPartRefusedException When it is not lower-case letters, digits, _ and -, 1 to 32 characters.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function source(mixed $value): string
     {
@@ -108,7 +108,7 @@ final class OrderExternalReference
      *
      * @throws OrderPartRefusedException When it is not such a text.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function reference(mixed $value): string
     {
@@ -130,7 +130,7 @@ final class OrderExternalReference
      * @param string $reference external_reference.
      * @param int $except An order not to count (the order a later write gives the pair to), 0 for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function orderWith(DatabaseInterface $db, string $source, string $reference, int $except = 0): ?int
     {
@@ -157,7 +157,7 @@ final class OrderExternalReference
      * @param Throwable $failure What ended the write; the database's own failure may be wrapped in it.
      * @param array{source: string, reference: string} $pair The pair the write carried.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function takenBy(Throwable $failure, array $pair): ?OrderExternalReferenceTakenException
     {

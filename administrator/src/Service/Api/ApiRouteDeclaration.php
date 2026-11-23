@@ -16,7 +16,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
  * One route an alfa plugin declared and core accepted: what the router answers it with and what ExtController
  * reads to serve it, without asking the plugin again.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiRouteDeclaration
 {
@@ -32,7 +32,7 @@ final class ApiRouteDeclaration
      * @param string $kind ApiRequestEvent::KIND_JSONAPI, KIND_JSON or KIND_RAW.
      * @param int $maxBody The largest body it takes, in bytes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(
         public readonly string $element,
@@ -53,7 +53,7 @@ final class ApiRouteDeclaration
      *
      * @return array{0: string, 1: string}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function permissionParts(): array
     {
@@ -65,7 +65,7 @@ final class ApiRouteDeclaration
      *
      * @param string $variable The variable's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function isNumeric(string $variable): bool
     {

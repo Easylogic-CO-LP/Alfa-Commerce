@@ -16,7 +16,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Outbound;
  * webhook's body carries), its topic, what it is about, when it happened, how many attempts to tell it failed before,
  * and its values read now, as a webhook's body states them.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final readonly class OutboundChange
 {
@@ -29,7 +29,7 @@ final readonly class OutboundChange
      * @param int $attempts The attempts that failed before this one.
      * @param array<string, mixed> $values The change as a webhook's body states it (its id, topic and moment among them).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(
         public int $id,

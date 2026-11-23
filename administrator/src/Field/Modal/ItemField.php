@@ -25,7 +25,7 @@ use SimpleXMLElement;
  * product shows as the refusals name it ({@see ItemModel::nameForStaff()}): its name in the staff member's language,
  * else its number.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class ItemField extends ModalSelectField
 {
@@ -34,7 +34,7 @@ class ItemField extends ModalSelectField
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $type = 'Modal_Item';
 
@@ -47,7 +47,7 @@ class ItemField extends ModalSelectField
      *
      * @return bool True on success.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null)
     {
@@ -79,7 +79,7 @@ class ItemField extends ModalSelectField
      *
      * @return string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function getValueTitle()
     {

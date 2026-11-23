@@ -1125,7 +1125,7 @@ class OrderModel extends AlfaAdminModel
      * @param array $extra The non-field surfaces a rule may read (invoice_differs).
      * @param string[] $sent The keys the submission sent in the section.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function noteNotKept(string $section, array $fields, array $values, array $extra, array $sent): void
     {
@@ -1173,7 +1173,7 @@ class OrderModel extends AlfaAdminModel
      * @param array $data The submission (raw or validated).
      * @param bool $isNew Whether the order is being created.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function keepsStoredInvoice(array $data, bool $isNew): bool
     {
@@ -1195,7 +1195,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @param int $orderId The order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function hasOwnInvoice(int $orderId): bool
     {
@@ -1222,7 +1222,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return bool False here; the API's order model answers true.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function keepsOmittedDetails(): bool
     {
@@ -1243,7 +1243,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array The submission with its sections completed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function withStoredDetails(array $data, int $orderId, ?int $visibilityId): array
     {
@@ -1312,7 +1312,7 @@ class OrderModel extends AlfaAdminModel
      * @throws InvalidArgumentException When it names anything else: a currency the shop does not publish, one that
      *                                  does not exist, or a value that is not an id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function sentCurrencyId(array $data): ?int
     {
@@ -4588,7 +4588,7 @@ class OrderModel extends AlfaAdminModel
      * @param Money $amount The payment sent.
      * @param string $sentence What the payments ledger told staff, '' when it told nothing.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function createdPaymentRefusal(int $orderId, Money $amount, string $sentence): string
     {
@@ -4630,7 +4630,7 @@ class OrderModel extends AlfaAdminModel
      * @throws OrderPartRefusedException When the update would change the pair, or the pair is malformed (MALFORMED),
      *                                   or another order holds it (OrderExternalReferenceTakenException).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refuseExternalReferenceChange(array $data, ?object $stored, int $orderId): void
     {
@@ -4692,7 +4692,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @throws OrderPartRefusedException When a part is refused.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function writeCreatedParts(int $orderId, array $parts): array
     {

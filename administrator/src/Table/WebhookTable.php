@@ -19,7 +19,7 @@ use Joomla\Database\DatabaseDriver;
  * A webhook: a consumer of the shop's changes to whose address core posts them, signed (the consumers table, kind
  * webhook; a plugin consumer's row is kept by core and never edited here).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class WebhookTable extends Table
 {
@@ -28,7 +28,7 @@ class WebhookTable extends Table
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public $typeAlias = 'com_alfa.webhook';
 
@@ -37,7 +37,7 @@ class WebhookTable extends Table
      *
      * @param DatabaseDriver $db Database connector.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(DatabaseDriver $db)
     {

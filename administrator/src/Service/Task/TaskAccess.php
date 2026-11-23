@@ -31,7 +31,7 @@ final class TaskAccess
      * The permission that lists every task and processes a job: Tools (named once, for the check below and for
      * the REST controller's declaration that Tools, Security lists).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const TOOLS_PERMISSION = 'alfa.tools';
 

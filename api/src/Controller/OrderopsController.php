@@ -79,14 +79,14 @@ class OrderopsController extends OrdersController
      * What a payment's change takes: its method, the provider's reference and the note, as the payment window changes
      * them; its amount and status move only through the settle and the refund.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const PAYMENT_CHANGES = ['id_payment_method', 'transaction_id', 'note'];
 
     /**
      * The field a dispute verb refused, answered with its JSON pointer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?string $refusedField = null;
 
@@ -539,7 +539,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save When the body carries a note (422).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refuseParcelNote(array $body): void
     {
@@ -564,7 +564,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function updatePayment()
     {
@@ -612,7 +612,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function removePayment()
     {
@@ -635,7 +635,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function removeShipment()
     {
@@ -653,7 +653,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save When it names no payment method (422).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function paymentMethodId(mixed $value): int
     {
@@ -684,7 +684,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save When the model refuses the removal (409).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function runOrderRemoval(string $method, int $rowId, int $orderId): void
     {
@@ -961,7 +961,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function recordDispute()
     {
@@ -990,7 +990,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function changeDispute()
     {
@@ -1039,7 +1039,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function disputeEvidence()
     {
@@ -1066,7 +1066,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function closeDispute()
     {
@@ -1108,7 +1108,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function reopenDispute()
     {
@@ -1132,7 +1132,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function reconcileDispute()
     {
@@ -1167,7 +1167,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function disputeVerb(Closure $verb)
     {
@@ -1191,7 +1191,7 @@ class OrderopsController extends OrdersController
     /**
      * The field the last refusal named, cleared as it is read; null when a refusal named none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function takeRefusedField(): ?string
     {
@@ -1214,7 +1214,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function disputeAct(int $orderId, string $act, object $payment, ?object $dispute, array $values, string $amountField = 'amount')
     {
@@ -1263,7 +1263,7 @@ class OrderopsController extends OrdersController
      * @param string $code The code.
      * @param string $sentence The sentence.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function answerDisputeRefusal(string $code, string $sentence): void
     {
@@ -1282,7 +1282,7 @@ class OrderopsController extends OrdersController
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function disputeBody(array $fields, array $required): array
     {
@@ -1316,7 +1316,7 @@ class OrderopsController extends OrdersController
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function disputeValues(array $body): array
     {
@@ -1366,7 +1366,7 @@ class OrderopsController extends OrdersController
      * @param array<string, mixed> $body The body.
      * @param string $field The field.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function decimalField(array $body, string $field): string
     {
@@ -1391,7 +1391,7 @@ class OrderopsController extends OrdersController
      * @param array<string, mixed> $body The body.
      * @param string $field The field.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function utcField(array $body, string $field): string
     {
@@ -1418,7 +1418,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save Always.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refuseField(string $field, string $sentence): never
     {
@@ -1432,7 +1432,7 @@ class OrderopsController extends OrdersController
      *
      * @param int $orderId The order the dispute must belong to.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function requireOwnedDispute(int $orderId): object
     {
@@ -1450,7 +1450,7 @@ class OrderopsController extends OrdersController
      *
      * @param object $dispute The record.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function requireDisputedPayment(object $dispute): object
     {

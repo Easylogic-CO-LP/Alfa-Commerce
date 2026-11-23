@@ -47,7 +47,7 @@ final class InstallSteps
      * at this moment, so no period that began before the install or the update is announced. A row that exists is
      * kept as it is. The install SQL writes it for a new shop; an update gets it here.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function seedPriceWindowsCursor(): void
     {

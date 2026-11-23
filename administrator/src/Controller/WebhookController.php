@@ -25,7 +25,7 @@ use Joomla\CMS\Router\Route;
  * A webhook's edit screen, and its test: one change of topic ping posted to its address, signed as every request, the
  * answer shown.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class WebhookController extends FormController
 {
@@ -36,14 +36,14 @@ class WebhookController extends FormController
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $view_list = 'webhooks';
 
     /**
      * Send the webhook a test: POST with the form token, the Webhooks edit permission.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function test(): void
     {

@@ -20,14 +20,14 @@ use Joomla\CMS\Factory;
  * record, on a list row and on a single record alike; without it a read carries the texts in one language only
  * (lang, else the shop's default content language).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiInclude
 {
     /**
      * The translations object of a translated record.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const TRANSLATIONS = 'translations';
 
@@ -36,7 +36,7 @@ final class ApiInclude
      *
      * @param string $name What is asked for, one of the constants of this class.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function asks(string $name): bool
     {

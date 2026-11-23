@@ -39,21 +39,21 @@ use stdClass;
  *
  * @api READ ONLY: a page of units with their stock and prices.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class StockPriceList
 {
     /**
      * The most units a page holds.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PAGE_MAX = 1000;
 
     /**
      * The units a page holds when the caller names no size.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PAGE_DEFAULT = 100;
 
@@ -61,7 +61,7 @@ final class StockPriceList
      * The states a product of the list may have: published and unpublished; an archived or trashed product is not one.
      * A combination is one while it is current ({@see CombinationState::currentSql()}: anything but archived).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const STATES = '0, 1';
 
@@ -78,7 +78,7 @@ final class StockPriceList
      *         whether the prices were read (false while the price index is built after an update, or when no pricing
      *         context is prepared).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function page(int $limit, int $afterItem = 0, int $afterCombination = 0, ?string $changedSince = null): array
     {
@@ -143,7 +143,7 @@ final class StockPriceList
      *
      * @return array{0: int, 1: int}|null The product and the combination, or null when it is not a key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function key(string $key): ?array
     {

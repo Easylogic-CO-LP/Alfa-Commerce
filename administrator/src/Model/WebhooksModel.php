@@ -19,21 +19,21 @@ use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
  * The Webhooks list: each webhook with its address, topics and state, what waits for it and what was given up, and
  * its last delivery with its result. The secret is never read.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class WebhooksModel extends AlfaListModel
 {
     /**
      * The admin-contract entity of this screen.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected string $alfaEntity = 'webhook';
 
     /**
      * @param array $config The configuration.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct($config = [])
     {
@@ -50,7 +50,7 @@ class WebhooksModel extends AlfaListModel
      * @param string $ordering The default ordering.
      * @param string $direction The default direction.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function populateState($ordering = 'a.name', $direction = 'ASC')
     {
@@ -62,7 +62,7 @@ class WebhooksModel extends AlfaListModel
      *
      * @return \Joomla\Database\QueryInterface
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function getListQuery()
     {

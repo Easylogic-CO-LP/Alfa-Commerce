@@ -566,7 +566,7 @@ class AlfaHelper
      *
      * @param mixed $stated The state's filter.date_zone.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function boundsZone(mixed $stated): ?DateTimeZone
     {
@@ -892,7 +892,7 @@ class AlfaHelper
      * @param string $section A section or any entity or screen name {@see self::PERMISSION_SECTIONS} knows.
      * @param string $action view | create | edit | edit.state | delete, or a section's own.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function permissionName(string $section, string $action): string
     {
@@ -909,7 +909,7 @@ class AlfaHelper
      * @param string $permission The permission.
      * @param \Joomla\CMS\User\User|null $user The user, or null for the current identity.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function holds(string $permission, ?\Joomla\CMS\User\User $user = null): bool
     {

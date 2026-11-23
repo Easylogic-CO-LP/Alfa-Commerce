@@ -137,7 +137,7 @@ final class CatalogueRebuildJob implements JobHandler
      * PriceIndexSyncService::finishBuild()), else the products it lacks are owed again and the next pass asks again. A
      * failure is logged; the storefront keeps reading the previous index.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function finishPriceIndexBuild(): void
     {

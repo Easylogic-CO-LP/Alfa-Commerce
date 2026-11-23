@@ -17,7 +17,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
  * ExtController reads a route's permission, answer kind and body limit without asking the plugin again. It lives for the
  * request only.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiRouteRegistry
 {
@@ -26,7 +26,7 @@ final class ApiRouteRegistry
      *
      * @var array<string, array<string, ApiRouteDeclaration>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $routes = [];
 
@@ -36,7 +36,7 @@ final class ApiRouteRegistry
      * @param string $element The plugin's element.
      * @param list<ApiRouteDeclaration> $declarations Its accepted routes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function put(string $element, array $declarations): void
     {
@@ -53,7 +53,7 @@ final class ApiRouteRegistry
      * @param string $element The plugin's element.
      * @param string $key The route's key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function get(string $element, string $key): ?ApiRouteDeclaration
     {
@@ -63,7 +63,7 @@ final class ApiRouteRegistry
     /**
      * Forget every declaration (a process that routes twice, the suites).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function clear(): void
     {

@@ -35,14 +35,14 @@ use UnexpectedValueException;
  * gross are one canonical charge with the rate it was taxed at, and it reaches the order as a contribution of its own
  * (code {@see self::CODE}), never through a second total.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class PaymentFee
 {
     /**
      * The contribution code of a payment method's fee: the cart's totals line and the order's frozen charge.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CODE = 'payment_fee';
 
@@ -61,7 +61,7 @@ final class PaymentFee
      *
      * @throws UnexpectedValueException When the method stores an entry mode that is neither.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function of(object $method, Money $totalIncl, Money $totalExcl, array $destination, PriceContext $audience): ?ShippingCharge
     {

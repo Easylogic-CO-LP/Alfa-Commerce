@@ -34,14 +34,14 @@ use Joomla\CMS\User\User;
  * The acts: record (Record a dispute), change (a record made by hand), evidence (Mark evidence sent), close (Close with
  * the outcome), reopen, same and different (the reconcile answer), amount (the amount in the order's currency).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class DisputeModel extends AdminModel
 {
     /**
      * The acts and the form each shows; the reconcile answers show none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const FORMS = [
         'record' => 'dispute',
@@ -63,7 +63,7 @@ class DisputeModel extends AdminModel
      *
      * @return Form|false
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getForm($data = [], $loadData = false)
     {
@@ -121,7 +121,7 @@ class DisputeModel extends AdminModel
      *
      * @throws InvalidArgumentException For an act that is not one of them, or a guest.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function act(string $act, object $payment, ?object $dispute, array $values, User $user): DisputeVerdict
     {
@@ -247,7 +247,7 @@ class DisputeModel extends AdminModel
      *
      * @throws InvalidArgumentException Always.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getTable($name = '', $prefix = '', $options = [])
     {
@@ -263,7 +263,7 @@ class DisputeModel extends AdminModel
      * @param Closure $text A value as trimmed text.
      * @param Closure $utc A value as a UTC time or null.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function facts(DisputeLedger $ledger, object $payment, array $values, Closure $text, Closure $utc): DisputeLedger
     {
@@ -292,7 +292,7 @@ class DisputeModel extends AdminModel
      *
      * @return array<string, mixed>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function values(string $act, ?object $payment, ?object $dispute): array
     {
@@ -338,7 +338,7 @@ class DisputeModel extends AdminModel
      * @param Form $form The form.
      * @param list<string> $allowed The outcomes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function trimOutcomes(Form $form, array $allowed): void
     {
@@ -361,7 +361,7 @@ class DisputeModel extends AdminModel
      *
      * @param string $value The value.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function decimal(string $value): string
     {
@@ -373,7 +373,7 @@ class DisputeModel extends AdminModel
      *
      * @param mixed $value The value the form's server_utc filter gave.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function utc(mixed $value): ?string
     {
@@ -387,7 +387,7 @@ class DisputeModel extends AdminModel
      *
      * @param object $payment The payment.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function orderCode(object $payment): string
     {

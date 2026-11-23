@@ -21,14 +21,14 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
 /**
  * The Webhooks list.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class HtmlView extends BaseHtmlView
 {
     /**
      * The admin-contract entity of this screen.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected string $alfaEntity = 'webhook';
 
@@ -37,7 +37,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var array
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $items;
 
@@ -46,7 +46,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var \Joomla\CMS\Pagination\Pagination
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $pagination;
 
@@ -55,7 +55,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var \Joomla\Registry\Registry
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $state;
 
@@ -64,7 +64,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var \Joomla\CMS\Form\Form
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public $filterForm;
 
@@ -73,7 +73,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var array
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public $activeFilters;
 
@@ -82,7 +82,7 @@ class HtmlView extends BaseHtmlView
      *
      * @param string|null $tpl The template.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function display($tpl = null)
     {
@@ -106,7 +106,7 @@ class HtmlView extends BaseHtmlView
     /**
      * The toolbar.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function addToolbar()
     {

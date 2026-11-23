@@ -210,7 +210,7 @@ class PriceIndexSyncService
     /**
      * Seconds a switch waits for the tidy to let go of the switch's lock: the tidy holds it for one batch of removals.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const SWITCH_LOCK_SECONDS = 30;
 
@@ -223,14 +223,14 @@ class PriceIndexSyncService
     /**
      * The pricing contexts of the index.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CONTEXTS_TABLE = '#__alfa_price_contexts';
 
     /**
      * The price index (keyed by context, product, combination and valid_from).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const INDEX_TABLE = '#__alfa_items_price_index';
 
@@ -239,7 +239,7 @@ class PriceIndexSyncService
      * so the previous prices stay readable until the new ones are complete, dropped by the installer of the next update
      * after the switch.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PREVIOUS_TABLE = '#__alfa_items_price_index_prev';
 
@@ -247,7 +247,7 @@ class PriceIndexSyncService
      * The #__alfa_meta row written when the storefront switched from the previous index to this one: its value
      * the moment. Only once it exists does an update drop the previous index.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const META_SWITCHED = 'prices.index_switched';
 
@@ -256,7 +256,7 @@ class PriceIndexSyncService
      * hold were last brought in line with; previous, while a change of those groups waits for the contexts it brought,
      * the pricing groups before it, else null.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const META_GROUP_SETS = 'prices.group_sets';
 
@@ -264,7 +264,7 @@ class PriceIndexSyncService
      * The switch after the update: while this #__alfa_meta row exists the storefront reads the previous index;
      * its value is the moment the build began. Written by the update, removed by {@see self::finishBuild()}.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const META_BUILD = 'prices.index_build';
 
@@ -284,7 +284,7 @@ class PriceIndexSyncService
      * The products each named customer's rules touch, for this write: by user id.
      *
      * @var array<int, array<int, true>>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $customerProducts = [];
 
@@ -328,7 +328,7 @@ class PriceIndexSyncService
      * The line of groups a visitor with no account holds, as read for this process.
      *
      * @var int[]|null
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static ?array $guestLine = null;
 
@@ -336,7 +336,7 @@ class PriceIndexSyncService
      * The pricing groups before a change of them that waits for the contexts it brought, as read for this process.
      *
      * @var int[]|null
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static ?array $previousPricing = null;
 
@@ -346,7 +346,7 @@ class PriceIndexSyncService
     /**
      * Whether the storefront reads the previous index, as read for this process; null until read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static ?bool $building = null;
 
@@ -354,7 +354,7 @@ class PriceIndexSyncService
      * The contexts the read side knows, per customer read (0 for the sets' contexts only), as read for this process.
      *
      * @var array<int, list<object>>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $readContexts = [];
 
@@ -362,7 +362,7 @@ class PriceIndexSyncService
      * The contexts each visitor reads, by the visitor's pricing key, for this process.
      *
      * @var array<string, array{context: int, customer: int}|null>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $resolved = [];
 
@@ -541,7 +541,7 @@ class PriceIndexSyncService
      *
      * @return int Number of index rows written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function syncScope(callable $itemIds, string $label): int
     {
@@ -571,7 +571,7 @@ class PriceIndexSyncService
      *
      * @param int[]|null $itemIds The products; null for every product.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function oweAfterFailure(?array $itemIds): void
     {
@@ -727,7 +727,7 @@ class PriceIndexSyncService
      *
      * @return array{state: string, written: int, products: int, through: int, failure?: Throwable|null}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function prepareContextChunk(int $contextId, int $limit): array
     {
@@ -742,7 +742,7 @@ class PriceIndexSyncService
      *
      * @return array{state: string, written: int, products: int, through: int, failure?: Throwable|null}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function prepareContextChunkAnnounced(int $contextId, int $limit): array
     {
@@ -810,7 +810,7 @@ class PriceIndexSyncService
      *
      * @return int|null Null when the context is prepared or gone.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function waitingThrough(int $contextId): ?int
     {
@@ -828,7 +828,7 @@ class PriceIndexSyncService
      *
      * @return string The state the chunk answers: prepared.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function afterPrepared(): string
     {
@@ -860,7 +860,7 @@ class PriceIndexSyncService
      *
      * @param int $contextId The context.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function contextWaits(int $contextId): bool
     {
@@ -873,7 +873,7 @@ class PriceIndexSyncService
      *
      * @return array The contexts to write (see alignContexts()).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function alignContexts(): array
     {
@@ -885,7 +885,7 @@ class PriceIndexSyncService
      *
      * @return int The waiting contexts, each with its job now.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function queueWaitingContexts(): int
     {
@@ -962,7 +962,7 @@ class PriceIndexSyncService
      * Whether the storefront reads the previous index: the build after the update has not switched yet. Read
      * once per process.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function isBuilding(): bool
     {
@@ -972,7 +972,7 @@ class PriceIndexSyncService
     /**
      * When the build after the update began, as stored; null when the storefront reads this index.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function buildStartedAt(): ?string
     {
@@ -989,7 +989,7 @@ class PriceIndexSyncService
      * When the storefront switched from the previous index, as stored; null before the switch (or with no previous
      * index ever).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function switchedAt(): ?string
     {
@@ -1006,7 +1006,7 @@ class PriceIndexSyncService
      * Write the flag of the build after the update, keeping the moment of a build already begun: the installer writes it
      * before it renames the previous index, so a run that stops after the rename resumes the build.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function writeBuildFlag(): void
     {
@@ -1029,7 +1029,7 @@ class PriceIndexSyncService
      *
      * @return int The items marked.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function startBuild(): int
     {
@@ -1050,7 +1050,7 @@ class PriceIndexSyncService
      *
      * @return bool Whether the switch was made now.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function finishBuild(): bool
     {
@@ -1114,7 +1114,7 @@ class PriceIndexSyncService
      *
      * @param array $check What completeness() answered.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function completeMissing(array $check): void
     {
@@ -1161,7 +1161,7 @@ class PriceIndexSyncService
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function uncoveredOf(int $contextId, array $itemIds): array
     {
@@ -1196,7 +1196,7 @@ class PriceIndexSyncService
      * @param int[] $itemIds The products whose pricing throws.
      * @param int[]|null $contextIds Only these contexts; null for every one.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function leaveOut(array $itemIds, ?array $contextIds = null): void
     {
@@ -1288,7 +1288,7 @@ class PriceIndexSyncService
      *
      * @return array{complete: bool, rows: bool, units: int, contexts: list<array{id: int, user: int, expected: int, covering: int, stale: int}>, gaps: int, pointers: array{count: int, items: int[]}, leftOut: int[]}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function completeness(): array
     {
@@ -1361,7 +1361,7 @@ class PriceIndexSyncService
      *
      * @param array $check What completeness() answered.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function oweIncomplete(array $check): void
     {
@@ -1402,7 +1402,7 @@ class PriceIndexSyncService
      *
      * @param int[] $itemIds The products.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function unitCount(array $itemIds): int
     {
@@ -1431,7 +1431,7 @@ class PriceIndexSyncService
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function missingItems(int $limit): array
     {
@@ -1546,7 +1546,7 @@ class PriceIndexSyncService
      *
      * @return string[] Set keys (groupSetKey()), without repeats.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function readableSetKeys(PriceContext $context): array
     {
@@ -1586,7 +1586,7 @@ class PriceIndexSyncService
      *
      * @return array{context: int, customer: int}|null Null when no context is prepared for the visitor: nothing is priced.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function readContext(PriceContext $context): ?array
     {
@@ -1677,7 +1677,7 @@ class PriceIndexSyncService
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function guestLine(): array
     {
@@ -1694,7 +1694,7 @@ class PriceIndexSyncService
      *
      * @return int[]|null Null when no change waits.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function previousPricing(): ?array
     {
@@ -1714,7 +1714,7 @@ class PriceIndexSyncService
      *
      * @return array{stored: string|null, pricing: string|null, previous: string|null}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function groupSetFacts(DatabaseDriver $db): array
     {
@@ -1742,7 +1742,7 @@ class PriceIndexSyncService
      *
      * @return string|null The key of the set to read, or null for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function readableSetKey(PriceContext $context): ?string
     {
@@ -2315,7 +2315,7 @@ class PriceIndexSyncService
      *
      * @return array{base_price: ?string, discount_amount: ?string, base_price_with_discounts: ?string, tax_amount: ?string, base_price_with_tax: ?string, final_price: ?string, discount_percent: ?string}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function figures(?PriceResult $result): array
     {
@@ -2349,7 +2349,7 @@ class PriceIndexSyncService
      * @param string $value An exact decimal.
      * @param int $places The column's scale.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function columnText(string $value, int $places): string
     {
@@ -2408,7 +2408,7 @@ class PriceIndexSyncService
      * (context, product, combination). A cursor whose position names the previous index's key keeps its moment, the
      * position dropped.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function announceOpenedWindows(): void
     {
@@ -2516,7 +2516,7 @@ class PriceIndexSyncService
      *
      * @return array{from: string, after: array{until: string|null, slot: list<int>}|null}|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function windowCursor(DatabaseDriver $db, bool $lock): ?array
     {
@@ -2575,7 +2575,7 @@ class PriceIndexSyncService
      *
      * @return list<object>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function openedPeriods(DatabaseDriver $db, string $from, ?array $after, string $until, int $limit): array
     {
@@ -2592,7 +2592,7 @@ class PriceIndexSyncService
      * @param array{until: string|null, slot: list<int>}|null $after The position inside that moment, or null.
      * @param string $until The latest moment.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function openedPeriodsQuery(DatabaseDriver $db, string $from, ?array $after, string $until): string
     {
@@ -2662,7 +2662,7 @@ class PriceIndexSyncService
      * Whether a consumer of the shop's changes takes price changes: the writes then detect their changes for it, as
      * they do for a listener, and record them in their own transaction.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function outbound(): bool
     {
@@ -2701,7 +2701,7 @@ class PriceIndexSyncService
      * @param int[] $sets The sets of pricing groups they were written for.
      * @param DatabaseDriver $db The connection.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function collect(stdClass $announcement, array $changes, array $sets, DatabaseDriver $db): void
     {
@@ -2888,7 +2888,7 @@ class PriceIndexSyncService
      *
      * @return array<int, array{currency: int, place: int, set: int, user: int}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function contextTerms(array $ids): array
     {
@@ -2922,7 +2922,7 @@ class PriceIndexSyncService
      *
      * @return array<int, string[]> By product id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function edgesOf(array $itemIds, string $now): array
     {
@@ -2984,7 +2984,7 @@ class PriceIndexSyncService
      *
      * @return list<array{id: int, currency_id: int, rule_place_id: int, price_place_id: int, priced_at_place_id: int, group_set_id: int, user_id: int, groups: int[], through: int|null, leftOut: int[]}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function alignedContexts(): array
     {
@@ -3077,7 +3077,7 @@ class PriceIndexSyncService
      *
      * @return array<int, array{id: int, currency_id: int, rule_place_id: int, price_place_id: int, priced_at_place_id: int, group_set_id: int, user_id: int, groups: int[], through: int|null, leftOut: int[], live: bool}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function contextRows(?array $ids, bool $waitingOnly): array
     {
@@ -3131,7 +3131,7 @@ class PriceIndexSyncService
      *
      * @param int[] $ids The contexts; none, no statement.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function dropContexts(array $ids): void
     {
@@ -3166,7 +3166,7 @@ class PriceIndexSyncService
      *
      * @return list<array{0: int, 1: int, 2: int}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function placeClasses(): array
     {
@@ -3232,7 +3232,7 @@ class PriceIndexSyncService
      *
      * @return array<int, int> Set id by user id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function namedCustomers(array $sets): array
     {
@@ -3274,7 +3274,7 @@ class PriceIndexSyncService
      *
      * @return array<int, true>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function touchedBy(int $userId): array
     {
@@ -3413,7 +3413,7 @@ class PriceIndexSyncService
      *
      * @return int 1 when it was marked complete; 0 when it was gone or already complete.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function markPrepared(int $contextId): int
     {
@@ -3476,7 +3476,7 @@ class PriceIndexSyncService
      *
      * @return int The generations switched live.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function switchReady(): int
     {
@@ -3574,7 +3574,7 @@ class PriceIndexSyncService
      *
      * @param array<int, int|null> $pairs The switched generations, each with the generation it retired (null for none).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function announceSwitch(array $pairs): void
     {
@@ -3639,7 +3639,7 @@ class PriceIndexSyncService
      * @param DatabaseDriver $db The connection.
      * @param object $row currency_id, rule_place_id, price_place_id, group_set_id, user_id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function keyWhere(DatabaseDriver $db, object $row): string
     {
@@ -3662,7 +3662,7 @@ class PriceIndexSyncService
      *
      * @return int[] The generations being prepared.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function regenerate(array $liveIds): array
     {
@@ -3720,7 +3720,7 @@ class PriceIndexSyncService
      *
      * @return int Rows written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function prepareNow(array $ids, float $seconds): int
     {
@@ -3760,7 +3760,7 @@ class PriceIndexSyncService
      *
      * @return int Rows written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function rewriteAsGenerations(): int
     {
@@ -3785,7 +3785,7 @@ class PriceIndexSyncService
      *
      * @return int[] The generations started again.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function restartPreparing(?array $ids): array
     {
@@ -3816,7 +3816,7 @@ class PriceIndexSyncService
      *
      * @param int $scope The products in scope.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function contextWide(int $scope): bool
     {
@@ -3826,7 +3826,7 @@ class PriceIndexSyncService
     /**
      * What the tidy job has left: rows of retired generations and ended periods.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function tidyCount(): int
     {
@@ -3847,7 +3847,7 @@ class PriceIndexSyncService
      *
      * @return int Rows removed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function removeRetired(int $limit): int
     {
@@ -3871,7 +3871,7 @@ class PriceIndexSyncService
      *
      * @return int Rows removed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function removeRetiredLocked(DatabaseDriver $db, int $limit): int
     {
@@ -3903,7 +3903,7 @@ class PriceIndexSyncService
      *
      * @return int Rows removed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function removeEndedPeriods(int $limit): int
     {
@@ -3919,7 +3919,7 @@ class PriceIndexSyncService
     /**
      * The WHERE of an ended period the tidy removes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function endedWhere(): string
     {
@@ -4074,7 +4074,7 @@ class PriceIndexSyncService
      *
      * @return array<int, string> The set's list of ids by user id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function accountGroupListsOf(array $userIds): array
     {
@@ -4200,7 +4200,7 @@ class PriceIndexSyncService
      * @param string $pricing The pricing groups the sets are now in line with.
      * @param string|null $previous The pricing groups before a change that waits; null for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function recordGroupSetFacts(?string $stored, string $pricing, ?string $previous): void
     {
@@ -4347,7 +4347,7 @@ class PriceIndexSyncService
      *
      * @return array<int, int[]> Combination ids by product id, every id given.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function unitsOf(array $itemIds): array
     {
@@ -4376,7 +4376,7 @@ class PriceIndexSyncService
      *
      * @return string An SQL condition.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ownPriceSql(string $combinationAlias): string
     {
@@ -4394,7 +4394,7 @@ class PriceIndexSyncService
      *
      * @return string A parenthesised SELECT.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function unitsSql(?array $itemIds = null): string
     {
@@ -4412,7 +4412,7 @@ class PriceIndexSyncService
      *
      * @return array{rows: int, bytes: int}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function size(): array
     {
@@ -4432,7 +4432,7 @@ class PriceIndexSyncService
      * primary key only once the engine's statistics have caught up with its rows. Never inside a transaction (the
      * statement commits one); a failure is logged and changes nothing else.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function analyze(): void
     {
@@ -4457,7 +4457,7 @@ class PriceIndexSyncService
      *
      * @return array<int, int> By product id, every id given.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function openingQuantities(array $itemIds): array
     {
@@ -4571,7 +4571,7 @@ class PriceIndexSyncService
      * @param string $key Its rule column.
      * @param int $id The rule.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function appliesGlobally(string $table, string $key, int $id): bool
     {
@@ -4597,7 +4597,7 @@ class PriceIndexSyncService
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function scopeCategories(string $table, string $key, int $id): array
     {

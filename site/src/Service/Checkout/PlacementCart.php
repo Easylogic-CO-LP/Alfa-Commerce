@@ -170,7 +170,7 @@ final class PlacementCart
      *
      * @param int $paymentMethodId The payment method this submission chose.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function assumePayment(int $paymentMethodId): void
     {

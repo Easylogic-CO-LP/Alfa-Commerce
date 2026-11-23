@@ -51,7 +51,7 @@ final class CartSnapshotFactory
      * @param HydratedCart $state The cart as loaded.
      * @param CartComputation $computation What is computed about it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function plain(HydratedCart $state, CartComputation $computation): CartSnapshot
     {

@@ -29,21 +29,21 @@ use Joomla\Database\DatabaseInterface;
  * own readings, each with the permissions it asks and the groups and token holders of {@see ApiPermissionHolders}.
  * The table cannot say other than the router and the controllers' checks: it reads what they read.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiAddressListing
 {
     /**
      * The source of core's addresses.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const SOURCE_CORE = 'core';
 
     /**
      * The start of a plugin's source, then its element.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const SOURCE_PLUGIN = 'plugin.';
 
@@ -55,7 +55,7 @@ final class ApiAddressListing
      *
      * @return array{addresses: list<ApiAddress>, refused: list<array{element: string, name: string, refusal: ApiRouteRefusal}>, unavailable: list<array{element: string, name: string, reason: string}>, titles: array<string, string>, tokenPlugin: bool, webservices: bool, tokenGroups: array{every: bool, titles: list<string>}}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function read(): array
     {
@@ -144,7 +144,7 @@ final class ApiAddressListing
      *
      * @return array{core: array{all: int, shown: list<ApiAddress>}, extensions: list<array{source: string, name: string, all: int, shown: list<ApiAddress>, refused: list<ApiRouteRefusal>, unavailable: string}>}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function sections(array $addresses, array $shown, array $refused, array $unavailable): array
     {
@@ -195,7 +195,7 @@ final class ApiAddressListing
      *
      * @return list<array{permissions: list<string>, endpoints: int, groups: list<array{id: int, title: string, superUsers: bool, apiLogin: bool, tokenGroup: bool, accounts: list<array{id: int, name: string, username: string, superUser: bool}>}>, accounts: list<array{id: int, name: string, username: string, superUser: bool}>}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function holders(array $addresses): array
     {
@@ -225,7 +225,7 @@ final class ApiAddressListing
      *
      * @return list<ApiAddress>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function filter(array $addresses, string $source, string $permission, string $search): array
     {
@@ -244,7 +244,7 @@ final class ApiAddressListing
      *
      * @return array{addresses: int, plugins: int, accounts: int, superUsers: int}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function summary(array $addresses): array
     {
@@ -271,7 +271,7 @@ final class ApiAddressListing
      *
      * @return array<string, string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function sources(array $addresses): array
     {
@@ -291,7 +291,7 @@ final class ApiAddressListing
      *
      * @return list<array{id: int, name: string, username: string, superUser: bool}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function accounts(array $groups): array
     {
@@ -314,7 +314,7 @@ final class ApiAddressListing
      *
      * @return array<string, string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function titles(array $addresses): array
     {

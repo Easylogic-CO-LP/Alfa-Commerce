@@ -28,7 +28,7 @@ use Joomla\CMS\MVC\Controller\Exception\Save;
  * filter[changed_since] keeps the units of the products whose stock, prices or own fields changed at or after a UTC time.
  * Gated on Items: View, the back office's own permission, so unpublished units are listed to whoever reads it.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class StockpricesController extends ApiController
 {
@@ -38,7 +38,7 @@ class StockpricesController extends ApiController
      * The content type of the rows.
      *
      * @var string
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $contentType = 'stockprices';
 
@@ -46,14 +46,14 @@ class StockpricesController extends ApiController
      * The default view for the display method.
      *
      * @var string
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $default_view = 'stockprices';
 
     /**
      * Gate the list on the products' view permission.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function aclSection(): string
     {
@@ -67,7 +67,7 @@ class StockpricesController extends ApiController
      *
      * @throws Save When page[limit], page[after] or filter[changed_since] is not what the list takes (400).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function displayList()
     {

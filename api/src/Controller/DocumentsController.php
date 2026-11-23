@@ -60,7 +60,7 @@ class DocumentsController extends ApiController
      *
      * @return array<string, list<string>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function taskActions(): array
     {

@@ -50,7 +50,7 @@ final class PriceSetPrepareJob implements JobHandler
      *
      * @param int $contextId The context (#__alfa_price_contexts.id).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function scopeFor(int $contextId): string
     {
@@ -62,7 +62,7 @@ final class PriceSetPrepareJob implements JobHandler
      *
      * @param int $contextId The context.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function enqueueFor(int $contextId): void
     {

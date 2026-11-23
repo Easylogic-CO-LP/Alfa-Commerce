@@ -27,7 +27,7 @@ use Joomla\Registry\Registry;
  * whether each may sign in to the API with a token, and the accounts in each that have an enabled Joomla API token.
  * One computation for every address, core's and the plugins', each group and account read once.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ApiPermissionHolders
 {
@@ -35,7 +35,7 @@ final class ApiPermissionHolders
      * The user groups, in their tree's order: id => title.
      *
      * @var array<int, string>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $groups;
 
@@ -44,14 +44,14 @@ final class ApiPermissionHolders
      * reads them (Super Users when the plugin is not enabled or names none; an empty list stored means every group).
      *
      * @var list<int>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $tokenGroups;
 
     /**
      * Whether the token's sign-in takes every group: the plugin's list is stored empty.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private bool $everyGroup;
 
@@ -59,7 +59,7 @@ final class ApiPermissionHolders
      * Each group's facts once read: title, superUsers, apiLogin, tokenGroup, accounts.
      *
      * @var array<int, array{id: int, title: string, superUsers: bool, apiLogin: bool, tokenGroup: bool, accounts: list<array{id: int, name: string, username: string, superUser: bool}>}>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $facts = [];
 
@@ -67,7 +67,7 @@ final class ApiPermissionHolders
      * Each permission's groups once read: permission => group ids.
      *
      * @var array<string, list<int>>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $holders = [];
 
@@ -75,7 +75,7 @@ final class ApiPermissionHolders
      * Whether each account read is a Super User: user id => bool.
      *
      * @var array<int, bool>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $superUsers = [];
 
@@ -84,7 +84,7 @@ final class ApiPermissionHolders
      *
      * @param DatabaseInterface $db The database.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(private readonly DatabaseInterface $db)
     {
@@ -110,7 +110,7 @@ final class ApiPermissionHolders
      *
      * @return array{every: bool, titles: list<string>}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function tokenGroups(): array
     {
@@ -134,7 +134,7 @@ final class ApiPermissionHolders
      *
      * @return list<array{id: int, title: string, superUsers: bool, apiLogin: bool, tokenGroup: bool, accounts: list<array{id: int, name: string, username: string, superUser: bool}>}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function groupsHolding(array $permissions): array
     {
@@ -159,7 +159,7 @@ final class ApiPermissionHolders
      *
      * @return list<int>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function read(string $permission): array
     {
@@ -181,7 +181,7 @@ final class ApiPermissionHolders
      *
      * @return array{id: int, title: string, superUsers: bool, apiLogin: bool, tokenGroup: bool, accounts: list<array{id: int, name: string, username: string, superUser: bool}>}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function facts(int $id): array
     {
@@ -207,7 +207,7 @@ final class ApiPermissionHolders
      *
      * @param int $groupId The group.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function inTokenGroups(int $groupId): bool
     {
@@ -228,7 +228,7 @@ final class ApiPermissionHolders
      *
      * @return list<array{id: int, name: string, username: string, superUser: bool}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function tokenHolders(int $groupId): array
     {

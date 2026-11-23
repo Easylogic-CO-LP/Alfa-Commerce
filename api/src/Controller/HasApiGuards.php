@@ -219,7 +219,7 @@ trait HasApiGuards
      *
      * @param string $task The task.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function taskAccess(string $task): ?ApiTaskAccess
     {
@@ -238,7 +238,7 @@ trait HasApiGuards
      *
      * @return array<string, list<string>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function taskActions(): array
     {
@@ -256,7 +256,7 @@ trait HasApiGuards
      *
      * @param string $action view | create | edit | edit.state | delete
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function actionPermission(string $action): string
     {
@@ -334,7 +334,7 @@ trait HasApiGuards
      *
      * @return static
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function displayItem($id = null)
     {
@@ -392,7 +392,7 @@ trait HasApiGuards
      *
      * @throws Save When the body carries a key ending in the suffix of a language of the site (422).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function refuseLanguageKeys(): void
     {
@@ -425,7 +425,7 @@ trait HasApiGuards
      *
      * @param string $key The key as sent.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function shownKey(string $key): string
     {
@@ -725,7 +725,7 @@ trait HasApiGuards
      *
      * @return array<string, array>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function fetchedMedia(array $rows, int $recordId): array
     {
@@ -743,7 +743,7 @@ trait HasApiGuards
      *
      * @return bool Whether an image was refused and the answer is written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function answerMediaRefusals(int $recordId): bool
     {

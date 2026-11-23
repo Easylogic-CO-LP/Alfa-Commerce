@@ -48,13 +48,13 @@ final class CartComputation
     /** @var object|null The rules result the contributions were folded over. @since 2.0.0 */
     private ?object $contributionsBasis = null;
 
-    /** @var array|null The plugins' charges, folded: the contributions before the payment method's fee. @since 2.2.2 */
+    /** @var array|null The plugins' charges, folded: the contributions before the payment method's fee. @since 2.3.0 */
     private ?array $charges = null;
 
-    /** @var object|null The rules result the plugins' charges were folded over. @since 2.2.2 */
+    /** @var object|null The rules result the plugins' charges were folded over. @since 2.3.0 */
     private ?object $chargesBasis = null;
 
-    /** @var int|null The payment method the contributions' fee was worked out for. @since 2.2.2 */
+    /** @var int|null The payment method the contributions' fee was worked out for. @since 2.3.0 */
     private ?int $contributionsPayment = null;
 
     /**
@@ -67,7 +67,7 @@ final class CartComputation
     private array $contributionsNotLoaded = [];
     private ?int $assumedShipmentId = null;
 
-    /** @var int|null A payment method assumed for the purpose of evaluation, its fee with it. @since 2.2.2 */
+    /** @var int|null A payment method assumed for the purpose of evaluation, its fee with it. @since 2.3.0 */
     private ?int $assumedPaymentId = null;
 
     /** @var array<int, int[]> Per-override-field destination chains. @since 2.0.0 */
@@ -217,7 +217,7 @@ final class CartComputation
      *
      * @param object $method The payment method, as the method lists read it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function paymentFee(object $method): ?ShippingCharge
     {
@@ -262,7 +262,7 @@ final class CartComputation
      * or removed, or a carriage that changed, yields a new result and the
      * charges are folded again.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function charges(): array
     {
@@ -501,7 +501,7 @@ final class CartComputation
      *
      * @param int $paymentMethodId The payment method.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function assumePayment(int $paymentMethodId): void
     {

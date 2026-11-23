@@ -159,7 +159,7 @@ class PriceSettings
      *
      * @param array $settings The visibility settings (get()).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function netSaving(array $settings): bool
     {

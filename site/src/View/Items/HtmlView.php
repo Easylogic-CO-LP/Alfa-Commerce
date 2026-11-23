@@ -128,7 +128,7 @@ class HtmlView extends BaseHtmlView
      * The reload context of a related product's card on a product page: its reload URL carries it, so the card
      * is drawn again from the same levels it was drawn from ({@see self::cardsFor()}).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CONTEXT_RELATED = 'related';
 
@@ -383,7 +383,7 @@ class HtmlView extends BaseHtmlView
      * @return string The img attributes, each preceded by a space: fetchpriority high for the first card, none for the
      *                next three, loading lazy for every other card.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function cardImageLoading(): string
     {
@@ -552,7 +552,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array<int, string> Each product's card, by its id, in that order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function cardsFor(array $items): array
     {
@@ -575,7 +575,7 @@ class HtmlView extends BaseHtmlView
      *
      * @param Registry $params The parameters the card's defaults come from.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function prepareCards(Registry $params): void
     {

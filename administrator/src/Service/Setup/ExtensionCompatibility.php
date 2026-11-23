@@ -61,7 +61,7 @@ final class ExtensionCompatibility
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const COMPATIBLE = 'compatible';
 
@@ -94,7 +94,7 @@ final class ExtensionCompatibility
      *
      * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function verdicts(): array
     {
@@ -180,7 +180,7 @@ final class ExtensionCompatibility
      *
      * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function follow(array $verdicts): array
     {
@@ -215,7 +215,7 @@ final class ExtensionCompatibility
      *
      * @throws RuntimeException When the installed Alfa Commerce version cannot be read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function push(array $named): void
     {

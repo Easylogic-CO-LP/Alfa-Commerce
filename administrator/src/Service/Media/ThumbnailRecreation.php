@@ -140,7 +140,7 @@ final class ThumbnailRecreation
      * A note of a made thumbnail: a media plugin wrote it larger than its image or the box, and the box
      * rule wrote it again (MediaHelper::makeThumbnail()).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NOTE_GUARD = 'guard';
 
@@ -148,7 +148,7 @@ final class ThumbnailRecreation
      * A note of a made thumbnail: the stored image is smaller than the box on the side that limits it, so
      * the thumbnail is the image's own size; a sharper one needs the image uploaded again.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NOTE_SMALL_IMAGE = 'small';
 
@@ -395,7 +395,7 @@ final class ThumbnailRecreation
      *
      * @param string $file Absolute path of the image.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function imageBelowBox(string $file): bool
     {

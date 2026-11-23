@@ -42,7 +42,7 @@ use Joomla\Database\DatabaseDriver;
  * - order.dispute: the order and its dispute: its id and the state the change moved it to, with its last decision,
  *   amount in the order's currency and when it was decided as they stand when the batch leaves.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundValues
 {
@@ -51,7 +51,7 @@ final class OutboundValues
      *
      * @var array{set: int, currency: int}|null|false False until read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array|null|false $terms = false;
 
@@ -62,7 +62,7 @@ final class OutboundValues
      *
      * @return array<int, array<string, mixed>> Row id => the change as it is told.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function for(array $rows): array
     {
@@ -130,7 +130,7 @@ final class OutboundValues
      *
      * @return array{set: int, currency: int}|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function defaultPriceTerms(): ?array
     {
@@ -156,7 +156,7 @@ final class OutboundValues
     /**
      * Forget the default context's terms read in this request (the contexts were rebuilt).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function forget(): void
     {
@@ -166,7 +166,7 @@ final class OutboundValues
     /**
      * The shop's address as a consumer is told it: the site's root URL.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function shop(): string
     {
@@ -176,7 +176,7 @@ final class OutboundValues
     /**
      * The default customer's pricing context: a guest with the guest's groups, no place, the shop's default currency.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function guestContext(): PriceContext
     {
@@ -191,7 +191,7 @@ final class OutboundValues
      *
      * @return array<string, array{sku: string, available: string|null}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function units(DatabaseDriver $db, array $units): array
     {
@@ -248,7 +248,7 @@ final class OutboundValues
      *
      * @return array<int, array<int, array{net: string, gross: string, currency: string}|null>> By product, then combination.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function prices(DatabaseDriver $db, array $units): array
     {
@@ -300,7 +300,7 @@ final class OutboundValues
      *
      * @return array<int, int>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function orderStatuses(DatabaseDriver $db, array $orderIds): array
     {
@@ -325,7 +325,7 @@ final class OutboundValues
      *
      * @return array{from_status_id: int|null, to_status_id: int|null}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function statusMove(string $payload): array
     {
@@ -345,7 +345,7 @@ final class OutboundValues
      *
      * @return array<int, object>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputes(DatabaseDriver $db, array $rows): array
     {
@@ -379,7 +379,7 @@ final class OutboundValues
      *
      * @return array{id: int|null, state: string|null, outcome: string|null, amount: string|null, currency: string|null, decided_at: string|null}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function disputeMove(string $payload, array $disputes): array
     {
@@ -402,7 +402,7 @@ final class OutboundValues
      *
      * @param string $at The stored moment, `Y-m-d H:i:s.u` UTC.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function utc(string $at): string
     {

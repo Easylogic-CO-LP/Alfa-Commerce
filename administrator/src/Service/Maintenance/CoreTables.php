@@ -58,7 +58,7 @@ final class CoreTables
      *
      * @var string[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const MADE_BY_UPDATES = ['#__alfa_items_price_index_prev'];
 

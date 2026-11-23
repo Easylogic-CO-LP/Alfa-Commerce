@@ -28,21 +28,21 @@ use Throwable;
  * listener that throws is recorded with its error and the others still run. The task then ends failed, never run again
  * by itself; staff press Run again, which calls the listeners not recorded as completed.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OrderDisputeEvent extends OrderTaskHandler
 {
     /**
      * The handler's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'order.dispute_event';
 
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function policy(): TaskPolicy
     {
@@ -58,7 +58,7 @@ final class OrderDisputeEvent extends OrderTaskHandler
      * Whether onAlfaDisputeChanged has a listener once the alfa group is imported; owed when the listeners cannot be
      * known (the group not imported, a plugin of it that failed to load).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function hasListeners(): bool
     {
@@ -75,7 +75,7 @@ final class OrderDisputeEvent extends OrderTaskHandler
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function run(TaskRun $run): void
     {
@@ -122,7 +122,7 @@ final class OrderDisputeEvent extends OrderTaskHandler
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function what(array $payload): array
     {
@@ -132,7 +132,7 @@ final class OrderDisputeEvent extends OrderTaskHandler
     /**
      * {@inheritdoc}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function outcomeEvent(string $state): string
     {

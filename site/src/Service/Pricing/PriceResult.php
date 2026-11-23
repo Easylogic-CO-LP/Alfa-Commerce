@@ -149,7 +149,7 @@ class PriceResult
      * Whether a price applies at the quantity asked: false for a result the engine states with no figure, whose
      * money getters throw instead of answering a zero.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private bool $priced = true;
 
@@ -157,7 +157,7 @@ class PriceResult
      * For a result with no figure, the smallest quantity above the one asked from which a price row applies; null when
      * none does.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?int $pricedFrom = null;
 
@@ -227,7 +227,7 @@ class PriceResult
      * @param int $quantity The quantity asked.
      * @param int|null $pricedFrom The smallest quantity above it from which a price row applies, or null.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function notPriced(Currency $currency, int $quantity, ?int $pricedFrom): self
     {
@@ -264,7 +264,7 @@ class PriceResult
      * Whether a price applies at the quantity asked: the result carries its figures. False when no price row applies
      * to the shopper at that quantity and no explicit price was given; every money getter then throws.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function isPriced(): bool
     {
@@ -275,7 +275,7 @@ class PriceResult
      * For a result that is not priced, the smallest quantity above the one asked from which a price row applies (rows
      * for 1 to 5 and from 10, asked at 7: 10); null when no row applies above it, and for a priced result.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function pricedFrom(): ?int
     {
@@ -287,7 +287,7 @@ class PriceResult
      *
      * @throws LogicException When the result is not priced.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function assertPriced(): void
     {

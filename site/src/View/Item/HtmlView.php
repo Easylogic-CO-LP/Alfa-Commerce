@@ -268,7 +268,7 @@ class HtmlView extends BaseHtmlView
      *
      * @param list<mixed> $chain The levels, strongest first.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function firstSet(array $chain): int
     {
@@ -291,7 +291,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array<int, string> The cards by product id, in their order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function relatedCards(int $itemId, int $count): array
     {
@@ -317,7 +317,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array<int, object>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function methodImages(string $kind, array $methods): array
     {
@@ -379,7 +379,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array The surface descriptor.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function methodDescriptor(object $method, ?object $image): array
     {

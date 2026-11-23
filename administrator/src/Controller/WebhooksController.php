@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\AdminController;
 /**
  * The Webhooks list: enable, pause and delete.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class WebhooksController extends AdminController
 {
@@ -29,7 +29,7 @@ class WebhooksController extends AdminController
      *
      * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getModel($name = 'Webhook', $prefix = 'Administrator', $config = ['ignore_request' => true])
     {
@@ -41,7 +41,7 @@ class WebhooksController extends AdminController
      *
      * @return void
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function publish()
     {

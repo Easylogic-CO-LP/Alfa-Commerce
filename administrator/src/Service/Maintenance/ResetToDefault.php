@@ -69,7 +69,7 @@ final class ResetToDefault
      *
      * @var string[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const STRUCTURAL = ['delivery_place_field', 'customer_cancel_status', 'default_currency'];
 

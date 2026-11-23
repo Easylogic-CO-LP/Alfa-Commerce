@@ -17,7 +17,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
  * update answer it 409 with that order's id in meta.existing_id, so a connector that sent the same order again reads the
  * order it made the first time.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class OrderExternalReferenceTakenException extends OrderPartRefusedException
 {
@@ -26,7 +26,7 @@ class OrderExternalReferenceTakenException extends OrderPartRefusedException
      * @param array{source: string, reference: string} $pair The pair sent.
      * @param string $outcome What the refused write leaves (self::NOT_CREATED, self::NOT_SAVED).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(public readonly int $existingId, array $pair, string $outcome = self::NOT_CREATED)
     {

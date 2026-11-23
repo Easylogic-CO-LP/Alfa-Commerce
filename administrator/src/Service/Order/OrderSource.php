@@ -19,28 +19,28 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
  * @api READ ONLY: the source a REST API client may give an order (lower-case letters, digits, _ and -, 1 to 32
  *      characters, none of core's own) and the one an order of the REST API takes when it gives none.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OrderSource
 {
     /**
      * An order the REST API creates with no source of its client's.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const API = 'api';
 
     /**
      * The sources core writes for its own doors; a client may not take them.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CORE = ['storefront', 'admin', 'renewal'];
 
     /**
      * A source a client may give: lower-case letters, digits, underscore and hyphen, 1 to 32 characters.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PATTERN = '/^[a-z0-9_-]{1,32}$/';
 
@@ -52,7 +52,7 @@ final class OrderSource
      *
      * @throws OrderPartRefusedException When it is not in its shape, or is one of core's own (MALFORMED).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ofClient(mixed $value): string
     {

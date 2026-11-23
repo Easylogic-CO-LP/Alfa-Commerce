@@ -32,21 +32,21 @@ use Joomla\Database\ParameterType;
  * @api WRITE: mark() records on the products the time their stock, prices or own fields changed; now() and bound()
  *      read the time and a changed_since bound.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class CommerceChange
 {
     /**
      * The column.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const COLUMN = 'commerce_changed_at';
 
     /**
      * Now, in UTC to the microsecond, as the column stores it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function now(): string
     {
@@ -59,7 +59,7 @@ final class CommerceChange
      * @param DatabaseInterface $db The connection of the write.
      * @param int[] $itemIds The products.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function mark(DatabaseInterface $db, array $itemIds): void
     {
@@ -88,7 +88,7 @@ final class CommerceChange
      *
      * @return string|null The bound, or null when it is not a date and time.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function bound(string $bound): ?string
     {

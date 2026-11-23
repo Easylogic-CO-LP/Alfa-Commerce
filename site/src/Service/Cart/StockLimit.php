@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
  *
  * Immutable, and free of anything that could talk to a shopper.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class StockLimit
 {
@@ -34,7 +34,7 @@ final class StockLimit
      * @param bool $lowered Whether a line was lowered to that quantity: the cart held more of that stock than there
      *                      is, so nothing went in, yet the cart changed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function __construct(
         public readonly bool $added,
@@ -49,7 +49,7 @@ final class StockLimit
      * @param int $quantity What the cart holds of that stock.
      * @param bool $lowered Whether a line was lowered to it on the way.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function held(int $quantity, bool $lowered = false): self
     {
@@ -61,7 +61,7 @@ final class StockLimit
      *
      * @param int $quantity What the cart holds of that stock after the change.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function reached(int $quantity): self
     {

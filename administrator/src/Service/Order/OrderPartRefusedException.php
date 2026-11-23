@@ -21,42 +21,42 @@ use RuntimeException;
  * not take, 409 for a part its writer refused (a product that cannot be sold, a parcel's charge the tax rule refuses,
  * a payment beyond what the order owes), with the plain sentence.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class OrderPartRefusedException extends RuntimeException
 {
     /**
      * A part sent in a shape the create does not take.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const MALFORMED = 422;
 
     /**
      * A part its writer refused.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const REFUSED = 409;
 
     /**
      * What a refused create leaves: no order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NOT_CREATED = 'The order was not created.';
 
     /**
      * What a refused update of an order leaves: the order as it was.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NOT_SAVED = 'Nothing was saved.';
 
     /**
      * The sentence as text, without the HTML escaping the message carries for the back office.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public readonly string $plain;
 
@@ -68,7 +68,7 @@ class OrderPartRefusedException extends RuntimeException
      * @param string $outcome What the refused write leaves: self::NOT_CREATED for a create, self::NOT_SAVED for an
      *                        update.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(
         public readonly string $part,

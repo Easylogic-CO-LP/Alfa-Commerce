@@ -137,7 +137,7 @@ final class StoredDecimal
      *
      * @throws InvalidArgumentException When the value is not a number, or is finer or larger than the column holds.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ofTyped(mixed $value): ?string
     {

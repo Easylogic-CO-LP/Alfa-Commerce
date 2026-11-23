@@ -36,7 +36,7 @@ final class CartOffersView
      *
      * @var array<string, array<int, list<object>>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $images = [];
 
@@ -93,7 +93,7 @@ final class CartOffersView
      *
      * @param int $methodId The payment method being drawn.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function feeFor(int $methodId): ?Money
     {
@@ -104,7 +104,7 @@ final class CartOffersView
      * The sentence a list shows when nothing is left to choose and a carrier waits for a fact the checkout has not given
      * yet: the language key naming what is needed, '' when nothing waits.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function needsKey(): string
     {
@@ -145,7 +145,7 @@ final class CartOffersView
      * @param string $kind 'payment' or 'shipment'.
      * @param int $methodId The method being drawn.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function imageFor(string $kind, int $methodId): ?object
     {

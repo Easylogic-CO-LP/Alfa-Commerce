@@ -186,7 +186,7 @@ class TasksController extends ApiController
      *
      * @param string $task The task.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function taskAccess(string $task): ?ApiTaskAccess
     {

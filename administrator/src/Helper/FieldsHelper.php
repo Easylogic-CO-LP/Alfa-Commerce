@@ -737,7 +737,7 @@ class FieldsHelper
      *
      * @return string An ISO 3166-1 alpha-2 code in capitals, or ''.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function phoneRegion(SimpleXMLElement $element, ?Registry $input = null): string
     {
@@ -754,7 +754,7 @@ class FieldsHelper
      *
      * @return string An ISO 3166-1 alpha-2 code in capitals, or ''.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function phoneDefaultRegion(string $fieldRegion): string
     {
@@ -770,7 +770,7 @@ class FieldsHelper
      *
      * @param string $value The number as typed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function phoneTyped(string $value): string
     {
@@ -786,7 +786,7 @@ class FieldsHelper
      * @param SimpleXMLElement $element The phone field's element.
      * @param Registry|null $input The whole submission.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function sectionCountry(SimpleXMLElement $element, ?Registry $input): string
     {

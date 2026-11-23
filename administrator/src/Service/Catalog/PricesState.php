@@ -26,14 +26,14 @@ use Joomla\Database\DatabaseInterface;
  * ({@see self::assertUnchanged()}), so neither overwrites the other's change unseen. A write sent without a state is
  * written as sent: the last write wins.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class PricesState
 {
     /**
      * The shape of a state as it is published and taken back: the digest's 32 lower-case hex digits.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PATTERN = '/^[0-9a-f]{32}$/D';
 
@@ -46,7 +46,7 @@ final class PricesState
      *
      * @return array<int, string> Product id => state; a product with no row has the state of no rows.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ofItems(array $itemIds): array
     {
@@ -81,7 +81,7 @@ final class PricesState
      *
      * @return array<string, string> "product:combination" => state.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ofUnits(array $units): array
     {
@@ -137,7 +137,7 @@ final class PricesState
      *
      * @throws PricesStateChanged When the stored rows have another state.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function assertUnchanged(DatabaseDriver $db, int $itemId, string $expected, int $combinationId = 0): void
     {
@@ -162,7 +162,7 @@ final class PricesState
     /**
      * The connection.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function db(): DatabaseInterface
     {

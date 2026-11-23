@@ -32,7 +32,7 @@ class Dispatcher extends AbstractModuleDispatcher
      * Draw the cart, unless the shop shows its catalogue only: then the module draws nothing, reads no cart and
      * loads nothing.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function dispatch(): void
     {

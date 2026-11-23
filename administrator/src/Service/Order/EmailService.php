@@ -804,7 +804,7 @@ class EmailService
      *
      * @return string An EXISTS (...) condition.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function staffRecipientsSql(string $statusColumn): string
     {
@@ -1062,7 +1062,7 @@ class EmailService
      *
      * @return array{0: string, 1: string} The outcome (self::OUTCOME_*) and its error.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function sendStaffMessage(string $recipient, string $subject, string $text, int $orderId): array
     {

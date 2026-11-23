@@ -81,7 +81,7 @@ final class PageCache
      * Configuration's cache path, administrator/cache when none is set), which the site and the administrator share. A
      * cache that cannot be cleaned is said in the log and expires on its own.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function forget(): void
     {

@@ -4419,7 +4419,7 @@ class ItemFieldsAdminHelper
      * @param string $label The combination's label.
      * @param string $value What was typed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function invalidPriceText(string $label, string $value): string
     {

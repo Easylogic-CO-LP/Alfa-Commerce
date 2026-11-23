@@ -36,7 +36,7 @@ use InvalidArgumentException;
  * @api READ ONLY: the parts of an order create's data (lines, shipment, payment), checked and turned into the data
  *      the order's line, parcel and payment writers take; a refusal names the part.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OrderCreateParts
 {
@@ -44,35 +44,35 @@ final class OrderCreateParts
      * The keys of a line: the product, its combination, the quantity and the pricing instructions the line verbs take
      * ({@see LinePricing}).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const LINE_KEYS = ['id_item', 'id_combination', 'quantity', CustomPriceCommand::FIELD, 'manual_discount_percent', 'manual_discount_scope'];
 
     /**
      * The keys of the parcel: its method, the three figures of its charge, its tracking number and its carrier.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const SHIPMENT_KEYS = ['id_shipment_method', 'shipping_cost_tax_incl', 'shipping_cost_tax_excl', 'shipping_tax_rate', 'tracking_number', 'carrier'];
 
     /**
      * The keys of the payment: its method, its amount, its status and the provider's reference.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PAYMENT_KEYS = ['id_payment_method', 'amount', 'transaction_status', 'transaction_id'];
 
     /**
      * The statuses a payment is created in with its order: still to be paid, or paid.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PAYMENT_STATUSES = [PaymentLedger::STATUS_PENDING, PaymentLedger::STATUS_COMPLETED];
 
     /**
      * How much of a key the client sent a refusal shows.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const KEY_SHOWN = 64;
 
@@ -85,7 +85,7 @@ final class OrderCreateParts
      *
      * @throws OrderPartRefusedException When a part is not in a shape the create takes (MALFORMED).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function read(array $data): array
     {
@@ -168,7 +168,7 @@ final class OrderCreateParts
      *
      * @param array $data The create's data.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function named(array $data): bool
     {
@@ -183,7 +183,7 @@ final class OrderCreateParts
      *
      * @return array{id: int, id_order: int, id_item: int, quantity: int, id_combination: int}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function lineData(array $line, int $orderId): array
     {
@@ -207,7 +207,7 @@ final class OrderCreateParts
      *
      * @throws OrderPartRefusedException When a figure is not an amount of the order's money (MALFORMED).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function shipmentData(array $shipment, int $orderId, array $lines): array
     {
@@ -256,7 +256,7 @@ final class OrderCreateParts
      *
      * @throws OrderPartRefusedException When the amount is not an amount of the order's money above zero (MALFORMED).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function paymentData(array $payment, int $orderId): array
     {
@@ -294,7 +294,7 @@ final class OrderCreateParts
      *
      * @throws InvalidArgumentException When the value is not an amount of this money; the message names the field.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function amount(mixed $value, string $field, Currency $currency): Money
     {
@@ -329,7 +329,7 @@ final class OrderCreateParts
      *
      * @throws InvalidArgumentException When the value is not such a percentage; the message names the field.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function rate(mixed $value, string $field): string
     {
@@ -352,7 +352,7 @@ final class OrderCreateParts
      *
      * @throws OrderPartRefusedException When it is not an object of those keys.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function object(mixed $value, string $at, array $keys): array
     {
@@ -383,7 +383,7 @@ final class OrderCreateParts
      *
      * @throws OrderPartRefusedException When it is missing or not an id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function requiredId(array $part, string $key, string $at, string $what): int
     {
@@ -401,7 +401,7 @@ final class OrderCreateParts
      *
      * @param mixed $value The value.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function id(mixed $value): int
     {
@@ -420,7 +420,7 @@ final class OrderCreateParts
      *
      * @throws OrderPartRefusedException When the reader refuses (MALFORMED).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function checked(string $at, callable $read): mixed
     {
@@ -437,7 +437,7 @@ final class OrderCreateParts
      *
      * @param string $key The key.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function pointerSegment(string $key): string
     {

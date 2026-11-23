@@ -28,7 +28,7 @@ use Throwable;
  * of use and refuses with a plain message while one of its libraries cannot be used; the notification centre says so
  * to the administrators ({@see InformationNotices}).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class BundledLibraries
 {
@@ -38,7 +38,7 @@ final class BundledLibraries
      *
      * @var array<string, class-string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PDF = [
         'dompdf' => \Dompdf\Dompdf::class,
@@ -56,7 +56,7 @@ final class BundledLibraries
      *
      * @var array<string, class-string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const PHONE = [
         'libphonenumber' => \libphonenumber\PhoneNumberUtil::class,
@@ -71,7 +71,7 @@ final class BundledLibraries
      *
      * @return list<string> Their library names, in the set's order; empty when every one can be used.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function unavailable(array $libraries): array
     {
@@ -105,7 +105,7 @@ final class BundledLibraries
      *
      * @param array<string, class-string> $libraries {@see self::PDF} or {@see self::PHONE}.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function available(array $libraries): bool
     {

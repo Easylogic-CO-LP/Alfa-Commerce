@@ -560,7 +560,7 @@ final class AlfaPluginHelper
      *
      * @throws PluginUnavailable MISSING, DISABLED, UNLOADABLE, WRONG_FAMILY or NO_APPLICATION.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function bootForWork(PluginId $id): LoadedPlugin
     {

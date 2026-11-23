@@ -141,7 +141,7 @@ class FormfieldModel extends AlfaAdminModel
     /**
      * The longest column name MySQL and MariaDB accept: a field name is its #__alfa_user_info column.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const COLUMN_NAME_MAX = 64;
 
@@ -763,7 +763,7 @@ class FormfieldModel extends AlfaAdminModel
      *
      * @return list<string> The places; empty when nothing names it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function usesOfName(string $name, int $fieldId): array
     {
@@ -827,7 +827,7 @@ class FormfieldModel extends AlfaAdminModel
      * @param array<mixed> $group The rule's group: its rules, each an operand or a nested group.
      * @param string $name The field's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function ruleNames(array $group, string $name): bool
     {
@@ -860,7 +860,7 @@ class FormfieldModel extends AlfaAdminModel
      *
      * @return string The column name; '' when nothing of the name is left.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function columnName(string $name): string
     {

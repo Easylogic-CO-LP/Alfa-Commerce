@@ -50,14 +50,14 @@ use Joomla\Database\ParameterType;
  * combination carries together. Values naming every dimension are stored as the combination they name, so one meaning
  * has one stored form. A product or combination gone between the check and the write is left out by the write itself.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class RelatedItems
 {
     /**
      * The table.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const TABLE = '#__alfa_items_links';
 
@@ -71,7 +71,7 @@ final class RelatedItems
     /**
      * The kind of link core writes and reads: the product page's related products.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const TYPE_RELATED = 'related';
 
@@ -130,7 +130,7 @@ final class RelatedItems
      *
      * @return list<array{item_id: int, combination_id: int, values: array<int, int>}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function rows(DatabaseInterface $db, int $itemId): array
     {
@@ -146,7 +146,7 @@ final class RelatedItems
      *
      * @return array<int, RelatedLink>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function posted(mixed $posted): array
     {
@@ -177,7 +177,7 @@ final class RelatedItems
      *
      * @return list<Refusal>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function refusals(DatabaseInterface $db, int $itemId, array $links): array
     {
@@ -285,7 +285,7 @@ final class RelatedItems
      * @param int $itemId The product.
      * @param array<int, RelatedLink> $links The links, in their order, checked by {@see self::refusals()}.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function replace(DatabaseInterface $db, int $itemId, array $links): void
     {
@@ -374,7 +374,7 @@ final class RelatedItems
      * @param DatabaseInterface $db The database.
      * @param list<int> $itemIds The deleted products.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function deleteFor(DatabaseInterface $db, array $itemIds): void
     {

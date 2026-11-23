@@ -33,14 +33,14 @@ use Throwable;
  *
  * The job runs outside the runner's chunk transaction (ownTransactions): a batch calls another system.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundDeliveryJob implements JobHandler
 {
     /**
      * The handler's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = DueRead::OUTBOUND_DELIVER;
 
@@ -49,7 +49,7 @@ final class OutboundDeliveryJob implements JobHandler
      *
      * @param int $consumerId The consumer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function enqueueFor(int $consumerId): Enqueued
     {
@@ -62,7 +62,7 @@ final class OutboundDeliveryJob implements JobHandler
      *
      * @param DatabaseDriver $db The connection.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function owe(DatabaseDriver $db): void
     {
@@ -84,7 +84,7 @@ final class OutboundDeliveryJob implements JobHandler
      * Light, ahead of the shop's catalogue work and behind correctness work, a batch a unit, outside the runner's chunk
      * transaction.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function policy(): JobPolicy
     {
@@ -103,7 +103,7 @@ final class OutboundDeliveryJob implements JobHandler
      *
      * @param JobRun $run The job.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function total(JobRun $run): int
     {
@@ -116,7 +116,7 @@ final class OutboundDeliveryJob implements JobHandler
      * @param JobRun $run The job.
      * @param int $units Ignored: a chunk is one batch.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function chunk(JobRun $run, int $units): JobChunk
     {

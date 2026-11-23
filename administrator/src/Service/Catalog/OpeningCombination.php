@@ -46,7 +46,7 @@ use Throwable;
  * The same choices in SQL ({@see self::choiceSql()}, {@see self::priceCombinationSql()}) are kept for checks only:
  * Tools compares them with the stored values, and the suites use them as an oracle. No listing reads them.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OpeningCombination
 {
@@ -63,7 +63,7 @@ final class OpeningCombination
      *
      * @return array<int, int> By product id, every id given: the combination id, 0 for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function decide(array $itemIds): array
     {
@@ -101,7 +101,7 @@ final class OpeningCombination
      *
      * @return int[] The products whose opening or price combination changed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function refresh(array $itemIds): array
     {
@@ -147,7 +147,7 @@ final class OpeningCombination
      *
      * @return array<int, true> By combination id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function ownPriced(array $combinationIds): array
     {
@@ -183,7 +183,7 @@ final class OpeningCombination
      * @param int[] $itemIds The products the command changed.
      * @param bool $all Whether the command changed every product's verdict.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function afterCommand(array $itemIds, bool $all): void
     {
@@ -233,7 +233,7 @@ final class OpeningCombination
      *
      * @return int The products whose pointer changed.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function refreshAll(): int
     {
@@ -266,7 +266,7 @@ final class OpeningCombination
      *
      * @return string An SQL expression: the combination id, 0 for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function choiceSql(string $itemAlias = 'a'): string
     {
@@ -290,7 +290,7 @@ final class OpeningCombination
      *
      * @return string An SQL expression: the combination id, 0 for the product's own row.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function priceCombinationSql(string $itemAlias = 'a'): string
     {
@@ -309,7 +309,7 @@ final class OpeningCombination
      *
      * @return array{count: int, items: int[]} How many differ, and the first of them.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function disagreements(int $limit = 20): array
     {
@@ -328,7 +328,7 @@ final class OpeningCombination
      *
      * @param array<int, array{0: int, 1: int}> $pointers By product id: the opening combination, the price combination.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function store(array $pointers): void
     {
@@ -358,7 +358,7 @@ final class OpeningCombination
      *
      * @return int[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function ids(array $itemIds): array
     {
@@ -371,7 +371,7 @@ final class OpeningCombination
     /**
      * The connection.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function db(): DatabaseDriver
     {

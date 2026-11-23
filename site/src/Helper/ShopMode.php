@@ -23,14 +23,14 @@ defined('_JEXEC') or die;
  * is not read, the cart and checkout show a sentence, and every storefront cart task and placement is refused. Orders
  * staff take in the administrator or over the REST API, and orders already placed, are not affected.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ShopMode
 {
     /**
      * Whether the storefront sells online: false in catalogue-only mode.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function sellsOnline(): bool
     {

@@ -154,7 +154,7 @@ class MultilingualHelper
      *
      * @var array<string, array<int, array<string, string>>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $valueMemo = [];
 
@@ -994,7 +994,7 @@ class MultilingualHelper
      *
      * @throws RuntimeException On a read that fails.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function getMultilingualDataForIds(array $ids, string $primaryColumnName, string $tableName): array
     {
@@ -2408,7 +2408,7 @@ class MultilingualHelper
      * @param string $tableName Base table with prefix (e.g. "#__alfa_items").
      * @param int $id The record.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function forget(string $tableName, int $id): void
     {

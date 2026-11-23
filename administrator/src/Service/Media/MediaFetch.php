@@ -31,35 +31,35 @@ use Joomla\CMS\Factory;
  * @api READ ONLY: fetch an image from an outside address with the guards above; the answer is a temporary file the
  *      caller stores and removes.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class MediaFetch
 {
     /**
      * The redirects followed, each to a vetted address.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const MAX_REDIRECTS = 3;
 
     /**
      * The size Options, Images, Images by URL sets when it sets none, in MB.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DEFAULT_MAX_MB = 10;
 
     /**
      * The seconds a fetch may take when Options sets none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const DEFAULT_SECONDS = 15;
 
     /**
      * How an address is vetted: OutboundAddressGuard::vet() for http and https unless another check is given.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private readonly Closure $vet;
 
@@ -69,7 +69,7 @@ final class MediaFetch
      * @param int|null $maxBytes The largest body taken; null for Options, Images, Images by URL.
      * @param int|null $seconds The seconds a fetch may take, redirects included; null for Options.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct(?Closure $vet = null, private ?int $maxBytes = null, private ?int $seconds = null)
     {
@@ -85,7 +85,7 @@ final class MediaFetch
      *
      * @param string $url The address.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function urlHash(string $url): string
     {
@@ -103,7 +103,7 @@ final class MediaFetch
      *
      * @throws MediaFetchRefused When the address, a redirect, the answer or the file is refused.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function fetch(string $url, array $allowedMimes): array
     {
@@ -168,7 +168,7 @@ final class MediaFetch
      *
      * @throws MediaFetchRefused When the address is refused, the transfer fails, or the body is too large.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function get(string $url, string $file, float $seconds): array
     {
@@ -253,7 +253,7 @@ final class MediaFetch
      * @param string $base The address that answered.
      * @param string $location Its Location.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function resolved(string $base, string $location): string
     {
@@ -282,7 +282,7 @@ final class MediaFetch
      *
      * @param string $url The address.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function nameOf(string $url): string
     {

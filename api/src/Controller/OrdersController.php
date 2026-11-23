@@ -79,7 +79,7 @@ class OrdersController extends ApiController
      * in one call names them inside its payment and its shipment ({@see OrderCreateParts}).
      *
      * @var string[]
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const NOT_CREATED = ['id_payment_method', 'payment_method_name', 'id_shipment_method', 'shipment_method_name'];
 
@@ -89,7 +89,7 @@ class OrdersController extends ApiController
      * create answered 201 with no payment, parcel or line; a create in one call sends payment, shipment and lines.
      *
      * @var string[]
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const NOT_CREATED_LISTS = ['payments', 'shipments', 'items'];
 
@@ -99,7 +99,7 @@ class OrdersController extends ApiController
      * the one that refused is not always the last.
      *
      * @var list<object>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $models = [];
 
@@ -329,7 +329,7 @@ class OrdersController extends ApiController
      * @throws NotAllowed When the user may not create an order (403).
      * @throws Save When the body carries a method key at its top level (422), or a part is refused (422, 409).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function add()
     {
@@ -373,7 +373,7 @@ class OrdersController extends ApiController
      *
      * @throws Save The refusal as the API answers it, or the failure as it came.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function answerRefusal(Save $refused): void
     {
@@ -405,7 +405,7 @@ class OrdersController extends ApiController
      *
      * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel|bool Model object on success; otherwise false on failure.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getModel($name = '', $prefix = '', $config = [])
     {
@@ -421,7 +421,7 @@ class OrdersController extends ApiController
     /**
      * The refusal a model of this request set, or null ({@see OrderPartRefusedException}).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function partRefusal(): ?OrderPartRefusedException
     {
@@ -464,7 +464,7 @@ class OrdersController extends ApiController
      *
      * @throws Save When the body sends the invoice details without invoice_differs (400).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refuseUnstatedInvoice(): void
     {
@@ -485,7 +485,7 @@ class OrdersController extends ApiController
      *
      * @throws Save When the order has no invoice details of its own to keep (400).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refuseInvoiceWithoutDetails(int $orderId): void
     {

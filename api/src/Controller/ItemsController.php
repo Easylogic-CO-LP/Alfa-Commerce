@@ -87,7 +87,7 @@ class ItemsController extends ApiController
     /**
      * The prices_state the update sent with its prices, or null when it sent none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?string $pricesState = null;
 
@@ -113,7 +113,7 @@ class ItemsController extends ApiController
      *
      * @return array<string, list<string>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function taskActions(): array
     {
@@ -132,7 +132,7 @@ class ItemsController extends ApiController
      *
      * @throws Save When the body is not a list of 1 to UnitBatch::MAX_UNITS units (422).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function units()
     {
@@ -479,7 +479,7 @@ class ItemsController extends ApiController
      *
      * @throws Save When the body carries an unwritten key or a stock shape the item does not take (422).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function refuseUnwrittenKeys(bool $update): void
     {
@@ -501,7 +501,7 @@ class ItemsController extends ApiController
      *
      * @throws Save When prices_state is sent on a create, without prices, or in another shape (422).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function sentPricesState(array $body, bool $update): ?string
     {
@@ -697,7 +697,7 @@ class ItemsController extends ApiController
      *
      * @throws Save When a stock key has another shape, or inventory_stock names something that is no stock location (422).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refuseStockShapes(array $body): void
     {

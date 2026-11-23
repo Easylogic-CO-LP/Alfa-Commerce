@@ -150,7 +150,7 @@ final class TaskDocument
      *
      * @return array<string, mixed>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function checkpointOf(array $row): ?array
     {

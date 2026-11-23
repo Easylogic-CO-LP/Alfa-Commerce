@@ -65,7 +65,7 @@ class OrderModel extends AdminOrderModel
      * PATCH sent replaced the order's delivery record whole, so a city sent alone left a record with only the city, and
      * a guest order whose name was sent without the e-mail lost its customer e-mail.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function keepsOmittedDetails(): bool
     {

@@ -115,7 +115,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @throws NotAllowed To a browser's navigation, in catalogue-only mode.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function execute($task)
     {

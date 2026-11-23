@@ -128,7 +128,7 @@ final class SetupCheck
     /**
      * @var callable|null A sentence the row says in every state, complete or not: fn(): string, a language key, or ''
      *                    for none. For what the check leaves out on purpose, which a complete row would hide.
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private $note = null;
 
@@ -222,7 +222,7 @@ final class SetupCheck
      *
      * @param callable $note fn(): string, a language key, or '' when there is nothing to say.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function note(callable $note): static
     {
@@ -234,7 +234,7 @@ final class SetupCheck
     /**
      * The note's language key now; '' when the row has none, says none now, or it cannot be read.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function noteNow(): string
     {
@@ -431,7 +431,7 @@ final class SetupCheck
      * alone decides; a check needs nothing else for it.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function ignorable(): bool
     {

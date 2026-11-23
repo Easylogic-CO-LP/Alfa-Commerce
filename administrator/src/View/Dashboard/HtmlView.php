@@ -130,7 +130,7 @@ class HtmlView extends BaseHtmlView
      * flickers. %class%, %html% and %looks% are replaced with the request's class, the credit's markup and its rules,
      * encoded as JSON.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const CREDIT_SCRIPT = <<<'JS'
         (() => {
@@ -295,7 +295,7 @@ class HtmlView extends BaseHtmlView
     /**
      * The class of this request's credit of the Alfa developers, set by addCredit().
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private string $creditClass = '';
 
@@ -313,7 +313,7 @@ class HtmlView extends BaseHtmlView
      * The credit sits centred in the page's flow, as far below the last row of cards as the rows are from each other:
      * a line of plain text in the administrator template's muted text colour that wraps on a narrow screen.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function addCredit(): void
     {

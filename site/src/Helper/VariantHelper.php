@@ -128,7 +128,7 @@ final class VariantHelper
      * @param PriceContext|null $context The visitor's context; session when null.
      * @param int[]|null $shownFieldIds The fields a listing card draws (null = every field; see resolve()).
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function resolveWithoutPrice(object $item, array $selection, array $optionValueIds = [], array $payloads = [], ?PriceContext $context = null, ?array $shownFieldIds = null): void
     {
@@ -147,7 +147,7 @@ final class VariantHelper
      * @param object $item The item.
      * @param PriceResult|null $result The calculator's result; null when the item was not priced.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function priceOnto(object $item, ?PriceResult $result): void
     {

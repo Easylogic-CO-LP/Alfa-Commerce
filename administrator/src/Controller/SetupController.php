@@ -122,7 +122,7 @@ class SetupController extends BaseController
      * keeps its current card.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function ignore(): void
     {
@@ -140,7 +140,7 @@ class SetupController extends BaseController
      * whether it is on the checklist now or not. A list that cannot be read or written answers 409 with the sentence.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function showAgain(): void
     {
@@ -159,7 +159,7 @@ class SetupController extends BaseController
      * @param array{ok: bool, error: string} $result What the change answered.
      *
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function answer(array $result): void
     {

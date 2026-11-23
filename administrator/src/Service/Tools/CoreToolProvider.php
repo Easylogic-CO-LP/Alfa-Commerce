@@ -607,7 +607,7 @@ final class CoreToolProvider
      *
      * @param ExecuteToolActionEvent $event The tool request.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function checkPriceIndex(ExecuteToolActionEvent $event): void
     {
@@ -659,7 +659,7 @@ final class CoreToolProvider
      * when, how many items are still owed a rebuild, and the products left out with no price. Empty when the storefront
      * reads the price index.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function priceIndexBuildState(): string
     {

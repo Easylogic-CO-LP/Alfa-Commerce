@@ -27,35 +27,35 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
  *         the content, not of the messages.
  * pointer where in the request body the value was (a JSON pointer, "/alfa_form_fields/vatnumber"); '' for none.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class WriteWarnings
 {
     /**
      * A second open parcel's charge was set to zero: the order already charges shipping on a parcel.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const SHIPPING_CHARGED_ONCE = 'shipping_charged_once';
 
     /**
      * A parcel's quantity of a line was cut to what the order still has to send of it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const QUANTITY_CUT = 'quantity_cut';
 
     /**
      * A detail field was not saved: the shop's display rule hides it for the values sent.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const HIDDEN_BY_RULE = 'hidden_by_rule';
 
     /**
      * A detail key was not saved: the section has no such field on this shop.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NOT_A_FIELD = 'not_a_field';
 
@@ -64,7 +64,7 @@ final class WriteWarnings
      *
      * @var list<array{code: string, detail: string, pointer: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $notes = [];
 
@@ -75,7 +75,7 @@ final class WriteWarnings
      * @param string $detail The sentence.
      * @param string $pointer The JSON pointer into the request body, '' for none.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function note(string $code, string $detail, string $pointer = ''): void
     {
@@ -88,7 +88,7 @@ final class WriteWarnings
      *
      * @return list<array{code: string, detail: string, pointer: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function take(): array
     {

@@ -81,7 +81,7 @@ final class CartMethods
      *
      * @var array<int, ShippingQuote>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $withheld = [];
 
@@ -99,7 +99,7 @@ final class CartMethods
      * Whether the carriers are being asked right now: a question a carrier's answer puts back to this list gets the
      * list before the carriers were asked, never a second round of questions.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private bool $asking = false;
 
@@ -108,7 +108,7 @@ final class CartMethods
      *
      * @var array<int, string>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?array $refusals = null;
 
@@ -257,7 +257,7 @@ final class CartMethods
      *
      * @return array The methods the storefront offers, keyed by id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function servable(array $scoped): array
     {
@@ -290,7 +290,7 @@ final class CartMethods
      *
      * @param int $id The method id.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function withheld(int $id): ?ShippingQuote
     {
@@ -307,7 +307,7 @@ final class CartMethods
      *
      * @return list<string> The facts, 'country' before 'postcode'.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function shipmentNeeds(): array
     {
@@ -344,7 +344,7 @@ final class CartMethods
      *
      * @return array<int, string>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function shipmentRefusals(): array
     {
@@ -390,7 +390,7 @@ final class CartMethods
      *
      * @param ShippingQuote $answer The carrier's answer.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function waitsForFact(ShippingQuote $answer): bool
     {

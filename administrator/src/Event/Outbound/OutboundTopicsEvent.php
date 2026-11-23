@@ -20,14 +20,14 @@ use LogicException;
  * settings are saved, or it is enabled: core then keeps its consumer row (kind plugin) with those topics, and pauses
  * the row when the plugin is disabled. A plugin that names no topic has no row.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundTopicsEvent extends AbstractEvent
 {
     /**
      * The event's name.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NAME = 'onAlfaOutboundTopics';
 
@@ -36,12 +36,12 @@ final class OutboundTopicsEvent extends AbstractEvent
      *
      * @var string[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private array $topics = [];
 
     /**
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function __construct()
     {
@@ -55,7 +55,7 @@ final class OutboundTopicsEvent extends AbstractEvent
      *
      * @throws LogicException When it is not one of the shop's topics.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function topic(string $topic): static
     {
@@ -73,7 +73,7 @@ final class OutboundTopicsEvent extends AbstractEvent
      *
      * @return string[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function getTopics(): array
     {

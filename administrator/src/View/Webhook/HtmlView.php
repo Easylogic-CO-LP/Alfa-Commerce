@@ -21,7 +21,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
 /**
  * A webhook's edit screen.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -32,7 +32,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var \Joomla\CMS\Form\Form
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $form;
 
@@ -41,7 +41,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var object
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $item;
 
@@ -50,14 +50,14 @@ class HtmlView extends BaseHtmlView
      *
      * @var \Joomla\Registry\Registry
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected $state;
 
     /**
      * The admin-contract screen kind.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function alfaScreen(): string
     {
@@ -69,7 +69,7 @@ class HtmlView extends BaseHtmlView
      *
      * @param string|null $tpl The template.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function display($tpl = null)
     {
@@ -89,7 +89,7 @@ class HtmlView extends BaseHtmlView
     /**
      * The toolbar.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected function addToolbar()
     {

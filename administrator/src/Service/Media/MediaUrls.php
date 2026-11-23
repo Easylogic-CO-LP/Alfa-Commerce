@@ -31,14 +31,14 @@ use Joomla\Database\DatabaseInterface;
  * @api WRITE: the images of a write given as addresses, the ones refused, and the files fetched for it; queue()
  *      enqueues the background fetch of the rest.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class MediaUrls
 {
     /**
      * The most images given as addresses that a write fetches itself; more go to a background job.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const INLINE = 2;
 
@@ -46,7 +46,7 @@ final class MediaUrls
      * The files fetched in this request and not stored yet: token => {file, name, url}.
      *
      * @var array<string, array{file: string, name: string, url: string}>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $held = [];
 
@@ -54,7 +54,7 @@ final class MediaUrls
      * The images of this request's writes that were refused: {pointer, url, reason}.
      *
      * @var list<array{pointer: string, url: string, reason: string}>
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $refused = [];
 
@@ -62,14 +62,14 @@ final class MediaUrls
      * Every file fetched in this request: removed at its end, whatever became of it.
      *
      * @var string[]
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $files = [];
 
     /**
      * Whether the removal of the files left at the end of the request is registered.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static bool $sweeping = false;
 
@@ -86,7 +86,7 @@ final class MediaUrls
      *
      * @return array<string, array> The rows the save takes.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function prepare(array $rows, string $origin, int $recordId, ?MediaFetch $fetch = null): array
     {
@@ -141,7 +141,7 @@ final class MediaUrls
      * @param string $name The name the address gives it.
      * @param string $url The address.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function hold(string $file, string $name, string $url): string
     {
@@ -173,7 +173,7 @@ final class MediaUrls
      *
      * @return array{file: string, name: string, url: string}|null Null when this request fetched no such file.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function take(string $token): ?array
     {
@@ -190,7 +190,7 @@ final class MediaUrls
      * @param string $url The address.
      * @param string $reason Why, in a client's words.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function refuse(string $pointer, string $url, string $reason): void
     {
@@ -202,7 +202,7 @@ final class MediaUrls
      *
      * @return list<array{pointer: string, url: string, reason: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function refusals(): array
     {
@@ -220,7 +220,7 @@ final class MediaUrls
      * @param int $recordId The record.
      * @param list<array{url: string, alt: string, ordering: int, pointer: string}> $images The images, in order.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function queue(string $origin, int $recordId, array $images): void
     {
@@ -242,7 +242,7 @@ final class MediaUrls
      *
      * @return string[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function storedHashes(string $origin, int $recordId): array
     {

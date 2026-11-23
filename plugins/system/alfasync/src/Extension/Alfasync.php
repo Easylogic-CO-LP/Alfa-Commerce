@@ -119,7 +119,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      *
      * @var array<string, mixed>|null
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private ?array $alfaOptionsBeforeSave = null;
 
@@ -990,7 +990,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @param array $before The Options before the save.
      * @param array $after The Options saved.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function followStockSettings(array $before, array $after): void
     {
@@ -1605,7 +1605,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      *
      * @param ErrorEvent $event The application's error event.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function onError(ErrorEvent $event): void
     {

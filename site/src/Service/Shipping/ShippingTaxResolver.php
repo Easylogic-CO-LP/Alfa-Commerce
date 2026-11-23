@@ -84,7 +84,7 @@ final class ShippingTaxResolver
      *
      * @return AppliedTax[] Empty when nothing is taxed here.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function resolveRules(array $taxIds, array $destination, PriceContext $audience, Currency $currency): array
     {

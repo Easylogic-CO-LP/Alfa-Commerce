@@ -357,7 +357,7 @@ class Transition
      * @param int $fromStatusId The status the order is in.
      * @param int $toStatusId The status it would enter.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function leavesCancelledFamily(int $fromStatusId, int $toStatusId): bool
     {

@@ -23,14 +23,14 @@ defined('_JEXEC') or die;
  * may be called again on its own result: the lists are dropped and drawn again. The display slots (the badges, the
  * descriptions, the specifications) are left as the plugins drew them.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ReadOnlyFields
 {
     /**
      * The layout that draws one field's values as text.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const LAYOUT = 'item.fields_readonly';
 
@@ -38,7 +38,7 @@ final class ReadOnlyFields
      * Core's cart main slot in catalogue-only mode: no layout, which the cart wrapper renders as nothing. The child
      * slot (a wish list and the like) stays as the plugins set it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const NO_CART = [
         'layout' => '',
@@ -57,7 +57,7 @@ final class ReadOnlyFields
      *
      * @return array<string, list<array<string, mixed>>> The slots: the buy slots hold only the lists, in the first one.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function replace(array $slots, array $fields, array $buySlots, ?array $listed = null): array
     {

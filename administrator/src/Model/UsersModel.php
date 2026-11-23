@@ -30,14 +30,14 @@ class UsersModel extends AlfaListModel
      * 2 awaiting activation (blocked with a pending activation code, which Joomla's list reads as longer than one
      * character). Selected and filtered through this one expression; the code itself never leaves the query.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const ACCOUNT_STATE = 'CASE WHEN u.block = 1 AND CHAR_LENGTH(u.activation) > 1 THEN 2 WHEN u.block = 1 THEN 1 ELSE 0 END';
 
     /**
      * The account states, by their code in {@see self::ACCOUNT_STATE}.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const ACCOUNT_ENABLED = 0;
     public const ACCOUNT_BLOCKED = 1;

@@ -79,7 +79,7 @@ final class LineQuantityClamp
      * @param int $quantity What was asked for.
      * @param int $excludeLineId A line not to count as already held.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function decision(int $cartId, object $item, ?int $combinationId, int $quantity, int $excludeLineId = 0): QuantityDecision
     {
@@ -98,7 +98,7 @@ final class LineQuantityClamp
      * @param object $item The product.
      * @param int|null $combinationId The variant, when it has them.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public function held(int $cartId, object $item, ?int $combinationId): int
     {

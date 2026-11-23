@@ -18,33 +18,33 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
  * Stock and price are merged: a unit waits once per consumer and topic, and the figure sent is the one the shop holds
  * when the notification leaves. Order changes are each told, in the order they happened.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class OutboundTopics
 {
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const STOCK = 'stock';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const PRICE = 'price';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const ORDER_CREATED = 'order.created';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const ORDER_STATUS = 'order.status';
 
     /**
      * A card dispute of the order moved or changed: its row's payload is <dispute id>:<state moved to>.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const ORDER_DISPUTE = 'order.dispute';
 
     /**
      * The topic of a test sent from the Webhooks screen: never queued, never told by a change.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const PING = 'ping';
 
@@ -53,7 +53,7 @@ final class OutboundTopics
      *
      * @var string[]
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const ALL = [self::STOCK, self::PRICE, self::ORDER_CREATED, self::ORDER_STATUS, self::ORDER_DISPUTE];
 
@@ -62,7 +62,7 @@ final class OutboundTopics
      *
      * @var string[]
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const ORDERS = [self::ORDER_CREATED, self::ORDER_STATUS, self::ORDER_DISPUTE];
 
@@ -71,7 +71,7 @@ final class OutboundTopics
      *
      * @var string[]
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const MERGED = [self::STOCK, self::PRICE];
 
@@ -80,7 +80,7 @@ final class OutboundTopics
      *
      * @param string $topic The topic.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function known(string $topic): bool
     {
@@ -94,7 +94,7 @@ final class OutboundTopics
      *
      * @return string[]
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function parse(string|array $topics): array
     {
@@ -109,7 +109,7 @@ final class OutboundTopics
      *
      * @param string $topic The topic.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function label(string $topic): string
     {

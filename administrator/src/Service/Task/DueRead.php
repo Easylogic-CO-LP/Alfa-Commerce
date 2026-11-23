@@ -80,14 +80,14 @@ final class DueRead
     /**
      * The job that delivers what a consumer of the shop's changes is owed.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const OUTBOUND_DELIVER = 'outbound.deliver';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const OUTBOUND_DELIVERIES = '#__alfa_outbound_deliveries';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const OUTBOUND_CONSUMERS = '#__alfa_outbound_consumers';
 
     /** @since 2.2.1 */
@@ -110,7 +110,7 @@ final class DueRead
      * order: its end (`-` for an open end) and its slot key (item, combination, currency, place, set of pricing groups),
      * comma separated. Written by the install SQL and by the installer's update; never seeded at run time.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const META_WINDOWS = 'prices.windows_announced_until';
 
@@ -118,7 +118,7 @@ final class DueRead
      * Seconds a period has begun before it is announced: longer than the longest chunk of the index writer, which
      * decides the live period at its start and commits after, so no period passes the cursor before its rows exist.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const WINDOW_LAG_SECONDS = 60;
 
@@ -192,7 +192,7 @@ final class DueRead
      *
      * @param DatabaseDriver $db The connection.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function outboundOwedWhere(DatabaseDriver $db): string
     {
@@ -251,7 +251,7 @@ final class DueRead
      * @param DatabaseDriver $db The connection.
      * @param string $until The latest moment announced now (UTC, `Y-m-d H:i:s`): the clock less the lag.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function windowsProbe(DatabaseDriver $db, string $until): string
     {
@@ -269,7 +269,7 @@ final class DueRead
      *
      * @return string UTC, `Y-m-d H:i:s`.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function windowsUntil(): string
     {

@@ -16,7 +16,7 @@ use Alfa\Component\Alfa\Api\View\OrderPartsJsonApiView;
 /**
  * The payments of one order, each with the fields the order read gives it under payments.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class JsonApiView extends OrderPartsJsonApiView
 {

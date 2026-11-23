@@ -14,14 +14,14 @@ namespace Alfa\Component\Alfa\Api\Model;
 /**
  * The shipments of one order, as the order read gives them.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 class OrdershipmentsModel extends OrderPartsModel
 {
     /**
      * The order read's name for the part.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     protected const PART = 'shipments';
 }

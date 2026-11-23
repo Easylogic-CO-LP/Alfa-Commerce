@@ -138,7 +138,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @var string
      */
-    public const SCHEMA_VERSION = '2.2.2';
+    public const SCHEMA_VERSION = '2.3.0';
 
     /**
      * Whether this run completes an install that never finished: preflight ran
@@ -1575,7 +1575,7 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         // The thumbnail box: a side stored below 500 is raised to 500; nothing else is changed or made.
-        if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.2', '<'))
+        if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.3.0', '<'))
         {
             $this->raiseThumbnailBox();
         }
@@ -1761,7 +1761,7 @@ class com_alfaInstallerScript extends InstallerScript
      * failed update.
      *
      * @return  void
-     * @since   2.2.2
+     * @since   2.3.0
      */
     private function raiseThumbnailBox(): void
     {
@@ -2242,7 +2242,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @since 2.1.1
      */
     public const OBSOLETE_FILES = [
-        '2.2.2' => [
+        '2.3.0' => [
             // The Standard methods' product page layouts: core draws every method there (its image, title and
             // description, layout methods.item), and the Standard methods add nothing below it. The copy every
             // earlier release installed (PackageHelper::contentHash()).
@@ -2298,7 +2298,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @since 2.1.1
      */
     public const OBSOLETE_FOLDERS = [
-        '2.2.2' => [
+        '2.3.0' => [
             'administrator/components/com_alfa/layouts/dashboard',
         ],
     ];
@@ -2925,7 +2925,7 @@ class com_alfaInstallerScript extends InstallerScript
      * place, so 175.004 kept as 175.00399999999999 is 175.00400000. A failure is said, never a failed install.
      *
      * @return  void
-     * @since   2.2.2
+     * @since   2.3.0
      */
     private function exactPriceValues(): void
     {
@@ -2985,7 +2985,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   string  $type  install or update.
      *
      * @return  void
-     * @since   2.2.2
+     * @since   2.3.0
      */
     private function migratePriceIndex(string $type): void
     {
@@ -3094,7 +3094,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   \Joomla\Database\DatabaseInterface  $db  The connection.
      *
      * @return  void
-     * @since   2.2.2
+     * @since   2.3.0
      */
     private function priceIndexShape(\Joomla\Database\DatabaseInterface $db): void
     {
@@ -3146,7 +3146,7 @@ class com_alfaInstallerScript extends InstallerScript
      * failed install: the periods are then not announced, and the Clear everything checks name the missing row.
      *
      * @return  void
-     * @since   2.2.2
+     * @since   2.3.0
      */
     private function seedPriceWindowsCursor(): void
     {

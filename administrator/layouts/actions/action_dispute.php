@@ -22,7 +22,7 @@
  *   refusal  string                         why a submission was refused, plain text; '' for a fresh form
  *   phrase   string                         accept only: what to type to confirm
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 
 \defined('_JEXEC') or die;

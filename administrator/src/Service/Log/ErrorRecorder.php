@@ -51,7 +51,7 @@ use Tobscure\JsonApi\Exception\Handler\ExceptionHandlerInterface;
  *
  * Joomla's Rotate Logs task rotates the file with the site's other logs.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class ErrorRecorder
 {
@@ -60,7 +60,7 @@ final class ErrorRecorder
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const CATEGORY = 'com_alfa.errors';
 
@@ -69,7 +69,7 @@ final class ErrorRecorder
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const FILE = 'com_alfa_errors.php';
 
@@ -78,7 +78,7 @@ final class ErrorRecorder
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const HEADER = 'X-Alfa-Error-Reference';
 
@@ -88,7 +88,7 @@ final class ErrorRecorder
      *
      * @var string
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private const SECRET_PARAMETER = '/^(?:[0-9a-f]{32}|.*(?:token|key|pass|secret|sig|auth|hash|code).*)$/i';
 
@@ -104,7 +104,7 @@ final class ErrorRecorder
      * @param Throwable $error The uncaught error.
      * @param CMSApplicationInterface $app The application that caught it.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function isServerError(Throwable $error, CMSApplicationInterface $app): bool
     {
@@ -140,7 +140,7 @@ final class ErrorRecorder
      *
      * @param Throwable $error The uncaught error.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function apiStatus(Throwable $error): int
     {
@@ -191,7 +191,7 @@ final class ErrorRecorder
      *
      * @return bool Whether the line was written.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function record(Throwable $error, CMSApplicationInterface $app, string $reference): bool
     {
@@ -209,7 +209,7 @@ final class ErrorRecorder
     /**
      * A new reference: 16 hexadecimal characters.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function reference(): string
     {
@@ -221,7 +221,7 @@ final class ErrorRecorder
      *
      * @param Throwable $error The uncaught error.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function status(Throwable $error): int
     {
@@ -237,7 +237,7 @@ final class ErrorRecorder
      * @param CMSApplicationInterface $app The application.
      * @param string $reference The reference.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function line(Throwable $error, CMSApplicationInterface $app, string $reference): string
     {
@@ -268,7 +268,7 @@ final class ErrorRecorder
      *
      * @param Throwable $error The throwable.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function describe(Throwable $error): string
     {
@@ -290,7 +290,7 @@ final class ErrorRecorder
      *
      * @param Throwable $error The throwable.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function sqlState(Throwable $error): ?string
     {
@@ -317,7 +317,7 @@ final class ErrorRecorder
      *
      * @param Throwable $error The throwable.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function alfaFrame(Throwable $error): ?string
     {
@@ -341,7 +341,7 @@ final class ErrorRecorder
      *
      * @param CMSApplicationInterface $app The application.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function client(CMSApplicationInterface $app): string
     {
@@ -357,7 +357,7 @@ final class ErrorRecorder
     /**
      * The path and query asked for, a secret-looking parameter's value shown as ***.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function address(): string
     {
@@ -383,7 +383,7 @@ final class ErrorRecorder
      *
      * @param CMSApplicationInterface $app The application.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function sessionHash(CMSApplicationInterface $app): string
     {
@@ -401,7 +401,7 @@ final class ErrorRecorder
      *
      * @param CMSApplicationInterface $app The application.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function userId(CMSApplicationInterface $app): int
     {

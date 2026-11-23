@@ -243,7 +243,7 @@ class AlfaCartHelper
      * Answer 403 with the catalogue-only sentence when the shop shows its catalogue only: the drawer is not
      * drawn, so neither its reading nor its quantity change is served.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function refuseInCatalogueOnly(): void
     {

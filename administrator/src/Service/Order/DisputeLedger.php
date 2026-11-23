@@ -78,7 +78,7 @@ use Throwable;
  * @api CONTRACT: the chain, its constants and save()'s DisputeVerdict are the contract a gateway reaches through
  *      PaymentsPlugin::dispute(); for(), load() and DisputeWriter are core's door.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class DisputeLedger
 {
@@ -87,153 +87,153 @@ final class DisputeLedger
         removePluginData as private;
     }
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const STATE_INQUIRY = 'inquiry';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const STATE_OPEN = 'open';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const STATE_UNDER_REVIEW = 'under_review';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const STATE_WON = 'won';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const STATE_LOST = 'lost';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const STATE_CLOSED = 'closed';
 
     /**
      * Every state, in the order a case passes through them.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const STATES = [self::STATE_INQUIRY, self::STATE_OPEN, self::STATE_UNDER_REVIEW, self::STATE_WON, self::STATE_LOST, self::STATE_CLOSED];
 
     /**
      * The states in which the bank has not decided.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const UNDECIDED_STATES = [self::STATE_INQUIRY, self::STATE_OPEN, self::STATE_UNDER_REVIEW];
 
     /**
      * closed(): an inquiry that ended with no chargeback.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CLOSED_INQUIRY_ENDED = 'inquiry_ended';
 
     /**
      * closed(): a record made by hand in error (staff only).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CLOSED_IN_ERROR = 'in_error';
 
     /**
      * A provider's record closed as the same case as a record made by hand (written by the reconcile answer only).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const CLOSED_MERGED = 'merged';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REASON_FRAUD = 'fraud';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REASON_NOT_RECEIVED = 'not_received';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REASON_NOT_AS_DESCRIBED = 'not_as_described';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REASON_DUPLICATE = 'duplicate';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REASON_CREDIT_NOT_PROCESSED = 'credit_not_processed';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REASON_CANCELLED = 'cancelled';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REASON_UNRECOGNISED = 'unrecognised';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const REASON_OTHER = 'other';
 
     /**
      * Core's reason categories.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const REASONS = [
         self::REASON_FRAUD, self::REASON_NOT_RECEIVED, self::REASON_NOT_AS_DESCRIBED, self::REASON_DUPLICATE,
         self::REASON_CREDIT_NOT_PROCESSED, self::REASON_CANCELLED, self::REASON_UNRECOGNISED, self::REASON_OTHER,
     ];
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const SOURCE_STAFF = 'staff';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const SOURCE_PROVIDER = 'provider';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     public const SOURCE_MIGRATED = 'migrated';
 
     /**
      * The record waits for staff to say whether it is the same case as a record made by hand.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const WAITS_SAME_PAYMENT = 'same_payment';
 
     /**
      * The record is lost and its amount is known only in another currency: staff type the order's figure.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const WAITS_AMOUNT_UNKNOWN = 'amount_unknown';
 
     /**
      * The prefix of a dispute's notice key: payments.dispute.<id>.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public const NOTICE_PREFIX = 'payments.dispute.';
 
     /**
      * The table, and the schema constants LedgerSupport's persistence helpers read.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private const TABLE = '#__alfa_order_disputes';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private const PK = 'id';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private const NULLABLE_INT_COLUMNS = ['merged_into'];
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private const NULLABLE_DATE_COLUMNS = ['evidence_due_by', 'evidence_sent_at', 'decided_at', 'provider_as_of'];
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private const NULLABLE_ENUM_COLUMNS = ['outcome', 'closed_reason', 'waits_for'];
 
     /**
      * The payments table, read for the disputed payment and the case's money rows.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private const PAYMENTS = '#__alfa_order_payments';
 
     /**
      * The facts compared between the record as stored and as the save leaves it; a change of any is a change.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private const COMPARED = [
         'state', 'outcome', 'closed_reason', 'merged_into', 'stage', 'reference', 'joined', 'amount', 'stated_amount',
@@ -244,48 +244,48 @@ final class DisputeLedger
     /**
      * The facts a record that follows its provider takes from the provider only.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private const PROVIDER_FACTS = ['amount', 'reason', 'due', 'reference', 'fee', 'link'];
 
     // The door.
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private int $paymentId = 0;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private int $disputeId = 0;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private string $lookup = '';
 
     // What the chain asks.
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $stateAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private string $closedWhy = '';
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private bool $evidenceAsked = false;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $evidenceAt = null;
 
     /** @var array{0: string, 1: string}|null */
     private ?array $amountAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $orderAmountAsked = null;
 
     /** @var array{0: string, 1: string}|null */
     private ?array $reasonAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private bool $dueAsked = false;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $dueAt = null;
 
     /** @var array{0: string, 1: string}|null */
@@ -294,25 +294,25 @@ final class DisputeLedger
     /** @var array{0: string, 1: string}|null */
     private ?array $feeReturnedAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $linkAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $noteAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $asOfAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $responseAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private ?string $referenceAsked = null;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private int $sameAsAsked = 0;
 
-    /** @since 2.2.2 */
+    /** @since 2.3.0 */
     private bool $notTheSameAsked = false;
 
     /**
@@ -320,28 +320,28 @@ final class DisputeLedger
      *
      * @var array{0: string, 1: string}|null
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private ?array $malformed = null;
 
     /**
      * The verdict of the last save, for the caller that needs the record's id after a refusal (the REST verbs).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private ?DisputeVerdict $verdict = null;
 
     /**
      * What the save's last record booked, decimal text in the order's currency (negative: a reversal).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private string $booked = '0';
 
     /**
      * @param DisputeWriter $writer Who writes.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function __construct(private readonly DisputeWriter $writer)
     {
@@ -356,7 +356,7 @@ final class DisputeLedger
      *                          hand with no reference (a gateway's word needs one).
      * @param DisputeWriter $writer Who writes.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public static function for(int $paymentId, string $reference, DisputeWriter $writer): self
     {
@@ -373,7 +373,7 @@ final class DisputeLedger
      * @param int $disputeId The record.
      * @param DisputeWriter $writer Who writes.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public static function load(int $disputeId, DisputeWriter $writer): self
     {
@@ -390,7 +390,7 @@ final class DisputeLedger
      *
      * @api CONTRACT: a state of the case.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function inquiry(): static
     {
@@ -402,7 +402,7 @@ final class DisputeLedger
      *
      * @api CONTRACT: a state of the case.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function open(): static
     {
@@ -417,7 +417,7 @@ final class DisputeLedger
      *
      * @param string|null $utc When it was sent, UTC Y-m-d H:i:s; null for now.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function evidenceSent(?string $utc = null): static
     {
@@ -432,7 +432,7 @@ final class DisputeLedger
      *
      * @api CONTRACT: a state of the case.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function won(): static
     {
@@ -444,7 +444,7 @@ final class DisputeLedger
      *
      * @api CONTRACT: a state of the case.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function lost(): static
     {
@@ -458,7 +458,7 @@ final class DisputeLedger
      *
      * @param string $why self::CLOSED_INQUIRY_ENDED, or self::CLOSED_IN_ERROR (staff, a record made by hand only).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function closed(string $why): static
     {
@@ -481,7 +481,7 @@ final class DisputeLedger
      * @param string $amount A positive decimal text, '49.90'.
      * @param string $currency Its ISO 4217 code, 'EUR'.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function amount(string $amount, string $currency): static
     {
@@ -506,7 +506,7 @@ final class DisputeLedger
      *
      * @param string $amount A positive decimal text at the order's scale.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function amountInOrderCurrency(string $amount): static
     {
@@ -527,7 +527,7 @@ final class DisputeLedger
      * @param string $code One of self::REASONS.
      * @param string $text The provider's own reason, as given (up to 255 characters are kept).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function reason(string $code, string $text = ''): static
     {
@@ -547,7 +547,7 @@ final class DisputeLedger
      *
      * @param string|null $utc UTC Y-m-d H:i:s; null for none.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function evidenceDueBy(?string $utc): static
     {
@@ -566,7 +566,7 @@ final class DisputeLedger
      * @param string $amount A decimal text.
      * @param string $currency Its ISO 4217 code.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function fee(string $amount, string $currency): static
     {
@@ -583,7 +583,7 @@ final class DisputeLedger
      * @param string $amount A decimal text.
      * @param string $currency Its ISO 4217 code.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function feeReturned(string $amount, string $currency): static
     {
@@ -599,7 +599,7 @@ final class DisputeLedger
      *
      * @param string $url The address.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function providerLink(string $url): static
     {
@@ -620,7 +620,7 @@ final class DisputeLedger
      *
      * @param string $text The note (up to 255 characters are kept).
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function note(string $text): static
     {
@@ -637,7 +637,7 @@ final class DisputeLedger
      *
      * @param string $utc UTC Y-m-d H:i:s, with microseconds when the provider gives them.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function asOf(string $utc): static
     {
@@ -653,7 +653,7 @@ final class DisputeLedger
      *
      * @param string $json The payload as received.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function gatewayResponse(string $json): static
     {
@@ -667,7 +667,7 @@ final class DisputeLedger
      *
      * @param string $reference The reference, complete.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function reference(string $reference): static
     {
@@ -681,7 +681,7 @@ final class DisputeLedger
      *
      * @param int $disputeId The record made by hand.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function sameAs(int $disputeId): static
     {
@@ -693,7 +693,7 @@ final class DisputeLedger
     /**
      * Staff, the reconcile answer: this provider's record is a different case; it books by its state from now on.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function notTheSame(): static
     {
@@ -705,7 +705,7 @@ final class DisputeLedger
     /**
      * The verdict of the last save(), or null before one.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function verdict(): ?DisputeVerdict
     {
@@ -719,7 +719,7 @@ final class DisputeLedger
      *
      * @api ANSWERS: a DisputeVerdict; a gateway answers its provider with providerStatus().
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public function save(): DisputeVerdict
     {
@@ -740,7 +740,7 @@ final class DisputeLedger
      *
      * @return list<object>
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public static function forOrder(int $orderId): array
     {
@@ -792,7 +792,7 @@ final class DisputeLedger
      *
      * @return list<int>
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public static function undecidedOf(int $orderId): array
     {
@@ -813,7 +813,7 @@ final class DisputeLedger
      *
      * @param int $disputeId The record.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public static function get(int $disputeId): ?object
     {
@@ -826,7 +826,7 @@ final class DisputeLedger
      *
      * @param object $record The record.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public static function followsProvider(object $record): bool
     {
@@ -839,7 +839,7 @@ final class DisputeLedger
      *
      * @param object $record The record.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public static function needsStaff(object $record): bool
     {
@@ -855,7 +855,7 @@ final class DisputeLedger
      *
      * @param bool $retried This is the second attempt.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function saveOnce(bool $retried): DisputeVerdict
     {
@@ -920,7 +920,7 @@ final class DisputeLedger
      *
      * @return array{0: int, 1: int}|DisputeVerdict
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function startOf(DatabaseDriver $db): array|DisputeVerdict
     {
@@ -957,7 +957,7 @@ final class DisputeLedger
      * @param int $orderId The order, locked.
      * @param int $paymentId The disputed payment.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function decideAndWrite(DatabaseDriver $db, int $orderId, int $paymentId): DisputeVerdict
     {
@@ -1062,7 +1062,7 @@ final class DisputeLedger
      *
      * @return array<string, mixed>|DisputeVerdict
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function plan(DatabaseDriver $db, ?object $record, object $payment, Currency $currency): array|DisputeVerdict
     {
@@ -1318,7 +1318,7 @@ final class DisputeLedger
      * @param bool $byHand The record is made by hand and not joined to a provider.
      * @param array|null $before The record as stored.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function targetState(?string $current, bool $staff, bool $byHand, ?array $before): string|DisputeVerdict
     {
@@ -1387,7 +1387,7 @@ final class DisputeLedger
      * @param object $payment The disputed payment.
      * @param Currency $currency The order's currency at its frozen scale.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function applyAmount(array &$after, object $payment, Currency $currency): ?DisputeVerdict
     {
@@ -1449,7 +1449,7 @@ final class DisputeLedger
      * @param Currency $currency The order's currency.
      * @param object $payment The disputed payment.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function write(DatabaseDriver $db, array $plan, Currency $currency, object $payment): DisputeVerdict
     {
@@ -1484,7 +1484,7 @@ final class DisputeLedger
      * @param Currency $currency The order's currency.
      * @param object $payment The disputed payment.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function reconcile(DatabaseDriver $db, ?object $record, Currency $currency, object $payment): DisputeVerdict
     {
@@ -1573,7 +1573,7 @@ final class DisputeLedger
      * @param Currency $currency The order's currency.
      * @param array<string, array{0: mixed, 1: mixed}> $changed The facts that changed.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function book(DatabaseDriver $db, array $record, ?array $before, Currency $currency, array $changed): int|DisputeVerdict
     {
@@ -1677,7 +1677,7 @@ final class DisputeLedger
      * @param array{outcome: string, reason: string} $result The verb's answer.
      * @param int $id The record.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function bookingRefusal(array $result, int $id): ?DisputeVerdict
     {
@@ -1701,7 +1701,7 @@ final class DisputeLedger
      * @param array<string, array{0: mixed, 1: mixed}> $changed The facts that changed.
      * @param Currency $currency The order's currency.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function bookingNote(array $record, ?array $before, array $changed, Currency $currency): string
     {
@@ -1732,7 +1732,7 @@ final class DisputeLedger
      * @param Currency $currency The order's currency.
      * @param bool $act Whether this record carries the staff act's action log row.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function tell(array $record, ?array $before, array $events, object $payment, Currency $currency, bool $act = true): void
     {
@@ -1803,7 +1803,7 @@ final class DisputeLedger
      * @param array<string, mixed>|null $before The record before.
      * @param string $booked What the save booked, decimal text in the order's currency.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function owe(array $record, ?array $before, string $booked): void
     {
@@ -1844,7 +1844,7 @@ final class DisputeLedger
      * @param list<array{event: string, text: array}> $events The timeline entries of the save.
      * @param string $amount The disputed amount, as shown.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function writeActionLog(array $record, ?array $before, array $events, string $amount): void
     {
@@ -1886,7 +1886,7 @@ final class DisputeLedger
      *
      * @param array<string, mixed> $record The record as written.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function notify(array $record): void
     {
@@ -1917,7 +1917,7 @@ final class DisputeLedger
      *
      * @return array{0: NotificationText, 1: NotificationText, 2: string}
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     public static function noticeTexts(object $record, string $state): array
     {
@@ -1982,7 +1982,7 @@ final class DisputeLedger
      * @param int $orderId The order, 0 when not known.
      * @param int $paymentId The payment.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function refusedWord(DisputeVerdict $verdict, int $orderId, int $paymentId): DisputeVerdict
     {
@@ -2020,7 +2020,7 @@ final class DisputeLedger
      *
      * @param string $state The state.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function state(string $state): static
     {
@@ -2039,7 +2039,7 @@ final class DisputeLedger
      * @param string $code The refusal code.
      * @param string $sentence What is wrong.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function malform(string $code, string $sentence): void
     {
@@ -2053,7 +2053,7 @@ final class DisputeLedger
      * @param string $what The call, for the refusal.
      * @param bool $micro Microseconds are allowed.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function utc(string $value, string $what, bool $micro = false): string
     {
@@ -2077,7 +2077,7 @@ final class DisputeLedger
      *
      * @return array{0: string, 1: string}
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private function feeValue(string $amount, string $currency, string $what): array
     {
@@ -2093,7 +2093,7 @@ final class DisputeLedger
      *
      * @param string $value The text.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function isDecimal(string $value): bool
     {
@@ -2105,7 +2105,7 @@ final class DisputeLedger
      *
      * @param string $value The text.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function isZeroDecimal(string $value): bool
     {
@@ -2119,7 +2119,7 @@ final class DisputeLedger
      * @param Currency $currency The order's currency at its frozen scale.
      * @param int $id The record, for the refusal.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function exact(string $amount, Currency $currency, int $id): Money|DisputeVerdict
     {
@@ -2142,7 +2142,7 @@ final class DisputeLedger
      *
      * @param object $payment The payment row.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function collectedRefusal(object $payment): ?DisputeVerdict
     {
@@ -2166,7 +2166,7 @@ final class DisputeLedger
      * @param DatabaseDriver $db The connection.
      * @param string $where The condition.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function lockedRecord(DatabaseDriver $db, string $where): ?object
     {
@@ -2183,7 +2183,7 @@ final class DisputeLedger
      *
      * @return list<object>
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function candidatesOf(DatabaseDriver $db, object $record, ?array $records): array
     {
@@ -2206,7 +2206,7 @@ final class DisputeLedger
      * @param string $reference The reference.
      * @param int $except The record itself, 0 for none.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function referenceTaken(DatabaseDriver $db, int $paymentId, string $reference, int $except): bool
     {
@@ -2224,7 +2224,7 @@ final class DisputeLedger
      * @param DatabaseDriver $db The connection.
      * @param array<string, mixed> $row The record.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function store(DatabaseDriver $db, array $row): int
     {
@@ -2249,7 +2249,7 @@ final class DisputeLedger
      * @param list<object> $rows The case's completed rows (payment_type, amount, id_reversed_payment).
      * @param Currency $currency The order's currency.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function bookedOf(array $rows, Currency $currency): Money
     {
@@ -2279,7 +2279,7 @@ final class DisputeLedger
      * @param mixed $a One value.
      * @param mixed $b The other.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function same(string $column, mixed $a, mixed $b): bool
     {
@@ -2299,7 +2299,7 @@ final class DisputeLedger
      *
      * @param string $value The text.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function normalised(string $value): string
     {
@@ -2317,7 +2317,7 @@ final class DisputeLedger
      *
      * @param string $value The time.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function micro(string $value): string
     {
@@ -2331,7 +2331,7 @@ final class DisputeLedger
      *
      * @param mixed $value The stored value.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function shown(mixed $value): string
     {
@@ -2348,7 +2348,7 @@ final class DisputeLedger
      * @param array<string, mixed> $record The record.
      * @param Currency $currency The order's currency.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function amountText(array $record, Currency $currency): string
     {
@@ -2366,7 +2366,7 @@ final class DisputeLedger
      * @param string $message The sentence.
      * @param int $disputeId The record, 0 when none.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function refused(string $code, string $message, int $disputeId = 0): DisputeVerdict
     {
@@ -2381,7 +2381,7 @@ final class DisputeLedger
      *
      * @return array{key: string, args: list<mixed>}
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function text(string $key, mixed ...$args): array
     {
@@ -2395,7 +2395,7 @@ final class DisputeLedger
      *
      * @return array{key: string, args: list<mixed>}
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function stateText(string $state): array
     {
@@ -2407,7 +2407,7 @@ final class DisputeLedger
      *
      * @param array{key: string, args: list<mixed>} $text The text.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function english(array $text): string
     {
@@ -2431,7 +2431,7 @@ final class DisputeLedger
      * @param int $disputeId The record, 0 when none.
      * @param Throwable $failure What failed.
      *
-     * @since 2.2.2
+     * @since 2.3.0
      */
     private static function logFailure(int $orderId, int $paymentId, int $disputeId, Throwable $failure): void
     {

@@ -160,7 +160,7 @@ final class DocumentRenderer
      *
      * @return array{decimal: string, thousands: string}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function separators(?object $document): array
     {
@@ -184,7 +184,7 @@ final class DocumentRenderer
      *
      * @return array{decimal: string, thousands: string}
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function separatorsOf(Language $language): array
     {

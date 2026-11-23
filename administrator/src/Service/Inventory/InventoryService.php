@@ -6081,7 +6081,7 @@ final class InventoryService
      * @param int $combinationId The combination; 0 for a product without combinations.
      * @param float $salableDelta How far the unit's available quantity moved.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function tellStock(int $itemId, int $combinationId, float $salableDelta): void
     {
@@ -11990,7 +11990,7 @@ final class InventoryService
      * product's verdict (a location's state) owes every item to the catalogue job, whose writer decides the pointers it
      * writes. A failure, or a lock not granted, owes the products. Nothing is decided when the transaction rolls back.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private function refreshOpenings(): void
     {

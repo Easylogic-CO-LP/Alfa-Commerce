@@ -38,21 +38,21 @@ use Joomla\CMS\Factory;
  * add, remove and reorder them; their products are read in pages of twice the count (at least 8), so a product with
  * many links never loads them all to show a few; a count of 0 reads nothing.
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class RelatedProducts
 {
     /**
      * How many of a product's links are read at most to fill its related products.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const READ_MAX = 48;
 
     /**
      * The most a page shows.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public const SHOWN_MAX = 12;
 
@@ -64,7 +64,7 @@ final class RelatedProducts
      *
      * @return list<object>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function visible(int $itemId, int $count): array
     {

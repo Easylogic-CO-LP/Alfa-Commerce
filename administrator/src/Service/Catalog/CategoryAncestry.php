@@ -32,7 +32,7 @@ use Joomla\Database\DatabaseInterface;
  * For the storefront catalogue an ancestor the visitor may not see is listed by its id and state only, its name and
  * alias null: a restricted category is never named to someone it is restricted from (CatalogAccessPolicy).
  *
- * @since  2.2.2
+ * @since  2.3.0
  */
 final class CategoryAncestry
 {
@@ -41,7 +41,7 @@ final class CategoryAncestry
      *
      * @var array<string, array<int, array{0: int, 1: int, 2: string, 3: string}>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $categories = [];
 
@@ -50,7 +50,7 @@ final class CategoryAncestry
      *
      * @var array<string, array<int, true>>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static array $visible = [];
 
@@ -63,7 +63,7 @@ final class CategoryAncestry
      *
      * @return list<array{id: int, name: string|null, alias: string|null, state: int}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function ancestors(int $categoryId, bool $storefront = false): array
     {
@@ -101,7 +101,7 @@ final class CategoryAncestry
      *
      * @return array<int, array{own: int, descendants: int}> By category id; a category that does not exist counts 0.
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     public static function productCounts(array $categoryIds): array
     {
@@ -166,7 +166,7 @@ final class CategoryAncestry
      *
      * @return array<int, array{0: int, 1: int, 2: string, 3: string}>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function all(): array
     {
@@ -204,7 +204,7 @@ final class CategoryAncestry
      *
      * @return array<int, true>
      *
-     * @since  2.2.2
+     * @since  2.3.0
      */
     private static function visible(): array
     {
