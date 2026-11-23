@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\Log;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Exception;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Error\JsonApi\AuthenticationFailedExceptionHandler;
@@ -38,9 +39,9 @@ use Throwable;
  * (16 hexadecimal characters), the client (site, administrator or api), the method and the address asked for (a
  * parameter that looks like a token, a key or a password shown as ***), the referrer's host, the user agent, a hash of
  * the session id (never the id), the user id, and each throwable of the chain: its class, its code, the database's
- * error number and SQLSTATE when the database refused, its message with the database's user, host, schema and
- * password and the site's folder taken out, and the first place in Alfa Commerce's code it passed through; then the
- * request's peak memory and time.
+ * error number and SQLSTATE when the database refused, its message made safe by ErrorText::of() (the database's user,
+ * host, schema and password, the site's secrets, the site's folder and any credential taken out), and the first place
+ * in Alfa Commerce's code it passed through; then the request's peak memory and time.
  *
  * The visitor's page carries the reference only: the error shown is a sentence with the reference, the original
  * chained to it as its cause (Joomla's error page shows that cause only with Debug System on). The status stays a 5xx,
@@ -78,15 +79,6 @@ final class ErrorRecorder
      * @since  2.2.2
      */
     public const HEADER = 'X-Alfa-Error-Reference';
-
-    /**
-     * The longest message kept for one throwable, in bytes.
-     *
-     * @var int
-     *
-     * @since  2.2.2
-     */
-    private const MESSAGE_LIMIT = 500;
 
     /**
      * A query parameter whose value is never written: a form token (32 hexadecimal characters as its name), or a
@@ -222,7 +214,7 @@ final class ErrorRecorder
         $depth = 0;
 
         for ($link = $error; $link !== null && $depth < 5; $link = $link->getPrevious(), $depth++) {
-            $parts[] = ($depth === 0 ? 'error ' : 'cause ') . self::describe(error: $link, app: $app);
+            $parts[] = ($depth === 0 ? 'error ' : 'cause ') . self::describe(error: $link);
         }
 
         $started = (float) ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
@@ -232,48 +224,14 @@ final class ErrorRecorder
     }
 
     /**
-     * A message without the database's credentials, names and the site's folder, on one line, at most
-     * MESSAGE_LIMIT bytes.
-     *
-     * @param string $message The message.
-     * @param CMSApplicationInterface|null $app The application whose configuration names the database.
-     *
-     * @since  2.2.2
-     */
-    public static function clean(string $message, ?CMSApplicationInterface $app = null): string
-    {
-        $replace = [];
-
-        if ($app !== null) {
-            foreach (['password' => '<password>', 'user' => '<user>', 'db' => '<schema>', 'host' => '<host>'] as $setting => $mask) {
-                $value = (string) $app->get($setting, '');
-
-                // A value of one or two characters would mask letters of ordinary words.
-                if (\strlen($value) >= 3) {
-                    $replace[$value] = $mask;
-                }
-            }
-        }
-
-        $replace[JPATH_ROOT . DIRECTORY_SEPARATOR] = '';
-        $replace[JPATH_ROOT] = '.';
-        uksort($replace, static fn (string $a, string $b): int => \strlen($b) <=> \strlen($a));
-        $message = strtr($message, $replace);
-        $message = (string) preg_replace('/\s+/', ' ', $message);
-
-        return \strlen($message) > self::MESSAGE_LIMIT ? mb_strcut($message, 0, self::MESSAGE_LIMIT) . '...' : trim($message);
-    }
-
-    /**
      * One throwable: class, code, the database's error number and SQLSTATE, the cleaned message, the first place in
      * Alfa Commerce's code.
      *
      * @param Throwable $error The throwable.
-     * @param CMSApplicationInterface $app The application whose configuration names the database.
      *
      * @since  2.2.2
      */
-    private static function describe(Throwable $error, CMSApplicationInterface $app): string
+    private static function describe(Throwable $error): string
     {
         $text = $error::class . ' (' . $error->getCode() . ')';
         $sql = self::sqlState(error: $error);
@@ -282,7 +240,7 @@ final class ErrorRecorder
             $text .= ' sql ' . $sql;
         }
 
-        $text .= ': ' . self::clean(message: $error->getMessage(), app: $app);
+        $text .= ': ' . ErrorText::of($error);
         $where = self::alfaFrame(error: $error);
 
         return $where === null ? $text : $text . ' at ' . $where;
