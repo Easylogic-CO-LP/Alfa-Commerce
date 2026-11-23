@@ -17,7 +17,7 @@
  *    CREATE:
  *      $paymentId = $this->payment($order)->pending()->save();
  *      $paymentId = $this->payment($order)->authorized()->transactionId('ch_3M..')->save();
- *      $paymentId = $this->payment($order)->refund()->amount(50)->completed()->save();
+ *      (a refund: $this->refundPayment($paymentId, $money), never a refund row built here)
  *
  *    UPDATE:
  *      $this->paymentUpdate($paymentId)->completed()->save();
@@ -436,7 +436,6 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * Usage:
      *   $paymentId = $this->payment($order)->pending()->save();
      *   $paymentId = $this->payment($order)->authorized()->transactionId('ch_3M..')->save();
-     *   $paymentId = $this->payment($order)->refund()->amount(50)->completed()->save();
      *
      * The row records this plugin's element, never the live type of a
      * method row: the method it names (the order's, or ->method($id)) must be one
@@ -1105,7 +1104,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *                       (OUTCOME_REFUSED); money moved on it is kept for
      *                       staff (OUTCOME_UNRECONCILED).
      *
-     * @return array ['outcome' => self::OUTCOME_*, 'refund_id' => int, 'reason' => string]
+     * @return array ['outcome' => self::OUTCOME_*, 'refund_id' => int, 'amount' => the amount refunded, 'reason' => string]
      *
      * @since  2.0.0
      */
