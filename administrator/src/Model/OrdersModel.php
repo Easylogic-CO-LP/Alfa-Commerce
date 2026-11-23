@@ -45,6 +45,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Model\Traits\HasDateRangeFilterTrait;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFulfillment;
@@ -56,6 +57,7 @@ use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
+use Joomla\Database\ParameterType;
 use Joomla\Database\QueryInterface;
 
 class OrdersModel extends AlfaListModel
@@ -469,6 +471,42 @@ class OrdersModel extends AlfaListModel
     }
 
     /**
+     * The condition of the Dispute filter on the list's alias a: an order with a dispute in a state (undecided: an
+     * inquiry, an open chargeback or one under review), or one to answer within seven days; null for a value the filter
+     * does not know.
+     *
+     * @param \Joomla\Database\DatabaseInterface $db The connection.
+     * @param string $filter The value: undecided, inquiry, open, under_review, won, lost, closed or due.
+     *
+     * @since  2.2.2
+     */
+    public static function disputeCondition(\Joomla\Database\DatabaseInterface $db, string $filter): ?string
+    {
+        $states = match ($filter) {
+            'undecided' => DisputeLedger::UNDECIDED_STATES,
+            'inquiry', 'open', 'under_review', 'won', 'lost', 'closed' => [$filter],
+            'due' => [DisputeLedger::STATE_INQUIRY, DisputeLedger::STATE_OPEN],
+            default => null,
+        };
+
+        if ($states === null) {
+            return null;
+        }
+
+        $condition = 'EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_order_disputes', 'fd')
+            . ' WHERE ' . $db->quoteName('fd.id_order') . ' = ' . $db->quoteName('a.id')
+            . ' AND ' . $db->quoteName('fd.state') . ' IN (' . implode(',', array_map([$db, 'quote'], $states)) . ')';
+
+        if ($filter === 'due') {
+            $condition .= ' AND ' . $db->quoteName('fd.evidence_sent_at') . ' IS NULL'
+                . ' AND ' . $db->quoteName('fd.evidence_due_by') . ' IS NOT NULL'
+                . ' AND ' . $db->quoteName('fd.evidence_due_by') . ' <= ' . $db->quote(Factory::getDate('+7 days', 'UTC')->toSql());
+        }
+
+        return $condition . ')';
+    }
+
+    /**
      * Build the main list query, intentionally minimal.
      *
      * Only orders table + 2 user JOINs (needed for customer name search).
@@ -625,6 +663,28 @@ class OrdersModel extends AlfaListModel
             );
         }
 
+        // Disputes: an order with a case in the state asked, or with one to answer within seven days.
+        $dispute = (string) $this->getState('filter.dispute', '');
+
+        if ($dispute !== '') {
+            $condition = self::disputeCondition(db: $db, filter: $dispute);
+
+            if ($condition !== null) {
+                $query->where($condition);
+            }
+        }
+
+        // The REST API's bound: an inquiry or open chargeback with no evidence sent, to be answered before a UTC time.
+        $dueBefore = trim((string) $this->getState('filter.dispute_due_before', ''));
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/', $dueBefore) === 1) {
+            $query->where('EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_order_disputes', 'fdd')
+                . ' WHERE ' . $db->quoteName('fdd.id_order') . ' = ' . $db->quoteName('a.id')
+                . ' AND ' . $db->quoteName('fdd.state') . ' IN (' . $db->quote(DisputeLedger::STATE_INQUIRY) . ', ' . $db->quote(DisputeLedger::STATE_OPEN) . ')'
+                . ' AND ' . $db->quoteName('fdd.evidence_sent_at') . ' IS NULL'
+                . ' AND ' . $db->quoteName('fdd.evidence_due_by') . ' < ' . $db->quote(\strlen($dueBefore) === 10 ? $dueBefore . ' 00:00:00' : $dueBefore) . ')');
+        }
+
         // Trash filter
         $show_trashed = $this->getState('filter.show_trashed');
         if (is_numeric($show_trashed) && $show_trashed == 1) {
@@ -727,6 +787,17 @@ class OrdersModel extends AlfaListModel
         $discountsData = $this->batchLoadDiscounts($orderIds);
         $contributionsData = $this->batchLoadContributions($orderIds);
 
+        // The undecided disputes of the page's orders, for the badge.
+        $db = $this->getDatabase();
+        $disputed = $db->setQuery(
+            $db->getQuery(true)
+                ->select([$db->quoteName('id_order'), 'COUNT(*) AS ' . $db->quoteName('n')])
+                ->from($db->quoteName('#__alfa_order_disputes'))
+                ->whereIn($db->quoteName('id_order'), $orderIds)
+                ->whereIn($db->quoteName('state'), DisputeLedger::UNDECIDED_STATES, ParameterType::STRING)
+                ->group($db->quoteName('id_order')),
+        )->loadAssocList('id_order', 'n') ?: [];
+
         // Lookup tables (tiny: 3-10 rows each, cached per request)
         // AlfaHelper is the single source of truth for these lookups.
         // Static cache: first call queries DB, all subsequent calls
@@ -738,6 +809,7 @@ class OrdersModel extends AlfaListModel
         // Process each order
         foreach ($items as $item) {
             $id = (int) $item->id;
+            $item->disputes_undecided = (int) ($disputed[$id] ?? 0);
 
             // Attach names + colors from lookup tables
             // Replaces the os/pm/sm JOINs in getListQuery().

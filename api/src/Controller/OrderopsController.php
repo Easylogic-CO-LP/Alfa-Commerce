@@ -14,8 +14,11 @@ namespace Alfa\Component\Alfa\Api\Controller;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Model\DisputeModel;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiTaskAccess;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeVerdict;
 use Alfa\Component\Alfa\Administrator\Service\Order\LinePricing;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
@@ -26,7 +29,12 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceCommand;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
+use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
+use Closure;
+use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -74,6 +82,13 @@ class OrderopsController extends OrdersController
      * @since  2.2.2
      */
     private const PAYMENT_CHANGES = ['id_payment_method', 'transaction_id', 'note'];
+
+    /**
+     * The field a dispute verb refused, answered with its JSON pointer.
+     *
+     * @since  2.2.2
+     */
+    private ?string $refusedField = null;
 
     /**
      * Every operation here mutates an existing order, so they gate on the order
@@ -932,6 +947,521 @@ class OrderopsController extends OrdersController
     }
 
     //  Helpers
+
+    /**
+     * Record a card dispute by hand on a payment of the order.
+     *
+     * POST v1/alfa/orders/:id/payments/:paymentId/disputes
+     * {state: inquiry|open, amount, currency?, reason?, reason_text?, reference?, evidence_due_by?, fee?, fee_currency?, note?}
+     *
+     * The amount is the disputed amount as the bank's letter or the provider states it, in the currency named (the
+     * order's when none); the deadline is UTC Y-m-d H:i:s. The payment stays paid while the bank decides: the money
+     * moves only when the dispute is closed as lost. 200 with the whole order; 422 led by the field; 409 with the
+     * refusal's code in meta.code; 503 with Retry-After when the order was busy.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function recordDispute()
+    {
+        return $this->disputeVerb(function () {
+            $orderId = $this->requireOrderId();
+            $payment = $this->requireOwnedPayment($orderId);
+            $body = $this->disputeBody(fields: ['state', 'amount', 'currency', 'reason', 'reason_text', 'reference', 'evidence_due_by', 'fee', 'fee_currency', 'note'], required: ['state', 'amount']);
+
+            if (!\in_array($body['state'], ['inquiry', 'open'], true)) {
+                $this->refuseField(field: 'state', sentence: 'a dispute recorded by hand is an inquiry or open (a chargeback)');
+            }
+
+            return $this->disputeAct(orderId: $orderId, act: 'record', payment: $payment, dispute: null, values: $this->disputeValues(body: $body) + ['kind' => $body['state']]);
+        });
+    }
+
+    /**
+     * Change a dispute recorded by hand, or give a lost dispute its amount in the order's currency.
+     *
+     * PATCH v1/alfa/orders/:id/disputes/:disputeId
+     * {amount?, currency?, reason?, reason_text?, reference?, evidence_due_by?, fee?, fee_currency?, note?} or
+     * {amount_in_order_currency}
+     *
+     * A dispute that follows its provider takes its facts from the provider: 409 dispute_follows_provider, except its
+     * amount in the order's currency while it waits for it.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function changeDispute()
+    {
+        return $this->disputeVerb(function () {
+            $orderId = $this->requireOrderId();
+            $dispute = $this->requireOwnedDispute(orderId: $orderId);
+            $payment = $this->requireDisputedPayment(dispute: $dispute);
+            $body = $this->disputeBody(fields: ['amount', 'currency', 'reason', 'reason_text', 'reference', 'evidence_due_by', 'fee', 'fee_currency', 'note', 'amount_in_order_currency'], required: []);
+
+            if (\array_key_exists('amount_in_order_currency', $body)) {
+                if (\count($body) > 1) {
+                    $this->refuseField(field: 'amount_in_order_currency', sentence: 'the amount in the order\'s currency is sent alone');
+                }
+
+                $amount = $this->decimalField(body: $body, field: 'amount_in_order_currency');
+
+                if ($amount === '') {
+                    $this->refuseField(field: 'amount_in_order_currency', sentence: 'a decimal text such as "49.90"');
+                }
+
+                return $this->disputeAct(orderId: $orderId, act: 'amount', payment: $payment, dispute: $dispute, values: ['amount' => $amount], amountField: 'amount_in_order_currency');
+            }
+
+            // A field left out keeps its value: the amount as stated, in the currency it was stated in (the amount in the
+            // order's currency is the ledger's, never sent back as the stated one).
+            $values = $this->disputeValues(body: $body) + [
+                'amount' => PublishedDecimal::decimal((string) $dispute->stated_amount),
+                'currency' => (string) $dispute->stated_currency,
+                'reason_code' => (string) $dispute->reason_code,
+                'reason_text' => (string) $dispute->reason_text,
+                'reference' => (string) ($dispute->reference ?? ''),
+                'evidence_due_by' => (string) ($dispute->evidence_due_by ?? ''),
+                'fee_amount' => $dispute->fee_amount !== null ? PublishedDecimal::decimal((string) $dispute->fee_amount) : '',
+                'fee_currency' => (string) ($dispute->fee_currency ?? ''),
+            ];
+
+            return $this->disputeAct(orderId: $orderId, act: 'change', payment: $payment, dispute: $dispute, values: $values);
+        });
+    }
+
+    /**
+     * Mark the evidence of a dispute sent.
+     *
+     * POST v1/alfa/orders/:id/disputes/:disputeId/evidence
+     * {sent_at?, note?}: sent_at UTC Y-m-d H:i:s, now when left out.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function disputeEvidence()
+    {
+        return $this->disputeVerb(function () {
+            $orderId = $this->requireOrderId();
+            $dispute = $this->requireOwnedDispute(orderId: $orderId);
+            $body = $this->disputeBody(fields: ['sent_at', 'note'], required: []);
+
+            return $this->disputeAct(orderId: $orderId, act: 'evidence', payment: $this->requireDisputedPayment(dispute: $dispute), dispute: $dispute, values: [
+                'evidence_sent_at' => $this->utcField(body: $body, field: 'sent_at'),
+                'note' => (string) ($body['note'] ?? ''),
+            ]);
+        });
+    }
+
+    /**
+     * Close a dispute with the outcome.
+     *
+     * POST v1/alfa/orders/:id/disputes/:disputeId/close
+     * {outcome: won|lost|inquiry_ended|in_error, amount?, fee_returned?, note?}
+     *
+     * The amount, on a lost dispute recorded by hand only (a provider's dispute books the provider's amount: 409
+     * dispute_follows_provider). A repeat of the same close answers 200 and books nothing.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function closeDispute()
+    {
+        return $this->disputeVerb(function () {
+            $orderId = $this->requireOrderId();
+            $dispute = $this->requireOwnedDispute(orderId: $orderId);
+            $body = $this->disputeBody(fields: ['outcome', 'amount', 'fee_returned', 'note'], required: ['outcome']);
+
+            if (!\in_array($body['outcome'], ['won', 'lost', DisputeLedger::CLOSED_INQUIRY_ENDED, DisputeLedger::CLOSED_IN_ERROR], true)) {
+                $this->refuseField(field: 'outcome', sentence: 'the outcome is won, lost, inquiry_ended or in_error');
+            }
+
+            if (\array_key_exists('amount', $body)) {
+                if ($body['outcome'] !== 'lost') {
+                    $this->refuseField(field: 'amount', sentence: 'an amount is given only with the outcome lost');
+                }
+
+                if (DisputeLedger::followsProvider(record: $dispute)) {
+                    $this->answerDisputeRefusal(code: DisputeVerdict::CODE_FOLLOWS_PROVIDER, sentence: sprintf('Dispute #%d follows its provider: a loss books the provider\'s amount.', (int) $dispute->id));
+
+                    return $this;
+                }
+            }
+
+            return $this->disputeAct(orderId: $orderId, act: 'close', payment: $this->requireDisputedPayment(dispute: $dispute), dispute: $dispute, values: [
+                'outcome' => $body['outcome'],
+                'amount' => $this->decimalField(body: $body, field: 'amount'),
+                'fee_returned' => $this->decimalField(body: $body, field: 'fee_returned'),
+                'note' => (string) ($body['note'] ?? ''),
+            ]);
+        });
+    }
+
+    /**
+     * Open a won or lost dispute again for a new round; the case keeps its last decision until the bank decides again.
+     *
+     * POST v1/alfa/orders/:id/disputes/:disputeId/reopen
+     * {evidence_due_by?, note?}
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function reopenDispute()
+    {
+        return $this->disputeVerb(function () {
+            $orderId = $this->requireOrderId();
+            $dispute = $this->requireOwnedDispute(orderId: $orderId);
+            $body = $this->disputeBody(fields: ['evidence_due_by', 'note'], required: []);
+
+            return $this->disputeAct(orderId: $orderId, act: 'reopen', payment: $this->requireDisputedPayment(dispute: $dispute), dispute: $dispute, values: [
+                'evidence_due_by' => $this->utcField(body: $body, field: 'evidence_due_by'),
+                'note' => (string) ($body['note'] ?? ''),
+            ]);
+        });
+    }
+
+    /**
+     * Answer whether a provider's dispute that waits for it is the same case as a dispute recorded by hand.
+     *
+     * POST v1/alfa/orders/:id/disputes/:disputeId/reconcile
+     * {same_as: <id of the dispute recorded by hand>} or {different: true}
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function reconcileDispute()
+    {
+        return $this->disputeVerb(function () {
+            $orderId = $this->requireOrderId();
+            $dispute = $this->requireOwnedDispute(orderId: $orderId);
+            $body = $this->disputeBody(fields: ['same_as', 'different'], required: []);
+            $same = \array_key_exists('same_as', $body);
+            $different = \array_key_exists('different', $body);
+
+            if ($same === $different) {
+                $this->refuseField(field: $same ? 'different' : 'same_as', sentence: 'send either same_as with the dispute recorded by hand, or different: true');
+            }
+
+            if ($same && (!\is_int($body['same_as']) || $body['same_as'] <= 0)) {
+                $this->refuseField(field: 'same_as', sentence: 'the id of a dispute recorded by hand, a positive integer');
+            }
+
+            if ($different && $body['different'] !== true) {
+                $this->refuseField(field: 'different', sentence: 'true');
+            }
+
+            return $this->disputeAct(orderId: $orderId, act: $same ? 'same' : 'different', payment: $this->requireDisputedPayment(dispute: $dispute), dispute: $dispute, values: ['same_as' => $same ? $body['same_as'] : 0]);
+        });
+    }
+
+    /**
+     * Run a dispute verb: a field refusal is answered 422 with the sentence led by the field's name and the field's
+     * JSON pointer.
+     *
+     * @param Closure $verb The verb's body.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    private function disputeVerb(Closure $verb)
+    {
+        try {
+            return $verb();
+        } catch (Save $e) {
+            $field = $this->takeRefusedField();
+
+            if ($field === null) {
+                throw $e;
+            }
+
+            $document = $this->app->getDocument();
+            $document->setErrors([['title' => ErrorText::of($e), 'code' => 422, 'source' => ['pointer' => '/' . $field]]]);
+            $this->app->setHeader('status', '422', true);
+
+            return $this;
+        }
+    }
+
+    /**
+     * The field the last refusal named, cleared as it is read; null when a refusal named none.
+     *
+     * @since  2.2.2
+     */
+    private function takeRefusedField(): ?string
+    {
+        $field = $this->refusedField;
+        $this->refusedField = null;
+
+        return $field;
+    }
+
+    /**
+     * Run a dispute act through the dispute model as the API user, and answer: the whole order when written, the
+     * refusal otherwise.
+     *
+     * @param int $orderId The order.
+     * @param string $act The act.
+     * @param object $payment The disputed payment.
+     * @param object|null $dispute The record; null for record.
+     * @param array<string, mixed> $values The act's values.
+     * @param string $amountField The body's field the amount came from, which a refusal of it names.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    private function disputeAct(int $orderId, string $act, object $payment, ?object $dispute, array $values, string $amountField = 'amount')
+    {
+        $orderCurrency = OrderCurrency::of(orderId: $orderId);
+
+        // A body states a point: an amount in the order's currency is read exactly, without the screen's comma, and handed
+        // on in the order's money.
+        if (($values['amount'] ?? '') !== '' && \in_array((string) ($values['currency'] ?? ''), ['', $orderCurrency->getCode()], true)) {
+            try {
+                $values['amount'] = PublishedDecimal::money(money: ExactMoney::of(value: (string) $values['amount'], currency: $orderCurrency));
+            } catch (ExactMoneyRefusal $e) {
+                // The reader's words already lead with the field.
+                $this->refusedField = $amountField;
+
+                throw new Save($e->words(field: $amountField), 422, $e);
+            }
+        }
+
+        $model = $this->getModel('dispute', 'Administrator', ['ignore_request' => true]);
+
+        if (!$model instanceof DisputeModel) {
+            $model = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory()->createModel('Dispute', 'Administrator', ['ignore_request' => true]);
+        }
+
+        $verdict = $model->act(act: $act, payment: $payment, dispute: $dispute, values: $values, user: $this->app->getIdentity());
+
+        if ($verdict->isWritten()) {
+            return $this->displayItem($orderId);
+        }
+
+        if (\in_array($verdict->kind, [DisputeVerdict::LOCK_NOT_TAKEN, DisputeVerdict::WRITE_FAILED], true)) {
+            $this->app->setHeader('Retry-After', '5', true);
+
+            throw new Save($verdict->message, 503);
+        }
+
+        $this->answerDisputeRefusal(code: $verdict->code, sentence: $verdict->message);
+
+        return $this;
+    }
+
+    /**
+     * Answer a refused dispute act: 409, the sentence as the error's title and the refusal's stable code in meta.code,
+     * which a client branches on, never on the sentence.
+     *
+     * @param string $code The code.
+     * @param string $sentence The sentence.
+     *
+     * @since  2.2.2
+     */
+    private function answerDisputeRefusal(string $code, string $sentence): void
+    {
+        $document = $this->app->getDocument();
+        $document->setErrors([['title' => $sentence, 'code' => 409]]);
+        $document->addMeta('code', $code);
+        $this->app->setHeader('status', '409', true);
+    }
+
+    /**
+     * The JSON body of a dispute verb: only the fields it takes (a key the verb does not take, a key with a language
+     * suffix included, answers 422), the required ones present.
+     *
+     * @param list<string> $fields The fields the verb takes.
+     * @param list<string> $required The fields it needs.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.2.2
+     */
+    private function disputeBody(array $fields, array $required): array
+    {
+        $body = $this->body();
+
+        foreach (array_keys($body) as $key) {
+            if (!\in_array((string) $key, $fields, true)) {
+                $this->refuseField(field: (string) $key, sentence: 'not a field of this request; it takes ' . implode(', ', $fields));
+            }
+        }
+
+        foreach ($required as $field) {
+            if (!\array_key_exists($field, $body) || $body[$field] === null || $body[$field] === '') {
+                $this->refuseField(field: $field, sentence: 'required');
+            }
+        }
+
+        foreach (['state', 'currency', 'reason', 'reason_text', 'reference', 'fee_currency', 'note', 'outcome'] as $text) {
+            if (\array_key_exists($text, $body) && !\is_string($body[$text])) {
+                $this->refuseField(field: $text, sentence: 'a string');
+            }
+        }
+
+        return $body;
+    }
+
+    /**
+     * The dispute model's values from a body's facts, by the form's names.
+     *
+     * @param array<string, mixed> $body The body.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.2.2
+     */
+    private function disputeValues(array $body): array
+    {
+        $values = [];
+
+        if (\array_key_exists('amount', $body)) {
+            $values['amount'] = $this->decimalField(body: $body, field: 'amount');
+        }
+
+        if (\array_key_exists('currency', $body)) {
+            if (preg_match('/^[A-Z]{3}$/', (string) $body['currency']) !== 1) {
+                $this->refuseField(field: 'currency', sentence: 'an ISO 4217 code, as EUR');
+            }
+
+            $values['currency'] = $body['currency'];
+        }
+
+        if (\array_key_exists('reason', $body)) {
+            if (!\in_array($body['reason'], DisputeLedger::REASONS, true)) {
+                $this->refuseField(field: 'reason', sentence: 'one of ' . implode(', ', DisputeLedger::REASONS));
+            }
+
+            $values['reason_code'] = $body['reason'];
+        }
+
+        foreach (['reason_text' => 'reason_text', 'reference' => 'reference', 'note' => 'note'] as $field => $name) {
+            if (\array_key_exists($field, $body)) {
+                $values[$name] = (string) $body[$field];
+            }
+        }
+
+        if (\array_key_exists('evidence_due_by', $body)) {
+            $values['evidence_due_by'] = $this->utcField(body: $body, field: 'evidence_due_by');
+        }
+
+        if (\array_key_exists('fee', $body)) {
+            $values['fee_amount'] = $this->decimalField(body: $body, field: 'fee');
+            $values['fee_currency'] = (string) ($body['fee_currency'] ?? '');
+        }
+
+        return $values;
+    }
+
+    /**
+     * A decimal field of a body as text: a JSON string of digits, or a JSON number; '' when absent or null.
+     *
+     * @param array<string, mixed> $body The body.
+     * @param string $field The field.
+     *
+     * @since  2.2.2
+     */
+    private function decimalField(array $body, string $field): string
+    {
+        $value = $body[$field] ?? null;
+
+        if ($value === null) {
+            return '';
+        }
+
+        $text = \is_int($value) ? (string) $value : (\is_string($value) ? $value : '');
+
+        if (preg_match('/^\d{1,16}(\.\d{1,8})?$/', $text) !== 1) {
+            $this->refuseField(field: $field, sentence: 'a decimal text such as "49.90"');
+        }
+
+        return $text;
+    }
+
+    /**
+     * A UTC time field of a body, Y-m-d H:i:s; '' when absent or null.
+     *
+     * @param array<string, mixed> $body The body.
+     * @param string $field The field.
+     *
+     * @since  2.2.2
+     */
+    private function utcField(array $body, string $field): string
+    {
+        $value = $body[$field] ?? null;
+
+        if ($value === null) {
+            return '';
+        }
+
+        $parsed = \is_string($value) ? DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $value, new DateTimeZone('UTC')) : false;
+
+        if ($parsed === false || $parsed->format('Y-m-d H:i:s') !== $value) {
+            $this->refuseField(field: $field, sentence: 'a UTC time as Y-m-d H:i:s');
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * Refuse a field: 422, the sentence led by the field's name, with its JSON pointer ({@see self::disputeVerb()}).
+     *
+     * @param string $field The field.
+     * @param string $sentence What is wrong.
+     *
+     * @throws Save Always.
+     *
+     * @since  2.2.2
+     */
+    private function refuseField(string $field, string $sentence): never
+    {
+        $this->refusedField = $field;
+
+        throw new Save($field . ': ' . $sentence, 422);
+    }
+
+    /**
+     * Resolve the :disputeId route variable against the :id order: a dispute of another order is not found.
+     *
+     * @param int $orderId The order the dispute must belong to.
+     *
+     * @since  2.2.2
+     */
+    private function requireOwnedDispute(int $orderId): object
+    {
+        $dispute = DisputeLedger::get(disputeId: $this->requireSubId('disputeId'));
+
+        if ($dispute === null || (int) $dispute->id_order !== $orderId) {
+            throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
+        }
+
+        return $dispute;
+    }
+
+    /**
+     * The payment a dispute names.
+     *
+     * @param object $dispute The record.
+     *
+     * @since  2.2.2
+     */
+    private function requireDisputedPayment(object $dispute): object
+    {
+        $payment = PaymentLedger::get((int) $dispute->id_payment);
+
+        if (!$payment) {
+            throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
+        }
+
+        return $payment;
+    }
 
     /**
      * Resolve the :paymentId route variable against the :id order.

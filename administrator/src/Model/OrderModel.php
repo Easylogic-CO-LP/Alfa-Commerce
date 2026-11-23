@@ -42,6 +42,7 @@ use Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger;
 use Alfa\Component\Alfa\Administrator\Service\Document\OrderItemLines;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
@@ -5645,6 +5646,31 @@ class OrderModel extends AlfaAdminModel
             }
         }
 
+        // An order whose dispute the bank has not decided stays out of the trash: it is the record of the case.
+        if ((int) $value === -2) {
+            $kept = null;
+
+            foreach ($pks as $index => $pk) {
+                $undecided = DisputeLedger::undecidedOf(orderId: (int) $pk);
+
+                if ($undecided === []) {
+                    continue;
+                }
+
+                unset($pks[$index]);
+                $kept = Text::sprintf('COM_ALFA_ORDERS_TRASH_DISPUTE_REFUSED', (int) $pk, '#' . implode(', #', $undecided));
+                Factory::getApplication()->enqueueMessage(msg: $kept, type: 'warning');
+            }
+
+            // No order is left to trash: the refusal is the model's error (the REST API answers it), as the parent
+            // would only say that no row was selected.
+            if ($pks === [] && $kept !== null) {
+                $this->setError(error: $kept);
+
+                return false;
+            }
+        }
+
         return parent::publish(pks: $pks, value: $value);
     }
 
@@ -6324,6 +6350,13 @@ class OrderModel extends AlfaAdminModel
         // The kept outcomes of the provider refund reports of these orders' payments.
         $query = $db->getQuery(true)
             ->delete($db->quoteName('#__alfa_refund_report_outcomes'))
+            ->whereIn('id_order', $pks);
+        $db->setQuery($query);
+        $db->execute();
+
+        // The records of their decided disputes (an undecided one refused the delete before this point).
+        $query = $db->getQuery(true)
+            ->delete($db->quoteName('#__alfa_order_disputes'))
             ->whereIn('id_order', $pks);
         $db->setQuery($query);
         $db->execute();

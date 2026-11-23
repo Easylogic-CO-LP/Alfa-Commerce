@@ -39,6 +39,7 @@
             <option value="price">COM_ALFA_OUTBOUND_TOPIC_PRICE</option>
             <option value="order.created">COM_ALFA_OUTBOUND_TOPIC_ORDER_CREATED</option>
             <option value="order.status">COM_ALFA_OUTBOUND_TOPIC_ORDER_STATUS</option>
+            <option value="order.dispute">COM_ALFA_OUTBOUND_TOPIC_ORDER_DISPUTE</option>
         </field>
 
         <field

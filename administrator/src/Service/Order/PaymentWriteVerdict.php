@@ -11,7 +11,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
+use Joomla\CMS\Log\Log;
+use Throwable;
 
 /**
  * What a payment write did, and why when it did not write.
@@ -20,6 +23,8 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Money;
  * supersedeAttemptVerdict() and claimPendingAttemptVerdict(). A plugin decides on $kind, and on $code when the kind is
  * PaymentLedger::VERDICT_REFUSED; it words the buyer's sentence in its own language strings and logs $message and
  * $figures in its own log category, never showing them to the buyer as core's words.
+ *
+ * A gateway answers its provider through {@see self::providerStatus()}.
  *
  * The five kinds:
  *   written         the row is written, or already exactly as asked, or found by its reference ($existing true);
@@ -88,5 +93,37 @@ final class PaymentWriteVerdict
     public function isRaced(): bool
     {
         return $this->kind === PaymentLedger::VERDICT_RACED;
+    }
+
+    /**
+     * The HTTP status a gateway answers its provider with for this write: 200 when the word is in the books (written,
+     * or raced: another delivery of the same word won), 503 otherwise, so the provider sends it again. A refused write
+     * keeps no record for staff, so it is also written to the payments log as CRITICAL, with the row and the reason:
+     * a person reconciles it while the provider retries.
+     *
+     * @api ANSWERS: 200 or 503; the one way a gateway decides what to answer its provider for a payment write.
+     *
+     * @since  2.2.2
+     */
+    public function providerStatus(): int
+    {
+        if ($this->isWritten() || $this->isRaced()) {
+            return 200;
+        }
+
+        if ($this->isRefused()) {
+            try {
+                AlfaLog::register();
+                Log::add(
+                    sprintf('A provider\'s word was refused by the payments ledger (%s, row #%d): %s The provider is answered 503 and sends it again; reconcile it by hand.', $this->code, $this->rowId, $this->message),
+                    Log::CRITICAL,
+                    'com_alfa.payments',
+                );
+            } catch (Throwable) {
+                // The answer below still asks the provider to send the word again.
+            }
+        }
+
+        return 503;
     }
 }

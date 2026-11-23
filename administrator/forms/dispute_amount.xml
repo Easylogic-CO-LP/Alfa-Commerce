@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Alfa Commerce: the amount of a lost dispute in the order's currency, when the provider stated it in another one (what
+    left the shop's account, from the provider's statement). Saving it books the loss.
+
+    @package    Alfa Commerce
+    @author     Agamemnon Fakas <info@easylogic.gr>
+    @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+    @license    GNU General Public License version 3 or later; see LICENSE
+-->
+<form>
+    <fieldset name="dispute">
+        <field name="amount" type="text" label="COM_ALFA_DISPUTE_FIELD_ORDER_AMOUNT" description="COM_ALFA_DISPUTE_FIELD_ORDER_AMOUNT_DESC" required="true" validate="number" min="0" filter="string" inputmode="decimal"/>
+    </fieldset>
+</form>

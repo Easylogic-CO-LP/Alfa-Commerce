@@ -145,6 +145,15 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             new Route(['POST'], 'v1/alfa/orders/:id/payments/:paymentId/refund', 'orderops.refundPayment', ['id' => '\d+', 'paymentId' => '\d+'], $defaults),
             new Route(['POST'], 'v1/alfa/orders/:id/payments/:paymentId/settle', 'orderops.settlePayment', ['id' => '\d+', 'paymentId' => '\d+'], $defaults),
 
+            // Card disputes: a dispute recorded by hand on a payment, then its acts. Each goes through the dispute
+            // model to the disputes ledger, with the order screen's rules, and answers the whole order.
+            new Route(['POST'], 'v1/alfa/orders/:id/payments/:paymentId/disputes', 'orderops.recordDispute', ['id' => '\d+', 'paymentId' => '\d+'], $defaults),
+            new Route(['PATCH'], 'v1/alfa/orders/:id/disputes/:disputeId', 'orderops.changeDispute', ['id' => '\d+', 'disputeId' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/orders/:id/disputes/:disputeId/evidence', 'orderops.disputeEvidence', ['id' => '\d+', 'disputeId' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/orders/:id/disputes/:disputeId/close', 'orderops.closeDispute', ['id' => '\d+', 'disputeId' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/orders/:id/disputes/:disputeId/reopen', 'orderops.reopenDispute', ['id' => '\d+', 'disputeId' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/orders/:id/disputes/:disputeId/reconcile', 'orderops.reconcileDispute', ['id' => '\d+', 'disputeId' => '\d+'], $defaults),
+
             // Status transition. Deliberately NOT a PATCH of id_order_status:
             // the fat path always force()s, so it reinstates cancelled orders
             // with no client opt-in.

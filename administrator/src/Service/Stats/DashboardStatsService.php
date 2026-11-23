@@ -370,7 +370,7 @@ final class DashboardStatsService
                     continue;
                 }
 
-                // A won dispute: the money is back in takings.
+                // A chargeback reversed (a dispute won after a loss): the money is back in takings.
                 if ($row->payment_type === PaymentLedger::TYPE_REVERSAL && $row->target_type === PaymentLedger::TYPE_CHARGEBACK) {
                     $out['revenue'][$bucket] += (float) $row->total;
                     $out['total'] += (float) $row->total;
@@ -1384,7 +1384,7 @@ final class DashboardStatsService
                 ->setTimezone(new DateTimeZone('UTC'))
                 ->format('Y-m-d H:i:s');
 
-            // Takings: settled payments, less chargebacks, plus won disputes.
+            // Takings: settled payments, less the chargebacks lost disputes booked, plus their reversals.
             $out['revenue'] = (float) $db->setQuery(
                 $db->getQuery(true)
                     ->select('COALESCE(SUM(' . PaymentLedger::takingsAmount('p') . '), 0)')

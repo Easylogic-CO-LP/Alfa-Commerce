@@ -115,6 +115,8 @@ use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasActionLogTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasOrderContextTrait;
 use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasTransportUrlsTrait;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
+use Alfa\Component\Alfa\Administrator\Service\Order\DisputeWriter;
 use Alfa\Component\Alfa\Administrator\Service\Order\MethodState;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentEnvironment;
@@ -161,14 +163,14 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     public const TYPE_AUTHORIZATION = PaymentLedger::TYPE_AUTHORIZATION;
 
     /**
-     * @var string A provider fact undoing a refund or a chargeback; see recordReversal().
+     * @var string A fact undoing a refund (see recordReversal()) or a chargeback (booked by its dispute).
      *
      * @since  2.0.0
      */
     public const TYPE_REVERSAL = PaymentLedger::TYPE_REVERSAL;
 
     /**
-     * @var string Money the customer's bank took back; see recordChargeback().
+     * @var string Money the customer's bank took back: booked by a dispute's loss; see dispute().
      *
      * @since  2.0.0
      */
@@ -294,8 +296,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      */
     public const REFUND_BEYOND_PREFIX = PaymentLedger::REFUND_BEYOND_PREFIX;
 
-    // recordReversal() / recordChargeback() outcomes (with DUPLICATE,
-    //    NOTHING_LEFT and FAILED above)
+    // recordReversal() outcomes (with DUPLICATE, NOTHING_LEFT and FAILED above)
 
     /**
      * @var string The fact is written.
@@ -926,17 +927,13 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * refused (a rule refused it: repeating the settle is useless; $code says which), lock_not_taken (the settle waits
      * for the provider's next delivery or the buyer's return; the row stays pending and is settled once then), or
      * write_failed. Its line in this plugin's log: CRITICAL for refused and write_failed (the money moved and the books
-     * did not: reconcile), WARNING for lock_not_taken, none for written and raced. What the gateway answers its provider
-     * stays the plugin's decision.
+     * did not: reconcile), WARNING for lock_not_taken, none for written and raced. The gateway answers its provider
+     * with the verdict's providerStatus(): 200 when the word is in the books (written or raced), 503 otherwise, so the
+     * provider sends it again.
      *
      * Usage:
      *   $verdict = $this->settleAttemptVerdict($write, (int) $order->id, $txId);
-     *   switch ($verdict->kind) {
-     *       case self::VERDICT_WRITTEN:
-     *       case self::VERDICT_RACED:          ... fire the success answer
-     *       case self::VERDICT_LOCK_NOT_TAKEN: ... ask the provider to deliver again
-     *       default:                           ... reconcile; repeating is useless for refused
-     *   }
+     *   return $verdict->providerStatus();
      *
      * @api ANSWERS: a PaymentWriteVerdict for the settle (written, raced, refused, lock_not_taken or write_failed).
      *
@@ -1423,22 +1420,24 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     }
 
     /**
-     * Record that a booked refund, or a chargeback, did not stand at the provider.
+     * Record that a refund of this gateway did not stand at the provider (it failed or came back).
      *
-     * A fact the provider has already stated; no gateway is called. The refund
-     * or chargeback row is never edited: a new 'reversal' row names it. A
-     * reversed refund that leaves its payment holding money again puts the
-     * payment back to completed as bookkeeping only: no status_on_completed,
-     * no order move, no email. A won dispute is this call on the chargeback row.
+     * A fact the provider has already stated; no gateway is called. The
+     * refund row is never edited: a new 'reversal' row names it. A reversed
+     * refund that leaves its payment holding money again puts the payment
+     * back to completed as bookkeeping only: no status_on_completed, no order
+     * move, no email. A chargeback is not reversed here: it follows its
+     * dispute, so a won case is told to core with dispute(), which books the
+     * return of the money; a chargeback row given here is refused.
      *
      * Answer the provider 200 on OUTCOME_RECORDED, OUTCOME_DUPLICATE and
      * OUTCOME_NOTHING_LEFT; 200 and report on OUTCOME_REFUSED; 503 on
      * OUTCOME_FAILED so the provider redelivers. Never throws. Only this
      * gateway's own rows: another gateway's row is refused.
      *
-     * @api ANSWERS: ['outcome', 'row_id', 'reason', 'amount', 'reopened']; never throws; this plugin's own rows only.
+     * @api ANSWERS: ['outcome', 'row_id', 'reason', 'amount', 'reopened']; never throws; this plugin's own refunds only.
      *
-     * @param int $rowId The refund or chargeback row.
+     * @param int $rowId The refund row.
      * @param Money|null $amount What did not stand; null means all not yet reversed.
      * @param array $options 'transaction_id' (required), 'reason',
      *                       'gateway_response', 'processed_at' (UTC Y-m-d H:i:s).
@@ -1453,25 +1452,42 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     }
 
     /**
-     * Record money the customer's bank took back from a completed payment of this gateway.
+     * The dispute of one of this gateway's payments under the provider's dispute id: found, or started. A gateway's one
+     * way to tell core a dispute's state; core keeps the case, books the money at the bank's decision and answers what
+     * to tell the provider.
      *
-     * Never capped, never flips the payment, never moves the order. Outcomes
-     * and options as recordReversal(); another gateway's payment is refused.
+     *     $verdict = $this->dispute(paymentId: (int) $payment->id, reference: 'du_1QxYz')
+     *         ->open()
+     *         ->amount(amount: '49.90', currency: 'EUR')
+     *         ->reason(code: DisputeLedger::REASON_NOT_RECEIVED, text: 'product_not_received')
+     *         ->evidenceDueBy(utc: '2026-12-04 23:59:59')
+     *         ->fee(amount: '15.00', currency: 'EUR')
+     *         ->providerLink(url: 'https://dashboard.stripe.com/disputes/du_1QxYz')
+     *         ->gatewayResponse(json: $raw)
+     *         ->save();
      *
-     * @api ANSWERS: ['outcome', 'row_id', 'reason', 'amount', 'reopened']; never capped, never moves the order; another
-     *      gateway's payment is refused.
+     *     return $verdict->providerStatus();
      *
-     * @param int $paymentId The completed payment.
-     * @param Money $amount What the bank took back, in the order's currency.
-     * @param array $options As recordReversal().
+     * The states: inquiry(), open(), evidenceSent(), won(), lost(), closed(DisputeLedger::CLOSED_INQUIRY_ENDED). The
+     * money: an opened dispute or a hold at the provider books nothing and the payment stays paid; lost() books the
+     * disputed amount as a chargeback; won() books nothing (the return of a chargeback when an earlier loss turns into
+     * a win); a case opened again keeps its last decision until the bank decides again. A partial dispute states its
+     * own amount. The same word again writes nothing new; a word older than the one applied (asOf()) answers stale; a
+     * refused word is kept for staff by core. The gateway never books a chargeback or a reversal of one itself, never
+     * converts a currency and never writes a staff record for a dispute; it calls with nothing of its own held (the
+     * save takes the order's row lock in its own transaction).
      *
-     * @return array ['outcome', 'row_id', 'reason', 'amount', 'reopened']
+     * @api CONTRACT: the one way a gateway writes a dispute; save() answers a DisputeVerdict, providerStatus() the HTTP
+     *      status for the provider.
      *
-     * @since  2.0.0
+     * @param int $paymentId One of this gateway's payment rows (completed or refunded).
+     * @param string $reference The provider's dispute id: one per case, the same across its rounds; required.
+     *
+     * @since  2.2.2
      */
-    protected function recordChargeback(int $paymentId, Money $amount, array $options = []): array
+    protected function dispute(int $paymentId, string $reference): DisputeLedger
     {
-        return PaymentLedger::recordChargeback(paymentId: $paymentId, amount: $amount, options: ['plugin' => $this->_name] + $options);
+        return DisputeLedger::for(paymentId: $paymentId, reference: $reference, writer: DisputeWriter::gateway(element: $this->_name));
     }
 
     /**

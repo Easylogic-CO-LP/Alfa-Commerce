@@ -328,6 +328,9 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
 	                                            default:        echo Text::_('COM_ALFA_UNPAID');
                                             } ?>
                                         </span>
+                                        <?php if (!empty($item->disputes_undecided)) : ?>
+                                            <span class="badge bg-danger"><?php echo Text::_('COM_ALFA_DISPUTE_BADGE'); ?></span>
+                                        <?php endif; ?>
 										<?php if (!empty($item->total_refunded_real)) : ?>
                                             <small class="d-block text-muted" style="font-weight:normal;font-size:0.76em">
                                                 <?php echo Text::_('COM_ALFA_REFUNDED'); ?>:

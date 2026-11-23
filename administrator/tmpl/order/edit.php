@@ -13,6 +13,7 @@
  *
  * Template map:
  *   edit_payments.php      -> Payments table + modals
+ *   edit_disputes.php      -> Card disputes of the order's payments, one card each
  *   edit_shipments.php     -> Shipments table + modals
  *   edit_order_items.php   -> Order items table + modals
  *   edit_history.php       -> Unified timeline (status + activity)
@@ -102,6 +103,8 @@ HTMLHelper::_('bootstrap.tooltip');
 		<?php echo $this->loadTemplate('shipments'); ?>
 
 		<?php echo $this->loadTemplate('payments'); ?>
+
+		<?php echo $this->loadTemplate('disputes'); ?>
 
         <!-- Sales documents: legal records + Issue modal -->
 		<?php echo $this->loadTemplate('documents'); ?>

@@ -123,7 +123,6 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
-use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
@@ -148,6 +147,7 @@ use Closure;
 use Exception;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
@@ -1196,13 +1196,35 @@ class PaymentLedger
     /** @var string Database table */
     private const TABLE = '#__alfa_order_payments';
 
+    /**
+     * The disputes table: read here for the refund block and the guards, written by DisputeLedger only.
+     *
+     * @since  2.2.2
+     */
+    private const DISPUTES_TABLE = '#__alfa_order_disputes';
+
+    /**
+     * The dispute states in which the bank has not decided yet.
+     *
+     * @since  2.2.2
+     */
+    private const DISPUTE_UNDECIDED_STATES = ['inquiry', 'open', 'under_review'];
+
+    /**
+     * The dispute states that hold the refund block: a chargeback the shop answers or the bank decides. An inquiry
+     * does not: a refund is a usual answer to one.
+     *
+     * @since  2.2.2
+     */
+    private const DISPUTE_BLOCKING_STATES = ['open', 'under_review'];
+
     /** @var string Primary key column */
     private const PK = 'id';
 
     /**
      * Nullable integer columns: form sends '', MySQL rejects for int.
      */
-    private const NULLABLE_INT_COLUMNS = ['id_refunded_payment', 'id_reversed_payment', 'id_document', 'id_credit_transaction', 'id_employee'];
+    private const NULLABLE_INT_COLUMNS = ['id_refunded_payment', 'id_reversed_payment', 'id_dispute', 'id_document', 'id_credit_transaction', 'id_employee'];
 
     /**
      * Nullable datetime columns: empty/zero -> null.
@@ -2401,6 +2423,12 @@ class PaymentLedger
             return false;
         }
 
+        if (!$ledgerFact && (int) ($data['id_dispute'] ?? 0) > 0) {
+            self::refuse(detail: 'create(): only a chargeback or a reversal its dispute books names the dispute', orderId: $orderId, code: self::REFUSAL_FACT_TYPE);
+
+            return false;
+        }
+
         // Money guards
         // Ledger rows are BORN here: plugins, the admin form and CLI all
         // insert through create(), so the caps sit here: a payment is
@@ -3453,101 +3481,6 @@ class PaymentLedger
     }
 
     /**
-     * Lock one or more order rows FOR UPDATE, in a canonical order.
-     *
-     * Ascending by id, de-duplicated: when a write touches two orders, two
-     * concurrent writes touching the same pair must take them in the same
-     * sequence or they deadlock on each other instead of queueing.
-     *
-     * A missing row is refused rather than skipped: FOR UPDATE on an absent
-     * id takes a GAP lock, and two writers aiming at the same absent id
-     * deadlock rather than order.
-     *
-     * @param object $db Database driver (already inside a transaction)
-     * @param int ...$orderIds Order PKs; zero and duplicates are ignored
-     *
-     * @return bool False if any named order does not exist, or if the row
-     *              cannot be locked (another writer holds it)
-     *
-     * @since  2.0.0
-     */
-    private static function lockOrders(object $db, int ...$orderIds): bool
-    {
-        $ids = array_values(array_unique(array_filter($orderIds, static fn (int $id): bool => $id > 0)));
-        sort($ids);
-
-        // Inside withLockWait() the lock waits the caller's bound, set on the session for these statements alone.
-        $serverWait = null;
-
-        if (self::$lockWait !== null && $ids !== []) {
-            $serverWait = (int) $db->setQuery('SELECT @@SESSION.innodb_lock_wait_timeout')->loadResult();
-            $db->setQuery('SET SESSION innodb_lock_wait_timeout = ' . self::$lockWait)->execute();
-        }
-
-        try {
-            return self::lockOrderRows($db, $ids);
-        } finally {
-            if ($serverWait !== null) {
-                try {
-                    $db->setQuery('SET SESSION innodb_lock_wait_timeout = ' . $serverWait)->execute();
-                } catch (Throwable $e) {
-                    // The lock's own answer stands; the session keeps the shorter wait until it ends.
-                    Log::add('[PaymentLedger] lockOrders(): the session\'s lock wait could not be set back to ' . $serverWait . ' seconds: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.orders');
-                }
-            }
-        }
-    }
-
-    /**
-     * Lock the order rows, in the order given ({@see self::lockOrders()}).
-     *
-     * @param object $db Database driver (already inside a transaction)
-     * @param int[] $ids Order PKs, ascending, above zero, each once
-     *
-     * @return bool False if any named order does not exist, or if the row cannot be locked (another writer holds it)
-     *
-     * @since  2.3.0
-     */
-    private static function lockOrderRows(object $db, array $ids): bool
-    {
-        foreach ($ids as $id) {
-            $db->setQuery(
-                'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_orders')
-                . ' WHERE ' . $db->quoteName('id') . ' = ' . $id . ' FOR UPDATE',
-            );
-
-            try {
-                $locked = (int) $db->loadResult();
-            } catch (Throwable $e) {
-                // ONLY a lock-wait timeout (1205) is an ordinary refusal: it
-                // rolls back the statement, leaving the caller's transaction
-                // intact to be refused cleanly. A deadlock (1213) rolls back
-                // the whole transaction server-side, so reporting it as "busy"
-                // would let the caller commit a transaction the server has
-                // already discarded, and every other error is a real fault.
-                // Both must keep throwing.
-                if (MysqlError::number($e) !== 1205) {
-                    throw $e;
-                }
-
-                self::warnFailure(message: "lockOrders(): order #{$id} is held by another writer", failure: $e);
-                self::noteVerdict(kind: self::VERDICT_LOCK_NOT_TAKEN, code: '', orderId: $id);
-
-                return false;
-            }
-
-            if ($locked !== $id) {
-                self::warn("lockOrders(): order #{$id} does not exist");
-                self::noteVerdict(kind: self::VERDICT_REFUSED, code: 'order_missing', orderId: $id);
-
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Claim a gateway's pending attempt for a provider reference: the one path for it. A payment plugin reaches
      * it through PaymentsPlugin::claimPendingAttempt() and never writes the payment table itself.
      *
@@ -4379,6 +4312,11 @@ class PaymentLedger
             return sprintf('the reversal link of row #%d is written once, by the reversal itself', $rowId);
         }
 
+        if (\array_key_exists('id_dispute', $data)
+            && (int) $data['id_dispute'] !== (int) ($stored->id_dispute ?? 0)) {
+            return sprintf('the dispute link of row #%d is written once, by the dispute that booked it', $rowId);
+        }
+
         // "Changed" as recheckCapsOnUpdate() reads it: money by minor units at
         // the order's scale, everything else by value.
         $amountMoves = \array_key_exists('amount', $data)
@@ -4424,6 +4362,13 @@ class PaymentLedger
             && ($amountMoves || $typeMoves || $orderMoves || $leavesCollected)
             && self::countFactsNaming(column: 'id_refunded_payment', rowId: $rowId, type: self::TYPE_CHARGEBACK) > 0) {
             return sprintf('payment #%d has a recorded chargeback: its amount, type and order are fixed and it stays collected', $rowId);
+        }
+
+        // A disputed payment keeps what its dispute is about: the amount, the type and the order.
+        if ($storedType === self::TYPE_PAYMENT
+            && ($amountMoves || $typeMoves || $orderMoves)
+            && self::disputesNaming(paymentId: $rowId) > 0) {
+            return sprintf('payment #%d is disputed: its amount, type and order are fixed while a dispute names it', $rowId);
         }
 
         // 6. Every transition into a money-counting refund state runs the
@@ -5403,7 +5348,7 @@ class PaymentLedger
 
         if (!$gatewayMoved) {
             $unbooked = self::unbookedProviderRefunds(orderId: $orderId);
-            $blocked = self::unbookedRefusal(unbooked: $unbooked);
+            $blocked = self::blockRefusal(orderId: $orderId, unbooked: $unbooked);
 
             if ($blocked !== null) {
                 return self::refundResult(outcome: self::OUTCOME_BLOCKED, reason: $blocked);
@@ -5896,7 +5841,7 @@ class PaymentLedger
         }
 
         $unbooked = self::reservationRead(orderId: $orderId);
-        $blocked = self::unbookedRefusal(unbooked: $unbooked);
+        $blocked = self::blockRefusal(orderId: $orderId, unbooked: $unbooked);
 
         if ($blocked !== null) {
             return ['refused' => ['outcome' => self::OUTCOME_BLOCKED, 'reason' => $blocked]];
@@ -9645,7 +9590,9 @@ class PaymentLedger
     }
 
     /**
-     * Why an order may not be deleted for its refunds, or null: a refund row of it that is not settled
+     * Why an order may not be deleted for its undecided disputes or its refunds, or null. A dispute in inquiry, open
+     * or under review is a case the bank has not decided: deleting the order would lose its record. A refund row of
+     * it that is not settled
      * (pending or authorized: a gateway's request in flight, a provider refund held, one whose money the
      * provider moved and the books do not hold yet, a refund typed and not settled) reserves its amount, and
      * deleting the order would discard it with no trace. Asked by every order delete path (the order model:
@@ -9662,6 +9609,13 @@ class PaymentLedger
     {
         if ($orderId <= 0) {
             return null;
+        }
+
+        // A case the bank has not decided is still running: the order is its record.
+        $undecided = self::disputeIds(orderId: $orderId, undecidedOnly: true);
+
+        if ($undecided !== []) {
+            return Text::sprintf('COM_ALFA_ORDER_DELETE_DISPUTE_UNDECIDED', $orderId, '#' . implode(', #', $undecided));
         }
 
         $db = self::db();
@@ -9931,26 +9885,30 @@ class PaymentLedger
     }
 
     /**
-     * Record that a booked refund, or a chargeback, did not stand at the provider.
+     * Record that a booked refund did not stand at the provider, or book the return of a chargeback for its dispute.
      *
-     * Records a fact the provider has already stated and calls no gateway. The
-     * refund or chargeback row is never edited: a new 'reversal' row names it.
+     * Records a fact and calls no gateway. The refund or chargeback row is never edited: a new 'reversal' row names it.
+     * A refund's reversal is the provider's word. A chargeback is reversed only by the dispute that booked it (the
+     * option 'dispute', its case's id), when the bank's decision moves from a loss to a win or the disputed amount is
+     * lowered after a loss; nothing else reverses a chargeback.
      *
      * When a reversed refund leaves its payment with money held again, the
      * payment's bookkeeping is corrected (refunded -> completed) and nothing
      * else moves: no status_on_completed, no order status, no email, no
      * entitlement.
      *
-     * Every answer is an outcome, except a failure that ended the transaction
-     * this was called inside: that one is rethrown to its caller.
+     * The row, its timeline entry and a refund reversal's notice commit together or not at all. Every answer is an
+     * outcome, except a failure that ended the transaction this was called inside: that one is rethrown to its caller.
      *
      * @param int $rowId The refund or chargeback row that did not stand.
      * @param Money|null $amount What did not stand, in the order's currency; null
      *                           means everything not yet reversed.
      * @param array $options 'transaction_id' (required: the provider's reference
-     *                       for this event, stored whole), 'reason' (stored in
-     *                       the note), 'gateway_response', 'processed_at' (UTC
-     *                       Y-m-d H:i:s; absent means now).
+     *                       for this event, stored whole; for a chargeback, core's
+     *                       reference of its dispute's booking), 'dispute' (a
+     *                       chargeback only, required: the case that booked it),
+     *                       'reason' (stored in the note), 'gateway_response',
+     *                       'processed_at' (UTC Y-m-d H:i:s; absent means now).
      *
      * @return array{outcome:string,row_id:int,reason:string,amount:float,reopened:bool}
      *                                                                                   OUTCOME_RECORDED, OUTCOME_DUPLICATE, OUTCOME_NOTHING_LEFT,
@@ -9999,6 +9957,14 @@ class PaymentLedger
                     $rowId,
                     $kind !== '' ? $kind : '?',
                 ));
+            }
+
+            // A chargeback is reversed by its own dispute only; a refund by no dispute. A row's link to its
+            // dispute never changes, so it is read before the lock.
+            $disputeId = (int) ($options['dispute'] ?? 0);
+
+            if (($notItsCase = self::disputeLinkRefusal(row: $target, disputeId: $disputeId)) !== null) {
+                return self::factResult(self::OUTCOME_REFUSED, reason: $notItsCase);
             }
 
             // 3. The provider's reference.
@@ -10154,7 +10120,7 @@ class PaymentLedger
                     'id_reversed_payment' => $rowId,
                     'id_payment_method' => (int) ($target->id_payment_method ?? 0),
                     'transaction_id' => $reference,
-                ] + self::factOptions($options);
+                ] + ($disputeId > 0 ? ['id_dispute' => $disputeId] : []) + self::factOptions($options);
 
                 $newId = self::createLocked($data, $orderId, 0.0, ledgerFact: true);
 
@@ -10173,31 +10139,18 @@ class PaymentLedger
                 $p = self::reopenIfUncovered(db: $db, paymentId: $paymentId, orderId: $orderId);
                 $reopened = $p !== null;
 
-                // The fact's timeline entry and notice, and the reopened payment's edit entry, commit with the fact.
-                // Each is best-effort: only a failure that ended the transaction reaches the catch.
+                // The fact's timeline entry and notice, and the reopened payment's edit entry, commit with the fact or
+                // not at all: a failure reaches the catch below and nothing is written.
                 self::afterFact(newId: (int) $newId, orderId: $orderId, amount: $amount, targetId: $rowId, kind: $kind === self::TYPE_REFUND ? 'refund_reversed' : 'chargeback_reversed');
 
                 if ($reopened) {
-                    try {
-                        // A bookkeeping flip owes no single: only its edit entry.
-                        self::logEditedRow(
-                            id:          $paymentId,
-                            orderId:     $orderId,
-                            oldSnapshot: $p,
-                            data:        ['id_order' => $orderId, 'transaction_status' => self::STATUS_COMPLETED],
-                        );
-                    } catch (Throwable $e) {
-                        if (TransactionState::endedBy(self::db(), $e)) {
-                            throw $e;
-                        }
-
-                        self::ensureLogger();
-                        Log::add(
-                            sprintf('recordReversal(): row #%d is recorded, but the edit entry of payment #%d failed: %s', (int) $newId, $paymentId, ErrorText::of($e)),
-                            Log::ERROR,
-                            'com_alfa.payments',
-                        );
-                    }
+                    // A bookkeeping flip owes no single: only its edit entry.
+                    self::logEditedRow(
+                        id:          $paymentId,
+                        orderId:     $orderId,
+                        oldSnapshot: $p,
+                        data:        ['id_order' => $orderId, 'transaction_status' => self::STATUS_COMPLETED],
+                    );
                 }
             } catch (Throwable $e) {
                 TransactionState::rollBackLevel($db, $e);
@@ -10219,21 +10172,25 @@ class PaymentLedger
     }
 
     /**
-     * Record money the customer's bank took back from a collected gateway payment.
+     * Book money the customer's bank took back from a collected gateway payment: a dispute's definitive loss.
      *
-     * An orthogonal fact: the payment row is not flipped and no order status,
-     * entitlement or email moves. The amount is recorded as the provider reports it.
+     * Booked by the dispute that decided it, and by nothing else (the option 'dispute', its case's id, required; the
+     * case names this payment): at a lost decision, and by difference when the disputed amount is raised after one. An
+     * opened dispute or money the provider holds while the bank decides is never booked here: the payment stays paid
+     * until the decision. The payment row is not flipped and no order status, entitlement or e-mail moves. The row and
+     * its timeline entry commit together or not at all; the dispute's notice tells staff.
      *
-     * Every answer is an outcome, except a failure that ended the transaction
-     * this was called inside: that one is rethrown to its caller. A won
-     * dispute is recorded with {@see self::recordReversal()} against the
-     * chargeback row.
+     * Every answer is an outcome, except a failure that ended the transaction this was called inside: that one is
+     * rethrown to its caller. A decision that turns into a win books {@see self::recordReversal()} on the chargeback
+     * row, for the same case.
      *
-     * @param int $paymentId The completed gateway payment.
-     * @param Money $amount What the bank took back, in the order's currency.
+     * @param int $paymentId The completed or refunded gateway payment the dispute names.
+     * @param Money $amount What the decision books, in the order's currency.
      *                      Never capped: a bank can take back a whole payment
-     *                      after a partial refund.
-     * @param array $options As {@see self::recordReversal()}.
+     *                      after a partial refund, or after a full one.
+     * @param array $options 'dispute' (required: the case's id), 'transaction_id' (required: core's reference of the
+     *                       booking), 'reason' (stored in the note), 'gateway_response', 'processed_at' (UTC
+     *                       Y-m-d H:i:s; absent means now).
      *
      * @return array{outcome:string,row_id:int,reason:string,amount:float,reopened:bool}
      *                                                                                   As recordReversal(); 'reopened' is always false.
@@ -10277,9 +10234,24 @@ class PaymentLedger
                 ));
             }
 
-            // 2. The provider's reference.
+            // Booked by its dispute only, a dispute of this payment. A case's payment never changes, so it is read
+            // before the lock.
+            $disputeId = (int) ($options['dispute'] ?? 0);
+
+            if ($disputeId <= 0) {
+                return self::factResult(self::OUTCOME_REFUSED, reason: sprintf(
+                    "payment #%d: a chargeback is booked by its dispute's decision; tell core the dispute's state with dispute()",
+                    $paymentId,
+                ));
+            }
+
+            if (self::disputedPaymentOf(disputeId: $disputeId) !== $paymentId) {
+                return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('dispute #%d is not a dispute of payment #%d', $disputeId, $paymentId));
+            }
+
+            // 2. The booking's reference.
             if ($reference === '') {
-                return self::factResult(self::OUTCOME_REFUSED, reason: "a chargeback must carry the provider's reference");
+                return self::factResult(self::OUTCOME_REFUSED, reason: 'a chargeback must carry its reference');
             }
 
             // 3. One event, one row.
@@ -10294,11 +10266,12 @@ class PaymentLedger
                 ));
             }
 
-            // 4. Against a completed payment only.
+            // 4. Against a collected payment only: completed, or refunded (a bank may take back a payment the shop
+            // already returned, and the order then owes that second return).
             $status = (string) ($payment->transaction_status ?? '');
 
-            if ($status !== self::STATUS_COMPLETED) {
-                return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('payment #%d is %s; only a completed payment can be charged back', $paymentId, $status));
+            if (!\in_array($status, [self::STATUS_COMPLETED, self::STATUS_REFUNDED], true)) {
+                return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('payment #%d is %s; only a completed or refunded payment can be charged back', $paymentId, $status));
             }
 
             // 5. No bank stands behind wallet money.
@@ -10367,10 +10340,10 @@ class PaymentLedger
                 }
 
                 // Check 4 again, under the lock.
-                if ($status !== self::STATUS_COMPLETED) {
+                if (!\in_array($status, [self::STATUS_COMPLETED, self::STATUS_REFUNDED], true)) {
                     TransactionState::rollBackLevel($db);
 
-                    return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('payment #%d is %s; only a completed payment can be charged back', $paymentId, $status));
+                    return self::factResult(self::OUTCOME_REFUSED, reason: sprintf('payment #%d is %s; only a completed or refunded payment can be charged back', $paymentId, $status));
                 }
 
                 // Check 5 again, under the lock.
@@ -10387,6 +10360,7 @@ class PaymentLedger
                     'transaction_status' => self::STATUS_COMPLETED,
                     'amount' => $amount,
                     'id_refunded_payment' => $paymentId,
+                    'id_dispute' => $disputeId,
                     'id_payment_method' => (int) ($payment->id_payment_method ?? 0),
                     'transaction_id' => $reference,
                 ] + self::factOptions($options);
@@ -10399,7 +10373,7 @@ class PaymentLedger
                     return self::factResult(self::OUTCOME_FAILED, reason: 'the chargeback row was rejected by the ledger');
                 }
 
-                // No flip, no side effects, no Transition: the timeline and the notice only, committed with the fact.
+                // No flip, no side effects, no Transition: the timeline entry only, committed with the fact.
                 self::afterFact(newId: (int) $newId, orderId: $orderId, amount: $amount, targetId: $paymentId, kind: 'charged_back');
             } catch (Throwable $e) {
                 TransactionState::rollBackLevel($db, $e);
@@ -10535,44 +10509,24 @@ class PaymentLedger
     }
 
     /**
-     * The timeline entry and the admin notice of a fact row, written inside the
-     * transaction that commits it.
+     * The timeline entry of a fact row and, for a refund reversal, its admin notice, written inside the transaction
+     * that commits the row. A failure of either reaches the verb, which rolls back: the fact, its entry and its notice
+     * commit together or not at all. A chargeback and a chargeback's reversal are told by their dispute's notice.
      *
-     * Each runs on its own: a failure is logged ERROR with the row id and never
-     * changes the verb's answer, except one that ended the transaction, which
-     * reaches the verb with nothing written.
-     *
-     * @param int $newId The fact row just committed.
+     * @param int $newId The fact row just written.
      * @param int $orderId Its order.
      * @param Money $amount Its amount.
      * @param int $targetId The refund, chargeback or payment it names.
      * @param string $kind 'refund_reversed', 'chargeback_reversed' or 'charged_back'.
      *
-     *
      * @since  2.0.0
      */
     private static function afterFact(int $newId, int $orderId, Money $amount, int $targetId, string $kind): void
     {
-        try {
-            self::logFactRow($newId, $orderId);
-        } catch (Throwable $e) {
-            if (TransactionState::endedBy(self::db(), $e)) {
-                throw $e;
-            }
+        self::logFactRow($newId, $orderId);
 
-            self::ensureLogger();
-            Log::add(sprintf('fact row #%d is recorded, but its timeline entry failed: %s', $newId, ErrorText::of($e)), Log::ERROR, 'com_alfa.payments');
-        }
-
-        try {
-            self::notifyFact(kind: $kind, newId: $newId, orderId: $orderId, amount: $amount, targetId: $targetId);
-        } catch (Throwable $e) {
-            if (TransactionState::endedBy(self::db(), $e)) {
-                throw $e;
-            }
-
-            self::ensureLogger();
-            Log::add(sprintf('fact row #%d is recorded, but its notification failed: %s', $newId, ErrorText::of($e)), Log::ERROR, 'com_alfa.payments');
+        if ($kind === 'refund_reversed') {
+            self::notifyFact(newId: $newId, orderId: $orderId, amount: $amount, targetId: $targetId);
         }
     }
 
@@ -10672,8 +10626,8 @@ class PaymentLedger
     /**
      * Write the timeline entry for a reversal or chargeback row.
      *
-     * Called inside the transaction that commits the row, as logCreatedRow() is.
-     * The amount is shown at the order's frozen scale.
+     * Called inside the transaction that commits the row; a failure to write it throws, so the row is not written
+     * either. The amount is shown at the order's frozen scale.
      *
      * @param int $rowId Fact row PK.
      * @param int $orderId Order PK.
@@ -10694,18 +10648,18 @@ class PaymentLedger
 
         if ((string) $row->payment_type === self::TYPE_CHARGEBACK) {
             $event = 'payment.charged_back';
-            $summary = sprintf('Charged back: %s - %s (payment #%d)', $method, $amount, (int) $row->id_refunded_payment);
+            $summary = sprintf('Charged back: %s - %s (payment #%d, dispute #%d)', $method, $amount, (int) $row->id_refunded_payment, (int) $row->id_dispute);
         } else {
             $targetId = (int) $row->id_reversed_payment;
             $target = self::getRaw($targetId);
             $chargeback = $target !== null && (string) $target->payment_type === self::TYPE_CHARGEBACK;
             $event = $chargeback ? 'payment.chargeback_reversed' : 'payment.refund_reversed';
             $summary = $chargeback
-                ? sprintf('Chargeback reversed: %s - %s (chargeback #%d)', $method, $amount, $targetId)
+                ? sprintf('Chargeback reversed: %s - %s (chargeback #%d, dispute #%d)', $method, $amount, $targetId, (int) $row->id_dispute)
                 : sprintf('Refund reversed: %s - %s (refund #%d)', $method, $amount, $targetId);
         }
 
-        OrderModel::logOrderActivity(
+        OrderModel::logOrderActivityStrict(
             orderId:  $orderId,
             event:    $event,
             summary:  $summary,
@@ -10715,6 +10669,7 @@ class PaymentLedger
                 'transaction_id' => (string) ($row->transaction_id ?? ''),
                 'id_reversed_payment' => $row->id_reversed_payment ?? null,
                 'id_refunded_payment' => $row->id_refunded_payment ?? null,
+                'id_dispute' => $row->id_dispute ?? null,
                 'note' => $row->note ?? null,
             ],
             entityId: $rowId,
@@ -10722,35 +10677,25 @@ class PaymentLedger
     }
 
     /**
-     * Raise the admin notification for a committed fact row.
+     * Raise the admin notification for a refund reversal, inside the transaction that commits it: the notice joins the
+     * notice journal and is written at the commit, or not at all.
      *
-     * Advisory, like a transition's notices: the caller wraps it and a failure
-     * never changes the verb's answer.
-     *
-     * @param string $kind 'refund_reversed', 'chargeback_reversed' or 'charged_back'.
-     * @param int $newId The fact row.
+     * @param int $newId The reversal row.
      * @param int $orderId Its order.
      * @param Money $amount Its amount.
-     * @param int $targetId The refund, chargeback or payment it names.
-     *
+     * @param int $targetId The refund it names.
      *
      * @since  2.0.0
      */
-    private static function notifyFact(string $kind, int $newId, int $orderId, Money $amount, int $targetId): void
+    private static function notifyFact(int $newId, int $orderId, Money $amount, int $targetId): void
     {
-        [$key, $titleKey, $messageKey, $severity] = match ($kind) {
-            'refund_reversed' => ['payments.refund.reversed.' . $newId, 'COM_ALFA_NOTIFY_REFUND_REVERSED_TITLE', 'COM_ALFA_NOTIFY_REFUND_REVERSED_MSG', 'danger'],
-            'chargeback_reversed' => ['payments.chargeback.reversed.' . $newId, 'COM_ALFA_NOTIFY_CHARGEBACK_REVERSED_TITLE', 'COM_ALFA_NOTIFY_CHARGEBACK_REVERSED_MSG', 'success'],
-            default => ['payments.chargeback.' . $newId, 'COM_ALFA_NOTIFY_CHARGEBACK_TITLE', 'COM_ALFA_NOTIFY_CHARGEBACK_MSG', 'danger'],
-        };
-
         NotificationHelper::push(
-            dedupKey: $key,
-            title:    NotificationText::of($titleKey, $orderId),
+            dedupKey: 'payments.refund.reversed.' . $newId,
+            title:    NotificationText::of('COM_ALFA_NOTIFY_REFUND_REVERSED_TITLE', $orderId),
             options:  [
-                'severity' => $severity,
+                'severity' => 'danger',
                 'group' => NotificationHelper::GROUP_PAYMENTS,
-                'message' => NotificationText::of($messageKey, $amount->format(), $targetId),
+                'message' => NotificationText::of('COM_ALFA_NOTIFY_REFUND_REVERSED_MSG', $amount->format(), $targetId),
                 'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
                 'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
                 'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
@@ -11338,7 +11283,7 @@ class PaymentLedger
     }
 
     /**
-     * Chargebacks recorded against one payment, net of their reversals (won disputes).
+     * Chargebacks booked against one payment by its lost disputes, net of their reversals.
      *
      * @param int $paymentId The payment PK
      *
@@ -11519,14 +11464,6 @@ class PaymentLedger
 
     /** @var bool The current refundPayment() call's row write threw (a real failure to write: nothing is kept). */
     private static bool $writeThrew = false;
-
-    /**
-     * The bound on the wait for an order's lock inside {@see self::withLockWait()}, in seconds; null outside it, where
-     * the lock waits the server's own limit.
-     *
-     * @since  2.3.0
-     */
-    private static ?int $lockWait = null;
 
     /**
      * The refusal create() kept for the refund start it last decided under the
@@ -13540,6 +13477,19 @@ class PaymentLedger
             return false;
         }
 
+        // A disputed payment is the record of its case, decided or not.
+        $disputes = $payment && (string) ($payment->payment_type ?? '') === self::TYPE_PAYMENT ? self::disputeIds(paymentId: $id) : [];
+
+        if ($disputes !== []) {
+            self::warn(sprintf(
+                'delete(): payment #%d is named by dispute #%s; a disputed payment is the record of its case and cannot be deleted',
+                $id,
+                implode(', #', $disputes),
+            ));
+
+            return false;
+        }
+
         // A payment a live refund names (settled, reserved, held or unreconciled) is history for that refund,
         // whatever the payment's own status (staff may have set it pending or cancelled while a provider refund
         // was asked): deleted, the refund would name nothing, its report could not be recorded or resolved any
@@ -14206,6 +14156,11 @@ class PaymentLedger
      * reports none. A gateway whose answer cannot be read refuses too: nothing
      * then shows that the books hold every refund it reported.
      *
+     * The block holds too while the order has an undecided chargeback (a dispute
+     * open or under review): a refund then could return the money the bank may
+     * give the customer as well. An inquiry does not hold it; the decision
+     * lifts it.
+     *
      * The one place this rule is decided. Asked by the order screen and the
      * action page for every action declared as starting a refund
      * (PluginAction::startsRefund()), by {@see self::refundPayment()} for a
@@ -14226,7 +14181,7 @@ class PaymentLedger
      */
     public static function refundStartRefusal(int $orderId): ?string
     {
-        return self::unbookedRefusal(unbooked: self::unbookedProviderRefunds(orderId: $orderId));
+        return self::blockRefusal(orderId: $orderId, unbooked: self::unbookedProviderRefunds(orderId: $orderId));
     }
 
     /**
@@ -14668,7 +14623,7 @@ class PaymentLedger
     private static function startRefusalLocked(int $orderId, Money $requested, Money $settled, string $pool, int $paymentId = 0, int $excludeRow = 0): ?array
     {
         $unbooked = self::reservationRead(orderId: $orderId, excludeRow: $excludeRow);
-        $blocked = self::unbookedRefusal(unbooked: $unbooked);
+        $blocked = self::blockRefusal(orderId: $orderId, unbooked: $unbooked);
 
         if ($blocked !== null) {
             return ['outcome' => self::OUTCOME_BLOCKED, 'reason' => $blocked];
@@ -16577,6 +16532,153 @@ class PaymentLedger
         $status = (string) ($data['transaction_status'] ?? $stored->transaction_status ?? '');
 
         return !$countedBefore && $type === self::TYPE_REFUND && !\in_array($status, $notCounted, true);
+    }
+
+    /**
+     * The refund block's reason for an order, or null: its undecided chargebacks first, then the refunds its providers
+     * report and the books do not hold ({@see self::unbookedRefusal()}).
+     *
+     * @param int $orderId The order.
+     * @param array $unbooked The one read of the gateways' answers ({@see self::unbookedProviderRefunds()}).
+     *
+     * @since  2.2.2
+     */
+    private static function blockRefusal(int $orderId, array $unbooked): ?string
+    {
+        $reasons = array_values(array_filter([self::disputeBlockRefusal(orderId: $orderId), self::unbookedRefusal(unbooked: $unbooked)]));
+
+        return $reasons === [] ? null : implode('; ', $reasons);
+    }
+
+    /**
+     * Why a refund may not start while the order has an undecided chargeback, or null: a dispute open or under review
+     * may still give the customer the money back through the bank, and a refund now would return it twice.
+     *
+     * @param int $orderId The order.
+     *
+     * @return string|null The reason, translated, naming each such dispute with its amount and deadline.
+     *
+     * @since  2.2.2
+     */
+    private static function disputeBlockRefusal(int $orderId): ?string
+    {
+        if ($orderId <= 0) {
+            return null;
+        }
+
+        $db = self::db();
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'amount', 'stated_amount', 'stated_currency', 'evidence_due_by']))
+                ->from($db->quoteName(self::DISPUTES_TABLE))
+                ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                ->whereIn($db->quoteName('state'), self::DISPUTE_BLOCKING_STATES, ParameterType::STRING)
+                ->order($db->quoteName('id') . ' ASC'),
+        )->loadObjectList() ?: [];
+
+        if ($rows === []) {
+            return null;
+        }
+
+        $items = array_map(static function (object $row) use ($orderId): string {
+            $amount = $row->amount !== null
+                ? self::money($row->amount, $orderId)->format()
+                : PublishedDecimal::decimal((string) $row->stated_amount) . ' ' . (string) $row->stated_currency;
+
+            return $row->evidence_due_by !== null
+                ? Text::sprintf('COM_ALFA_REFUSE_DISPUTE_ITEM_DUE', (int) $row->id, $amount, HTMLHelper::_('date', (string) $row->evidence_due_by, Text::_('DATE_FORMAT_LC3'), null))
+                : Text::sprintf('COM_ALFA_REFUSE_DISPUTE_ITEM', (int) $row->id, $amount);
+        }, $rows);
+
+        return Text::sprintf('COM_ALFA_REFUSE_DISPUTE_UNDECIDED', $orderId, implode('; ', $items));
+    }
+
+    /**
+     * Why a reversal may not name its target for the dispute it was asked for, or null: a chargeback is reversed by
+     * its own dispute only, a refund by none.
+     *
+     * @param object $row The refund or chargeback row (id, payment_type, id_dispute).
+     * @param int $disputeId The dispute the call names; 0 for none.
+     *
+     * @since  2.2.2
+     */
+    private static function disputeLinkRefusal(object $row, int $disputeId): ?string
+    {
+        $rowId = (int) ($row->id ?? 0);
+
+        if ((string) ($row->payment_type ?? '') !== self::TYPE_CHARGEBACK) {
+            return $disputeId > 0 ? sprintf('refund #%d is not a dispute\'s booking: a dispute reverses only its own chargebacks', $rowId) : null;
+        }
+
+        if ($disputeId <= 0) {
+            return sprintf("chargeback #%d follows its dispute: tell core the dispute's state with dispute(), which books the return of the money", $rowId);
+        }
+
+        $own = (int) ($row->id_dispute ?? 0);
+
+        return $own === $disputeId ? null : sprintf('chargeback #%d is a booking of dispute #%d, not of dispute #%d', $rowId, $own, $disputeId);
+    }
+
+    /**
+     * The payment a dispute names, or 0 when there is no such dispute.
+     *
+     * @param int $disputeId The dispute.
+     *
+     * @since  2.2.2
+     */
+    private static function disputedPaymentOf(int $disputeId): int
+    {
+        $db = self::db();
+
+        return (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id_payment'))
+                ->from($db->quoteName(self::DISPUTES_TABLE))
+                ->where($db->quoteName('id') . ' = ' . $disputeId),
+        )->loadResult();
+    }
+
+    /**
+     * The disputes that name a payment, by id, oldest first; with $undecidedOnly, those the bank has not decided.
+     *
+     * @param int $paymentId The payment; with $orderId, 0 to read the order's.
+     * @param int $orderId The order whose disputes are read, 0 when the payment says.
+     * @param bool $undecidedOnly Only inquiries, open cases and cases under review.
+     *
+     * @return list<int>
+     *
+     * @since  2.2.2
+     */
+    private static function disputeIds(int $paymentId = 0, int $orderId = 0, bool $undecidedOnly = false): array
+    {
+        if ($paymentId <= 0 && $orderId <= 0) {
+            return [];
+        }
+
+        $db = self::db();
+        $query = $db->getQuery(true)
+            ->select($db->quoteName('id'))
+            ->from($db->quoteName(self::DISPUTES_TABLE))
+            ->where($db->quoteName($paymentId > 0 ? 'id_payment' : 'id_order') . ' = ' . ($paymentId > 0 ? $paymentId : $orderId))
+            ->order($db->quoteName('id') . ' ASC');
+
+        if ($undecidedOnly) {
+            $query->whereIn($db->quoteName('state'), self::DISPUTE_UNDECIDED_STATES, ParameterType::STRING);
+        }
+
+        return array_map('intval', $db->setQuery($query)->loadColumn() ?: []);
+    }
+
+    /**
+     * How many disputes name a payment.
+     *
+     * @param int $paymentId The payment.
+     *
+     * @since  2.2.2
+     */
+    private static function disputesNaming(int $paymentId): int
+    {
+        return \count(self::disputeIds(paymentId: $paymentId));
     }
 
     /**

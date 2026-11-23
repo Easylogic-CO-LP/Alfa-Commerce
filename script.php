@@ -321,6 +321,9 @@ class com_alfaInstallerScript extends InstallerScript
             'result' => ["mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise'", 'owner'],
             'cancel_requested' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: cancelled while running; the row stays running until its step has ended, then cancelled'", 'result'],
         ],
+        '#__alfa_order_payments' => [
+            'id_dispute' => ["int(11) DEFAULT NULL COMMENT 'Chargeback or reversal: the dispute that booked this row; written once, by the ledger'", 'id_reversed_payment'],
+        ],
     ];
 
     /**

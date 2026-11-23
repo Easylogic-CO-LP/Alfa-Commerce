@@ -12,8 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
+use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
@@ -37,6 +39,8 @@ use Joomla\Database\DatabaseDriver;
  *   prices_state, the state of the unit's own price rows that a price write sends back ({@see PricesState}).
  * - order.created: the order and the status it opened in.
  * - order.status: the order, the status it left and the status it entered.
+ * - order.dispute: the order and its dispute: its id and the state the change moved it to, with its last decision,
+ *   amount in the order's currency and when it was decided as they stand when the batch leaves.
  *
  * @since  2.2.2
  */
@@ -83,6 +87,7 @@ final class OutboundValues
         $prices = $priceUnits === [] ? [] : self::prices(db: $db, units: $priceUnits);
         $states = $priceUnits === [] ? [] : PricesState::ofUnits(units: $priceUnits);
         $statuses = $orders === [] ? [] : self::orderStatuses(db: $db, orderIds: array_keys($orders));
+        $disputes = self::disputes(db: $db, rows: $rows);
         $out = [];
 
         foreach ($rows as $row) {
@@ -111,6 +116,7 @@ final class OutboundValues
                     'order_id' => $itemId,
                     'status_id' => $statuses[$itemId] ?? null,
                 ],
+                OutboundTopics::ORDER_DISPUTE => $change + ['order_id' => $itemId, 'dispute' => self::disputeMove(payload: (string) $row->payload, disputes: $disputes)],
                 default => $change + ['order_id' => $itemId] + self::statusMove(payload: (string) $row->payload),
             };
         }
@@ -328,6 +334,66 @@ final class OutboundValues
         return [
             'from_status_id' => isset($parts[0]) && ctype_digit($parts[0]) ? (int) $parts[0] : null,
             'to_status_id' => isset($parts[1]) && ctype_digit($parts[1]) ? (int) $parts[1] : null,
+        ];
+    }
+
+    /**
+     * The disputes the order.dispute rows of a batch name, read now, by id.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param list<object> $rows The batch's rows.
+     *
+     * @return array<int, object>
+     *
+     * @since  2.2.2
+     */
+    private static function disputes(DatabaseDriver $db, array $rows): array
+    {
+        $ids = [];
+
+        foreach ($rows as $row) {
+            if ((string) $row->topic === OutboundTopics::ORDER_DISPUTE && ctype_digit(strstr((string) $row->payload, ':', true) ?: '')) {
+                $ids[] = (int) strstr((string) $row->payload, ':', true);
+            }
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'id_order', 'outcome', 'amount', 'id_currency', 'currency_scale', 'decided_at']))
+                ->from($db->quoteName('#__alfa_order_disputes'))
+                ->whereIn($db->quoteName('id'), array_values(array_unique($ids))),
+        )->loadObjectList('id') ?: [];
+    }
+
+    /**
+     * An order.dispute row's dispute: its id and the state its payload says it moved to, with what stands now (its last
+     * decision, its amount in the order's currency, the currency and when it was decided); null values for a dispute
+     * that no longer exists.
+     *
+     * @param string $payload The row's payload, id:state.
+     * @param array<int, object> $disputes The batch's disputes, by id.
+     *
+     * @return array{id: int|null, state: string|null, outcome: string|null, amount: string|null, currency: string|null, decided_at: string|null}
+     *
+     * @since  2.2.2
+     */
+    private static function disputeMove(string $payload, array $disputes): array
+    {
+        [$id, $state] = array_pad(explode(':', $payload, 2), 2, '');
+        $record = ctype_digit($id) ? ($disputes[(int) $id] ?? null) : null;
+        $currency = $record === null ? null : OrderCurrency::find(orderId: (int) $record->id_order);
+
+        return [
+            'id' => ctype_digit($id) ? (int) $id : null,
+            'state' => $state !== '' ? $state : null,
+            'outcome' => $record?->outcome,
+            'amount' => $record === null || $record->amount === null || $currency === null ? null : PublishedDecimal::money(money: Money::of((string) $record->amount, $currency)),
+            'currency' => $currency?->getCode(),
+            'decided_at' => $record?->decided_at,
         ];
     }
 

@@ -13,7 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
 
 /**
  * The changes the shop tells a consumer of: a unit's available stock, a unit's selling price, an order placed, an
- * order's status. A unit is a product without combinations, or one combination of a product.
+ * order's status, an order's card dispute. A unit is a product without combinations, or one combination of a product.
  *
  * Stock and price are merged: a unit waits once per consumer and topic, and the figure sent is the one the shop holds
  * when the notification leaves. Order changes are each told, in the order they happened.
@@ -35,6 +35,13 @@ final class OutboundTopics
     public const ORDER_STATUS = 'order.status';
 
     /**
+     * A card dispute of the order moved or changed: its row's payload is <dispute id>:<state moved to>.
+     *
+     * @since 2.2.2
+     */
+    public const ORDER_DISPUTE = 'order.dispute';
+
+    /**
      * The topic of a test sent from the Webhooks screen: never queued, never told by a change.
      *
      * @since 2.2.2
@@ -48,7 +55,16 @@ final class OutboundTopics
      *
      * @since 2.2.2
      */
-    public const ALL = [self::STOCK, self::PRICE, self::ORDER_CREATED, self::ORDER_STATUS];
+    public const ALL = [self::STOCK, self::PRICE, self::ORDER_CREATED, self::ORDER_STATUS, self::ORDER_DISPUTE];
+
+    /**
+     * The topics of an order's changes: each kept, told in the order they happened, an order's after its earlier ones.
+     *
+     * @var string[]
+     *
+     * @since 2.2.2
+     */
+    public const ORDERS = [self::ORDER_CREATED, self::ORDER_STATUS, self::ORDER_DISPUTE];
 
     /**
      * The topics whose waiting row is one a unit (the value is read when the row is sent).

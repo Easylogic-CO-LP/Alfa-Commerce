@@ -741,6 +741,8 @@ final class Runner
             Job\MediaFetchJob::NAME => Job\MediaFetchJob::class,
             // What a consumer of the shop's changes is owed, delivered.
             Job\OutboundDeliveryJob::NAME => Job\OutboundDeliveryJob::class,
+            // A card dispute's deadline, three days before it: the staff reminder.
+            Job\DisputeRemindJob::NAME => Job\DisputeRemindJob::class,
         ];
     }
 

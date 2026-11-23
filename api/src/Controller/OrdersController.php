@@ -218,6 +218,16 @@ class OrdersController extends ApiController
             $this->modelState->set('filter.email', RequestScalar::member($apiFilterInfo, 'email', 'STRING', 'filter'));
         }
 
+        // Card disputes: the orders with a dispute in a state (undecided: an inquiry, open or under review), and the
+        // orders with one to answer before a UTC time.
+        if (\array_key_exists('dispute', $apiFilterInfo)) {
+            $this->modelState->set('filter.dispute', RequestScalar::member($apiFilterInfo, 'dispute', 'CMD', 'filter'));
+        }
+
+        if (\array_key_exists('dispute_due_before', $apiFilterInfo)) {
+            $this->modelState->set('filter.dispute_due_before', RequestScalar::member($apiFilterInfo, 'dispute_due_before', 'STRING', 'filter'));
+        }
+
         // Where orders came from, and the other system's id of an order, each matched whole: the orders of one channel
         // or of one system, or the one order of a pair.
         foreach (['source', 'external_source', 'external_reference'] as $name) {

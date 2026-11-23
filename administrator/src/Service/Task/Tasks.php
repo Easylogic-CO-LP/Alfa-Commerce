@@ -19,6 +19,8 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDisputeEmail;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDisputeEvent;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocumentStock;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
@@ -1438,6 +1440,8 @@ final class Tasks
             OrderStatusEmail::NAME => OrderStatusEmail::class,
             OrderPlacementEmail::NAME => OrderPlacementEmail::class,
             OrderStatusEvent::NAME => OrderStatusEvent::class,
+            OrderDisputeEmail::NAME => OrderDisputeEmail::class,
+            OrderDisputeEvent::NAME => OrderDisputeEvent::class,
             PaymentAutomation::NAME => PaymentAutomation::class,
             ShipmentAutomation::NAME => ShipmentAutomation::class,
             PaymentRefundFlip::NAME => PaymentRefundFlip::class,
