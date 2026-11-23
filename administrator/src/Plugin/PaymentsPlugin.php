@@ -54,6 +54,8 @@
  *    $methods = $this->ownMethods();                                             // this plugin's published methods, by id
  *    $retry   = $this->failRefundAttempt($reservationId, $failedRefundId, $why); // keep the reservation for the retry
  *    $this->recordActionLog('PLG_ALFA_PAYMENTS_<YOU>_LOG_REFUND_STARTED', ['title' => '#12'], $orderId); // User Actions Log
+ *    $rowId   = $this->recordActionLogPending('PLG_ALFA_PAYMENTS_<YOU>_LOG_CLOSED', ['title' => '#12'], $orderId); // a row to take back
+ *    $gone    = $this->withdrawActionLog($rowId);                               // ...when the act it records did not stand
  *
  *  WRITES OF A BUYER'S VISIT, each answering WHY (a PaymentWriteVerdict: decide on ->kind, then ->code):
  *    $open    = $this->latestPendingPayment($orderId);                           // 0. your own open attempt first: resume, claim or close it
