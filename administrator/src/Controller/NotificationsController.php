@@ -15,7 +15,6 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
-use Alfa\Component\Alfa\Administrator\Service\Setup\CollationCheck;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageNotice;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerHealth;
@@ -84,9 +83,6 @@ class NotificationsController extends BaseController
 
         // A site language with no published content language is said here too.
         ContentLanguageNotice::sync();
-
-        // And an Alfa table an update left in another collation (raised or cleared, never converted).
-        CollationCheck::syncNotice();
 
         $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
         $this->app->sendHeaders();
