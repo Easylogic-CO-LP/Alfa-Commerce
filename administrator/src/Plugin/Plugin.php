@@ -245,8 +245,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Called during cart rendering for each active method.
      *
      * Available on $event:
-     *   $event->getRequest() -> MethodViewRequest: methodId, methodType,
-     *                          methodParams, isSelected, cartTotal (Money)
+     *   $event->getRequest() -> MethodViewRequest: ->method (the Method,
+     *                          entire) and ->cart (the Cart, entire)
      *   $event->setLayout('default_cart_view')   -> Layout file in tmpl/
      *   $event->setLayoutData([...])             -> Data for the layout
      *
