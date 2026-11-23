@@ -560,6 +560,20 @@ class AlfaHelper
     }
 
     /**
+     * The zone a list's date bounds are written in, as its state says: 'UTC', which the REST API's list routes
+     * set (filter.date_zone), is UTC; anything else is the shop's time zone, as the screens' calendars hold them (null,
+     * which {@see self::applyDateRange()} reads as the shop's).
+     *
+     * @param mixed $stated The state's filter.date_zone.
+     *
+     * @since  2.2.2
+     */
+    public static function boundsZone(mixed $stated): ?DateTimeZone
+    {
+        return $stated === 'UTC' ? new DateTimeZone('UTC') : null;
+    }
+
+    /**
      * Constrain a query to a date window held in SHOP-LOCAL time.
      *
      * The bounds travel through the UI in the shop's timezone all the way (it is what
@@ -584,11 +598,17 @@ class AlfaHelper
      * whole day, to its last second, as a preset's end is; a start that names a day is
      * its first second.
      *
+     * The REST API's bounds are UTC: its list routes hand $zone UTC, so a bound
+     * without a zone is a UTC time and a day is the UTC day, whatever the shop's time
+     * zone. A bound that states its zone ("2026-11-19T11:40:14Z", "...+02:00") is read
+     * in it, on every caller.
+     *
      * @param QueryInterface $query Query to constrain.
      * @param string $column Quoted-name-safe column, e.g. 'a.created'.
      * @param string $localStart Lower bound in shop-local time, '' for none.
      * @param string $localEnd Upper bound in shop-local time, '' for none.
      * @param bool $convertToUtc Whether the column stores UTC.
+     * @param DateTimeZone|null $zone The zone a bound without one is written in; null for the shop's.
      *
      *
      * @since   2.0.0
@@ -599,9 +619,10 @@ class AlfaHelper
         string $localStart,
         string $localEnd,
         bool $convertToUtc = true,
+        ?DateTimeZone $zone = null,
     ): void {
         $db = Factory::getContainer()->get(DatabaseInterface::class);
-        $shopTz = self::shopTimezone();
+        $shopTz = $zone ?? self::shopTimezone();
 
         $bound = static function (string $local, bool $isEnd) use ($shopTz, $convertToUtc): string {
             if ($local === '') {
@@ -812,6 +833,8 @@ class AlfaHelper
         'usergroups' => 'usergroups',
         'notification' => 'notifications',
         'notifications' => 'notifications',
+        'webhook' => 'webhooks',
+        'webhooks' => 'webhooks',
     ];
 
     /**
@@ -857,16 +880,42 @@ class AlfaHelper
      */
     public static function can(string $section, string $action, ?\Joomla\CMS\User\User $user = null): bool
     {
+        $permission = self::permissionName(section: $section, action: $action);
+
+        return $permission !== '' && self::holds(permission: $permission, user: $user);
+    }
+
+    /**
+     * The permission alfa.<section>.<action> a section's action names: the one spelling can() asks, and the
+     * one the REST controllers declare for Tools, Security. Empty when the section or the action is.
+     *
+     * @param string $section A section or any entity or screen name {@see self::PERMISSION_SECTIONS} knows.
+     * @param string $action view | create | edit | edit.state | delete, or a section's own.
+     *
+     * @since  2.2.2
+     */
+    public static function permissionName(string $section, string $action): string
+    {
         $section = self::permissionSection($section);
         $action = strtolower(trim($action));
 
-        if ($section === '' || $action === '') {
-            return false;
-        }
+        return $section === '' || $action === '' ? '' : 'alfa.' . $section . '.' . $action;
+    }
 
+    /**
+     * Whether the user holds a permission on com_alfa, named whole: alfa.items.view, alfa.tools. The check
+     * can() makes; a Super User holds every one (User::authorise()).
+     *
+     * @param string $permission The permission.
+     * @param \Joomla\CMS\User\User|null $user The user, or null for the current identity.
+     *
+     * @since  2.2.2
+     */
+    public static function holds(string $permission, ?\Joomla\CMS\User\User $user = null): bool
+    {
         $user ??= Factory::getApplication()->getIdentity();
 
-        return $user !== null && (bool) $user->authorise('alfa.' . $section . '.' . $action, 'com_alfa');
+        return $permission !== '' && $user !== null && (bool) $user->authorise($permission, 'com_alfa');
     }
 
     /**
@@ -884,7 +933,7 @@ class AlfaHelper
         'locations', 'inventorymovements', 'reservations',
         'places', 'currencies', 'taxes',
         'payments', 'shipments', 'formfields', 'formfieldgroups', 'orderstatuses',
-        'users', 'usergroups',
+        'users', 'usergroups', 'webhooks',
     ];
 
     /**
@@ -903,7 +952,7 @@ class AlfaHelper
         'location',
         'place', 'currency', 'tax',
         'payment', 'shipment', 'formfield', 'formfieldgroup', 'orderstatus',
-        'user', 'usergroup',
+        'user', 'usergroup', 'webhook',
     ];
 
     /**
@@ -994,6 +1043,7 @@ class AlfaHelper
         'itemdownloads.delete' => ['items', 'edit'],
         'item.executefieldaction' => ['items', 'edit'],
         'notifications.panel' => ['notifications', 'view'],
+        'webhook.test' => ['webhooks', 'edit'],
     ];
 
     /**

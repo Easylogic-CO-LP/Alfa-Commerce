@@ -2946,20 +2946,10 @@ class PaymentLedger
 
         $newId = (int) $data[self::PK];
 
-        // Domain rule: an order created without a payment method (admin
-        // shell orders) adopts the method of its first real payment: the
-        // order's frozen method name is the display source for email
-        // tokens and documents. Never overwrites an existing choice.
-        if (
-            !empty($data['id_payment_method'])
-            && ($data['payment_type'] ?? 'payment') === 'payment'
-            && ($data['payment_method'] ?? '') !== ''
-        ) {
-            self::adoptMethodOnOrderIfEmpty(
-                orderId:    $orderId,
-                methodId:   (int) $data['id_payment_method'],
-                methodName: (string) $data['payment_method'],
-            );
+        // The order's payment method follows its latest live payment (OrderMethods): the order's method is the
+        // display source for e-mail tokens and documents. Under the order's lock, in this write's transaction.
+        if (($data['payment_type'] ?? self::TYPE_PAYMENT) === self::TYPE_PAYMENT) {
+            OrderMethods::followPayments(orderId: $orderId);
         }
 
         // The wallet leg is settled by create(), which owns the transaction and
@@ -10715,6 +10705,10 @@ class PaymentLedger
         if (self::settlesLinkedRefund(stored: $oldSnapshot, data: $data, orderId: $orderId)) {
             self::oweRefundFlip(paymentId: (int) $oldSnapshot->id_refunded_payment, orderId: $orderId);
         }
+
+        // The order's payment method follows its latest live payment (OrderMethods): a payment cancelled, failed
+        // or moved to another method moves the order's, a bookkeeping write too, since it changes which rows are live.
+        OrderMethods::followPayments(orderId: $orderId);
     }
 
     /**
@@ -12602,10 +12596,12 @@ class PaymentLedger
      * The payment cap's refusal: REFUSAL_OPEN_ATTEMPT when the payment would fit if the order's open
      * attempts were not counted, REFUSAL_OVER_TOTAL when it would not fit even then. An open attempt is a pending payment
      * row (payment type 'payment') of the order, of any gateway, the row being written left out; an authorized row is a
-     * reservation the buyer already made and counts as held. The staff sentence is the cap's (COM_ALFA_PAYMENT_REFUSED_
-     * PAST_TOTAL) either way; the verdict's figures, for the plugin's log only: amount, total (the total the cap compared
-     * against), held (what the order holds against it, this row left out), pending (the open attempts in held) and left
-     * (total less held, never below zero).
+     * reservation the buyer already made and counts as held. The staff sentence follows the code: an open attempt names
+     * the pending payment or payments that hold what the order owes (COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPT, or
+     * COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPTS for several), a payment over the total is the cap's own sentence
+     * (COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL); the verdict's figures, for the plugin's log only: amount, total (the total
+     * the cap compared against), held (what the order holds against it, this row left out), pending (the open attempts
+     * in held) and left (total less held, never below zero).
      *
      * @param string $log The detail for the log.
      * @param int $orderId The order.
@@ -12624,14 +12620,46 @@ class PaymentLedger
         );
         $left = $total->subtract($held)->nonNegative();
         $withoutOpen = self::heldAgainstTotal($orderId, excludeId: $excludeId, plus: $amount)->subtract($pending);
+        $figures = ['amount' => $amount, 'total' => $total, 'held' => $held, 'pending' => $pending, 'left' => $left];
 
-        self::moneyRefusal(
-            log: $log,
+        if (!$pending->isPositive() || self::exceedsCap([$withoutOpen], $total, $orderId)) {
+            self::moneyRefusal(
+                log: $log,
+                orderId: $orderId,
+                key: 'COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL',
+                amounts: [$amount, $left, $total],
+                code: self::REFUSAL_OVER_TOTAL,
+                figures: $figures,
+            );
+
+            return;
+        }
+
+        // An open attempt in the way: the sentence names the pending payment, since "is owed 0.00" read wrong
+        // beside a balance the order still owes. Several pending rows are named together with their sum.
+        $db = self::db();
+        $open = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'amount']))
+                ->from($db->quoteName(self::TABLE))
+                ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                ->where($db->quoteName('payment_type') . ' = ' . $db->quote(self::TYPE_PAYMENT))
+                ->where($db->quoteName('transaction_status') . ' = ' . $db->quote(self::STATUS_PENDING))
+                ->where($db->quoteName(self::PK) . ' != ' . $excludeId)
+                ->order($db->quoteName(self::PK)),
+        )->loadObjectList() ?: [];
+        $ids = array_map(static fn (object $row): int => (int) $row->id, $open);
+        $shown = $amount->format();
+        $pendingShown = (\count($open) === 1 ? self::money((string) $open[0]->amount, $orderId)->abs() : $pending)->format();
+
+        self::refuse(
+            detail: $log,
             orderId: $orderId,
-            key: 'COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL',
-            amounts: [$amount, $left, $total],
-            code: $pending->isPositive() && !self::exceedsCap([$withoutOpen], $total, $orderId) ? self::REFUSAL_OPEN_ATTEMPT : self::REFUSAL_OVER_TOTAL,
-            figures: ['amount' => $amount, 'total' => $total, 'held' => $held, 'pending' => $pending, 'left' => $left],
+            code: self::REFUSAL_OPEN_ATTEMPT,
+            plain: static fn (string $number): string => \count($ids) === 1
+                ? Text::sprintf('COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPT', $shown, $number, $ids[0], $pendingShown)
+                : Text::sprintf('COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPTS', $shown, $number, implode(', ', $ids), $pendingShown),
+            figures: $figures,
         );
     }
 
@@ -13359,6 +13387,9 @@ class PaymentLedger
 
                 return false;
             }
+
+            // The order's payment method follows the payments that are left (OrderMethods).
+            OrderMethods::followPayments(orderId: $orderId);
 
             if ($payment) {
                 $methodName = $payment->payment_method ?? '';
@@ -16018,6 +16049,139 @@ class PaymentLedger
     }
 
     /**
+     * Move a payment to another transaction_status as staff, exactly once: the settle the REST verb and an
+     * extension make, with every rule of it here, so no door keeps one of its own.
+     *
+     * In order: a reversal or a chargeback is a provider's fact and has no status to settle; the status asked must be
+     * a payment status; refunded is never a status write (money is returned by the refund, which links it); a
+     * from_status the caller states must be the payment's own (checked before the idempotent answer, so a caller told
+     * one thing never reads success when the payment is in another); a payment already in the status asked is settled;
+     * a failed or cancelled refund brought back waits while the refund block holds and never takes what the order's
+     * pending provider refunds reserve. The write is held to the ledger's staff guard: a payment through the
+     * compare-and-set on its current status, a refund through update(), the order screen's door. processed_at is
+     * stamped on a move to completed; a transaction id and a note are written only when given.
+     *
+     * @api WRITE: settle a payment as staff (to_status, an optional expected from_status, transaction id and note); the
+     *      result says whether it is settled and, when refused, why, in one sentence.
+     *
+     * @param object $payment The payment row (PaymentLedger::get()), of the order given.
+     * @param int $orderId The order it belongs to.
+     * @param string $toStatus The status asked.
+     * @param string $fromStatus The status the caller says the payment is in; '' to state none.
+     * @param string|null $transactionId The provider's transaction id to write, or null to keep it.
+     * @param string|null $note The note to write, or null to keep it.
+     *
+     * @since  2.2.2
+     */
+    public static function staffSettle(object $payment, int $orderId, string $toStatus, string $fromStatus = '', ?string $transactionId = null, ?string $note = null): StaffSettleResult
+    {
+        // A reversal or a chargeback is a provider fact, born completed and never moved.
+        if (\in_array((string) $payment->payment_type, self::FACT_TYPES, true)) {
+            return new StaffSettleResult(
+                StaffSettleResult::FACT,
+                sprintf('payment %d is a %s recorded from the provider; it has no status to settle', (int) $payment->id, (string) $payment->payment_type),
+            );
+        }
+
+        if (!\in_array($toStatus, self::allStatuses(), true)) {
+            return new StaffSettleResult(StaffSettleResult::UNKNOWN_STATUS, 'to_status must be one of: ' . implode(', ', self::allStatuses()));
+        }
+
+        // Refunding is not a status write. Flipping the column here would drop the money out of the paid total with
+        // no linked refund row, leaving the same money refundable a second time.
+        if ($toStatus === self::STATUS_REFUNDED) {
+            return new StaffSettleResult(StaffSettleResult::REFUND_VERB, 'Use POST /orders/:id/payments/:paymentId/refund to return money');
+        }
+
+        $current = (string) $payment->transaction_status;
+
+        // The precondition is checked BEFORE the idempotent short-circuit: a caller who states from_status is asking
+        // to be told when reality disagrees, and answering success would hide exactly that.
+        if ($fromStatus !== '' && $fromStatus !== $current) {
+            return new StaffSettleResult(StaffSettleResult::STALE, sprintf('payment %d is %s, not %s', (int) $payment->id, $current, $fromStatus));
+        }
+
+        // Already there. An identical-value conditional write affects 0 rows and would read as a lost race.
+        if ($current === $toStatus) {
+            return new StaffSettleResult(StaffSettleResult::SETTLED);
+        }
+
+        // THE REFUND BLOCK. A failed or cancelled refund brought back into the books is a refund typed by staff: while
+        // a provider has reported a refund on this order that the books do not hold, it waits; and it never takes what
+        // the order's pending provider refunds reserve.
+        $refusal = self::staffRefundRefusal(stored: $payment, data: ['transaction_status' => $toStatus], orderId: $orderId)
+            ?? self::staffRefundReservedRefusal(stored: $payment, data: ['transaction_status' => $toStatus], orderId: $orderId);
+
+        if ($refusal !== null) {
+            return new StaffSettleResult(StaffSettleResult::REFUND_BLOCKED, $refusal);
+        }
+
+        $write = self::load((int) $payment->id)
+            ->asStaff()
+            ->set('transaction_status', $toStatus);
+
+        if ((string) $payment->payment_type !== self::TYPE_REFUND) {
+            $write->expectStatus($current);
+        }
+
+        // processed_at is auto-stamped only when a completed payment is CREATED; the update paths never touch it.
+        if ($toStatus === self::STATUS_COMPLETED) {
+            $write->processedAt(Factory::getDate()->toSql());
+        }
+
+        // Only when supplied: the ledger writes its data straight through, so an unconditional key would blank the
+        // stored gateway reference.
+        if ($transactionId !== null) {
+            $write->transactionId($transactionId);
+        }
+
+        if ($note !== null) {
+            $write->note($note);
+        }
+
+        // What the ledger tells about a write it refuses is queued; only what this write adds is read.
+        $app = Factory::getApplication();
+        $told = \count($app->getMessageQueue());
+
+        return match ($write->saveVerdict()) {
+            self::WRITE_OK => new StaffSettleResult(StaffSettleResult::SETTLED),
+            self::WRITE_RACED => new StaffSettleResult(
+                StaffSettleResult::RACED,
+                sprintf('Payment %d was changed by another writer; re-read and retry', (int) $payment->id),
+            ),
+            default => new StaffSettleResult(
+                StaffSettleResult::REFUSED,
+                self::queuedRefusal(app: $app, told: $told) ?: sprintf('The ledger refused the settle of payment %d; see the com_alfa.orders log', (int) $payment->id),
+            ),
+        };
+    }
+
+    /**
+     * The sentence the ledger queued about a write it just refused, as plain text: the last error queued after $told,
+     * unescaped, or '' when it queued none.
+     *
+     * One reader for every door that reports a ledger's refusal: the payments and the shipments ledgers queue theirs
+     * through LedgerSupport::warn(), and the REST order operations and the settle read them here.
+     *
+     * @param \Joomla\CMS\Application\CMSApplicationInterface $app The application.
+     * @param int $told How many messages were queued before the write.
+     *
+     * @since  2.2.2
+     */
+    public static function queuedRefusal(\Joomla\CMS\Application\CMSApplicationInterface $app, int $told): string
+    {
+        $refusal = '';
+
+        foreach (\array_slice($app->getMessageQueue(), $told) as $message) {
+            if ((string) ($message['type'] ?? '') === 'error') {
+                $refusal = html_entity_decode(strip_tags((string) ($message['message'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
+        return $refusal;
+    }
+
+    /**
      * Why a refund written by staff may not enter the books now, or null.
      *
      * While the refund block holds ({@see self::refundStartRefusal()}), no write
@@ -16443,43 +16607,4 @@ class PaymentLedger
     //  INTERNAL: Database Operations
 
     //  INTERNAL: Utilities
-
-    /**
-     * Freeze a payment method onto the order row when the order has none
-     * yet (id + snapshot name). One guarded UPDATE: an order that already
-     * carries a method name is never touched.
-     *
-     * @param int $orderId The order id.
-     * @param int $methodId The payment method id.
-     * @param string $methodName The resolved method-name snapshot.
-     *
-     *
-     * @since  1.0.0
-     */
-    private static function adoptMethodOnOrderIfEmpty(int $orderId, int $methodId, string $methodName): void
-    {
-        // Outside the try: the catch below needs a connection to ask about the transaction.
-        $db = self::db();
-
-        try {
-            $query = $db->getQuery(true)
-                ->update($db->quoteName('#__alfa_orders'))
-                ->set([
-                    $db->quoteName('id_payment_method') . ' = ' . $methodId,
-                    $db->quoteName('payment_method_name') . ' = ' . $db->quote($methodName),
-                ])
-                ->where([
-                    $db->quoteName('id') . ' = ' . $orderId,
-                    '(' . $db->quoteName('payment_method_name') . " = '' OR " . $db->quoteName('payment_method_name') . ' IS NULL)',
-                ]);
-            $db->setQuery(query: $query);
-            $db->execute();
-        } catch (Exception $e) {
-            if (TransactionState::endedBy($db, $e)) {
-                throw $e;
-            }
-
-            self::warnFailure(message: 'adoptMethodOnOrderIfEmpty(): the order\'s payment method was not filled in', failure: $e);
-        }
-    }
 }

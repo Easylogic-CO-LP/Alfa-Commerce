@@ -21,6 +21,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use libphonenumber\PhoneNumberFormat;
 use libphonenumber\PhoneNumberUtil;
 
@@ -31,7 +32,9 @@ if ($value === '') {
     return;
 }
 
-$region = (string) $fieldParams->get('default_region', 'GR');
+// The region a stored number without its country is read against: the field's Default region, else the shop's
+// default country; a stored number is E.164 and carries its own.
+$region = FieldsHelper::phoneDefaultRegion(fieldRegion: (string) $fieldParams->get('default_region', ''));
 $displayFormat = strtoupper((string) $fieldParams->get('display_format', 'INTERNATIONAL'));
 
 $href = $value;
@@ -39,7 +42,7 @@ $text = $value;
 
 try {
     $util = PhoneNumberUtil::getInstance();
-    $parsed = $util->parse($value, $region);
+    $parsed = $util->parse($value, $region !== '' ? $region : null);
 
     // tel: href is always E.164; phone diallers require it unambiguous.
     $href = $util->format($parsed, PhoneNumberFormat::E164);

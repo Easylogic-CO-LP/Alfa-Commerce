@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
 use Joomla\CMS\Document\JsonapiDocument;
+use Joomla\CMS\Document\JsonDocument;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
 
@@ -79,6 +80,10 @@ final class Dispatcher extends ComponentDispatcher
 
             if ($document instanceof JsonapiDocument) {
                 $document->setErrors([['code' => 503, 'title' => Text::_('COM_ALFA_MAINTENANCE_API')]]);
+            } elseif ($document instanceof JsonDocument) {
+                // A route of an extension that answers plain JSON: the same error, in the body the
+                // component's output becomes.
+                echo json_encode(['errors' => [['code' => 503, 'title' => Text::_('COM_ALFA_MAINTENANCE_API')]]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }
 
             return;
@@ -110,21 +115,32 @@ final class Dispatcher extends ComponentDispatcher
      * core treats an invalid list[ordering]; Content-Language then tells the
      * client which representation it actually received.
      *
+     * A request without lang, or with one the shop does not publish, reads in the
+     * shop's default content language (MultilingualHelper::getDefaultLanguageTag(),
+     * the language a create requires the names in), never in the API application's
+     * or the token account's interface language. A read in en-GB where en-GB is
+     * not a published content language would show a Greek shop's status as
+     * "Pending", the row the installation wrote in en-GB, beside translations
+     * that hold only el_gr. The error sentences keep the interface language.
+     *
      *
      * @since  2.0.0
      */
     private function applyRequestLanguage(): void
     {
         $requested = RequestScalar::string($this->input, 'lang', '');
-        $resolved = $this->resolveContentLanguage($requested);
+        $resolved = $this->resolveContentLanguage($requested)
+            ?? $this->resolveContentLanguage(MultilingualHelper::getDefaultLanguageCode());
 
-        if ($requested !== '' && $resolved !== null) {
+        if ($resolved !== null) {
             MultilingualHelper::setContentLanguage($resolved);
         }
 
         // Always advertise the language the body is actually in, so a cache,
         // a client or a log can tell two representations apart, including
-        // when an unknown tag silently fell back to the default.
+        // when an unknown tag silently fell back to the default. Only a shop
+        // that publishes no content language at all reads in the interface
+        // language.
         $this->app->setHeader(
             'Content-Language',
             $resolved ?? $this->app->getLanguage()->getTag(),

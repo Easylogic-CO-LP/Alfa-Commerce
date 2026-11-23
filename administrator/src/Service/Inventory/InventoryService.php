@@ -26,8 +26,12 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
@@ -320,6 +324,20 @@ final class InventoryService
      * @var array<string, array<string, array{itemId: int, combinationId: int, locationId: int, quantity: float}>>
      */
     private array $restoredMovements = [];
+
+    /**
+     * The products this command changed a stock verdict input of: their opening combination
+     * (#__alfa_items.opening_combination_id, the combination a listing card opens on) is decided again once the
+     * command's transaction has committed, from what is committed then ({@see self::refreshOpenings()}). A command
+     * refused before it registers its operation leaves its products here, and the next command decides them too, from
+     * what is committed: no harm.
+     *
+     * @var array<int, true>
+     */
+    private array $openingItems = [];
+
+    /** Whether this command changed every product's stock verdict (a location's state). */
+    private bool $openingAll = false;
 
     /**
      * Request memo of dedup keys KNOWN to carry no notification row, so a healthy shop
@@ -6352,9 +6370,12 @@ final class InventoryService
         ?object $facts = null,
     ): void {
         $facts ??= $this->stockRowFacts(stockId: $stockId);
+        $this->openingItems[(int) $facts->itemId] = true;
 
-        $move = function (string $table, int $rowId, float $physical, float $salable): void {
-            if (abs($physical) <= self::EPS && abs($salable) <= self::EPS) {
+        // The product's row also records when its stock last changed (CommerceChange), in the statement that moves its
+        // figures; a combination's move marks its product even when the product's own figures do not move.
+        $move = function (string $table, int $rowId, float $physical, float $salable, bool $changed = false): void {
+            if (!$changed && abs($physical) <= self::EPS && abs($salable) <= self::EPS) {
                 return;
             }
 
@@ -6362,9 +6383,11 @@ final class InventoryService
                 'UPDATE ' . $this->db->quoteName($table)
                 . ' SET ' . $this->db->quoteName('stock') . ' = COALESCE(' . $this->db->quoteName('stock') . ', 0) + ' . self::sqlNumber(value: $physical)
                 . ', ' . $this->db->quoteName('available_quantity') . ' = COALESCE(' . $this->db->quoteName('available_quantity') . ', 0) + ' . self::sqlNumber(value: $salable)
+                . ($changed ? ', ' . $this->db->quoteName(CommerceChange::COLUMN) . ' = ' . $this->db->quote(CommerceChange::now()) : '')
                 . ' WHERE ' . $this->db->quoteName('id') . ' = ' . $rowId,
             )->execute();
         };
+        $moved = static fn (float ...$deltas): bool => array_filter($deltas, static fn (float $delta): bool => abs($delta) > self::EPS) !== [];
 
         if ($facts->combinationId > 0) {
             if (!$facts->combinationExists) {
@@ -6372,7 +6395,8 @@ final class InventoryService
             }
 
             $move('#__alfa_item_combinations', $facts->combinationId, $unitPhysicalDelta, $unitSalableDelta);
-            $move('#__alfa_items', $facts->itemId, $parentPhysicalDelta, $parentSalableDelta);
+            $move('#__alfa_items', $facts->itemId, $parentPhysicalDelta, $parentSalableDelta, $moved($unitPhysicalDelta, $unitSalableDelta, $parentPhysicalDelta, $parentSalableDelta));
+            $this->tellStock(itemId: (int) $facts->itemId, combinationId: (int) $facts->combinationId, salableDelta: $unitSalableDelta);
 
             return;
         }
@@ -6381,7 +6405,25 @@ final class InventoryService
             return;
         }
 
-        $move('#__alfa_items', $facts->itemId, $unitPhysicalDelta, $unitSalableDelta);
+        $move('#__alfa_items', $facts->itemId, $unitPhysicalDelta, $unitSalableDelta, $moved($unitPhysicalDelta, $unitSalableDelta));
+        $this->tellStock(itemId: (int) $facts->itemId, combinationId: 0, salableDelta: $unitSalableDelta);
+    }
+
+    /**
+     * Owe the consumers of the shop's stock changes the unit whose available quantity moved, in the change's own
+     * transaction ({@see OutboundFeed::record()}): what a sale, a return or an adjustment leaves for sale is told.
+     *
+     * @param int $itemId The product.
+     * @param int $combinationId The combination; 0 for a product without combinations.
+     * @param float $salableDelta How far the unit's available quantity moved.
+     *
+     * @since  2.2.2
+     */
+    private function tellStock(int $itemId, int $combinationId, float $salableDelta): void
+    {
+        if (abs($salableDelta) > self::EPS) {
+            OutboundFeed::record(db: $this->db, topic: OutboundTopics::STOCK, subjectId: $itemId, unitId: $combinationId);
+        }
     }
 
     /**
@@ -6464,6 +6506,7 @@ final class InventoryService
      */
     private function evaluateUnitNotices(int $itemId, int $combinationId): void
     {
+        $this->openingItems[$itemId] = true;
         try {
             if (!$this->isCurrentIdentity(itemId: $itemId, combinationId: $combinationId)) {
                 return;
@@ -7036,6 +7079,18 @@ final class InventoryService
                     dStock: $figure['stock_target'] - (float) ($figure['stock'] ?? 0.0),
                     dAvail: $figure['available_target'] - (float) ($figure['available'] ?? 0.0),
                 );
+
+                // A corrected available figure is told as any other move of it: a combination's, or the product's own
+                // when it has no combination (a product with combinations is told through them).
+                $combination = $figure['table'] === '#__alfa_item_combinations';
+
+                if ($combination || $ledger['combinations'] === []) {
+                    $this->tellStock(
+                        itemId: $itemId,
+                        combinationId: $combination ? (int) $figure['id'] : 0,
+                        salableDelta: $figure['available_target'] - (float) ($figure['available'] ?? 0.0),
+                    );
+                }
             }
 
             $this->recordOperation(operationId: $operationId, command: 'reconcile', sourceType: $sourceType, sourceId: $sourceId, context: $context);
@@ -7210,6 +7265,9 @@ final class InventoryService
                     );
                 }
 
+                // A location enabled or disabled changes the stock verdict of every unit stocked there: set
+                // where the change is registered, so a write refused before it owes nothing.
+                $this->openingAll = true;
                 $this->recordOperation(
                     operationId: $this->newOperationId(),
                     command: 'location_state',
@@ -7257,6 +7315,7 @@ final class InventoryService
      */
     public function changeCombinationState(int $itemId, array $states, InventoryContext $context): ?string
     {
+        $this->openingItems[$itemId] = true;
         $wanted = [];
 
         foreach ($states as $combinationId => $state) {
@@ -7456,6 +7515,7 @@ final class InventoryService
      */
     public function changeTracking(int $itemId, ?int $combinationId, ?int $value, ?array $openingTargets, InventoryContext $context): array
     {
+        $this->openingItems[$itemId] = true;
         $combinationId = ($combinationId ?? 0) > 0 ? $combinationId : null;
 
         if (($value !== null && $value !== 0 && $value !== 1) || ($combinationId === null && $value === null)) {
@@ -8174,6 +8234,7 @@ final class InventoryService
      */
     public function retireUnits(int $itemId, ?array $combinationIds, string $sourceType, int $sourceId, InventoryContext $context): array
     {
+        $this->openingItems[$itemId] = true;
         $operationId = $this->newOperationId();
 
         $this->db->transactionStart(true);
@@ -8278,6 +8339,7 @@ final class InventoryService
      */
     public function archiveUnits(int $itemId, array $combinationIds, string $sourceType, int $sourceId, InventoryContext $context): array
     {
+        $this->openingItems[$itemId] = true;
         $ids = array_values(array_unique(array_filter(array_map('intval', $combinationIds), static fn (int $id): bool => $id > 0)));
         sort($ids);
 
@@ -8420,6 +8482,7 @@ final class InventoryService
      */
     public function reactivateUnits(int $itemId, array $combinationIds, InventoryContext $context): ?string
     {
+        $this->openingItems[$itemId] = true;
         $ids = array_values(array_unique(array_filter(array_map('intval', $combinationIds), static fn (int $id): bool => $id > 0)));
         sort($ids);
 
@@ -8585,6 +8648,10 @@ final class InventoryService
      */
     public function changeItemArchive(array $itemIds, bool $archive, callable $write, InventoryContext $context): array
     {
+        foreach ($itemIds as $openingItem) {
+            $this->openingItems[(int) $openingItem] = true;
+        }
+
         $ids = array_values(array_unique(array_filter(array_map('intval', $itemIds), static fn (int $id): bool => $id > 0)));
         sort($ids);
 
@@ -9055,6 +9122,7 @@ final class InventoryService
      */
     public function writeOffStock(int $itemId, int $combinationId, string $reason, InventoryContext $context): array
     {
+        $this->openingItems[$itemId] = true;
         $reason = trim($reason);
         $combinationId = max(0, $combinationId);
 
@@ -10038,6 +10106,7 @@ final class InventoryService
      */
     public function recordSaleRules(int $itemId, InventoryContext $context): string
     {
+        $this->openingItems[$itemId] = true;
         if ($itemId <= 0) {
             throw new RuntimeException('InventoryService: a sale-rule edit is recorded for a saved product.');
         }
@@ -11322,6 +11391,7 @@ final class InventoryService
      */
     private function beginIntegrityHold(array $unit, array $figures, string $operationId, ?int $lineId, InventoryContext $context): void
     {
+        $this->openingItems[(int) $unit['item']] = true;
         $row = (object) [
             'item_id' => (int) $unit['item'],
             'combination_id' => (int) $unit['combination'],
@@ -11385,6 +11455,7 @@ final class InventoryService
      */
     private function releaseIntegrityHolds(int $itemId, string $operationId, InventoryContext $context): int
     {
+        $this->openingItems[$itemId] = true;
         $this->db->setQuery(
             'UPDATE ' . $this->db->quoteName('#__alfa_inventory_integrity_holds')
             . ' SET ' . $this->db->quoteName('released_operation_id') . ' = ' . $this->db->quote($operationId)
@@ -12242,5 +12313,36 @@ final class InventoryService
         ];
 
         $this->db->insertObject('#__alfa_inventory_operations', $row, 'id');
+        $this->refreshOpenings();
+    }
+
+    /**
+     * Decide again the opening combination of the products this command touched, once the command's outermost
+     * transaction has committed: under each product's rebuild lock and from what is committed then, never from the
+     * snapshot the command's transaction read in, which two commands on two combinations of one product would leave
+     * stale (OpeningCombination::afterCommand()). A pointer that moves writes no price row. A command that changed every
+     * product's verdict (a location's state) owes every item to the catalogue job, whose writer decides the pointers it
+     * writes. A failure, or a lock not granted, owes the products. Nothing is decided when the transaction rolls back.
+     *
+     * @since  2.2.2
+     */
+    private function refreshOpenings(): void
+    {
+        $items = array_keys($this->openingItems);
+        $all = $this->openingAll;
+        $this->openingItems = [];
+        $this->openingAll = false;
+
+        if ($items === [] && !$all) {
+            return;
+        }
+
+        PostCommit::deferToOutermost(
+            db: $this->db,
+            label: 'the opening combinations of the products a stock command changed',
+            work: static function () use ($items, $all): void {
+                OpeningCombination::afterCommand(itemIds: $items, all: $all);
+            },
+        );
     }
 }

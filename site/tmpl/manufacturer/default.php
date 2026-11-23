@@ -27,7 +27,7 @@
         <article>
             <?php if (!empty($manufacturerMedia)): ?>
                 <div class="manufacturer-image-wrapper">
-                    <img src="<?php echo $this->escape($manufacturerMedia->url); ?>">
+                    <img src="<?php echo $this->escape($manufacturerMedia->thumbnail_url); ?>">
                 </div>
             <?php endif; ?>
             <div class="manufacturer-info">

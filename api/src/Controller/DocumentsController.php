@@ -33,7 +33,9 @@ use Throwable;
  */
 class DocumentsController extends ApiController
 {
-    use HasApiGuards;
+    use HasApiGuards {
+        taskActions as private crudTaskActions;
+    }
 
     /**
      * The content type of the item.
@@ -50,6 +52,23 @@ class DocumentsController extends ApiController
      * @since  1.0.0
      */
     protected $default_view = 'documents';
+
+    /**
+     * The tasks of a document and what each asks: reading asks view; voiding asks Change State, the
+     * permission the administrator's void asks, since it changes the document's status and nothing else.
+     *
+     * @return array<string, list<string>>
+     *
+     * @since  2.2.2
+     */
+    protected function taskActions(): array
+    {
+        return [
+            'void' => ['edit.state'],
+            'pdf' => ['view'],
+            'html' => ['view'],
+        ] + $this->crudTaskActions();
+    }
 
     /**
      * Documents list view amended to add filtering of data
@@ -78,8 +97,8 @@ class DocumentsController extends ApiController
             $this->modelState->set('filter.id_order', RequestScalar::member($apiFilterInfo, 'id_order', 'INT', 'filter'));
         }
 
-        // The window over the document's legal date (its issue date in the shop's time zone), as the documents
-        // screen's calendars set it: Y-m-d bounds, both days included (2.2.1).
+        // The window over the document's issue date, both bounds included; in UTC, against the issue instant,
+        // a day being the UTC day.
         if (\array_key_exists('date_start', $apiFilterInfo)) {
             $this->modelState->set('filter.date_start', RequestScalar::member($apiFilterInfo, 'date_start', 'STRING', 'filter'));
         }
@@ -87,6 +106,10 @@ class DocumentsController extends ApiController
         if (\array_key_exists('date_end', $apiFilterInfo)) {
             $this->modelState->set('filter.date_end', RequestScalar::member($apiFilterInfo, 'date_end', 'STRING', 'filter'));
         }
+
+        // Every date bound of the API is UTC: a bound without a zone is a UTC time, a day the UTC day; a bound
+        // with Z or an offset keeps its own zone.
+        $this->modelState->set('filter.date_zone', 'UTC');
 
         $apiListInfo = $this->input->get('list', [], 'array');
 
@@ -111,8 +134,9 @@ class DocumentsController extends ApiController
      * Voiding refills the type's quantity pool, which means the goods become
      * issuable again.
      *
-     * Gated on the edit.state permission, the same one the administrator's void
-     * asks: it changes the document's status and nothing else.
+     * Gated on the edit.state permission ({@see self::taskActions()}), the same
+     * one the administrator's void asks: it changes the document's status and
+     * nothing else.
      *
      * @return static
      *
@@ -120,8 +144,6 @@ class DocumentsController extends ApiController
      */
     public function void()
     {
-        $this->assertAuthorised('edit.state');
-
         $documentId = $this->routeInt('id');
 
         if ($documentId <= 0) {
@@ -160,8 +182,6 @@ class DocumentsController extends ApiController
      */
     public function html(): void
     {
-        $this->assertAuthorised('view');
-
         $document = $this->requireDocument();
         $html = DocumentRenderer::render((int) $document->id);
 
@@ -194,8 +214,6 @@ class DocumentsController extends ApiController
      */
     public function pdf(): void
     {
-        $this->assertAuthorised('view');
-
         $document = $this->requireDocument();
 
         try {

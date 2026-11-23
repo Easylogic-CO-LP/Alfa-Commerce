@@ -45,17 +45,24 @@ use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderExternalReference;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderExternalReferenceTakenException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPlacedFollowUp;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderSource;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\ReconciliationFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
+use Alfa\Component\Alfa\Administrator\Service\Order\WriteWarnings;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBagBuilder;
@@ -967,16 +974,28 @@ class OrderModel extends AlfaAdminModel
         // The email is demanded only where it is kept: a manual order for a
         // MEMBER takes the account's address (the form is built before the
         // customer is picked, so the field is on it and is relaxed on both
-        // sides; see getForm); a GUEST order still has to give one.
+        // sides; see getForm); a GUEST order still has to give one. The order's
+        // mails go to a guest's address, so an update that sends the delivery
+        // details of a guest order that has one asks it too, so an update
+        // never empties it. A guest order
+        // placed with no e-mail stays savable without one.
         $emailColumn = RoleRegistry::column(RoleRegistry::EMAIL);
+        $keepsEmail = !$isNew && \array_key_exists(FieldsHelper::FIELDS_KEY, $data) && (string) ($this->item->customer_email ?? '') !== '';
 
-        if ($isNew && $emailColumn !== null) {
-            if ($customerId > 0) {
+        if ($emailColumn !== null) {
+            if ($isNew && $customerId > 0) {
                 unset($data[FieldsHelper::FIELDS_KEY][$emailColumn], $data[FieldsHelper::BILLING_FIELDS_KEY][$emailColumn]);
-            } else {
+            } elseif ($customerId <= 0 && ($isNew || $keepsEmail)) {
                 $form->setFieldAttribute($emailColumn, 'required', 'true', FieldsHelper::FIELDS_KEY);
             }
         }
+
+        // What the submission itself sends of each section, before a stored value is laid over it: the fields it is
+        // told were not kept are among these.
+        $sent = [
+            FieldsHelper::FIELDS_KEY => array_map('strval', array_keys((array) ($data[FieldsHelper::FIELDS_KEY] ?? []))),
+            FieldsHelper::BILLING_FIELDS_KEY => array_map('strval', array_keys((array) ($data[FieldsHelper::BILLING_FIELDS_KEY] ?? []))),
+        ];
 
         // A WRITER WHOSE OMITTED KEYS MEAN "UNCHANGED" (the REST API): on an update, the details a submission sends are
         // laid over the order's stored records, so a field it leaves out keeps its value and the record is not replaced
@@ -984,18 +1003,44 @@ class OrderModel extends AlfaAdminModel
         // sections whole (an emptied field, an unticked box and a field its rule hides each mean empty), so it is not.
         if (!$isNew && $this->keepsOmittedDetails()) {
             $data = $this->withStoredDetails(data: $data, orderId: (int) ($data['id'] ?? 0), visibilityId: $visibilityId);
+
+            // A choice laid over from the stored record is not judged again: the rule asks what the submission
+            // sends, so a value stored before its option was renamed or removed does not refuse a write that never
+            // named the field.
+            foreach ($sent as $section => $names) {
+                foreach (array_diff(array_map('strval', array_keys((array) ($data[$section] ?? []))), $names) as $name) {
+                    if ($form->getFieldAttribute($name, 'validate', '', $section) === 'choice') {
+                        $form->setFieldAttribute($name, 'validate', '', $section);
+                    }
+                }
+            }
         }
+
+        // The invoice choice as the delivery details' display rules read it: as sent, or, on an API update that does not
+        // state it, whether the order has invoice details of its own.
+        $invoiceDiffers = \array_key_exists('invoice_differs', $data)
+            ? !empty($data['invoice_differs'])
+            : !$isNew && $this->keepsOmittedDetails() && $this->hasOwnInvoice(orderId: (int) ($data['id'] ?? 0));
 
         // An update that leaves the delivery details out (a REST PATCH of the note alone) leaves them as they are, so
         // they are not validated: a field the shop requires there is asked of a creation and of an update that sends
         // the details, never of one that does not. The order screen always sends them.
         if ($isNew || \array_key_exists(FieldsHelper::FIELDS_KEY, $data)) {
+            $deliveryFields = FieldsHelper::getFields('cart.shipping', null, $visibilityId);
+            $deliveryExtra = ['invoice_differs' => $invoiceDiffers ? '1' : null];
+            $this->noteNotKept(
+                section: FieldsHelper::FIELDS_KEY,
+                fields: $deliveryFields,
+                values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
+                extra: $deliveryExtra,
+                sent: $sent[FieldsHelper::FIELDS_KEY],
+            );
             $data[FieldsHelper::FIELDS_KEY] = SubmitAuthority::prune(
                 form: $form,
-                fields: FieldsHelper::getFields('cart.shipping', null, $visibilityId),
+                fields: $deliveryFields,
                 values: (array) ($data[FieldsHelper::FIELDS_KEY] ?? []),
                 group: FieldsHelper::FIELDS_KEY,
-                extra: ['invoice_differs' => empty($data['invoice_differs']) ? null : '1'],
+                extra: $deliveryExtra,
             );
         } else {
             $form->removeGroup(FieldsHelper::FIELDS_KEY);
@@ -1009,9 +1054,17 @@ class OrderModel extends AlfaAdminModel
             // stored value, so the order's own invoice details stay as they are and are not validated.
             $form->removeGroup(FieldsHelper::BILLING_FIELDS_KEY);
         } else {
+            $billingFields = FieldsHelper::getFields('cart.billing', null, $visibilityId);
+            $this->noteNotKept(
+                section: FieldsHelper::BILLING_FIELDS_KEY,
+                fields: $billingFields,
+                values: (array) ($data[FieldsHelper::BILLING_FIELDS_KEY] ?? []),
+                extra: [],
+                sent: $sent[FieldsHelper::BILLING_FIELDS_KEY],
+            );
             $data[FieldsHelper::BILLING_FIELDS_KEY] = SubmitAuthority::prune(
                 form: $form,
-                fields: FieldsHelper::getFields('cart.billing', null, $visibilityId),
+                fields: $billingFields,
                 values: (array) ($data[FieldsHelper::BILLING_FIELDS_KEY] ?? []),
                 group: FieldsHelper::BILLING_FIELDS_KEY,
             );
@@ -1025,13 +1078,94 @@ class OrderModel extends AlfaAdminModel
             $valid['invoice_differs'] = empty($data['invoice_differs']) ? 0 : 1;
         }
 
+        // silent is not a field of the form either: a creation that states it (a REST POST) keeps it for save(), which
+        // then leaves the customer out of the e-mail the new order's status owes, as a status change made silent does.
+        if (\is_array($valid) && $isNew && !empty($data['silent'])) {
+            $valid['silent'] = 1;
+        }
+
+        // The parts of an order created in one call, its lines, its parcel and its payment, are not fields of
+        // the form either: a creation keeps them for save(), which reads them through OrderCreateParts and writes each
+        // through its own writer in the creation's transaction. So is the source a REST client names its channel by,
+        // which only the API model reads (newOrderSource()).
+        if (\is_array($valid) && $isNew) {
+            foreach (['lines', 'shipment', 'payment', 'source'] as $part) {
+                if (\array_key_exists($part, $data)) {
+                    $valid[$part] = $data[$part];
+                }
+            }
+        }
+
+        // The other system's id of the order (external_source with external_reference) is not a field of the form
+        // either: a write that states it keeps it for save(), which checks its shape and that no other order holds it.
+        if (\is_array($valid)) {
+            foreach (['external_source', 'external_reference'] as $key) {
+                if (\array_key_exists($key, $data)) {
+                    $valid[$key] = $data[$key];
+                }
+            }
+        }
+
         return $valid;
     }
 
     /**
+     * Say which detail fields a submission sent that the order will not keep, for the REST answer's
+     * meta.warnings (WriteWarnings): a field the shop's display rules hide for the details sent (hidden_by_rule),
+     * removed as the checkout removes it, and a key that is no field of the section on this shop (not_a_field), which
+     * the form leaves out. Only what the submission itself sent is named; a value laid over it from the stored record
+     * is not.
+     *
+     * @param string $section FieldsHelper::FIELDS_KEY or FieldsHelper::BILLING_FIELDS_KEY.
+     * @param object[] $fields The section's active field definitions.
+     * @param array $values The section's values as they will be judged.
+     * @param array $extra The non-field surfaces a rule may read (invoice_differs).
+     * @param string[] $sent The keys the submission sent in the section.
+     *
+     * @since  2.2.2
+     */
+    private function noteNotKept(string $section, array $fields, array $values, array $extra, array $sent): void
+    {
+        if ($sent === []) {
+            return;
+        }
+
+        $known = array_map(static fn (object $field): string => (string) ($field->field_name ?? ''), $fields);
+        $hidden = SubmitAuthority::hiddenFields(fields: $fields, values: $values, extra: $extra);
+        $invoice = $section === FieldsHelper::BILLING_FIELDS_KEY;
+
+        foreach ($sent as $name) {
+            // The key as the client sent it, its first 64 characters, and as a JSON pointer's segment (RFC 6901: ~ as ~0,
+            // / as ~1), so a key with a slash points at itself.
+            $shown = mb_substr((string) $name, 0, 64, 'UTF-8');
+            $pointer = '/' . $section . '/' . str_replace(['~', '/'], ['~0', '~1'], $shown);
+
+            if (!\in_array($name, $known, true)) {
+                WriteWarnings::note(
+                    code: WriteWarnings::NOT_A_FIELD,
+                    detail: Text::sprintf($invoice ? 'COM_ALFA_ORDER_FIELD_NOT_IN_INVOICE' : 'COM_ALFA_ORDER_FIELD_NOT_IN_DELIVERY', $shown),
+                    pointer: $pointer,
+                );
+            } elseif (\in_array($name, $hidden, true)) {
+                WriteWarnings::note(
+                    code: WriteWarnings::HIDDEN_BY_RULE,
+                    detail: Text::sprintf('COM_ALFA_ORDER_FIELD_HIDDEN_BY_RULE', $shown),
+                    pointer: $pointer,
+                );
+            }
+        }
+    }
+
+    /**
      * Whether a submission keeps the order's stored invoice details whole: an update through the API (whose omitted
-     * sections mean "unchanged") that states invoice_differs 1 and sends no invoice details. The API refuses that request
-     * when the order has no invoice details of its own (OrdersController), so the details kept are the order's own.
+     * sections mean "unchanged") that sends no invoice details and states invoice_differs 1, or does not state it on an
+     * order with invoice details of its own. invoice_differs 0 sent asks the order to invoice to its delivery details. The API refuses invoice_differs 1
+     * without the details when the order has no invoice details of its own (OrdersController), so the details kept are
+     * the order's own. The order screen posts its sections whole and keeps nothing this way.
+     *
+     * Kept by the model, so the save never collapses the invoice and the answer of a PATCH reads the order as
+     * stored: before, an update of the delivery details alone pointed the invoice at the delivery record and the API
+     * controller put the old pointer back after the answer had been made.
      *
      * @param array $data The submission (raw or validated).
      * @param bool $isNew Whether the order is being created.
@@ -1040,10 +1174,43 @@ class OrderModel extends AlfaAdminModel
      */
     private function keepsStoredInvoice(array $data, bool $isNew): bool
     {
-        return !$isNew
-            && $this->keepsOmittedDetails()
-            && !empty($data['invoice_differs'])
-            && !\is_array($data[FieldsHelper::BILLING_FIELDS_KEY] ?? null);
+        if ($isNew || !$this->keepsOmittedDetails() || \is_array($data[FieldsHelper::BILLING_FIELDS_KEY] ?? null)) {
+            return false;
+        }
+
+        if (\array_key_exists('invoice_differs', $data)) {
+            return !empty($data['invoice_differs']);
+        }
+
+        // Not stated: an order with invoice details of its own keeps them; one that invoices to its delivery details
+        // goes on doing so, its invoice following the delivery record a change of the details writes.
+        return $this->hasOwnInvoice(orderId: (int) ($data['id'] ?? $this->getState($this->getName() . '.id')));
+    }
+
+    /**
+     * Whether an order has invoice details of its own: an invoice record that is not its delivery record.
+     *
+     * @param int $orderId The order.
+     *
+     * @since  2.2.2
+     */
+    private function hasOwnInvoice(int $orderId): bool
+    {
+        if ($orderId <= 0) {
+            return false;
+        }
+
+        $db = $this->getDatabase();
+        $pointers = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id_address_delivery', 'id_address_invoice']))
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadAssoc() ?: [];
+        $invoice = (int) ($pointers['id_address_invoice'] ?? 0);
+
+        return $invoice > 0 && $invoice !== (int) ($pointers['id_address_delivery'] ?? 0);
     }
 
     /**
@@ -4364,17 +4531,179 @@ class OrderModel extends AlfaAdminModel
      *
      * A seam rather than an isClient('api') probe: the API model already
      * extends this one, so the client that is running IS the class that is
-     * running and nothing has to ask the application. `source` is not in
-     * forms/order.xml either, so a client cannot mislabel itself: core's
-     * ApiController passes only form-validated data to save().
+     * running and nothing has to ask the application. The order screen
+     * writes admin whatever its submission carries; the API model reads the
+     * source its client sends ({@see OrderSource::ofClient()}).
      *
-     * @return string One of the documented origins: storefront | admin | renewal | api.
+     * @param array $data The creation's validated data.
+     *
+     * @return string The order's source: admin here.
+     *
+     * @throws OrderPartRefusedException When the source a client sends is refused.
      *
      * @since  2.0.0
      */
-    protected function newOrderSource(): string
+    protected function newOrderSource(array $data): string
     {
         return 'admin';
+    }
+
+    /**
+     * Why the payment of an order created in one call was not recorded, in words that never name the order: the
+     * creation is rolled back, so the client never sees the order the ledger's sentence names. On a new order no other
+     * payment holds anything, so the money rule that refuses a payment is its total: the payment is more than the order
+     * owes, said with both figures. Another refusal keeps the ledger's sentence, unless it names the order (the
+     * general sentence of a write refused, or of a lock not taken): then the general sentence without it.
+     *
+     * @param int $orderId The order, written in this transaction.
+     * @param Money $amount The payment sent.
+     * @param string $sentence What the payments ledger told staff, '' when it told nothing.
+     *
+     * @since  2.2.2
+     */
+    private function createdPaymentRefusal(int $orderId, Money $amount, string $sentence): string
+    {
+        $db = $this->getDatabase();
+        $order = $db->setQuery(
+            $db->getQuery(true)
+                ->select('*')
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadObject();
+        $owed = $order !== null ? PaymentLedger::amountToCollectMoney(order: $order) : null;
+
+        if ($owed === null) {
+            return Text::_('COM_ALFA_ORDER_CREATE_PAYMENT_REFUSED');
+        }
+
+        if ($amount->greaterThan($owed)) {
+            return Text::sprintf('COM_ALFA_ORDER_CREATE_PAYMENT_PAST_TOTAL', $amount->format(), $owed->format());
+        }
+
+        $number = EmailService::orderNumber(order: (object) ['id' => $orderId]);
+
+        return $sentence === '' || preg_match('/(?<![0-9])' . preg_quote($number, '/') . '(?![0-9])/u', $sentence) === 1
+            ? Text::_('COM_ALFA_ORDER_CREATE_PAYMENT_REFUSED')
+            : $sentence;
+    }
+
+    /**
+     * Refuse an update that changes the order's external_source and external_reference: the pair the update leaves on
+     * the order (each half the update states, else the stored one) must be the stored pair when the order has one, and
+     * when it has none, both halves or neither, in their shape, held by no other order. An update that states neither
+     * passes. The database's unique key refuses a pair another order took at the same moment.
+     *
+     * @param array $data The update's data.
+     * @param object|null $stored The order as stored.
+     * @param int $orderId The order.
+     *
+     * @throws OrderPartRefusedException When the update would change the pair, or the pair is malformed (MALFORMED),
+     *                                   or another order holds it (OrderExternalReferenceTakenException).
+     *
+     * @since  2.2.2
+     */
+    private function refuseExternalReferenceChange(array $data, ?object $stored, int $orderId): void
+    {
+        if (!\array_key_exists('external_source', $data) && !\array_key_exists('external_reference', $data)) {
+            return;
+        }
+
+        $storedPair = ($stored->external_source ?? null) !== null && ($stored->external_reference ?? null) !== null
+            ? ['source' => (string) $stored->external_source, 'reference' => (string) $stored->external_reference]
+            : null;
+        $left = [
+            'external_source' => \array_key_exists('external_source', $data) ? $data['external_source'] : ($storedPair['source'] ?? null),
+            'external_reference' => \array_key_exists('external_reference', $data) ? $data['external_reference'] : ($storedPair['reference'] ?? null),
+        ];
+
+        if ($storedPair !== null) {
+            if ($left['external_source'] !== $storedPair['source'] || (string) $left['external_reference'] !== $storedPair['reference']) {
+                throw new OrderPartRefusedException(
+                    '/external_reference',
+                    'the order carries external_source "' . $storedPair['source'] . '" with its external_reference, written once and'
+                        . ' never changed',
+                    OrderPartRefusedException::MALFORMED,
+                    OrderPartRefusedException::NOT_SAVED,
+                );
+            }
+
+            return;
+        }
+
+        try {
+            $pair = OrderExternalReference::read(data: $left);
+        } catch (OrderPartRefusedException $e) {
+            throw new OrderPartRefusedException($e->part, $e->reason, $e->status, OrderPartRefusedException::NOT_SAVED);
+        }
+
+        if ($pair === null) {
+            return;
+        }
+
+        $holder = OrderExternalReference::orderWith(db: $this->getDatabase(), source: $pair['source'], reference: $pair['reference'], except: $orderId);
+
+        if ($holder !== null) {
+            throw new OrderExternalReferenceTakenException(existingId: $holder, pair: $pair, outcome: OrderPartRefusedException::NOT_SAVED);
+        }
+    }
+
+    /**
+     * Write the parts of an order created in one call, inside the creation's transaction: each line through the
+     * line writer, then the parcel through the shipments ledger, then the payment through the payments ledger, so the
+     * payment is judged against the order's lines and its shipping charge. Each writer takes its own locks and claims as
+     * on the order operations: a line claims its stock as it is written, the claims of every line held by the one
+     * transaction. The first part refused stops the creation: its writer's sentence, naming the part, and the caller
+     * rolls the whole creation back.
+     *
+     * @param int $orderId The order, written in this transaction.
+     * @param array $parts The parts as OrderCreateParts::read() answered them.
+     *
+     * @return int[] The lines written, in the body's order.
+     *
+     * @throws OrderPartRefusedException When a part is refused.
+     *
+     * @since  2.2.2
+     */
+    private function writeCreatedParts(int $orderId, array $parts): array
+    {
+        $app = Factory::getApplication();
+        $lineIds = [];
+
+        foreach ($parts['lines'] as $index => $line) {
+            $lineData = OrderCreateParts::lineData(line: $line, orderId: $orderId);
+            $told = \count($app->getMessageQueue());
+
+            if (!$this->saveOrderItem($lineData, ...$line['pricing'])) {
+                throw new OrderPartRefusedException('/lines/' . $index, PaymentLedger::queuedRefusal(app: $app, told: $told) ?: 'The line was not added.');
+            }
+
+            $lineIds[] = (int) $lineData['id'];
+        }
+
+        if ($parts['shipment'] !== null) {
+            $shipmentData = OrderCreateParts::shipmentData(shipment: $parts['shipment'], orderId: $orderId);
+            $told = \count($app->getMessageQueue());
+
+            if (!$this->saveOrderShipment($shipmentData)) {
+                throw new OrderPartRefusedException('/shipment', PaymentLedger::queuedRefusal(app: $app, told: $told) ?: 'The parcel was not recorded.');
+            }
+        }
+
+        if ($parts['payment'] !== null) {
+            $paymentData = OrderCreateParts::paymentData(payment: $parts['payment'], orderId: $orderId);
+            $told = \count($app->getMessageQueue());
+
+            if (!$this->saveOrderPayment($paymentData)) {
+                throw new OrderPartRefusedException('/payment', $this->createdPaymentRefusal(
+                    orderId: $orderId,
+                    amount: $paymentData['amount'],
+                    sentence: PaymentLedger::queuedRefusal(app: $app, told: $told),
+                ));
+            }
+        }
+
+        return $lineIds;
     }
 
     /**
@@ -4458,14 +4787,23 @@ class OrderModel extends AlfaAdminModel
             }
         }
 
-        // Manual creation: the ONE write path. A new backend order is a
-        // metadata-only shell (explicit allow_empty) created through
-        // OrderCreator: same defaults, guards and audit trail as the
-        // checkout and the renewals. Lines/payments/shipments are added
-        // afterwards on the normal edit screen; from the first line on,
+        // Manual creation: the ONE write path. A new order is created through
+        // OrderCreator: same defaults, guards and audit trail as the checkout
+        // and the renewals. The order screen creates a metadata-only shell
+        // (explicit allow_empty) and adds lines, payments and shipments on the
+        // edit screen; a REST create may carry them in its one call:
+        // each is written by its own writer, the line writer, the shipments
+        // ledger and the payments ledger, inside the creation's transaction,
+        // so a part refused leaves no order at all. From the first line on,
         // prices are FROZEN (recalculation only via the explicit action).
         if ($isNew) {
             try {
+                // The parts' shape, read before anything is written.
+                $parts = OrderCreateParts::read(data: $data);
+
+                // The other system's id of the order, both halves or neither, in their shape; the source.
+                $external = OrderExternalReference::read(data: $data);
+                $source = $this->newOrderSource(data: $data);
                 $identity = $app->getIdentity();
                 $customerId = (int) ($data['id_user'] ?? 0);
 
@@ -4514,9 +4852,11 @@ class OrderModel extends AlfaAdminModel
                         'id_order_status' => (int) ($data['id_order_status'] ?? 0),
                         'id_address_delivery' => $addressId,
                         'id_address_invoice' => $invoiceId,
-                        'source' => $this->newOrderSource(),
+                        'source' => $source,
                         'created_by' => (int) ($identity?->id ?? 0),
                         'actor_name' => (string) ($identity?->name ?? 'System'),
+                        // The customer's note to the shop, as a marketplace order brings it.
+                        'customer_note' => (string) ($data['customer_note'] ?? ''),
                         'allow_empty' => true,
                         'lines' => [],
                     ];
@@ -4528,7 +4868,34 @@ class OrderModel extends AlfaAdminModel
                         $draft['conversion_rate'] = 1.0;
                     }
 
+                    // One pair names one order: a pair already an order's answers that order, and nothing is written.
+                    // A create of the same pair at the same moment is refused by the database's unique key when it
+                    // writes its order row, and answered the same way after the rollback below.
+                    if ($external !== null) {
+                        $existing = OrderExternalReference::orderWith(db: $db, source: $external['source'], reference: $external['reference']);
+
+                        if ($existing !== null) {
+                            throw new OrderExternalReferenceTakenException(existingId: $existing, pair: $external);
+                        }
+
+                        $draft['external_source'] = $external['source'];
+                        $draft['external_reference'] = $external['reference'];
+                    }
+
                     $created = OrderCreator::create(draft: $draft, manageTransaction: false);
+                    $lineIds = $this->writeCreatedParts(orderId: $created->orderId, parts: $parts);
+
+                    // The status the order opens in decides its e-mail, as a status change's does: what the
+                    // checkout owes with a new order (OrderPlacedFollowUp), sent once the creation has committed, the
+                    // customer left out when the creation says silent. An order created with no lines owes nothing: an
+                    // order built in steps never mails empty.
+                    if ($lineIds !== []) {
+                        OrderPlacedFollowUp::owe(
+                            orderId: $created->orderId,
+                            statusId: (int) $created->statusId,
+                            customer: empty($data['silent']),
+                        );
+                    }
 
                     TransactionState::commitLevel($db);
                 } catch (Throwable $inner) {
@@ -4537,13 +4904,19 @@ class OrderModel extends AlfaAdminModel
                     // later write in the request commits into nothing.
                     TransactionState::rollBackLevel(db: $db, failure: $inner);
 
-                    throw $inner;
+                    // The database refused the pair a create made at the same moment holds: answered with that order.
+                    throw ($external !== null ? OrderExternalReference::takenBy(failure: $inner, pair: $external) : null) ?? $inner;
                 }
 
                 // OrderCreator writes the order.created activity entry itself.
                 $this->setState($this->getName() . '.id', $created->orderId);
 
                 return true;
+            } catch (OrderPartRefusedException $e) {
+                // The refusal itself is the error, so the REST create answers it with its status and the part it names.
+                $this->setError($e);
+
+                return false;
             } catch (Exception $e) {
                 $this->setError($e->getMessage());
 
@@ -4578,6 +4951,16 @@ class OrderModel extends AlfaAdminModel
         // heard again then (AlfaAdminModel::alfaAfterTheCommit()).
         $db = $this->getDatabase();
         $orderId = $pk;
+
+        // The other system's id of the order is written once: an order without one may be given one that no other
+        // order holds; an order with one keeps it.
+        try {
+            $this->refuseExternalReferenceChange(data: $data, stored: $prevOrder, orderId: $orderId);
+        } catch (OrderPartRefusedException $e) {
+            $this->setError($e);
+
+            return false;
+        }
 
         // THE DELIVERY RECORD IS THE STORED ORDER'S, whatever the submission carries. The edit form posts its id as a
         // hidden field, and an id sent in its place pointed the order at another customer's record: a guest order then

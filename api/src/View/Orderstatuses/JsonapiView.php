@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\View\Orderstatuses;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
+use Alfa\Component\Alfa\Api\View\ListsTranslations;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
 /**
@@ -22,6 +23,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 class JsonApiView extends BaseApiView
 {
     use ListsRequestTasks;
+    use ListsTranslations;
 
     /**
      * The fields to render item in the documents
@@ -40,6 +42,9 @@ class JsonApiView extends BaseApiView
         'is_cancelled',
         'is_completed',
         'notify_customer',
+        // Whether entering the status mails one of its administrator recipients, and who they are (Joomla user ids).
+        'notifies_staff',
+        'admin_recipient_ids',
         'ordering',
         'state',
         'translations',
@@ -60,7 +65,42 @@ class JsonApiView extends BaseApiView
         'is_initial',
         'is_cancelled',
         'is_completed',
+        // Who entering the status mails: the customer, and its administrator recipients.
+        'notify_customer',
+        'notifies_staff',
         'ordering',
         'state',
     ];
+
+    /**
+     * A list row's or the record's mail facts as whole numbers, as the status's other flags read.
+     *
+     * @param object $item The status.
+     *
+     * @return object
+     *
+     * @since  2.2.2
+     */
+    protected function prepareItem($item)
+    {
+        foreach (['notify_customer', 'notifies_staff'] as $flag) {
+            if (isset($item->{$flag})) {
+                $item->{$flag} = (int) $item->{$flag};
+            }
+        }
+
+        return parent::prepareItem($item);
+    }
+
+    /**
+     * The translations a list row carries with include=translations (the status labels only, as the record carries them) (ListsTranslations).
+     *
+     * @return array{0: string, 1: string, 2: string[]}
+     *
+     * @since  2.2.2
+     */
+    protected function translationSource(): array
+    {
+        return ['#__alfa_orders_statuses', 'id_orderstatus', ['name', 'name_customer']];
+    }
 }

@@ -15,3 +15,97 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
   KEY `idx_linked_item_id` (`linked_item_id`),
   KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
+
+-- The other system id of an order
+--
+-- An order created by another system (a marketplace, an ERP, a connector) carries that system name in external_source
+-- and its id of the order in external_reference, both or neither, written once. The pair is unique, so a connector that
+-- sends the same order again after a lost answer is answered with the order it made and never makes a second one. A
+-- row with neither column set holds no place in the unique key, so every existing order keeps NULL in both. Additions
+-- only; each statement carries the CAN FAIL marker, so an update run again finds the column or the key and goes on.
+-- The install SQL creates the same columns and key.
+
+ALTER TABLE `#__alfa_orders` ADD COLUMN `external_source` varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once' AFTER `source` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_orders` ADD COLUMN `external_reference` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source' AFTER `external_source` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_orders` ADD UNIQUE KEY `idx_external_reference` (`external_source`, `external_reference`) /** CAN FAIL **/;
+
+-- The source of an order a REST API client creates
+--
+-- A client of the REST API names the channel an order comes from (for example base for a marketplace connector), up to
+-- 32 characters, where every such order read api before. The column is widened from 16 to 32 characters; the values
+-- stored are kept, and the statement can run again. The install SQL has the same width.
+
+ALTER TABLE `#__alfa_orders` MODIFY `source` varchar(32) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api, or the channel a REST API client names (lower-case letters, digits, _ and -)';
+
+-- When a product stock or prices last changed
+--
+-- A stock move or a price row written does not touch a product modified time, so an integrator that keeps stock and
+-- prices in step had to read every product. commerce_changed_at records, in UTC to the microsecond, when the product
+-- stock, its price rows, a price period that began, or the product itself last changed, written in the same
+-- transaction as the change; the REST API filter[changed_since] reads it on its key. The two additions carry the CAN
+-- FAIL marker, so an update run again finds them and goes on. The products already in the shop are then marked changed
+-- at the moment of the update, once: a client that reads the changes since a time before the update reads every
+-- product once, and none is missed. The install SQL creates the same column and key.
+
+ALTER TABLE `#__alfa_items` ADD COLUMN `commerce_changed_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]' AFTER `modified` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_items` ADD KEY `idx_commerce_changed` (`commerce_changed_at`) /** CAN FAIL **/;
+UPDATE `#__alfa_items` SET `commerce_changed_at` = UTC_TIMESTAMP(6) WHERE `commerce_changed_at` IS NULL;
+
+-- The address an image was fetched from
+--
+-- A REST API client may give an image as an address ({"type": "image", "url": "https://..."}): the shop fetches it and
+-- stores it as an upload. The media row keeps the address (source_url, for the integrator) and its sha256
+-- (source_url_hash), so the same address is not fetched twice for one record. Additions only, NULL on every row an
+-- upload or a pick made; each carries the CAN FAIL marker, so an update run again goes on. The install SQL has them.
+
+ALTER TABLE `#__alfa_media` ADD COLUMN `source_url` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The address the image was fetched from, as the REST API client gave it; NULL for an image uploaded or picked' /** CAN FAIL **/;
+ALTER TABLE `#__alfa_media` ADD COLUMN `source_url_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'sha256 of source_url: the same address is not fetched twice for one record' AFTER `source_url` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_media` ADD KEY `idx_alfa_media_source` (`origin`, `item_id`, `source_url_hash`) /** CAN FAIL **/;
+
+-- Outgoing notifications: who the shop tells of its changes (a webhook address, or an alfa plugin that delivers
+-- through its own client), and what it owes each of them. A delivery row is written in the transaction of the change
+-- it tells, so a rolled back change owes nothing; the outbound.deliver job of the task runner sends it, retries a
+-- failure on its backoff and gives up after the sixth retry (state dead, shown in Tools, Tasks). A stock or price row
+-- waits once per unit and topic (pending 1); its values are read when it is sent, so the newest figure goes out.
+CREATE TABLE IF NOT EXISTS `#__alfa_outbound_consumers` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `kind` varchar(16) NOT NULL COMMENT 'webhook: core posts signed JSON to url; plugin: an alfa plugin delivers through its own client',
+  `plugin` varchar(100) NULL DEFAULT NULL COMMENT 'kind plugin: the delivering plugin as group.element; NULL for a webhook',
+  `name` varchar(255) NOT NULL DEFAULT '' COMMENT 'What staff read on the Webhooks screen and in Tools, Tasks',
+  `url` varchar(2048) NOT NULL DEFAULT '' COMMENT 'kind webhook: the https address the changes are posted to',
+  `secret` varchar(255) NOT NULL DEFAULT '' COMMENT 'kind webhook: the signing key; shown once when made, never read back or written to a log',
+  `topics` varchar(255) NOT NULL DEFAULT '' COMMENT 'Comma list of stock, price, order.created, order.status',
+  `state` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 delivering; 0 paused: nothing new is queued and nothing waiting is sent or lost',
+  `last_attempt_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC, the last delivery attempt or test',
+  `last_ok` tinyint(1) NULL DEFAULT NULL COMMENT '1 when the last attempt was taken, 0 when it failed, NULL before the first',
+  `last_result` varchar(500) NOT NULL DEFAULT '' COMMENT 'What the last attempt answered: the HTTP status, or why it failed',
+  `created` datetime NOT NULL,
+  `created_by` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `modified` datetime NOT NULL,
+  `modified_by` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_plugin` (`plugin`),
+  KEY `idx_kind_state` (`kind`, `state`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Who the shop tells of its changes: a webhook address or an alfa plugin';
+
+CREATE TABLE IF NOT EXISTS `#__alfa_outbound_deliveries` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `consumer_id` int(11) UNSIGNED NOT NULL COMMENT 'The consumer told',
+  `topic` varchar(32) NOT NULL COMMENT 'stock, price, order.created or order.status',
+  `subject_id` int(11) UNSIGNED NOT NULL COMMENT 'The product (stock, price) or the order (order.created, order.status)',
+  `unit_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination for stock and price; 0 for a product without combinations, and for an order',
+  `payload` varchar(255) NOT NULL DEFAULT '' COMMENT 'order.status: the status left and the status entered as from:to; empty otherwise, values are read when sent',
+  `pending` tinyint(1) NULL DEFAULT NULL COMMENT '1 while a stock or price row waits, NULL otherwise: one waiting row a consumer, topic and unit',
+  `state` varchar(12) NOT NULL DEFAULT 'pending' COMMENT 'pending, sent, no_consumer (its plugin takes none), dead or discarded',
+  `attempts` smallint(5) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Delivery attempts that failed',
+  `next_attempt_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC, not before this; NULL: due now',
+  `last_error` varchar(500) NOT NULL DEFAULT '' COMMENT 'Why the last attempt failed, for staff',
+  `created` datetime(6) NOT NULL COMMENT 'UTC, written with the change it tells',
+  `sent_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC, when the consumer took it',
+  `dead_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC, when the shop gave up on it or staff discarded it',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_waiting` (`consumer_id`, `topic`, `subject_id`, `unit_id`, `pending`),
+  KEY `idx_due` (`consumer_id`, `state`, `next_attempt_at`, `id`),
+  KEY `idx_state_due` (`state`, `next_attempt_at`),
+  KEY `idx_subject` (`consumer_id`, `subject_id`, `state`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='What the shop owes each consumer, written in the transaction of the change';

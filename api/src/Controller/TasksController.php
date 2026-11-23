@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiTaskAccess;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskAccess;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskDocument;
@@ -179,19 +180,22 @@ class TasksController extends ApiController
     }
 
     /**
-     * The checks a task's tasks make before the controller runs: the list is Tools'; one task's checks are its own.
+     * What each task asks: the list is Tools', asked before it runs; one task and its processing are decided by
+     * the task's record (its creator, or the permission of its work), then processing asks Tools too, so a task the
+     * caller may not read answers 404 whatever else the caller holds.
      *
-     * @param string $task The task about to run.
+     * @param string $task The task.
      *
-     * @throws NotAllowed When the list is asked by a caller who may not use Tools.
-     *
-     * @since  2.2.0
+     * @since  2.2.2
      */
-    protected function assertAuthorisedForTask(string $task): void
+    public function taskAccess(string $task): ?ApiTaskAccess
     {
-        if ($task === 'displayList' && !TaskAccess::canUseTools(user: $this->identity())) {
-            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
-        }
+        return match ($task) {
+            'displayList' => ApiTaskAccess::asks(TaskAccess::TOOLS_PERMISSION),
+            'displayItem' => ApiTaskAccess::perRecord(),
+            'process' => ApiTaskAccess::perRecord(TaskAccess::TOOLS_PERMISSION),
+            default => null,
+        };
     }
 
     /**

@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Setup\CollationCheck;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageNotice;
+use Alfa\Component\Alfa\Administrator\Service\Setup\InformationNotices;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerHealth;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerTrigger;
@@ -87,6 +88,12 @@ class NotificationsController extends BaseController
 
         // And an Alfa table an update left in another collation (raised or cleared, never converted).
         CollationCheck::syncNotice();
+
+        // And what the administrators are told rather than asked to do: Joomla's page cache, a library a
+        // feature needs that is missing or disabled, online sales off, the products priced only from a larger
+        // quantity than they sell from (at most every ten minutes) and the Alfa extensions not built for this
+        // version (at most every hour).
+        InformationNotices::sync();
 
         $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
         $this->app->sendHeaders();

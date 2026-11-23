@@ -42,10 +42,11 @@ final class ThumbnailsRecreateJob implements JobHandler
 
     public function policy(): JobPolicy
     {
-        // Priority 20: below catalogue.rebuild (30), above search.rebuild (10). The first chunk's units by the 100 ms
-        // rule, measured through the GD baseline: 22 ms a 1600 x 1200 JPEG, 58 ms a 3000 x 3000 one, so
-        // two rows of the larger; the runner grows the chunk from the cost it measures.
-        return new JobPolicy(label: 'COM_ALFA_TASKS_HANDLER_THUMBNAILS_RECREATE', weight: JobPolicy::HEAVY, priority: 20, initialUnits: 2, rerunOnMerge: true, ownTransactions: true);
+        // Priority 20: below catalogue.rebuild (30), above search.rebuild (10). The first chunk is one row: with a
+        // thumbnail size up to 5000 px a side one image can take a second or more to decode, resize and write, so the
+        // runner grows the chunk only from the cost it measures, and chunk() stops at the tick's deadline after the row
+        // it is on.
+        return new JobPolicy(label: 'COM_ALFA_TASKS_HANDLER_THUMBNAILS_RECREATE', weight: JobPolicy::HEAVY, priority: 20, initialUnits: 1, rerunOnMerge: true, ownTransactions: true);
     }
 
     public function total(JobRun $run): int
@@ -61,12 +62,19 @@ final class ThumbnailsRecreateJob implements JobHandler
         $report = (array) ($checkpoint['report'] ?? ThumbnailRecreation::emptyReport());
         $rows = ThumbnailRecreation::rowsAfter(after: (int) ($checkpoint['after'] ?? 0), limit: $units);
         $after = (int) ($checkpoint['after'] ?? 0);
+        $walked = 0;
 
         foreach ($rows as $row) {
             $report = ThumbnailRecreation::noted(report: $report, id: (int) $row->id, outcome: ThumbnailRecreation::recreate(row: $row, mode: $mode));
             $after = (int) $row->id;
+            $walked++;
+
+            // A large image takes long: the rows after it wait for the next chunk rather than run past the tick.
+            if ($run->until !== null && microtime(true) >= $run->until) {
+                break;
+            }
         }
 
-        return new JobChunk(units: \count($rows), checkpoint: ['mode' => $mode, 'after' => $after, 'report' => $report], finished: \count($rows) < $units);
+        return new JobChunk(units: $walked, checkpoint: ['mode' => $mode, 'after' => $after, 'report' => $report], finished: \count($rows) < $units && $walked === \count($rows));
     }
 }

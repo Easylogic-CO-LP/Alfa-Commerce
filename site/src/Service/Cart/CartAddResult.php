@@ -33,11 +33,19 @@ final class CartAddResult
      * @param bool $added Whether a line was stored.
      * @param int $lineId The line it landed on; 0 when nothing was stored.
      * @param object|null $line That line, priced in the cart it now belongs to.
-     * @param int $itemCount Distinct lines in the cart afterwards.
-     * @param int $quantity Units in the cart afterwards.
+     * @param int $itemCount Distinct lines in the cart afterwards; 0 when
+     *                       nothing was added, unless the cart already held
+     *                       the available quantity.
+     * @param int $quantity Units in the cart afterwards, the same way.
      * @param Money|null $grandTotal What the cart comes to afterwards, or null
      *                               when nothing was added and there is nothing
      *                               to show.
+     * @param StockLimit|null $stockLimit What the shelf said: the cart
+     *                                    already held the available quantity, so
+     *                                    nothing more of that stock went in (an
+     *                                    edit still re-configures its line), or
+     *                                    now holds it, the request cut to it;
+     *                                    null when it said nothing.
      *
      * @since  2.0.0
      */
@@ -48,6 +56,7 @@ final class CartAddResult
         public readonly int $itemCount,
         public readonly int $quantity,
         public readonly ?Money $grandTotal = null,
+        public readonly ?StockLimit $stockLimit = null,
     ) {
     }
 }

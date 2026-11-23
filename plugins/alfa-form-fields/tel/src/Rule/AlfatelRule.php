@@ -3,6 +3,7 @@
 namespace Alfa\Plugin\AlfaFormFields\Tel\Rule;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Service\Setup\BundledLibraries;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormRule;
 use Joomla\CMS\Language\Text;
@@ -25,23 +26,32 @@ class AlfatelRule extends FormRule
             return true;
         }
 
-        // THE SAME REGION THE FILTER READS AGAINST: the field's, else the
-        // shop's. Assuming Greece here while the filter assumed nothing let a
-        // national number pass this rule and reach storage without its
-        // country, the exact number a carrier then refuses. No region and no
-        // country code is not a number yet, and is refused as one.
-        $defaultRegion = strtoupper(trim((string) ($element['default_region'] ?? ''))) ?: FieldsHelper::shopRegionCode();
+        // The number is checked with libphonenumber, which ships with Alfa Commerce. While it is missing or disabled
+        // (or cannot be read), a number is refused with a plain message rather than taken unchecked; the
+        // administrators are told in the notification centre.
+        if (!BundledLibraries::available(libraries: BundledLibraries::PHONE)) {
+            throw new RuntimeException(Text::_('PLG_ALFA_FORM_FIELDS_TEL_ERR_LIBRARY_UNAVAILABLE'));
+        }
+
+        // THE SAME REGION THE FILTER READS AGAINST, by the one rule
+        // (FieldsHelper::phoneRegion()): the country of the place field
+        // in the same section of the submission (an order's country), else the
+        // field's Default region, else the shop's default country. A leading
+        // 00 is read as +. No region and no country code is not a number yet,
+        // and is refused as one.
+        $value = FieldsHelper::phoneTyped((string) $value);
+        $defaultRegion = FieldsHelper::phoneRegion($element, $input);
         $allowedRegions = array_filter(array_map('trim', explode(',', (string) $element['allowed_regions'])));
         $requireMobile = filter_var((string) $element['require_mobile'], FILTER_VALIDATE_BOOLEAN);
 
-        if ($defaultRegion === '' && !str_starts_with(trim((string) $value), '+')) {
+        if ($defaultRegion === '' && !str_starts_with($value, '+')) {
             throw new RuntimeException(Text::_('PLG_ALFA_FORM_FIELDS_TEL_ERR_UNPARSEABLE'));
         }
 
         $util = PhoneNumberUtil::getInstance();
 
         try {
-            $number = $util->parse((string) $value, $defaultRegion ?: null);
+            $number = $util->parse($value, $defaultRegion ?: null);
         } catch (NumberParseException) {
             throw new RuntimeException(Text::_('PLG_ALFA_FORM_FIELDS_TEL_ERR_UNPARSEABLE'));
         }

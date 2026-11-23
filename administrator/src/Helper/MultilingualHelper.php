@@ -146,6 +146,19 @@ class MultilingualHelper
     private static ?array $defaultLanguage = null;
 
     /**
+     * The request's memo of single translated values (a property, so a write can forget what it changed): base
+     * table => record id => lookup => value, filled by {@see self::readFirstFilledField()} and
+     * {@see self::readFieldFromLangTable()}, and emptied for a record by {@see self::forget()}, which the save and the
+     * delete of its translations call. Before, a value read once in a request was answered for the rest of it, so the
+     * answer of a REST PATCH carried the name read before the write.
+     *
+     * @var array<string, array<int, array<string, string>>>
+     *
+     * @since  2.2.2
+     */
+    private static array $valueMemo = [];
+
+    /**
      * Substrings that map a column to LONGTEXT instead of VARCHAR(255).
      * Matched case-insensitively via str_contains() against the field name.
      */
@@ -511,6 +524,9 @@ class MultilingualHelper
                 previous: $e,
             );
         }
+
+        // What this request read of the record's texts is read again.
+        self::forget(tableName: $tableName, id: $currentId);
 
         // A language added later counts what it still lacks: the counts follow what was saved.
         ContentLanguageAddedNotice::afterSave(tableName: $tableName, langCodes: array_keys($languageData));
@@ -959,6 +975,71 @@ class MultilingualHelper
             if ($row) {
                 unset($row[$primaryColumnName]); // Callers only need the translatable fields.
                 $result[$langCode] = $row;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * {@see self::getMultilingualData()} for many records at once: one statement per language table, so a list
+     * of fifty records costs as many statements as the shop has content languages, never one per row.
+     *
+     * @param int[] $ids The records.
+     * @param string $primaryColumnName PK column of the lang tables (e.g. "id_item").
+     * @param string $tableName Base table with Joomla prefix (e.g. "#__alfa_items").
+     *
+     * @return array<int, array<string, array<string, mixed>>> id => [lang => row]; a record with no translation row has
+     *                                                         an empty map.
+     *
+     * @throws RuntimeException On a read that fails.
+     *
+     * @since  2.2.2
+     */
+    public static function getMultilingualDataForIds(array $ids, string $primaryColumnName, string $tableName): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        self::assertValidArguments(
+            currentId:         $ids[0],
+            primaryColumnName: $primaryColumnName,
+            tableName:         $tableName,
+            callerMethod:      __METHOD__,
+        );
+
+        $db = self::getDb();
+        $existingTables = self::fetchTableList(db: $db);
+        $result = array_fill_keys($ids, []);
+
+        foreach (self::buildLangCodeList(languages: LanguageHelper::getLanguages('lang_code')) as $langCode) {
+            $langTableName = $db->replacePrefix($tableName . '_' . $langCode);
+
+            if (!\in_array($langTableName, $existingTables, true)) {
+                continue;
+            }
+
+            try {
+                $rows = $db->setQuery(
+                    $db->getQuery(true)
+                        ->select('*')
+                        ->from($db->qn($langTableName))
+                        ->whereIn($db->qn($primaryColumnName), $ids),
+                )->loadAssocList() ?: [];
+            } catch (Throwable $e) {
+                throw new RuntimeException(
+                    '[MultilingualHelper::getMultilingualDataForIds] Read failed for "' . $langTableName . '": ' . $e->getMessage(),
+                    previous: $e,
+                );
+            }
+
+            foreach ($rows as $row) {
+                $id = (int) $row[$primaryColumnName];
+                unset($row[$primaryColumnName]);
+                $result[$id][$langCode] = $row;
             }
         }
 
@@ -2102,9 +2183,10 @@ class MultilingualHelper
         string $field,
         array $langTags,
     ): string {
-        // Request-level memo, as readFieldFromLangTable(): the same lookups repeat per page.
-        static $cache = [];
-        $cacheKey = $tableName . '|' . implode(',', $langTags) . '|' . $primaryColumnName . '|' . $field . '|' . $id;
+        // Request-level memo, as readFieldFromLangTable(): the same lookups repeat per page. A write of the record's
+        // translations forgets it (self::forget()).
+        $cacheKey = 'first|' . implode(',', $langTags) . '|' . $primaryColumnName . '|' . $field;
+        $cache = &self::$valueMemo[$tableName][$id];
 
         if (isset($cache[$cacheKey])) {
             return $cache[$cacheKey];
@@ -2287,9 +2369,10 @@ class MultilingualHelper
         string $langTag,
     ): string {
         // Request-level memo: the same single-field lookups (e.g. an item's alias
-        // for routing) repeat many times per page. Read-only within a request.
-        static $cache = [];
-        $cacheKey = $tableName . '|' . $langTag . '|' . $primaryColumnName . '|' . $field . '|' . $id;
+        // for routing) repeat many times per page. A write of the record's
+        // translations forgets it (self::forget()).
+        $cacheKey = 'one|' . $langTag . '|' . $primaryColumnName . '|' . $field;
+        $cache = &self::$valueMemo[$tableName][$id];
 
         if (isset($cache[$cacheKey])) {
             return $cache[$cacheKey];
@@ -2316,6 +2399,20 @@ class MultilingualHelper
         }
 
         return $cache[$cacheKey] = (string) ($value ?? '');
+    }
+
+    /**
+     * Forget what this request read of a record's translated values: the save and the delete of its
+     * translations call it, so every read after a write in the same request reads the texts as they are now.
+     *
+     * @param string $tableName Base table with prefix (e.g. "#__alfa_items").
+     * @param int $id The record.
+     *
+     * @since  2.2.2
+     */
+    public static function forget(string $tableName, int $id): void
+    {
+        unset(self::$valueMemo[$tableName][$id]);
     }
 
     /**
@@ -3712,6 +3809,11 @@ class MultilingualHelper
             throw new InvalidArgumentException(
                 '[MultilingualHelper::deleteMultilingualData] $primaryColumnName and $tableName are required.',
             );
+        }
+
+        // What this request read of the records' texts is read again.
+        foreach ($idList as $id) {
+            self::forget(tableName: $tableName, id: $id);
         }
 
         $db = self::getDb();

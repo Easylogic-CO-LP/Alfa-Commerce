@@ -65,9 +65,19 @@ use Throwable;
  * ItemsModel: Site-side catalog list model with price filtering.
  *
  * Price filter
- * The catalog filter reads from #__alfa_items_price_index via a context-aware
- * subquery restricted to the visitor's currency, place, and usergroups.
- * Column names in the index match the com_alfa config fields exactly.
+ * The catalog filter reads #__alfa_items_price_index by key: the row of the
+ * visitor's pricing context for the combination each product's card opens on
+ * ({@see self::applyPriceIndexJoin()}). Column names in the index match the
+ * com_alfa config fields exactly.
+ *
+ * Products without a price
+ * Every product is listed, one with no price for the visitor with no price
+ * and no add to cart. A read that filters by a price (a price floor, ceiling
+ * or range, the sale or a saving filter) lists only the products the index has
+ * a figure of for the visitor ({@see self::applyPriceIndexJoin()}), and so do
+ * the facet counts beside it, which copy the filters. A sort by price or by
+ * saving, in either direction, lists every product, those without a figure
+ * last.
  *
  * Available filter states
  *   filter.price_min           float   Minimum final_price (range slider left)
@@ -1051,14 +1061,11 @@ class ItemsModel extends UrlListModel
     /**
      * Build the main catalog list query with price filter support.
      *
-     * PRICE INDEX SUBQUERY (alias: pf)
-     * Aggregates the index down to one row per item for the current visitor:
-     *   MIN(final_price)              -> best price this visitor can get
-     *   MAX(discount_amount)          -> largest absolute saving available
-     *   MAX(discount_percent)         -> highest % saving available
-     *   MIN(base_price_with_tax)      -> undiscounted "was" price
-     *   MIN(base_price_with_discounts)-> ex-VAT net price
-     *   MIN(tax_amount)               -> tax amount
+     * PRICE INDEX ROW (alias: pf)
+     * One row per product for the current visitor: the index row of their pricing context for the combination the
+     * product's card opens on, in the period that holds this moment (final_price, discount_amount, discount_percent,
+     * base_price_with_tax, base_price_with_discounts, tax_amount; NULL for no valid price). A left join, except for a
+     * read that filters by a price, which lists only the products with a figure ({@see self::applyPriceIndexJoin()}).
      *
      * All supported filter conditions
      *   filter.price_min            -> pf.final_price >= X
@@ -1126,13 +1133,10 @@ class ItemsModel extends UrlListModel
             )
             ->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
 
-        // Architecture B price index subquery JOIN. Catalogue only (2.2.2): no price is read, so the index is not
-        // joined, and every price filter and sort below is left out with it (the sale filter matches nothing).
+        // The price index subquery JOIN, added below once the read knows whether it filters by a price.
+        // Catalogue only: no price is read, so the index is not joined, and every price filter and sort below
+        // is left out with it (the sale filter matches nothing).
         $sellsOnline = ShopMode::sellsOnline();
-
-        if ($sellsOnline) {
-            $this->applyPriceIndexJoin($query);
-        }
 
         // MULTILINGUAL: resolve name / alias in the active language
         // 1:1 LEFT JOIN on the PK, so it does not affect the GROUP BY a.id below.
@@ -1361,22 +1365,21 @@ class ItemsModel extends UrlListModel
         $hasMax = is_numeric($priceMax) && $priceMax !== '' && $priceMax !== null;
 
         if ($hasMin && $hasMax) {
-            // Strict inclusive range; unpriced items (NULL) naturally excluded
+            // Strict inclusive range.
             $query->where('pf.final_price >= ' . (float) $priceMin);
             $query->where('pf.final_price <= ' . (float) $priceMax);
         } elseif ($hasMin) {
             $query->where('pf.final_price >= ' . (float) $priceMin);
         } elseif ($hasMax) {
-            // A ceiling alone, as a floor or a range: only products with a figure
-            // for the visitor's set. One without (no price, or a set not yet
-            // prepared) has nothing to compare and is not listed.
             $query->where('pf.final_price <= ' . (float) $priceMax);
         }
 
         // On sale filter
         // discount_amount > 0 is the canonical test; no separate has_discount column needed.
         // A sale nobody sees is no sale: in catalogue-only mode the filter matches nothing.
-        if ($this->getState('filter.on_sale')) {
+        $onSale = (bool) $this->getState('filter.on_sale');
+
+        if ($onSale) {
             $query->where($sellsOnline ? 'pf.discount_amount > 0' : '0 = 1');
         }
 
@@ -1394,13 +1397,15 @@ class ItemsModel extends UrlListModel
         // Minimum discount amount filter
         // "Show items where the visitor saves at least €X."
         $discountAmountMin = $sellsOnline ? $this->getState('filter.discount_amount_min') : null;
-        if (is_numeric($discountAmountMin) && (float) $discountAmountMin > 0) {
+        $savingAsked = is_numeric($discountAmountMin) && (float) $discountAmountMin > 0;
+        if ($savingAsked) {
             $query->where('pf.discount_amount >= ' . (float) $discountAmountMin);
         }
 
         // Minimum discount percentage filter
         // "Show items discounted by at least X%."
         $discountPercentMin = $sellsOnline ? $this->getState('filter.discount_percent_min') : null;
+        $savingAsked = $savingAsked || (is_numeric($discountPercentMin) && (float) $discountPercentMin > 0);
         if (is_numeric($discountPercentMin) && (float) $discountPercentMin > 0) {
             $query->where('pf.discount_percent >= ' . (float) $discountPercentMin);
         }
@@ -1455,56 +1460,101 @@ class ItemsModel extends UrlListModel
             }
         }
 
+        // The visitor's price from the index: a read that filters by a price (a price floor, ceiling or range, the
+        // sale or a saving filter) lists only the products with a figure for the visitor; every other read, a sort by
+        // price or by saving included, lists every product, one with no price shown with no price.
+        if ($sellsOnline) {
+            $this->applyPriceIndexJoin(query: $query, pricedOnly: $hasMin || $hasMax || $onSale || $savingAsked);
+        }
+
         $query->group('a.id');
 
         return $query;
     }
 
     /**
-     * Append the Architecture-B price index subquery JOIN to the main query.
+     * Join the price index to the main query: the one place a read of the catalogue takes the visitor's price figures,
+     * and the rule on products without one, from.
      *
-     * The subquery (alias pf) reduces the index to one row per item for the
-     * current visitor's currency, place, and usergroups.
+     * The index holds a row per pricing context, product, combination and period (PriceIndexSyncService); the read
+     * takes, by key, the row of the visitor's context ({@see PriceIndexSyncService::readContext()}) for the combination
+     * the product's card opens on (#__alfa_items.opening_combination_id, 0 for a product without one), in the period
+     * that holds this moment: one row a product, alias pf, with the columns of the index. A customer with prices of
+     * their own reads their context's row where it has one and the set's otherwise. A product with no valid price for
+     * the visitor has a row whose figures are NULL. A left join, so every product is listed and a sort by a figure
+     * places one with none last; with $pricedOnly, the read that filters by a price, an inner join, and the filters'
+     * own comparisons leave the NULL rows out. With no context prepared for the visitor nothing is priced.
+     *
+     * While the new index is built after the update, the previous one is read instead
+     * ({@see self::applyPreviousPriceIndexJoin()}).
      *
      * @param \Joomla\Database\QueryInterface $query Mutated in place
+     * @param bool $pricedOnly Whether the read lists only the products with a figure for the visitor.
      * @since  1.0.0
      */
-    protected function applyPriceIndexJoin($query): void
+    protected function applyPriceIndexJoin($query, bool $pricedOnly = false): void
     {
-        // Same UTC clock as the publish window in getListQuery(): the index's
-        // valid_from / valid_until are written by PriceIndexSyncService with
-        // Factory::getDate()->toSql(), so a promo segment must open on that
-        // clock, not on the DB's local-time NOW().
-        $now = Factory::getContainer()->get('DatabaseDriver')->quote(ActiveDateCondition::now());
+        if (PriceIndexSyncService::isBuilding()) {
+            $this->applyPreviousPriceIndexJoin(query: $query, pricedOnly: $pricedOnly);
 
+            return;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $index = $db->quoteName(PriceIndexSyncService::INDEX_TABLE);
+        // The UTC clock the writer writes the periods on (Factory::getDate()->toSql()), never the database's NOW().
+        $now = $db->quote(ActiveDateCondition::now());
+        $read = PriceIndexSyncService::readContext(context: PriceContext::fromSession());
+
+        if ($read === null) {
+            $query->join('LEFT', $index . ' AS pf ON 1 = 0');
+
+            if ($pricedOnly) {
+                $query->where('0 = 1');
+            }
+
+            return;
+        }
+
+        $period = static fn (string $alias): string => $alias . '.valid_from <= ' . $now . ' AND (' . $alias . '.valid_until IS NULL OR ' . $alias . '.valid_until > ' . $now . ')';
+        $unit = static fn (string $alias): string => $alias . '.item_id = a.id AND ' . $alias . '.combination_id = a.opening_combination_id';
+        $context = (int) $read['context'];
+        $customer = (int) $read['customer'];
+        $on = $unit('pf') . ' AND ' . $period('pf');
+
+        // The customer's own row first, the set's where they have none.
+        $on .= $customer > 0
+            ? ' AND pf.context_id IN (' . $customer . ', ' . $context . ') AND (pf.context_id = ' . $customer
+                . ' OR NOT EXISTS (SELECT 1 FROM ' . $index . ' AS pu WHERE pu.context_id = ' . $customer . ' AND ' . $unit('pu') . ' AND ' . $period('pu') . '))'
+            : ' AND pf.context_id = ' . $context;
+
+        $query->join($pricedOnly ? 'INNER' : 'LEFT', $index . ' AS pf ON ' . $on);
+    }
+
+    /**
+     * The read of the previous price index, while the new one is built after the update: the
+     * previous index under the name the update gave it, read as before, so a visitor meets the previous prices
+     * until the new ones are complete. The subquery (alias pf) reduces it to one row per product for the visitor's
+     * currency, place chain and set of pricing groups (one the previous index prepared), at this moment.
+     *
+     * @param \Joomla\Database\QueryInterface $query Mutated in place
+     * @param bool $pricedOnly Whether the read lists only the products with a figure for the visitor.
+     * @since  2.2.2
+     */
+    private function applyPreviousPriceIndexJoin($query, bool $pricedOnly): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $now = $db->quote(ActiveDateCondition::now());
         $context = PriceContext::fromSession();
-
-        // Currency: match this currency OR the universal sentinel (0)
         $currencyId = $context->getCurrencyId();
-        $currencyCond = $currencyId > 0
-            ? "pi.currency_id IN ({$currencyId}, 0)"
-            : 'pi.currency_id = 0';
-
-        // Place: the visitor's place, the places above it whose rules it has (2.2.1), OR the universal sentinel (0)
+        $currencyCond = $currencyId > 0 ? "pi.currency_id IN ({$currencyId}, 0)" : 'pi.currency_id = 0';
         $places = PriceIndexSyncService::slotPlaces(context: $context);
         $placeCond = 'pi.place_id IN (' . implode(', ', array_merge($places, [0])) . ')';
-
-        // Groups: the slots of the visitor's own set of pricing groups, priced
-        // with exactly the groups of theirs that change a price; a set whose
-        // preparation has not finished is not read at all.
-        $setJoin = PriceIndexSyncService::slotSetJoin(context: $context, alias: 'pi');
-
-        // Subquery: all column aliases match index column names.
-        //
-        // Per (item x combination) the visitor may match SEVERAL context
-        // slots (his place, a place above it AND any place, his currency AND any). The displayed
-        // card price comes from the live engine with his FULL context, which
-        // corresponds to the slot of his own set of pricing groups and of his
-        // own currency and place. The index says how its slots are ranked:
-        // taking the ranking from there keeps the filter and the card telling
-        // the same number. Across combinations the outer MIN() stands: an item
-        // matches the slider when ANY variant does.
+        $setKey = PriceIndexSyncService::readableSetKey(context: $context);
+        $pricedOnly = $pricedOnly && $setKey !== null;
+        $setJoin = PriceIndexSyncService::slotSetJoin(setKey: $setKey ?? '', alias: 'pi');
         $ranking = PriceIndexSyncService::slotRanking(alias: 'pi', places: $places);
+        $previous = $db->quoteName(PriceIndexSyncService::PREVIOUS_TABLE);
 
         $subquery = "
             (
@@ -1525,7 +1575,7 @@ class ItemsModel extends UrlListModel
                             PARTITION BY pi.item_id, pi.combination_id
                             ORDER BY {$ranking}
                         ) AS context_rank
-                    FROM #__alfa_items_price_index pi
+                    FROM {$previous} pi
                     {$setJoin}
                     WHERE {$currencyCond}
                       AND {$placeCond}
@@ -1536,7 +1586,7 @@ class ItemsModel extends UrlListModel
                 GROUP BY ranked.item_id
             ) AS pf";
 
-        $query->join('LEFT', $subquery . ' ON a.id = pf.item_id');
+        $query->join($pricedOnly ? 'INNER' : 'LEFT', $subquery . ' ON a.id = pf.item_id');
     }
 
     /**
