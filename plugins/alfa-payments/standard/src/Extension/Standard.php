@@ -1196,8 +1196,8 @@ final class Standard extends PaymentsPlugin
     //  grants nothing and moves no order status. Only
     //  $this->paymentUpdate($id)->completed() does.
     //
-    //  getPaymentsByOrder() returns RAW rows (plain floats), unlike the
-    //  order object's ->payments, whose amounts are Money objects.
+    //  getPaymentsByOrder() returns the rows with their amounts as Money,
+    //  as the order object's ->payments holds them.
     //
     //  Only completed rows of type 'payment' count, so a pending deposit
     //  leaves the order 'unpaid' until it is flipped to ->completed().
