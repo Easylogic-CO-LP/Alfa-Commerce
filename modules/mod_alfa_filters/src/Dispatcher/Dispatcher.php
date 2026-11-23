@@ -283,7 +283,7 @@ class Dispatcher extends AbstractModuleDispatcher
         $offsetV = $offsetVertical . $offsetVerticalUnit;
         $offsetH = $offsetHorizontal . $offsetHorizontalUnit;
 
-        $loadingAnimation = match ((string) $params->get('loadingAnimation', 'pulsate')) {
+        $loadingAnimation = match ((string) $params->get('loadingAnimation', 'spinner')) {
             'spinner' => 'alfa-filters-spinner 0.8s linear infinite',
             'none' => '',
             default => 'alfa-filters-pulsate 0.7s ease-in-out infinite',

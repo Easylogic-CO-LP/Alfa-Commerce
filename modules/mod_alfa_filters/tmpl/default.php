@@ -7,9 +7,9 @@ use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
-$animation = $params->get('animation', 'zoomIn');
+$animation = $params->get('animation', 'fromLeft');
 $imageType = $params->get('imageType', 'default');
-$imageFile = $params->get('imageFile', null);
+$imageFile = (string) $params->get('imageFile', '');
 $fixed = $params->get('fixed_btn', '0');
 $fixed_pos = $params->get('fixed_pos', 'bottom-right');
 
@@ -17,14 +17,13 @@ $minimum_price = $getMinMax['min'];
 $maximum_price = $getMinMax['max'];
 
 $loadingImg = $params->get('loadingImg', 'default');
-$loadingImageFile = $params->get('loadingImageFile', null);
-$headerTxt = $params->get('headerTxt', null);
+$loadingImageFile = (string) $params->get('loadingImageFile', '');
+$headerTxt = (string) $params->get('headerTxt', '');
 
 // Route::_ roots what it returns (SiteRouter::buildBase() prepends Uri::root(true) to every
 // path it builds), so nothing prefixes the base here. Concatenating Uri::base(true) in front of
 // it emitted the base TWICE (/shop/shop/...) on any install below the document root, and nothing
 // at all on one at the root, which is why it went unseen.
-$formAction = Route::_('index.php?option=com_alfa&view=items');
 // The AJAX render must stay on THIS menu item. With SEF on, Route::_ resolves to
 // the menu alias and the Itemid is implied; with SEF OFF it emits a bare
 // index.php?option=com_alfa&view=items, Joomla falls back to whatever menu item
@@ -44,6 +43,13 @@ $ajaxCatId = $appInput->getInt('category_id', 0);
 $ajaxAction = Route::_('index.php?option=com_alfa&tmpl=component&view=items'
     . ($ajaxCatId ? '&category_id=' . $ajaxCatId : '')
     . ($activeItemid ? '&Itemid=' . $activeItemid : ''));
+// The form's own submit (the panel's results button when the results apply on submit) lands
+// on the listing whose products the button counted: on a listing page, this page, its menu
+// item and its category; anywhere else, the shop's listing.
+$onListing = $appInput->getCmd('option') === 'com_alfa' && $appInput->getCmd('view') === 'items';
+$formAction = Route::_('index.php?option=com_alfa&view=items'
+    . ($onListing && $ajaxCatId ? '&category_id=' . $ajaxCatId : '')
+    . ($onListing && $activeItemid ? '&Itemid=' . $activeItemid : ''));
 
 // Route::_ so the URL is language/SEF-aware and ROOTED (e.g. /en/?option=com_ajax...),
 // same as the item page's reloadUrl. The second arg false returns a clean "&"
@@ -79,7 +85,7 @@ $moduleId = $module->id;
          id="alfa-filters-offcanvas-<?=$moduleId?>">
         <div class="alfa-filters-wrapper-inner">
             <div class="alfa-filters-header">
-                <?php if ($headerTxt !== null) : ?>
+                <?php if ($headerTxt !== '') : ?>
                     <h2 class="alfa-filters-header-title"><?= $headerTxt ?></h2>
                 <?php endif; ?>
                 <button type="button" class="alfa-filters-close-btn" aria-label="<?= Text::_('MOD_ALFAFILTERS_CLOSE_BTN_LABEL') ?>">

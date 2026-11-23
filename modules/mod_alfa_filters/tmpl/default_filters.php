@@ -206,8 +206,6 @@ $moreFrom = static function (string $sectionKey, int $options) use ($groupSettin
             }
         }
 
-        // The control itself lives in its own layout so a template override
-        // can restyle one mode without touching the rest of the panel.
         $optionsHtml = LayoutHelper::render(
             'default_field',
             [
