@@ -1000,12 +1000,19 @@ class OrderopsController extends OrdersController
                     $this->refuseField(field: 'amount_in_order_currency', sentence: 'the amount in the order\'s currency is sent alone');
                 }
 
-                return $this->disputeAct(orderId: $orderId, act: 'amount', payment: $payment, dispute: $dispute, values: ['amount' => $body['amount_in_order_currency']]);
+                $amount = $this->decimalField(body: $body, field: 'amount_in_order_currency');
+
+                if ($amount === '') {
+                    $this->refuseField(field: 'amount_in_order_currency', sentence: 'a decimal text such as "49.90"');
+                }
+
+                return $this->disputeAct(orderId: $orderId, act: 'amount', payment: $payment, dispute: $dispute, values: ['amount' => $amount], amountField: 'amount_in_order_currency');
             }
 
-            // A field left out keeps its value.
+            // A field left out keeps its value: the amount as stated, in the currency it was stated in (the amount in the
+            // order's currency is the ledger's, never sent back as the stated one).
             $values = $this->disputeValues(body: $body) + [
-                'amount' => $dispute->amount !== null ? PublishedDecimal::decimal((string) $dispute->amount) : PublishedDecimal::decimal((string) $dispute->stated_amount),
+                'amount' => PublishedDecimal::decimal((string) $dispute->stated_amount),
                 'currency' => (string) $dispute->stated_currency,
                 'reason_code' => (string) $dispute->reason_code,
                 'reason_text' => (string) $dispute->reason_text,
@@ -1198,12 +1205,13 @@ class OrderopsController extends OrdersController
      * @param object $payment The disputed payment.
      * @param object|null $dispute The record; null for record.
      * @param array<string, mixed> $values The act's values.
+     * @param string $amountField The body's field the amount came from, which a refusal of it names.
      *
      * @return static
      *
      * @since  2.2.2
      */
-    private function disputeAct(int $orderId, string $act, object $payment, ?object $dispute, array $values)
+    private function disputeAct(int $orderId, string $act, object $payment, ?object $dispute, array $values, string $amountField = 'amount')
     {
         $orderCurrency = OrderCurrency::of(orderId: $orderId);
 
@@ -1214,9 +1222,9 @@ class OrderopsController extends OrdersController
                 $values['amount'] = PublishedDecimal::money(money: ExactMoney::of(value: (string) $values['amount'], currency: $orderCurrency));
             } catch (ExactMoneyRefusal $e) {
                 // The reader's words already lead with the field.
-                $this->refusedField = 'amount';
+                $this->refusedField = $amountField;
 
-                throw new Save($e->words(field: 'amount'), 422, $e);
+                throw new Save($e->words(field: $amountField), 422, $e);
             }
         }
 
