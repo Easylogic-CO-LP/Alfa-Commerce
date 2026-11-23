@@ -63,6 +63,7 @@ use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\ShipmentAutomation;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use Alfa\Component\Alfa\Site\Service\Cart\MethodCategoryScope;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedTax;
@@ -801,8 +802,10 @@ class ShipmentLedger
             unset($data['shipping_charge_basis'], $data['shipping_tax_chain']);
         }
 
-        // A charge stated without its net is untaxed; the rate is read as a rate.
-        $refusal = self::readCharge(data: $data, stored: null);
+        // A charge stated without its net is untaxed; the rate is read as a rate. A method does not carry a line in a
+        // category it does not serve.
+        $refusal = self::readCharge(data: $data, stored: null)
+            ?? self::categoryRefusal(orderId: $orderId, methodId: (int) ($data['id_shipment_method'] ?? 0), items: (array) $selectedItems);
 
         if ($refusal !== null) {
             self::warn(message: $refusal, context: 'create()');
@@ -963,6 +966,41 @@ class ShipmentLedger
         TransactionState::commitLevel($db);
 
         return $newId;
+    }
+
+    /**
+     * Why a method may not carry a parcel's lines: the sentence naming the method and the products in a category it
+     * does not serve (MethodCategoryScope, the reader the checkout's method list asks), or null when it may.
+     *
+     * @param int $orderId The order.
+     * @param int $methodId The parcel's method; none judges nothing.
+     * @param array $items The parcel's lines as a call names them (ids, a line => quantity map, or the REST objects).
+     *
+     * @since  2.2.2
+     */
+    private static function categoryRefusal(int $orderId, int $methodId, array $items): ?string
+    {
+        if ($methodId <= 0 || $items === []) {
+            return null;
+        }
+
+        $scope = MethodCategoryScope::ofShipment(methodId: $methodId);
+
+        if (!$scope->restricts()) {
+            return null;
+        }
+
+        $refused = $scope->refused(MethodCategoryScope::orderLines(orderId: $orderId, orderLineIds: array_keys(self::normaliseItemMap($items))));
+
+        if ($refused === []) {
+            return null;
+        }
+
+        return Text::sprintf(
+            'COM_ALFA_SHIPMENT_CATEGORY_REFUSED',
+            self::resolveMethodName('Shipment', $methodId),
+            implode(', ', array_values(array_unique(array_column($refused, 'name')))),
+        );
     }
 
     /**
@@ -1682,8 +1720,15 @@ class ShipmentLedger
 
         $oldItemQuantities = self::getItemQuantities($id);
 
-        // A net left blank is untaxed; a figure this call does not carry is the row's own.
-        $refusal = self::readCharge(data: $data, stored: $oldSnapshot);
+        // A net left blank is untaxed; a figure this call does not carry is the row's own. A parcel moved to another
+        // method, or given other lines, is judged by the method's categories as a new one is.
+        $methodChanges = \array_key_exists('id_shipment_method', $data) && (int) $data['id_shipment_method'] !== (int) $oldSnapshot->id_shipment_method;
+        $refusal = self::readCharge(data: $data, stored: $oldSnapshot)
+            ?? ($methodChanges || \is_array($selectedItems) ? self::categoryRefusal(
+                orderId: $orderId,
+                methodId: (int) ($data['id_shipment_method'] ?? $oldSnapshot->id_shipment_method),
+                items: \is_array($selectedItems) ? $selectedItems : $oldItemQuantities,
+            ) : null);
 
         if ($refusal !== null) {
             self::warn(message: $refusal, context: 'update()');

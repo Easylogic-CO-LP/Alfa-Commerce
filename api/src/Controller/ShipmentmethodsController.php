@@ -66,6 +66,7 @@ class ShipmentmethodsController extends ApiController
     {
         return [
             'categories',
+            'excluded_categories',
             'manufacturers',
             'places',
             'users',

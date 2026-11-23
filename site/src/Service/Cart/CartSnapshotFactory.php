@@ -145,6 +145,7 @@ final class CartSnapshotFactory
             shipmentViews: $shipmentViews,
             shipmentNeeds: $methods->shipmentNeeds(),
             paymentFees: $fees,
+            shipmentRefusals: $methods->shipmentRefusals(),
         );
     }
 }

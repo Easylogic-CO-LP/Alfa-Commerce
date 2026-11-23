@@ -59,4 +59,9 @@ $shipments = $snapshot->offers->shipments;
         </div>
 	<?php endforeach ?>
 
+	<?php // The methods the cart's goods keep off the list, and the products they do not deliver. ?>
+	<?php foreach ($snapshot->offers->shipmentRefusals as $refusal) : ?>
+        <p class="cart-methods-refused"><?php echo htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'); ?></p>
+	<?php endforeach; ?>
+
 </div>

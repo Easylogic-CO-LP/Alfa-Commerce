@@ -25,3 +25,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_fee_taxes` (
   PRIMARY KEY (`payment_id`, `tax_id`),
   KEY `idx_tax_id` (`tax_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The categories a shipping method does not deliver. No row = none; an updated shop starts with none, so every method
+-- serves what it served. The install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_excluded_categories` (
+  `shipment_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `category_id`),
+  KEY `idx_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

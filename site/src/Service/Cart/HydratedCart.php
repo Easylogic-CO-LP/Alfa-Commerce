@@ -283,6 +283,8 @@ final class HydratedCart
             $scopes[] = [
                 'categories' => array_map('intval', array_keys((array) ($line->data->categories ?? []))),
                 'manufacturers' => array_map('intval', array_keys((array) ($line->data->manufacturers ?? []))),
+                // What the shopper bought, for the reason a method does not serve it.
+                'name' => (string) ($line->data->name ?? ''),
             ];
         }
 

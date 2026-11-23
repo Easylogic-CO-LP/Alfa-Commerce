@@ -197,6 +197,9 @@ class ShipmentModel extends AlfaAdminModel
 
             // The tax rules its charge is taxed with; none = no shipping tax.
             $item->taxes = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_taxes', 'shipment_id', 'tax_id');
+
+            // The categories it does not deliver; none, never a wildcard row.
+            $item->excluded_categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_excluded_categories', 'shipment_id', 'category_id');
         }
 
         return $item;
@@ -255,6 +258,11 @@ class ShipmentModel extends AlfaAdminModel
             recordId:     (int) ($data['id'] ?? 0),
             posted:       (array) ($data['categories'] ?? []),
             table:        '#__alfa_shipment_categories',
+            recordColumn: 'shipment_id',
+        ) ?? CategoryPickerPolicy::refusalForSave(
+            recordId:     (int) ($data['id'] ?? 0),
+            posted:       (array) ($data['excluded_categories'] ?? []),
+            table:        '#__alfa_shipment_excluded_categories',
             recordColumn: 'shipment_id',
         );
 
@@ -328,6 +336,16 @@ class ShipmentModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['places'] ?? [], '#__alfa_shipment_places', 'shipment_id', 'place_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['users'] ?? [], '#__alfa_shipment_users', 'shipment_id', 'user_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_shipment_usergroups', 'shipment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
+
+            // The categories the method does not deliver. NO wildcard row when none is chosen: no row excludes none.
+            AlfaHelper::setAssocsToDb(
+                $currentId,
+                array_values(array_unique(array_filter(array_map('intval', (array) ($data['excluded_categories'] ?? [])), static fn (int $id): bool => $id > 0))),
+                '#__alfa_shipment_excluded_categories',
+                'shipment_id',
+                'category_id',
+                false,
+            );
 
             // The method's shipping taxes. NO wildcard row when none is chosen:
             // no row means no shipping tax (there is no shop default).
@@ -451,6 +469,7 @@ class ShipmentModel extends AlfaAdminModel
             // Scope/link pivots of the deleted rows.
             foreach ([
                 '#__alfa_shipment_categories',
+                '#__alfa_shipment_excluded_categories',
                 '#__alfa_shipment_manufacturers',
                 '#__alfa_shipment_places',
                 '#__alfa_shipment_usergroups',

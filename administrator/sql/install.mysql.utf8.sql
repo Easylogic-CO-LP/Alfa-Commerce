@@ -2728,6 +2728,22 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_categories` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Table structure for table `#__alfa_shipment_excluded_categories`
+--
+-- The categories a shipping method does not deliver: a cart holding a product in
+-- one of them, or anywhere below one, is not offered the method. No row = none.
+-- There is no wildcard row; the categories it serves only are
+-- #__alfa_shipment_categories.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_excluded_categories` (
+  `shipment_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `category_id`),
+  KEY `idx_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Table structure for table `#__alfa_shipment_manufacturers`
 --
 

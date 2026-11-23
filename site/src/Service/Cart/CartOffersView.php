@@ -59,6 +59,8 @@ final class CartOffersView
      *                                    'postcode' ({@see CartMethods::shipmentNeeds()}).
      * @param array<int, Money> $paymentFees The fee each offered payment method would add, tax included, keyed by
      *                                       method id; a method that adds none is not in it ({@see PaymentFee}).
+     * @param array<int, string> $shipmentRefusals Why the cart's goods keep a shipping method off the list, by method
+     *                                             id ({@see CartMethods::shipmentRefusals()}).
      *
      * @since  2.0.0
      */
@@ -77,6 +79,7 @@ final class CartOffersView
         public readonly array $shipmentViews = [],
         public readonly array $shipmentNeeds = [],
         public readonly array $paymentFees = [],
+        public readonly array $shipmentRefusals = [],
     ) {
     }
 

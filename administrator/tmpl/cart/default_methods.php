@@ -88,6 +88,11 @@ $section = function (
                 <div class="alert alert-warning" role="status"><?php echo $this->escape($notice); ?></div>
             <?php endforeach; ?>
 
+            <?php // The carriers the cart's goods keep off the list, in the storefront's words. ?>
+            <?php foreach ($kind === 'shipment' ? $offers->shipmentRefusals : [] as $refusal) : ?>
+                <div class="alert alert-info" role="status"><?php echo $this->escape($refusal); ?></div>
+            <?php endforeach; ?>
+
             <?php if ($requirement->permitsNone()) : ?>
                 <p class="text-muted mb-0"><?php echo Text::_($notApplicable); ?></p>
             <?php elseif ($offered === []) : ?>

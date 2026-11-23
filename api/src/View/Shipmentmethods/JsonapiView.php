@@ -38,6 +38,8 @@ class JsonApiView extends BaseApiView
         'show_on_product',
         'price_entry_mode',
         'categories',
+        // The categories the method does not deliver; categories are the ones it serves only.
+        'excluded_categories',
         'manufacturers',
         'places',
         'users',

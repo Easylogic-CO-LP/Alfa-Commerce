@@ -98,6 +98,13 @@
     white-space: nowrap;
 }
 
+/* A shipping method the cart's goods keep off the list, and the products it does not deliver. */
+.cart-methods-refused {
+    margin: 0.5rem 0 0;
+    color: var(--alfa-muted-color);
+    font-size: 0.9375rem;
+}
+
 /* Method-list messages: a dropped choice, or nothing offered in this context.
    Informational, not errors (the shopper has done nothing wrong), so they take the
    info colour rather than sitting in body copy where they read as ordinary prose.

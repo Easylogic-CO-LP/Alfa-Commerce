@@ -1084,6 +1084,7 @@ class CategoryModel extends AlfaAdminModel
                     '#__alfa_discount_categories' => 'category_id',
                     '#__alfa_payment_categories' => 'category_id',
                     '#__alfa_shipment_categories' => 'category_id',
+                    '#__alfa_shipment_excluded_categories' => 'category_id',
                     '#__alfa_tax_categories' => 'category_id',
                     '#__alfa_item_field_categories' => 'category_id',
                 ] as $pivotTable => $pivotColumn) {
