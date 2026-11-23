@@ -37,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cartItemsWrapper.addEventListener("close", () => {
         cartItemsWrapper.classList.remove("cart--visible", "cart--animatable");
         document.querySelector("html").classList.remove("mod-alfa-cart-no-scroll");
+        cartToggler.setAttribute("aria-expanded", "false");
     });
 
     cartOuter.addEventListener("click", async (event) => {
@@ -336,6 +337,7 @@ document.addEventListener("DOMContentLoaded", () => {
             cartItemsWrapper.classList.add("cart--animatable");
             document.querySelector("html").classList.add("mod-alfa-cart-no-scroll");
             cartItemsWrapper.classList.add("cart--visible");
+            cartToggler.setAttribute("aria-expanded", "true");
         } else {
             cartItemsWrapper.classList.add("cart--animatable");
             document.querySelector("html").classList.remove("mod-alfa-cart-no-scroll");

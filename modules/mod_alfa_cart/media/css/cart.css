@@ -165,9 +165,17 @@
     gap: 5px;
 }
 
-/* toggler */
+/* toggler: a button drawn as the bare icon, the browser's button frame set aside */
 .mod-alfa-cart .cart-toggler{
     position:relative;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    line-height: 0;
+    cursor: pointer;
     color:var(--mod-alfa-cart-toggler-color, currentColor);
 }
 
