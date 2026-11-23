@@ -101,6 +101,7 @@ class AlfaFiltersHelper
             'form_fields' => self::getFormFields($moduleId),
             'dynamic_filtering' => $dynamic,
             'sectionOrder' => self::getSectionOrder($params, $alfa_filters),
+            'groupSettings' => self::getGroupSettings($params),
         ];
 
         $html = $layout->render($layoutData);
@@ -219,6 +220,22 @@ class AlfaFiltersHelper
         return ShopMode::sellsOnline()
             ? $sections
             : array_values(array_diff($sections, self::PRICE_SECTIONS));
+    }
+
+    /**
+     * How the panel's option groups (the categories, the manufacturers, each item field)
+     * behave, read once for the page and for every refresh alike.
+     *
+     * @param Registry $params The module parameters.
+     *
+     * @return array{search: int} search: the fewest options a group holds to get a search
+     *                            box, 0 when no group gets one.
+     */
+    public static function getGroupSettings(Registry $params): array
+    {
+        return [
+            'search' => (int) $params->get('group_search', 1) === 1 ? max(1, (int) $params->get('group_search_min', 8)) : 0,
+        ];
     }
 
     /**

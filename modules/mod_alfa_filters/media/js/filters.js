@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.initDiscountFilters();
                 this.initSubcategoryTogglers();
                 this.initFacetSelects();
+                this.initGroups();
             } catch (error) {
                 console.error(`[AlfaFilters:${this.moduleId}] Init failed:`, error);
             }
@@ -315,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.initDiscountFilters();
             this.initSubcategoryTogglers();
             this.initFacetSelects();
+            this.initGroups();
             this.updateResetVisibility();
 
             // The AJAX response replaced the facets, so any ShowOn target the engine was
@@ -438,11 +440,19 @@ document.addEventListener('DOMContentLoaded', () => {
         applyAvailableFilters({ html, priceRange }) {
             const container = qs('.af-form-content', this.wrapper);
             if (container && html) {
+                // The control the shopper is on is replaced with the rest; its twin in the
+                // new markup (same id) takes the focus back, so the keyboard keeps its place.
+                const focusedId = container.contains(document.activeElement) ? document.activeElement.id : '';
+
                 // Choices goes BEFORE the markup does: it listens on the document, so an
                 // instance dropped with its select would keep handling clicks for it.
                 this.destroyFacetSelects();
                 container.innerHTML = html;
                 this.reinitFormElements();
+
+                if (focusedId) {
+                    document.getElementById(focusedId)?.focus({ preventScroll: true });
+                }
             }
 
             // Update absoluteMin/Max from server response for the submit handler.
@@ -1045,13 +1055,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hasCheckedChild = childContainer.querySelector('input[type="checkbox"]:checked') !== null;
                 const shouldBeExpanded = wasManuallyExpanded || hasCheckedChild;
 
+                // Open or shut as an attribute on the category; the stylesheet shows its
+                // children, so a search in the group can still reach a shut one's.
                 if (shouldBeExpanded) {
                     button.setAttribute('aria-expanded', 'true');
-                    childContainer.style.display = 'block';
+                    listItem.setAttribute('data-af-open', '');
                     this.expandedSubcategories.add(categoryId);
                 } else {
                     button.setAttribute('aria-expanded', 'false');
-                    childContainer.style.display = 'none';
+                    listItem.removeAttribute('data-af-open');
                 }
 
                 const handleClick = (e) => {
@@ -1062,11 +1074,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (currentlyExpanded) {
                         button.setAttribute('aria-expanded', 'false');
-                        childContainer.style.display = 'none';
+                        listItem.removeAttribute('data-af-open');
                         this.expandedSubcategories.delete(categoryId);
                     } else {
                         button.setAttribute('aria-expanded', 'true');
-                        childContainer.style.display = 'block';
+                        listItem.setAttribute('data-af-open', '');
                         this.expandedSubcategories.add(categoryId);
                     }
                 };
@@ -1078,6 +1090,118 @@ document.addEventListener('DOMContentLoaded', () => {
                 button.addEventListener('click', handleClick);
                 button._alfaClickHandler = handleClick;
             });
+        }
+
+        /*
+           Option groups (categories, manufacturers, each item field)
+           */
+
+        /**
+         * Text as the group search compares it: without case and without accents, and a
+         * Greek final sigma read as the ordinary one, so "kafes" finds "Kafes" and any
+         * accented spelling of it.
+         *
+         * @param {string} text
+         */
+        static plain(text) {
+            return String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\u03c2/g, '\u03c3');
+        }
+
+        /**
+         * Bind the groups' controls once, on the form, which outlives every refresh; then put
+         * back what the shopper set in each group before the refresh replaced its markup.
+         */
+        initGroups() {
+            this.groupQueries ??= new Map();
+
+            if (!this._groupsBound) {
+                this._groupsBound = true;
+
+                // The search box narrows its group and is no filter: its typing and its
+                // change never reach the form's refresh, and Enter in it submits nothing.
+                this.filterForm.addEventListener('change', (event) => {
+                    if (event.target.matches('[data-af-search]')) {
+                        event.stopImmediatePropagation();
+                    }
+                }, true);
+
+                this.filterForm.addEventListener('input', (event) => {
+                    if (event.target.matches('[data-af-search]')) {
+                        this.searchGroup(event.target);
+                    }
+                });
+
+                this.filterForm.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' && event.target.matches('[data-af-search]')) {
+                        event.preventDefault();
+                    }
+                });
+            }
+
+            qsAll('[data-af-group]', this.filterForm).forEach((group) => {
+                const input = qs('[data-af-search]', group);
+                const query = this.groupQueries.get(group.dataset.afGroup);
+
+                if (input && query) {
+                    input.value = query;
+                    this.searchGroup(input);
+                }
+            });
+        }
+
+        /**
+         * Narrow a group to the options whose name holds what is typed. A match marks the
+         * option and, in the category tree, every category above it, so the path to it
+         * stays in view; the stylesheet hides the rest while the group is searched.
+         *
+         * @param {HTMLInputElement} input The group's search box.
+         */
+        searchGroup(input) {
+            const group = input.closest('[data-af-group]');
+
+            if (!group) {
+                return;
+            }
+
+            const typed = AlfaFiltersInstance.plain(input.value.trim());
+            const items = qsAll('.af-item', group);
+            const empty = qs('[data-af-search-empty]', group);
+
+            items.forEach((item) => item.removeAttribute('data-af-match'));
+
+            if (typed === '') {
+                group.removeAttribute('data-af-filtering');
+                this.groupQueries.delete(group.dataset.afGroup);
+
+                if (empty) {
+                    empty.hidden = true;
+                }
+
+                return;
+            }
+
+            let found = 0;
+
+            items.forEach((item) => {
+                const name = qs(':scope > .af-option > .af-label, :scope > .af-chip > .af-chip-name', item);
+
+                if (!name || !AlfaFiltersInstance.plain(name.textContent).includes(typed)) {
+                    return;
+                }
+
+                found += 1;
+
+                for (let node = item; node; node = node.parentElement.closest('.af-item')) {
+                    node.setAttribute('data-af-match', '');
+                }
+            });
+
+            group.setAttribute('data-af-filtering', '');
+            this.groupQueries.set(group.dataset.afGroup, input.value);
+
+            if (empty) {
+                empty.hidden = found > 0;
+            }
         }
     }
 

@@ -173,6 +173,7 @@ class Dispatcher extends AbstractModuleDispatcher
         $data['getMinMax'] = AlfaFiltersHelper::getMinMaxPrice();
         $data['form_fields'] = AlfaFiltersHelper::getFormFields($moduleId);
         $data['sectionOrder'] = AlfaFiltersHelper::getSectionOrder($params, $data['alfa_filters']);
+        $data['groupSettings'] = AlfaFiltersHelper::getGroupSettings($params);
 
         return $data;
     }

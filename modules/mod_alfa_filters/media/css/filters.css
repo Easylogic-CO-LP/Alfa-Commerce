@@ -742,9 +742,50 @@ html.alfa-filters-noscroll {
     display: none;
 }
 
+/* An opened category (filters.js marks it) shows its subcategories; so does every
+   category while its group is searched, where the search decides what stays. */
+.mod-alfa-filters-wrapper .af-item[data-af-open] > .af-children,
+.mod-alfa-filters-wrapper [data-af-filtering] .af-children {
+    display: block;
+}
+
 .mod-alfa-filters-wrapper .af-children .af-list {
     margin-left: var(--alfa-filters-indent);
     padding-top: var(--alfa-filters-space-xs);
+}
+
+/*
+ * Option groups: the search box
+ */
+
+.mod-alfa-filters .af-group-search-input {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0 0 var(--alfa-filters-space-xs);
+    padding: var(--alfa-filters-space-xs) var(--alfa-filters-space-sm);
+    font: inherit;
+    font-size: var(--alfa-filters-text-sm);
+    color: inherit;
+    background-color: var(--alfa-filters-surface);
+    border: 1px solid var(--alfa-filters-border);
+    border-radius: var(--alfa-filters-radius-sm);
+}
+
+.mod-alfa-filters .af-group-search-input:focus-visible {
+    outline: 2px solid var(--alfa-filters-border-focus);
+    outline-offset: 1px;
+}
+
+/* While a group is searched, only the options it marked stay. */
+.mod-alfa-filters [data-af-filtering] .af-item:not([data-af-match]) {
+    display: none;
+}
+
+.mod-alfa-filters .af-group-empty {
+    margin: 0;
+    padding: var(--alfa-filters-space-xs) 0;
+    font-size: var(--alfa-filters-text-sm);
+    color: var(--alfa-filters-text-muted);
 }
 
 /*

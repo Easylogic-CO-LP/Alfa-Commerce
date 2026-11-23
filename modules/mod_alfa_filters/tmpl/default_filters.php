@@ -2,12 +2,14 @@
 
 \defined('_JEXEC') or die;
 
+use Alfa\Module\AlfaFilters\Site\Helper\AlfaFiltersHelper;
 use Alfa\Module\AlfaFilters\Site\Section\FilterSections;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\Registry\Registry;
 
 $app = Factory::getApplication();
 $appSettings = ComponentHelper::getParams('com_alfa');
@@ -25,6 +27,9 @@ if (isset($displayData)) {
 $alfa_filters ??= null;
 $alfa_active_filters ??= [];
 $moduleId ??= 0;
+// How the option groups behave, read once from the module's settings by the caller; a caller
+// that passes none gets the settings' own defaults.
+$groupSettings ??= AlfaFiltersHelper::getGroupSettings(new Registry());
 
 if (!$alfa_filters) {
     return;
@@ -107,19 +112,39 @@ $renderCategories = function (array $categories, array $activeCategories, int $d
     return $html;
 };
 
+// Every option of the category tree, at every depth: what the search box looks through.
+$countCategories = static function (array $categories) use (&$countCategories): int {
+    $count = 0;
+
+    foreach ($categories as $category) {
+        $count += 1 + (empty($category->children) ? 0 : $countCategories($category->children));
+    }
+
+    return $count;
+};
+
+$esc = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+
 ?>
 
 <?php foreach ($afSectionKeys as $afSectionKey): ?>
     <?php
-    // One item field's facet. The key carries the field id, so the section renders THAT
-    // field wherever the merchant put it; the facets are never walked in array order.
+    // ONE GROUP: the category tree, the manufacturers, or one item field's facet. Each kind
+    // builds its options here; the group around them (heading, search box, options, the
+    // "nothing found" line) is drawn once, below, for all three.
+    //
+    // An item field's key carries the field id, so the section renders THAT field wherever
+    // the merchant put it; the facets are never walked in array order.
     $fieldId = str_starts_with($afSectionKey, FilterSections::FIELD_PREFIX)
         ? (int) substr($afSectionKey, \strlen(FilterSections::FIELD_PREFIX))
         : 0;
-    ?>
 
-    <?php if ($fieldId > 0): ?>
-        <?php
+    $groupAttr = '';
+    $optionsAttr = '';
+    $resetButton = '';
+    $searchable = true;
+
+    if ($fieldId > 0) {
         $fieldData = (array) ($alfa_filters['fields'][$fieldId] ?? []);
         $fieldValues = $fieldData['values'] ?? [];
 
@@ -129,70 +154,68 @@ $renderCategories = function (array $categories, array $activeCategories, int $d
 
         $activeValues = array_map('intval', (array) ($alfa_active_filters['fields'][$fieldId] ?? []));
         $renderAs = $fieldData['render_as'] ?? 'checkboxes';
+        $groupName = 'field-' . $fieldId;
+        $groupLabel = (string) ($fieldData['label'] ?? '');
+        $groupClass = 'af-fieldset af-fieldset-field af-render-' . $esc($renderAs);
+        $groupAttr = ' data-field-id="' . $fieldId . '"';
+        $optionCount = \count($fieldValues);
+        // A dropdown carries its own search.
+        $searchable = $renderAs !== 'select';
 
-        // ShowOn: the SERVER has already decided visibility and pruned the state;
-        // a facet that reaches this loop is one the rule allows. These attributes
-        // only let the browser engine re-evaluate live as the shopper ticks, using
-        // the very same rule. data-showon-name doubles as the state source: the
-        // reader collects this fieldset's inputs as `<name>.value`.
-        $showonAttr = ' data-showon-name="' . htmlspecialchars((string) ($fieldData['name'] ?? ''), ENT_QUOTES, 'UTF-8') . '"'
-            . ' data-showon-type="' . htmlspecialchars((string) ($fieldData['type'] ?? ''), ENT_QUOTES, 'UTF-8') . '"';
+        // ShowOn: the SERVER has already decided visibility and pruned the state; a facet
+        // that reaches this loop is one the rule allows. These attributes only let the
+        // browser engine re-evaluate live as the shopper ticks, using the very same rule.
+        // The rule sits on the group, which it hides; the name sits on the options alone,
+        // because the engine reads every input inside it as `<name>.value`, and the
+        // group's search box is not one of the field's values.
+        $optionsAttr = ' data-showon-name="' . $esc($fieldData['name'] ?? '') . '"'
+            . ' data-showon-type="' . $esc($fieldData['type'] ?? '') . '"';
 
         if (!empty($fieldData['showon'])) {
-            $showonAttr .= " data-showon-rule='"
-                . htmlspecialchars((string) json_encode($fieldData['showon']), ENT_QUOTES, 'UTF-8') . "'";
+            $groupAttr .= " data-showon-rule='" . $esc(json_encode($fieldData['showon'])) . "'";
 
             if (($fieldData['showon_effect'] ?? 'hide') === 'disable') {
-                $showonAttr .= ' data-showon-effect="disable"';
+                $groupAttr .= ' data-showon-effect="disable"';
             }
         }
-        ?>
-        <fieldset class="af-fieldset af-fieldset-field af-render-<?= htmlspecialchars($renderAs) ?>" data-field-id="<?= (int) $fieldId ?>"<?= $showonAttr ?>>
-            <div class="af-fieldset-header">
-                <legend><?= htmlspecialchars($fieldData['label'] ?? '') ?></legend>
-            </div>
-            <?php
-            // The control itself lives in its own layout so a template override
-            // can restyle one mode without touching the rest of the panel.
-            echo LayoutHelper::render(
-                'default_field',
-                [
-                    'fieldValues' => $fieldValues,
-                    'activeValues' => $activeValues,
-                    'fieldId' => (int) $fieldId,
-                    'fieldLabel' => (string) ($fieldData['label'] ?? ''),
-                    'renderAs' => $renderAs,
-                    'moduleId' => $moduleId,
-                    'groups' => $fieldData['groups'] ?? [],
-                    'activeGroups' => (array) ($alfa_active_filters['groups'][$fieldId] ?? []),
-                    'fieldType' => (string) ($fieldData['type'] ?? ''),
-                    'groupValues' => (bool) ($fieldData['group_default'] ?? false),
-                ],
-                JPATH_SITE . '/modules/mod_alfa_filters/tmpl',
-            );
-        ?>
-        </fieldset>
-        <?php continue; ?>
-    <?php endif; ?>
 
-    <?php $options = $alfa_filters[$afSectionKey] ?? []; ?>
+        // The control itself lives in its own layout so a template override
+        // can restyle one mode without touching the rest of the panel.
+        $optionsHtml = LayoutHelper::render(
+            'default_field',
+            [
+                'fieldValues' => $fieldValues,
+                'activeValues' => $activeValues,
+                'fieldId' => (int) $fieldId,
+                'fieldLabel' => $groupLabel,
+                'renderAs' => $renderAs,
+                'moduleId' => $moduleId,
+                'groups' => $fieldData['groups'] ?? [],
+                'activeGroups' => (array) ($alfa_active_filters['groups'][$fieldId] ?? []),
+                'fieldType' => (string) ($fieldData['type'] ?? ''),
+                'groupValues' => (bool) ($fieldData['group_default'] ?? false),
+            ],
+            JPATH_SITE . '/modules/mod_alfa_filters/tmpl',
+        );
+    } else {
+        $options = $alfa_filters[$afSectionKey] ?? [];
 
-    <?php if (empty($options)) {
-        continue;
-    } ?>
+        if (empty($options)) {
+            continue;
+        }
 
-    <fieldset class="af-fieldset af-fieldset-<?= $afSectionKey ?>">
-        <div class="af-fieldset-header">
-            <legend><?= Text::_('MOD_ALFAFILTERS_FILTER_' . strtoupper($afSectionKey)) ?></legend>
-            <button type="button" class="af-reset af-reset-<?= $afSectionKey ?>">
-                <?= Text::_('MOD_ALFAFILTERS_FILTER_RESET_BTN') ?>
-            </button>
-        </div>
+        $groupName = $afSectionKey;
+        $groupLabel = Text::_('MOD_ALFAFILTERS_FILTER_' . strtoupper($afSectionKey));
+        $groupClass = 'af-fieldset af-fieldset-' . $afSectionKey;
+        $resetButton = '<button type="button" class="af-reset af-reset-' . $afSectionKey . '">'
+            . Text::_('MOD_ALFAFILTERS_FILTER_RESET_BTN') . '</button>';
 
-        <?php if ($afSectionKey === 'category'): ?>
-            <?= $renderCategories($options, $alfa_active_filters['category'] ?? [], 0) ?>
-
-        <?php elseif ($afSectionKey === 'manufacturer'): ?>
+        if ($afSectionKey === 'category') {
+            $optionCount = $countCategories($options);
+            $optionsHtml = $renderCategories($options, $alfa_active_filters['category'] ?? [], 0);
+        } else {
+            $optionCount = \count($options);
+            ob_start(); ?>
             <ul class="af-list">
             <?php $mIndex = 0;
             foreach ($options as $option): ?>
@@ -217,7 +240,34 @@ $renderCategories = function (array $categories, array $activeCategories, int $d
                 </li>
             <?php endforeach; ?>
             </ul>
+            <?php $optionsHtml = ob_get_clean();
+        }
+    }
 
+    $groupId = 'af-' . $moduleId . '-' . $groupName;
+    ?>
+    <fieldset class="<?= $groupClass ?>" data-af-group="<?= $esc($groupName) ?>"<?= $groupAttr ?>>
+        <div class="af-fieldset-header">
+            <legend><?= $esc($groupLabel) ?></legend>
+            <?= $resetButton ?>
+        </div>
+
+        <?php // The search box narrows this group's options as the shopper types (filters.js
+              // marks what matches, the stylesheet hides the rest); it is no filter itself:
+              // it has no name, so it never travels with the form. ?>
+        <?php if ($searchable && $groupSettings['search'] > 0 && $optionCount >= $groupSettings['search']): ?>
+            <div class="af-group-search">
+                <input type="search" class="af-group-search-input" id="<?= $esc($groupId . '-search') ?>"
+                       placeholder="<?= $esc(Text::_('MOD_ALFAFILTERS_GROUP_SEARCH_PLACEHOLDER')) ?>"
+                       aria-label="<?= $esc(Text::sprintf('MOD_ALFAFILTERS_GROUP_SEARCH_LABEL', $groupLabel)) ?>"
+                       autocomplete="off" spellcheck="false" data-af-search>
+            </div>
         <?php endif; ?>
+
+        <div class="af-group-options"<?= $optionsAttr ?>>
+            <?= $optionsHtml ?>
+        </div>
+
+        <p class="af-group-empty" data-af-search-empty hidden><?= $esc(Text::_('MOD_ALFAFILTERS_GROUP_NOTHING_FOUND')) ?></p>
     </fieldset>
 <?php endforeach; ?>
