@@ -5607,6 +5607,8 @@ class OrderModel extends AlfaAdminModel
 
         // An order whose dispute the bank has not decided stays out of the trash: it is the record of the case.
         if ((int) $value === -2) {
+            $kept = null;
+
             foreach ($pks as $index => $pk) {
                 $undecided = DisputeLedger::undecidedOf(orderId: (int) $pk);
 
@@ -5615,10 +5617,16 @@ class OrderModel extends AlfaAdminModel
                 }
 
                 unset($pks[$index]);
-                $refusal = Text::sprintf('COM_ALFA_ORDERS_TRASH_DISPUTE_REFUSED', (int) $pk, '#' . implode(', #', $undecided));
-                // The model's error too: the REST API answers a state that did not change with it.
-                $this->setError($refusal);
-                Factory::getApplication()->enqueueMessage(msg: $refusal, type: 'warning');
+                $kept = Text::sprintf('COM_ALFA_ORDERS_TRASH_DISPUTE_REFUSED', (int) $pk, '#' . implode(', #', $undecided));
+                Factory::getApplication()->enqueueMessage(msg: $kept, type: 'warning');
+            }
+
+            // No order is left to trash: the refusal is the model's error (the REST API answers it), as the parent
+            // would only say that no row was selected.
+            if ($pks === [] && $kept !== null) {
+                $this->setError(error: $kept);
+
+                return false;
             }
         }
 
