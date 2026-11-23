@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
@@ -426,7 +427,7 @@ final class ItemWriteService
         $errors = [];
 
         foreach ($model->getErrors() as $error) {
-            $errors[] = $error instanceof Throwable ? $error->getMessage() : (string) $error;
+            $errors[] = $error instanceof Throwable ? ErrorText::of($error) : (string) $error;
         }
 
         return array_values(array_filter($errors, static fn (string $error): bool => $error !== ''));

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\CombinationsChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
@@ -445,7 +446,7 @@ final class CombinationService
             }
         } catch (RuntimeException $e) {
             Log::add(
-                entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $this->itemId, $e->getMessage()),
+                entry: sprintf('Combination %d of item %d was not saved: %s', $combinationId, $this->itemId, ErrorText::of($e)),
                 priority: Log::ERROR,
                 category: 'com_alfa.catalog',
             );
@@ -594,14 +595,14 @@ final class CombinationService
                 ),
             );
         } catch (InventoryIntegrityException $e) {
-            Log::add(sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $this->itemId, $e->getMessage()), Log::ERROR, 'com_alfa.inventory');
+            Log::add(sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $this->itemId, ErrorText::of($e)), Log::ERROR, 'com_alfa.inventory');
 
             return [['message' => $e->operatorMessage(), 'type' => 'error']];
         } catch (Throwable $e) {
-            Log::add(sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $this->itemId, $e->getMessage()), Log::ERROR, 'com_alfa.inventory');
+            Log::add(sprintf('Combination %d of item %d saved, but its stock was refused: %s', $combinationId, $this->itemId, ErrorText::of($e)), Log::ERROR, 'com_alfa.inventory');
 
             // Every refusal that reaches here is a complete sentence, so it follows the saved notice whole.
-            return [['message' => Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED', $e->getMessage()), 'type' => 'error']];
+            return [['message' => Text::sprintf('COM_ALFA_ITEM_SAVED_STOCK_NOT_CHANGED', ErrorText::of($e)), 'type' => 'error']];
         }
     }
 
@@ -650,7 +651,7 @@ final class CombinationService
                     'itemId' => $itemId, 'created' => $created, 'changed' => $changed, 'archived' => $archived, 'removed' => $removed, 'origin' => $origin,
                 ]));
             } catch (Throwable $e) {
-                Log::add('onAlfaCombinationsChanged listeners failed for item ' . $itemId . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa.catalog');
+                Log::add('onAlfaCombinationsChanged listeners failed for item ' . $itemId . ': ' . ErrorText::of($e), Log::WARNING, 'com_alfa.catalog');
             }
         });
     }
@@ -666,7 +667,7 @@ final class CombinationService
             return $failure->refusal;
         }
 
-        return new Refusal(code: 'refused', sentence: $failure->getMessage(), status: Refusal::CONFLICT);
+        return new Refusal(code: 'refused', sentence: ErrorText::of($failure), status: Refusal::CONFLICT);
     }
 
     /**

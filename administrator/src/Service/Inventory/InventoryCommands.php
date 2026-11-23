@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Api\IdempotencyKeys;
 use Alfa\Component\Alfa\Administrator\Service\Api\IdempotencyRefusedException;
@@ -683,7 +684,7 @@ final class InventoryCommands
             ),
             $failure instanceof InventoryIntegrityException => new Refusal(
                 code: 'ledger_missing',
-                sentence: $failure->getMessage() . $nothing,
+                sentence: ErrorText::of($failure) . $nothing,
                 pointer: $pointer,
                 status: Refusal::CONFLICT,
             ),
@@ -695,7 +696,7 @@ final class InventoryCommands
             ),
             self::busy(failure: $failure) => new Refusal(code: 'busy', sentence: 'The stock records were busy with another change. Send the request again in a few seconds.'
                 . $nothing, status: Refusal::CONFLICT),
-            default => new Refusal(code: 'refused', sentence: $failure->getMessage() . $nothing, pointer: $pointer, status: Refusal::CONFLICT),
+            default => new Refusal(code: 'refused', sentence: ErrorText::of($failure) . $nothing, pointer: $pointer, status: Refusal::CONFLICT),
         };
     }
 
