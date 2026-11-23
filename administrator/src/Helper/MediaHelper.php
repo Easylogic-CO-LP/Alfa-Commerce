@@ -88,6 +88,15 @@ class MediaHelper
     public const THUMBNAIL_BOX_MIN = 100;
 
     /**
+     * The placeholder image the package ships: what a gallery image with no thumbnail of its own is drawn as when the
+     * site sets no placeholder of its own in Options, Images.
+     *
+     * @var string
+     * @since  2.2.2
+     */
+    public const PLACEHOLDER = 'media/com_alfa/images/placeholders/no-image.webp';
+
+    /**
      * The largest side of the thumbnail box: the Options fields refuse more, and thumbnailBox() reads a
      * stored side above it as this.
      *
@@ -2262,6 +2271,10 @@ class MediaHelper
         // 4. Process results (single loop: thumbnails + grouping)
         $grouped = [];
         foreach ($results as $result) {
+            // A gallery image with no thumbnail of its own (not made yet, or refused as too large for the memory) is
+            // drawn as the placeholder, never as its stored file; its thumbnail path stays the image's, for the forms.
+            $noThumbnail = $result->type === 'image' && empty($result->thumbnail);
+
             // Resolve empty thumbnail first (while data is raw)
             if (empty($result->thumbnail)) {
                 $result->thumbnail = ltrim(self::resolveThumbnail(
@@ -2280,7 +2293,7 @@ class MediaHelper
             // stay as they are. A web address (a row of type url) is drawn as it is stored: the API reads a row's url
             // back as its address, so a GET echoed back keeps it as it was.
             $result->url = $result->type === 'url' ? self::toUrl($result->path) : self::displayUrl(self::toUrl($result->path));
-            $result->thumbnail_url = self::displayUrl(self::toUrl($result->thumbnail));
+            $result->thumbnail_url = self::displayUrl(self::toUrl($noThumbnail ? ($placeholderPath !== '' ? $placeholderPath : self::PLACEHOLDER) : $result->thumbnail));
 
             $grouped[$result->item_id][] = $result;
         }
