@@ -1038,6 +1038,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_field_categories` (
 CREATE TABLE IF NOT EXISTS `#__alfa_item_field_values` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `item_field_id` int(11) UNSIGNED NOT NULL,
+  `code` varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none',
   `params` longtext DEFAULT NULL,
   `state` tinyint(1) DEFAULT 1,
   `ordering` int(11) DEFAULT 0,
@@ -1045,6 +1046,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_field_values` (
   `modified_by` int(11) DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_item_field_id` (`item_field_id`),
+  UNIQUE KEY `uq_field_code` (`item_field_id`, `code`),
   KEY `idx_state` (`state`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -32,6 +32,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
@@ -1115,24 +1116,11 @@ class ItemModel extends AlfaAdminModel
             // product deleted since the check above leaves no link.
             RelatedItems::replace(db: $db, itemId: (int) $currentId, ids: $relatedIds);
 
-            // ITEM FIELDS: no wizard step; option values are ADDED via the
-            // picker popup (item.addOptions), informational values save via
-            // their popup (item.saveFieldSettings), combinations via the
-            // explicit generator. The item save persists the LIST edits:
-            // option deltas + deferred option removals (variants-grid mechanics).
-            ItemFieldsAdminHelper::saveItemOptions(
-                itemId:          $currentId,
-                payload:         (array) ($data['options'] ?? []),
-                deletedValueIds: (string) ($data['deleted_option_value_ids'] ?? ''),
-            );
-            ItemFieldsAdminHelper::deleteItemInfoValues(
-                itemId:          $currentId,
-                deletedValueIds: (string) ($data['deleted_info_value_ids'] ?? ''),
-            );
-            ItemFieldsAdminHelper::saveItemInfoOrder(
-                itemId:          $currentId,
-                orderedValueIds: (array) ($data['info_values'] ?? []),
-            );
+            // ITEM FIELDS: options and specifications are ADDED by their pickers (item.addOptions, item.addInfoValues),
+            // combinations by the generator. The item save writes the LIST edits through the one way they are written
+            // (ItemOptionService): the options' price changes, order and removals, and the specifications' removals
+            // and order. A refused option list leaves both lists as they were and says why; the rest of the save stands.
+            $this->saveOptionLists(itemId: (int) $currentId, data: $data, write: $write);
             // Per-item GROUP order: the option/info field groups, dragged by header.
             ItemFieldsAdminHelper::saveItemFieldOrder(
                 itemId:          $currentId,
@@ -2124,6 +2112,85 @@ class ItemModel extends AlfaAdminModel
         $row['backorder'] = BackorderPolicy::normaliseStoredValue(value: $row['backorder']);
 
         return $row;
+    }
+
+    /**
+     * The item screen's Options and Informational lists saved with the product, through ItemOptionService: each option
+     * still on the product takes its posted price change (an operation without a numeric amount, or a fixed amount's
+     * base outside start and final, is no price change, as the list's inputs mean it) and its posted place; the options
+     * removed in the list go; the specifications removed in the list go and the others take their posted order (one
+     * not posted keeps its place after them). The two lists are written as two steps: a refused option list leaves the
+     * specifications' changes standing, as the screen saves them apart.
+     *
+     * @param int $itemId The product.
+     * @param array $data The save's data: options, deleted_option_value_ids, info_values, deleted_info_value_ids.
+     * @param ItemWriteService $write The write, told the refusals.
+     *
+     * @since  2.3.0
+     */
+    private function saveOptionLists(int $itemId, array $data, ItemWriteService $write): void
+    {
+        $ids = static fn (mixed $list): array => array_values(array_unique(array_filter(array_map('intval', \is_array($list) ? $list : explode(',', (string) $list)), static fn (int $id): bool => $id > 0)));
+        $current = array_column(ItemOptionService::options(itemId: $itemId), 'value_id');
+        $deleted = array_values(array_intersect($ids($data['deleted_option_value_ids'] ?? ''), $current));
+        $options = ItemOptionService::of(itemId: $itemId);
+        $order = [];
+
+        if ($deleted !== []) {
+            $options->remove(valueIds: $deleted);
+        }
+
+        foreach ((array) ($data['options'] ?? []) as $valueId => $delta) {
+            $valueId = (int) $valueId;
+
+            // A row of an option no longer on the product (removed elsewhere since the form was drawn) is passed over.
+            if (!\in_array($valueId, $current, true) || \in_array($valueId, $deleted, true)) {
+                continue;
+            }
+
+            $delta = (array) $delta;
+            $operation = \in_array($delta['operation'] ?? '', ItemOptionService::OPERATIONS, true) ? (string) $delta['operation'] : null;
+            $amount = trim((string) ($delta['amount'] ?? ''));
+
+            if ($amount === '' || !is_numeric($amount)) {
+                $operation = null;
+            }
+
+            $applyOn = \in_array($delta['apply_on'] ?? '', ItemOptionService::APPLY_ON, true) ? (string) $delta['apply_on'] : null;
+            $options->change(valueId: $valueId, operation: $operation, amount: $operation === null ? null : $amount, applyOn: $applyOn);
+            $order[] = $valueId;
+        }
+
+        if ($order !== []) {
+            $options->order(valueIds: $order);
+        }
+
+        $result = $options->save();
+
+        if (!$result->saved) {
+            foreach ($result->refusals as $refusal) {
+                $write->warn($refusal->sentence, 'error');
+            }
+
+            $write->warn(Text::_('COM_ALFA_ITEM_OPTIONS_NOT_SAVED'), 'error');
+        }
+
+        $specifications = array_column(ItemOptionService::specifications(itemId: $itemId), 'value_id');
+        $removed = $ids($data['deleted_info_value_ids'] ?? '');
+        $posted = $ids($data['info_values'] ?? []);
+
+        if ($removed === [] && $posted === []) {
+            return;
+        }
+
+        $kept = array_values(array_diff($specifications, $removed));
+        $result = ItemOptionService::of(itemId: $itemId)
+            ->informational(valueIds: array_merge(array_values(array_intersect($posted, $kept)), array_values(array_diff($kept, $posted))))
+            ->save();
+
+        foreach ($result->refusals as $refusal) {
+            $write->warn($refusal->sentence, 'error');
+        }
     }
 
     /**

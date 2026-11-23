@@ -93,3 +93,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_api_keys` (
   PRIMARY KEY (`created_by`, `scope`, `key_hash`),
   KEY `idx_created` (`created`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Idempotency keys of REST API writes, kept 30 days';
+
+-- A value's code
+
+-- An item field's value gets a machine key of its own, unique in its field: an ERP names a value by its field's
+-- field_name and the value's code instead of an id. Codes start empty; staff (the field's Values tab) or the REST API set
+-- them. A site that ran an earlier copy of this file gets the column and the key from script.php. The install SQL has
+-- the same column and key.
+
+ALTER TABLE `#__alfa_item_field_values` ADD COLUMN `code` varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none' AFTER `item_field_id` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_item_field_values` ADD UNIQUE KEY `uq_field_code` (`item_field_id`, `code`) /** CAN FAIL **/;

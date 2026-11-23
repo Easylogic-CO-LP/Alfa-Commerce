@@ -27,6 +27,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CombinationService;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
@@ -1229,22 +1230,23 @@ class ItemController extends FormController
         $app->sendHeaders();
 
         try {
-            // These rows are committed by THIS request and feed the item-field value
-            // index, which the search document reads. The follow-up item.reload is core
-            // FormController::reload; it never calls save(), so the item is marked first
-            // under its lock and rebuilt here, never left unprojected.
-            $change = ProjectionManager::markChange(itemId: $itemId);
+            // Only the values not yet options are added, in the picked order; the service rebuilds the product's
+            // catalogue after its commit (the follow-up item.reload never saves).
+            $current = array_column(ItemOptionService::options(itemId: $itemId), 'value_id');
+            $picked = array_values(array_diff(array_unique(array_map('intval', (array) $this->input->get('values', [], 'array'))), $current, [0]));
+            $write = ItemOptionService::of(itemId: $itemId);
 
-            try {
-                $added = ItemFieldsAdminHelper::addItemOptions(
-                    itemId: $itemId,
-                    valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
-                );
-            } finally {
-                ProjectionManager::rebuildChanged(change: $change);
+            foreach ($picked as $valueId) {
+                $write->add(valueId: $valueId);
             }
 
-            echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+            $result = $write->save();
+
+            if (!$result->saved) {
+                throw new RuntimeException(implode(' ', array_map(static fn ($refusal): string => $refusal->sentence, $result->refusals)));
+            }
+
+            echo new \Joomla\CMS\Response\JsonResponse(['added' => \count($result->added)]);
         } catch (ExecutionFailureException | ConnectionFailureException $e) {
             echo $this->databaseRefused(endpoint: 'addOptions', itemId: $itemId, failure: $e);
         } catch (RuntimeException $e) {
@@ -1280,22 +1282,17 @@ class ItemController extends FormController
         $app->sendHeaders();
 
         try {
-            // These rows are committed by THIS request and feed the item-field value
-            // index, which the search document reads. The follow-up item.reload is core
-            // FormController::reload; it never calls save(), so the item is marked first
-            // under its lock and rebuilt here, never left unprojected.
-            $change = ProjectionManager::markChange(itemId: $itemId);
+            // The values not yet specifications of the product are added after its list, in the picked order; the
+            // service rebuilds the product's catalogue after its commit (the follow-up item.reload never saves).
+            $current = array_column(ItemOptionService::specifications(itemId: $itemId), 'value_id');
+            $picked = array_values(array_diff(array_unique(array_map('intval', (array) $this->input->get('values', [], 'array'))), $current, [0]));
+            $result = $picked === [] ? null : ItemOptionService::of(itemId: $itemId)->informational(valueIds: array_merge($current, $picked))->save();
 
-            try {
-                $added = ItemFieldsAdminHelper::addItemInfoValues(
-                    itemId: $itemId,
-                    valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
-                );
-            } finally {
-                ProjectionManager::rebuildChanged(change: $change);
+            if ($result !== null && !$result->saved) {
+                throw new RuntimeException(implode(' ', array_map(static fn ($refusal): string => $refusal->sentence, $result->refusals)));
             }
 
-            echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+            echo new \Joomla\CMS\Response\JsonResponse(['added' => \count($picked)]);
         } catch (ExecutionFailureException | ConnectionFailureException $e) {
             echo $this->databaseRefused(endpoint: 'addInfoValues', itemId: $itemId, failure: $e);
         } catch (RuntimeException $e) {

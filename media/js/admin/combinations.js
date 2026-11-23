@@ -143,7 +143,7 @@
 
   // Drag-to-reorder: option lists (per field) + the variations grid. The DOM
   // order IS the saved order: the item form posts rows in document order and
-  // saveItemOptions/saveCombinations number them by position, so a drag only
+  // the item save numbers them by position, so a drag only
   // flags the form dirty (no extra request). Re-inits cleanly after a reload.
   const initSortables = () => {
     if (!window.Sortable) {
