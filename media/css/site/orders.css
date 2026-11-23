@@ -1,0 +1,32 @@
+/**
+ * Alfa Commerce: My orders, the customer's orders
+ *
+ * The list under its root (.com-alfa.orders): one table of the orders, newest first, each number opening the order's
+ * page. The table itself is Alfa's own (general.css): on a phone each order stacks into labelled facts. This sheet
+ * only aligns the totals at the end edge and spaces the list and its pages. Colours come from the shop's tokens;
+ * logical properties only, so a right-to-left page mirrors.
+ *
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+.com-alfa.orders .orders-empty {
+    color: var(--alfa-muted-color);
+}
+
+.com-alfa.orders .orders-list {
+    margin-block: 1rem;
+}
+
+.com-alfa.orders .orders-total {
+    text-align: end;
+    white-space: nowrap;
+}
+
+.com-alfa.orders .orders-number a {
+    font-weight: 700;
+}
+
+.com-alfa.orders .orders-pages {
+    margin-block: 1rem;
+}

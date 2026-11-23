@@ -41,6 +41,7 @@ class JsonApiView extends BaseApiView
         'is_initial',
         'is_cancelled',
         'is_completed',
+        'customer_can_cancel',
         'notify_customer',
         // Whether entering the status mails one of its administrator recipients, and who they are (Joomla user ids).
         'notifies_staff',

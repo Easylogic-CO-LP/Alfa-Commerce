@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Administrator\Service\Cart\AddToCartCommand;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartResolution;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use InvalidArgumentException;
@@ -105,19 +106,37 @@ final class CartService
      */
     public function add(int $itemId, int|float $quantity): CartAddResult
     {
-        $cart = $this->cart(CartResolution::Mutable);
-
         // READING THE REQUEST IS INSIDE THE NET. A malformed request answers
         // with the same one sentence as a failed write, never with a page of
         // the framework's words.
         try {
             $command = AddToCartRequest::command(Factory::getApplication()->getInput(), $itemId, $quantity);
         } catch (Throwable $e) {
+            $cart = $this->cart(CartResolution::Mutable);
             $cart->messaging->failed('addToCart (reading the request)', $cart->hydrator->current()->identity()->cartId, $e, 'COM_ALFA_CART_ADD_FAILED');
 
             return new CartAddResult(false, 0, null, 0, 0);
         }
 
+        return $this->addCommand(command: $command);
+    }
+
+    /**
+     * Put a product in the cart as a built command says it: the product, the quantity and the configuration, with no
+     * request read. The storefront's add builds its command from the request ({@see self::add()}); an add made by code
+     * (an order bought again, say) builds it itself, and both land through the same line writer.
+     *
+     * Mutable, as {@see self::add()}: the first product may mint the visitor's cart.
+     *
+     * @param AddToCartCommand $command The product, how many, and its configuration.
+     *
+     * @return CartAddResult The line it landed on, and what the cart comes to.
+     *
+     * @since  2.3.0
+     */
+    public function addCommand(AddToCartCommand $command): CartAddResult
+    {
+        $cart = $this->cart(CartResolution::Mutable);
         $lineId = (int) $cart->lines->add($command);
 
         if ($lineId <= 0) {

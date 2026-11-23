@@ -64,6 +64,7 @@ $previewBaseUri    = Uri::base(true) . '/index.php?option=com_alfa&task=ordersta
 				<?php echo $this->form->renderField('color'); ?>
 				<?php echo $this->form->renderField('bg_color'); ?>
 				<?php echo $this->form->renderField('stock_operation'); ?>
+				<?php echo $this->form->renderField('customer_can_cancel'); ?>
 
 				<?php echo $this->form->renderField('id'); ?>
 

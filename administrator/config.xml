@@ -346,6 +346,23 @@
 
             </fieldset>
 
+            <!-- THE CUSTOMER'S ACCOUNT. The status a customer's cancel moves an order to
+                 (Site\Service\Order\CustomerCancel::target()): a published status of the
+                 cancelled family, chosen by the shop and never inferred. A customer cancels
+                 only in a status that allows it (its Customers may cancel switch). An update
+                 leaves it empty, so no shop offers the cancel until it chooses one; a new
+                 installation names its Cancelled status. -->
+            <fieldset name="cart_account" label="COM_ALFA_CONFIG_FIELDSET_CUSTOMER_ACCOUNT">
+                <field name="customer_cancel_status" type="CustomerCancelStatus"
+                       addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                       required="true" validate="options"
+                       label="COM_ALFA_CONFIG_CUSTOMER_CANCEL_STATUS_LABEL"
+                       description="COM_ALFA_CONFIG_CUSTOMER_CANCEL_STATUS_DESC"
+                >
+                    <option value="">COM_ALFA_CONFIG_CUSTOMER_CANCEL_STATUS_CHOOSE</option>
+                </field>
+            </fieldset>
+
             <fieldset name="cart_added" label="COM_ALFA_CONFIG_FIELDSET_CART_ADDED">
 
                 <field name="cart_added" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="boolean"

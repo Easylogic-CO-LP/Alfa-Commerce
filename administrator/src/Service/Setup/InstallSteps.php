@@ -186,6 +186,58 @@ final class InstallSteps
     }
 
     /**
+     * The id the install SQL gives its Cancelled status: the seed names every status's id.
+     *
+     * @var int
+     *
+     * @since  2.3.0
+     */
+    public const SEEDED_CANCELLED_STATUS = 5;
+
+    /**
+     * Name the install SQL's Cancelled status as the status a customer's cancel moves an order to (Options,
+     * customer_cancel_status), on a fresh install and by Clear everything, which leaves the shop as a fresh install; the
+     * install SQL has already let customers cancel in its Pending status. Never on an update: there the option stays
+     * empty, so no shop offers its customers the cancel until it chooses the status itself.
+     *
+     * Only the seed's own row is named, read for what it is: its id ({@see self::SEEDED_CANCELLED_STATUS}), published,
+     * in the cancelled family, and named Cancelled in en-GB, as the seed writes it. A table the seed did not fill (kept
+     * by an uninstall and connected again, its rows the shop's own) names nothing unless that row is still the seed's,
+     * and its Refunded status is never named. A value already stored is the shop's and is kept.
+     *
+     * @since  2.3.0
+     */
+    public function seedCustomerCancelStatus(): void
+    {
+        $params = ComponentOptions::stored(db: $this->db);
+
+        if ((int) ($params['customer_cancel_status'] ?? 0) > 0) {
+            return;
+        }
+
+        $db = $this->db;
+        $statusId = self::SEEDED_CANCELLED_STATUS;
+        $seeded = (int) $db->setQuery(
+            $db->createQuery()
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_orders_statuses', 's'))
+                ->join('INNER', $db->quoteName('#__alfa_orders_statuses_en_gb', 'l'), $db->quoteName('l.id_orderstatus') . ' = ' . $db->quoteName('s.id'))
+                ->where($db->quoteName('s.id') . ' = ' . $statusId)
+                ->where($db->quoteName('s.state') . ' = 1')
+                ->where($db->quoteName('s.is_cancelled') . ' = 1')
+                ->where($db->quoteName('l.name') . ' = ' . $db->quote('Cancelled')),
+        )->loadResult();
+
+        if ($seeded !== 1) {
+            return;
+        }
+
+        $params['customer_cancel_status'] = (string) $statusId;
+
+        ComponentOptions::write(params: $params, db: $this->db);
+    }
+
+    /**
      * The field a fresh install maps the delivery destination to: the one published place field
      * shown in the delivery section, or null when there is none or more than one.
      *

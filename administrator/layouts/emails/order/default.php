@@ -33,7 +33,8 @@
  *    Site     {{SITE_NAME}}  {{SITE_URL}}   (also {site_name} / {site_url})
  *    Order    {order_id}  {order_number}  {order_date}  {order_total}
  *    Status   {status}            - internal name (admin-facing)
- *             {status_customer}   - customer-facing name (required)
+ *             {status_customer}   - the name customers read (the customer-facing
+ *                                   name, else the internal one)
  *    Methods  {payment_method}    - the order's chosen payment method
  *             {shipment_method}   - the order's chosen shipment method
  *    Customer {user_name}  {user_email}  {user_username}  {user_registered}
@@ -45,6 +46,10 @@
  *  $payUrl is the address of the order's payment step (Pay now), set on the
  *  customer's send while the order still owes money and may be paid again;
  *  '' otherwise.
+ *
+ *  $orderUrl is the address of the order's page, set on the customer's send:
+ *  an account's order in the customer's account, a guest's order on its keyed
+ *  page; '' otherwise.
  *
  *  Intentionally generic: system fonts only, grayscale palette, thin
  *  hairlines, no accent colour. Designed to look at home next to any
@@ -244,6 +249,15 @@ extract($displayData);
                         <td class="email__pad email__body" style="padding:14px 44px 0 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.65;color:#111827;">
                             <p style="margin:0 0 10px 0;"><?php echo htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_PAY_NOW_TEXT'), ENT_COMPAT, 'UTF-8'); ?></p>
                             <a href="<?php echo htmlspecialchars((string) $payUrl, ENT_COMPAT, 'UTF-8'); ?>" style="display:inline-block;padding:10px 18px;background:#111827;color:#ffffff;text-decoration:none;border-radius:4px;font-weight:600;"><?php echo htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_PAY_NOW'), ENT_COMPAT, 'UTF-8'); ?></a>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+
+                    <?php // The order's page: only on the genuine customer send. ?>
+                    <?php if (!empty($orderUrl)) : ?>
+                    <tr>
+                        <td class="email__pad email__body" style="padding:14px 44px 0 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.65;color:#111827;">
+                            <a href="<?php echo htmlspecialchars((string) $orderUrl, ENT_COMPAT, 'UTF-8'); ?>" style="color:#111827;"><?php echo htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_VIEW_ORDER'), ENT_COMPAT, 'UTF-8'); ?></a>
                         </td>
                     </tr>
                     <?php endif; ?>

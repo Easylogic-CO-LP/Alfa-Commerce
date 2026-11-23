@@ -547,6 +547,14 @@
       "uri": "com_alfa/site/userinfo.min.css"
     },
     {
+      "name": "com_alfa.orders",
+      "type": "style",
+      "uri": "com_alfa/site/orders.css",
+      "dependencies": [
+        "com_alfa.general"
+      ]
+    },
+    {
       "name": "com_alfa.validate",
       "type": "style",
       "uri": "com_alfa/validate.min.css"

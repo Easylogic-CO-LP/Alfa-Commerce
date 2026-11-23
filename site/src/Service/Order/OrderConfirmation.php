@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Service\Order;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -22,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Summary\SummaryRow;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\ParameterType;
 
@@ -32,19 +34,22 @@ use Joomla\Database\ParameterType;
  * it returns.
  *
  * WHO MAY SEE IT. access() answers for an order opened by its keyed address: the key is
- * compared with the order's own by hash_equals, and a missing, empty or wrong key, an
- * order with no key, or a missing order is refused. A guest order (no account, or an
- * account that no longer exists) needs the key alone; a customer account's order needs
- * the key and that customer logged in, as DownloadController judges a download. Never
- * by e-mail or name.
+ * compared with the order's own by hash_equals, and a wrong key, an order with no key, or
+ * a missing order is refused. A guest order (no account, or an account that no longer
+ * exists) needs the key alone; a customer account's order needs the key and that customer
+ * logged in, as DownloadController judges a download. Asked with no key, it answers for a
+ * customer's own order opened from their account: that customer logged in, by the order's
+ * account alone, never an order in the trash. Never by e-mail or name.
  *
  * WHAT IT HOLDS. read() reads the order once, in a handful of batched reads, into the
- * value the template prints and nothing else: the number, the date, the status's name,
- * the lines with their chosen options, the summary rows (OrderSummary::rows(), the
+ * value the template prints and nothing else: the number, the date, the status's name as
+ * a customer reads it, the lines with their chosen options, the summary rows (OrderSummary::rows(), the
  * order's frozen money), the delivery and invoice addresses, the two method names the
  * order recorded, the payment state from the payments balance, the e-mail the
- * confirmation went to and whether downloads were granted. Never the phone, the notes,
- * the IP address, a transaction id or payment reference, a staff field or the key.
+ * confirmation went to, whether downloads were granted, the parcels the shop gave a
+ * tracking number and the sales documents the customer reads (OrderDocuments). Never the
+ * phone, the notes, the IP address, a transaction id or payment reference, a staff field
+ * or the key.
  *
  * It only reads. Nothing here writes, so a reload of the page repeats nothing. It logs
  * nothing either: the key never reaches a log.
@@ -78,7 +83,8 @@ final class OrderConfirmation
      * @param int $id The order id.
      * @param string $number The number the customer knows the order by: its id (EmailService::orderNumber()).
      * @param string $created When the order was placed, UTC, as stored.
-     * @param string $status The order status's name in the current language.
+     * @param string $status The name a customer reads for the order's status, in the current language
+     *                       (OrderStatusHelper::customerName()).
      * @param object[] $lines Each line: name, options (each label and value), quantity, total (Money).
      * @param SummaryRow[] $summary The money summary rows.
      * @param object[] $delivery The delivery address: each field shown, label and value.
@@ -89,6 +95,12 @@ final class OrderConfirmation
      * @param string $email The address the confirmation went to.
      * @param bool $downloads Whether the order carries downloads ready to serve.
      * @param string $gateway The gateway of record: the plugin element the order recorded; '' for none.
+     * @param int $statusId The order's status.
+     * @param int $accountId The customer account the order is of; 0 for a guest's order.
+     * @param object[] $documents The sales documents the customer reads (OrderDocuments::of()): each id, type,
+     *                            number, date, voided, url.
+     * @param object[] $parcels The parcels the shop gave a tracking number, in the order they were added: each
+     *                          carrier (the carrier's name, else the shipping method's) and tracking.
      * @param object $order The order row, the gateway's event subject.
      * @param object|null $method The payment method record, the gateway's event argument; null when it is gone.
      *
@@ -109,6 +121,10 @@ final class OrderConfirmation
         public readonly string $email,
         public readonly bool $downloads,
         public readonly string $gateway,
+        public readonly int $statusId,
+        public readonly int $accountId,
+        public readonly array $parcels,
+        public readonly array $documents,
         private readonly object $order,
         private readonly ?object $method,
     ) {
@@ -119,7 +135,7 @@ final class OrderConfirmation
      * that is not there: staff have taken it off the shop.
      *
      * @param int $orderId The order id the address carries.
-     * @param string $key The key the address carries.
+     * @param string $key The key the address carries; '' for a customer's own order opened from their account.
      * @param int $viewerId The logged-in user, 0 for a guest.
      *
      * @return string self::GRANTED, self::LOGIN or self::REFUSED.
@@ -128,20 +144,27 @@ final class OrderConfirmation
      */
     public static function access(int $orderId, string $key, int $viewerId): string
     {
-        if ($orderId <= 0 || $key === '') {
+        if ($orderId <= 0) {
             return self::REFUSED;
         }
 
         $db = self::db();
         $row = $db->setQuery(
             $db->getQuery(true)
-                ->select([$db->quoteName('o.secure_key'), $db->quoteName('u.id', 'account')])
+                ->select([$db->quoteName('o.secure_key'), $db->quoteName('o.state'), $db->quoteName('u.id', 'account')])
                 ->from($db->quoteName('#__alfa_orders', 'o'))
                 ->join('LEFT', $db->quoteName('#__users', 'u'), $db->quoteName('u.id') . ' = ' . $db->quoteName('o.id_user'))
                 ->where($db->quoteName('o.id') . ' = :id')
                 ->where($db->quoteName('o.state') . ' != -2')
                 ->bind(':id', $orderId, ParameterType::INTEGER),
         )->loadObject();
+
+        // A customer's own order from their account: the order's account, logged in. No key, so nothing else opens it.
+        if ($key === '') {
+            $owner = (int) ($row->account ?? 0);
+
+            return $owner > 0 && $viewerId === $owner && (int) ($row->state ?? 0) !== -2 ? self::GRANTED : self::REFUSED;
+        }
 
         $stored = (string) ($row->secure_key ?? '');
 
@@ -162,6 +185,37 @@ final class OrderConfirmation
         }
 
         return $viewerId === $owner ? self::GRANTED : self::REFUSED;
+    }
+
+    /**
+     * The address of an order's page for its customer, absolute, for the customer's e-mails: an account's order opens
+     * its page in the account (the customer logs in; no key travels); a guest's order opens the keyed page, its id and
+     * key, as the guest's download links carry the key. The order is the one page a guest reaches.
+     *
+     * @param object $order The order's row (id, id_user, secure_key).
+     *
+     * @return string '' for a guest's order that carries no key.
+     *
+     * @since  2.3.0
+     */
+    public static function pageUrl(object $order): string
+    {
+        $orderId = (int) ($order->id ?? 0);
+        $key = (string) ($order->secure_key ?? '');
+
+        if ($orderId <= 0) {
+            return '';
+        }
+
+        if ((int) ($order->id_user ?? 0) > 0) {
+            $url = 'index.php?option=com_alfa&view=order&id=' . $orderId;
+        } elseif ($key !== '') {
+            $url = 'index.php?option=com_alfa&view=cart&layout=default_order_completed&id=' . $orderId . '&key=' . rawurlencode($key);
+        } else {
+            return '';
+        }
+
+        return Route::link(client: 'site', url: $url, xhtml: false, absolute: true);
     }
 
     /**
@@ -256,12 +310,7 @@ final class OrderConfirmation
             id: $orderId,
             number: EmailService::orderNumber(order: $order),
             created: (string) ($order->created ?? ''),
-            status: MultilingualHelper::getTranslatedValue(
-                id: (int) ($order->id_order_status ?? 0),
-                tableName: '#__alfa_orders_statuses',
-                primaryColumnName: 'id_orderstatus',
-                field: 'name',
-            ),
+            status: OrderStatusHelper::customerName(statusId: (int) ($order->id_order_status ?? 0)),
             lines: array_map(
                 static fn (object $item): object => (object) [
                     'name' => (string) $item->name,
@@ -290,6 +339,10 @@ final class OrderConfirmation
             email: OrderIdentity::notificationEmail($order),
             downloads: self::hasDownloads(orderId: $orderId),
             gateway: (string) ($order->payment_method_type ?? ''),
+            statusId: (int) ($order->id_order_status ?? 0),
+            accountId: (int) ($order->id_user ?? 0),
+            parcels: self::parcels(orderId: $orderId),
+            documents: OrderDocuments::of(order: $order),
             order: $order,
             method: self::method(methodId: (int) ($order->id_payment_method ?? 0)),
         );
@@ -305,6 +358,17 @@ final class OrderConfirmation
     public function gatewaySubject(): object
     {
         return clone $this->order;
+    }
+
+    /**
+     * The address of the order's Pay now, while its buyer may pay it again (PayAgain): the order's payment step, never
+     * a new order; '' while it may not.
+     *
+     * @since  2.3.0
+     */
+    public function payAgainUrl(): string
+    {
+        return PayAgain::verdictFor(order: $this->order) === PayAgain::OPEN ? PayAgain::link(order: $this->order) : '';
     }
 
     /**
@@ -536,6 +600,44 @@ final class OrderConfirmation
             'partially_refunded' => $facts->is_paid ? self::PAID : $partly,
             default => $facts->is_paid ? '' : self::AWAITING_PAYMENT,
         };
+    }
+
+    /**
+     * The parcels the shop gave a tracking number: its carrier's name (the carrier the parcel went with, else the
+     * shipping method's name) and the number, for each parcel that is not cancelled or returned, in the order they were
+     * added.
+     *
+     * @param int $orderId The order.
+     *
+     * @return object[] Each: carrier, tracking.
+     *
+     * @since  2.3.0
+     */
+    private static function parcels(int $orderId): array
+    {
+        $db = self::db();
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['carrier_name', 'shipment_method_name', 'tracking_number']))
+                ->from($db->quoteName('#__alfa_order_shipments'))
+                ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                ->where(OrderTotalHelper::activeShipmentsWhere($db))
+                ->where($db->quoteName('tracking_number') . ' IS NOT NULL')
+                ->where($db->quoteName('tracking_number') . ' != ' . $db->quote(''))
+                ->order($db->quoteName('id') . ' ASC'),
+        )->loadObjectList() ?: [];
+
+        return array_map(
+            static function (object $row): object {
+                $carrier = trim((string) ($row->carrier_name ?? ''));
+
+                return (object) [
+                    'carrier' => $carrier !== '' ? $carrier : trim((string) ($row->shipment_method_name ?? '')),
+                    'tracking' => trim((string) $row->tracking_number),
+                ];
+            },
+            $rows,
+        );
     }
 
     /**

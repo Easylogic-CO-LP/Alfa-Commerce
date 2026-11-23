@@ -18,11 +18,13 @@ use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
+use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
 use Exception;
 use Joomla\CMS\Factory;
@@ -1303,6 +1305,10 @@ class EmailService
             $payUrl = PayAgain::link((object) ['id' => $orderId, 'secure_key' => (string) ($order->secure_key ?? '')]);
         }
 
+        // THE ORDER'S PAGE, on the genuine customer send only: an account's order in the account, a guest's order on the
+        // keyed page, the one page a guest reaches (OrderConfirmation::pageUrl()).
+        $orderUrl = $withDownloadLinks && $orderId > 0 ? OrderConfirmation::pageUrl(order: $order) : '';
+
         return [
             'order' => $order,
             'items' => $items,
@@ -1311,6 +1317,7 @@ class EmailService
             'shipments' => $shipments,
             'downloads' => $downloads,
             'payUrl' => $payUrl,
+            'orderUrl' => $orderUrl,
             'status' => $status,
             'recipient' => $recipient,
             'langTag' => $langTag,
@@ -1552,8 +1559,8 @@ class EmailService
      *   - Order: {order_id}, {order_number}, {order_date},
      *     {status}, {status_customer}, {order_total} (scalar formatted
      *     total), {payment_method}, {shipment_method}. {status} is the
-     *     internal name, {status_customer} the required customer-facing
-     *     one. The
+     *     internal name, {status_customer} the name a customer reads (the
+     *     customer-facing name, else the internal one). The
      *     items table + totals breakdown are NOT tokens; they're
      *     structure rendered by the layout (see buildLayoutContext).
      *
@@ -1594,9 +1601,9 @@ class EmailService
         // STRUCTURE, not tokens: the layout renders them via
         // $render('emails.partials.order_items'|'order_totals', ...), so no
         // presentation layout id is named here. See buildLayoutContext().
-        // Status names: internal (admin) vs customer-facing. name_customer is
-        // a required field, so {status_customer} renders it directly with no
-        // fallback.
+        // Status names: internal (admin) vs customer-facing. The customer-facing
+        // name is optional; the status row carries the name a customer reads
+        // (OrderStatusHelper::customerName(), set by loadStatusForLanguage()).
         $tokens = [
             // Order
             '{order_id}' => (string) $orderId,
@@ -1957,11 +1964,12 @@ class EmailService
      * Load the status row for $statusId joined to its per-language
      * subject / body / name in $langTag.
      *
-     * Each of the names and e-mail texts falls back on its own to the site's
-     * default language ({@see MultilingualHelper::getDefaultLanguageCode()})
+     * Each of the internal name and the e-mail texts falls back on its own to
+     * the site's default language ({@see MultilingualHelper::getDefaultLanguageCode()})
      * while $langTag has none, whether its row is missing or only that text is
      * empty: keeps the email from going out with blank subject and body when
-     * admin only filled in one language.
+     * admin only filled in one language. The name a customer reads is
+     * {@see OrderStatusHelper::customerName()}'s.
      *
      * @param int $statusId Status PK.
      * @param string $langTag Language code (e.g. 'en-GB').
@@ -2001,7 +2009,7 @@ class EmailService
             $defaultTag = MultilingualHelper::getDefaultLanguageCode();
             $defaultRow = null;
 
-            foreach (['name', 'name_customer', 'email_positions_customer', 'email_positions_admin'] as $column) {
+            foreach (['name', 'email_positions_customer', 'email_positions_admin'] as $column) {
                 $value = (string) ($langRow->{$column} ?? '');
 
                 if ($value === '' && $defaultTag !== $langTag) {
@@ -2011,6 +2019,10 @@ class EmailService
 
                 $status->{$column} = $value;
             }
+
+            // The name the customer reads, by the rule every customer surface reads it with: the customer-facing
+            // name in this language, else the internal one in this language, then the default language the same way.
+            $status->name_customer = OrderStatusHelper::customerName(statusId: $statusId, langTag: $langTag);
 
             return $status;
         } catch (Exception $e) {
