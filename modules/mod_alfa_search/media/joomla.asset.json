@@ -8,7 +8,7 @@
     {
       "name": "mod_alfa_search.searchbar",
       "type": "script",
-      "uri": "mod_alfa_search/searchbar.js",
+      "uri": "mod_alfa_search/searchbar.min.js",
       "attributes": {
         "type": "module"
       }
@@ -16,7 +16,7 @@
     {
       "name": "mod_alfa_search.searchbar",
       "type": "style",
-      "uri": "mod_alfa_search/searchbar.css"
+      "uri": "mod_alfa_search/searchbar.min.css"
     }
   ]
 }

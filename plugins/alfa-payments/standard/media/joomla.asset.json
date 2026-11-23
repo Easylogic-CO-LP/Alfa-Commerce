@@ -7,7 +7,7 @@
     {
       "name": "plg_alfa-payments_standard.refund-partial",
       "type": "script",
-      "uri": "plg_alfa-payments_standard/refund-partial.js",
+      "uri": "plg_alfa-payments_standard/refund-partial.min.js",
       "dependencies": [
         "com_alfa.action-page"
       ],

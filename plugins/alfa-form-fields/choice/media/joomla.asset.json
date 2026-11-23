@@ -8,12 +8,12 @@
     {
       "name": "plg_alfa-form-fields_choice.choice",
       "type": "style",
-      "uri": "plg_alfa-form-fields_choice/choice.css"
+      "uri": "plg_alfa-form-fields_choice/choice.min.css"
     },
     {
       "name": "plg_alfa-form-fields_choice.choice",
       "type": "script",
-      "uri": "plg_alfa-form-fields_choice/choice.js",
+      "uri": "plg_alfa-form-fields_choice/choice.min.js",
       "dependencies": [
         "form.validate"
       ]

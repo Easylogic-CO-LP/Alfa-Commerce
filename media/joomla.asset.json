@@ -7,12 +7,12 @@
     {
       "name": "com_alfa.admin",
       "type": "style",
-      "uri": "com_alfa/admin/admin.css"
+      "uri": "com_alfa/admin/admin.min.css"
     },
     {
       "name": "com_alfa.core-loader",
       "type": "script",
-      "uri": "com_alfa/admin/alfa-core-loader.js",
+      "uri": "com_alfa/admin/alfa-core-loader.min.js",
       "dependencies": [
         "core"
       ]
@@ -20,12 +20,12 @@
     {
       "name": "com_alfa.multilingual-fields",
       "type": "style",
-      "uri": "com_alfa/admin/multilingual-fields.css"
+      "uri": "com_alfa/admin/multilingual-fields.min.css"
     },
     {
       "name": "com_alfa.admin-menu-presets",
       "type": "script",
-      "uri": "com_alfa/admin/menu-presets.js",
+      "uri": "com_alfa/admin/menu-presets.min.js",
       "dependencies": [
         "core"
       ]
@@ -33,7 +33,7 @@
     {
       "name": "com_alfa.cartrule.conditions",
       "type": "script",
-      "uri": "com_alfa/admin/cartrule-conditions.js",
+      "uri": "com_alfa/admin/cartrule-conditions.min.js",
       "dependencies": [
         "core",
         "webcomponent.field-fancy-select"
@@ -42,12 +42,12 @@
     {
       "name": "com_alfa.prices",
       "type": "style",
-      "uri": "com_alfa/admin/prices.css"
+      "uri": "com_alfa/admin/prices.min.css"
     },
     {
       "name": "com_alfa.prices",
       "type": "script",
-      "uri": "com_alfa/admin/prices.js",
+      "uri": "com_alfa/admin/prices.min.js",
       "dependencies": [
         "core"
       ]
@@ -55,12 +55,12 @@
     {
       "name": "com_alfa.combinations",
       "type": "style",
-      "uri": "com_alfa/admin/combinations.css"
+      "uri": "com_alfa/admin/combinations.min.css"
     },
     {
       "name": "com_alfa.combinations",
       "type": "script",
-      "uri": "com_alfa/admin/combinations.js",
+      "uri": "com_alfa/admin/combinations.min.js",
       "dependencies": [
         "core",
         "com_alfa.core-loader"
@@ -69,12 +69,12 @@
     {
       "name": "com_alfa.email-positions",
       "type": "style",
-      "uri": "com_alfa/admin/email-positions.css"
+      "uri": "com_alfa/admin/email-positions.min.css"
     },
     {
       "name": "com_alfa.email-positions",
       "type": "script",
-      "uri": "com_alfa/admin/email-positions.js",
+      "uri": "com_alfa/admin/email-positions.min.js",
       "dependencies": [
         "core"
       ]
@@ -82,7 +82,7 @@
     {
       "name": "com_alfa.sync-tools",
       "type": "script",
-      "uri": "com_alfa/admin/sync-tools.js",
+      "uri": "com_alfa/admin/sync-tools.min.js",
       "dependencies": [
         "core"
       ]
@@ -90,12 +90,12 @@
     {
       "name": "com_alfa.notifications",
       "type": "style",
-      "uri": "com_alfa/admin/notifications.css"
+      "uri": "com_alfa/admin/notifications.min.css"
     },
     {
       "name": "com_alfa.notifications",
       "type": "script",
-      "uri": "com_alfa/admin/notifications.js",
+      "uri": "com_alfa/admin/notifications.min.js",
       "dependencies": [
         "core"
       ],
@@ -106,12 +106,12 @@
     {
       "name": "com_alfa.setup-dashboard",
       "type": "style",
-      "uri": "com_alfa/admin/setup-dashboard.css"
+      "uri": "com_alfa/admin/setup-dashboard.min.css"
     },
     {
       "name": "com_alfa.setup-dashboard",
       "type": "script",
-      "uri": "com_alfa/admin/setup-dashboard.js",
+      "uri": "com_alfa/admin/setup-dashboard.min.js",
       "dependencies": [
         "core",
         "com_alfa.core-loader"
@@ -131,12 +131,12 @@
     {
       "name": "com_alfa.charts",
       "type": "style",
-      "uri": "com_alfa/admin/charts.css"
+      "uri": "com_alfa/admin/charts.min.css"
     },
     {
       "name": "com_alfa.charts",
       "type": "script",
-      "uri": "com_alfa/admin/charts.js",
+      "uri": "com_alfa/admin/charts.min.js",
       "dependencies": [
         "core",
         "com_alfa.echarts"
@@ -148,7 +148,7 @@
     {
       "name": "com_alfa.integrity-check",
       "type": "script",
-      "uri": "com_alfa/admin/integrity-check.js",
+      "uri": "com_alfa/admin/integrity-check.min.js",
       "dependencies": [
         "core"
       ],
@@ -159,12 +159,12 @@
     {
       "name": "com_alfa.list",
       "type": "style",
-      "uri": "com_alfa/site/list.css"
+      "uri": "com_alfa/site/list.min.css"
     },
     {
       "name": "com_alfa.list",
       "type": "script",
-      "uri": "com_alfa/site/list-form.js",
+      "uri": "com_alfa/site/list-form.min.js",
       "attributes": {
         "defer": true
       }
@@ -172,7 +172,7 @@
     {
       "name": "com_alfa.card.slider",
       "type": "script",
-      "uri": "com_alfa/site/card-slider.js",
+      "uri": "com_alfa/site/card-slider.min.js",
       "attributes": {
         "defer": true
       }
@@ -180,7 +180,7 @@
     {
       "name": "com_alfa.item",
       "type": "style",
-      "uri": "com_alfa/site/item.css",
+      "uri": "com_alfa/site/item.min.css",
       "dependencies": [
         "com_alfa.tokens"
       ]
@@ -188,7 +188,7 @@
     {
       "name": "com_alfa.cart",
       "type": "style",
-      "uri": "com_alfa/site/cart.css",
+      "uri": "com_alfa/site/cart.min.css",
       "dependencies": [
         "com_alfa.tokens"
       ]
@@ -196,17 +196,17 @@
     {
       "name": "com_alfa.manufacturer",
       "type": "style",
-      "uri": "com_alfa/site/manufacturer.css"
+      "uri": "com_alfa/site/manufacturer.min.css"
     },
     {
       "name": "com_alfa.tokens",
       "type": "style",
-      "uri": "com_alfa/site/tokens.css"
+      "uri": "com_alfa/site/tokens.min.css"
     },
     {
       "name": "com_alfa.stepper",
       "type": "style",
-      "uri": "com_alfa/site/stepper.css",
+      "uri": "com_alfa/site/stepper.min.css",
       "dependencies": [
         "com_alfa.tokens"
       ]
@@ -214,7 +214,7 @@
     {
       "name": "com_alfa.general",
       "type": "style",
-      "uri": "com_alfa/site/general.css",
+      "uri": "com_alfa/site/general.min.css",
       "dependencies": [
         "com_alfa.tokens",
         "com_alfa.stepper"
@@ -233,7 +233,7 @@
     {
       "name": "com_alfa.admin.orders-list",
       "type": "script",
-      "uri": "com_alfa/admin/orders-list.js",
+      "uri": "com_alfa/admin/orders-list.min.js",
       "attributes": {
         "defer": true
       }
@@ -241,12 +241,12 @@
     {
       "name": "com_alfa.admin.orders-list",
       "type": "style",
-      "uri": "com_alfa/admin/orders-list.css"
+      "uri": "com_alfa/admin/orders-list.min.css"
     },
     {
       "name": "com_alfa.admin.inline-edit",
       "type": "script",
-      "uri": "com_alfa/admin/inline-edit.js",
+      "uri": "com_alfa/admin/inline-edit.min.js",
       "dependencies": [
         "core"
       ],
@@ -257,12 +257,12 @@
     {
       "name": "com_alfa.admin.inline-edit",
       "type": "style",
-      "uri": "com_alfa/admin/inline-edit.css"
+      "uri": "com_alfa/admin/inline-edit.min.css"
     },
     {
       "name": "com_alfa.admin",
       "type": "script",
-      "uri": "com_alfa/admin/admin.js",
+      "uri": "com_alfa/admin/admin.min.js",
       "attributes": {
         "defer": true
       }
@@ -270,7 +270,7 @@
     {
       "name": "com_alfa.admin.document-issue",
       "type": "script",
-      "uri": "com_alfa/admin/document-issue.js",
+      "uri": "com_alfa/admin/document-issue.min.js",
       "dependencies": [
         "core"
       ]
@@ -278,7 +278,7 @@
     {
       "name": "com_alfa.admin.order-item",
       "type": "script",
-      "uri": "com_alfa/admin/order-item.js",
+      "uri": "com_alfa/admin/order-item.min.js",
       "dependencies": [
         "core"
       ],
@@ -289,7 +289,7 @@
     {
       "name": "com_alfa.admin.cart-builder-line",
       "type": "script",
-      "uri": "com_alfa/admin/cart-builder-line.js",
+      "uri": "com_alfa/admin/cart-builder-line.min.js",
       "dependencies": [
         "core"
       ],
@@ -300,7 +300,7 @@
     {
       "name": "com_alfa.actions",
       "type": "script",
-      "uri": "com_alfa/admin/actions.js",
+      "uri": "com_alfa/admin/actions.min.js",
       "attributes": {
         "defer": true
       },
@@ -311,7 +311,7 @@
     {
       "name": "com_alfa.action-page",
       "type": "script",
-      "uri": "com_alfa/admin/action-page.js",
+      "uri": "com_alfa/admin/action-page.min.js",
       "attributes": {
         "defer": true
       }
@@ -319,12 +319,12 @@
     {
       "name": "com_alfa.action-page",
       "type": "style",
-      "uri": "com_alfa/admin/action-page.css"
+      "uri": "com_alfa/admin/action-page.min.css"
     },
     {
       "name": "com_alfa.credit-refund-partial",
       "type": "script",
-      "uri": "com_alfa/admin/credit-refund-partial.js",
+      "uri": "com_alfa/admin/credit-refund-partial.min.js",
       "attributes": {
         "defer": true
       }
@@ -332,7 +332,7 @@
     {
       "name": "com_alfa.ledger-fact-form",
       "type": "script",
-      "uri": "com_alfa/admin/ledger-fact-form.js",
+      "uri": "com_alfa/admin/ledger-fact-form.min.js",
       "attributes": {
         "defer": true
       }
@@ -340,7 +340,7 @@
     {
       "name": "com_alfa.admin-field-typehaschanged",
       "type": "script",
-      "uri": "com_alfa/admin/admin-field-typehaschanged.js",
+      "uri": "com_alfa/admin/admin-field-typehaschanged.min.js",
       "dependencies": [
         "core",
         "com_alfa.core-loader"
@@ -352,7 +352,7 @@
     {
       "name": "com_alfa.item",
       "type": "script",
-      "uri": "com_alfa/site/item/item.js",
+      "uri": "com_alfa/site/item/item.min.js",
       "attributes": {
         "defer": true
       }
@@ -360,7 +360,7 @@
     {
       "name": "com_alfa.item.addtocart",
       "type": "script",
-      "uri": "com_alfa/site/cart/addtocart.js",
+      "uri": "com_alfa/site/cart/addtocart.min.js",
       "attributes": {
         "defer": true
       }
@@ -368,7 +368,7 @@
     {
       "name": "com_alfa.item.addtocart",
       "type": "style",
-      "uri": "com_alfa/site/cart-added.css",
+      "uri": "com_alfa/site/cart-added.min.css",
       "dependencies": [
         "com_alfa.general"
       ]
@@ -384,7 +384,7 @@
     {
       "name": "com_alfa.item.recalculate",
       "type": "script",
-      "uri": "com_alfa/site/item/recalculate.js",
+      "uri": "com_alfa/site/item/recalculate.min.js",
       "attributes": {
         "defer": true
       }
@@ -392,7 +392,7 @@
     {
       "name": "com_alfa.item.variant",
       "type": "script",
-      "uri": "com_alfa/site/item/variant.js",
+      "uri": "com_alfa/site/item/variant.min.js",
       "attributes": {
         "defer": true
       }
@@ -400,7 +400,7 @@
     {
       "name": "com_alfa.cart",
       "type": "script",
-      "uri": "com_alfa/site/cart/cart.js",
+      "uri": "com_alfa/site/cart/cart.min.js",
       "attributes": {
         "defer": true
       }
@@ -408,7 +408,7 @@
     {
       "name": "com_alfa.cart.form-state",
       "type": "script",
-      "uri": "com_alfa/site/cart/form-state.js",
+      "uri": "com_alfa/site/cart/form-state.min.js",
       "dependencies": [
         "core"
       ],
@@ -419,7 +419,7 @@
     {
       "name": "com_alfa.order-completed",
       "type": "style",
-      "uri": "com_alfa/site/order-completed.css",
+      "uri": "com_alfa/site/order-completed.min.css",
       "dependencies": [
         "com_alfa.general",
         "com_alfa.cart"
@@ -428,7 +428,7 @@
     {
       "name": "com_alfa.order-completed",
       "type": "script",
-      "uri": "com_alfa/site/cart/order-completed.js",
+      "uri": "com_alfa/site/cart/order-completed.min.js",
       "attributes": {
         "defer": true
       }
@@ -452,12 +452,12 @@
     {
       "name": "com_alfa.seo-preview",
       "type": "style",
-      "uri": "com_alfa/admin/seo.css"
+      "uri": "com_alfa/admin/seo.min.css"
     },
     {
       "name": "com_alfa.seo-preview",
       "type": "script",
-      "uri": "com_alfa/admin/seo.js",
+      "uri": "com_alfa/admin/seo.min.js",
       "attributes": {
         "defer": true
       }
@@ -473,7 +473,7 @@
     {
       "name": "com_alfa.toast",
       "type": "script",
-      "uri": "com_alfa/admin/toast.js",
+      "uri": "com_alfa/admin/toast.min.js",
       "attributes": {
         "defer": true
       }
@@ -481,7 +481,7 @@
     {
       "name": "com_alfa.toast",
       "type": "style",
-      "uri": "com_alfa/admin/toast.css"
+      "uri": "com_alfa/admin/toast.min.css"
     },
     {
       "name": "com_alfa.toast",
@@ -494,12 +494,12 @@
     {
       "name": "com_alfa.mediazone",
       "type": "style",
-      "uri": "com_alfa/admin/mediazone.css"
+      "uri": "com_alfa/admin/mediazone.min.css"
     },
     {
       "name": "com_alfa.mediazone",
       "type": "script",
-      "uri": "com_alfa/admin/mediazone.js",
+      "uri": "com_alfa/admin/mediazone.min.js",
       "dependencies": [
         "core"
       ]
@@ -512,7 +512,7 @@
     {
       "name": "com_alfa.showon.rule-evaluator",
       "type": "script",
-      "uri": "com_alfa/site/showon/rule-evaluator.js",
+      "uri": "com_alfa/site/showon/rule-evaluator.min.js",
       "attributes": {
         "defer": true
       }
@@ -520,7 +520,7 @@
     {
       "name": "com_alfa.showon.state-reader",
       "type": "script",
-      "uri": "com_alfa/site/showon/state-reader.js",
+      "uri": "com_alfa/site/showon/state-reader.min.js",
       "attributes": {
         "defer": true
       }
@@ -528,17 +528,17 @@
     {
       "name": "com_alfa.userinfo",
       "type": "style",
-      "uri": "com_alfa/site/userinfo.css"
+      "uri": "com_alfa/site/userinfo.min.css"
     },
     {
       "name": "com_alfa.validate",
       "type": "style",
-      "uri": "com_alfa/validate.css"
+      "uri": "com_alfa/validate.min.css"
     },
     {
       "name": "com_alfa.validate.engine",
       "type": "script",
-      "uri": "com_alfa/site/validate/validate-engine.js",
+      "uri": "com_alfa/site/validate/validate-engine.min.js",
       "dependencies": [
         "core"
       ],
@@ -549,7 +549,7 @@
     {
       "name": "com_alfa.showon.engine",
       "type": "script",
-      "uri": "com_alfa/site/showon/showon-engine.js",
+      "uri": "com_alfa/site/showon/showon-engine.min.js",
       "dependencies": [
         "com_alfa.showon.rule-evaluator",
         "com_alfa.showon.state-reader"
@@ -561,12 +561,12 @@
     {
       "name": "com_alfa.showon-builder",
       "type": "style",
-      "uri": "com_alfa/admin/showon-builder.css"
+      "uri": "com_alfa/admin/showon-builder.min.css"
     },
     {
       "name": "com_alfa.showon-builder",
       "type": "script",
-      "uri": "com_alfa/admin/showon-builder.js",
+      "uri": "com_alfa/admin/showon-builder.min.js",
       "dependencies": [
         "core"
       ],
@@ -577,12 +577,12 @@
     {
       "name": "com_alfa.search",
       "type": "style",
-      "uri": "com_alfa/site/search.css"
+      "uri": "com_alfa/site/search.min.css"
     },
     {
       "name": "com_alfa.search",
       "type": "script",
-      "uri": "com_alfa/site/search/enhance.js",
+      "uri": "com_alfa/site/search/enhance.min.js",
       "dependencies": [
         "core"
       ],
@@ -593,12 +593,12 @@
     {
       "name": "com_alfa.tours",
       "type": "style",
-      "uri": "com_alfa/admin/tours.css"
+      "uri": "com_alfa/admin/tours.min.css"
     },
     {
       "name": "com_alfa.tours",
       "type": "script",
-      "uri": "com_alfa/admin/tours.js",
+      "uri": "com_alfa/admin/tours.min.js",
       "dependencies": [
         "core"
       ],
@@ -609,7 +609,7 @@
     {
       "name": "com_alfa.site.runner-kick",
       "type": "script",
-      "uri": "com_alfa/site/runner/runner-kick.js",
+      "uri": "com_alfa/site/runner/runner-kick.min.js",
       "dependencies": [
         "core"
       ],
@@ -620,7 +620,7 @@
     {
       "name": "com_alfa.admin.runner-kick",
       "type": "script",
-      "uri": "com_alfa/admin/runner-kick.js",
+      "uri": "com_alfa/admin/runner-kick.min.js",
       "dependencies": [
         "core"
       ],
@@ -631,7 +631,7 @@
     {
       "name": "com_alfa.admin.task-progress",
       "type": "script",
-      "uri": "com_alfa/admin/task-progress.js",
+      "uri": "com_alfa/admin/task-progress.min.js",
       "dependencies": [
         "core"
       ],

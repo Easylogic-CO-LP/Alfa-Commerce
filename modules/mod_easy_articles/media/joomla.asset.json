@@ -8,12 +8,12 @@
     {
       "name": "mod_easy_articles.articles",
       "type": "style",
-      "uri": "mod_easy_articles/articles.css"
+      "uri": "mod_easy_articles/articles.min.css"
     },
     {
       "name": "mod_easy_articles.articles",
       "type": "script",
-      "uri": "mod_easy_articles/articles.js",
+      "uri": "mod_easy_articles/articles.min.js",
       "attributes": {
         "defer": true
       }
@@ -34,12 +34,12 @@
     {
       "name": "mod_easy_articles.look-editor",
       "type": "style",
-      "uri": "mod_easy_articles/look-editor.css"
+      "uri": "mod_easy_articles/look-editor.min.css"
     },
     {
       "name": "mod_easy_articles.look-editor",
       "type": "script",
-      "uri": "mod_easy_articles/look-editor.js",
+      "uri": "mod_easy_articles/look-editor.min.js",
       "attributes": {
         "defer": true
       }

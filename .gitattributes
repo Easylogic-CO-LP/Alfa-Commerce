@@ -4,3 +4,9 @@
 # The bundled libraries are third-party files kept byte for byte: no line-end conversion (dompdf's font metrics
 # and php-font-lib's encoding maps ship with CRLF).
 /libraries/** -text
+
+# The minified styles and scripts are kept byte for byte, since the .gz beside each one must decompress to exactly
+# its bytes; the .gz files are binary.
+*.min.css -text
+*.min.js -text
+*.gz binary
