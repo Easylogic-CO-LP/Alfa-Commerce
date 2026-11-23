@@ -242,27 +242,30 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     /**
      * Cart display hook.
      *
-     * Every plugin MUST set a layout, even if it is empty.
-     * Called during cart rendering for each active method.
+     * Called during cart rendering for each offered method, after core has
+     * drawn the method. A plugin draws its panel under the method through the
+     * place its event offers: paymentMethods() on a payment plugin's event,
+     * shipmentMethods() on a shipping plugin's. One with nothing to add draws
+     * nothing.
      *
      * Available on $event:
      *   $event->getRequest() -> MethodViewRequest: ->method (the Method,
      *                          entire) and ->cart (the Cart, entire)
-     *   $event->setLayout('default_cart_view')   -> Layout file in tmpl/
-     *   $event->setLayoutData([...])             -> Data for the layout
+     *   $event->paymentMethods() / $event->shipmentMethods()
+     *                        -> the method's panel: setLayout() (a file in
+     *                           tmpl/) and setData() (the data for it)
      *
-     * Usage example:
+     * Usage example (a payment plugin):
      * <code>
-     * $request = $event->getRequest();
+     * $method = $event->getMethod();
      *
-     * $event->setLayout('default_cart_view');
-     * $event->setLayoutData([
+     * $event->paymentMethods()->setLayout('default_cart_view')->setData([
      *     'method' => $method,
-     *     'cart'   => $cart,
      * ]);
      * </code>
      *
-     * @api HOOK: called in cart rendering for each active method; every plugin sets a layout, even an empty one.
+     * @api HOOK: called in cart rendering for each offered method; a plugin draws its panel through the place its
+     *      event offers, or nothing.
      *
      * @param object $event CartViewEvent
      *
@@ -315,29 +318,28 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Item display hook.
      *
      * Called during product page rendering for each active method, after core
-     * has drawn the method (its name and image). A plugin sets a layout only to
-     * add something below that drawing; one that adds nothing sets none.
+     * has drawn the method (its name and image). A plugin draws only to add
+     * something below that drawing; one that adds nothing draws nothing.
      *
      * Available on $event:
      *   $event->getItem()    -> The product item object
      *   $event->getMethod()  -> The payment/shipment method record
-     *   $event->setLayout('default_item_view')   -> Layout file in tmpl/
-     *   $event->setLayoutData([...])             -> Data for the layout
+     *   $event->paymentMethods() / $event->shipmentMethods()
+     *                        -> below the method: setLayout() (a file in
+     *                           tmpl/) and setData() (the data for it)
+     *   $event->title(), $event->nearAddToCart()
+     *                        -> beside the title, next to the add-to-cart button
      *
-     * Usage example:
+     * Usage example (a payment plugin):
      * <code>
-     * $item   = $event->getItem();
-     * $method = $event->getMethod();
-     *
-     * $event->setLayout('default_item_view');
-     * $event->setLayoutData([
-     *     'method' => $method,
-     *     'item'   => $item,
+     * $event->paymentMethods()->setLayout('default_item_view')->setData([
+     *     'method' => $event->getMethod(),
+     *     'item'   => $event->getItem(),
      * ]);
      * </code>
      *
      * @api HOOK: called in product page rendering for each active method, after core has drawn the method; a plugin
-     *      sets a layout only to add something below it.
+     *      draws only to add something below it.
      *
      * @param object $event ItemViewEvent
      *

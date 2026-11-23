@@ -2431,13 +2431,12 @@ class ItemsModel extends UrlListModel
                 );
 
                 // Aggregate this field's card surfaces onto the page slot map
-                // (insertion order). Legacy setLayout() bridges to BuyForm.
+                // (insertion order).
                 Surfaces::appendTo(
                     $slots,
                     $event,
                     'alfa-item-fields',
                     (string) $field->type,
-                    ItemListSurface::BuyForm->value,
                     Surfaces::showonAttr($field) . InitialState::hiddenAttr($field, $showonBag),
                     field: $field,
                 );

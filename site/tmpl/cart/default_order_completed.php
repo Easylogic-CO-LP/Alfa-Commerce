@@ -19,7 +19,8 @@
  *
  * The money is the cart.summary layout's, fed rows the order froze; the lines and their
  * totals are .cart-lines, so they look as the cart's do (cart.css). The gateway's
- * block is its own layout, left out with the neutral line when its plugin cannot be asked.
+ * block is what its plugin drew through orderComplete(), handed here as
+ * $this->gatewayBlock, left out with the neutral line when its plugin cannot be asked.
  * Print is bound by the page's script (asset com_alfa.order-completed): it opens this same keyed
  * address with tmpl=component and print=1 (Joomla's own print pattern), whose root the view
  * marks data-order-print, and prints that view; the key is never written into the page. The
@@ -127,15 +128,14 @@ $columns = [
 
     <?php if ($this->providerUnavailable) : ?>
     <p class="order-provider-unavailable"><?php echo Text::_('COM_ALFA_ORDER_PROVIDER_UNAVAILABLE'); ?></p>
-    <?php elseif (!empty($this->event->onOrderCompleteView)) : ?>
+    <?php elseif ($this->gatewayBlock !== null) : ?>
     <div class="order-gateway">
         <?php
-        // An order with no payment method has an empty layout, which renders nothing.
         echo Layout::render(
-            $this->event->onOrderCompleteView->getLayout(),
-            $this->event->onOrderCompleteView->getLayoutData(),
-            $this->event->onOrderCompleteView->getLayoutPluginType(),
-            $this->event->onOrderCompleteView->getLayoutPluginName(),
+            $this->gatewayBlock['layout'],
+            $this->gatewayBlock['layoutData'],
+            $this->gatewayBlock['layoutPluginType'],
+            $this->gatewayBlock['layoutPluginName'],
         );
         ?>
     </div>

@@ -15,17 +15,35 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
 
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\CheckoutSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\Concern\HasSurfaces;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceBuilder;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\MethodViewRequest;
 use Alfa\Component\Alfa\Site\Service\Cart\Cart;
 use Alfa\Component\Alfa\Site\Service\Cart\Method;
 
 /**
- * Class for CustomFields events
+ * The cart's render hook for one offered shipment method (onCartView): what the
+ * method's plugin draws under the method in the cart's shipment methods, through
+ * shipmentMethods(). A plugin that draws nothing leaves core's drawing of the method alone.
  *
  * @since  1.0.0
  */
 class CartViewEvent extends ShipmentsLayoutEvent
 {
+    use HasSurfaces;
+
+    /**
+     * The method's panel under its row in the cart's shipment methods. Fluent:
+     * shipmentMethods()->setLayout('default_cart_view')->setData([...]).
+     *
+     * @since  2.3.0
+     */
+    public function shipmentMethods(): SurfaceBuilder
+    {
+        return $this->surfaceFor(CheckoutSurface::ShipmentMethods->value);
+    }
+
     /**
      * Constructor.
      *

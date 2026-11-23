@@ -20,11 +20,11 @@ defined('_JEXEC') or die;
  * container: it collects contributions from ANY source (item fields, payment
  * methods, shipment methods) and renders them in insertion order, source-agnostic.
  *
- * Two cross-cutting rules live here:
- *  - BACK-COMPAT: a legacy setLayout() (no explicit surface) becomes the event's
- *    DEFAULT slot, so existing plugins keep working.
- *  - OWNER DEFAULT: a surface's plugin group/element defaults to the contributor's
- *    own plugin (set explicitly only to render another plugin's layout).
+ * A plugin draws only through its event's surface builders
+ * ($event->buyForm()->setLayout(...), $event->paymentMethods()->setLayout(...)):
+ * a slot it did not ask for stays empty. One cross-cutting rule lives here: a
+ * surface's plugin group/element defaults to the contributor's own plugin (set
+ * explicitly only to render another plugin's layout).
  *
  * @since  2.0.0
  */
@@ -88,28 +88,17 @@ final class Surfaces
     /**
      * Resolve one contributor's event into descriptors keyed by slot.
      *
-     * @param object $event An event using HasSurfaces (+ legacy LayoutEvent getters).
+     * @param object $event An event using HasSurfaces.
      * @param string $ownerGroup The contributor's plugin group (alfa-item-fields|alfa-payments|alfa-shipments).
      * @param string $ownerName The contributor's plugin element (each surface's default owner).
-     * @param string $defaultSlot The slot a legacy setLayout() maps to (a *Surface case value).
      *
      * @return array<string, array> slot => render descriptor.
      *
      * @since  2.0.0
      */
-    public static function collect(object $event, string $ownerGroup, string $ownerName, string $defaultSlot): array
+    public static function collect(object $event, string $ownerGroup, string $ownerName): array
     {
         $surfaces = $event->getSurfaces();
-
-        // Legacy setLayout() with no explicit surface -> the default slot.
-        if (!isset($surfaces[$defaultSlot]) && method_exists($event, 'getLayout') && $event->getLayout() !== '') {
-            $surfaces[$defaultSlot] = [
-                'layout' => $event->getLayout(),
-                'layoutData' => $event->getLayoutData(),
-                'layoutPluginType' => $event->getLayoutPluginType(),
-                'layoutPluginName' => $event->getLayoutPluginName(),
-            ];
-        }
 
         // Default each surface's owner to the contributor's own plugin.
         foreach ($surfaces as &$descriptor) {
@@ -132,16 +121,15 @@ final class Surfaces
      * @param object $event The contributor's event.
      * @param string $ownerGroup The contributor's plugin group.
      * @param string $ownerName The contributor's plugin element.
-     * @param string $defaultSlot The legacy-setLayout default slot.
      * @param string $showon The descriptor's showon attribute string ('' = none).
      * @param object|null $field The item field that contributed (null = not an item field).
      *
      *
      * @since  2.0.0
      */
-    public static function appendTo(array &$target, object $event, string $ownerGroup, string $ownerName, string $defaultSlot, string $showon = '', ?object $field = null): void
+    public static function appendTo(array &$target, object $event, string $ownerGroup, string $ownerName, string $showon = '', ?object $field = null): void
     {
-        foreach (self::collect($event, $ownerGroup, $ownerName, $defaultSlot) as $slot => $descriptor) {
+        foreach (self::collect($event, $ownerGroup, $ownerName) as $slot => $descriptor) {
             $descriptor['showon'] = $showon;
             $descriptor['fieldId'] = $field !== null ? (int) $field->id : null;
             $descriptor['fieldName'] = $field !== null ? (string) ($field->field_name ?? '') : null;

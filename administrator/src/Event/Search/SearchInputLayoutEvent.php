@@ -18,11 +18,13 @@ use Alfa\Component\Alfa\Administrator\Event\General\LayoutEvent;
  * Lets the CONFIGURED search engine take over rendering of the storefront search input.
  *
  * `onAlfaSearchInputLayout`, fired by the `list.filter_form` layout where the input
- * renders, broadcast to the `alfa-search` group. A listener claims the input by setting a
- * layout the standard way ({@see LayoutEvent}: setLayout / setLayoutData /
- * setLayoutPluginType / setLayoutPluginName); when nothing claims it, the layout renders
- * Joomla's stock searchtools input exactly as before, so a site with no search plugins,
- * the overwhelmingly common case, pays nothing and changes nothing.
+ * renders, broadcast to the `alfa-search` group. A listener claims the input by setting
+ * its layout on this event (setLayout / setLayoutData / setLayoutPluginType /
+ * setLayoutPluginName): the input is one whole layout that replaces the stock one, not a
+ * slot on a page's surface map, so this event carries the layout itself. When nothing
+ * claims it, the layout renders Joomla's stock searchtools input exactly as before, so a
+ * site with no search plugins, the overwhelmingly common case, pays nothing and changes
+ * nothing.
  *
  * WHY THIS EXISTS: so an engine's own input rendering ships WITH the engine: a richer
  * input lands here, and because the plugin layout resolves through
@@ -49,6 +51,118 @@ use Alfa\Component\Alfa\Administrator\Event\General\LayoutEvent;
  */
 class SearchInputLayoutEvent extends LayoutEvent
 {
+    /**
+     * @var string The layout that renders the input ('' = the stock input).
+     * @since  2.3.0
+     */
+    private string $layout = '';
+
+    /**
+     * @var array The layout's display data, merged over the view and the context.
+     * @since  2.3.0
+     */
+    private array $layoutData = [];
+
+    /**
+     * @var string The plugin group owning the layout ('' = a layout of the component).
+     * @since  2.3.0
+     */
+    private string $layoutPluginType = '';
+
+    /**
+     * @var string The plugin element owning the layout ('' = a layout of the component).
+     * @since  2.3.0
+     */
+    private string $layoutPluginName = '';
+
+    /**
+     * Set the layout that renders the input in place of the stock one.
+     *
+     * @param string $layout The layout name (without .php).
+     *
+     * @since  2.3.0
+     */
+    public function setLayout(string $layout): void
+    {
+        $this->layout = $layout;
+    }
+
+    /**
+     * The layout that renders the input ('' when no engine claimed it).
+     *
+     * @since  2.3.0
+     */
+    public function getLayout(): string
+    {
+        return $this->layout;
+    }
+
+    /**
+     * Set the display data of the input's layout.
+     *
+     * @param array $data The display data.
+     *
+     * @since  2.3.0
+     */
+    public function setLayoutData(array $data): void
+    {
+        $this->layoutData = $data;
+    }
+
+    /**
+     * The display data of the input's layout.
+     *
+     * @since  2.3.0
+     */
+    public function getLayoutData(): array
+    {
+        return $this->layoutData;
+    }
+
+    /**
+     * Set the plugin group that owns the input's layout.
+     *
+     * @param string $type The plugin group.
+     *
+     * @since  2.3.0
+     */
+    public function setLayoutPluginType(string $type): void
+    {
+        $this->layoutPluginType = $type;
+    }
+
+    /**
+     * The plugin group that owns the input's layout.
+     *
+     * @since  2.3.0
+     */
+    public function getLayoutPluginType(): string
+    {
+        return $this->layoutPluginType;
+    }
+
+    /**
+     * Set the plugin element that owns the input's layout.
+     *
+     * @param string $name The plugin element.
+     *
+     * @since  2.3.0
+     */
+    public function setLayoutPluginName(string $name): void
+    {
+        $this->layoutPluginName = $name;
+    }
+
+    /**
+     * The plugin element that owns the input's layout.
+     *
+     * @since  2.3.0
+     */
+    public function getLayoutPluginName(): string
+    {
+        return $this->layoutPluginName;
+    }
+
     /**
      * Get the list view subject carried by the event.
      *

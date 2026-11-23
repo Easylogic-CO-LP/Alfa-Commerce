@@ -14,10 +14,11 @@
  * (bootPlugin($field->type)), exactly as the single-item page dispatches
  * onItemView. A field the card does not draw gets no dispatch at all. A card
  * that drew a variant dimension without a selector is resolved and drawn a
- * second time, so a handler acts through the event only. The plugin decorates
- * the card's CART region with setCartLayout()/setCartLayoutData() (the
- * listing-card counterpart of the view events' setLayout()/setLayoutData()); it
- * operates on the subject, so no item argument:
+ * second time, so a handler acts through the event only. The plugin draws on
+ * the card through its surface builders (buyForm(), title(), image(),
+ * specifications()) and decorates the card's CART region with
+ * setCartLayout()/setCartLayoutData(); it operates on the subject, so no item
+ * argument:
  *
  *   public function onItemListPrepare($event): void
  *   {
@@ -98,37 +99,6 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @var string The field's card selector-surface layout name (without .php):
-     *             the listing-card twin of onItemView's setLayout(). The model
-     *             harvests it onto $item->surfaces (the buy-form slot) so the card
-     *             renders the SAME buyer-facing selector the product page does.
-     *
-     * @since  2.0.0
-     */
-    protected string $layout = '';
-
-    /**
-     * @var array|object The selector-surface layout's display data.
-     *
-     * @since  2.0.0
-     */
-    protected array|object $layoutData = [];
-
-    /**
-     * @var string The plugin group owning the selector surface ('' = model defaults it).
-     *
-     * @since  2.0.0
-     */
-    protected string $layoutPluginType = '';
-
-    /**
-     * @var string The plugin element owning the selector surface ('' = model defaults it).
-     *
-     * @since  2.0.0
-     */
-    protected string $layoutPluginName = '';
-
-    /**
      * The item being decorated (the event subject).
      *
      *
@@ -150,127 +120,5 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
     public function getField(): object
     {
         return $this->arguments['method'];
-    }
-
-    /**
-     * Whether a (non-empty) selector-surface layout was set.
-     *
-     *
-     * @since  2.0.0
-     */
-    public function hasLayout(): bool
-    {
-        return $this->layout !== '';
-    }
-
-    /**
-     * Set the layout that renders this field's card selector surface (the
-     * listing-card twin of onItemView's setLayout()).
-     *
-     * @param string $layout The layout name (without .php).
-     *
-     * @return static For chaining.
-     *
-     * @since  2.0.0
-     */
-    public function setLayout(string $layout): static
-    {
-        $this->layout = $layout;
-
-        return $this;
-    }
-
-    /**
-     * The selector-surface layout name ('' when none).
-     *
-     *
-     * @since  2.0.0
-     */
-    public function getLayout(): string
-    {
-        return $this->layout;
-    }
-
-    /**
-     * Set the display data passed to this field's card selector surface.
-     *
-     * @param array|object $data The display data.
-     *
-     * @return static For chaining.
-     *
-     * @since  2.0.0
-     */
-    public function setLayoutData(array|object $data): static
-    {
-        $this->layoutData = $data;
-
-        return $this;
-    }
-
-    /**
-     * The display data for this field's card selector surface.
-     *
-     *
-     * @since  2.0.0
-     */
-    public function getLayoutData(): array|object
-    {
-        return $this->layoutData;
-    }
-
-    /**
-     * Set the plugin group that owns this selector surface. Optional; the model
-     * defaults it to the field's type group.
-     *
-     * @param string $type The plugin group.
-     *
-     * @return static For chaining.
-     *
-     * @since  2.0.0
-     */
-    public function setLayoutPluginType(string $type): static
-    {
-        $this->layoutPluginType = $type;
-
-        return $this;
-    }
-
-    /**
-     * The plugin group set for this selector surface ('' = let the model default it).
-     *
-     *
-     * @since  2.0.0
-     */
-    public function getLayoutPluginType(): string
-    {
-        return $this->layoutPluginType;
-    }
-
-    /**
-     * Set the plugin element that owns this selector surface. Optional; the
-     * model defaults it to the field's type.
-     *
-     * @param string $name The plugin element.
-     *
-     * @return static For chaining.
-     *
-     * @since  2.0.0
-     */
-    public function setLayoutPluginName(string $name): static
-    {
-        $this->layoutPluginName = $name;
-
-        return $this;
-    }
-
-    /**
-     * The plugin element set for this selector surface ('' = let the model default it).
-     *
-     *
-     * @since  2.0.0
-     */
-    public function getLayoutPluginName(): string
-    {
-        return $this->layoutPluginName;
     }
 }

@@ -225,7 +225,6 @@ class HtmlView extends BaseHtmlView
                 event: $paymentEvent,
                 ownerGroup: 'alfa-payments',
                 ownerName: $payment_method->type,
-                defaultSlot: ItemSurface::PaymentMethods->value,
             );
             $this->item->surfaces = new SurfaceMap($slots);
         }
@@ -259,7 +258,6 @@ class HtmlView extends BaseHtmlView
                 event: $shipment_event,
                 ownerGroup: 'alfa-shipments',
                 ownerName: $shipment_method->type,
-                defaultSlot: ItemSurface::ShipmentMethods->value,
             );
             $this->item->surfaces = new SurfaceMap($slots);
         }

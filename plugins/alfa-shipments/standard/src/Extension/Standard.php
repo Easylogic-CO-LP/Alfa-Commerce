@@ -30,7 +30,7 @@
  * |   `-- default_order_logs_view.php   <- Admin: plugin logs modal
  * `-- services/provider.php             <- Joomla DI service provider
  *
- * Every template here answers a setLayout() call in this file.
+ * Every template here is named by a setLayout() call in this file.
  *
  * Language files are packaged under language/en-GB/ in the plugin's own
  * ZIP but INSTALL to administrator/language/en-GB/, which is where they
@@ -136,11 +136,12 @@
  *
  *  SURFACES & LAYOUTS: where your HTML actually lands
  *
- * A shipment plugin NEVER echoes HTML. It names a template and hands
- * over the data; the caller renders it:
+ * A shipment plugin NEVER echoes HTML. It asks its event for a place,
+ * names a template and hands over the data; the caller renders it:
  *
- *     $event->setLayout('default_cart_view');        // tmpl/<name>.php
- *     $event->setLayoutData(['method' => ..., 'item' => ...]);
+ *     $event->shipmentMethods()                       // the place
+ *         ->setLayout('default_cart_view')            // tmpl/<name>.php
+ *         ->setData(['method' => ..., 'item' => ...]);
  *
  * The file goes through Joomla's plugin layout chain, so a site
  * template can override any of them without touching the plugin:
@@ -149,19 +150,20 @@
  *   `- parent template (child templates inherit)
  *      `- plugins/alfa-shipments/<element>/tmpl/<layout>.php   <- yours
  *
- * WHERE EACH LAYOUT APPEARS
- *   onItemView()           product page, shipment-methods area
- *   onCartView()           cart / checkout, inside the method selector
- *   onExecuteAction()      the action page (view=action), in a modal
+ * WHERE EACH LAYOUT APPEARS (the place each hook asks for)
+ *   onItemView()           product page: shipmentMethods(), title(),
+ *                          nearAddToCart()
+ *   onCartView()           cart / checkout, under the method in the
+ *                          method selector: shipmentMethods()
+ *   onExecuteAction()      the action page (view=action), in a modal:
+ *                          $event->setLayout() on the action event
  *   onCalculateShippingCost()  NOTHING: it returns a number, not HTML
  *
- * SURFACES (product page only). Beyond its default slot the item hook
- * can push into shared page slots, so a "Free shipping" badge can sit
- * beside the title instead of down in the methods list:
+ * A place the plugin does not ask for stays empty. On the product page
+ * a "Free shipping" badge can sit beside the title instead of down in
+ * the methods list:
  *
- *     $event->shipmentMethods()->setLayout('x')->setData([...]);  // default
- *     $event->title()->setLayout('badge')->setData([...]);        // slot
- *     $event->nearAddToCart()->setLayout('badge')->setData([...]);
+ *     $event->title()->setLayout('badge')->setData([...]);
  *
  * ADMIN ACTION LAYOUTS are not rendered inline. The button opens
  * index.php?option=com_alfa&view=action&tmpl=component... in an iframe
@@ -369,9 +371,9 @@ final class Standard extends ShipmentsPlugin
     //  FRONTEND HOOKS: Customer-Facing Pages
     //
     //  These render HTML on the storefront. Each hook receives an event
-    //  with the relevant context and the shipment method record.
-    //  The cart and order hooks MUST call setLayout(), even for an empty layout;
-    //  on the product page a method with nothing to add sets none.
+    //  with the relevant context and the shipment method record, and draws
+    //  through the place its event offers (shipmentMethods()); a hook with
+    //  nothing to add draws nothing.
 
     /**
      * Product page: what the method adds below itself (e.g. "Ships in 2 days").
@@ -395,9 +397,14 @@ final class Standard extends ShipmentsPlugin
     }
 
     /**
-     * Cart page: show shipping method selector or cost estimate.
+     * Cart page: what the method draws under itself in the shipment methods.
      *
-     * For Standard: shows method name and calculated cost.
+     * Core draws every offered method first (its radio, image, title and
+     * description); the plugin's layout adds only its own content under it,
+     * for every offered method. A panel meant only for the chosen
+     * method checks $event->getMethod()->isSelected() first.
+     *
+     * For Standard: an empty layout, a place a template override can fill.
      * For an API carrier: could show real-time rates for multiple service levels.
      *
      * @param object $event CartViewEvent
@@ -406,17 +413,17 @@ final class Standard extends ShipmentsPlugin
      *                      isSelected(), and get() for anything else it carries
      *                      $event->getCart() -> the whole cart, read-only
      *                      $event->getCart()->getSubtotal() -> the cart-item amount (Money)
+     *                      $event->shipmentMethods() -> the method's panel
      * @since  1.0.0
      */
     public function onCartView($event): void
     {
-        $event->setLayout('default_cart_view');
         // NOTHING IS PASSED BECAUSE NOTHING IS RENDERED. This layout emits no
         // bytes; handing it the whole view request would put an entire cart (
         // its priced lines, its customer and its raw address rows) into layout
         // data that is then carried on the cart snapshot. A presentation payload
         // carries what the template prints, and this one prints nothing.
-        $event->setLayoutData([]);
+        $event->shipmentMethods()->setLayout('default_cart_view')->setData([]);
     }
 
     /**
