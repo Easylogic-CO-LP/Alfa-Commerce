@@ -80,6 +80,11 @@
     font-size: 1.05em;
 }
 
+/* The order's page in the account, beside the number, for its customer logged in. */
+.com-alfa.order-completed .order-account-link {
+    margin-inline-start: 0.5rem;
+}
+
 /* The parcels' tracking numbers: carrier and number, as the facts read. */
 .com-alfa.order-completed .order-parcels {
     margin-block: 1rem;

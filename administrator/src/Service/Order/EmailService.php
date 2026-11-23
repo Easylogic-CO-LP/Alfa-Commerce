@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
+use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
 use Exception;
 use Joomla\CMS\Factory;
@@ -1245,6 +1246,10 @@ class EmailService
             $payUrl = PayAgain::link((object) ['id' => $orderId, 'secure_key' => (string) ($order->secure_key ?? '')]);
         }
 
+        // THE ORDER'S PAGE, on the genuine customer send only: an account's order in the account, a guest's order on the
+        // keyed page, the one page a guest reaches (OrderConfirmation::pageUrl()).
+        $orderUrl = $withDownloadLinks && $orderId > 0 ? OrderConfirmation::pageUrl(order: $order) : '';
+
         return [
             'order' => $order,
             'items' => $items,
@@ -1253,6 +1258,7 @@ class EmailService
             'shipments' => $shipments,
             'downloads' => $downloads,
             'payUrl' => $payUrl,
+            'orderUrl' => $orderUrl,
             'status' => $status,
             'recipient' => $recipient,
             'langTag' => $langTag,

@@ -30,8 +30,13 @@
  * heading), its sections h2; the Items heading is the cart's heading row and label
  * (.cart-lines-heading, .cart-lines-title), so it reads at the cart's Items size.
  *
+ * A guest reaches the order on this keyed page alone, from the checkout or from the order's
+ * e-mails; a customer logged in is shown the order's page in their account as well
+ * ($this->accountOrderUrl). Cancelling is never offered here: it is the account's.
+ *
  * Classes the stylesheet reads (media/com_alfa/css/site/order-completed.css):
- *   .order-completed  .order-completed-actions, and those of the order.detail layout
+ *   .order-completed  .order-account-link  .order-completed-actions, and those of the
+ *   order.detail layout
  */
 
 use Alfa\Component\Alfa\Site\Helper\Layout;
@@ -69,7 +74,10 @@ $this->getDocument()->getWebAssetManager()
 
     <p class="order-number">
         <?php echo Text::sprintf('COM_ALFA_ORDER_COMPLETED_NUMBER', $this->escape($order->number)); ?>
-        <?php // For the logged-in owner, the link to this order in the account goes here once the account's order view exists. ?>
+        <?php // The order's customer, logged in: the order's page in their account. ?>
+        <?php if ($this->accountOrderUrl !== '') : ?>
+        <a class="order-account-link" href="<?php echo $this->accountOrderUrl; ?>"><?php echo Text::_('COM_ALFA_ORDER_COMPLETED_IN_ACCOUNT'); ?></a>
+        <?php endif; ?>
     </p>
 
     <?php

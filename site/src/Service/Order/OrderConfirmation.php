@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Summary\SummaryRow;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\ParameterType;
 
@@ -94,6 +95,7 @@ final class OrderConfirmation
      * @param bool $downloads Whether the order carries downloads ready to serve.
      * @param string $gateway The gateway of record: the plugin element the order recorded; '' for none.
      * @param int $statusId The order's status.
+     * @param int $accountId The customer account the order is of; 0 for a guest's order.
      * @param object[] $parcels The parcels the shop gave a tracking number, in the order they were added: each
      *                          carrier (the carrier's name, else the shipping method's) and tracking.
      * @param object $order The order row, the gateway's event subject.
@@ -117,6 +119,7 @@ final class OrderConfirmation
         public readonly bool $downloads,
         public readonly string $gateway,
         public readonly int $statusId,
+        public readonly int $accountId,
         public readonly array $parcels,
         private readonly object $order,
         private readonly ?object $method,
@@ -176,6 +179,37 @@ final class OrderConfirmation
         }
 
         return $viewerId === $owner ? self::GRANTED : self::REFUSED;
+    }
+
+    /**
+     * The address of an order's page for its customer, absolute, for the customer's e-mails: an account's order opens
+     * its page in the account (the customer logs in; no key travels); a guest's order opens the keyed page, its id and
+     * key, as the guest's download links carry the key. The order is the one page a guest reaches.
+     *
+     * @param object $order The order's row (id, id_user, secure_key).
+     *
+     * @return string '' for a guest's order that carries no key.
+     *
+     * @since  2.3.0
+     */
+    public static function pageUrl(object $order): string
+    {
+        $orderId = (int) ($order->id ?? 0);
+        $key = (string) ($order->secure_key ?? '');
+
+        if ($orderId <= 0) {
+            return '';
+        }
+
+        if ((int) ($order->id_user ?? 0) > 0) {
+            $url = 'index.php?option=com_alfa&view=order&id=' . $orderId;
+        } elseif ($key !== '') {
+            $url = 'index.php?option=com_alfa&view=cart&layout=default_order_completed&id=' . $orderId . '&key=' . rawurlencode($key);
+        } else {
+            return '';
+        }
+
+        return Route::link(client: 'site', url: $url, xhtml: false, absolute: true);
     }
 
     /**
@@ -300,6 +334,7 @@ final class OrderConfirmation
             downloads: self::hasDownloads(orderId: $orderId),
             gateway: (string) ($order->payment_method_type ?? ''),
             statusId: (int) ($order->id_order_status ?? 0),
+            accountId: (int) ($order->id_user ?? 0),
             parcels: self::parcels(orderId: $orderId),
             order: $order,
             method: self::method(methodId: (int) ($order->id_payment_method ?? 0)),
