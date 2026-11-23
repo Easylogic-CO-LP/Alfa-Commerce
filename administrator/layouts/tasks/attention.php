@@ -90,6 +90,9 @@ $form = static function (string $task, int $id, string $inner): string {
                             <?php echo $row['label'] !== ''
                                 ? Text::_($row['label'])
                                 : Text::sprintf('COM_ALFA_TASKS_HANDLER_UNKNOWN', $e($row['handler'])); ?>
+                            <?php if ((string) ($row['extension'] ?? '') !== '') : ?>
+                                <div class="small text-muted"><?php echo $e($row['extension']); ?></div>
+                            <?php endif; ?>
                         </td>
                         <td>
                             <?php if ($row['subject_type'] === 'order' && (int) $row['subject_id'] > 0) : ?>

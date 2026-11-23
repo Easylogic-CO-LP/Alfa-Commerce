@@ -32,6 +32,20 @@ final class DueRead
     /** @since 2.2.1 */
     public const TABLE = '#__alfa_tasks';
 
+    /**
+     * The owner of core's own work; any other owner is the alfa plugin that declared the work, as group.element.
+     *
+     * @since 2.3.0
+     */
+    public const CORE_OWNER = 'com_alfa';
+
+    /**
+     * The work each owner declares, as core last read it ({@see WorkDeclarations}).
+     *
+     * @since 2.3.0
+     */
+    public const DECLARATIONS = '#__alfa_work_declarations';
+
     /** @since 2.2.1 */
     public const TYPE_SINGLE = 'single';
 
@@ -123,7 +137,7 @@ final class DueRead
     {
         $single = $db->quoteName('type') . ' = ' . $db->quote(self::TYPE_SINGLE);
         $pending = 'SELECT 1 FROM ' . $db->quoteName(self::TABLE) . ' WHERE ' . $single . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING)
-            . ' AND ' . self::singleDue(db: $db) . ' AND ' . self::unreserved(db: $db);
+            . ' AND ' . self::singleDue(db: $db) . ' AND ' . self::unreserved(db: $db) . ' AND ' . self::runnableOwner(db: $db);
 
         // Only a process with no application (a bare worker) reads the handlers, and so loads Tasks; every page, API
         // request and console run has an application and leaves out no handler.
@@ -133,6 +147,9 @@ final class DueRead
             if ($needing !== []) {
                 $pending .= ' AND ' . $db->quoteName('handler') . ' NOT IN (' . implode(', ', array_map([$db, 'quote'], $needing)) . ')';
             }
+
+            // An extension's task runs its plugin, which needs an application.
+            $pending .= ' AND ' . $db->quoteName('owner') . ' = ' . $db->quote(self::CORE_OWNER);
         }
 
         return [
@@ -183,8 +200,46 @@ final class DueRead
             . ' AND (' . $db->quoteName('d.next_attempt_at') . ' IS NULL OR ' . $db->quoteName('d.next_attempt_at') . ' <= UTC_TIMESTAMP(6))'
             . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName(self::OUTBOUND_CONSUMERS, 'c') . ' WHERE ' . $db->quoteName('c.id') . ' = ' . $db->quoteName('d.consumer_id')
             . ' AND ' . $db->quoteName('c.state') . ' = 1)'
-            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::TABLE, 't') . ' WHERE ' . $db->quoteName('t.active_key') . ' = CONCAT('
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::TABLE, 't') . ' WHERE ' . $db->quoteName('t.owner') . ' = ' . $db->quote(self::CORE_OWNER)
+            . ' AND ' . $db->quoteName('t.active_key') . ' = CONCAT('
             . $db->quote(self::OUTBOUND_DELIVER . ':') . ', CAST(' . $db->quoteName('d.consumer_id') . ' AS CHAR)) COLLATE utf8mb4_unicode_ci)';
+    }
+
+    /**
+     * Whether a task row's owner may run it now, as SQL with no bound value: core's own work always; an extension's
+     * while its owner is enabled and still declares the work by that name (a declaration row with enabled 1). Any
+     * other row of an extension waits, unclaimed, and Tools > Tasks says why.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $alias The tasks table's alias in the read, or '' when it is not aliased.
+     *
+     * @since  2.3.0
+     */
+    public static function runnableOwner(DatabaseDriver $db, string $alias = ''): string
+    {
+        $column = static fn (string $name): string => $alias === '' ? $db->quoteName(self::TABLE) . '.' . $db->quoteName($name) : $db->quoteName($alias . '.' . $name);
+
+        return '(' . $column('owner') . ' = ' . $db->quote(self::CORE_OWNER)
+            . ' OR EXISTS (SELECT 1 FROM ' . $db->quoteName(self::DECLARATIONS, 'wd') . ' WHERE ' . $db->quoteName('wd.owner') . ' = ' . $column('owner')
+            . ' AND ' . $db->quoteName('wd.name') . ' = ' . $column('handler') . ' AND ' . $db->quoteName('wd.enabled') . ' = 1))';
+    }
+
+    /**
+     * A schedule owed, as SQL with no bound value over the declarations aliased wd: an enabled job declared to run
+     * every so many minutes, of which no job of its owner and name waits or runs and none was created within that
+     * span, failed ones included, so a schedule that keeps failing fails once a span, not once a tick.
+     *
+     * @param DatabaseDriver $db The connection.
+     *
+     * @since  2.3.0
+     */
+    public static function scheduleOwedWhere(DatabaseDriver $db): string
+    {
+        return $db->quoteName('wd.enabled') . ' = 1 AND ' . $db->quoteName('wd.kind') . ' = ' . $db->quote(self::TYPE_JOB) . ' AND ' . $db->quoteName('wd.every_minutes') . ' > 0'
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::TABLE, 'ws') . ' WHERE ' . $db->quoteName('ws.handler') . ' = ' . $db->quoteName('wd.name')
+            . ' AND ' . $db->quoteName('ws.owner') . ' = ' . $db->quoteName('wd.owner') . ' AND ' . $db->quoteName('ws.type') . ' = ' . $db->quote(self::TYPE_JOB)
+            . ' AND (' . $db->quoteName('ws.state') . ' IN (' . $db->quote(self::STATE_PENDING) . ', ' . $db->quote(self::STATE_RUNNING) . ')'
+            . ' OR ' . $db->quoteName('ws.created_at') . ' > UTC_TIMESTAMP(6) - INTERVAL ' . $db->quoteName('wd.every_minutes') . ' MINUTE))';
     }
 
     /**

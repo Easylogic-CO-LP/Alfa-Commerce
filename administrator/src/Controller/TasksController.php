@@ -32,7 +32,7 @@ use Throwable;
 
 /**
  * The staff actions of Tools > Tasks: Resend, Run again and Mark resolved on a failed or held single, Retry and Mark
- * resolved on a failed job ({@see TaskStaff}); the progress page's calls (process, and jobsCard when its job ends); and a
+ * resolved on a failed job, Cancel on an extension's job that waits or runs ({@see TaskStaff}); the progress page's calls (process, and jobsCard when its job ends); and a
  * new web-cron key (generateKey). Each is a POST with the form token, by a user with the Tools permission. The actions go back to the
  * Tasks tab with what happened; process answers JSON; generateKey answers the Tools page with the new address, once.
  *
@@ -102,6 +102,22 @@ class TasksController extends BaseController
             TaskStaff::retry(id: $id, userId: $userId);
 
             return Text::sprintf('COM_ALFA_TASKS_RETRIED', $id);
+        });
+    }
+
+    /**
+     * Cancel an extension's job that waits or runs, with the reason given: a waiting one at once, a running one once
+     * its step has ended.
+     *
+     * @since  2.3.0
+     */
+    public function cancel(): void
+    {
+        $reason = RequestScalar::string($this->input->post, 'reason');
+        $this->act(call: static function (int $id, int $userId) use ($reason): string {
+            TaskStaff::cancel(id: $id, userId: $userId, reason: $reason);
+
+            return Text::sprintf('COM_ALFA_TASKS_CANCELLED', $id);
         });
     }
 

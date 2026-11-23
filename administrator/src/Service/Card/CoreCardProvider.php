@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Card\CardRegistry;
 use Alfa\Component\Alfa\Administrator\Event\Card\CollectCardsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ChartHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
@@ -284,7 +285,7 @@ final class CoreCardProvider
         try {
             $rows = TaskStaff::jobRows(limit: self::ACTIVE_JOBS);
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Dashboard: the jobs could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Dashboard: the jobs could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
 
             return [];
         }

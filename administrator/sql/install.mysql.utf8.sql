@@ -1158,7 +1158,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   `projection_dirty_at` datetime(6) NULL DEFAULT NULL COMMENT 'When a rebuild of this item projections was found owed and not yet done; NULL = current',
-  `opening_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings; the listing reads its price index row by it',
+  `opening_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings',
+  `price_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination whose price the listing card shows: the opening combination when it has price rows of its own, else 0 (the product''s own price). Kept with opening_combination_id; the listing reads its price index row by it',
   PRIMARY KEY (`id`),
   KEY `idx_available_quantity` (`available_quantity`),
   KEY `idx_state` (`state`),
@@ -1303,16 +1304,17 @@ CREATE TABLE IF NOT EXISTS `#__alfa_price_contexts` (
 --
 -- Table structure for table `#__alfa_items_price_index`
 --
--- The resolved price of every unit a product sells (each published combination, or the product itself when it has
--- none: combination_id 0) in every pricing context and period, at the product's opening quantity. Every unit has a row
--- in every prepared context for every period; a unit with no valid price has NULL figures, never 0. Rebuildable from
+-- The resolved price of every unit a product sells in every pricing context and period, at the product's opening
+-- quantity: the product itself (combination_id 0), always, and each published combination with price rows of its own (a
+-- combination without them is priced from the product's rows). Every unit has a row in every prepared context for every
+-- period; a unit with no valid price has NULL figures, an explicit price of 0 the figure 0. Rebuildable from
 -- #__alfa_items_prices and the rules; written by PriceIndexSyncService only.
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_price_index` (
   `context_id` int(10) UNSIGNED NOT NULL COMMENT '#__alfa_price_contexts.id',
   `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK to #__alfa_items.id',
-  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The published combination the row prices; 0 = a product without a published combination',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The published combination with price rows of its own that the row prices; 0 = the product itself, the price of every combination without its own price rows',
   `valid_from` datetime NOT NULL DEFAULT '1000-01-01 00:00:00' COMMENT 'Period start; the epoch sentinel for the period that is live when the row is written',
   `valid_until` datetime DEFAULT NULL COMMENT 'Period end, the next edge; NULL = open-ended',
   `base_price` decimal(24,8) DEFAULT NULL COMMENT 'Unit price before discounts and tax; NULL = no valid price',
@@ -3418,8 +3420,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (
   `updated_at` datetime(3) NOT NULL,
   `started_at` datetime(3) DEFAULT NULL,
   `finished_at` datetime(3) DEFAULT NULL,
+  `owner` varchar(100) NOT NULL DEFAULT '' COMMENT 'Whose work it is: com_alfa, or the plugin that declared it as group.element; never empty once written',
+  `result` mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise',
+  `cancel_requested` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: cancelled while running; the row stays running until its step has ended, then cancelled',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_active_key` (`active_key`),
+  UNIQUE KEY `idx_owner_active_key` (`owner`, `active_key`),
+  KEY `idx_owner_state` (`owner`, `state`),
   KEY `idx_due` (`type`, `state`, `run_after`),
   KEY `idx_lease` (`type`, `state`, `lease_until`),
   KEY `idx_batch` (`batch`),
@@ -3445,6 +3451,28 @@ SELECT * FROM (
   UNION ALL SELECT 'gate.api'
 ) AS `seed`
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_task_slots`);
+
+-- The background work each owner declares, as core last read it: core's own rows from its handler classes, written
+-- by the installer and every update, and each alfa plugin's from its onAlfaDeclareWork answer, read when the plugin is
+-- installed, updated, saved or enabled. The runner's due read, its schedules and Tools > Tasks read this copy and never
+-- boot a plugin for it.
+CREATE TABLE IF NOT EXISTS `#__alfa_work_declarations` (
+  `owner` varchar(100) NOT NULL COMMENT 'com_alfa, or a plugin as group.element',
+  `name` varchar(64) NOT NULL COMMENT 'The work, unique within its owner',
+  `kind` varchar(8) NOT NULL COMMENT 'single or job',
+  `label` varchar(255) NOT NULL COMMENT 'A language key of the owner',
+  `covers` varchar(255) NOT NULL DEFAULT '' COMMENT 'job: a language key, %s the scope; empty: the scope as given',
+  `heavy` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: shares the one heavy slot',
+  `calls_out` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: steps outside the runner transaction, the long ladder',
+  `repeatable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'single: a second run duplicates nothing',
+  `urgent` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'a failure shows as danger',
+  `every_minutes` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'job: owed when none is active and none was created within; 0 none',
+  `tells_settled` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'the plugin has onAlfaWorkSettled',
+  `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0 while the owner is disabled: its work waits; corrected at a refused boot and hourly against the extensions',
+  `declared_at` datetime(6) NOT NULL COMMENT 'UTC, when core last read the declaration',
+  PRIMARY KEY (`owner`, `name`),
+  KEY `idx_every` (`enabled`, `every_minutes`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The work each owner declares, as core last read it';
 
 -- Outgoing notifications: who the shop tells of its changes (a webhook address, or an alfa plugin that delivers
 -- through its own client), and what it owes each of them. A delivery row is written in the transaction of the change

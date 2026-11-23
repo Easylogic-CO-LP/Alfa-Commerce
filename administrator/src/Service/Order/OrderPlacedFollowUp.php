@@ -11,9 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 
 /**
  * What a new order owes for the status it opens in: the download access of that status and its e-mail, to
@@ -40,12 +40,7 @@ final class OrderPlacedFollowUp
      */
     public static function owe(int $orderId, int $statusId, bool $customer = true): void
     {
-        Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $statusId]);
-        Tasks::single(
-            handler: OrderPlacementEmail::NAME,
-            subjectType: 'order',
-            subjectId: $orderId,
-            payload: $customer ? ['status' => $statusId] : ['status' => $statusId, 'customer' => false],
-        );
+        BackgroundWork::core()->task(OrderEntitlements::NAME)->about('order', $orderId)->with(['status' => $statusId])->enqueue();
+        BackgroundWork::core()->task(OrderPlacementEmail::NAME)->about('order', $orderId)->with($customer ? ['status' => $statusId] : ['status' => $statusId, 'customer' => false])->enqueue();
     }
 }

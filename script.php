@@ -277,7 +277,8 @@ class com_alfaInstallerScript extends InstallerScript
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
         '#__alfa_items' => [
-            'opening_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings; the listing reads its price index row by it'", 'projection_dirty_at'],
+            'opening_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings'", 'projection_dirty_at'],
+            'price_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination whose price the listing card shows: the opening combination when it has price rows of its own, else 0 (the product''s own price). Kept with opening_combination_id; the listing reads its price index row by it'", 'opening_combination_id'],
         ],
     ];
 
@@ -934,10 +935,13 @@ class com_alfaInstallerScript extends InstallerScript
                 }
 
                 $clauses = [];
+                // A column may follow one added by an earlier clause of the same statement.
+                $known = array_map('strval', $present);
 
                 foreach ($add as $column => [$definition, $after]) {
                     $clauses[] = 'ADD COLUMN ' . $db->quoteName($column) . ' ' . $definition
-                        . (\in_array($after, $present, true) ? ' AFTER ' . $db->quoteName($after) : '');
+                        . (\in_array($after, $known, true) ? ' AFTER ' . $db->quoteName($after) : '');
+                    $known[] = $column;
                 }
 
                 $db->setQuery('ALTER TABLE ' . $db->quoteName($table) . ' ' . implode(', ', $clauses))->execute();
@@ -1921,6 +1925,21 @@ class com_alfaInstallerScript extends InstallerScript
             Factory::getApplication()->enqueueMessage($this->installerText(
                 key:      'COM_ALFA_INSTALL_CRON_KEY_FAILED',
                 fallback: 'Alfa Commerce %1$s could not make the web cron\'s key: %2$s The cron command still runs the background work.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+        }
+
+        // Core's background work as its handler classes declare it, which the runner's schedules and Tools > Tasks read.
+        // A failure is said, never a failed install: core's own work still runs; its schedules wait for the rows.
+        try
+        {
+            \Alfa\Component\Alfa\Administrator\Service\Task\WorkDeclarations::writeCore();
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_WORK_DECLARATIONS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not write the background work it declares: %2$s Install the package again.',
                 values:   [$this->packageVersion, $e->getMessage()],
             ), 'warning');
         }

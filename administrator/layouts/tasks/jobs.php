@@ -1,14 +1,17 @@
 <?php
 
 /**
- * Tools > Tasks: the shop's background jobs, running and waiting first, then failed, then the finished ones: what each
- * covers, how far it is, and what staff may do. A waiting job opens its progress page (Process now); a failed one is
- * put back in the queue (Retry) or closed with a reason (Mark resolved). A job is never cancelled. Every action is a
- * plain form POST with the form token, answered by TasksController.
+ * Tools > Tasks: the shop's background jobs and its extensions', running and waiting first, then failed, then the
+ * finished ones: what each covers, how far it is, and what staff may do. A waiting job opens its progress page
+ * (Process now); a failed one is put back in the queue (Retry) or closed with a reason (Mark resolved). An extension's
+ * job shows its extension's name, its own Covers text, its result once done, and why it waits when its extension
+ * cannot run it; while it waits or runs it may be cancelled with a reason (Cancel). Core's jobs are never cancelled.
+ * Every action is a plain form POST with the form token, answered by TasksController.
  *
  * Available $displayData (TaskStaff::jobsCard(), the one source of the Tools page and of the card's refresh on a
  * progress page):
- *   - rows   (array)  TaskStaff::jobRows()
+ *   - rows   (array)  TaskStaff::jobRows(): an extension's rows carry extension (its name), extensionCovers, waits
+ *     (why it waits, '' when it does not), resultLines and cancellable
  *   - groups (array)  customer group id => title, for the price sets' jobs
  *   - engines (array) search engine key => its name, for the search rebuilds' jobs
  *   - failedJobs (int) how many of the rows failed (the attention card's)
@@ -30,6 +33,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailRecreation;
+use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\SearchRebuildJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\ThumbnailsRecreateJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskDocument;
@@ -56,6 +60,7 @@ $badge  = [
     Tasks::STATE_PENDING => 'bg-secondary',
     Tasks::STATE_FAILED  => 'bg-danger',
     Tasks::STATE_DONE    => 'bg-success',
+    Tasks::STATE_CANCELLED => 'bg-secondary',
 ];
 $form   = static function (string $task, int $id, string $inner): string {
     return '<form method="post" class="mb-2" action="' . Route::_('index.php?option=com_alfa&task=tasks.' . $task) . '">'
@@ -98,7 +103,10 @@ $search   = SearchRebuildJob::NAME . ':';
                     $shownState = $row['driven'] ? Tasks::STATE_RUNNING : (string) $row['state'];
                     $percent = TaskDocument::percent(row: $row);
 
-                    if (str_starts_with($scope, $priceSet)) {
+                    if ((string) $row['owner'] !== DueRead::CORE_OWNER) {
+                        // An extension's job: its own Covers text, worked out by TaskStaff.
+                        $covers = $e($row['extensionCovers']);
+                    } elseif (str_starts_with($scope, $priceSet)) {
                         $covers = $row['groups'] === []
                             ? Text::_('COM_ALFA_TASKS_COVERS_NO_GROUP')
                             : Text::sprintf('COM_ALFA_TASKS_COVERS_GROUPS', $e(implode(' + ', array_map(static fn (int $group): string => (string) ($groups[$group] ?? '#' . $group), $row['groups']))));
@@ -142,6 +150,22 @@ $search   = SearchRebuildJob::NAME . ':';
                             <?php echo $row['label'] !== ''
                                 ? Text::_($row['label'])
                                 : Text::sprintf('COM_ALFA_TASKS_HANDLER_UNKNOWN', $e($row['handler'])); ?>
+                            <?php if ((string) $row['extension'] !== '') : ?>
+                                <div class="small text-muted" data-alfa-job-extension><?php echo $e($row['extension']); ?></div>
+                            <?php endif; ?>
+                            <?php if ((string) $row['waits'] !== '') : ?>
+                                <div class="small text-warning-emphasis mt-1" data-alfa-job-waits><?php echo $e($row['waits']); ?></div>
+                            <?php endif; ?>
+                            <?php if ((int) $row['cancel_requested'] === 1 && $row['state'] === Tasks::STATE_RUNNING) : ?>
+                                <div class="small text-muted mt-1"><?php echo Text::_('COM_ALFA_TASKS_CANCEL_ASKED'); ?></div>
+                            <?php endif; ?>
+                            <?php if ($row['resultLines'] !== []) : ?>
+                                <ul class="small list-unstyled mt-1 mb-0" data-alfa-job-result>
+                                    <?php foreach ($row['resultLines'] as $line) : ?>
+                                        <li><?php echo $e($line); ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                             <?php if ((string) $row['last_error'] !== '') : ?>
                                 <div class="small text-danger mt-1 d-md-none" data-alfa-job-reason><?php echo $e(Tasks::errorText((string) $row['last_error'])); ?></div>
                             <?php endif; ?>
@@ -198,6 +222,13 @@ $search   = SearchRebuildJob::NAME . ':';
                                     . Text::_('COM_ALFA_TASKS_REASON_LABEL') . '</label><input type="text" class="form-control form-control-sm mb-1"'
                                     . ' id="alfa-job-reason-' . $id . '" name="reason" required size="8" maxlength="' . TaskStaff::REASON_MAX . '">'
                                     . '<button type="submit" class="btn btn-sm btn-secondary">' . Text::_('COM_ALFA_TASKS_RESOLVE') . '</button>'); ?>
+                            <?php endif; ?>
+                            <?php if ($row['cancellable']) : ?>
+                                <?php echo $form('cancel', $id, '<label class="form-label small" for="alfa-job-cancel-' . $id . '">'
+                                    . Text::_('COM_ALFA_TASKS_REASON_LABEL') . '</label><input type="text" class="form-control form-control-sm mb-1"'
+                                    . ' id="alfa-job-cancel-' . $id . '" name="reason" required size="8" maxlength="' . TaskStaff::REASON_MAX . '">'
+                                    . '<button type="submit" class="btn btn-sm btn-outline-danger" title="' . $e(Text::_('COM_ALFA_TASKS_CANCEL_DESC')) . '">'
+                                    . Text::_('COM_ALFA_TASKS_CANCEL') . '</button>'); ?>
                             <?php endif; ?>
                         </td>
                     </tr>

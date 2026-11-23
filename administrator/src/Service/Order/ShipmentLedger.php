@@ -54,14 +54,15 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\ShipmentAutomation;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedTax;
@@ -1916,13 +1917,13 @@ class ShipmentLedger
         $methodId = (int) ($oldSnapshot->id_shipment_method ?? 0);
 
         if (\array_key_exists('status', $data) && $to !== $from && self::automationMethod(methodId: $methodId, status: $to) !== null) {
-            Tasks::single(handler: ShipmentAutomation::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+            BackgroundWork::core()->task(ShipmentAutomation::NAME)->about('order', $orderId)->with([
                 'shipment' => $id,
                 'method' => $methodId,
                 'from' => $from,
                 'to' => $to,
                 'order_status' => self::orderStatus(orderId: $orderId),
-            ]);
+            ])->enqueue();
         }
 
         // The order's shipping method follows its latest live parcel (OrderMethods): a parcel cancelled, returned
@@ -1996,7 +1997,7 @@ class ShipmentLedger
             // Throwable, not Exception: the shipment row is committed by the time this runs. The failure is logged here,
             // as before, and reaches the task, which retries it.
             Log::add(
-                entry:    'Shipment status automation failed for order ' . $orderId . ': ' . $e->getMessage(),
+                entry:    'Shipment status automation failed for order ' . $orderId . ': ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.orders',
             );
@@ -2367,7 +2368,7 @@ class ShipmentLedger
                 $shipment->params = \is_object($method) && (int) ($method->id ?? 0) === $methodId ? $method : null;
             } catch (Throwable $e) {
                 Log::add(
-                    entry:    'Shipment #' . $id . ': its shipment method #' . $methodId . ' could not be read: ' . $e->getMessage(),
+                    entry:    'Shipment #' . $id . ': its shipment method #' . $methodId . ' could not be read: ' . ErrorText::of($e),
                     priority: Log::WARNING,
                     category: 'com_alfa.orders',
                 );

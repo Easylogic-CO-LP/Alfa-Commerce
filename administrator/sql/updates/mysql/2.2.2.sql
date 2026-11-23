@@ -230,3 +230,43 @@ CREATE TABLE IF NOT EXISTS `#__alfa_outbound_deliveries` (
   KEY `idx_state_due` (`state`, `next_attempt_at`),
   KEY `idx_subject` (`consumer_id`, `subject_id`, `state`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='What the shop owes each consumer, written in the transaction of the change';
+
+-- Background work of extensions: every task and job names its owner (com_alfa, or the alfa plugin that declared it as
+-- group.element), and one waiting or running job per owner and scope; an extension's task or job keeps its result,
+-- written with its done settle; a job cancelled while it runs is marked and settled cancelled once its step has
+-- ended. The rows written before this update are core's: only core's handlers could write them. The new unique key is
+-- added before the old one is dropped, so the table always has one. Each statement carries the CAN FAIL marker or is
+-- harmless when run again. The install SQL creates the same columns and keys.
+ALTER TABLE `#__alfa_tasks` ADD COLUMN `owner` varchar(100) NOT NULL DEFAULT '' COMMENT 'Whose work it is: com_alfa, or the plugin that declared it as group.element; never empty once written' /** CAN FAIL **/;
+UPDATE `#__alfa_tasks` SET `owner` = 'com_alfa' WHERE `owner` = '';
+ALTER TABLE `#__alfa_tasks` ADD COLUMN `result` mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise' /** CAN FAIL **/;
+ALTER TABLE `#__alfa_tasks` ADD COLUMN `cancel_requested` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: cancelled while running; the row stays running until its step has ended, then cancelled' /** CAN FAIL **/;
+ALTER TABLE `#__alfa_tasks` ADD UNIQUE KEY `idx_owner_active_key` (`owner`, `active_key`) /** CAN FAIL **/;
+ALTER TABLE `#__alfa_tasks` DROP INDEX `idx_active_key` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_tasks` ADD KEY `idx_owner_state` (`owner`, `state`) /** CAN FAIL **/;
+
+-- The background work each owner declares, as core last read it: core's own rows from its handler classes, written
+-- by the installer and every update, and each alfa plugin's from its onAlfaDeclareWork answer, read when the plugin is
+-- installed, updated, saved or enabled. The runner's due read, its schedules and Tools > Tasks read this copy and never
+-- boot a plugin for it.
+CREATE TABLE IF NOT EXISTS `#__alfa_work_declarations` (
+  `owner` varchar(100) NOT NULL COMMENT 'com_alfa, or a plugin as group.element',
+  `name` varchar(64) NOT NULL COMMENT 'The work, unique within its owner',
+  `kind` varchar(8) NOT NULL COMMENT 'single or job',
+  `label` varchar(255) NOT NULL COMMENT 'A language key of the owner',
+  `covers` varchar(255) NOT NULL DEFAULT '' COMMENT 'job: a language key, %s the scope; empty: the scope as given',
+  `heavy` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: shares the one heavy slot',
+  `calls_out` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: steps outside the runner transaction, the long ladder',
+  `repeatable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'single: a second run duplicates nothing',
+  `urgent` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'a failure shows as danger',
+  `every_minutes` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'job: owed when none is active and none was created within; 0 none',
+  `tells_settled` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'the plugin has onAlfaWorkSettled',
+  `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0 while the owner is disabled: its work waits; corrected at a refused boot and hourly against the extensions',
+  `declared_at` datetime(6) NOT NULL COMMENT 'UTC, when core last read the declaration',
+  PRIMARY KEY (`owner`, `name`),
+  KEY `idx_every` (`enabled`, `every_minutes`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The work each owner declares, as core last read it';
+
+-- The extension job is gone: a plugin declares its own tasks and jobs. Its rows, which no handler runs any more, are
+-- deleted; a second run deletes nothing.
+DELETE FROM `#__alfa_tasks` WHERE `handler` = 'extension.job';

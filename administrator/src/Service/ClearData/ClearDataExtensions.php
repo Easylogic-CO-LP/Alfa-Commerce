@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\ClearData;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Tools\ClearDataEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
@@ -22,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\SchemaRecreator;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
+use Alfa\Component\Alfa\Administrator\Service\Task\WorkDeclarations;
 use Joomla\CMS\Extension\ExtensionHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -910,7 +912,7 @@ final class ClearDataExtensions
                 line: sprintf('Clear Data of %s (%s) started: %s.', $name, $row['key'], $source),
             );
         } catch (Throwable $e) {
-            return $result + ['status' => 'refused', 'message' => Text::sprintf('COM_ALFA_EXTENSIONS_AUDIT_FAILED', $name, ClearDataStatus::clean(text: $e->getMessage()))];
+            return $result + ['status' => 'refused', 'message' => Text::sprintf('COM_ALFA_EXTENSIONS_AUDIT_FAILED', $name, ClearDataStatus::clean(text: ErrorText::of($e)))];
         }
 
         $plugins = $row['type'] === 'package'
@@ -952,6 +954,13 @@ final class ClearDataExtensions
 
         if (!$remove) {
             return $result + ['status' => 'cleared', 'message' => trim(Text::sprintf('COM_ALFA_EXTENSIONS_CLEARED', $name, implode(' ', $said)))];
+        }
+
+        // Its background work is its data: every task and job of its plugins goes, with their declarations.
+        foreach ($plugins as $plugin) {
+            if (str_starts_with((string) $plugin['folder'], 'alfa')) {
+                WorkDeclarations::removeWithData(plugin: PluginId::from(group: (string) $plugin['folder'], element: (string) $plugin['element']));
+            }
         }
 
         // Its data is gone: its uninstall is not warned that data stays.
@@ -1328,7 +1337,7 @@ final class ClearDataExtensions
         try {
             ClearDataStatus::mark(key: $key, status: $status, message: $message, source: $source);
         } catch (Throwable $e) {
-            MaintenanceAudit::detail(run: 'clear-data', line: sprintf('%s: its outcome (%s) could not be recorded: %s', $key, $status, $e->getMessage()));
+            MaintenanceAudit::detail(run: 'clear-data', line: sprintf('%s: its outcome (%s) could not be recorded: %s', $key, $status, ErrorText::of($e)));
         }
 
         return ['status' => $status, 'message' => $message];
@@ -1351,7 +1360,7 @@ final class ClearDataExtensions
             $this->displayName(entry: $entry),
             (string) ($entry['key'] ?? ''),
             $error::class,
-            ClearDataStatus::clean(text: $error->getMessage()),
+            ClearDataStatus::clean(text: ErrorText::of($error)),
             $error->getFile(),
             $error->getLine(),
         ));

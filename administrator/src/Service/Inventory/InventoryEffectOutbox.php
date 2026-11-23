@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -428,11 +430,11 @@ final class InventoryEffectOutbox
                     id:      (int) $row->id,
                     token:   $token,
                     status:  $status,
-                    error:   $e->getMessage(),
+                    error:   ErrorText::of($e),
                     payload: (string) $row->payload,
                 );
                 $summary['failed']++;
-                $summary['errors'][(int) $row->source_id] = $e->getMessage();
+                $summary['errors'][(int) $row->source_id] = ErrorText::of($e);
 
                 if ($status === self::STATUS_REFUSED) {
                     $reason = self::refusalReason(failure: $e);
@@ -440,7 +442,7 @@ final class InventoryEffectOutbox
                     $byListener = InventoryRefusedException::in($e) !== null;
 
                     $summary['refused']++;
-                    $summary['refusals'][(int) $row->source_id] = $e->getMessage();
+                    $summary['refusals'][(int) $row->source_id] = ErrorText::of($e);
                     $summary['refusalReasons'][(int) $row->source_id] = $reason;
                     $summary['refusalNotices'][(int) $row->source_id] = $notice;
 
@@ -491,7 +493,7 @@ final class InventoryEffectOutbox
 
                     self::announceRefusal(
                         row:             $row,
-                        reason:          $summary['reservedFloorNotices'][(int) $row->source_id] ?? $summary['failureNotices'][(int) $row->source_id] ?? $e->getMessage(),
+                        reason:          $summary['reservedFloorNotices'][(int) $row->source_id] ?? $summary['failureNotices'][(int) $row->source_id] ?? ErrorText::of($e),
                         orderMessage:    'COM_ALFA_NOTIFY_STOCK_ORDER_EXHAUSTED_MSG',
                         documentMessage: 'COM_ALFA_NOTIFY_STOCK_DOCUMENT_EXHAUSTED_MSG',
                         terminal:        false,
@@ -505,7 +507,7 @@ final class InventoryEffectOutbox
                 };
 
                 Log::add(
-                    entry:    'Inventory effect for ' . $row->source_type . ' #' . $row->source_id . $verdict . $e->getMessage(),
+                    entry:    'Inventory effect for ' . $row->source_type . ' #' . $row->source_id . $verdict . ErrorText::of($e),
                     priority: Log::ERROR,
                     category: 'com_alfa.inventory',
                 );
@@ -763,14 +765,14 @@ final class InventoryEffectOutbox
         }
 
         if (!$failure instanceof InventoryLineUnresolvedException || $failure->lines === []) {
-            return $failure->getMessage();
+            return ErrorText::of($failure);
         }
 
         try {
             Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
         } catch (Throwable $e) {
             Log::add(
-                entry:    'Stock-effect refusal: the administrator strings could not be loaded: ' . $e->getMessage(),
+                entry:    'Stock-effect refusal: the administrator strings could not be loaded: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );
@@ -822,7 +824,7 @@ final class InventoryEffectOutbox
         }
 
         if (!$failure instanceof InventoryLineUnresolvedException || $failure->lines === []) {
-            return $failure->getMessage();
+            return ErrorText::of($failure);
         }
 
         $sentences = [];
@@ -899,7 +901,7 @@ final class InventoryEffectOutbox
             $rerunInFlight = $standing !== null && (string) $standing->state === Tasks::STATE_RUNNING && isset($standingPayload['rerun_of']);
 
             if ($standing === null || $rerunInFlight) {
-                Tasks::single(handler: $handler, subjectType: $subjectType, subjectId: $orderId, payload: ['document' => $documentId]);
+                BackgroundWork::core()->task($handler)->about($subjectType, $orderId)->with(['document' => $documentId])->enqueue();
             } elseif (\in_array((string) $standing->state, [Tasks::STATE_FAILED, Tasks::STATE_HELD], true)) {
                 Tasks::failedAgain(id: (int) $standing->id, error: OrderDocumentStock::refusalError(documentId: $documentId, refusal: $reason), trigger: 'request');
             }
@@ -910,7 +912,7 @@ final class InventoryEffectOutbox
 
             Log::add(
                 entry:    'The task for document #' . $documentId . "'s refused stock movement could not be written: "
-                          . $e->getMessage(),
+                          . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );
@@ -1025,7 +1027,7 @@ final class InventoryEffectOutbox
 
             Log::add(
                 entry:    'Stock-effect refusal notice for ' . $row->source_type . ' #' . $row->source_id
-                          . ' could not be raised: ' . $e->getMessage(),
+                          . ' could not be raised: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );
@@ -1489,7 +1491,7 @@ final class InventoryEffectOutbox
                     + self::noticeOptions(NotificationText::of('COM_ALFA_NOTIFY_STOCK_STRANDED_MSG', $unannounced)),
             );
         } catch (Throwable $e) {
-            Log::add('Stock-effect notice check failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');
+            Log::add('Stock-effect notice check failed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.inventory');
         }
 
         return true;

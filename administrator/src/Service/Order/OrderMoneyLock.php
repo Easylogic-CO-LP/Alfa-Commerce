@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -100,7 +101,7 @@ final class OrderMoneyLock
                 $released = $db->setQuery('SELECT RELEASE_LOCK(' . $name . ')')->loadResult();
             } catch (Throwable $e) {
                 // The lock still ends with the connection, at the end of the request.
-                Log::add('The money lock of order #' . $orderId . ' could not be released: ' . $e->getMessage(), Log::WARNING, 'com_alfa.payments');
+                Log::add('The money lock of order #' . $orderId . ' could not be released: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.payments');
             }
 
             if (!PostCommit::leaveLock($db, name: $name, stillHeld: self::stillHeld($db, $name))) {

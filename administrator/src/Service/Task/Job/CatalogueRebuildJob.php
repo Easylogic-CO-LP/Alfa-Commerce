@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
@@ -18,7 +19,6 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
-use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 use Joomla\CMS\Log\Log;
 use Throwable;
@@ -61,7 +61,7 @@ final class CatalogueRebuildJob implements JobHandler
      */
     public static function enqueue(): int
     {
-        return Runner::enqueue(handler: self::NAME, scopeKey: self::NAME, payload: [])->id;
+        return BackgroundWork::core()->job(self::NAME)->enqueue()->id;
     }
 
     public function policy(): JobPolicy
@@ -80,8 +80,9 @@ final class CatalogueRebuildJob implements JobHandler
 
         if ($marked === []) {
             // The pass is over: while the storefront still reads the previous price index, the switch is asked
-            // here, so the new index is read from the moment it is complete.
+            // here, so the new index is read from the moment it is complete; the index's statistics follow its rows.
             self::finishPriceIndexBuild();
+            PriceIndexSyncService::analyze();
 
             return new JobChunk(units: 0, checkpoint: null, finished: true);
         }
@@ -110,6 +111,7 @@ final class CatalogueRebuildJob implements JobHandler
 
         if ($finished) {
             self::finishPriceIndexBuild();
+            PriceIndexSyncService::analyze();
         }
 
         if ($failed !== [] && $rebuilt === 0 && $busy === []) {

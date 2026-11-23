@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PriceChange;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -53,12 +54,14 @@ use Throwable;
  *
  * The index (#__alfa_items_price_index) holds one row per pricing context, product, combination and period: what the
  * engine charges an anonymous customer of that context for one piece of the unit at the product's opening quantity
- * (its minimum, PricingIntent::catalog). A unit is each published combination of a product, or the product itself when
- * it has none (combination_id 0). Every unit has a row in every prepared context for every period; a unit with no
- * valid price there has a row whose figures are NULL, never 0, so a sort places it last in either
- * direction and every price filter leaves it out by its own comparison. The listing reads the row of the combination
- * the product's card opens on, kept on the product as #__alfa_items.opening_combination_id
- * ({@see OpeningCombination}); a stock change that moves it moves no price row.
+ * (its minimum, PricingIntent::catalog). The units of a product are the product itself (combination_id 0), always, and
+ * each published combination that has price rows of its own; a combination without them is priced from the product's
+ * rows, so the product's row is its price as well. Every unit has a row in every prepared context for every period; a
+ * unit with no valid price there (no price row applies) has a row whose figures are NULL, so a sort places it last in
+ * either direction and every price filter leaves it out by its own comparison. An explicit price of 0 is a price: the
+ * product is free and its row holds 0. The listing reads the row whose price the product's card shows, kept on the
+ * product as #__alfa_items.price_combination_id: the combination the card opens on when it has price rows of its own,
+ * else 0 ({@see OpeningCombination}); a stock change that moves it moves no price row.
  *
  * Column naming. The figure columns use the names of the com_alfa price settings:
  *
@@ -137,6 +140,8 @@ use Throwable;
  *   readContext($context)          - the prepared context (and customer context) one visitor reads (the read side)
  *   isBuilding()                   - whether the storefront still reads the previous index (the read side)
  *   completeness()                 - the completeness count, the tiling and the pointers (Tools, the switch)
+ *   analyze()                      - the index's statistics refreshed after a full rebuild
+ *   size()                         - the index's rows and bytes (Tools)
  *   finishBuild()                  - the switch from the previous index, when the new one is complete
  *   pricingGroups(), slotKey()     - the groups that change a price; the set of one visitor
  *   readableSetKey(), slotSetJoin(), slotPlaces(), slotRanking() - the previous index's reader, kept for the build
@@ -385,7 +390,7 @@ class PriceIndexSyncService
             try {
                 $this->writeIndexRows(itemIds: [$itemId], contexts: $this->alignContexts());
             } catch (Throwable $e) {
-                $this->logWarning("syncItem({$itemId}) failed: " . $e->getMessage());
+                $this->logWarning("syncItem({$itemId}) failed: " . ErrorText::of($e));
                 ProjectionManager::owe(itemIds: [$itemId]);
             }
         });
@@ -420,7 +425,7 @@ class PriceIndexSyncService
 
                 return $this->rebuildItems(itemIds: $itemIds, strict: false);
             } catch (Throwable $e) {
-                $this->logWarning('syncItems() failed: ' . $e->getMessage());
+                $this->logWarning('syncItems() failed: ' . ErrorText::of($e));
                 ProjectionManager::owe(itemIds: $itemIds);
 
                 return 0;
@@ -554,7 +559,7 @@ class PriceIndexSyncService
 
             return $this->lastRequested;
         } catch (Throwable $e) {
-            $this->logWarning(message: 'syncGroupSets() failed: ' . $e->getMessage());
+            $this->logWarning(message: 'syncGroupSets() failed: ' . ErrorText::of($e));
 
             return 0;
         }
@@ -576,10 +581,12 @@ class PriceIndexSyncService
         return self::announcing(cause: $cause, causeId: $causeId, work: function (): int {
             try {
                 $contexts = $this->alignContexts();
+                $written = $this->writeIndexRows(itemIds: $this->getAllPublishedItemIds(), contexts: $contexts);
+                self::analyze();
 
-                return $this->writeIndexRows(itemIds: $this->getAllPublishedItemIds(), contexts: $contexts);
+                return $written;
             } catch (Throwable $e) {
-                $this->logWarning('syncAll() failed: ' . $e->getMessage());
+                $this->logWarning('syncAll() failed: ' . ErrorText::of($e));
 
                 return 0;
             }
@@ -644,7 +651,7 @@ class PriceIndexSyncService
                         throw $e;
                     }
 
-                    $this->logWarning('deleteForItems() failed for a chunk of ' . \count($chunk) . ' item(s): ' . $e->getMessage());
+                    $this->logWarning('deleteForItems() failed for a chunk of ' . \count($chunk) . ' item(s): ' . ErrorText::of($e));
                 }
             }
         });
@@ -1121,10 +1128,9 @@ class PriceIndexSyncService
 
         foreach (array_chunk($itemIds, 1000) as $chunk) {
             $out = array_merge($out, array_map('intval', $db->setQuery(
-                'SELECT DISTINCT a.id FROM ' . $db->quoteName('#__alfa_items') . ' AS a'
-                . ' LEFT JOIN ' . $db->quoteName('#__alfa_item_combinations') . ' AS oc ON oc.item_id = a.id AND oc.state = 1'
-                . ' WHERE a.state = 1 AND a.id IN (' . implode(',', $chunk) . ') AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::INDEX_TABLE) . ' AS i'
-                . ' WHERE i.context_id = ' . $contextId . ' AND i.item_id = a.id AND i.combination_id = COALESCE(oc.id, 0)'
+                'SELECT DISTINCT u.item_id FROM ' . $this->unitsSql(itemIds: $chunk) . ' AS u'
+                . ' WHERE NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::INDEX_TABLE) . ' AS i'
+                . ' WHERE i.context_id = ' . $contextId . ' AND i.item_id = u.item_id AND i.combination_id = u.combination_id'
                 . ' AND i.valid_from <= ' . $now . ' AND (i.valid_until IS NULL OR i.valid_until > ' . $now . '))',
             )->loadColumn() ?: []));
         }
@@ -1229,7 +1235,7 @@ class PriceIndexSyncService
      * written for (a set's context: every published unit; a customer's context: the units of the products their rules
      * touch), no row of a unit that is not published, the rows of each unit tiling time from the epoch to an open end,
      * and every product's stored opening combination equal to the choice in SQL. rows says whether the rows pass, which
-     * the switch asks; complete adds the pointers, which Tools reports.
+     * the switch asks; complete adds the pointers (the opening combination and the price combination), which Tools reports.
      *
      * @return array{complete: bool, rows: bool, units: int, contexts: list<array{id: int, user: int, expected: int, covering: int, stale: int}>, gaps: int, pointers: array{count: int, items: int[]}, leftOut: int[]}
      *
@@ -1244,19 +1250,18 @@ class PriceIndexSyncService
         $combinations = $db->quoteName('#__alfa_item_combinations');
         $items = $db->quoteName('#__alfa_items');
         $units = (int) $db->setQuery(
-            'SELECT COUNT(*) FROM ' . $items . ' AS a LEFT JOIN ' . $combinations . ' AS oc ON oc.item_id = a.id AND oc.state = 1 WHERE a.state = 1',
+            'SELECT COUNT(*) FROM ' . $this->unitsSql() . ' AS u',
         )->loadResult();
         $rows = $db->setQuery(
             'SELECT i.context_id, COUNT(*) AS n FROM ' . $index . ' AS i WHERE ' . $covering . ' GROUP BY i.context_id',
         )->loadAssocList('context_id', 'n') ?: [];
-        // A row covering now of a unit that is not published: a product unpublished or gone, a combination unpublished
-        // or gone, or the product's own row while it has published combinations.
+        // A row covering now of a unit that is not one: a product unpublished or gone, a combination unpublished or gone,
+        // or a combination with no price rows of its own (the product's row is its price).
         $stale = $db->setQuery(
             'SELECT i.context_id, COUNT(*) AS n FROM ' . $index . ' AS i'
             . ' LEFT JOIN ' . $items . ' AS a ON a.id = i.item_id AND a.state = 1'
-            . ' LEFT JOIN ' . $combinations . ' AS oc ON oc.id = i.combination_id AND oc.item_id = i.item_id AND oc.state = 1'
-            . ' WHERE ' . $covering . ' AND (a.id IS NULL OR (i.combination_id > 0 AND oc.id IS NULL)'
-            . ' OR (i.combination_id = 0 AND EXISTS (SELECT 1 FROM ' . $combinations . ' AS x WHERE x.item_id = i.item_id AND x.state = 1)))'
+            . ' LEFT JOIN ' . $combinations . ' AS oc ON oc.id = i.combination_id AND oc.item_id = i.item_id AND oc.state = 1 AND ' . self::ownPriceSql(combinationAlias: 'oc')
+            . ' WHERE ' . $covering . ' AND (a.id IS NULL OR (i.combination_id > 0 AND oc.id IS NULL))'
             . ' GROUP BY i.context_id',
         )->loadAssocList('context_id', 'n') ?: [];
         // The periods of the live generations: no future start without the period before it (an ended period may have
@@ -1303,7 +1308,7 @@ class PriceIndexSyncService
     /**
      * Owe the catalogue job the products a failed completeness check names: those some context of a set lacks a row
      * covering now for, every product a customer's incomplete context is written for, and the products with a row of a
-     * unit no longer published or with a gap in their periods.
+     * combination no longer published or no longer with its own price rows, or with a gap in their periods.
      *
      * @param array $check What completeness() answered.
      *
@@ -1326,9 +1331,9 @@ class PriceIndexSyncService
         $owed = array_merge($owed, array_map('intval', $db->setQuery(
             'SELECT DISTINCT i.item_id FROM ' . $index . ' AS i' . $live
             . ' LEFT JOIN ' . $db->quoteName('#__alfa_item_combinations') . ' AS oc ON oc.id = i.combination_id AND oc.item_id = i.item_id AND oc.state = 1'
+            . ' AND ' . self::ownPriceSql(combinationAlias: 'oc')
             . ' WHERE i.valid_from <= ' . $now . ' AND (i.valid_until IS NULL OR i.valid_until > ' . $now . ')'
-            . ' AND ((i.combination_id > 0 AND oc.id IS NULL) OR (i.combination_id = 0 AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_item_combinations')
-            . ' AS x WHERE x.item_id = i.item_id AND x.state = 1)))',
+            . ' AND i.combination_id > 0 AND oc.id IS NULL',
             0,
             1000,
         )->loadColumn() ?: []), array_map('intval', $db->setQuery(
@@ -1362,8 +1367,7 @@ class PriceIndexSyncService
 
         foreach (array_chunk($itemIds, 1000) as $chunk) {
             $count += (int) $this->db->setQuery(
-                'SELECT COUNT(*) FROM ' . $this->db->quoteName('#__alfa_items') . ' AS a LEFT JOIN ' . $this->db->quoteName('#__alfa_item_combinations')
-                . ' AS oc ON oc.item_id = a.id AND oc.state = 1 WHERE a.state = 1 AND a.id IN (' . implode(',', $chunk) . ')',
+                'SELECT COUNT(*) FROM ' . $this->unitsSql(itemIds: $chunk) . ' AS u',
             )->loadResult();
         }
 
@@ -1386,13 +1390,12 @@ class PriceIndexSyncService
         $now = $db->quote(gmdate('Y-m-d H:i:s'));
 
         return array_map('intval', $db->setQuery(
-            'SELECT DISTINCT a.id FROM ' . $db->quoteName('#__alfa_items') . ' AS a'
-            . ' LEFT JOIN ' . $db->quoteName('#__alfa_item_combinations') . ' AS oc ON oc.item_id = a.id AND oc.state = 1'
+            'SELECT DISTINCT u.item_id FROM ' . $this->unitsSql() . ' AS u'
             . ' CROSS JOIN ' . $db->quoteName(self::CONTEXTS_TABLE) . ' AS c'
-            . ' WHERE a.state = 1 AND c.is_live = 1 AND c.user_id = 0 AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::INDEX_TABLE) . ' AS i'
-            . ' WHERE i.context_id = c.id AND i.item_id = a.id AND i.combination_id = COALESCE(oc.id, 0)'
+            . ' WHERE c.is_live = 1 AND c.user_id = 0 AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::INDEX_TABLE) . ' AS i'
+            . ' WHERE i.context_id = c.id AND i.item_id = u.item_id AND i.combination_id = u.combination_id'
             . ' AND i.valid_from <= ' . $now . ' AND (i.valid_until IS NULL OR i.valid_until > ' . $now . '))'
-            . ' ORDER BY a.id',
+            . ' ORDER BY u.item_id',
             0,
             max(1, $limit),
         )->loadColumn() ?: []);
@@ -1930,7 +1933,7 @@ class PriceIndexSyncService
                     throw $e;
                 }
 
-                $this->logWarning('A chunk of the price index failed and is left to the catalogue rebuild: ' . $e->getMessage());
+                $this->logWarning('A chunk of the price index failed and is left to the catalogue rebuild: ' . ErrorText::of($e));
                 $chunkWritten = null;
             } finally {
                 $lock->release(itemIds: $granted);
@@ -2274,8 +2277,9 @@ class PriceIndexSyncService
 
     /**
      * The seven figures of one unit as the columns hold them: the engine's exact decimals at the eighth place (the
-     * percentage at the second), or every one NULL when the unit has no valid price (no price applies at the opening
-     * quantity, or its base is zero: NULL, never 0, so it is no price and sorts last).
+     * percentage at the second), or every one NULL when the unit has no valid price (no price row applies at the opening
+     * quantity), so it sorts last and no price filter matches it. An explicit price of 0 is a price: the product is
+     * free and its figures are 0.
      *
      * @param PriceResult|null $result The engine's result.
      *
@@ -2294,15 +2298,9 @@ class PriceIndexSyncService
 
         // Each figure is the price of ONE piece at the opening quantity, as the card prints it: the one unit rule.
         $figure = static fn (string $name): string => ExactAmount::of(PriceUnits::exact(price: $result, figure: $name))->roundedAt(8)->text();
-        $base = $figure('base');
-
-        // Read exact, so half a cent a piece is a base, not a zero.
-        if (!ExactAmount::of($base)->isPositive()) {
-            return $none;
-        }
 
         return [
-            'base_price' => $base,
+            'base_price' => $figure('base'),
             // The saving beside the price paid: the tax-included saving, on the basis final_price is on.
             'discount_amount' => $figure('discount_with_tax'),
             'base_price_with_discounts' => $figure('subtotal'),
@@ -2619,7 +2617,7 @@ class PriceIndexSyncService
 
             return $plugins->hasListeners(PricesChangedEvent::NAME);
         } catch (Throwable $e) {
-            Log::add('[PriceIndexSyncService] Whether anything listens to ' . PricesChangedEvent::NAME . ' could not be asked; nothing is announced: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            Log::add('[PriceIndexSyncService] Whether anything listens to ' . PricesChangedEvent::NAME . ' could not be asked; nothing is announced: ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
 
             return false;
         }
@@ -2753,7 +2751,7 @@ class PriceIndexSyncService
                 'changes' => $announcement->changes,
             ]));
         } catch (Throwable $e) {
-            Log::add('[PriceIndexSyncService] ' . PricesChangedEvent::NAME . ' was not delivered: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            Log::add('[PriceIndexSyncService] ' . PricesChangedEvent::NAME . ' was not delivered: ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
         }
     }
 
@@ -4122,8 +4120,9 @@ class PriceIndexSyncService
     }
 
     /**
-     * The units of each product: its published combinations in the order the storefront lists them, or none
-     * for a product priced at the item level (combination_id 0).
+     * The units of each product: 0, the product itself, first; then its published combinations that have price rows of
+     * their own, in the order the storefront lists them. A combination without its own price rows has no unit: the
+     * product's row is its price.
      *
      * @param int[] $itemIds The products.
      *
@@ -4133,24 +4132,103 @@ class PriceIndexSyncService
      */
     private function unitsOf(array $itemIds): array
     {
-        $units = array_fill_keys(array_map('intval', $itemIds), []);
-
         if ($itemIds === []) {
             return [];
         }
 
+        $units = array_fill_keys(array_map('intval', $itemIds), [0]);
+
         foreach ($this->db->setQuery(
-            $this->db->getQuery(true)
-                ->select($this->db->quoteName(['id', 'item_id']))
-                ->from($this->db->quoteName('#__alfa_item_combinations'))
-                ->whereIn($this->db->quoteName('item_id'), array_map('intval', $itemIds))
-                ->where($this->db->quoteName('state') . ' = 1')
-                ->order($this->db->quoteName('item_id') . ' ASC, ' . $this->db->quoteName('ordering') . ' ASC, ' . $this->db->quoteName('id') . ' ASC'),
+            'SELECT oc.id, oc.item_id FROM ' . $this->db->quoteName('#__alfa_item_combinations') . ' AS oc'
+            . ' WHERE oc.item_id IN (' . implode(',', array_map('intval', $itemIds)) . ') AND oc.state = 1 AND ' . self::ownPriceSql(combinationAlias: 'oc')
+            . ' ORDER BY oc.item_id ASC, oc.ordering ASC, oc.id ASC',
         )->loadObjectList() ?: [] as $row) {
             $units[(int) $row->item_id][] = (int) $row->id;
         }
 
         return $units;
+    }
+
+    /**
+     * Whether a combination has price rows of its own (a published price or adjust row): the condition of its own row in
+     * the index and of its being the product's price combination.
+     *
+     * @param string $combinationAlias The alias of #__alfa_item_combinations in the caller's statement.
+     *
+     * @return string An SQL condition.
+     *
+     * @since  2.2.2
+     */
+    public static function ownPriceSql(string $combinationAlias): string
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        return 'EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices') . ' AS own WHERE own.combination_id = ' . $combinationAlias . '.id'
+            . ' AND own.item_id = ' . $combinationAlias . '.item_id AND own.state = 1)';
+    }
+
+    /**
+     * The published units as a derived table (item_id, combination_id): every published product with 0, and each
+     * published combination of one that has price rows of its own.
+     *
+     * @param int[]|null $itemIds Only these products; null for every one.
+     *
+     * @return string A parenthesised SELECT.
+     *
+     * @since  2.2.2
+     */
+    private function unitsSql(?array $itemIds = null): string
+    {
+        $in = $itemIds === null ? '' : ' AND a.id IN (' . implode(',', array_map('intval', $itemIds)) . ')';
+        $items = $this->db->quoteName('#__alfa_items');
+
+        return '(SELECT a.id AS item_id, 0 AS combination_id FROM ' . $items . ' AS a WHERE a.state = 1' . $in
+            . ' UNION ALL SELECT oc.item_id, oc.id FROM ' . $this->db->quoteName('#__alfa_item_combinations') . ' AS oc'
+            . ' INNER JOIN ' . $items . ' AS a ON a.id = oc.item_id AND a.state = 1'
+            . ' WHERE oc.state = 1 AND ' . self::ownPriceSql(combinationAlias: 'oc') . $in . ')';
+    }
+
+    /**
+     * The index's size: its rows, and its data and keys in bytes as the database reports them (Tools' check).
+     *
+     * @return array{rows: int, bytes: int}
+     *
+     * @since  2.2.2
+     */
+    public static function size(): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        return [
+            'rows' => (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName(self::INDEX_TABLE))->loadResult(),
+            'bytes' => (int) $db->setQuery(
+                'SELECT DATA_LENGTH + INDEX_LENGTH FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '
+                . $db->quote($db->replacePrefix(self::INDEX_TABLE)),
+            )->loadResult(),
+        ];
+    }
+
+    /**
+     * Refresh the statistics of the index and its contexts after a full rebuild: a table rewritten whole is read by its
+     * primary key only once the engine's statistics have caught up with its rows. Never inside a transaction (the
+     * statement commits one); a failure is logged and changes nothing else.
+     *
+     * @since  2.2.2
+     */
+    public static function analyze(): void
+    {
+        $db = TransactionState::driver(Factory::getContainer()->get('DatabaseDriver'));
+
+        if (TransactionState::isOpen(db: $db)) {
+            return;
+        }
+
+        try {
+            $db->setQuery('ANALYZE TABLE ' . $db->quoteName(self::INDEX_TABLE) . ', ' . $db->quoteName(self::CONTEXTS_TABLE))->loadAssocList();
+        } catch (Throwable $e) {
+            AlfaLog::register();
+            Log::add('[PriceIndexSyncService] The price index statistics could not be refreshed: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+        }
     }
 
     /**

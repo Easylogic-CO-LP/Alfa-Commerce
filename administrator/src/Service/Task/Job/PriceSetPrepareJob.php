@@ -11,13 +11,13 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
-use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 
 /**
@@ -65,7 +65,7 @@ final class PriceSetPrepareJob implements JobHandler
      */
     public static function enqueueFor(int $contextId): void
     {
-        Runner::enqueue(handler: self::NAME, scopeKey: self::scopeFor(contextId: $contextId), payload: ['context' => $contextId]);
+        BackgroundWork::core()->job(self::NAME)->scope((string) $contextId)->with(['context' => $contextId])->enqueue();
     }
 
     public function policy(): JobPolicy

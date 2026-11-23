@@ -31,7 +31,7 @@ use InvalidArgumentException;
  * manual_discount_scope, and its two values; omitted, the line's choice stands.
  *
  * @api READ ONLY: the line pricing instructions of a payload (custom_unit_price_tax_incl, manual_discount_percent,
- *      manual_discount_scope), validated, as OrderModel::saveOrderItem() takes them; a refusal names the field.
+ *      manual_discount_scope), validated, as the order's line writer takes them; a refusal names the field.
  *
  * @since  2.2.2
  */

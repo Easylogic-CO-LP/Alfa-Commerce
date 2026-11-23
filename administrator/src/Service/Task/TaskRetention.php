@@ -42,9 +42,9 @@ use Joomla\Database\QueryInterface;
  * - done jobs: KEEP_DAYS, except the newest done job of each shop-wide scope (SHOP_WIDE_JOBS), kept for the last run;
  *   a price set's job follows the plain KEEP_DAYS, its set row carrying prepared_at.
  *
- * A task of another owner than com_alfa (the task API's line): done singles and jobs KEEP_DAYS and no newest kept,
- * the rest as above. Every task is com_alfa's (core's handlers only), so the line costs no query: a handler
- * this class does not name is held to it, which is the KEEP_DAYS rule.
+ * A task or job of an extension (an owner other than com_alfa): done ones KEEP_DAYS and no newest kept, the rest as
+ * above; the two lists below name core's handlers, read with core's owner only, so an extension's work of the same
+ * name is held to the KEEP_DAYS rule.
  *
  * Anything that must outlive a task is written to the order's timeline before the task may go (the order.email_sent
  * record, OrderStatusEmail).
@@ -53,13 +53,6 @@ use Joomla\Database\QueryInterface;
  */
 final class TaskRetention
 {
-    /**
-     * The owner every task has.
-     *
-     * @since  2.2.0
-     */
-    public const OWNER = 'com_alfa';
-
     /**
      * Days a resolved or cancelled task, a done job and a done single with no shorter window are kept.
      *
@@ -242,6 +235,7 @@ final class TaskRetention
 
         return $db->getQuery(true)
             ->from($db->quoteName(Tasks::TABLE))
+            ->where($db->quoteName('owner') . ' = ' . $db->quote(DueRead::CORE_OWNER))
             ->whereIn($db->quoteName('handler'), self::SHORT_HANDLERS, ParameterType::STRING)
             ->where($db->quoteName('state') . ' = :done')
             ->where($db->quoteName('finished_at') . ' < UTC_TIMESTAMP(3) - INTERVAL ' . self::SHORT_DAYS . ' DAY')
@@ -284,6 +278,7 @@ final class TaskRetention
             $db->getQuery(true)
                 ->select('MAX(' . $db->quoteName('id') . ')')
                 ->from($db->quoteName(Tasks::TABLE))
+                ->where($db->quoteName('owner') . ' = ' . $db->quote(DueRead::CORE_OWNER))
                 ->whereIn($db->quoteName('handler'), self::SHOP_WIDE_JOBS, ParameterType::STRING)
                 ->where($db->quoteName('state') . ' = :done')
                 ->where($db->quoteName('type') . ' = :type')

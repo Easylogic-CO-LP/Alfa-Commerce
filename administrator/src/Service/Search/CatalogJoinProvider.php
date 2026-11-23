@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
@@ -159,7 +160,7 @@ final class CatalogJoinProvider implements SearchProviderInterface
             // content language, so a failure here is a fault to fix: logged, and the
             // shopper is answered with no results rather than an error page.
             Log::add(
-                entry:    'CatalogJoinProvider: the live catalogue search failed for language ' . $suffix . ': ' . $e->getMessage(),
+                entry:    'CatalogJoinProvider: the live catalogue search failed for language ' . $suffix . ': ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.search',
             );

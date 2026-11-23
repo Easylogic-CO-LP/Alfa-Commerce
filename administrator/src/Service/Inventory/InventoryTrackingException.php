@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -151,7 +152,7 @@ final class InventoryTrackingException extends RuntimeException
             }
         } catch (Throwable $e) {
             Log::add(
-                entry:    'Stock tracking refusal: the administrator strings could not be loaded: ' . $e->getMessage(),
+                entry:    'Stock tracking refusal: the administrator strings could not be loaded: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.inventory',
             );

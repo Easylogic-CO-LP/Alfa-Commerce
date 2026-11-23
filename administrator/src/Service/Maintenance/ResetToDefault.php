@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Maintenance;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
@@ -238,7 +239,7 @@ final class ResetToDefault
                 line: sprintf('Reset to default: %d Options (%s) and the price display of %d customer groups.', \count($keys), implode(', ', $keys) ?: 'none', $groups),
             );
         } catch (RuntimeException $e) {
-            $audit = $e->getMessage();
+            $audit = ErrorText::of($e);
         }
 
         return ['options' => \count($keys), 'groups' => $groups, 'keys' => $keys, 'rebuild' => $rebuild, 'audit' => $audit];

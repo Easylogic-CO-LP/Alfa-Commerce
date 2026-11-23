@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use RuntimeException;
@@ -723,7 +724,7 @@ final class CreditCalculator
 
         return self::answer(
             outcome:   CreditOutcome::Invalid,
-            detail:    $error->getMessage(),
+            detail:    ErrorText::of($error),
             corrected: $corrected,
             key:       $refusal?->key() ?? '',
             values:    $refusal?->values() ?? [],

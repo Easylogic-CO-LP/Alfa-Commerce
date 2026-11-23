@@ -46,6 +46,12 @@ final class JobPolicy
      *                              chunk() runs before the runner's chunk transaction, which then carries only the
      *                              slot's renewal and the fenced progress. Its own claims must make a second run of
      *                              the same work harmless, since the fence can then only lose the progress.
+     * @param int $everyMinutes The span of a job the runner owes by itself: owed when none of its owner and name waits
+     *                          or runs and none was created within the span; 0 for a job only asked for.
+     * @param bool $callsOut Its steps call another system: a failed step waits the tasks' ladder
+     *                       ({@see Tasks::BACKOFF_SECONDS}) between tries, as a remote system that is down is down for
+     *                       minutes or hours, not seconds.
+     * @param bool $cancellable Its owner may cancel it before it finishes; the shop's correctness work never is.
      *
      * @since  2.2.0
      */
@@ -57,6 +63,9 @@ final class JobPolicy
         public readonly bool $rerunOnMerge = true,
         public readonly int $version = 1,
         public readonly bool $ownTransactions = false,
+        public readonly int $everyMinutes = 0,
+        public readonly bool $callsOut = false,
+        public readonly bool $cancellable = false,
     ) {
     }
 }

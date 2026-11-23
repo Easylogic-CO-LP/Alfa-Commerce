@@ -120,7 +120,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
@@ -136,7 +138,6 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentAutomation;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentRefundFlip;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -2154,14 +2155,9 @@ class PaymentLedger
     }
 
     /**
-     * Resolve payment amount from the order's grand total.
-     *
-     * total_paid_tax_incl is always correct regardless of context:
-     *   - Checkout: overridden by OrderPlacement from the placement cart
-     *   - Admin/API: computed by OrderModel::getItem() from items + shipping - discounts
-     *
-     * Falls back to OrderTotalHelper if total_paid_tax_incl is not set
-     * (defensive: shouldn't happen in normal flow).
+     * Resolve payment amount: what is still to collect on the order
+     * (amountToCollectMoney(): the grand total minus what the shop still holds
+     * of it, clamped at zero).
      *
      * Called automatically by doBuilderCreate() when ->amount() was not called.
      * The amount is the order's Money, so the storage door writes its digits.
@@ -3023,7 +3019,7 @@ class PaymentLedger
             try {
                 self::ensureLogger();
                 Log::add(
-                    sprintf('Payment #%d of order #%d is recorded, but its timeline entry was not written: %s', $paymentId, $orderId, $e->getMessage()),
+                    sprintf('Payment #%d of order #%d is recorded, but its timeline entry was not written: %s', $paymentId, $orderId, ErrorText::of($e)),
                     Log::WARNING,
                     'com_alfa.payments',
                 );
@@ -3445,7 +3441,7 @@ class PaymentLedger
      */
     private static function oweRefundFlip(int $paymentId, int $orderId): void
     {
-        Tasks::single(handler: PaymentRefundFlip::NAME, subjectType: 'order', subjectId: $orderId, payload: ['payment' => $paymentId]);
+        BackgroundWork::core()->task(PaymentRefundFlip::NAME)->about('order', $orderId)->with(['payment' => $paymentId])->enqueue();
     }
 
     /**
@@ -4051,7 +4047,7 @@ class PaymentLedger
             }
 
             // The driver's text can name a table: it goes to the log only.
-            self::failWrite(detail: 'updateIfStatus() failed: ' . $e->getMessage(), orderId: $orderId, kind: self::VERDICT_WRITE_FAILED);
+            self::failWrite(detail: 'updateIfStatus() failed: ' . ErrorText::of($e), orderId: $orderId, kind: self::VERDICT_WRITE_FAILED);
 
             return -1;
         }
@@ -5067,7 +5063,7 @@ class PaymentLedger
         try {
             OrderCurrency::of(orderId: $orderId);
         } catch (OrderCurrencyException $e) {
-            return self::refundResult(self::OUTCOME_NOT_REFUNDABLE, reason: $e->getMessage());
+            return self::refundResult(self::OUTCOME_NOT_REFUNDABLE, reason: ErrorText::of($e));
         }
 
         // Money moved that the report its gateway listed it under names, and staff recorded that report: it is in
@@ -5380,7 +5376,7 @@ class PaymentLedger
                             'Payment #%d: gateway refund of %.2f succeeded but the ledger row was not written (%s); reconcile manually.',
                             $paymentId,
                             $writeAmount,
-                            $e->getMessage(),
+                            ErrorText::of($e),
                         ),
                         Log::CRITICAL,
                         'com_alfa.payments',
@@ -5408,7 +5404,7 @@ class PaymentLedger
         // an exception's message is carried along, because "the write threw"
         // and "the write declined" need different fixes and the log line is
         // the only place that distinction survives.
-        $why = $createFailure === null ? 'rejected' : 'threw: ' . $createFailure->getMessage();
+        $why = $createFailure === null ? 'rejected' : 'threw: ' . ErrorText::of($createFailure);
 
         // A PROVIDER RETRY THAT REACHED THE LOCK SECOND. The early check ran
         // before the lock, so a concurrent booking of the same reference is
@@ -5558,7 +5554,7 @@ class PaymentLedger
         try {
             $currency = OrderCurrency::of(orderId: $orderId);
         } catch (OrderCurrencyException $e) {
-            return $refused(self::OUTCOME_NOT_REFUNDABLE, $e->getMessage());
+            return $refused(self::OUTCOME_NOT_REFUNDABLE, ErrorText::of($e));
         }
 
         if ((string) ($original->payment_method_type ?? '') === self::METHOD_TYPE_CREDIT) {
@@ -7326,7 +7322,7 @@ class PaymentLedger
         try {
             $currency = OrderCurrency::of(orderId: $orderId);
         } catch (OrderCurrencyException $e) {
-            return $refuse($e->getMessage());
+            return $refuse(ErrorText::of($e));
         }
 
         if ($providerRefundId !== null && ($providerRefundId === '' || !mb_check_encoding($providerRefundId, 'UTF-8'))) {
@@ -7857,7 +7853,7 @@ class PaymentLedger
         } catch (Throwable $e) {
             try {
                 self::ensureLogger();
-                Log::add($line . ' The block mark could not be written (' . $e->getMessage() . '): the word is rolled back, nothing of it is kept.', Log::CRITICAL, 'com_alfa.payments');
+                Log::add($line . ' The block mark could not be written (' . ErrorText::of($e) . '): the word is rolled back, nothing of it is kept.', Log::CRITICAL, 'com_alfa.payments');
             } catch (Throwable) {
                 // The failure below reaches the caller either way.
             }
@@ -9763,7 +9759,7 @@ class PaymentLedger
             try {
                 OrderCurrency::of(orderId: $orderId);
             } catch (OrderCurrencyException $e) {
-                return self::factResult(self::OUTCOME_REFUSED, reason: $e->getMessage());
+                return self::factResult(self::OUTCOME_REFUSED, reason: ErrorText::of($e));
             }
 
             // 2. Only a refund or a chargeback can be reversed.
@@ -10039,7 +10035,7 @@ class PaymentLedger
             try {
                 OrderCurrency::of(orderId: $orderId);
             } catch (OrderCurrencyException $e) {
-                return self::factResult(self::OUTCOME_REFUSED, reason: $e->getMessage());
+                return self::factResult(self::OUTCOME_REFUSED, reason: ErrorText::of($e));
             }
 
             if ($kind !== self::TYPE_PAYMENT) {
@@ -10313,7 +10309,7 @@ class PaymentLedger
         try {
             self::ensureLogger();
             Log::add(
-                sprintf('%s(): row #%d: %s: %s', $verb, $rowId, $error::class, $error->getMessage()),
+                sprintf('%s(): row #%d: %s: %s', $verb, $rowId, $error::class, ErrorText::of($error)),
                 Log::ERROR,
                 'com_alfa.payments',
             );
@@ -10321,7 +10317,7 @@ class PaymentLedger
             // The answer below still says what happened.
         }
 
-        return self::factResult(self::OUTCOME_FAILED, reason: 'the ledger could not record it: ' . $error->getMessage());
+        return self::factResult(self::OUTCOME_FAILED, reason: 'the ledger could not record it: ' . ErrorText::of($error));
     }
 
     /**
@@ -10595,7 +10591,7 @@ class PaymentLedger
 
             try {
                 Log::add(
-                    sprintf('Refund #%d of order #%d: the staff notice of its settle could not be written: %s', $refundId, $orderId, $e->getMessage()),
+                    sprintf('Refund #%d of order #%d: the staff notice of its settle could not be written: %s', $refundId, $orderId, ErrorText::of($e)),
                     Log::ERROR,
                     'com_alfa.payments',
                 );
@@ -10652,27 +10648,27 @@ class PaymentLedger
             // and freshly minted raw tokens are cached when the transition's
             // status email renders links.
             if ($to === self::STATUS_COMPLETED) {
-                Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['payment' => $id]);
+                BackgroundWork::core()->task(OrderEntitlements::NAME)->about('order', $orderId)->with(['payment' => $id])->enqueue();
             }
 
             // A status that issues documents only when paid skipped at
             // transition time while money was due; the order will not
             // transition again, so settling it is the second chance: for the
             // status the order is in when it runs.
-            Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['current' => true]);
+            BackgroundWork::core()->task(OrderDocuments::NAME)->about('order', $orderId)->with(['current' => true])->enqueue();
 
             // The method's status map, read from the snapshot's method as the
             // automation reads it, run after the commit and the lock release.
             $methodId = (int) ($oldSnapshot->id_payment_method ?? 0);
 
             if (self::automationMethod(methodId: $methodId, status: $to) !== null) {
-                Tasks::single(handler: PaymentAutomation::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+                BackgroundWork::core()->task(PaymentAutomation::NAME)->about('order', $orderId)->with([
                     'payment' => $id,
                     'method' => $methodId,
                     'from' => $from,
                     'to' => $to,
                     'order_status' => self::lockedOrderStatus(orderId: $orderId),
-                ]);
+                ])->enqueue();
             }
         }
 
@@ -11701,7 +11697,7 @@ class PaymentLedger
             // Throwable, not Exception: the payment row is committed by the time this runs. The failure is logged here,
             // as before, and reaches the task, which retries it.
             Log::add(
-                entry:    'Payment status automation failed for order ' . $orderId . ': ' . $e->getMessage(),
+                entry:    'Payment status automation failed for order ' . $orderId . ': ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.orders',
             );
@@ -12986,10 +12982,10 @@ class PaymentLedger
         } catch (OrderCurrencyException $e) {
             // An order that does not exist or names no currency: an integrity fault the shop must look at. The reads
             // keep the throw; a verdict answers it, logged once here.
-            Log::add('[PaymentLedger] a payment write was refused: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('[PaymentLedger] a payment write was refused: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
 
             // Its message is the sentence staff read (OrderCurrencyException): no class name, no stored value.
-            return new PaymentWriteVerdict(kind: self::VERDICT_REFUSED, code: self::REFUSAL_ORDER_UNREADABLE, message: $e->getMessage(), rowId: $rowId);
+            return new PaymentWriteVerdict(kind: self::VERDICT_REFUSED, code: self::REFUSAL_ORDER_UNREADABLE, message: ErrorText::of($e), rowId: $rowId);
         } catch (Throwable $e) {
             // A failure that ended the transaction a caller still holds is the caller's to see: answering it would let
             // the caller commit a transaction the server already discarded.
@@ -12997,7 +12993,7 @@ class PaymentLedger
                 throw $e;
             }
 
-            Log::add('[PaymentLedger] a payment write failed: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
+            Log::add('[PaymentLedger] a payment write failed: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, 'com_alfa.orders');
 
             return new PaymentWriteVerdict(kind: self::VERDICT_WRITE_FAILED, message: self::WRITE_FAILED_SENTENCE, rowId: $rowId);
         } finally {
@@ -13503,6 +13499,9 @@ class PaymentLedger
      *
      * Returns the raw DB row enriched with:
      *   - params -> full payment method record (from PaymentModel)
+     *
+     * @api READ ONLY: one payment row, its amount as Money and its method's record attached: the row staffSettle()
+     *      takes.
      *
      * @param int $id Payment row PK.
      *
@@ -14740,7 +14739,7 @@ class PaymentLedger
         } catch (PluginUnavailable|InvalidArgumentException $unavailable) {
             try {
                 self::ensureLogger();
-                Log::add(sprintf('Payment #%d: its provider refunds cannot be read: %s', $paymentId, $unavailable->getMessage()), Log::WARNING, 'com_alfa.payments');
+                Log::add(sprintf('Payment #%d: its provider refunds cannot be read: %s', $paymentId, ErrorText::of($unavailable)), Log::WARNING, 'com_alfa.payments');
             } catch (Throwable) {
                 // The refusal below holds whether or not the log can be written.
             }
@@ -14782,7 +14781,7 @@ class PaymentLedger
             try {
                 self::ensureLogger();
                 Log::add(
-                    sprintf('Payment #%d: the %s payment plugin failed while reporting its provider refunds (%s): %s', $paymentId, $element, $e::class, $e->getMessage()),
+                    sprintf('Payment #%d: the %s payment plugin failed while reporting its provider refunds (%s): %s', $paymentId, $element, $e::class, ErrorText::of($e)),
                     Log::ERROR,
                     'com_alfa.payments',
                 );

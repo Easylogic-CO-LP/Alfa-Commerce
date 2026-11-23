@@ -41,13 +41,13 @@ use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginFollower;
 use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartOwner;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
-use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundConsumers;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions;
@@ -963,8 +963,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         // com_plugins.plugin
         $this->invalidateForExtensions(ids: [(int) ($item->extension_id ?? 0)], how: 'saved');
-        // An alfa plugin that consumes the shop's changes keeps its consumer row with the topics it names now.
-        OutboundConsumers::followPlugins(extensionIds: [(int) ($item->extension_id ?? 0)]);
+        // An alfa plugin keeps its consumer row of the shop's changes and its declared background work as it is now.
+        PluginFollower::follow(extensionIds: [(int) ($item->extension_id ?? 0)]);
     }
 
     /**
@@ -1126,7 +1126,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         if ($context === 'com_plugins.plugin' && $pks !== [] && !$this->paused()) {
             $this->invalidateForExtensions(ids: array_map('intval', $pks), how: $value === 1 ? 'enabled' : 'disabled');
             // A consumer plugin enabled delivers again with its topics; disabled, its row is paused and keeps what waits.
-            OutboundConsumers::followPlugins(extensionIds: array_map('intval', $pks));
+            // Its declared background work runs again when it is enabled and waits while it is disabled.
+            PluginFollower::follow(extensionIds: array_map('intval', $pks));
         }
     }
 
@@ -1151,6 +1152,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         $this->invalidateForExtensions(ids: array_map('intval', $pks), how: ($value === 1 ? 'enabled' : 'disabled') . ' in Extensions: Manage');
+        // The declared background work of an alfa plugin waits while it is disabled and runs again once it is enabled.
+        PluginFollower::switching(extensionIds: array_map('intval', $pks), enabled: $value === 1);
     }
 
     /**
@@ -1345,6 +1348,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             if ($extensionId > 0 && $this->alfaExtensions(ids: [$extensionId]) !== []) {
                 $this->invalidateForAlfaExtension('installed or updated');
                 $this->followCompatibility();
+                // An alfa plugin installed or updated: its consumer row and its declared background work as it is now.
+                PluginFollower::follow(extensionIds: [$extensionId]);
             }
         } catch (Throwable $e) {
             $this->logError(caller: 'onExtensionAfterInstall', message: $e->getMessage());
@@ -1377,8 +1382,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         $this->invalidateForAlfaExtension('uninstalled');
         $this->followCompatibility();
-        // A consumer plugin removed takes its consumer row and what it was owed with it.
-        OutboundConsumers::forgetMissingPlugins();
+        // A consumer plugin removed takes its consumer row and what it was owed with it; a plugin's declared work is
+        // closed: what waits is cancelled, what failed or is held stays for staff.
+        PluginFollower::forgetMissing();
     }
 
     /**

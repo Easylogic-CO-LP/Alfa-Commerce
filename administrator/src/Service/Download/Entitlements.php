@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Administrator\Service\Download;
 
 defined('_JEXEC') or die;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
@@ -148,7 +149,7 @@ class Entitlements
             // Throwable buys nothing if the record then goes nowhere.
             AlfaLog::register();
             Log::add(
-                entry:    'Entitlements::handleStatusTransition failed for order ' . $orderId . ': ' . $e->getMessage(),
+                entry:    'Entitlements::handleStatusTransition failed for order ' . $orderId . ': ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.downloads',
             );
@@ -555,7 +556,7 @@ class Entitlements
             AlfaLog::register();
             Log::add(
                 'Entitlement reconciliation failed for line ' . $orderItemId . ': '
-                . $e::class . ': ' . $e->getMessage(),
+                . $e::class . ': ' . ErrorText::of($e),
                 Log::ERROR,
                 // com_alfa.downloads, matching the other two catches of this
                 // service. An operator chasing a failed entitlement should not
@@ -648,7 +649,7 @@ class Entitlements
             // Throwable buys nothing if the record then goes nowhere.
             AlfaLog::register();
             Log::add(
-                entry:    'Entitlements::handlePaymentTransition failed for order ' . $orderId . ': ' . $e->getMessage(),
+                entry:    'Entitlements::handlePaymentTransition failed for order ' . $orderId . ': ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.downloads',
             );

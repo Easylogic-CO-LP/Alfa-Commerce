@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -28,7 +30,6 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEvent;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStock;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -350,8 +351,8 @@ class Transition
      * force() was asked (the one rule; the REST status verb and an extension ask it before they move an order,
      * so they can say why a move is refused).
      *
-     * @api READ ONLY: whether moving an order from $fromStatusId to $toStatusId reinstates a cancelled order, which only
-     *      a conscious act (force()) may do.
+     * @api READ ONLY: whether moving an order from $fromStatusId to $toStatusId reinstates a cancelled order, a move the
+     *      status change refuses unless it is asked for on purpose.
      *
      * @param int $fromStatusId The status the order is in.
      * @param int $toStatusId The status it would enter.
@@ -716,7 +717,7 @@ class Transition
         try {
             OrderCurrency::of(orderId: $orderId);
         } catch (OrderCurrencyException $e) {
-            return $refuse(rtrim($e->getMessage(), '.'));
+            return $refuse(rtrim(ErrorText::of($e), '.'));
         }
 
         // A status that holds a reservation takes no order with a line that
@@ -1114,7 +1115,7 @@ class Transition
             : 'the database ended the change twice to resolve a deadlock';
 
         Log::add(
-            entry:    'Transition refused for order ' . $this->orderId . ': ' . $reason . ' - ' . $failure->getMessage(),
+            entry:    'Transition refused for order ' . $this->orderId . ': ' . $reason . ' - ' . ErrorText::of($failure),
             priority: Log::WARNING,
             category: 'com_alfa.orders',
         );
@@ -1162,7 +1163,7 @@ class Transition
         $stockOwed = $claimChanged || $this->owes(handler: OrderStock::NAME, guard: static fn (): bool => InventoryEffectOutbox::owesOrderClaim(orderId: $orderId));
 
         if ($stockOwed) {
-            $stockTask = Tasks::single(handler: OrderStock::NAME, subjectType: 'order', subjectId: $orderId, payload: ['from' => $oldStatusId, 'to' => $toStatusId]);
+            $stockTask = BackgroundWork::core()->task(OrderStock::NAME)->about('order', $orderId)->with(['from' => $oldStatusId, 'to' => $toStatusId])->enqueue()->id;
             self::$awaiting[$stockTask] = WeakReference::create($this);
         }
 
@@ -1221,11 +1222,11 @@ class Transition
 
         // Download access: a cancelled status revokes it, a status that grants downloads grants it, any other leaves it.
         if ($this->owes(handler: OrderEntitlements::NAME, guard: static fn (): bool => OrderStatusHelper::isCancelled($toStatusId) || Entitlements::grantsDownloads($toStatusId))) {
-            Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+            BackgroundWork::core()->task(OrderEntitlements::NAME)->about('order', $orderId)->with(['status' => $toStatusId])->enqueue();
         }
 
         if ($this->owes(handler: OrderDocuments::NAME, guard: static fn (): bool => AutoIssuePolicy::issuesForStatus(statusId: $toStatusId))) {
-            Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+            BackgroundWork::core()->task(OrderDocuments::NAME)->about('order', $orderId)->with(['status' => $toStatusId])->enqueue();
         }
 
         // The customer is left out of a change made silent for the customer alone; its single then has work only when the
@@ -1233,17 +1234,17 @@ class Transition
         $toCustomer = !$this->silentCustomer;
 
         if (!$this->silent && $this->owes(handler: OrderStatusEmail::NAME, guard: static fn (): bool => EmailService::notifiesForStatus(statusId: $toStatusId, customer: $toCustomer))) {
-            Tasks::single(handler: OrderStatusEmail::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId, 'customer' => $toCustomer]);
+            BackgroundWork::core()->task(OrderStatusEmail::NAME)->about('order', $orderId)->with(['status' => $toStatusId, 'customer' => $toCustomer])->enqueue();
         }
 
         if ($this->owes(handler: OrderStatusEvent::NAME, guard: static fn (): bool => OrderStatusEvent::hasListeners())) {
-            Tasks::single(handler: OrderStatusEvent::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+            BackgroundWork::core()->task(OrderStatusEvent::NAME)->about('order', $orderId)->with([
                 'from' => $oldStatusId,
                 'to' => $toStatusId,
                 'actor' => $actor,
                 'note' => $this->note,
                 'at' => Factory::getDate('now', 'UTC')->toSql(),
-            ]);
+            ])->enqueue();
         }
 
         return $stockOwed;
@@ -1271,7 +1272,7 @@ class Transition
 
             Log::add(
                 entry:    'Transition for order ' . $this->orderId . ': the ' . $handler . ' guard could not be read; the single is written and its handler decides when it runs: '
-                          . $e::class . ': ' . $e->getMessage(),
+                          . $e::class . ': ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.orders',
             );
@@ -1378,15 +1379,15 @@ class Transition
             // a plugin's type error, a missing class, must not escape: the
             // obligation stays owed and is reported.
             $outcome['result'] = null;
-            $outcome['failure'] = $e->getMessage();
+            $outcome['failure'] = ErrorText::of($e);
 
             self::reportStockDeferred(
                 orderId:     $orderId,
                 oldStatusId: $oldStatusId,
                 toStatusId:  $toStatusId,
-                reason:      $e->getMessage(),
+                reason:      ErrorText::of($e),
                 refused:     false,
-                notice:      $e->getMessage(),
+                notice:      ErrorText::of($e),
                 noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_MSG',
             );
         }

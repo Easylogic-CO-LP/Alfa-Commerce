@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -404,7 +405,7 @@ final class CatalogSearchService
             try {
                 $hits[] = CatalogSearchHit::fromRow(entity: $entity, row: $row);
             } catch (InvalidArgumentException $e) {
-                $this->log(\sprintf('%s row skipped', $entity->value), ['error' => $e->getMessage()]);
+                $this->log(\sprintf('%s row skipped', $entity->value), ['error' => ErrorText::of($e)]);
             }
         }
 
@@ -480,7 +481,7 @@ final class CatalogSearchService
                 'order' => $order,
             ];
         } catch (Throwable $e) {
-            $this->log('Items search failed', ['keyword' => $keyword, 'error' => $e->getMessage()]);
+            $this->log('Items search failed', ['keyword' => $keyword, 'error' => ErrorText::of($e)]);
 
             return ['rows' => [], 'eventId' => null, 'responseSpecific' => false, 'order' => ResultSetContext::RELEVANCE];
         }
@@ -561,7 +562,7 @@ final class CatalogSearchService
 
             return \array_slice($rows, 0, max(1, $limit));
         } catch (Throwable $e) {
-            $this->log(\sprintf('%s hydration failed', $entity->value), ['keyword' => $keyword, 'error' => $e->getMessage()]);
+            $this->log(\sprintf('%s hydration failed', $entity->value), ['keyword' => $keyword, 'error' => ErrorText::of($e)]);
 
             return [];
         }
@@ -629,7 +630,7 @@ final class CatalogSearchService
 
             return array_map('intval', $result->ids());
         } catch (Throwable $e) {
-            $this->log(\sprintf('%s engine search failed', $entity->value), ['keyword' => $keyword, 'error' => $e->getMessage()]);
+            $this->log(\sprintf('%s engine search failed', $entity->value), ['keyword' => $keyword, 'error' => ErrorText::of($e)]);
 
             return null;
         }
@@ -673,7 +674,7 @@ final class CatalogSearchService
 
             return \is_array($items) ? $items : [];
         } catch (Throwable $e) {
-            $this->log(\sprintf('%s search failed', $entity), ['keyword' => $keyword, 'error' => $e->getMessage()]);
+            $this->log(\sprintf('%s search failed', $entity), ['keyword' => $keyword, 'error' => ErrorText::of($e)]);
 
             return [];
         }
@@ -723,7 +724,7 @@ final class CatalogSearchService
 
             return $this->labelByDeclaredName(suggestions: $suggestions, lang: $lang);
         } catch (Throwable $e) {
-            $this->log('Suggestions failed', ['keyword' => $keyword, 'error' => $e->getMessage()]);
+            $this->log('Suggestions failed', ['keyword' => $keyword, 'error' => ErrorText::of($e)]);
 
             return [];
         }
@@ -815,7 +816,7 @@ final class CatalogSearchService
                 $suggestions,
             );
         } catch (Throwable $e) {
-            $this->log('Suggestion labelling failed', ['error' => $e->getMessage()]);
+            $this->log('Suggestion labelling failed', ['error' => ErrorText::of($e)]);
 
             return $suggestions;
         }

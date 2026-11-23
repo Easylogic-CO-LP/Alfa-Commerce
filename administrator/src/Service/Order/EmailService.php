@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\EmailLayouts;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
@@ -268,7 +269,7 @@ class EmailService
             );
         } catch (Throwable $e) {
             Log::add(
-                entry:    'EmailService::discoverSequence failed for "' . $layoutId . '": ' . $e->getMessage(),
+                entry:    'EmailService::discoverSequence failed for "' . $layoutId . '": ' . ErrorText::of($e),
                 priority: Log::ERROR,
                 category: 'com_alfa.orderemail',
             );
@@ -795,7 +796,7 @@ class EmailService
                     'COM_ALFA_ORDEREMAIL_LOG_SEND_FAILED',
                     $orderId,
                     $newStatusId,
-                    $e->getMessage(),
+                    ErrorText::of($e),
                 ),
                 priority: Log::ERROR,
                 category: 'com_alfa.orderemail',
@@ -1076,7 +1077,7 @@ class EmailService
                 ];
             } catch (Throwable $e) {
                 Log::add(
-                    entry:    "Document PDF attachment failed for order {$orderId}, document {$document->id}: " . $e->getMessage(),
+                    entry:    "Document PDF attachment failed for order {$orderId}, document {$document->id}: " . ErrorText::of($e),
                     priority: Log::WARNING,
                     category: 'com_alfa.orderemail',
                 );
@@ -1195,14 +1196,14 @@ class EmailService
                     'COM_ALFA_ORDEREMAIL_LOG_SEND_FAILED',
                     $orderId,
                     $statusId,
-                    $e->getMessage(),
+                    ErrorText::of($e),
                 ),
                 priority: Log::ERROR,
                 category: 'com_alfa.orderemail',
             );
 
             // Anything before the send (rendering, the mailer) handed nothing over.
-            return [$watch?->outcome(sent: $sent) ?? self::OUTCOME_FAILED, $e->getMessage()];
+            return [$watch?->outcome(sent: $sent) ?? self::OUTCOME_FAILED, ErrorText::of($e)];
         }
     }
 
@@ -1838,7 +1839,7 @@ class EmailService
             $items = $model->getItems() ?: [];
         } catch (Throwable $e) {
             Log::add(
-                entry:    'EmailService::loadFormFieldRows failed: ' . $e->getMessage(),
+                entry:    'EmailService::loadFormFieldRows failed: ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.orderemail',
             );
@@ -1936,7 +1937,7 @@ class EmailService
             throw $e;
         } catch (Throwable $e) {
             Log::add(
-                entry:    'EmailService::loadOrder failed for #' . $orderId . ': ' . $e->getMessage(),
+                entry:    'EmailService::loadOrder failed for #' . $orderId . ': ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.orderemail',
             );
@@ -2296,7 +2297,7 @@ class EmailService
             return OrderHelper::getOrderItems($orderId);
         } catch (Throwable $e) {
             Log::add(
-                entry:    'EmailService::safeLoadItems fell back for #' . $orderId . ': ' . $e->getMessage(),
+                entry:    'EmailService::safeLoadItems fell back for #' . $orderId . ': ' . ErrorText::of($e),
                 priority: Log::WARNING,
                 category: 'com_alfa.orderemail',
             );

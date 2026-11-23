@@ -27,6 +27,9 @@ final class PaymentToken
     /**
      * Derive the payment token for an order.
      *
+     * @api READ ONLY: the order's payment token, for a return address that names the order; orderFromReturnLink()
+     *      checks it on the way back.
+     *
      * @param int $orderId Order PK the token is bound to.
      * @param string $secureKey The order's secure_key (HMAC key).
      *
