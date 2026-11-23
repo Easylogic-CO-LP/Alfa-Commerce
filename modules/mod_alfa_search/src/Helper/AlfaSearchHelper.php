@@ -9,6 +9,7 @@
 
 namespace Alfa\Module\AlfaSearch\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchHit;
 use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchRequest;
 use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchResults;
@@ -91,7 +92,7 @@ class AlfaSearchHelper
             self::renderAndSend($keyword, $results, $params);
         } catch (Exception $e) {
             self::logError('AJAX request failed', [
-                'message' => $e->getMessage(),
+                'message' => ErrorText::of($e),
                 'code' => $e->getCode(),
             ]);
             self::sendError(Text::_('MOD_ALFA_SEARCH_ERROR_GENERAL'), 500);
@@ -239,7 +240,7 @@ class AlfaSearchHelper
             Factory::getApplication()->close();
         } catch (Throwable $e) {
             // A template override renders here too: an Error it raises is answered as the module's own error.
-            self::logError('Render failed', ['error' => $e->getMessage()]);
+            self::logError('Render failed', ['error' => ErrorText::of($e)]);
             self::sendError(Text::_('MOD_ALFA_SEARCH_ERROR_RENDER'), 500);
         }
     }
