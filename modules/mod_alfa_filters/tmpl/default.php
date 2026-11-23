@@ -130,6 +130,12 @@ $moduleId = $module->id;
                 </div>
             </form>
         </div>
+        <?php if ($dynamic_filtering) : ?>
+            <?php // The results applied live: after each swap the script writes the results' name (their
+                  // count) here, and a screen reader says it; the focus stays on the control the shopper
+                  // is on. Inside the dialog, so it is heard while the panel lies over the page too. ?>
+            <p class="af-results-status" role="status" data-af-results-status></p>
+        <?php endif; ?>
         <?php // Inside the dialog, so it shows over the panel in the top layer too. ?>
         <div class="alfa-filters-loading-overlay" aria-hidden="true">
             <?php if ($loadingImg === 'image'): ?>

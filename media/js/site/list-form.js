@@ -27,17 +27,19 @@
  * anything ever round-trips this subtree through its own innerHTML, where an attribute would
  * come back set on a node whose listeners did not.
  *
- * THE RESULTS ARE BROUGHT TO THE SHOPPER. revealResults() scrolls the results region
- * (`[data-results]`, the pagination and the list) so that its top sits right under the page's sticky header, every
- * time a new result set comes in, wherever the region was, instantly under prefers-reduced-motion and smoothly
- * otherwise; then it gives the region the focus without scrolling again, so keyboard and screen-reader users land on the
- * results and hear the region's name, the pagination's count. The header's height is the template's
- * --alfa-scroll-offset when the template sets it; when it does not, it is measured (headerOffset()) before the scroll and
- * again where the scroll ends, and the place corrected once. It runs once for each new result set: after the filters
- * module's swap (`alfa:results:updated`), and on a page the server marked (`data-results-reveal`: a later page reached
- * by its link, a submitted filter), once its layout is final (the window's load), unless the shopper came back to that
- * page by a reload or the back button. Never on `joomla:updated` alone or on a card's reload: a variant or a quantity
- * changed in a card is the same results, and moves nothing.
+ * THE RESULTS ARE BROUGHT TO THE SHOPPER. revealResults() scrolls the results region (`[data-results]`, the pagination
+ * and the list) so that its top sits right under the page's sticky header, every time a new result set comes in,
+ * wherever the region was, instantly under prefers-reduced-motion and smoothly otherwise. On a page the server marked
+ * it then gives the region the focus without scrolling again, so keyboard and screen-reader users land on the results
+ * and hear the region's name, the pagination's count. After the filters module's swap the focus stays on the control
+ * the shopper is on (a ticked option, in the panel or in the column beside the results); the module tells a screen
+ * reader the new count through its own status line. The header's height is the template's --alfa-scroll-offset when
+ * the template sets it; when it does not, it is measured (headerOffset()) before the scroll and again where the scroll
+ * ends, and the place corrected once. It runs once for each new result set: after the filters module's swap
+ * (`alfa:results:updated`), and on a page the server marked (`data-results-reveal`: a later page reached by its link,
+ * a submitted filter), once its layout is final (the window's load), unless the shopper came back to that page by a
+ * reload or the back button. Never on `joomla:updated` alone or on a card's reload: a variant or a quantity changed in
+ * a card is the same results, and moves nothing.
  */
 
 (function () {
@@ -217,14 +219,16 @@
     }
 
     /**
-     * Bring the results region's top under the page's sticky header and focus it; its name (the pagination's count)
-     * is what the focus announces. Where the scroll ends the header is measured again and the place corrected once: a
-     * header that becomes sticky or fixed only once the page has scrolled (a bar under a static top bar, a header a
-     * template's script fixes past a threshold) covers the region's top only then.
+     * Bring the results region's top under the page's sticky header, and on a page the server marked focus it; its
+     * name (the pagination's count) is what the focus announces. Where the scroll ends the header is measured again and
+     * the place corrected once: a header that becomes sticky or fixed only once the page has scrolled (a bar under a
+     * static top bar, a header a template's script fixes past a threshold) covers the region's top only then.
      *
      * @param {Element|null} region The results region.
+     * @param {boolean}      focus  Whether the region takes the focus: a page load yes, a filters swap no (the shopper
+     *                              stays on the control they are on).
      */
-    function revealResults(region) {
+    function revealResults(region, focus) {
         if (!region) {
             return;
         }
@@ -232,7 +236,10 @@
         var behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
 
         window.scrollTo({ top: window.scrollY + region.getBoundingClientRect().top - headerOffset(region), behavior: behavior });
-        region.focus({ preventScroll: true });
+
+        if (focus) {
+            region.focus({ preventScroll: true });
+        }
 
         whenScrollEnds(function () {
             var gap = region.getBoundingClientRect().top - headerOffset(region);
@@ -273,9 +280,10 @@
         initFilterForm(event.target);
     });
 
-    // A new result set swapped in: the region inside the replaced container, once per swap.
+    // A new result set swapped in: the region inside the replaced container, once per swap, brought into view; the
+    // focus stays where the shopper is.
     document.addEventListener('alfa:results:updated', function (event) {
-        revealResults(event.target && event.target.querySelector ? event.target.querySelector(REGION_SELECTOR) : null);
+        revealResults(event.target && event.target.querySelector ? event.target.querySelector(REGION_SELECTOR) : null, false);
     });
 
     if (document.readyState === 'loading') {
@@ -291,10 +299,10 @@
     // the page by a reload or the back button: the scroll the browser restores is theirs.
     if (!returnedToPage()) {
         if (document.readyState === 'complete') {
-            revealResults(document.querySelector(MARKED_SELECTOR));
+            revealResults(document.querySelector(MARKED_SELECTOR), true);
         } else {
             window.addEventListener('load', function () {
-                revealResults(document.querySelector(MARKED_SELECTOR));
+                revealResults(document.querySelector(MARKED_SELECTOR), true);
             }, { once: true });
         }
     }

@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.offCanvas = qs('.alfa-filters-offcanvas', this.wrapper);
             this.toggler = qs('.alfa-filters-offcanvas-toggler', this.wrapper);
             this.loadingOverlay = qs('.alfa-filters-loading-overlay', this.wrapper);
+            this.resultsStatus = qs('[data-af-results-status]', this.wrapper);
 
             // State
             this.isVisible = false;
@@ -507,6 +508,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        /**
+         * Write the results region's name (the pagination's count, the text its aria-labelledby
+         * points at) on the module's status line, which a screen reader says. A region with no
+         * name leaves the line empty.
+         *
+         * @param {Element} container The swapped results' container.
+         */
+        sayResults(container) {
+            if (!this.resultsStatus) {
+                return;
+            }
+
+            const nameId = qs('[data-results]', container)?.getAttribute('aria-labelledby');
+            const name = nameId ? document.getElementById(nameId) : null;
+
+            this.resultsStatus.textContent = name ? name.textContent.trim() : '';
+        }
+
         /*
            FETCH FILTERED ITEMS (AJAX, dynamic mode only)
            */
@@ -534,6 +553,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // would emit /en/katastema&filter[...], a path with an ampersand in it.
             const separator = itemsActionUrl.includes('?') ? '&' : '?';
             const url = `${itemsActionUrl}${separator}${queryString}`;
+
+            // Emptied while the results load, so their name is said again when they land, even
+            // when it is the same as before.
+            if (this.resultsStatus) {
+                this.resultsStatus.textContent = '';
+            }
 
             this._itemsAbort?.abort();
             this._itemsAbort = new AbortController();
@@ -572,14 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const oldItems = qs(componentSelector);
 
             if (newItems && oldItems) {
-                // While the panel lies open over the page the shopper is still in it: the
-                // results' own script brings the new results into view behind it and takes the
-                // focus to them, and the focus comes back to the control the shopper is on.
-                const held = this.isVisible && this.isOverlay() && this.offCanvas?.contains(document.activeElement)
-                    ? document.activeElement
-                    : null;
-                const heldId = held?.id || '';
-
                 oldItems.innerHTML = newItems.innerHTML;
 
                 // The swap replaced live nodes: searchtools' Filter Options toggle,
@@ -594,9 +611,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // listening on the document reads the swapped container's attribution here.
                 oldItems.dispatchEvent(new CustomEvent('alfa:results:updated', { bubbles: true, detail: { view: 'items' } }));
 
-                if (held && !this.offCanvas.contains(document.activeElement)) {
-                    (held.isConnected ? held : document.getElementById(heldId))?.focus({ preventScroll: true });
-                }
+                // The results' own script brings them into view and leaves the focus on the control
+                // the shopper is on; a screen reader hears their name (their count) from here.
+                this.sayResults(oldItems);
             }
 
             // Update URL DETERMINISTICALLY from the query string, never by reading
