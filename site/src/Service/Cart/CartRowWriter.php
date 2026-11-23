@@ -156,7 +156,8 @@ final class CartRowWriter
 
     /**
      * Write the payment method. Nothing offered depends on it, so nothing is
-     * forgotten.
+     * forgotten; the totals carry its fee, and the contributions are worked
+     * out again for the method the state now names.
      *
      * @since  2.0.0
      */

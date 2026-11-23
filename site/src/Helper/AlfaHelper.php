@@ -252,6 +252,8 @@ class AlfaHelper
 
         if ($baseTable === 'payment') {
             $pivots['shipments'] = ['#__alfa_payment_shipments', 'shipment_id'];
+            // The tax rules the method's fee is taxed with (PaymentFee).
+            $pivots['fee_taxes'] = ['#__alfa_payment_fee_taxes', 'tax_id'];
         }
 
         foreach ($pivots as $alias => [$table, $column]) {

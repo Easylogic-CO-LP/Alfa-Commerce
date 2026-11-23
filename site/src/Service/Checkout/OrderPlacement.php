@@ -1290,6 +1290,9 @@ class OrderPlacement
                 return false;
             }
 
+            // The order is totalled with the fee of the method it records.
+            $this->cart->assumePayment($paymentMethodId);
+
             return true;
         } catch (Throwable $e) {
             // \Throwable: this runs the payment/shipment method checks, which

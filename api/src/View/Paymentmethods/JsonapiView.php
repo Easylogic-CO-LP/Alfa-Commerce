@@ -41,6 +41,11 @@ class JsonApiView extends BaseApiView
         'places',
         'users',
         'usergroups',
+        // The method's fee: a fixed amount and a percentage, what they mean and the tax rules the fee carries.
+        'fee_amount',
+        'fee_percent',
+        'fee_entry_mode',
+        'fee_taxes',
         'ordering',
         'state',
         'translations',
@@ -61,6 +66,8 @@ class JsonApiView extends BaseApiView
         'color',
         'bg_color',
         'show_on_product',
+        'fee_amount',
+        'fee_percent',
         'ordering',
         'state',
     ];

@@ -195,6 +195,8 @@ class PaymentModel extends AlfaAdminModel
             $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_users', 'payment_id', 'user_id');
             $item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_usergroups', 'payment_id', 'usergroup_id');
             $item->shipments = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_shipments', 'payment_id', 'shipment_id');
+            // The tax rules the method's fee is taxed with; none for an untaxed fee, never a wildcard row.
+            $item->fee_taxes = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_fee_taxes', 'payment_id', 'tax_id');
 
             // A new method allows everything until it is restricted: 0, shown as the "All ..." choice, which is what
             // a save of untouched scope fields stores.
@@ -241,6 +243,23 @@ class PaymentModel extends AlfaAdminModel
         // The plugin of an order's method cannot change.
         if (!$this->methodTypeChangeAllowed(data: $data)) {
             return false;
+        }
+
+        // The fee's two figures: zero or more, the percentage at most 100; a figure left empty on the form is none.
+        // A REST write that does not send one keeps the stored figure.
+        foreach (['fee_amount' => null, 'fee_percent' => 100] as $field => $ceiling) {
+            if (!\array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $figure = trim((string) $data[$field]);
+            $data[$field] = $figure === '' ? '0' : $figure;
+
+            if (!is_numeric($data[$field]) || (float) $data[$field] < 0 || ($ceiling !== null && (float) $data[$field] > $ceiling)) {
+                $this->setError(Text::_('COM_ALFA_PAYMENT_FEE_REFUSED'));
+
+                return false;
+            }
         }
 
         // The method plugin's settings are written from their group. A REST POST or PATCH that does not send the
@@ -337,6 +356,17 @@ class PaymentModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['users'] ?? [], '#__alfa_payment_users', 'payment_id', 'user_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_payment_usergroups', 'payment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['shipments'] ?? [], '#__alfa_payment_shipments', 'payment_id', 'shipment_id', $assignZeroIdIfDataEmpty);
+
+            // The fee's tax rules. NO wildcard row when none is chosen: no row means an untaxed fee (there is no shop
+            // default).
+            AlfaHelper::setAssocsToDb(
+                $currentId,
+                array_values(array_unique(array_filter(array_map('intval', (array) ($data['fee_taxes'] ?? [])), static fn (int $id): bool => $id > 0))),
+                '#__alfa_payment_fee_taxes',
+                'payment_id',
+                'tax_id',
+                false,
+            );
 
             TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
@@ -435,7 +465,7 @@ class PaymentModel extends AlfaAdminModel
 
         if ($result && !empty($pks)) {
             // Scope pivots of the deleted methods.
-            foreach (['#__alfa_payment_categories', '#__alfa_payment_manufacturers', '#__alfa_payment_places', '#__alfa_payment_usergroups', '#__alfa_payment_users', '#__alfa_payment_shipments'] as $pivotTable) {
+            foreach (['#__alfa_payment_categories', '#__alfa_payment_manufacturers', '#__alfa_payment_places', '#__alfa_payment_usergroups', '#__alfa_payment_users', '#__alfa_payment_shipments', '#__alfa_payment_fee_taxes'] as $pivotTable) {
                 $db->setQuery(
                     $db->getQuery(true)
                         ->delete($db->quoteName($pivotTable))

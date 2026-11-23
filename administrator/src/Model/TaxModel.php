@@ -484,8 +484,9 @@ class TaxModel extends AlfaAdminModel
             '#__alfa_tax_places',
             '#__alfa_tax_usergroups',
             '#__alfa_tax_users',
-            // A shipping method that referenced the rule no longer does.
+            // A shipping method, or a payment method's fee, that referenced the rule no longer does.
             '#__alfa_shipment_taxes',
+            '#__alfa_payment_fee_taxes',
         ] as $pivotTable) {
             $db->setQuery(
                 $db->getQuery(true)

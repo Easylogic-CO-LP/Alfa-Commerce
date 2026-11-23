@@ -15,7 +15,9 @@ use Alfa\Component\Alfa\Site\Service\CartRules\CartRules;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
+use Alfa\Component\Alfa\Site\Service\Shipping\ShippingCharge;
 use Closure;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\User\User;
 
 defined('_JEXEC') or die;
@@ -46,6 +48,15 @@ final class CartComputation
     /** @var object|null The rules result the contributions were folded over. @since 2.0.0 */
     private ?object $contributionsBasis = null;
 
+    /** @var array|null The plugins' charges, folded: the contributions before the payment method's fee. @since 2.2.2 */
+    private ?array $charges = null;
+
+    /** @var object|null The rules result the plugins' charges were folded over. @since 2.2.2 */
+    private ?object $chargesBasis = null;
+
+    /** @var int|null The payment method the contributions' fee was worked out for. @since 2.2.2 */
+    private ?int $contributionsPayment = null;
+
     /**
      * The plugins the customer's view levels admit that Joomla does not load for the request's user, named when the
      * charges were last collected: their charges are missing, so the cart carries the refusal.
@@ -55,6 +66,9 @@ final class CartComputation
      */
     private array $contributionsNotLoaded = [];
     private ?int $assumedShipmentId = null;
+
+    /** @var int|null A payment method assumed for the purpose of evaluation, its fee with it. @since 2.2.2 */
+    private ?int $assumedPaymentId = null;
 
     /** @var array<int, int[]> Per-override-field destination chains. @since 2.0.0 */
     private array $methodPlaces = [];
@@ -151,6 +165,86 @@ final class CartComputation
     }
 
     /**
+     * Every charge the order carries beside its goods and its shipping: the commercial plugins' charges, then the
+     * chosen payment method's fee ({@see PaymentFee}), as rows of one shape, in the order they are shown and frozen.
+     *
+     * ONE PATH FOR EVERY CHARGE. The fee is a contribution of core's own (code payment_fee): the totals add it with
+     * the plugins' charges, the summary shows it as its own line, and placement freezes it with them. It belongs to the
+     * rules result the charges were folded over and to the chosen payment method: choosing another method totals
+     * again.
+     *
+     * @since  2.0.0
+     */
+    public function contributions(): array
+    {
+        $charges = $this->charges();
+        $basis = $this->chargesBasis;
+        $paymentId = $this->assumedPaymentId ?? $this->state()->paymentId();
+
+        if ($this->contributions !== null && $this->contributionsBasis === $basis && $this->contributionsPayment === $paymentId) {
+            return $this->contributions;
+        }
+
+        $this->contributionsBasis = $basis;
+        $this->contributionsPayment = $paymentId;
+        $method = $paymentId > 0 ? ($this->methods()->payments()[$paymentId] ?? null) : null;
+        $fee = $method !== null ? $this->paymentFee($method) : null;
+
+        if ($fee === null) {
+            return $this->contributions = $charges;
+        }
+
+        $charges[] = (object) [
+            'code' => PaymentFee::CODE,
+            'source' => 'alfa-payments.' . (string) ($method->type ?? '') . '.' . PaymentFee::CODE,
+            'label' => Text::sprintf('COM_ALFA_PAYMENT_FEE_LABEL', (string) ($method->name ?? '')),
+            'operation' => '+',
+            'tax_rate' => $fee->taxRate,
+            'amount_tax_excl' => $fee->taxExcl->getAmount(),
+            'tax_amount' => $fee->tax->getAmount(),
+            'amount_tax_incl' => $fee->taxIncl->getAmount(),
+            'amount_tax_incl_money' => $fee->taxIncl,
+            // After every plugin charge, in every reading and in the frozen order.
+            'sort_order' => max([0, ...array_map(static fn (object $row): int => (int) $row->sort_order, $charges)]) + 1,
+        ];
+
+        return $this->contributions = $charges;
+    }
+
+    /**
+     * The fee a payment method charges this cart, or null when it charges none: the figure the checkout shows beside
+     * the method before it is chosen, and the one the totals carry once it is.
+     *
+     * @param object $method The payment method, as the method lists read it.
+     *
+     * @since  2.2.2
+     */
+    public function paymentFee(object $method): ?ShippingCharge
+    {
+        $state = $this->state();
+        $totals = $this->totals();
+        $currency = $state->currency();
+
+        // The order total before the fee: the goods after their discounts, the shipping after its rules and the
+        // plugins' charges.
+        $incl = $totals->total()->add($totals->shipmentTotal())->subtract($this->rules()->total());
+        $excl = $totals->totalExcl()->add($totals->shipmentTotalExcl())->subtract($this->rules()->totalExcl());
+
+        foreach ($this->charges() as $row) {
+            $incl = $incl->add($row->amount_tax_incl_money);
+            $excl = $excl->add(Money::of($row->amount_tax_excl, $currency));
+        }
+
+        return PaymentFee::of(
+            method:      $method,
+            totalIncl:   $incl,
+            totalExcl:   $excl,
+            destination: $this->deliveryPlaces(),
+            audience:    $state->subject()->priceContext(),
+        );
+    }
+
+    /**
      * The charges the commercial plugins add, folded into money and ordered.
      *
      * The monetary fold is the pricing engine's; what is decided here is the
@@ -168,22 +262,22 @@ final class CartComputation
      * or removed, or a carriage that changed, yields a new result and the
      * charges are folded again.
      *
-     * @since  2.0.0
+     * @since  2.2.2
      */
-    public function contributions(): array
+    private function charges(): array
     {
         $basis = $this->rules()->result();
 
-        if ($this->contributions !== null && $this->contributionsBasis === $basis) {
-            return $this->contributions;
+        if ($this->charges !== null && $this->chargesBasis === $basis) {
+            return $this->charges;
         }
 
-        $this->contributionsBasis = $basis;
+        $this->chargesBasis = $basis;
         $state = $this->state();
         ['charges' => $collected, 'notLoaded' => $this->contributionsNotLoaded] = $this->plugins->contributions($state, $state->subject()->customer(), $this->totals()->total());
 
         if ($collected === []) {
-            return $this->contributions = [];
+            return $this->charges = [];
         }
 
         $totals = $this->totals();
@@ -229,7 +323,7 @@ final class CartComputation
 
         usort($folded, static fn (object $a, object $b): int => $a->sort_order <=> $b->sort_order);
 
-        return $this->contributions = $folded;
+        return $this->charges = $folded;
     }
 
     /**
@@ -243,7 +337,7 @@ final class CartComputation
      */
     public function contributionsNotLoaded(): array
     {
-        $this->contributions();
+        $this->charges();
 
         return $this->contributionsNotLoaded;
     }
@@ -398,6 +492,20 @@ final class CartComputation
 
         $this->assumedShipmentId = $shipmentMethodId;
         $this->forgetMethods();
+    }
+
+    /**
+     * Evaluate this cart as though this payment method were chosen, writing nothing: its fee is the one the totals
+     * carry. Placement assumes the method the submission names, as it assumes the carrier, so the order is totalled
+     * and frozen with the fee of the method it records, whatever the cart row last stored.
+     *
+     * @param int $paymentMethodId The payment method.
+     *
+     * @since  2.2.2
+     */
+    public function assumePayment(int $paymentMethodId): void
+    {
+        $this->assumedPaymentId = $paymentMethodId;
     }
 
     /**

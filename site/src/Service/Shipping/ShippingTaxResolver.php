@@ -13,7 +13,9 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedTax;
+use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
 use Alfa\Component\Alfa\Site\Service\Pricing\RulePrecedence;
 use Joomla\CMS\Factory;
@@ -61,13 +63,39 @@ final class ShippingTaxResolver
     public function resolve(ShipmentPricingContext $context): array
     {
         $db = Factory::getContainer()->get(DatabaseInterface::class);
-        $ids = $this->methodTaxIds(db: $db, methodId: $context->methodId);
+
+        return $this->resolveRules(
+            taxIds:      $this->methodTaxIds(db: $db, methodId: $context->methodId),
+            destination: $context->destination,
+            audience:    $context->audience,
+            currency:    $context->currency,
+        );
+    }
+
+    /**
+     * The tax chain of a list of tax rules for one destination and audience, in the order the rates apply: the
+     * reading resolve() makes of a shipping method's rules, for a charge that names its rules elsewhere (a payment
+     * method's fee, PaymentFee).
+     *
+     * @param int[] $taxIds The tax rules the charge names; empty = untaxed.
+     * @param int[] $destination The place it goes to and every place containing it, nearest first; empty = unknown.
+     * @param PriceContext $audience The customer's groups, user and reference date.
+     * @param Currency $currency The money the charge is stated in.
+     *
+     * @return AppliedTax[] Empty when nothing is taxed here.
+     *
+     * @since  2.2.2
+     */
+    public function resolveRules(array $taxIds, array $destination, PriceContext $audience, Currency $currency): array
+    {
+        $ids = self::positiveIds($taxIds);
 
         if ($ids === []) {
             return [];
         }
 
-        $places = self::positiveIds($context->destination);
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $places = self::positiveIds($destination);
 
         // The nearest place is the destination itself; eligible() walks every
         // place above it. An ineligible one admits only the rules that name no
@@ -76,7 +104,6 @@ final class ShippingTaxResolver
             $places = [];
         }
 
-        $audience = $context->audience;
         $groups = $audience->getUserGroupsSql();
 
         $query = $db->getQuery(true)
@@ -107,7 +134,7 @@ final class ShippingTaxResolver
         // over the same chain.
         return PriceComputationEngine::chainOf(
             taxes:    RulePrecedence::order(rows: $db->setQuery($query)->loadObjectList() ?: [], chain: $places),
-            currency: $context->currency,
+            currency: $currency,
         );
     }
 

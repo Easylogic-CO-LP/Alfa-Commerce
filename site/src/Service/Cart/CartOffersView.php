@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\MethodViewContribution;
+use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 
 defined('_JEXEC') or die;
 
@@ -56,6 +57,8 @@ final class CartOffersView
      * @param array $shipmentViews The same for carriers.
      * @param list<string> $shipmentNeeds What the checkout has not given yet that a carrier waits for, 'country' before
      *                                    'postcode' ({@see CartMethods::shipmentNeeds()}).
+     * @param array<int, Money> $paymentFees The fee each offered payment method would add, tax included, keyed by
+     *                                       method id; a method that adds none is not in it ({@see PaymentFee}).
      *
      * @since  2.0.0
      */
@@ -73,7 +76,21 @@ final class CartOffersView
         public readonly array $paymentViews = [],
         public readonly array $shipmentViews = [],
         public readonly array $shipmentNeeds = [],
+        public readonly array $paymentFees = [],
     ) {
+    }
+
+    /**
+     * The fee a payment method would add to this order, tax included, or null when it adds none: shown beside the
+     * method before it is chosen.
+     *
+     * @param int $methodId The payment method being drawn.
+     *
+     * @since  2.2.2
+     */
+    public function feeFor(int $methodId): ?Money
+    {
+        return $this->paymentFees[$methodId] ?? null;
     }
 
     /**

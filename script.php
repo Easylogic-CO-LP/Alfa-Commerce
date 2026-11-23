@@ -276,6 +276,11 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_places' => [
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
+        '#__alfa_payments' => [
+            'fee_amount' => ["decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Fixed fee in the order currency; 0 = none'", 'show_on_product'],
+            'fee_percent' => ["decimal(10,4) NOT NULL DEFAULT 0.0000 COMMENT 'Fee as a percentage of the order total before the fee; 0 = none'", 'fee_amount'],
+            'fee_entry_mode' => ["enum('tax_included','tax_excluded') NOT NULL DEFAULT 'tax_included' COMMENT 'What the fee figures mean: tax_included (the customer pays them, the tax is inside, and the percentage is of the gross total) or tax_excluded (the tax is added on top, and the percentage is of the net total)'", 'fee_percent'],
+        ],
     ];
 
     /**

@@ -165,6 +165,19 @@ final class PlacementCart
     }
 
     /**
+     * Evaluate this placement as though this payment method were chosen: the order is totalled with its fee, the
+     * method THIS submission names, and the cart row is not written.
+     *
+     * @param int $paymentMethodId The payment method this submission chose.
+     *
+     * @since  2.2.2
+     */
+    public function assumePayment(int $paymentMethodId): void
+    {
+        $this->cart->computation->assumePayment($paymentMethodId);
+    }
+
+    /**
      * The address ids the order will record.
      *
      * Placement-local on purpose: the order freezes its own copies of these,

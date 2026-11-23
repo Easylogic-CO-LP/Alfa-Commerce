@@ -15,3 +15,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
   KEY `idx_linked_item_id` (`linked_item_id`),
   KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
+
+-- A payment method's fee: the tax rules it is taxed with (the fee's three columns on #__alfa_payments are added by the
+-- installation's new-columns step). No row = an untaxed fee. The install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_fee_taxes` (
+  `payment_id` int(11) NOT NULL,
+  `tax_id` int(11) NOT NULL,
+  PRIMARY KEY (`payment_id`, `tax_id`),
+  KEY `idx_tax_id` (`tax_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

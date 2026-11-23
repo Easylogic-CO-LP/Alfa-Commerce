@@ -140,6 +140,62 @@
 
         <!-- TODO: currency -->
 
+        <!-- The method's fee: a fixed amount and a percentage of the order total before the fee, summed; both 0 for
+             none. What the figures mean and the tax rules the fee carries are the method's own, as a shipping
+             method's price entry mode and taxes are. -->
+        <fieldset name="fee" label="COM_ALFA_FIELDSET_PAYMENT_FEE" description="COM_ALFA_FIELDSET_PAYMENT_FEE_DESC">
+
+            <field
+                    name="fee_amount"
+                    type="number"
+                    min="0"
+                    step="any"
+                    default="0"
+                    label="COM_ALFA_FORM_LBL_PAYMENT_FEE_AMOUNT"
+                    description="COM_ALFA_FORM_DESC_PAYMENT_FEE_AMOUNT"
+            />
+
+            <field
+                    name="fee_percent"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="any"
+                    default="0"
+                    label="COM_ALFA_FORM_LBL_PAYMENT_FEE_PERCENT"
+                    description="COM_ALFA_FORM_DESC_PAYMENT_FEE_PERCENT"
+            />
+
+            <field
+                    name="fee_entry_mode"
+                    type="radio"
+                    label="COM_ALFA_FORM_LBL_PAYMENT_FEE_ENTRY_MODE"
+                    description="COM_ALFA_FORM_DESC_PAYMENT_FEE_ENTRY_MODE"
+                    class="btn-group"
+                    default="tax_included"
+                    required="true"
+                    validate="options"
+            >
+                <option value="tax_included">COM_ALFA_PAYMENT_FEE_ENTRY_MODE_INCLUDED</option>
+                <option value="tax_excluded">COM_ALFA_PAYMENT_FEE_ENTRY_MODE_EXCLUDED</option>
+            </field>
+
+            <!-- NO default: an empty list means an untaxed fee, never a wildcard and never a shop default. -->
+            <field
+                    name="fee_taxes" type="model"
+                    model="taxes"
+                    column_value="id"
+                    column_text="name"
+                    input_type="list"
+                    required="false"
+                    multiple="true"
+                    label="COM_ALFA_FORM_LBL_PAYMENT_FEE_TAXES"
+                    description="COM_ALFA_FORM_DESC_PAYMENT_FEE_TAXES"
+                    layout="joomla.form.field.list-fancy-select"
+            />
+
+        </fieldset>
+
         <fieldset name="publish">
             <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC"
                    class="inputbox" size="1">

@@ -113,6 +113,8 @@ $section = function (
                     <?php foreach ($offered as $method) :
                         $methodId = (int) $method->id;
                         $view     = $offers->viewFor($kind, $methodId);
+                        // The fee a payment method adds to the order, as the storefront shows it.
+                        $fee      = $kind === 'payment' ? $offers->feeFor($methodId) : null;
                         ?>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="radio"
@@ -122,6 +124,9 @@ $section = function (
 
                             <label class="form-check-label" for="alfa-<?php echo $kind; ?>-<?php echo $methodId; ?>">
                                 <span class="fw-semibold"><?php echo $this->escape((string) ($method->name ?? $method->type)); ?></span>
+                                <?php if ($fee !== null) : ?>
+                                    <span class="text-muted ms-1"><?php echo $this->escape(Text::sprintf('COM_ALFA_CART_PAYMENT_FEE', $fee->format())); ?></span>
+                                <?php endif; ?>
                             </label>
 
                             <?php if ((string) ($method->description ?? '') !== '') : ?>
