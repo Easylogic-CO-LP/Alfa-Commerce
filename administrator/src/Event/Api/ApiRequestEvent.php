@@ -312,7 +312,7 @@ final class ApiRequestEvent extends AbstractEvent
 
     /**
      * Refuse the request with a status and one sentence the caller reads: JSON:API errors on a JSON:API route,
-     * {"errors":[{"title":...,"code":...}]} on an application/json route, the sentence as text/plain otherwise.
+     * {"errors":[{"code":...,"title":...}]} on an application/json route, the sentence as text/plain otherwise.
      *
      * @param int $status 400, 403 (a permission the plugin asks inside), 404, 405, 409, 422 or 429.
      * @param string $sentence What the caller reads.
