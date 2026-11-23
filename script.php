@@ -2106,6 +2106,17 @@ class com_alfaInstallerScript extends InstallerScript
             'administrator/components/com_alfa/sql/updates/mysql/2.1.0.sql' => ['39c90549e75a3ec0821a1e9212cce552594d03a6c00600514519c77d0ac57ead'],
             'administrator/components/com_alfa/sql/updates/mysql/2.1.1.sql' => ['35b8067106bbb07d2486b93cc8468e86a848f74475531838c09b01a73b04dbf1'],
             'administrator/components/com_alfa/sql/updates/mysql/2.1.4.sql' => ['d065d305a6f4968a98bd1bb14a55b6b600547de9529425e0538dbba9a9733981'],
+            // Classes of update steps and of an event that nothing uses any more: the update steps belonged to
+            // releases before the update floor, and nothing dispatched the event. The copies the releases of the
+            // floor's line installed (PackageHelper::contentHash()).
+            'administrator/components/com_alfa/src/Service/Setup/CollationCheck.php' => [
+                'a8bf7e54b56f1785ae85040896f266ae644d11c2eba54d4927c20d2e5d71946c',
+                '3f8729df55bdf1a26599156831d163f28c408f27ce8ba87ecd1d47ea425ebb0e',
+            ],
+            'administrator/components/com_alfa/src/Service/Setup/NotificationKeys.php' => ['b1c5d97a9350e66097103142b5fd9c4db4099f93c191221a86b1d0d3c014c4eb'],
+            'administrator/components/com_alfa/src/Service/Setup/ShippingOptionsMigration.php' => ['4e22724a1b283b697008d9e4651283248029aaea98b1de5784a5a1749ab56ef2'],
+            'administrator/components/com_alfa/src/Service/Setup/TemplateLayoutMigration.php' => ['663e25cb8844f83f37bb947883656c486e9ad77dbb66859fc8a9724ec3dcc6fc'],
+            'administrator/components/com_alfa/src/Event/Inventory/InventoryTransferredEvent.php' => ['a34f0233982661d93891628f5dd892ae14f12bfb5d967001c1cd65e596699c94'],
         ],
     ];
 
