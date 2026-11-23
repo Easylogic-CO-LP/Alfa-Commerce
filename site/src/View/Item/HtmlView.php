@@ -220,12 +220,7 @@ class HtmlView extends BaseHtmlView
                 return;
             }
 
-            Surfaces::appendTo(
-                target: $slots,
-                event: $paymentEvent,
-                ownerGroup: 'alfa-payments',
-                ownerName: $payment_method->type,
-            );
+            $this->appendMethodSurfaces(slots: $slots, event: $paymentEvent, group: 'alfa-payments', type: (string) $payment_method->type);
             $this->item->surfaces = new SurfaceMap($slots);
         }
 
@@ -253,12 +248,7 @@ class HtmlView extends BaseHtmlView
                 return;
             }
 
-            Surfaces::appendTo(
-                target: $slots,
-                event: $shipment_event,
-                ownerGroup: 'alfa-shipments',
-                ownerName: $shipment_method->type,
-            );
+            $this->appendMethodSurfaces(slots: $slots, event: $shipment_event, group: 'alfa-shipments', type: (string) $shipment_method->type);
             $this->item->surfaces = new SurfaceMap($slots);
         }
 
@@ -348,6 +338,36 @@ class HtmlView extends BaseHtmlView
         }
 
         return $images;
+    }
+
+    /**
+     * A method plugin's parts for the product page, added to the page's slots: each part in the place the plugin
+     * asked its event for. When the shop sells nothing online (catalogue-only mode) none of them lands in the buy
+     * area: there is no add to cart for them to stand beside, and the model has left that area to plain read-only
+     * lists of the product's fields.
+     *
+     * @param array $slots The page's slots, added to.
+     * @param object $event The method's onItemView event, asked.
+     * @param string $group The plugin's group.
+     * @param string $type The method's plugin.
+     *
+     * @since  2.3.0
+     */
+    private function appendMethodSurfaces(array &$slots, object $event, string $group, string $type): void
+    {
+        $own = [];
+        Surfaces::appendTo(target: $own, event: $event, ownerGroup: $group, ownerName: $type);
+        $buyArea = [ItemSurface::BuyForm->value, ItemSurface::NearAddToCart->value];
+
+        foreach ($own as $slot => $descriptors) {
+            if (!($this->item->sellsOnline ?? true) && \in_array($slot, $buyArea, true)) {
+                continue;
+            }
+
+            foreach ($descriptors as $descriptor) {
+                $slots[$slot][] = $descriptor;
+            }
+        }
     }
 
     /**

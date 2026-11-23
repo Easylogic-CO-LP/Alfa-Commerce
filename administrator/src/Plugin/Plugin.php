@@ -358,7 +358,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * UPDATE (an 'id' that exists): ONLY the columns you pass are written.
      * Every other column keeps the value it already had; defaults are NOT
-     * re-applied. So amending one field is genuinely one field:
+     * re-applied. An id no row has is refused: nothing is written and 0 is
+     * answered. So amending one field is genuinely one field:
      *
      *   $this->log(['id' => $logId, 'id_order' => $order->id, 'status' => 'refunded']);
      *   // transaction_id, amount, created_on ... all untouched
@@ -591,6 +592,17 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         try {
             if ($logId > 0) {
+                // An id names a row that is there: one that is not is refused, never answered as written.
+                $exists = (int) $db->setQuery(
+                    'SELECT COUNT(*) FROM ' . $db->quoteName($tableName) . ' WHERE ' . $db->quoteName('id') . ' = ' . $logId,
+                )->loadResult();
+
+                if ($exists === 0) {
+                    $this->reportLogFailure('Log row #' . $logId . ' ' . $this->logRowLabel($data) . ' not written to ' . $tableName . ': no row has that id.');
+
+                    return 0;
+                }
+
                 // UPDATE: only what the caller passed
                 $assignments = [];
 

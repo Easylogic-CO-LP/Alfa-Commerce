@@ -290,7 +290,7 @@ abstract class ShipmentsPlugin extends Plugin
      * @api ANSWERS: the ledger in builder mode with this plugin as the writer; its save() writes only on this plugin's
      *      own methods.
      *
-     * @param object $order Full order object (->id, ->items, ->id_shipment_method)
+     * @param object $order The order: the reader the plugin was handed, or a loaded row (read through Order::of())
      *
      * @return ShipmentLedger Builder: chain setters, finish with ->save()
      *
@@ -592,7 +592,9 @@ abstract class ShipmentsPlugin extends Plugin
      * checkout has not given yet: {@see self::REFUSAL_NEEDS_PLACE} and {@see self::REFUSAL_NEEDS_POSTCODE},
      * worded in core's language file, so a carrier needs no key of its own for them.
      *
-     * @api READ ONLY: the reason key the last pricing call recorded, for setUnavailable().
+     * A pricing call that prices the cart records none: the answer is then ''.
+     *
+     * @api READ ONLY: the reason key the last pricing call recorded, for setUnavailable(); '' when it priced the cart.
      *
      * @since  2.0.0
      */
@@ -774,6 +776,8 @@ abstract class ShipmentsPlugin extends Plugin
         // In both, a 40 kg parcel was accepted for a locker at no charge. So
         // the envelope is judged first, on its own, and a parcel outside it is
         // refused whatever the zone table says or does not say.
+        // Each pricing call records its own refusal: one that prices the cart leaves none.
+        $this->refusal = '';
         $refusal = $this->parcelRefusal($lines, $limits);
 
         if ($refusal !== null) {

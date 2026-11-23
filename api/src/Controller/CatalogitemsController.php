@@ -19,7 +19,9 @@ use Joomla\CMS\MVC\Controller\ApiController;
  *
  * Served by the SITE models, so it answers the storefront's question ("what
  * may this visitor buy, at what price?") rather than the back office's ("what
- * rows exist?"). Only published, in-window, access-allowed products appear.
+ * rows exist?"). Only published, in-window, access-allowed products appear,
+ * and a product set to hide from listings while it has no salable stock
+ * (stock_action, StockVisibilityPolicy) is left out of the list until it has.
  *
  * Never gains write routes: the site models have no getForm()/validate()/
  * save(), and back-office editing already lives at v1/alfa/items.

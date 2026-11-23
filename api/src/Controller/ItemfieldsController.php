@@ -55,10 +55,10 @@ class ItemfieldsController extends ApiController
     }
 
     /**
-     * An item field's values, which the API does not write: `values` and the edit form's `deleted_value_ids`.
-     * The field save reads both from the request as its Values tab posts them, and keeps a value row by its id
-     * whatever field it belongs to, so a write naming another field's value moved it under this field, with what
-     * products built on it, and a deletion reached the unused values of any field.
+     * An item field's values, which the field's own write does not take: `values` and the edit form's
+     * `deleted_value_ids`. The field save reads both from the request as its Values tab posts them, and keeps a value
+     * row by its id whatever field it belongs to, so a write naming another field's value moved it under this field,
+     * with what products built on it, and a deletion reached the unused values of any field.
      *
      * @return string[]
      *
