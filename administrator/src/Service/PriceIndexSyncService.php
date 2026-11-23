@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PriceChange;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -796,7 +797,7 @@ class PriceIndexSyncService
                 $this->alignGroupSets();
             }
         } catch (Throwable $e) {
-            $this->logWarning(message: 'the sets left by a change of the pricing groups could not be dropped after a preparation: ' . $e->getMessage());
+            $this->logWarning(message: 'the sets left by a change of the pricing groups could not be dropped after a preparation: ' . ErrorText::of($e));
         }
 
         return 'prepared';
