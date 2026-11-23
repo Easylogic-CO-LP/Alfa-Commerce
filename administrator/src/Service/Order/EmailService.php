@@ -55,6 +55,9 @@ use Throwable;
  * through deliverForStatus() once the change has committed; a mail failure is
  * recorded on that task and never touches the order.
  *
+ * The order screen's Send payment link sends through sendPaymentLink(): the customer alone, the link to pay the order
+ * again, its outcome answered at once.
+ *
  * Token catalogue (see availableTokens() for the live list shown in the
  * admin picker):
  *
@@ -986,6 +989,89 @@ class EmailService
                 }
             }
         }
+    }
+
+    /**
+     * The order's payment link, e-mailed to its customer: what the order screen's Send payment link sends.
+     *
+     * The message is the order e-mail's layout (emails.order.default, or the administrator template's override of it)
+     * with its Pay now block, the order's lines, totals and payments. Its subject and opening are this message's own
+     * (COM_ALFA_ORDEREMAIL_PAYLINK_SUBJECT and COM_ALFA_ORDEREMAIL_PAYLINK_INTRO), since a status's texts speak of the
+     * status; the layout's other positions keep their default texts. Everything is in the order's language. Download
+     * links are never composed here: composing one rotates its token and would end the link the customer already holds.
+     *
+     * Sent only while the order may be paid again (PayAgain::verdict() answers open); the link is checked again on
+     * every use. One recipient, the customer; the shop gets no copy.
+     *
+     * @param int $orderId The order.
+     *
+     * @return array{outcome: string, recipient: string, error: string} The outcome: self::OUTCOME_SENT, OUTCOME_FAILED
+     *                                                                  (an empty recipient when the order names no
+     *                                                                  address), OUTCOME_UNKNOWN or OUTCOME_MAIL_OFF;
+     *                                                                  the address; the error when it was not sent.
+     *
+     * @throws RuntimeException When the order may not be paid again, or it or its status cannot be read (nothing sent).
+     *
+     * @since  2.3.0
+     */
+    public static function sendPaymentLink(int $orderId): array
+    {
+        $order = self::loadOrder(orderId: $orderId);
+
+        if ($order === null) {
+            throw new RuntimeException('Order #' . $orderId . ' could not be read for its payment link.');
+        }
+
+        $verdict = PayAgain::verdict(orderId: $orderId);
+
+        if ($verdict !== PayAgain::OPEN) {
+            throw new RuntimeException('Order #' . $orderId . ' may not be paid again (' . $verdict . '): no payment link is sent.');
+        }
+
+        $langTag = self::resolveLangTag(idLanguage: (int) ($order->id_language ?? 0));
+        $statusId = (int) ($order->id_order_status ?? 0);
+        $status = self::loadStatusForLanguage(statusId: $statusId, langTag: $langTag);
+        $payUrl = PayAgain::link(order: $order);
+
+        if ($status === null || $payUrl === '') {
+            throw new RuntimeException('Order #' . $orderId . ' has no readable status or no payment key: no payment link is sent.');
+        }
+
+        $recipient = self::resolveCustomerEmail(order: $order);
+
+        if ($recipient === '') {
+            return ['outcome' => self::OUTCOME_FAILED, 'recipient' => '', 'error' => 'The order names no customer e-mail address.'];
+        }
+
+        if (!Factory::getApplication()->get('mailonline', 1)) {
+            return ['outcome' => self::OUTCOME_MAIL_OFF, 'recipient' => $recipient, 'error' => 'Sending mail is switched off for the site (Global Configuration, Send Mail: No).'];
+        }
+
+        $positions = array_replace(self::defaultsForLanguage(layoutId: self::LAYOUT_ID, langTag: $langTag), [
+            self::SUBJECT_POSITION => MultilingualHelper::firstTranslated(key: 'COM_ALFA_ORDEREMAIL_PAYLINK_SUBJECT', langTag: $langTag),
+            'intro' => MultilingualHelper::firstTranslated(key: 'COM_ALFA_ORDEREMAIL_PAYLINK_INTRO', langTag: $langTag),
+        ]);
+        $context = array_replace(
+            self::buildLayoutContext(order: $order, status: $status, recipient: 'customer', langTag: $langTag),
+            ['payUrl' => $payUrl],
+        );
+
+        $result = self::dispatch(
+            recipient:   $recipient,
+            positions:   $positions,
+            tokens:      self::buildTokens(order: $order, status: $status, langTag: $langTag),
+            orderId:     $orderId,
+            orderNumber: self::orderNumber(order: $order),
+            statusId:    $statusId,
+            layoutId:    self::LAYOUT_ID,
+            context:     $context,
+        );
+
+        return [
+            'outcome' => $result[0] ?? self::OUTCOME_FAILED,
+            'recipient' => $recipient,
+            'error' => $result[1] ?? 'Nothing was composed to send.',
+        ];
     }
 
     /**

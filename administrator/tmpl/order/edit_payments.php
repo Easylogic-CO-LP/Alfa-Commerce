@@ -38,7 +38,9 @@ use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\OrderLabels;
 use Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
+use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
@@ -660,6 +662,27 @@ echo HTMLHelper::_(
         }
     })();
 </script>
+
+<?php
+// Send payment link: Pay now, the link to this order's payment step, e-mailed to the customer while the order may be
+// paid again (PayAgain, the rule the confirmation page and the order e-mail read) and the customer has an address. The
+// button posts the sibling form at order.sendPaymentLink (nested <form> is invalid HTML; the token rides).
+$payLinkTo = $canEditOrder && PayAgain::verdict(orderId: (int) $this->order->id) === PayAgain::OPEN
+    ? OrderIdentity::notificationEmail($this->order)
+    : '';
+
+if ($payLinkTo !== '') : ?>
+<div class="card mt-3" style="max-width: 30rem;">
+    <div class="card-body">
+        <h6 class="card-title"><?php echo Text::_('COM_ALFA_ORDER_PAYMENT_LINK_TITLE'); ?></h6>
+        <p class="small text-muted mb-2"><?php echo Text::sprintf('COM_ALFA_ORDER_PAYMENT_LINK_HINT', $this->escape($payLinkTo)); ?></p>
+        <button type="submit" class="btn btn-primary btn-sm" form="alfa-order-credit-form"
+                formaction="<?php echo Route::_('index.php?option=com_alfa', false); ?>&task=order.sendPaymentLink&id_order=<?php echo (int) $this->order->id; ?>">
+            <?php echo Text::_('COM_ALFA_ORDER_PAYMENT_LINK_BUTTON'); ?>
+        </button>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php
 // Pay from customer credit: the order-side wallet SPEND
