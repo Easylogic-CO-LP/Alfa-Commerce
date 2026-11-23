@@ -73,4 +73,26 @@ final class MysqlError
 
         return (int) $error->getCode();
     }
+
+    /**
+     * Whether a failure is another write holding the same rows at that moment: a deadlock (1213), which the server ended
+     * by rolling the whole transaction back, or a lock wait that ran out (1205), on the failure or any it wraps. The
+     * same work sent again a moment later finds the rows free.
+     *
+     * @api READ ONLY: true for 1213 and 1205 anywhere in the failure's chain, on both of Joomla's MySQL drivers.
+     *
+     * @param Throwable $error The failure.
+     *
+     * @since  2.3.0
+     */
+    public static function busy(Throwable $error): bool
+    {
+        for ($failure = $error; $failure !== null; $failure = $failure->getPrevious()) {
+            if (\in_array(self::number(error: $failure), [1205, 1213], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

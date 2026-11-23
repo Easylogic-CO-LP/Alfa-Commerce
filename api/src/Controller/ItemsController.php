@@ -15,12 +15,14 @@ use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSaveBusyException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\UnitBatch;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
+use Closure;
 use Joomla\CMS\Document\JsonapiDocument;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
@@ -91,10 +93,10 @@ class ItemsController extends ApiController
     /**
      * The steps of the product's graph the request sends, laid on the item model's write; null for a write without one.
      *
-     * @var (\Closure(ItemWriteService): void)|null
+     * @var (Closure(ItemWriteService): void)|null
      * @since  2.3.0
      */
-    private ?\Closure $graph = null;
+    private ?Closure $graph = null;
 
     /**
      * The warnings of the graph's keys a part does not take.
@@ -244,13 +246,15 @@ class ItemsController extends ApiController
 
     /**
      * Save the write: prices changed since they were read answer 409 naming prices_state, a SKU another product or variant
-     * holds answers 409 with the refusal's sentence, a refused graph answers its refusals; nothing saved.
+     * holds answers 409 with the refusal's sentence, a refused graph answers its refusals; nothing saved; a
+     * save that met another write of the same rows answers 409 with Retry-After, to be sent again.
      *
      * @param int|null $recordKey The record's key.
      *
      * @return int The record's id.
      *
-     * @throws Save When the write's SKU is another unit's (409), or the save was refused otherwise.
+     * @throws Save When the write's SKU is another unit's (409), another write held its rows (409, Retry-After), or the
+     *              save was refused otherwise.
      *
      * @since  2.3.0
      */
@@ -273,11 +277,21 @@ class ItemsController extends ApiController
                     // The write checked the product out before its save; a refused write gives it back as it found it.
                     $model->checkin(RequestScalar::int($this->input, 'id'));
 
+                    if (\in_array('busy', array_column($model->written()->refused, 'code'), true)) {
+                        $this->app->setHeader('Retry-After', (string) ItemSaveBusyException::RETRY_AFTER, true);
+                    }
+
                     throw new ItemGraphRefusedException(refusals: $model->written()->refused);
                 }
 
                 foreach ($model->getErrors() as $error) {
                     if ($error instanceof SkuInUseException) {
+                        throw new Save($error->refusal->placed(), $error->refusal->status, $e);
+                    }
+
+                    if ($error instanceof ItemSaveBusyException) {
+                        $this->app->setHeader('Retry-After', (string) ItemSaveBusyException::RETRY_AFTER, true);
+
                         throw new Save($error->refusal->placed(), $error->refusal->status, $e);
                     }
                 }
@@ -291,7 +305,7 @@ class ItemsController extends ApiController
      * Items list view amended to add filtering of data
      *
      * Each filter goes onto the model state under the name the items screen's filter form gives it, and the list
-     * model applies it as it does for the screen (2.2.1: stock, in, low or out, and fields, the item field values).
+     * model applies it as it does for the screen (stock: in, low or out; fields: the item field values).
      *
      * @return static A BaseController object to support chaining.
      *
@@ -610,8 +624,13 @@ class ItemsController extends ApiController
             array_push($refusals, ...$partRefusals);
 
             if ($value !== null) {
-                $steps[] = static fn (ItemWriteService $write) => $write->option(value: $value, operation: $delta['operation'] ?? null, amount: $delta['amount'] ?? null,
-                    applyOn: $delta['apply_on'] ?? null, pointer: $at);
+                $steps[] = static fn (ItemWriteService $write) => $write->option(
+                    value: $value,
+                    operation: $delta['operation'] ?? null,
+                    amount: $delta['amount'] ?? null,
+                    applyOn: $delta['apply_on'] ?? null,
+                    pointer: $at,
+                );
             }
         }
 
@@ -634,8 +653,12 @@ class ItemsController extends ApiController
                 continue;
             }
 
-            array_push($warnings, ...$this->unknownKeys(body: $entry, keys: ['values', 'sku', 'gtin', 'mpn', 'state', 'manage_stock', 'default', 'overrides', 'translations', 'prices', 'stock'],
-                what: 'a combination', pointer: $at));
+            array_push($warnings, ...$this->unknownKeys(
+                body: $entry,
+                keys: ['values', 'sku', 'gtin', 'mpn', 'state', 'manage_stock', 'default', 'overrides', 'translations', 'prices', 'stock'],
+                what: 'a combination',
+                pointer: $at,
+            ));
             [$fields, $prices, $partRefusals, $partWarnings] = $this->combinationFields(body: $entry, pointer: $at);
             [$stock, $stockRefusals] = \array_key_exists('stock', $entry) ? $this->stockFigures(lines: $entry['stock'], pointer: $at . '/stock') : [[], []];
             array_push($refusals, ...$partRefusals, ...$stockRefusals);
@@ -729,7 +752,7 @@ class ItemsController extends ApiController
     /**
      * The note of a product the delete archived instead of deleting it: ItemModel::delete() archives a product that order
      * lines were sold as, whose orders are still fulfilled, cancelled and returned against its stock identity, and the
-     * delete answers 200 with the product, archived, and this note (2.2.1).
+     * delete answers 200 with the product, archived, and this note.
      *
      * @param int $id The product.
      *
@@ -742,7 +765,7 @@ class ItemsController extends ApiController
     }
 
     /**
-     * A product is deleted from the trash only, as the administrator's list of products deletes it (2.2.1).
+     * A product is deleted from the trash only, as the administrator's list of products deletes it.
      *
      * @since  2.2.1
      */

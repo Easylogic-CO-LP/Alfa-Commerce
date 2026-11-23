@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
+use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Api\IdempotencyKeys;
 use Alfa\Component\Alfa\Administrator\Service\Api\IdempotencyRefusedException;
@@ -694,26 +695,10 @@ final class InventoryCommands
                 combinationId: (int) ($line['combination'] ?? 0),
                 pointer: $pointer,
             ),
-            self::busy(failure: $failure) => new Refusal(code: 'busy', sentence: 'The stock records were busy with another change. Send the request again in a few seconds.'
+            MysqlError::busy(error: $failure) => new Refusal(code: 'busy', sentence: 'The stock records were busy with another change. Send the request again in a few seconds.'
                 . $nothing, status: Refusal::CONFLICT),
             default => new Refusal(code: 'refused', sentence: ErrorText::of($failure) . $nothing, pointer: $pointer, status: Refusal::CONFLICT),
         };
-    }
-
-    /**
-     * Whether a failure is a deadlock or a lock wait that ran out.
-     *
-     * @since  2.3.0
-     */
-    private static function busy(Throwable $failure): bool
-    {
-        for ($e = $failure; $e !== null; $e = $e->getPrevious()) {
-            if (\in_array((int) $e->getCode(), [1205, 1213], true)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Card\CardRegistry;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\CombinationsChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
@@ -41,7 +42,7 @@ use Throwable;
  *     $result = CombinationService::create(itemId: 42)
  *         ->values([5 => 12, 6 => 23])
  *         ->set('sku', 'SMX-WHT-512')
- *         ->prices([['mode' => 'adjust', 'operation' => '+', 'value' => '250.00']])
+ *         ->prices([['_mode' => 'adjust', 'operation' => '+', 'value' => '250.00']])
  *         ->save();
  *
  *     $result = CombinationService::change(itemId: 42, combinationId: 305)->set('sku', 'SMX-WHT-512-EU')->save();
@@ -116,7 +117,8 @@ final class CombinationService
     private array $stockBaseline = [];
 
     /**
-     * Opening stock by location, when tracking is switched on.
+     * Opening stock by location: of a switch of tracking on, or a new combination's first stock when its product
+     * already tracks stock.
      *
      * @var array<int, string>
      * @since  2.3.0
@@ -207,6 +209,8 @@ final class CombinationService
 
             try {
                 ItemFieldsAdminHelper::saveCombinations(itemId: $itemId, payload: [], defaultId: '', deletedCombinationIds: implode(',', $ids));
+                // A variant removed or archived is one the product no longer sells: a change filter[changed_since] sees.
+                CommerceChange::mark(db: $db, itemIds: [$itemId]);
                 ItemFieldsAdminHelper::ensureOnePublishedDefault(itemId: $itemId);
                 SkuIndex::keep(itemId: $itemId, before: $skusBefore);
                 $left = self::currentRows(itemId: $itemId) + self::archivedRows(itemId: $itemId, ids: $ids);
@@ -280,7 +284,9 @@ final class CombinationService
     }
 
     /**
-     * The combination's price rows, as the window writes them: rows kept by id, rows not sent removed.
+     * The combination's price rows, in the window's keys (_mode price or adjust, operation, value, override_value,
+     * override_type, adjust_target for an adjust, price_status, the scope and the quantity band): rows kept by id, rows
+     * not sent removed.
      *
      * @param list<array> $rows The rows.
      *
@@ -310,7 +316,8 @@ final class CombinationService
     }
 
     /**
-     * Opening stock by location, when the save switches tracking on.
+     * Opening stock by location: the opening figures of a switch of tracking on, or a new combination's first stock
+     * when its product already tracks stock (applied after the save, as changed figures are).
      *
      * @param array<int, string> $figures location id => figure
      *
@@ -391,6 +398,14 @@ final class CombinationService
             try {
                 if ($combinationId === 0) {
                     $combinationId = $this->make(db: $db);
+
+                    // A new combination whose stock is already tracked (its product tracks stock, and the save does not
+                    // switch it on) takes its opening figures as its first stock, converged after the save.
+                    if ($this->opening !== [] && $this->plan(combinationId: $combinationId)['transition'] !== 'on') {
+                        $this->stock = $this->stock !== [] ? $this->stock : $this->opening;
+                        $this->stockBaseline = array_fill_keys(array_keys($this->stock), '0');
+                        $this->opening = [];
+                    }
                 }
 
                 $plan = $this->plan(combinationId: $combinationId);
@@ -427,12 +442,6 @@ final class CombinationService
                 TransactionState::rollBackLevel(db: $db, failure: $e);
 
                 throw $e;
-            }
-
-            // A new combination its product already tracks stock for takes its opening figures as its first stock.
-            if (!$opening && $this->combinationId === 0 && $this->stock === [] && $this->opening !== []) {
-                $this->stock = $this->opening;
-                $this->stockBaseline = array_fill_keys(array_keys($this->opening), '0');
             }
 
             // Changed tracked figures converge after the save, as the window converges them: a refusal is not a failed
@@ -664,7 +673,8 @@ final class CombinationService
     }
 
     /**
-     * onAlfaCombinationsChanged once the write commits, to each listener on its own.
+     * Once the write commits: the dashboard cards' cache dropped, and onAlfaCombinationsChanged to each listener on its
+     * own.
      *
      * @param list<int> $created
      * @param list<int> $changed
@@ -676,6 +686,9 @@ final class CombinationService
     private static function announce(DatabaseDriver $db, int $itemId, array $created, array $changed, array $archived, array $removed, string $origin): void
     {
         PostCommit::defer(db: $db, label: 'the combinations of #' . $itemId, work: static function () use ($itemId, $created, $changed, $archived, $removed, $origin): void {
+            // The dashboard's cards count combinations (low stock, the catalogue's units): their cache goes with the write.
+            CardRegistry::invalidateFor(entity: 'combination');
+
             try {
                 $plugins = AlfaPluginHelper::get();
                 $plugins->importGroup('alfa');

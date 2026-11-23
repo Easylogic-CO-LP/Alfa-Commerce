@@ -76,7 +76,8 @@ class ItemfieldsController extends ApiController
      */
     protected function unwrittenReason(): string
     {
-        return 'an item field\'s values are edited on its page in the administrator. Send the field without them; nothing was saved.';
+        return 'an item field\'s values are written through their own routes (v1/alfa/itemfields/{id}/values) or on its page in'
+            . ' the administrator. Send the field without them; nothing was saved.';
     }
 
     /**

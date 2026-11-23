@@ -32,8 +32,9 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
-use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSaveBusyException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
@@ -41,6 +42,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuUnit;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -62,10 +64,12 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
+use Closure;
 use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -115,10 +119,10 @@ class ItemModel extends AlfaAdminModel
     /**
      * The steps of the product's graph a REST write sends with it, laid on the write the save builds.
      *
-     * @var (\Closure(ItemWriteService): void)|null
+     * @var (Closure(ItemWriteService): void)|null
      * @since  2.3.0
      */
-    private ?\Closure $graph = null;
+    private ?Closure $graph = null;
 
     /**
      * @var string Alias to manage history control
@@ -717,11 +721,11 @@ class ItemModel extends AlfaAdminModel
      * and their stock): the steps laid on the write this model's save builds, so the product and its graph are saved
      * in one transaction ({@see ItemWriteService}).
      *
-     * @param \Closure(ItemWriteService): void $steps The steps.
+     * @param Closure(ItemWriteService): void $steps The steps.
      *
      * @since  2.3.0
      */
-    public function expectGraph(\Closure $steps): void
+    public function expectGraph(Closure $steps): void
     {
         $this->graph = $steps;
     }
@@ -772,8 +776,9 @@ class ItemModel extends AlfaAdminModel
      * the list's Archive is. Otherwise publish() makes the move after everything
      * else, projections included, so the inventory service judges it under its own
      * locks with what this save changed; a refusal there leaves the product where
-     * it was while the rest of the save stands, and publish() reports it as an
-     * error. A save that posts any other state for an archived product is refused
+     * it was while the rest of the save stands, and the save's warnings say why
+     * (an error, as the screen's messages and the REST API's meta.warnings read
+     * it). A save that posts any other state for an archived product is refused
      * whole: an archived product returns to the active catalogue only through
      * restoreArchived(). The row write itself never crosses the archive either
      * way (ItemTable::store()), so an archive or a restore that commits while the
@@ -1006,9 +1011,21 @@ class ItemModel extends AlfaAdminModel
         // on another one's address in any language is refused; an address it already shared
         // is kept and said after the save. A copy takes its own aliases, generated.
         if ($write->isCopy()) {
-            // A SKU names one product: a copy of a product keeps none of the SKU its original holds, and says so.
+            // A SKU names one product: a copy of a product keeps none of the SKU its original holds, and says so. The
+            // registry names the unit that holds it; a SKU the registry never took (a duplicate kept from before it) is
+            // the original's own when the copy still carries it, compared as the registry compares (letter case aside).
             $copiedSku = trim((string) ($data['sku'] ?? ''));
             $skuHolder = $copiedSku === '' ? null : SkuIndex::holder(sku: $copiedSku);
+
+            if ($skuHolder === null && $copiedSku !== '') {
+                $originalSku = trim((string) $db->setQuery(
+                    $db->getQuery(true)
+                        ->select($db->quoteName('sku'))
+                        ->from($db->quoteName('#__alfa_items'))
+                        ->where($db->quoteName('id') . ' = ' . $write->copyOf()),
+                )->loadResult());
+                $skuHolder = mb_strtolower($originalSku) === mb_strtolower($copiedSku) ? new SkuUnit(itemId: $write->copyOf(), combinationId: 0) : null;
+            }
 
             if ($skuHolder !== null) {
                 $data['sku'] = '';
@@ -1128,7 +1145,7 @@ class ItemModel extends AlfaAdminModel
                     $trackingError = $refusal;
                 }
 
-                $this->reportTrackingChange(itemId: $currentId, result: $trackingChange, error: $trackingError);
+                $this->reportTrackingChange(itemId: $currentId, result: $trackingChange, error: $trackingError, write: $write);
             }
 
             // MULTILINGUAL: persist per-language translations (name, alias, short_desc,
@@ -1369,14 +1386,19 @@ class ItemModel extends AlfaAdminModel
             }
 
             // The move into the archive held out of the row write, made as the list
-            // makes it, inside this save's transaction; publish() reports a refusal and
-            // removes an archived product from the projections.
+            // makes it, inside this save's transaction; publish() removes an archived
+            // product from the projections. A refused move leaves the product where it
+            // was while the rest of the save stands: the save's warning says why.
             $archived = false;
 
             if ($archiveMove !== null) {
                 $moved = [$currentId];
 
-                $archived = $this->publish(pks: $moved, value: $archiveMove);
+                $archived = $this->publish(pks: $moved, value: $archiveMove, queueRefusal: false);
+
+                if (!$archived) {
+                    $write->warn(msg: (string) $this->getError(), type: 'error');
+                }
             }
 
             // The product's SKUs and its combinations' in the registry, in this transaction: a SKU another product or
@@ -1455,6 +1477,17 @@ class ItemModel extends AlfaAdminModel
             // Prices changed since they were read: the writer is told so, by the refusal itself.
             if ($e instanceof PricesStateChanged) {
                 throw $e;
+            }
+
+            // Another write held the same rows (two creates of one SKU at once): nothing was kept, and the same save
+            // sent again finds them free, so the caller is told to send it again rather than that the save failed.
+            if (MysqlError::busy(error: $e)) {
+                $this->setError(new ItemSaveBusyException(
+                    refusal: new Refusal(code: 'busy', sentence: Text::_('COM_ALFA_ITEM_SAVE_BUSY'), status: Refusal::CONFLICT),
+                    previous: $e,
+                ));
+
+                return false;
             }
 
             Log::add(
@@ -2967,14 +3000,13 @@ class ItemModel extends AlfaAdminModel
      * @param int $itemId The saved product.
      * @param array|null $result What InventoryService::changeTracking() returned; null when it threw.
      * @param Throwable|null $error What it threw, or null.
-     *
+     * @param ItemWriteService $write The write, whose warnings the save's caller shows (the screen's messages, the
+     *                                REST API's meta.warnings).
      *
      * @since  2.0.0
      */
-    private function reportTrackingChange(int $itemId, ?array $result, ?Throwable $error): void
+    private function reportTrackingChange(int $itemId, ?array $result, ?Throwable $error, ItemWriteService $write): void
     {
-        $app = Factory::getApplication();
-
         if ($error !== null) {
             Log::add(
                 entry:    'Item ' . $itemId . ' saved, but its stock tracking was not changed: '
@@ -2983,7 +3015,7 @@ class ItemModel extends AlfaAdminModel
                 category: 'com_alfa.inventory',
             );
 
-            $app->enqueueMessage(
+            $write->warn(
                 msg:  Text::sprintf(
                     'COM_ALFA_ITEM_SAVED_TRACKING_REFUSED',
                     $this->inventoryRefusalMessage(error: $error),
@@ -2995,7 +3027,7 @@ class ItemModel extends AlfaAdminModel
         }
 
         if ((int) ($result['kept_rows'] ?? 0) > 0) {
-            $app->enqueueMessage(
+            $write->warn(
                 msg:  Text::sprintf(
                     'COM_ALFA_INVENTORY_TRACKING_OFF_STOCK_KEPT',
                     (int) $result['kept_rows'],
