@@ -61,10 +61,16 @@ defined('_JEXEC') or die;
  *
  * Line snapshot shape (built by the caller):
  *   {id: int, id_item: int, quantity: int, line_tax_incl: float, line_tax_excl: float,
- *    has_catalogue_discount: bool, has_custom_price: bool}
+ *    has_catalogue_discount: bool, has_custom_price: bool,
+ *    taken_tax_incl?: float, claimed?: bool}
+ *   taken_tax_incl and claimed describe a placed order's line: what the rules already on the order take off it
+ *   (gross), which a rule measures the line without, and whether one of them is a product rule, which keeps the line
+ *   from another product rule. Conditions read the line's own figures.
  * Context shape:
  *   {userId: int, userGroups: int[], codes: string[],
- *    shipping_tax_incl: float, shipping_tax_excl: float}
+ *    shipping_tax_incl: float, shipping_tax_excl: float, codesOnly?: bool}
+ *   codesOnly: only the rules with the given codes are candidates (a placed order, whose automatic rules were
+ *   frozen when it was placed).
  *
  * @since  2.0.0
  */
@@ -401,7 +407,13 @@ final class CartRulesEngine
             ->where('(' . $db->quoteName('r.publish_up') . ' IS NULL OR ' . $db->quoteName('r.publish_up') . ' <= ' . $db->quote($now) . ')')
             ->where('(' . $db->quoteName('r.publish_down') . ' IS NULL OR ' . $db->quoteName('r.publish_down') . ' >= ' . $db->quote($now) . ')');
 
-        if ($codes === []) {
+        if (!empty($context->codesOnly)) {
+            if ($codes === []) {
+                return [];
+            }
+
+            $query->where('UPPER(' . $db->quoteName('r.code') . ') IN (' . implode(',', array_map([$db, 'quote'], $codes)) . ')');
+        } elseif ($codes === []) {
             $query->where($db->quoteName('r.code') . ' IS NULL');
         } else {
             $query->where('(' . $db->quoteName('r.code') . ' IS NULL OR UPPER(' . $db->quoteName('r.code') . ') IN ('
@@ -1316,7 +1328,7 @@ final class CartRulesEngine
 
             if ($rule->discount_class === 'product') {
                 // Product rules only touch matched, UNCLAIMED lines.
-                if (!$inMatched || isset($claimed[$lineId])) {
+                if (!$inMatched || isset($claimed[$lineId]) || !empty($line->claimed)) {
                     continue;
                 }
             } elseif ($rule->discount_base !== 'cart' && !$inMatched) {
@@ -1332,8 +1344,14 @@ final class CartRulesEngine
 
         // What a line has left: its gross less what earlier rules already took
         // from it, never below zero. The order class measures on that
-        // remainder; the product class is protected by $claimed instead.
-        $leftOn = static function (object $line, Money $gross) use ($rule, $productDiscountByLine, $orderDiscountByLine): Money {
+        // remainder; the product class is protected by $claimed instead. What
+        // the rules already on a placed order take off a line is taken first,
+        // whatever the class.
+        $leftOn = static function (object $line, Money $gross) use ($rule, $productDiscountByLine, $orderDiscountByLine, $money): Money {
+            if (!empty($line->taken_tax_incl)) {
+                $gross = $gross->subtract($money($line->taken_tax_incl));
+            }
+
             if ($rule->discount_class === 'order') {
                 $lineId = (int) $line->id;
 

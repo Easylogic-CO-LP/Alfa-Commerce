@@ -69,6 +69,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderRuleShares;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
@@ -125,7 +126,6 @@ class OrderPlacement
     protected string $order_payments_table = '#__alfa_order_payments';
     protected string $order_shipments_table = '#__alfa_order_shipments';
     protected string $order_activity_log_table = '#__alfa_order_activity_log';
-    protected string $order_cart_rule_table = '#__alfa_order_cart_rule';
     protected string $user_info_table = '#__alfa_user_info';
 
     /** @var object Default order status (loaded from DB, not hardcoded) */
@@ -2313,50 +2313,8 @@ class OrderPlacement
         $currency = $this->cart->grandTotal()->getCurrency();
 
         foreach ($this->cart->appliedRules() as $applied) {
-            $cartRule = new stdClass();
-            $cartRule->id_order = $orderId;
-            $cartRule->id_cart_rule = $applied->id;
-            $cartRule->name = $applied->name;
-            // NULL for automatic rules; emails label the row with the
-            // code when the customer typed one, the name otherwise.
-            $cartRule->code = $applied->code;
-            // Each figure is handed to its column as the exact decimal of the
-            // Money the engine computed.
-            $cartRule->value_tax_excl = StoredDecimal::of($applied->discountTaxExcl);
-            // Freeze the discount's OWN money. Re-deriving the inclusive
-            // figure downstream from the items' VAT multiplier gave the
-            // wrong answer for anything whose tax differs from the items'
-            // average: shipping benefits most of all.
-            $cartRule->value_tax_incl = StoredDecimal::of($applied->discountTaxInclMoney($currency));
-            // The tax is the difference of the two frozen figures, in the
-            // cart's minor units.
-            $cartRule->value_tax = StoredDecimal::of($applied->discountTaxInclMoney($currency)->subtract($applied->discountTaxExcl));
-            // Without the class, a frozen shipping benefit is
-            // indistinguishable from an order discount and gets
-            // subtracted a second time.
-            $cartRule->discount_class = $applied->discountClass;
-            $cartRule->free_shipping = $applied->freeShipping ? 1 : 0;
-            // Its money is held as its line shares, written below, and this row is their sum.
-            $cartRule->line_shares = $applied->lineShares !== [] ? 1 : 0;
-            $cartRule->deleted = 0;
-
             try {
-                $this->db->insertObject($this->order_cart_rule_table, $cartRule, 'id_order_cart_rule');
-
-                foreach ($applied->lineShares as $share) {
-                    if (!isset($orderLineOf[$share->lineId])) {
-                        throw new RuntimeException('its share of cart line ' . $share->lineId . ' has no order line');
-                    }
-
-                    $row = (object) [
-                        'id_order' => $orderId,
-                        'id_order_item' => $orderLineOf[$share->lineId],
-                        'id_order_cart_rule' => (int) $cartRule->id_order_cart_rule,
-                        'value_tax_excl' => StoredDecimal::of($share->taxExcl),
-                        'value_tax_incl' => StoredDecimal::of($share->taxIncl),
-                    ];
-                    $this->db->insertObject('#__alfa_order_item_cart_rule', $row);
-                }
+                OrderRuleShares::freeze(db: $this->db, orderId: $orderId, applied: $applied, orderLineOf: $orderLineOf, currency: $currency);
             } catch (Throwable $e) {
                 throw new RuntimeException(
                     'Applied cart rule ' . (int) $applied->id . ' could not be frozen for order ' . $orderId . ': ' . $e->getMessage(),
