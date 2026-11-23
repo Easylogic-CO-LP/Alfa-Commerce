@@ -14,13 +14,13 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 use Alfa\Component\Alfa\Administrator\Event\Catalog\RelatedLinksChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 
@@ -488,16 +488,14 @@ final class RelatedItems
         $count = \count($gone);
         self::announce(db: $db, itemIds: $ownerIds, cause: $cause);
 
-        if ($db instanceof DatabaseDriver) {
-            PostCommit::defer(
-                db: $db,
-                label: 'the related links removed with what they named',
-                work: static function () use ($ownerIds, $count): void {
-                    $names = implode(', ', array_map(static fn (int $id): string => ItemModel::nameForStaff(itemId: $id), $ownerIds));
-                    Factory::getApplication()->enqueueMessage(Text::plural('COM_ALFA_ITEM_RELATED_LINKS_REMOVED', $count, $names), 'warning');
-                },
-            );
-        }
+        PostCommit::defer(
+            db: TransactionState::driver($db),
+            label: 'the related links removed with what they named',
+            work: static function () use ($ownerIds, $count): void {
+                $names = implode(', ', array_map(static fn (int $id): string => ItemModel::nameForStaff(itemId: $id), $ownerIds));
+                Factory::getApplication()->enqueueMessage(Text::plural('COM_ALFA_ITEM_RELATED_LINKS_REMOVED', $count, $names), 'warning');
+            },
+        );
 
         return $ownerIds;
     }
@@ -670,12 +668,12 @@ final class RelatedItems
      */
     private static function announce(DatabaseInterface $db, array $itemIds, string $cause): void
     {
-        if ($itemIds === [] || !$db instanceof DatabaseDriver) {
+        if ($itemIds === []) {
             return;
         }
 
         PostCommit::defer(
-            db: $db,
+            db: TransactionState::driver($db),
             label: 'onAlfaRelatedLinksChanged (' . $cause . ')',
             work: static function () use ($itemIds, $cause): void {
                 $plugins = AlfaPluginHelper::get();
