@@ -328,9 +328,9 @@ final class CartMethods
     /**
      * Why the cart's goods keep a shipping method off the list: by method id, the sentence naming the method and the
      * products in a category it does not serve (MethodCategoryScope). Only a method every other scope would offer
-     * (customer group, user, destination) is named, so the shopper is never told about a method they could not have
-     * had. The storefront's list and the order builder show them; placement refuses such a method as it refuses any
-     * method not offered.
+     * (customer group, user, destination, and the manufacturers of every line) is named, so the shopper is never told
+     * about a method they could not have had. The storefront's list and the order builder show them; placement refuses
+     * such a method as it refuses any method not offered.
      *
      * @return array<int, string>
      *
