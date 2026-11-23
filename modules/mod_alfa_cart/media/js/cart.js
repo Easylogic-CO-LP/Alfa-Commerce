@@ -26,6 +26,19 @@ document.addEventListener("DOMContentLoaded", () => {
     cartItemsWrapper.addEventListener("transitionend", onTransitionCartEnd, false);
     cartItemsWrapper.addEventListener("click", toggleCart, false);
 
+    // Escape closes the drawer with its own movement, not the browser's instant close.
+    cartItemsWrapper.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        toggleCart();
+    });
+
+    // Closed by any way at all (the browser may close it without asking): the drawer
+    // and the page are put back in their closed state.
+    cartItemsWrapper.addEventListener("close", () => {
+        cartItemsWrapper.classList.remove("cart--visible", "cart--animatable");
+        document.querySelector("html").classList.remove("mod-alfa-cart-no-scroll");
+    });
+
     cartOuter.addEventListener("click", async (event) => {
         const clickedElement = event.target;
 
@@ -312,14 +325,38 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        cartItemsWrapper.classList.add("cart--animatable");
-
         if (!cartItemsWrapper.classList.contains("cart--visible")) {
+            // Opened as a modal first and laid out closed there, so the opening is a
+            // transition from the closed look rather than a jump to the open one.
+            if (!cartItemsWrapper.open) {
+                cartItemsWrapper.showModal();
+                cartItemsWrapper.getBoundingClientRect();
+            }
+
+            cartItemsWrapper.classList.add("cart--animatable");
             document.querySelector("html").classList.add("mod-alfa-cart-no-scroll");
             cartItemsWrapper.classList.add("cart--visible");
         } else {
+            cartItemsWrapper.classList.add("cart--animatable");
             document.querySelector("html").classList.remove("mod-alfa-cart-no-scroll");
             cartItemsWrapper.classList.remove("cart--visible");
+            closeWhenStill();
+        }
+    }
+
+    /**
+     * Close the dialog once the drawer's closing transitions have ended, at once when
+     * it has none; the focus then returns to what opened it. Reopened meanwhile, it stays.
+     */
+    async function closeWhenStill() {
+        const closing = cartItemsWrapper.getAnimations({ subtree: true })
+            .filter((animation) => animation instanceof CSSTransition)
+            .map((animation) => animation.finished);
+
+        await Promise.allSettled(closing);
+
+        if (!cartItemsWrapper.classList.contains("cart--visible") && cartItemsWrapper.open) {
+            cartItemsWrapper.close();
         }
     }
 

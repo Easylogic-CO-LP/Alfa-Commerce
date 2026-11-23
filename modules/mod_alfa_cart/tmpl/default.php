@@ -34,7 +34,10 @@ $onAdd = $params->get('on_add', 'refresh') === 'open' ? 'open' : 'refresh';
     <?php }?>
     </div>
 
-    <div class="mod-alfa-cart-data">
+    <?php // A dialog the script opens as a modal: the browser draws it in its top layer,
+          // placed against the screen, so a page header that slides away with a transform
+          // cannot carry the drawer off the screen with it. ?>
+    <dialog class="mod-alfa-cart-data">
         <?php require ModuleHelper::getLayoutPath('mod_alfa_cart', 'default_items'); ?>
-    </div>
+    </dialog>
 </div>

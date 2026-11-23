@@ -192,13 +192,23 @@
   content: attr(data-counter);
 }
 
-/* main wrapper */
+/* main wrapper: the drawer, a dialog the script opens as a modal, so it lies in the
+   top layer, placed against the screen whatever its ancestors do. The browser's own
+   dialog frame (border, padding, colours, size limits, backdrop) is set aside; the
+   drawer draws its own overlay. Visible even inside a header that hides itself. */
 .mod-alfa-cart .mod-alfa-cart-data {
     position: fixed;
-    left: 0;
-    top: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    visibility: visible;
     overflow: hidden;
     pointer-events: none;
     scrollbar-width: none;
@@ -207,6 +217,14 @@
     align-items: center;
     justify-content: center;
     z-index: 60000;
+}
+
+.mod-alfa-cart .mod-alfa-cart-data:not([open]) {
+    display: none;
+}
+
+.mod-alfa-cart .mod-alfa-cart-data::backdrop {
+    background: none;
 }
 
 .mod-alfa-cart .cart--visible {
