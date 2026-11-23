@@ -181,18 +181,6 @@ ob_start(); ?>
     </p>
 <?php endif; ?>
 
-<?php if (!empty($this->release['packageOnly'])) : ?>
-    <div class="alert alert-warning" role="alert">
-        <strong><?php echo Text::_('COM_ALFA_TOOLS_RELEASE_CENSUS_TITLE'); ?></strong>
-        <p class="mb-2"><?php echo Text::_('COM_ALFA_TOOLS_RELEASE_CENSUS_DESC'); ?></p>
-        <ul class="mb-0">
-            <?php foreach ($this->release['packageOnly'] as $item) : ?>
-                <li><code><?php echo $this->escape($item); ?></code></li>
-            <?php endforeach; ?>
-        </ul>
-    </div>
-<?php endif; ?>
-
 <?php /* Bump-awareness (official check): 'modified' = files differ but still on the
          released version number -> bump it; 'ahead' = version already past the catalog. */ ?>
 <?php if (($this->official['status'] ?? '') === 'modified') : ?>
