@@ -31,10 +31,10 @@ If applicable, add screenshots to help explain the problem.
 
 ## Environment
 
-- **Joomla Version:** [e.g., 4.4.1 or 5.1.0]
-- **PHP Version:** [e.g., 8.2]
-- **MySQL Version:** [e.g., 8.0]
-- **Alfa Commerce Version:** [e.g., pre-alpha]
+- **Joomla Version:** [e.g., 6.2.0]
+- **PHP Version:** [e.g., 8.4]
+- **Database Version:** [e.g., MySQL 8.0 or MariaDB 10.6]
+- **Alfa Commerce Version:** [e.g., 2.3.0]
 - **Browser:** [e.g., Chrome 120, Firefox 121]
 - **Operating System:** [e.g., Windows 11, macOS 14]
 
