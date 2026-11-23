@@ -36,7 +36,7 @@ $columns = [
 
 ?>
 <div class="com-alfa orders">
-    <h1 class="orders-heading"><?php echo $this->escape($this->params->get('page_heading')); ?></h1>
+    <h1 class="orders-heading"><?php echo $this->escape($this->heading); ?></h1>
 
     <?php if ($this->items === []) : ?>
     <p class="orders-empty"><?php echo Text::_('COM_ALFA_ORDERS_EMPTY'); ?></p>

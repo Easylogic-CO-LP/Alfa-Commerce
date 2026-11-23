@@ -52,6 +52,13 @@ class HtmlView extends BaseHtmlView
     protected $params;
 
     /**
+     * The page's heading: a My orders menu item's own, else My orders.
+     *
+     * @since  2.3.0
+     */
+    protected string $heading = '';
+
+    /**
      * Display the customer's orders.
      *
      * @param string|null $tpl The template.
@@ -80,8 +87,13 @@ class HtmlView extends BaseHtmlView
         $this->pagination = $model->getPagination();
 
         $this->getDocument()->setMetaData('robots', 'noindex, nofollow');
-        $this->params->def('page_heading', $this->params->get('page_title', Text::_('COM_ALFA_ORDERS_HEADING')));
-        $this->setDocumentTitle($this->params->get('page_title', Text::_('COM_ALFA_ORDERS_HEADING')));
+
+        // A My orders menu item names the page (its page heading, else its title); reached any other way, the page
+        // is My orders, never the title of whatever menu item happens to be active.
+        $menu = $app->getMenu()->getActive();
+        $own = $menu !== null && ($menu->query['option'] ?? '') === 'com_alfa' && ($menu->query['view'] ?? '') === 'orders';
+        $this->heading = $own ? (string) ($menu->getParams()->get('page_heading') ?: $menu->title) : Text::_('COM_ALFA_ORDERS_HEADING');
+        $this->setDocumentTitle($own ? (string) ($menu->getParams()->get('page_title') ?: $menu->title) : $this->heading);
 
         parent::display($tpl);
     }
