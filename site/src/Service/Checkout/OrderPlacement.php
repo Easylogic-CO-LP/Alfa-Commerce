@@ -22,7 +22,8 @@
  * 3. #__alfa_order_payments       (payment records)
  * 4. #__alfa_order_shipments      (shipment records)
  * 5. #__alfa_order_activity_log   (unified event log)
- * 7. #__alfa_order_cart_rule      (applied discounts/coupons)
+ * 7. #__alfa_order_cart_rule      (applied discounts/coupons), and each rule's share of each
+ *    line in #__alfa_order_item_cart_rule
  * 8. #__alfa_user_info            (customer address)
  *
  * Usage:
@@ -482,7 +483,7 @@ class OrderPlacement
                 // placement, so an order can never commit with a money history
                 // that disagrees with what it collects.
                 $this->saveOrderContributions($orderId);
-                $this->saveCartRules($orderId);
+                $this->saveCartRules($orderId, $created->lineIds);
 
                 // What the placement owes after its commit, written with the order: the download access of
                 // its initial status and its confirmation e-mail. They run once the placement's own work after the
@@ -2280,15 +2281,30 @@ class OrderPlacement
      * the placement back rather than committing an order whose discounts are
      * missing from its history.
      *
+     * Each product or order rule's share of each line it took money off is
+     * written against that order line (#__alfa_order_item_cart_rule), as the
+     * engine shared it out; the rule's row is their sum. Documents and credits
+     * read a line's shares, and a quantity change rescales them.
+     *
      * @param int $orderId The created order.
+     * @param int[] $orderLineIds The created order lines, in the cart's line order.
      *
      *
      * @throws RuntimeException When a limit is exhausted or a rule row cannot be written.
      *
      * @since  1.0.0
      */
-    protected function saveCartRules(int $orderId): void
+    protected function saveCartRules(int $orderId, array $orderLineIds): void
     {
+        // The order line of each cart line: the lines were created in the cart's order.
+        $orderLineOf = [];
+
+        foreach (array_values($this->cart->lines()) as $index => $cartLine) {
+            if (isset($orderLineIds[$index])) {
+                $orderLineOf[(int) $cartLine->id] = (int) $orderLineIds[$index];
+            }
+        }
+
         // The engine validated candidates (window, targeting, usage) during
         // this request and assertCartRuleUsageAvailable() re-checked the
         // limits under lock in this transaction, before the order was
@@ -2320,10 +2336,27 @@ class OrderPlacement
             // subtracted a second time.
             $cartRule->discount_class = $applied->discountClass;
             $cartRule->free_shipping = $applied->freeShipping ? 1 : 0;
+            // Its money is held as its line shares, written below, and this row is their sum.
+            $cartRule->line_shares = $applied->lineShares !== [] ? 1 : 0;
             $cartRule->deleted = 0;
 
             try {
-                $this->db->insertObject($this->order_cart_rule_table, $cartRule);
+                $this->db->insertObject($this->order_cart_rule_table, $cartRule, 'id_order_cart_rule');
+
+                foreach ($applied->lineShares as $share) {
+                    if (!isset($orderLineOf[$share->lineId])) {
+                        throw new RuntimeException('its share of cart line ' . $share->lineId . ' has no order line');
+                    }
+
+                    $row = (object) [
+                        'id_order' => $orderId,
+                        'id_order_item' => $orderLineOf[$share->lineId],
+                        'id_order_cart_rule' => (int) $cartRule->id_order_cart_rule,
+                        'value_tax_excl' => StoredDecimal::of($share->taxExcl),
+                        'value_tax_incl' => StoredDecimal::of($share->taxIncl),
+                    ];
+                    $this->db->insertObject('#__alfa_order_item_cart_rule', $row);
+                }
             } catch (Throwable $e) {
                 throw new RuntimeException(
                     'Applied cart rule ' . (int) $applied->id . ' could not be frozen for order ' . $orderId . ': ' . $e->getMessage(),

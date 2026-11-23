@@ -1652,6 +1652,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_cart_rule` (
   `value_tax_incl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'What the customer actually saw come off',
   `discount_class` varchar(10) NOT NULL DEFAULT 'order' COMMENT 'product | order | shipping; shipping rules reduce shipping, they are not discounts',
   `free_shipping` tinyint(1) NOT NULL DEFAULT 0,
+  `line_shares` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = the rule''s money is held as its shares of the order lines (#__alfa_order_item_cart_rule) and this row is their sum; 0 = a shipping rule, or an order placed before shares were kept',
   `deleted` tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
   PRIMARY KEY (`id_order_cart_rule`),
   KEY `idx_id_order` (`id_order`),
@@ -1829,6 +1830,29 @@ CREATE TABLE IF NOT EXISTS `#__alfa_inventory_line_provenance` (
   KEY `idx_order` (`order_id`),
   CONSTRAINT `fk_provenance_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `#__alfa_order_items` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Stock tracking of each order line''s identity at placement, written by the inventory service';
+
+--
+-- Each cart rule's share of each order line: the money a product or order rule took off that line, as the rules engine
+-- shared the rule out, frozen at placement. The order's rule row (#__alfa_order_cart_rule) is the sum of its shares.
+-- Documents and credits read a line's shares; a quantity change on the line rescales them. Shipping rules have none:
+-- they reduce the shipping, not a line. An order placed before these rows existed has none, and its documents share a
+-- rule out over the goods as before. Removed with its order line by the database, which is why it is created after
+-- #__alfa_order_items.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_order_item_cart_rule` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id_order` int(11) NOT NULL COMMENT 'Its order (#__alfa_orders.id)',
+  `id_order_item` int(11) NOT NULL COMMENT 'The order line (#__alfa_order_items.id); the share is removed with it',
+  `id_order_cart_rule` int(10) UNSIGNED NOT NULL COMMENT 'The order''s rule row (#__alfa_order_cart_rule.id_order_cart_rule) the share belongs to',
+  `value_tax_excl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'The share net of tax',
+  `value_tax_incl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'The share as it came off the line, tax included',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_line_rule` (`id_order_item`, `id_order_cart_rule`),
+  KEY `idx_order` (`id_order`),
+  KEY `idx_order_cart_rule` (`id_order_cart_rule`),
+  CONSTRAINT `fk_rule_share_order_item` FOREIGN KEY (`id_order_item`) REFERENCES `#__alfa_order_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Each cart rule''s share of each order line, frozen at placement';
 
 --
 -- Table structure for table `#__alfa_order_payments`

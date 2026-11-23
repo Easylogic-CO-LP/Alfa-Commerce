@@ -276,6 +276,9 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_places' => [
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
+        '#__alfa_order_cart_rule' => [
+            'line_shares' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = the rule''s money is held as its shares of the order lines (#__alfa_order_item_cart_rule) and this row is their sum; 0 = a shipping rule, or an order placed before shares were kept'", 'free_shipping'],
+        ],
     ];
 
     /**

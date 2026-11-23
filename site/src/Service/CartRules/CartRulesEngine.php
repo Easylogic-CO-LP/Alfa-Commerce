@@ -1126,11 +1126,68 @@ final class CartRulesEngine
                     discountTaxExcl: $discount->excl,
                     freeShipping: $discount->freeShipping,
                     lineIds: $discount->lineIds,
+                    lineShares: $discount->shares ?? [],
                 ),
             ];
         }
 
         return array_map(static fn (object $entry): AppliedCartRule => $entry->result, $applied);
+    }
+
+    /**
+     * A rule's share of each line it took money off, both figures.
+     *
+     * The gross of a share is the engine's own split of the rule ($perLine, on the basis it was measured on). Its net
+     * is the line's exact part of the rule's net (the rule's gross times the line's net over its gross, times what the
+     * line had left over the base), rounded once; the cents those roundings leave are placed one at a time on the
+     * largest shares, so the nets add up to the rule's net exactly, as the grosses add up to its gross.
+     *
+     * @param array<int, Money> $perLine The rule's gross on each line, by cart line id.
+     * @param array<int, array{0: int, 1: int, 2: int}> $netTerms Each line's term of the rule's net, by cart line id.
+     * @param Money $incl The rule's gross.
+     * @param Money $excl The rule's net.
+     * @param Money $base What the rule was measured on.
+     *
+     * @return array<int, RuleLineShare> By cart line id, the lines with money off only.
+     *
+     * @since  2.3.0
+     */
+    private static function lineShares(array $perLine, array $netTerms, Money $incl, Money $excl, Money $base): array
+    {
+        $nets = [];
+
+        foreach ($perLine as $lineId => $gross) {
+            $nets[$lineId] = $incl->timesRatioSum(terms: [$netTerms[$lineId]], divisor: $base->getMinorUnits());
+        }
+
+        $left = $excl->getMinorUnits() - array_sum(array_map(static fn (Money $net): int => $net->getMinorUnits(), $nets));
+
+        if ($left !== 0) {
+            // Largest gross first, then the lines' own order.
+            $order = array_keys($perLine);
+            $position = array_flip($order);
+            usort($order, static fn (int $a, int $b): int => [$perLine[$b]->getMinorUnits(), $position[$a]]
+                <=> [$perLine[$a]->getMinorUnits(), $position[$b]]);
+            $step = $left > 0 ? 1 : -1;
+
+            for ($n = 0; $left !== 0; $n++) {
+                $lineId = $order[$n % \count($order)];
+                $nets[$lineId] = $nets[$lineId]->add(Money::ofMinor($step, $excl->getCurrency()));
+                $left -= $step;
+            }
+        }
+
+        $shares = [];
+
+        foreach ($perLine as $lineId => $gross) {
+            if ($gross->isZero() && $nets[$lineId]->isZero()) {
+                continue;
+            }
+
+            $shares[$lineId] = new RuleLineShare(lineId: (int) $lineId, taxIncl: $gross, taxExcl: $nets[$lineId]);
+        }
+
+        return $shares;
     }
 
     /**
@@ -1365,14 +1422,23 @@ final class CartRulesEngine
             $incl->allocateByRatios(array_map(static fn (Money $left): int => $left->getMinorUnits(), array_values($leftByLine))),
         );
 
+        // The net follows the base's own net over its gross: one sum over the
+        // lines, rounded once.
+        $excl = $incl->timesRatioSum(terms: $netTerms, divisor: $base->getMinorUnits());
+
         return (object) [
             'incl' => $incl,
-            // The net follows the base's own net over its gross: one sum over
-            // the lines, rounded once.
-            'excl' => $incl->timesRatioSum(terms: $netTerms, divisor: $base->getMinorUnits()),
+            'excl' => $excl,
             'freeShipping' => false,
             'lineIds' => array_keys($perLine),
             'perLine' => $perLine,
+            'shares' => self::lineShares(
+                perLine: $perLine,
+                netTerms: array_combine(array_keys($leftByLine), $netTerms),
+                incl: $incl,
+                excl: $excl,
+                base: $base,
+            ),
         ];
     }
 
