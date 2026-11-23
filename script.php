@@ -222,6 +222,7 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_items' => [
             'opening_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings'", 'projection_dirty_at'],
             'price_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination whose price the listing card shows: the opening combination when it has price rows of its own, else 0 (the product''s own price). Kept with opening_combination_id; the listing reads its price index row by it'", 'opening_combination_id'],
+            'commerce_changed_at' => ["datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]'", 'modified'],
         ],
         '#__alfa_item_field_values' => [
             'code' => ["varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none'", 'item_field_id'],
@@ -229,9 +230,6 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_orders' => [
             'external_source' => ["varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once'", 'source'],
             'external_reference' => ["varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source'", 'external_source'],
-        ],
-        '#__alfa_items' => [
-            'commerce_changed_at' => ["datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]'", 'modified'],
         ],
         '#__alfa_media' => [
             'source_url' => ["varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The address the image was fetched from, as the REST API client gave it; NULL for an image uploaded or picked'", 'thumbnail_origin'],
