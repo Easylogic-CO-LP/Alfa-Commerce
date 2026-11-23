@@ -6,8 +6,7 @@
  * The repository's copy, run by the Copy-clean job of .github/workflows/code-quality.yml over the checked-out
  * tree (--package=.). The development site keeps the same file as tests/tools/copy-clean-gate.php; the two stay equal.
  *
- * THE RULING THIS PINS (owner, 2026-10-12, chat-rulings/2026-10-12-copy-clean-before-release.md, and
- * "keep this logic for future edits so not rehappen again"):
+ * THE RULES IT KEEPS, in the code as it is and in every later edit:
  *
  *   R1  no box or banner comment: no box-drawing or block character, no rule line of = - * # ~ _
  *       (a line that is only decoration, or a heading framed by a rule run);

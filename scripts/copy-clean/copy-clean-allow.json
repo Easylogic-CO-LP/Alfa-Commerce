@@ -1,5 +1,5 @@
 {
- "ruling": "chat-rulings/2026-10-12-copy-clean-before-release.md",
+ "purpose": "the exceptions the gate allows: each a file, a rule and the exact text, with the reason it stays",
  "format": "one entry per shipped file + rule + exact token (string literal) or exact trimmed line (comment, template or XML text); never a whole file",
  "entries": [
   {
@@ -14,35 +14,35 @@
    "rule": "R3",
    "text": "<td style=\"<?php echo $valueStyle; ?>\">−<?php echo $discount->format(); ?></td>",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/layouts/emails/partials/order_totals.php",
    "rule": "R3",
    "text": "<td style=\"<?php echo $valueStyle; ?>\">−<?php echo $rule->amount->format(); ?></td>",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/layouts/prices/row.php",
    "rule": "R3",
    "text": "' −'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/layouts/prices/row.php",
    "rule": "R3",
    "text": "'−%'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/layouts/prices/row.php",
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/layouts/seo/preview.php",
@@ -63,7 +63,7 @@
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/src/Field/OrderItemsField.php",
@@ -84,28 +84,28 @@
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/item/edit_combinations.php",
    "rule": "R3",
    "text": "'−%'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/item/edit_combinations.php",
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/order/edit_payments.php",
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/order/edit_shipments.php",
@@ -133,49 +133,49 @@
    "rule": "R3",
    "text": "−<?php echo $chargedBack->format(); ?>",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/order/edit_totals.php",
    "rule": "R3",
    "text": "−<?php echo $order->total_discounts_tax_incl->format(); ?>",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/order/edit_totals.php",
    "rule": "R3",
    "text": "−<?php echo $refunded->format(); ?>",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/orders/default.php",
    "rule": "R3",
    "text": "': −'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/orders/default_discounts.php",
    "rule": "R3",
    "text": "−<?php echo $this->escape($cr->value_formatted ?? ''); ?>",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/orders/default_payments.php",
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/orders/default_products.php",
    "rule": "R3",
    "text": "(−<?php echo ((float) ($oi->discount_percent ?? 0)) > 0",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "administrator/components/com_alfa/tmpl/orders/default_products.php",
@@ -196,49 +196,49 @@
    "rule": "R3",
    "text": "← Send another",
    "class": "screen-glyph",
-   "why": "the back arrow on the \"Send another\" button (UI symbol, main ruling 2026-10-12)"
+   "why": "the back arrow on the \"Send another\" button (a symbol of the interface)"
   },
   {
    "file": "components/com_alfa/layouts/item/price.php",
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "components/com_alfa/src/Service/Pricing/PriceComputationEngine.php",
    "rule": "R3",
    "text": "' (−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "components/com_alfa/layouts/cart/summary.php",
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "media/com_alfa/js/admin/combinations.js",
    "rule": "R3",
    "text": "'−%'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "media/com_alfa/js/admin/combinations.js",
    "rule": "R3",
    "text": "'−'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "media/com_alfa/js/admin/prices.js",
    "rule": "R3",
    "text": "' −'",
    "class": "screen-glyph",
-   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label"
   },
   {
    "file": "media/com_alfa/js/libraries/echarts.min.js",
