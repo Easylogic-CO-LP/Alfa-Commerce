@@ -1192,9 +1192,6 @@ class ActionRegistry
                     'label' => Text::_('COM_ALFA_LEDGER_RECORD_REFUND_FAILED'),
                     'icon' => 'undo-2',
                     'class' => 'btn-outline-danger',
-                    'response_layout' => 'action_ledger_fact',
-                    'modal_title' => Text::_('COM_ALFA_LEDGER_RECORD_REFUND_FAILED'),
-                    'modal_size' => 'sm',
                     'priority' => 40,
                     // The form only asks; the arm that records (<id>_do) is never
                     // offered and falls to the fail-closed default.
@@ -1333,9 +1330,6 @@ class ActionRegistry
             'label' => $label,
             'icon' => $icon,
             'class' => $class,
-            'response_layout' => 'action_dispute',
-            'modal_title' => $label,
-            'modal_size' => 'md',
             'priority' => 45,
             'data' => $data,
             'mutates' => $mutates,
