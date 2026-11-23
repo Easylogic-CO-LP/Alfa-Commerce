@@ -144,7 +144,8 @@ final class MethodCategoryScope
 
     /**
      * The lines of an order as the reader judges them: the product's categories and the name the order froze, by
-     * order line id. A line of another order is not one of them.
+     * order line id. A line of another order is not one of them, and neither is a product to download: it is not
+     * shipped, so a parcel carrying it is not judged by it, as the checkout does not judge the cart's downloads.
      *
      * @param int $orderId The order.
      * @param int[] $orderLineIds Order line ids (#__alfa_order_items.id).
@@ -166,6 +167,7 @@ final class MethodCategoryScope
             $db->getQuery(true)
                 ->select($db->quoteName(['oi.id', 'oi.name', 'ic.category_id']))
                 ->from($db->quoteName('#__alfa_order_items', 'oi'))
+                ->join('INNER', $db->quoteName('#__alfa_items', 'i') . ' ON i.id = oi.id_item AND i.is_virtual = 0')
                 ->join('LEFT', $db->quoteName('#__alfa_items_categories', 'ic') . ' ON ic.item_id = oi.id_item')
                 ->whereIn($db->quoteName('oi.id'), $ids)
                 ->where($db->quoteName('oi.id_order') . ' = :orderId')
