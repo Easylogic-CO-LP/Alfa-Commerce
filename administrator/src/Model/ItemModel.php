@@ -35,6 +35,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLinksRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
@@ -57,7 +58,6 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
-use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -822,7 +822,9 @@ class ItemModel extends AlfaAdminModel
         $relatedRefusals = RelatedItems::refusals(db: $db, itemId: $pk, links: $relatedLinks);
 
         if ($relatedRefusals !== []) {
-            return $this->refuseSave(messages: array_map(static fn (Refusal $refusal): string => $refusal->sentence, $relatedRefusals));
+            $this->setError(new RelatedLinksRefusedException(refusals: $relatedRefusals));
+
+            return false;
         }
 
         // A thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()):
