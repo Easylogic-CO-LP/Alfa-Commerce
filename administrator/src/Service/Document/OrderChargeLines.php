@@ -55,24 +55,29 @@ use RuntimeException;
  * cannot double-claim.
  *
  * DISCOUNT SIZING on a partial draft: an order or product rule follows the
- * goods and is never picked. Each sales draft claims the rule's balance x
- * the value of the goods it invoices / the value of the goods still to
- * invoice, measured on the frozen line totals (OrderItemLines), one exact
- * fraction of minor units rounded once; the draft that takes the LAST
- * remaining item quantity claims what is left instead (the same remainder
- * rule OrderItemLines::claim() applies to the item lines). A claim never
- * goes past the draft's goods, so shipping and fees are never reduced by a
- * goods discount. A balance larger than the goods still to invoice (an
- * invoice issued without its share) keeps the rest unclaimed:
- * unclaimableDiscounts() names it for the document screen.
+ * goods and is never picked. A rule held as its shares of the order lines
+ * (line_shares, frozen at placement with each line's share) is claimed by
+ * those shares: each draft claims each of its lines' share for the quantity
+ * it invoices, at that line's own rate, and the draft that takes the last
+ * goods also claims the rest the rounded shares leave of the rule
+ * (shareClaims()). A rule frozen without shares is sized by value: each
+ * sales draft claims the rule's balance x the value of the goods it invoices
+ * / the value of the goods still to invoice, measured on the frozen line
+ * totals (OrderItemLines), one exact fraction of minor units rounded once;
+ * the draft that takes the LAST remaining item quantity claims what is left
+ * instead (the same remainder rule OrderItemLines::claim() applies to the
+ * item lines). A claim never goes past the draft's goods, so shipping and
+ * fees are never reduced by a goods discount. A balance larger than the goods
+ * still to invoice (an invoice issued without its share) keeps the rest
+ * unclaimed: unclaimableDiscounts() names it for the document screen.
  *
- * VAT of an order-level discount is attributed PRO-RATA across the draft's
- * item lines' VAT rates (one negative line per rate; rounding drift absorbed
- * into the largest bucket). Shipping-class rules attach to the draft's
- * shipping lines instead and are clamped so claimed shipping minus claimed
- * benefit can never go negative. The frozen rows do not record WHICH lines a
- * product-class rule matched, so pro-rata over all draft items is the
- * closest attribution the frozen state supports.
+ * VAT of an order-level discount sized by value is attributed PRO-RATA across
+ * the draft's item lines' VAT rates (one negative line per rate; rounding
+ * drift absorbed into the largest bucket). Shipping-class rules attach to the
+ * draft's shipping lines instead and are clamped so claimed shipping minus
+ * claimed benefit can never go negative. A rule sized by value does not
+ * record WHICH lines it matched, so pro-rata over all draft items is the
+ * closest attribution its frozen state supports.
  *
  * Charges apply to FISCAL documents. A SALES draft claims the ORDER's own
  * charges (above). A CREDIT draft claims the CORRECTED INVOICE's charge lines
