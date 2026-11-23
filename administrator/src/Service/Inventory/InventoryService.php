@@ -103,8 +103,9 @@ use WeakMap;
  *   prioritiseReservations()   the audited override that serves a source's claims first
  *   commitReservation()   fulfilment: reservations become deductions
  *   restore() / reverseRestores() / scrapRestored()   reversal on the line's acting identity
- *   adjust() / adjustTo()   physical changes of a tracked unit: adjust() by a signed delta (the one way an
- *                           extension changes stock), adjustTo() to an absolute figure (the stock editors)
+ *   adjust() / adjustTo()   physical changes of a tracked unit: adjust() by a signed delta, adjustTo() to an
+ *                           absolute figure; core's own, under InventoryCommands, the one way an extension and
+ *                           the stock editors set or correct stock
  *   changeTracking() / changeCombinationState() / changeLocationState()   structural state
  *   archiveUnits() / reactivateUnits()                 combinations kept for order history
  *   changeItemArchive()   a product leaves current commerce, or is restored to it after checks
@@ -3395,8 +3396,9 @@ final class InventoryService
     }
 
     /**
-     * Change a unit's stock at one location by a signed delta: the one way an
-     * extension (a return, an import, a receipt of goods) moves stock.
+     * Change a unit's stock at one location by a signed delta. Core's own: an
+     * extension (a return, an import, a receipt of goods) moves stock through
+     * InventoryCommands, which calls it.
      *
      * Only a tracked stock unit is adjusted. An untracked unit, a combination
      * that no longer exists for the item, a missing item and the bare item of a
