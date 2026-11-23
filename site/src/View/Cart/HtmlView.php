@@ -273,8 +273,8 @@ class HtmlView extends BaseHtmlView
                 $app->redirect(Uri::root());
             }
 
-            // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, or a return a gateway authenticated. Any other
-            // id is one a request named, and the page would ask that order's gateway for a payment page; refused
+            // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, a return a gateway authenticated, or opened by its pay
+            // again address. Any other id is one a request named, and the page would ask that order's gateway for a payment page; refused
             // before the order is read, with nothing of it shown.
             if (!SessionOrder::isEntitled($app, $orderId)) {
                 SessionOrder::refuse($app, $orderId, 'process');
@@ -541,8 +541,8 @@ class HtmlView extends BaseHtmlView
     /**
      * The arrival address: the session's order, cleared once, then 303 to its keyed address. The query a gateway added
      * to the arrival address (a result flag its completion view reads) goes along, so no gateway changes. The order
-     * must be one this session placed or a gateway authenticated a return for: any other is refused, and the
-     * visitor goes to the cart with the neutral message.
+     * must be one this session placed, a gateway authenticated a return for, or the buyer opened by its pay again
+     * address: any other is refused, and the visitor goes to the cart with the neutral message.
      *
      * @param string|null $tpl Template name.
      *
@@ -562,8 +562,8 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, or a return a gateway authenticated. Any other id
-        // is one a request named, and its keyed address would open that order's page to whoever sent it.
+        // ONLY AN ORDER THIS SESSION MAY SHOW: placed here, a return a gateway authenticated, or opened by its pay again
+        // address. Any other id is one a request named, and its keyed address would open that order's page to whoever sent it.
         if (!SessionOrder::isEntitled($app, $orderId)) {
             SessionOrder::refuse($app, $orderId, 'completed');
             $app->redirect(Route::_('index.php?option=com_alfa&view=cart', false));

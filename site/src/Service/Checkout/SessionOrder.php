@@ -32,9 +32,10 @@ defined('_JEXEC') or die;
  * - pay: the buyer opened the order's pay again address (its payment token, PayAgain), which the process page checks
  *   again before it asks the gateway.
  *
- * An order id with neither mark is refused by both pages: the visitor goes to the cart with one neutral message, the
- * same whether the order exists or not, and nothing of the order is shown. The mark is written and cleared only with
- * the id: a new placement or another authenticated return replaces both, the arrival and a refusal clear both.
+ * An order id with none of these marks is refused by both pages: the visitor goes to the cart with one neutral message,
+ * the same whether the order exists or not, and nothing of the order is shown. The mark is written and cleared only
+ * with the id: a new placement, another authenticated return or a pay again replaces both, the arrival and a refusal
+ * clear both.
  *
  * @since  2.2.1
  */
@@ -170,8 +171,8 @@ final class SessionOrder
 
         AlfaLog::register();
         Log::add(
-            'Order pages: the ' . $page . ' page refused order ' . $orderId . ', which this session neither placed nor had a'
-            . ' gateway authenticate a return for; client ' . IpHelper::getIp() . ', a cart (account or cart key): ' . $cart . '.',
+            'Order pages: the ' . $page . ' page refused order ' . $orderId . ', which this session neither placed, nor had a'
+            . ' gateway authenticate a return for, nor opened with its pay again address; client ' . IpHelper::getIp() . ', a cart (account or cart key): ' . $cart . '.',
             Log::WARNING,
             'com_alfa.orders',
         );
@@ -182,7 +183,7 @@ final class SessionOrder
      *
      * @param CMSApplicationInterface $app The storefront request.
      * @param int $orderId The order.
-     * @param string $origin PLACED or AUTHENTICATED_RETURN.
+     * @param string $origin PLACED, AUTHENTICATED_RETURN or PAY_AGAIN.
      *
      * @since  2.2.1
      */
