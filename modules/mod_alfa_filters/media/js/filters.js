@@ -273,7 +273,17 @@ document.addEventListener('DOMContentLoaded', () => {
             toggle('.af-price-reset', hasPrice);
 
             // Global: any filter is in effect, whether or not it has a control on screen.
+            // A Clear all that hides itself while the keyboard is on it hands the focus on: to
+            // the results button, else to the first group's heading.
+            const focusedClear = document.activeElement?.closest?.('.af-reset-all');
+
             toggle('.af-reset-all', this.hasActiveFilterState());
+
+            if (focusedClear && this.wrapper.contains(focusedClear) && !focusedClear.classList.contains('is-visible')) {
+                Array.from(qsAll('.af-show-results, .af-group-toggle', this.wrapper))
+                    .find((element) => element.getClientRects().length > 0)
+                    ?.focus({ preventScroll: true });
+            }
         }
 
         /**
@@ -465,7 +475,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (container && html) {
                 // The control the shopper is on is replaced with the rest; its twin in the
                 // new markup (same id) takes the focus back, so the keyboard keeps its place.
-                const focusedId = container.contains(document.activeElement) ? document.activeElement.id : '';
+                // A control with no twin (Clear all, gone once nothing is left to clear) hands
+                // the focus to the panel's results button, the next step.
+                const hadFocus = container.contains(document.activeElement);
+                const focusedId = hadFocus ? document.activeElement.id : '';
 
                 // Choices goes BEFORE the markup does: it listens on the document, so an
                 // instance dropped with its select would keep handling clicks for it.
@@ -473,8 +486,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.innerHTML = html;
                 this.reinitFormElements();
 
-                if (focusedId) {
-                    document.getElementById(focusedId)?.focus({ preventScroll: true });
+                const twin = focusedId ? document.getElementById(focusedId) : null;
+
+                if (twin) {
+                    twin.focus({ preventScroll: true });
+                } else if (hadFocus) {
+                    qs('.af-show-results', container)?.focus({ preventScroll: true });
                 }
             }
 
@@ -785,8 +802,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Escape belongs to an open dropdown or to a search box that still holds text
-            // first; otherwise it closes the panel.
-            this.offCanvas.addEventListener('keydown', (event) => {
+            // first; otherwise it closes the panel. Heard on the document, so it works
+            // wherever the focus is while the panel lies open.
+            document.addEventListener('keydown', (event) => {
                 if (event.key !== 'Escape' || !this.isVisible || !this.isOverlay()) {
                     return;
                 }
@@ -882,14 +900,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         initResponsiveBehavior() {
             const isFixed = this.config?.fixedPos ?? false;
-            const breakpoint = this.config?.responsiveChange ?? 768;
 
             if (isFixed) return;
             if (!this.filterForm || !this.offCanvas || !this.toggler) return;
 
+            // The same query as the column's stylesheet, which the dispatcher writes from the same
+            // setting: the panel is a column from that width up, so the two never disagree, at the
+            // breakpoint itself included.
+            const column = window.matchMedia(`(min-width: ${this.config.responsiveChange}px)`);
+
             const updateLayout = () => {
-                const isMobile = window.innerWidth <= breakpoint;
-                const newMode = isMobile ? 'mobile' : 'desktop';
+                const newMode = column.matches ? 'desktop' : 'mobile';
 
                 if (newMode === this.currentMode) return;
                 this.currentMode = newMode;
@@ -901,7 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            window.addEventListener('resize', updateLayout);
+            column.addEventListener('change', updateLayout);
             updateLayout();
         }
 

@@ -320,7 +320,11 @@ html.alfa-filters-noscroll {
  * Animations
  */
 
+/* The panel is a column of its header, its actions bar and its form: the form takes the
+   height the others leave, whatever the header's own height, and scrolls inside it. */
 .alfa-filters-wrapper-inner{
+    display: flex;
+    flex-direction: column;
     transition: width 0.25s ease;
 }
 
@@ -404,10 +408,15 @@ html.alfa-filters-noscroll {
 
 .mod-alfa-filters {
     padding: var(--alfa-filters-panel-padding);
+    /* The panel's foot is its last row and carries its own inset; a bottom padding here
+       would lift the foot, which stays at the bottom of the scroll, off the panel's edge. */
+    padding-bottom: 0;
     overflow-y: auto;
     overflow-x: hidden;
     font-size: var(--alfa-filters-text-base);  /* base size for all filter content; scales with parent */
     height: var(--mod-alfa-filters-form-height);
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--alfa-filters-space-xl);
