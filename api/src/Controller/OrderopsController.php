@@ -412,9 +412,14 @@ class OrderopsController extends OrdersController
         $body = $this->body();
         $this->refuseParcelNote(body: $body);
 
+        // A parcel is on a shipping method, as the order screen's parcel form requires.
+        if ((int) ($body['id_shipment_method'] ?? 0) <= 0) {
+            throw new Save('id_shipment_method is required', 400);
+        }
+
         $data = [
             'id_order' => $orderId,
-            'id_shipment_method' => (int) ($body['id_shipment_method'] ?? 0),
+            'id_shipment_method' => (int) $body['id_shipment_method'],
             'tracking_number' => $body['tracking_number'] ?? '',
             'status' => (string) ($body['status'] ?? 'pending'),
         ];
