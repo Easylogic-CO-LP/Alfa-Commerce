@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 use Alfa\Component\Alfa\Administrator\Background\WorkFailure;
 use Alfa\Component\Alfa\Administrator\Event\Background\RunTaskEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
@@ -79,10 +80,10 @@ final class PluginTask implements TaskHandler
             SystemActor::around(static fn () => $helper->dispatchTo($loaded, new RunTaskEvent(run: $run)));
         } catch (WorkFailure $failure) {
             throw $failure->kind === WorkFailure::FAILED
-                ? TaskFailure::failed($failure->getMessage(), $failure)
-                : TaskFailure::retry($failure->getMessage(), $failure, $failure->after);
+                ? TaskFailure::failed(ErrorText::of($failure), $failure)
+                : TaskFailure::retry(ErrorText::of($failure), $failure, $failure->after);
         } catch (PluginUnavailable $e) {
-            throw TaskFailure::retry($e->getMessage(), $e);
+            throw TaskFailure::retry(ErrorText::of($e), $e);
         }
 
         // A part recorded unknown and then passed over: its effect is still unknown, so the task is held.

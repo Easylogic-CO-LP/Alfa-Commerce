@@ -2480,7 +2480,7 @@ final class Tasks
             // Its plugin is disabled or gone: back to waiting, no attempt counted; it runs once the plugin is enabled.
             WorkDeclarations::setEnabled(owner: (string) $row['owner'], enabled: false);
             self::settle(db: $db, id: $id, lease: $lease, state: self::STATE_PENDING, history: $history, error: (string) $row['last_error'], failures: $failures);
-            self::log(entry: 'Task #' . $id . ' (' . $row['handler'] . ') waits: ' . $failure->getMessage(), priority: Log::INFO);
+            self::log(entry: 'Task #' . $id . ' (' . $row['handler'] . ') waits: ' . ErrorText::of($failure), priority: Log::INFO);
 
             return;
         }

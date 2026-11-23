@@ -278,7 +278,7 @@ final class WorkDeclarations
                 self::setEnabled(owner: $owner, enabled: false);
             }
 
-            Tasks::log(entry: 'Background work: the declarations of ' . $owner . ' could not be read; its previous copy stands: ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Background work: the declarations of ' . $owner . ' could not be read; its previous copy stands: ' . ErrorText::of($e), priority: Log::WARNING);
 
             return false;
         }

@@ -997,7 +997,7 @@ final class Runner
             try {
                 $done = $handler->chunk($run, $units);
             } catch (OwnerUnavailable $e) {
-                return self::waitForOwner(db: $db, run: $run, owner: $owner, why: $e->getMessage());
+                return self::waitForOwner(db: $db, run: $run, owner: $owner, why: ErrorText::of($e));
             } catch (Throwable $e) {
                 $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;
                 self::fail(db: $db, id: $run->id, owner: $owner, error: Tasks::failureLine($e, $run->id), failure: $e, longLadder: $handler->policy()->callsOut);
@@ -1023,7 +1023,7 @@ final class Runner
         } catch (OwnerUnavailable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
 
-            return self::waitForOwner(db: $db, run: $run, owner: $owner, why: $e->getMessage());
+            return self::waitForOwner(db: $db, run: $run, owner: $owner, why: ErrorText::of($e));
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
             $tally['deadlocks'] += MysqlError::number(error: $e) === 1213 ? 1 : 0;

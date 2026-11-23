@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 use Alfa\Component\Alfa\Administrator\Background\WorkStatus;
 use Alfa\Component\Alfa\Administrator\Event\Background\WorkSettledEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Joomla\CMS\Factory;
@@ -108,7 +109,7 @@ final class WorkSettled implements TaskHandler
         try {
             $loaded = PluginJob::boot(helper: $helper, owner: PluginId::of($owner));
         } catch (OwnerUnavailable $e) {
-            throw TaskFailure::retry($e->getMessage(), $e);
+            throw TaskFailure::retry(ErrorText::of($e), $e);
         }
 
         if (!$helper->declares($loaded, WorkSettledEvent::NAME)) {
@@ -120,7 +121,7 @@ final class WorkSettled implements TaskHandler
         try {
             SystemActor::around(static fn () => $helper->dispatchTo($loaded, $event));
         } catch (Throwable $e) {
-            throw TaskFailure::retry('The plugin ' . $owner . ' failed when told how #' . $id . ' ended: ' . $e->getMessage(), $e);
+            throw TaskFailure::retry('The plugin ' . $owner . ' failed when told how #' . $id . ' ended: ' . ErrorText::of($e), $e);
         }
     }
 }

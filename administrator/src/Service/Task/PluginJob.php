@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 use Alfa\Component\Alfa\Administrator\Background\WorkFailure;
 use Alfa\Component\Alfa\Administrator\Event\Background\RunJobEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\LoadedPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -69,7 +70,7 @@ final class PluginJob implements JobHandler
                 throw new OwnerUnavailable($e->getMessage(), 0, $e);
             }
 
-            throw TaskFailure::retry($e->getMessage(), $e);
+            throw TaskFailure::retry(ErrorText::of($e), $e);
         }
     }
 
@@ -135,8 +136,8 @@ final class PluginJob implements JobHandler
             SystemActor::around(static fn () => $helper->dispatchTo($loaded, $event));
         } catch (WorkFailure $failure) {
             throw $failure->kind === WorkFailure::FAILED
-                ? TaskFailure::failed($failure->getMessage(), $failure)
-                : TaskFailure::retry($failure->getMessage(), $failure, $failure->after);
+                ? TaskFailure::failed(ErrorText::of($failure), $failure)
+                : TaskFailure::retry(ErrorText::of($failure), $failure, $failure->after);
         }
 
         $outcome = $event->outcome();
