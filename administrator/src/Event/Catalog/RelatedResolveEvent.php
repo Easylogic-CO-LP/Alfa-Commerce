@@ -31,7 +31,8 @@ use Joomla\CMS\Event\AbstractEvent;
  *
  * Nothing a listener adds is trusted: every link is judged as a stored one is, against what the visitor may see and
  * buy, and one that does not stand is skipped. A product is shown once: of two links to one product the first is kept.
- * The page shows at most {@see self::limit()} of them. Dispatched isolated: a listener that fails is logged, the next
+ * The page shows at most {@see self::limit()} of them. (No method is named set<Argument>: Joomla's event reads such a
+ * method as the argument's setter.) Dispatched isolated: a listener that fails is logged, the next
  * one runs and the related products are shown from the links as the failing listener left them.
  *
  * @since  2.3.0
@@ -127,7 +128,7 @@ final class RelatedResolveEvent extends AbstractEvent
      *
      * @since  2.3.0
      */
-    public function setLinks(array $links): self
+    public function replaceWith(array $links): self
     {
         $this->arguments['links'] = array_values(array_filter($links, static fn (mixed $link): bool => $link instanceof RelatedLink));
 
