@@ -17,7 +17,8 @@ use Joomla\CMS\Language\Text;
 defined('_JEXEC') or die;
 
 /**
- * How a price of zero is printed for the shopper: its figure, nothing, or the "Call for price" text.
+ * How a price of zero is printed for the shopper: its figure, nothing, or the "Call for price" text; and what a product
+ * with no price shows in its place.
  *
  * One setting in the component Options (Cart, Checkout, `zero_price_display`): show (the figure, 0,00), hide, or
  * text (the language string COM_ALFA_PRICE_ON_REQUEST, which a language override words the shop's way). It applies to
@@ -25,6 +26,9 @@ defined('_JEXEC') or die;
  * subtotal and the total, in the storefront, the cart module, the order e-mails and the printed documents. Tax,
  * shipping, fees and discounts print their figures as they are. The figure itself never changes: the cart, the
  * order, the ledger and the REST API carry the zero; only its printing follows the setting.
+ *
+ * A product with no price (none applies for the shopper, or the shop shows its catalogue only) cannot be bought, so it
+ * has its own setting (`unpriced_display`): the same text, by default, or nothing.
  *
  * @since  2.3.0
  */
@@ -43,6 +47,18 @@ final class PriceDisplay
             'text' => Text::_('COM_ALFA_PRICE_ON_REQUEST'),
             default => null,
         };
+    }
+
+    /**
+     * What a product with no price shows where its price would be: the shop's text, or '' for nothing.
+     *
+     * @since  2.3.0
+     */
+    public static function unpriced(): string
+    {
+        return (string) ComponentHelper::getParams('com_alfa')->get('unpriced_display', 'text') === 'text'
+            ? Text::_('COM_ALFA_PRICE_ON_REQUEST')
+            : '';
     }
 
     /**
