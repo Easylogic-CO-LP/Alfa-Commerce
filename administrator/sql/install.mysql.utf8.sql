@@ -3312,6 +3312,23 @@ CREATE TABLE IF NOT EXISTS `#__alfa_action_once` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='One-time action keys already used, per user';
 
 --
+-- The Idempotency-Keys of the REST API's writes: a write sent again with the same key is answered with what the first
+-- one stored and applies nothing; the same key with another body is refused. Claimed in the write's transaction, so a
+-- refused write keeps no key. Kept 30 days (IdempotencyKeys).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_api_keys` (
+  `created_by` int(11) NOT NULL COMMENT 'The API user whose key it is',
+  `scope` varchar(32) NOT NULL COMMENT 'The write the key names, such as inventory.adjustments',
+  `key_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the key the client sent',
+  `request_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the request body in its canonical form',
+  `result` text DEFAULT NULL COMMENT 'JSON: what the write answered (the ids and operation ids it wrote), to answer a replay',
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`created_by`, `scope`, `key_hash`),
+  KEY `idx_created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Idempotency keys of REST API writes, kept 30 days';
+
+--
 -- The tasks table (2.1.4): a single is one thing a change owes after its commit (an e-mail, a
 -- plugin's reaction, a notice), written in the change's own transaction and run once the outermost
 -- transaction has committed and Alfa's named locks are released; a job is long work with steps and a

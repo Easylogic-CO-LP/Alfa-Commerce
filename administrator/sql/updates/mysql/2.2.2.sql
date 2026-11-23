@@ -76,3 +76,20 @@ CREATE TABLE IF NOT EXISTS `#__alfa_skus` (
   PRIMARY KEY (`sku`),
   UNIQUE KEY `uq_unit` (`item_id`, `combination_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Every SKU in use, once: products and combinations, archived ones included';
+
+-- A write sent twice is applied once
+
+-- The REST API's writes that move stock take an Idempotency-Key: the same request sent again with the same key is
+-- answered with what the first one stored and applies nothing, and the same key with another body is refused. The keys
+-- are kept 30 days. The install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_api_keys` (
+  `created_by` int(11) NOT NULL COMMENT 'The API user whose key it is',
+  `scope` varchar(32) NOT NULL COMMENT 'The write the key names, such as inventory.adjustments',
+  `key_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the key the client sent',
+  `request_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the request body in its canonical form',
+  `result` text DEFAULT NULL COMMENT 'JSON: what the write answered (the ids and operation ids it wrote), to answer a replay',
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`created_by`, `scope`, `key_hash`),
+  KEY `idx_created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Idempotency keys of REST API writes, kept 30 days';
