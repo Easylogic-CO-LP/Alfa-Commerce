@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 use Alfa\Component\Alfa\Site\Service\Summary\SummaryRow;
 use Joomla\CMS\Component\ComponentHelper;
+use UnexpectedValueException;
 
 defined('_JEXEC') or die;
 
@@ -90,6 +91,8 @@ final class CartShows
      *
      * @param SummaryRow $row The row.
      *
+     * @throws UnexpectedValueException For a row of a type none of the switches covers.
+     *
      * @since  2.3.0
      */
     public function shows(SummaryRow $row): bool
@@ -99,6 +102,7 @@ final class CartShows
             SummaryRow::TAX => $this->tax,
             SummaryRow::SHIPPING => $this->shipping,
             SummaryRow::CONTRIBUTION, SummaryRow::RULE, SummaryRow::TOTAL => $this->total,
+            default => throw new UnexpectedValueException('A summary row of a type no switch covers: ' . $row->type),
         };
     }
 }
