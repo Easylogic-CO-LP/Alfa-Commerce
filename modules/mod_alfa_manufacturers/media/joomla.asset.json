@@ -1,0 +1,14 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "mod_alfa_manufacturers",
+  "version": "1.0.0",
+  "description": "Alfa Commerce manufacturers module.",
+  "license": "GPL-3.0-or-later",
+  "assets": [
+    {
+      "name": "mod_alfa_manufacturers.manufacturers",
+      "type": "style",
+      "uri": "mod_alfa_manufacturers/manufacturers.min.css"
+    }
+  ]
+}

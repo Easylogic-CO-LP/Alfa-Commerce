@@ -1,0 +1,14 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "mod_alfa_categories",
+  "version": "1.0.0",
+  "description": "Alfa Commerce categories module.",
+  "license": "GPL-3.0-or-later",
+  "assets": [
+    {
+      "name": "mod_alfa_categories.categories",
+      "type": "style",
+      "uri": "mod_alfa_categories/categories.min.css"
+    }
+  ]
+}
