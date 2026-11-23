@@ -485,7 +485,7 @@ class ItemController extends FormController
                         // the gate ran. Read after the rollback, the product's state is
                         // the one the kernel judged, so an archived product is refused
                         // with the reason the dry run gives it.
-                        $message = $e?->getMessage() ?? (CombinationState::isCurrent(state: $this->loadItemColumn(itemId: $id, column: 'state'))
+                        $message = ($e !== null ? ErrorText::of($e) : null) ?? (CombinationState::isCurrent(state: $this->loadItemColumn(itemId: $id, column: 'state'))
                             ? Text::_('COM_ALFA_INLINE_STOCK_NOT_EDITABLE')
                             : Text::_('COM_ALFA_ITEM_STOCK_REASON_ARCHIVED'));
 
