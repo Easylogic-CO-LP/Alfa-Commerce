@@ -20,7 +20,7 @@ use Joomla\CMS\Language\Text;
  *
  * Responsibilities:
  *  - Refuse the install before anything is touched when the site runs a Joomla this
- *    build is not tested on (older than 6.1, or 7 and later), a PHP that is too old
+ *    build is not tested on (older than 6.2, or 7 and later), a PHP that is too old
  *    or lacks a required extension, or an Alfa Commerce older than the schema baseline (preflight).
  *  - Install / update bundled libraries, plugins and modules alongside the component.
  *  - Seed sensible default configuration parameters after install/update (postflight).
@@ -65,13 +65,13 @@ class com_alfaInstallerScript extends InstallerScript
      * Platform floor, enforced in {@see self::preflight()}.
      *
      * Only what is tested is accepted: the release suites
-     * run on Joomla 6.1, so a site on 6.0 is told to update Joomla first. Below 5.3
+     * run on Joomla 6.2, so a site on an older Joomla is told to update Joomla first. Below 5.3
      * nothing would work at all: the admin views build their forms with
      * Joomla\CMS\Form\Form::addControlField() (`@since 5.3.0`, libraries/src/Form/Form.php).
      *
      * @var string
      */
-    protected $minimumJoomla = '6.1.0';
+    protected $minimumJoomla = '6.2.0';
 
     /**
      * The first Joomla version this build is not tested on, refused in
@@ -1047,7 +1047,7 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * The tested Joomla range as people read it: the floor's major and minor
-     * followed by "+" ("6.1+"). The range ends before {@see self::$untestedJoomla}.
+     * followed by "+" ("6.2+"). The range ends before {@see self::$untestedJoomla}.
      *
      * @return  string
      * @since  2.0.0

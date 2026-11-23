@@ -1,6 +1,6 @@
 # Alfa Commerce
 
-A full-featured eCommerce component for Joomla 6.1+, developed by [Easylogic](https://easylogic.gr).
+A full-featured eCommerce component for Joomla 6.2+, developed by [Easylogic](https://easylogic.gr).
 
 > **Status:** Stable. 2.0.0 is the first stable release. Sites on a 1.x beta need a clean install ([how](https://manual.alfacommerce.gr/docs/getting-started/installation/#from-a-1x-beta)).
 
@@ -20,7 +20,7 @@ A full-featured eCommerce component for Joomla 6.1+, developed by [Easylogic](ht
 ## Requirements
 
 - PHP 8.3+ (8.4 recommended), with bcmath, intl, mbstring, gd and openssl
-- Joomla 6.1+ (6.1 or a later Joomla 6 release)
+- Joomla 6.2+ (6.2 or a later Joomla 6 release)
 - MySQL 8.0.13+ or MariaDB 10.6+ (utf8mb4)
 
 ## Installation
