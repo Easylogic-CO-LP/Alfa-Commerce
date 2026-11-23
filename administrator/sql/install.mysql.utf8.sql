@@ -1221,11 +1221,30 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
   `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product whose page shows the link',
   `linked_item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product linked to it, shown on its page; one direction only',
   `link_type` varchar(16) NOT NULL DEFAULT 'related' COMMENT 'The kind of link: related, the one kind core writes and reads; the column holds further kinds without a schema change',
+  `linked_combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination of the linked product its card opens on; 0 for none',
   `ordering` int(11) NOT NULL DEFAULT 0 COMMENT 'Position on the page, from 1, in the order staff set',
   PRIMARY KEY (`item_id`, `linked_item_id`, `link_type`),
   KEY `idx_linked_item_id` (`linked_item_id`),
   KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
+
+--
+-- The values a link opens the linked product's card with, one a field: a value of a dimension of the linked product's
+-- combinations or the value of an option it offers. A link with values and no combination is a preselection; a
+-- combination link may carry option values. A link whose combination or value is no longer the product's is removed
+-- with its values by the save that removed it (RelatedItems::forgetVanished()).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_items_link_values` (
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The link''s product',
+  `linked_item_id` int(11) UNSIGNED NOT NULL COMMENT 'The link''s linked product',
+  `link_type` varchar(16) NOT NULL DEFAULT 'related' COMMENT 'The link''s kind',
+  `field_id` int(11) UNSIGNED NOT NULL COMMENT 'The item field of the value: a dimension of the linked product or the field of an option it offers',
+  `value_id` int(11) UNSIGNED NOT NULL COMMENT 'The value chosen for that field on the card',
+  PRIMARY KEY (`item_id`, `linked_item_id`, `link_type`, `field_id`),
+  KEY `idx_value_id` (`value_id`),
+  KEY `idx_linked_item_id` (`linked_item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The values a link preselects on the linked product''s card, one per field';
 
 --
 -- Every SKU in use, once: a product's own SKU and each combination's, archived ones included. The key is the SKU,

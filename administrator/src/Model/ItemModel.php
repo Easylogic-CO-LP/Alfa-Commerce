@@ -57,6 +57,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -813,14 +814,15 @@ class ItemModel extends AlfaAdminModel
             return $this->refuseSave(messages: [$categoryRefusal]);
         }
 
-        // RELATED PRODUCTS, judged before the transaction: the product itself, a product named twice or one that
-        // does not exist is refused and nothing is saved. A copy has no id yet, so none of its rows can name it. A form
-        // with no row carries no list, which empties the links as it empties the other lists.
-        $relatedIds = RelatedItems::posted(posted: $data['related'] ?? []);
-        $relatedRefusals = RelatedItems::refusals(db: $db, itemId: $pk, ids: $relatedIds);
+        // RELATED PRODUCTS, judged before the transaction: a link the product cannot take (itself, a product named
+        // twice or one that does not exist, a combination or a value that is not the linked product's) is refused and
+        // nothing is saved. A copy has no id yet, so none of its rows can name it. A form with no row carries no list,
+        // which empties the links as it empties the other lists.
+        $relatedLinks = RelatedItems::posted(posted: $data['related'] ?? []);
+        $relatedRefusals = RelatedItems::refusals(db: $db, itemId: $pk, links: $relatedLinks);
 
         if ($relatedRefusals !== []) {
-            return $this->refuseSave(messages: $relatedRefusals);
+            return $this->refuseSave(messages: array_map(static fn (Refusal $refusal): string => $refusal->sentence, $relatedRefusals));
         }
 
         // A thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()):
@@ -1110,9 +1112,9 @@ class ItemModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
 
-            // The related products, in the posted order: each written only while its product exists, so a
-            // product deleted since the check above leaves no link.
-            RelatedItems::replace(db: $db, itemId: (int) $currentId, ids: $relatedIds);
+            // The related products, in the posted order: each written only while its product (and its combination)
+            // exists, so one deleted since the check above leaves no link.
+            RelatedItems::replace(db: $db, itemId: (int) $currentId, links: $relatedLinks);
 
             // ITEM FIELDS: no wizard step; option values are ADDED via the
             // picker popup (item.addOptions), informational values save via

@@ -164,7 +164,7 @@ class JsonApiView extends BaseApiView
 
         // The related products: their ids, in their order (the form's rows hold one {item_id} each).
         if (isset($item->related) && \is_array($item->related)) {
-            $item->related = RelatedItems::posted(posted: $item->related);
+            $item->related = array_values(array_map(static fn ($link): int => $link->itemId, RelatedItems::posted(posted: $item->related)));
         }
 
         // A product that tracks stock and holds no stock record has none on the shelf: its stock reads 0. The

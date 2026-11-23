@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
@@ -663,6 +664,9 @@ class ItemfieldModel extends AlfaAdminModel
             primaryColumnName: 'id_item_field_value',
             tableName:         '#__alfa_item_field_values',
         );
+
+        // Related links that preselect a deleted value go with it.
+        RelatedItems::forgetValues(db: $db, valueIds: $valueIds);
     }
 
     /**

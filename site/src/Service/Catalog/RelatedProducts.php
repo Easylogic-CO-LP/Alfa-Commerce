@@ -66,7 +66,7 @@ final class RelatedProducts
 
         for ($offset = 0; $offset < self::READ_MAX && \count($shown) < $count; $offset += $page) {
             $size = min($page, self::READ_MAX - $offset);
-            $ids = RelatedItems::ids(db: $db, itemId: $itemId, limit: $size, offset: $offset);
+            $ids = array_map(static fn ($link): int => $link->itemId, RelatedItems::links(db: $db, itemId: $itemId, limit: $size, offset: $offset));
 
             if ($ids === []) {
                 break;

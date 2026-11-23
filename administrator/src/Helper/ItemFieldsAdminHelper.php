@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
@@ -2135,6 +2136,9 @@ class ItemFieldsAdminHelper
                     ->whereIn($db->qn('value_id'), $deleted),
             );
             $db->execute();
+
+            // Related links that preselect a removed option go with it.
+            RelatedItems::forgetVanished(db: $db, linkedItemIds: [$itemId]);
         }
 
         // Drag-to-reorder: the rows post in document (dragged) order, so the
@@ -3086,6 +3090,9 @@ class ItemFieldsAdminHelper
                     );
                     $db->execute();
                 }
+
+                // Related links to a removed combination, or to values no combination left carries, go with it.
+                RelatedItems::forgetVanished(db: $db, linkedItemIds: [$itemId]);
             }
 
             // Last combination removed -> the per-item dimension order has no more
