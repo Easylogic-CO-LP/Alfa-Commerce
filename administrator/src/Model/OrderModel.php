@@ -3181,12 +3181,14 @@ class OrderModel extends AlfaAdminModel
         // The custom rate itself shows its own decimals, never fewer than the
         // currency's: it is the agreed rate as data. Totals keep $money.
         $rate = static fn (string $column): string => \array_key_exists($column, $after) && $after[$column] !== null ? $currency->formatRate(rate: (float) $after[$column]) : '';
-        // The line's units by the one unit rule, from the quantity and totals the
-        // save leaves on the line, at the order's frozen scale; the agreed rate
-        // is a gross rate and is passed beside the gross unit only.
-        $unit = static fn (string $column, string $totalColumn, ?string $rateColumn = null): string => \array_key_exists($column, $after) && $after[$column] !== null
-            ? $currency->formatUnit(
+        // The line's units by the one unit rule, from what the save leaves on the
+        // line (the stored price it keeps, else its quantity and totals), at the
+        // order's frozen scale; the agreed rate is a gross rate and is passed
+        // beside the gross unit only.
+        $unit = static fn (string $column, string $storedColumn, string $totalColumn, ?string $rateColumn = null): string => \array_key_exists($column, $after) && $after[$column] !== null
+            ? $currency->formatLineUnit(
                 unit: $after[$column],
+                stored: $after[$storedColumn] ?? null,
                 lineTotal: $after[$totalColumn] ?? 0,
                 quantity: $after['quantity'] ?? 0,
                 rate: $rateColumn !== null ? ($after[$rateColumn] ?? null) : null,
@@ -3203,8 +3205,8 @@ class OrderModel extends AlfaAdminModel
             'command' => $plan['command'],
             'name' => $plan['name'],
             'quantity' => (string) (int) ($after['quantity'] ?? 0),
-            'unit_price_tax_incl' => $unit('unit_price_tax_incl', 'total_price_tax_incl', 'custom_unit_price_tax_incl'),
-            'unit_price_tax_excl' => $unit('unit_price_tax_excl', 'total_price_tax_excl'),
+            'unit_price_tax_incl' => $unit('unit_price_tax_incl', 'stated_unit_tax_incl', 'total_price_tax_incl', 'custom_unit_price_tax_incl'),
+            'unit_price_tax_excl' => $unit('unit_price_tax_excl', 'stated_unit_tax_excl', 'total_price_tax_excl'),
             'total_price_tax_incl' => $money('total_price_tax_incl'),
             'total_price_tax_excl' => $money('total_price_tax_excl'),
             'discount_amount_tax_incl' => $money('discount_amount_tax_incl'),
@@ -3958,14 +3960,17 @@ class OrderModel extends AlfaAdminModel
         if ($plan['oldRow'] === null) {
             // The unit as the log keeps it: the Auto form of the one unit rule at
             // the order's frozen scale, plain, so a stored text never depends on
-            // a display setting.
+            // a display setting; the stored price the line was priced at where it
+            // carries one.
+            $stated = $columns['stated_unit_tax_incl'] ?? null;
             $unit = Currency::unitFigure(
-                unit: $columns['unit_price_tax_incl'] ?? 0,
+                unit: $stated ?? $columns['unit_price_tax_incl'] ?? 0,
                 lineTotal: $columns['total_price_tax_incl'] ?? 0,
                 quantity: $plan['quantity'],
                 scale: $plan['currency']->getDecimalPlaces(),
-                rate: $columns['custom_unit_price_tax_incl'] ?? null,
+                rate: $stated === null ? ($columns['custom_unit_price_tax_incl'] ?? null) : null,
                 auto: true,
+                stated: $stated !== null,
             )['figure'];
 
             self::logOrderActivityStrict(
@@ -4159,14 +4164,17 @@ class OrderModel extends AlfaAdminModel
             // or vanish together), with before/after total snapshots.
             $totalsAfter = OrderTotalHelper::getBreakdown($orderId);
             // The unit as the log keeps it: the Auto form of the one unit rule at
-            // the order's frozen scale, plain.
+            // the order's frozen scale, plain; the stored price the line was
+            // priced at where it carries one.
+            $stated = $item->stated_unit_tax_incl ?? null;
             $priceFormatted = Currency::unitFigure(
-                unit: $item->unit_price_tax_incl ?? 0,
+                unit: $stated ?? $item->unit_price_tax_incl ?? 0,
                 lineTotal: $item->total_price_tax_incl ?? 0,
                 quantity: $item->quantity ?? 0,
                 scale: $orderCurrency->getDecimalPlaces(),
-                rate: $item->custom_unit_price_tax_incl ?? null,
+                rate: $stated === null ? ($item->custom_unit_price_tax_incl ?? null) : null,
                 auto: true,
+                stated: $stated !== null,
             )['figure'];
             self::logOrderActivityStrict(
                 $orderId,

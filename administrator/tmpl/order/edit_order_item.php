@@ -189,8 +189,9 @@ $this->getDocument()->addScriptOptions('com_alfa.orderItem', [
             // rate and is passed beside the gross unit only.
             $lineQuantity = !$isNew ? ($this->orderItem->quantity ?? 0) : 0;
             $amountOf = static fn ($value) => is_object($value) ? $value->getAmount() : ($value ?? 0);
-            $formatUnit = static fn ($unit, $total, $rate = null): string => $lineCurrency && $unit !== null && $unit !== ''
-                ? $lineCurrency->formatUnit(unit: $unit, lineTotal: $amountOf($total), quantity: $lineQuantity, rate: $rate)
+            // The stored price the line was priced at, where it carries one, is the unit it prints.
+            $formatUnit = static fn ($unit, $stored, $total, $rate = null): string => $lineCurrency && $unit !== null && $unit !== ''
+                ? $lineCurrency->formatLineUnit(unit: $unit, stored: $stored, lineTotal: $amountOf($total), quantity: $lineQuantity, rate: $rate)
                 : '';
 
             // The line's stored manual discount and its tick. The popup opens
@@ -245,8 +246,8 @@ $this->getDocument()->addScriptOptions('com_alfa.orderItem', [
                 <h6 class="text-muted mt-3 mb-2"><?php echo Text::_('COM_ALFA_ORDER_ITEM_CURRENT_TERMS'); ?></h6>
                 <dl class="row small mb-0">
                     <dt class="col-6"><?php echo Text::_('COM_ALFA_ORDER_ITEM_UNIT_PRICE'); ?></dt>
-                    <dd class="col-6 text-end mb-1"><?php echo $this->escape($formatUnit($this->orderItem->unit_price_tax_incl_stored, $this->orderItem->total_price_tax_incl ?? null, $storedCustom)); ?>
-                        <span class="text-muted">(<?php echo $this->escape($formatUnit($this->orderItem->unit_price_tax_excl_stored, $this->orderItem->total_price_tax_excl ?? null)); ?>)</span></dd>
+                    <dd class="col-6 text-end mb-1"><?php echo $this->escape($formatUnit($this->orderItem->unit_price_tax_incl_stored, $this->orderItem->stated_unit_tax_incl ?? null, $this->orderItem->total_price_tax_incl ?? null, $storedCustom)); ?>
+                        <span class="text-muted">(<?php echo $this->escape($formatUnit($this->orderItem->unit_price_tax_excl_stored, $this->orderItem->stated_unit_tax_excl ?? null, $this->orderItem->total_price_tax_excl ?? null)); ?>)</span></dd>
                     <dt class="col-6"><?php echo Text::_('COM_ALFA_ORDER_ITEM_DISCOUNT'); ?></dt>
                     <dd class="col-6 text-end mb-1"><?php echo $this->escape(AlfaHelper::percentDisplay(value: $this->orderItem->discount_percent ?? 0)); ?>
                         <span class="text-muted">(<?php echo $this->escape($format($this->orderItem->discount_amount_tax_incl ?? null)); ?>)</span></dd>

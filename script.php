@@ -276,6 +276,14 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_places' => [
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
+        '#__alfa_order_items' => [
+            'stated_unit_tax_excl' => ["decimal(24,8) DEFAULT NULL COMMENT 'The stored price (a price row''s own value or a sale''s own price) the line''s final net unit is, frozen at placement: the unit prints as it by the stored-price rule. NULL when that unit was computed, on a line whose quantity or money changed since, and on a line placed before this column'", 'payable_unit'],
+            'stated_unit_tax_incl' => ["decimal(24,8) DEFAULT NULL COMMENT 'The stored price the line''s final gross unit is, frozen at placement; NULL as stated_unit_tax_excl'", 'stated_unit_tax_excl'],
+        ],
+        '#__alfa_document_items' => [
+            'stated_unit_tax_excl' => ["decimal(24,8) DEFAULT NULL COMMENT 'FROZEN AT ISSUE: the stored price the line''s net unit prints as, from the order line when the document carries the whole of it (on a credit, from the corrected line when it credits the whole of that). NULL on a partial line, on every line without money and on every document issued before this column: the unit prints by the line rule'", 'custom_unit_price_tax_incl'],
+            'stated_unit_tax_incl' => ["decimal(24,8) DEFAULT NULL COMMENT 'FROZEN AT ISSUE: the stored price the line''s gross unit prints as; NULL as stated_unit_tax_excl'", 'stated_unit_tax_excl'],
+        ],
     ];
 
     /**

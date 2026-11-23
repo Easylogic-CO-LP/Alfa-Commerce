@@ -94,18 +94,21 @@ class OrderHelper
             $item->name = MultilingualHelper::resolveLangMap($item->name);
 
             // The units stay the stored decimals and are shown by the one unit
-            // rule, from the line's own quantity and total in the same tax
-            // space, at the order's frozen scale. The agreed custom rate is a
+            // rule at the order's frozen scale: the stored price the line was
+            // priced at where it carries one, else from the line's own quantity
+            // and total in the same tax space. The agreed custom rate is a
             // gross rate, so it is passed beside the gross unit only. Totals
             // are Money.
-            $item->unit_price_tax_incl_formatted = $currency->formatUnit(
+            $item->unit_price_tax_incl_formatted = $currency->formatLineUnit(
                 unit: $item->unit_price_tax_incl,
+                stored: $item->stated_unit_tax_incl ?? null,
                 lineTotal: $item->total_price_tax_incl ?? 0,
                 quantity: $item->quantity,
                 rate: $item->custom_unit_price_tax_incl ?? null,
             );
-            $item->unit_price_tax_excl_formatted = $currency->formatUnit(
+            $item->unit_price_tax_excl_formatted = $currency->formatLineUnit(
                 unit: $item->unit_price_tax_excl,
+                stored: $item->stated_unit_tax_excl ?? null,
                 lineTotal: $item->total_price_tax_excl ?? 0,
                 quantity: $item->quantity,
             );

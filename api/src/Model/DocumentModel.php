@@ -171,6 +171,7 @@ class DocumentModel extends ItemModel
                     quantity: $row->quantity ?? 0,
                     rate: null,
                     currency: $currency,
+                    stored: $row->stated_unit_tax_excl ?? null,
                 ),
                 'unit_price_tax_incl' => $this->unit(
                     value: $row->unit_price_tax_incl ?? null,
@@ -178,8 +179,12 @@ class DocumentModel extends ItemModel
                     quantity: $row->quantity ?? 0,
                     rate: $row->custom_unit_price_tax_incl ?? null,
                     currency: $currency,
+                    stored: $row->stated_unit_tax_incl ?? null,
                 ),
             ];
+
+            // The stored price is how the units print, not a field of the line.
+            unset($row->stated_unit_tax_excl, $row->stated_unit_tax_incl);
 
             foreach ($units as $key => $projected) {
                 if (property_exists($row, $key)) {

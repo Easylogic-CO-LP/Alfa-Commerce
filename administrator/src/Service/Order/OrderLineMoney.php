@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Service\Pricing\ChargeableQuantity;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
@@ -63,6 +64,15 @@ use RuntimeException;
  * line, so a later quantity edit on the line's own terms is judged by the
  * same unit a new line is. Building the line's money for a display refuses
  * nothing.
+ *
+ * THE STORED PRICE BESIDE THE UNITS. A line priced from a stored price (a
+ * price row's own value or a sale's own price) keeps that price beside its
+ * units, the one its net unit and the one its gross unit are
+ * ({@see PriceUnits::stored()}), so it prints its unit as the storefront
+ * did: 25.338 beside seven prints 25,338, where the line per piece prints
+ * 25,339. Only a line priced by the engine carries it; a save that keeps the
+ * line's quantity and money keeps it; any other rewrite of the line's money
+ * writes NULL, because the stored price no longer priced the line.
  *
  * NULL IS NOT ZERO. A row whose `base_total_tax_excl` is NULL predates Item 3
  * and carries no authority; a row whose figures are 0.00 was authoritatively
@@ -117,6 +127,9 @@ final class OrderLineMoney
      *                                 before it was kept.
      * @param string|null $refusal The sentence a writer of this line is refused in; null when the
      *                             line may be written.
+     * @param string|null $statedUnitTaxExcl The stored price the final net unit is; null when it is computed, and
+     *                                       on every line whose money was rewritten since it was priced.
+     * @param string|null $statedUnitTaxIncl The stored price the final gross unit is; null as the net one.
      */
     private function __construct(
         public readonly Money $baseTotalTaxExcl,
@@ -137,6 +150,8 @@ final class OrderLineMoney
         public readonly ?Money $customTotalTaxIncl,
         public readonly ?string $payableUnit,
         private readonly ?string $refusal,
+        public readonly ?string $statedUnitTaxExcl = null,
+        public readonly ?string $statedUnitTaxIncl = null,
     ) {
     }
 
@@ -202,6 +217,8 @@ final class OrderLineMoney
             // stored beside it, held at the eighth place, is what a kept line
             // is judged by later.
             refusal: self::refusalAt(unit: ChargeableQuantity::ofUnit(unit: $price->getPayableUnitExact(), currency: $price->getCurrency()), quantity: $price->getQuantity()),
+            statedUnitTaxExcl: PriceUnits::stored(price: $price, figure: 'subtotal'),
+            statedUnitTaxIncl: PriceUnits::stored(price: $price, figure: 'final'),
         );
     }
 
@@ -384,6 +401,9 @@ final class OrderLineMoney
                 : ($customGross ?? $scale($row->custom_total_tax_incl)),
             payableUnit: $payableUnit,
             refusal: self::refusalOnLeave(payableUnit: $payableUnit, moved: $moved, quantity: $newQuantity, currency: $currency),
+            // At the same quantity the money is the line's own, so the stored price that priced it still does.
+            statedUnitTaxExcl: $newQuantity === $oldQuantity ? self::storedText(value: $row->stated_unit_tax_excl ?? null) : null,
+            statedUnitTaxIncl: $newQuantity === $oldQuantity ? self::storedText(value: $row->stated_unit_tax_incl ?? null) : null,
         );
     }
 
@@ -902,7 +922,22 @@ final class OrderLineMoney
             'custom_total_tax_incl' => StoredDecimal::of($this->customTotalTaxIncl),
             // What a later quantity edit on the line's own terms is judged by.
             'payable_unit' => $unit($this->payableUnit),
+            // The stored price the units print as; NULL once the line's money is rewritten.
+            'stated_unit_tax_excl' => $unit($this->statedUnitTaxExcl),
+            'stated_unit_tax_incl' => $unit($this->statedUnitTaxIncl),
         ];
+    }
+
+    /**
+     * A stored price as read from its column: its exact decimal text, or null when the column holds none.
+     *
+     * @param mixed $value The column's value.
+     *
+     * @since  2.3.0
+     */
+    private static function storedText(mixed $value): ?string
+    {
+        return $value === null || $value === '' ? null : ExactAmount::ofNumber($value)->text();
     }
 
     /**

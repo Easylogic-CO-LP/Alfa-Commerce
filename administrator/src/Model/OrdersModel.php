@@ -885,21 +885,24 @@ class OrdersModel extends AlfaListModel
             // never a bare number, which reads as money in the shop's.
             $notice = $item->currency_notice;
 
-            // Each unit by the one unit rule, from the line's own quantity and
-            // total in the same tax space; the agreed custom rate is a gross
+            // Each unit by the one unit rule: the stored price the line was
+            // priced at where it carries one, else from the line's own quantity
+            // and total in the same tax space; the agreed custom rate is a gross
             // rate and is passed beside the gross unit only.
             foreach ($item->_items as $oi) {
                 $oi->unit_price_tax_incl_formatted = $currency !== null
-                    ? $currency->formatUnit(
+                    ? $currency->formatLineUnit(
                         unit: $oi->unit_price_tax_incl ?? 0,
+                        stored: $oi->stated_unit_tax_incl ?? null,
                         lineTotal: $oi->total_price_tax_incl ?? 0,
                         quantity: $oi->quantity ?? 0,
                         rate: $oi->custom_unit_price_tax_incl ?? null,
                     )
                     : $notice;
                 $oi->unit_price_tax_excl_formatted = $currency !== null
-                    ? $currency->formatUnit(
+                    ? $currency->formatLineUnit(
                         unit: $oi->unit_price_tax_excl ?? 0,
+                        stored: $oi->stated_unit_tax_excl ?? null,
                         lineTotal: $oi->total_price_tax_excl ?? 0,
                         quantity: $oi->quantity ?? 0,
                     )
@@ -1088,6 +1091,8 @@ class OrdersModel extends AlfaListModel
                 $db->quoteName('oi.total_price_tax_incl'),
                 $db->quoteName('oi.total_price_tax_excl'),
                 $db->quoteName('oi.custom_unit_price_tax_incl'),
+                $db->quoteName('oi.stated_unit_tax_excl'),
+                $db->quoteName('oi.stated_unit_tax_incl'),
                 $db->quoteName('oi.discount_percent'),
                 $db->quoteName('oi.discount_amount_tax_incl'),
             ])
