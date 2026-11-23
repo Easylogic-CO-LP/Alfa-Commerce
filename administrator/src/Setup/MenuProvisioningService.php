@@ -12,9 +12,9 @@ namespace Alfa\Component\Alfa\Administrator\Setup;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageFactoryInterface;
 use Joomla\CMS\Language\Text;
@@ -156,7 +156,7 @@ final class MenuProvisioningService
                 // Shoppers read the title: it is written in the item's own language, and an
                 // all-languages item in the site's default one, never the language of whoever
                 // pressed the button.
-                $title = self::title(key: $item['title'], language: $language === '*' ? self::siteLanguage() : $language);
+                $title = self::title(key: $item['title'], language: $language === '*' ? MultilingualHelper::getDefaultLanguageCode() : $language);
                 $alias = self::uniqueAlias($db, $item['alias'] . ($sef !== '' ? '-' . $sef : ''));
 
                 /** @var \Joomla\CMS\Table\Menu $table */
@@ -236,17 +236,6 @@ final class MenuProvisioningService
         $strings->load('com_alfa', JPATH_ADMINISTRATOR, $language);
 
         return $strings->_($key);
-    }
-
-    /**
-     * The site's default language (Languages: Site), the language of an all-languages item.
-     *
-     *
-     * @since  2.2.2
-     */
-    private static function siteLanguage(): string
-    {
-        return (string) ComponentHelper::getParams('com_languages')->get('site', 'en-GB');
     }
 
     /**
