@@ -125,21 +125,21 @@ class HtmlView extends BaseHtmlView
 
     /**
      * @var \Joomla\CMS\Form\Form|false The builder form: its only job is to
-     *                                  carry plugin-contributed fieldsets as tabs, through onAlfaAdminForm.
+     *                                  carry plugin-contributed fieldsets as sections, through onAlfaAdminForm.
      * @since  2.0.0
      */
     protected $form = false;
 
     /**
-     * @var int The live cart this builder edits: the id the tabs and the
-     *          B1B.1c endpoints operate on.
+     * @var int The live cart this builder edits: the id the sections and the
+     *          cart controller's tasks operate on.
      * @since  2.0.0
      */
     protected int $builderCartId = 0;
 
     /**
      * @var \Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot|null The priced,
-     *                                                               settled reading the Items tab renders its lines and totals from.
+     *                                                               settled reading the Items section renders its lines and totals from.
      * @since  2.0.0
      */
     protected $builderSnapshot = null;
@@ -153,18 +153,11 @@ class HtmlView extends BaseHtmlView
 
     /**
      * @var array<int, object[]> Each line's chosen configuration, already
-     *                           resolved to names by the cart read model (R.1H), keyed by line id:
-     *                           the ONE semantic source both the Summary and Items tabs print from.
+     *                           resolved to names by the cart read model, keyed by line id:
+     *                           the one source the Items section prints them from.
      * @since  2.0.0
      */
     protected array $builderSelections = [];
-
-    /**
-     * @var object[] The line whose configuration the selection sub-template is
-     *               printing right now; the caller sets it and loads that template.
-     * @since  2.0.0
-     */
-    protected array $lineSelections = [];
 
     /**
      * @var object|null The cart line the item popup is re-configuring, or null
@@ -195,6 +188,20 @@ class HtmlView extends BaseHtmlView
     protected int $newItemId = 0;
 
     /**
+     * The storefront's strings the builder prints (the engine's notices, the custom-price label), loaded under the
+     * administrator's own: the administrator's file is loaded again over the site's, so a key both files carry reads
+     * as the administrator's says it and only the keys it lacks come from the site's.
+     *
+     * @since  2.3.0
+     */
+    private static function speakStorefront(): void
+    {
+        $language = Factory::getApplication()->getLanguage();
+        $language->load('com_alfa', JPATH_SITE);
+        $language->load('com_alfa', JPATH_ADMINISTRATOR, null, true);
+    }
+
+    /**
      * @param string|null $tpl The layout.
      *
      * @return void
@@ -214,10 +221,10 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        // The methods tab prints the engine's own notices about a method it had
+        // The methods section prints the engine's own notices about a method it had
         // to drop, and those sentences are the storefront's, stated as a
         // dependency, never copied into the admin catalogue.
-        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_SITE);
+        self::speakStorefront();
 
         $this->item = $this->get('Item');
 
@@ -260,7 +267,7 @@ class HtmlView extends BaseHtmlView
         // field in the UI is never relied on.
         $this->canPriceCustom = $takeover->canPriceCustom;
 
-        // The Customer tab reads identity from the cart ROW and the address book
+        // The Customer section reads identity from the cart ROW and the address book
         // from its one owner, never from the request, and never from a store of
         // its own.
         $this->builderCustomer = $this->getModel()->getBuilderCustomer($this->builderCartId, $actor);
@@ -272,16 +279,16 @@ class HtmlView extends BaseHtmlView
             ? $this->getModel()->getCheckoutForm($this->builderCartId, $actor)
             : null;
 
-        // THE FORM CARRIES NO RECORD, only plugin tabs. A plugin adds a
+        // THE FORM CARRIES NO RECORD, only plugin sections. A plugin adds a
         // <fieldset> through onAlfaAdminForm for entity 'cart', and the template
-        // renders each as its own tab: the same seam the Order and Item screens
-        // use. The builder itself mutates the live cart through the request
+        // renders each as a section at the end of the page: the same seam the
+        // Order and Item screens use for their tabs. The builder itself mutates the live cart through the request
         // seam, so the form is never submitted or saved.
         $builder = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory()
             ->createModel('CartBuilder', 'Administrator', ['ignore_request' => true]);
         $this->form = $builder ? $builder->getForm() : false;
 
-        // The Items tab renders its lines and totals from the priced, settled
+        // The Items section renders its lines and totals from the priced, settled
         // snapshot (the same authoritative reading the request seam returns),
         // built only for an operator who may work the cart.
         if ($this->canCheckout) {
@@ -303,8 +310,8 @@ class HtmlView extends BaseHtmlView
         }
 
         // The chosen configuration of each line, taken from the read model that
-        // already resolved every field and value to a name, so the Items tab
-        // prints exactly what the Summary tab prints, from one source.
+        // already resolved every field and value to a name, printed by the one
+        // layout, cart.line_selection.
         foreach ($this->item->lines as $line) {
             $this->builderSelections[(int) $line->id] = $line->selections ?? [];
         }
@@ -359,8 +366,8 @@ class HtmlView extends BaseHtmlView
         }
 
         // The quote renders the Items table's own cells, whose custom-price label
-        // is the storefront's: loaded here as the builder page loads it (:207).
-        $app->getLanguage()->load(extension: 'com_alfa', basePath: JPATH_SITE);
+        // is the storefront's: loaded here as the builder page loads it.
+        self::speakStorefront();
 
         $this->configLine = null;
         $this->configItem = null;

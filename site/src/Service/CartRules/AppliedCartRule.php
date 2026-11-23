@@ -25,8 +25,9 @@ use InvalidArgumentException;
  * float carries no more than fifteen of its digits, and the frozen row is
  * handed the exact decimal of it.
  *
- * Frozen to `#__alfa_order_cart_rule` at placement; displayed one row per
- * rule on the cart totals.
+ * Frozen to `#__alfa_order_cart_rule` at placement, and its shares of the
+ * lines to `#__alfa_order_item_cart_rule`; displayed one row per rule on the
+ * cart totals.
  *
  * @since  2.0.0
  */
@@ -42,6 +43,8 @@ final class AppliedCartRule
      * @param Money $discountTaxExcl Discount amount, tax exclusive.
      * @param bool $freeShipping Whether this rule zeroes the shipping.
      * @param int[] $lineIds Cart line ids claimed (product class).
+     * @param array<int, RuleLineShare> $lineShares The rule's share of each line it took money off, keyed by cart line
+     *                                              id; they add up to the rule. None for a shipping rule.
      *
      * @since  2.0.0
      */
@@ -55,6 +58,7 @@ final class AppliedCartRule
         public readonly Money $discountTaxExcl,
         public readonly bool $freeShipping = false,
         public readonly array $lineIds = [],
+        public readonly array $lineShares = [],
     ) {
     }
 

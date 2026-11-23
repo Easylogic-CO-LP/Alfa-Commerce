@@ -61,10 +61,16 @@ defined('_JEXEC') or die;
  *
  * Line snapshot shape (built by the caller):
  *   {id: int, id_item: int, quantity: int, line_tax_incl: float, line_tax_excl: float,
- *    has_catalogue_discount: bool, has_custom_price: bool}
+ *    has_catalogue_discount: bool, has_custom_price: bool,
+ *    taken_tax_incl?: float, claimed?: bool}
+ *   taken_tax_incl and claimed describe a placed order's line: what the rules already on the order take off it
+ *   (gross), which a rule measures the line without, and whether one of them is a product rule, which keeps the line
+ *   from another product rule. Conditions read the line's own figures.
  * Context shape:
  *   {userId: int, userGroups: int[], codes: string[],
- *    shipping_tax_incl: float, shipping_tax_excl: float}
+ *    shipping_tax_incl: float, shipping_tax_excl: float, codesOnly?: bool}
+ *   codesOnly: only the rules with the given codes are candidates (a placed order, whose automatic rules were
+ *   frozen when it was placed).
  *
  * @since  2.0.0
  */
@@ -401,7 +407,13 @@ final class CartRulesEngine
             ->where('(' . $db->quoteName('r.publish_up') . ' IS NULL OR ' . $db->quoteName('r.publish_up') . ' <= ' . $db->quote($now) . ')')
             ->where('(' . $db->quoteName('r.publish_down') . ' IS NULL OR ' . $db->quoteName('r.publish_down') . ' >= ' . $db->quote($now) . ')');
 
-        if ($codes === []) {
+        if (!empty($context->codesOnly)) {
+            if ($codes === []) {
+                return [];
+            }
+
+            $query->where('UPPER(' . $db->quoteName('r.code') . ') IN (' . implode(',', array_map([$db, 'quote'], $codes)) . ')');
+        } elseif ($codes === []) {
             $query->where($db->quoteName('r.code') . ' IS NULL');
         } else {
             $query->where('(' . $db->quoteName('r.code') . ' IS NULL OR UPPER(' . $db->quoteName('r.code') . ') IN ('
@@ -1126,11 +1138,68 @@ final class CartRulesEngine
                     discountTaxExcl: $discount->excl,
                     freeShipping: $discount->freeShipping,
                     lineIds: $discount->lineIds,
+                    lineShares: $discount->shares ?? [],
                 ),
             ];
         }
 
         return array_map(static fn (object $entry): AppliedCartRule => $entry->result, $applied);
+    }
+
+    /**
+     * A rule's share of each line it took money off, both figures.
+     *
+     * The gross of a share is the engine's own split of the rule ($perLine, on the basis it was measured on). Its net
+     * is the line's exact part of the rule's net (the rule's gross times the line's net over its gross, times what the
+     * line had left over the base), rounded once; the cents those roundings leave are placed one at a time on the
+     * largest shares, so the nets add up to the rule's net exactly, as the grosses add up to its gross.
+     *
+     * @param array<int, Money> $perLine The rule's gross on each line, by cart line id.
+     * @param array<int, array{0: int, 1: int, 2: int}> $netTerms Each line's term of the rule's net, by cart line id.
+     * @param Money $incl The rule's gross.
+     * @param Money $excl The rule's net.
+     * @param Money $base What the rule was measured on.
+     *
+     * @return array<int, RuleLineShare> By cart line id, the lines with money off only.
+     *
+     * @since  2.3.0
+     */
+    private static function lineShares(array $perLine, array $netTerms, Money $incl, Money $excl, Money $base): array
+    {
+        $nets = [];
+
+        foreach ($perLine as $lineId => $gross) {
+            $nets[$lineId] = $incl->timesRatioSum(terms: [$netTerms[$lineId]], divisor: $base->getMinorUnits());
+        }
+
+        $left = $excl->getMinorUnits() - array_sum(array_map(static fn (Money $net): int => $net->getMinorUnits(), $nets));
+
+        if ($left !== 0) {
+            // Largest gross first, then the lines' own order.
+            $order = array_keys($perLine);
+            $position = array_flip($order);
+            usort($order, static fn (int $a, int $b): int => [$perLine[$b]->getMinorUnits(), $position[$a]]
+                <=> [$perLine[$a]->getMinorUnits(), $position[$b]]);
+            $step = $left > 0 ? 1 : -1;
+
+            for ($n = 0; $left !== 0; $n++) {
+                $lineId = $order[$n % \count($order)];
+                $nets[$lineId] = $nets[$lineId]->add(Money::ofMinor($step, $excl->getCurrency()));
+                $left -= $step;
+            }
+        }
+
+        $shares = [];
+
+        foreach ($perLine as $lineId => $gross) {
+            if ($gross->isZero() && $nets[$lineId]->isZero()) {
+                continue;
+            }
+
+            $shares[$lineId] = new RuleLineShare(lineId: (int) $lineId, taxIncl: $gross, taxExcl: $nets[$lineId]);
+        }
+
+        return $shares;
     }
 
     /**
@@ -1259,7 +1328,7 @@ final class CartRulesEngine
 
             if ($rule->discount_class === 'product') {
                 // Product rules only touch matched, UNCLAIMED lines.
-                if (!$inMatched || isset($claimed[$lineId])) {
+                if (!$inMatched || isset($claimed[$lineId]) || !empty($line->claimed)) {
                     continue;
                 }
             } elseif ($rule->discount_base !== 'cart' && !$inMatched) {
@@ -1275,8 +1344,14 @@ final class CartRulesEngine
 
         // What a line has left: its gross less what earlier rules already took
         // from it, never below zero. The order class measures on that
-        // remainder; the product class is protected by $claimed instead.
-        $leftOn = static function (object $line, Money $gross) use ($rule, $productDiscountByLine, $orderDiscountByLine): Money {
+        // remainder; the product class is protected by $claimed instead. What
+        // the rules already on a placed order take off a line is taken first,
+        // whatever the class.
+        $leftOn = static function (object $line, Money $gross) use ($rule, $productDiscountByLine, $orderDiscountByLine, $money): Money {
+            if (!empty($line->taken_tax_incl)) {
+                $gross = $gross->subtract($money($line->taken_tax_incl));
+            }
+
             if ($rule->discount_class === 'order') {
                 $lineId = (int) $line->id;
 
@@ -1365,14 +1440,23 @@ final class CartRulesEngine
             $incl->allocateByRatios(array_map(static fn (Money $left): int => $left->getMinorUnits(), array_values($leftByLine))),
         );
 
+        // The net follows the base's own net over its gross: one sum over the
+        // lines, rounded once.
+        $excl = $incl->timesRatioSum(terms: $netTerms, divisor: $base->getMinorUnits());
+
         return (object) [
             'incl' => $incl,
-            // The net follows the base's own net over its gross: one sum over
-            // the lines, rounded once.
-            'excl' => $incl->timesRatioSum(terms: $netTerms, divisor: $base->getMinorUnits()),
+            'excl' => $excl,
             'freeShipping' => false,
             'lineIds' => array_keys($perLine),
             'perLine' => $perLine,
+            'shares' => self::lineShares(
+                perLine: $perLine,
+                netTerms: array_combine(array_keys($leftByLine), $netTerms),
+                incl: $incl,
+                excl: $excl,
+                base: $base,
+            ),
         ];
     }
 

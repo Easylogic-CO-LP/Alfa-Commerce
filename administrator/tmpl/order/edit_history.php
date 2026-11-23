@@ -37,6 +37,7 @@ $entityMeta = [
 	'item'     => ['icon' => 'icon-cube',     'color' => 'primary',   'label' => 'COM_ALFA_ITEMS'],
 	'payment'  => ['icon' => 'icon-credit',   'color' => 'success',   'label' => 'COM_ALFA_PAYMENTS'],
 	'shipment' => ['icon' => 'icon-cubes',    'color' => 'info',      'label' => 'COM_ALFA_SHIPMENTS'],
+	'coupon'   => ['icon' => 'icon-tag',      'color' => 'warning',   'label' => 'COM_ALFA_ORDER_HISTORY_ENTITY_COUPON'],
 ];
 
 // Action part -> badge color

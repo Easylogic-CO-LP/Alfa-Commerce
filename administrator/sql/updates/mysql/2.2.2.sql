@@ -164,3 +164,21 @@ DELETE FROM `#__alfa_tasks` WHERE `handler` = 'extension.job';
 -- #__alfa_inventory_transfers. It is dropped; the install SQL no longer creates it.
 
 DROP TABLE IF EXISTS `#__alfa_inventory_transfers` /** CAN FAIL **/;
+
+-- Each cart rule's share of each order line, frozen at placement (the install SQL creates the same table and says what
+-- it holds). An updated site starts with no rows: orders placed before keep their documents' sharing of a rule over the
+-- goods, and none is filled in by guess. This runs again harmlessly over it.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_order_item_cart_rule` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id_order` int(11) NOT NULL COMMENT 'Its order (#__alfa_orders.id)',
+  `id_order_item` int(11) NOT NULL COMMENT 'The order line (#__alfa_order_items.id); the share is removed with it',
+  `id_order_cart_rule` int(10) UNSIGNED NOT NULL COMMENT 'The order''s rule row (#__alfa_order_cart_rule.id_order_cart_rule) the share belongs to',
+  `value_tax_excl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'The share net of tax',
+  `value_tax_incl` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'The share as it came off the line, tax included',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_line_rule` (`id_order_item`, `id_order_cart_rule`),
+  KEY `idx_order` (`id_order`),
+  KEY `idx_order_cart_rule` (`id_order_cart_rule`),
+  CONSTRAINT `fk_rule_share_order_item` FOREIGN KEY (`id_order_item`) REFERENCES `#__alfa_order_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Each cart rule''s share of each order line, frozen at placement';

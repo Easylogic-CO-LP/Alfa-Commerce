@@ -22,7 +22,8 @@
  * 3. #__alfa_order_payments       (payment records)
  * 4. #__alfa_order_shipments      (shipment records)
  * 5. #__alfa_order_activity_log   (unified event log)
- * 7. #__alfa_order_cart_rule      (applied discounts/coupons)
+ * 7. #__alfa_order_cart_rule      (applied discounts/coupons), and each rule's share of each
+ *    line in #__alfa_order_item_cart_rule
  * 8. #__alfa_user_info            (customer address)
  *
  * Usage:
@@ -70,6 +71,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderPlacedFollowUp;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderRuleShares;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
@@ -123,7 +125,6 @@ class OrderPlacement
     protected string $order_payments_table = '#__alfa_order_payments';
     protected string $order_shipments_table = '#__alfa_order_shipments';
     protected string $order_activity_log_table = '#__alfa_order_activity_log';
-    protected string $order_cart_rule_table = '#__alfa_order_cart_rule';
     protected string $user_info_table = '#__alfa_user_info';
 
     /** @var object Default order status (loaded from DB, not hardcoded) */
@@ -481,7 +482,7 @@ class OrderPlacement
                 // placement, so an order can never commit with a money history
                 // that disagrees with what it collects.
                 $this->saveOrderContributions($orderId);
-                $this->saveCartRules($orderId);
+                $this->saveCartRules($orderId, $created->lineIds);
 
                 // What the placement owes after its commit, written with the order: the download access of
                 // its initial status and its confirmation e-mail. They run once the placement's own work after the
@@ -2257,15 +2258,30 @@ class OrderPlacement
      * the placement back rather than committing an order whose discounts are
      * missing from its history.
      *
+     * Each product or order rule's share of each line it took money off is
+     * written against that order line (#__alfa_order_item_cart_rule), as the
+     * engine shared it out; the rule's row is their sum. Documents and credits
+     * read a line's shares, and a quantity change rescales them.
+     *
      * @param int $orderId The created order.
+     * @param int[] $orderLineIds The created order lines, in the cart's line order.
      *
      *
      * @throws RuntimeException When a limit is exhausted or a rule row cannot be written.
      *
      * @since  1.0.0
      */
-    protected function saveCartRules(int $orderId): void
+    protected function saveCartRules(int $orderId, array $orderLineIds): void
     {
+        // The order line of each cart line: the lines were created in the cart's order.
+        $orderLineOf = [];
+
+        foreach (array_values($this->cart->lines()) as $index => $cartLine) {
+            if (isset($orderLineIds[$index])) {
+                $orderLineOf[(int) $cartLine->id] = (int) $orderLineIds[$index];
+            }
+        }
+
         // The engine validated candidates (window, targeting, usage) during
         // this request and assertCartRuleUsageAvailable() re-checked the
         // limits under lock in this transaction, before the order was
@@ -2274,33 +2290,8 @@ class OrderPlacement
         $currency = $this->cart->grandTotal()->getCurrency();
 
         foreach ($this->cart->appliedRules() as $applied) {
-            $cartRule = new stdClass();
-            $cartRule->id_order = $orderId;
-            $cartRule->id_cart_rule = $applied->id;
-            $cartRule->name = $applied->name;
-            // NULL for automatic rules; emails label the row with the
-            // code when the customer typed one, the name otherwise.
-            $cartRule->code = $applied->code;
-            // Each figure is handed to its column as the exact decimal of the
-            // Money the engine computed.
-            $cartRule->value_tax_excl = StoredDecimal::of($applied->discountTaxExcl);
-            // Freeze the discount's OWN money. Re-deriving the inclusive
-            // figure downstream from the items' VAT multiplier gave the
-            // wrong answer for anything whose tax differs from the items'
-            // average: shipping benefits most of all.
-            $cartRule->value_tax_incl = StoredDecimal::of($applied->discountTaxInclMoney($currency));
-            // The tax is the difference of the two frozen figures, in the
-            // cart's minor units.
-            $cartRule->value_tax = StoredDecimal::of($applied->discountTaxInclMoney($currency)->subtract($applied->discountTaxExcl));
-            // Without the class, a frozen shipping benefit is
-            // indistinguishable from an order discount and gets
-            // subtracted a second time.
-            $cartRule->discount_class = $applied->discountClass;
-            $cartRule->free_shipping = $applied->freeShipping ? 1 : 0;
-            $cartRule->deleted = 0;
-
             try {
-                $this->db->insertObject($this->order_cart_rule_table, $cartRule);
+                OrderRuleShares::freeze(db: $this->db, orderId: $orderId, applied: $applied, orderLineOf: $orderLineOf, currency: $currency);
             } catch (Throwable $e) {
                 throw new RuntimeException(
                     'Applied cart rule ' . (int) $applied->id . ' could not be frozen for order ' . $orderId . ': ' . $e->getMessage(),

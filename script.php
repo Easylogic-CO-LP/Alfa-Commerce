@@ -294,6 +294,9 @@ class com_alfaInstallerScript extends InstallerScript
             'source_url' => ["varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The address the image was fetched from, as the REST API client gave it; NULL for an image uploaded or picked'", 'thumbnail_origin'],
             'source_url_hash' => ["char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'sha256 of source_url: the same address is not fetched twice for one record'", 'source_url'],
         ],
+        '#__alfa_order_cart_rule' => [
+            'line_shares' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = the rule''s money is held as its shares of the order lines (#__alfa_order_item_cart_rule) and this row is their sum; 0 = a shipping rule, or an order placed before shares were kept'", 'free_shipping'],
+        ],
     ];
 
     /**
@@ -2715,6 +2718,18 @@ class com_alfaInstallerScript extends InstallerScript
             // credit itself (View/Dashboard/HtmlView.php), so an older template file that still renders the layout
             // draws no second credit. The copy an earlier release installed (PackageHelper::contentHash()).
             'administrator/components/com_alfa/layouts/dashboard/credit.php' => ['370f8c35631d91094ada9d700a5b3ca4bdf75f0162fbef32d30a93bdd9445839'],
+            // The order builder is one page: its Items tab and its Summary tab's statement became one Items section
+            // (default_lines.php), and a line's configuration is the layout cart.line_selection. The copies
+            // earlier releases installed (PackageHelper::contentHash()).
+            'administrator/components/com_alfa/tmpl/cart/default_items.php' => [
+                '7a50f5b9ab44059ac470c04d6c75d55e6966cc91e221e6df07161c661de52601',
+                '5188c66fcf94f28d0fc5e523246827a31ef6e9531b017fc339fde9fc05a98b2a',
+            ],
+            'administrator/components/com_alfa/tmpl/cart/default_selection.php' => ['8bfa46369537b53f113a107b10fc4fa52430778d69ce3fc9dff1dcfe1059dc5b'],
+            'administrator/components/com_alfa/tmpl/cart/default_statement.php' => [
+                'a00c9b565e9326cc40b4ee5dcb58955184cc0d4d835a4a51141fb6dde27d3f98',
+                '1973f719187f72909afa7acab951ea8c72a91babe7b03ea50fc44632a52fcb83',
+            ],
         ],
     ];
 

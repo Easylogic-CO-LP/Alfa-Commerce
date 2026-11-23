@@ -46,6 +46,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCoupons;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
@@ -57,6 +58,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderPlacedFollowUp;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderRuleShares;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderSource;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\ReconciliationFacts;
@@ -1709,6 +1711,9 @@ class OrderModel extends AlfaAdminModel
                 ->where('deleted = 0');
             $db->setQuery($discountQuery);
             $discountRows = $db->loadObjectList() ?: [];
+
+            // The coupons on the order, and whether staff may change them here.
+            $order->coupons = OrderCoupons::onOrder(orderId: (int) $order->id);
 
             // Load frozen cart contributions (labeled charge rows, for the
             // totals card and the formula alike)
@@ -3991,6 +3996,19 @@ class OrderModel extends AlfaAdminModel
             // lines whenever a line's quantity or its unit moved.
             $oldQuantity = $isNew ? 0 : (int) $plan['oldRow']->quantity;
 
+            // The line's part of each cart rule follows its quantity; the rules engine is not asked again.
+            if (!$isNew && $plan['quantity'] !== $oldQuantity) {
+                OrderRuleShares::rescaleLine(
+                    db: $db,
+                    orderId: $orderId,
+                    lineId: $lineId,
+                    oldQuantity: $oldQuantity,
+                    newQuantity: (int) $plan['quantity'],
+                    currency: $plan['currency'],
+                    taxRate: (float) ($plan['columns']['tax_rate'] ?? $plan['oldRow']->tax_rate),
+                );
+            }
+
             if ($plan['quantity'] !== $oldQuantity || $plan['combinationChanged']) {
                 InventoryBridge::syncOrderLines($orderId);
 
@@ -4315,6 +4333,9 @@ class OrderModel extends AlfaAdminModel
                     ->where($db->quoteName('id') . ' = ' . (int) $id)
                     ->where($db->quoteName('id_order') . ' = ' . (int) $orderId),
             )->execute();
+
+            // The line's shares of the cart rules went with it; the rules' rows are their remaining shares' sums.
+            OrderRuleShares::resum(db: $db, orderId: $orderId);
 
             // Reconcile inventory: the vanished line's deductions return and
             // its holds release (kernel per-line ledger, idempotent).

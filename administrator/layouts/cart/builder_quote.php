@@ -10,10 +10,11 @@
 /**
  * The builder popup's quote: the line as the cart will price it.
  *
- * Three cells, each the Items table's own (tmpl/cart/default_items.php): the
- * unit with tax (by the one unit rule), the discount and the line total, read
- * off the priced line. With no price applying, the sentence that the line waits for its custom price.
- * Nothing here computes money. The popup renders it at open and the
+ * Three figures, as the items table prints them: the unit with tax (by the one
+ * unit rule), the discount and the line total (the layouts cart.line_discount
+ * and cart.line_total, which the table prints too), read off the priced line.
+ * With no price applying, the sentence that the line waits for its custom
+ * price. Nothing here computes money. The popup renders it at open and the
  * cart.priceLineConfig endpoint renders it again on every change.
  *
  * @since  2.0.0
@@ -23,9 +24,14 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 
 /** @var \Alfa\Component\Alfa\Site\Service\Pricing\PriceResult|null $price Null when no price applies to the line. */
 $price = $displayData['price'] ?? null;
+
+// The discount and the total are the items table's own layouts, so the popup and the table read alike; found by
+// component, so an administrator template's override of them applies to both.
+$layouts = ['component' => 'com_alfa', 'client' => 1];
 
 // No price applies to the product at this quantity for this customer: the line waits for its custom price.
 if ($price === null) : ?>
@@ -41,33 +47,13 @@ endif;
     <div class="col-auto">
         <div class="form-label"><?php echo Text::_('COM_ALFA_CART_TABLE_DISCOUNT'); ?></div>
         <div class="fs-5 fw-semibold">
-            <?php if ($price->hasDiscount()) : ?>
-                <span class="text-success">&minus;<?php echo $this->escape($price->getSavingsTotalWithTax()->format()); ?></span>
-            <?php elseif ($price->hasExplicitPrice()) : ?>
-                <?php // A negotiated price is its own surface, not a discount. ?>
-                <span class="badge bg-info-subtle text-info-emphasis">
-                    <?php echo $this->escape(Text::_('COM_ALFA_PRICE_CUSTOM_LINE_SAVING')); ?>
-                    &minus;<?php echo $this->escape($price->getLineSavingWithTax()->format()); ?>
-                </span>
-            <?php else : ?>
-                -
-            <?php endif; ?>
+            <?php echo LayoutHelper::render('cart.line_discount', ['price' => $price], null, $layouts); ?>
         </div>
     </div>
     <div class="col-auto">
         <div class="form-label"><?php echo Text::_('COM_ALFA_CART_TABLE_TOTAL'); ?></div>
         <div class="fs-5 fw-semibold">
-            <?php if ($price->hasDiscount()) : ?>
-                <div class="text-muted text-decoration-line-through small">
-                    <?php echo $this->escape($price->getBaseTotalWithTax()->format()); ?>
-                </div>
-            <?php elseif ($price->hasExplicitPrice()) : ?>
-                <?php // The canonical amount struck through, the operator's figure below it. ?>
-                <div class="text-muted text-decoration-line-through small">
-                    <?php echo $this->escape($price->getReference()->getTotal()->format()); ?>
-                </div>
-            <?php endif; ?>
-            <?php echo $this->escape($price->getTotal()->format()); ?>
+            <?php echo LayoutHelper::render('cart.line_total', ['price' => $price], null, $layouts); ?>
         </div>
     </div>
 </div>

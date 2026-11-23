@@ -82,6 +82,9 @@ if ($hasMoney) {
 
 <!--  ORDER TOTALS SUMMARY CARD                                     -->
 <div class="row mt-4 mb-3">
+	<?php // The coupons first, as the checkout puts the code box above its totals. ?>
+	<?php echo $this->loadTemplate('coupons'); ?>
+
 	<div class="col-lg-5 col-md-7 ms-auto">
 		<div class="card shadow-sm">
 

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The order-builder form. It saves no record (the builder mutates a live named
-  cart through the B1B.1c request seam, not a form submit) and exists so a
-  plugin can add a <fieldset> through onAlfaAdminForm and have it rendered as a
-  plg-<name> tab, exactly as the Order and Item edit screens do. The one core
-  fieldset below is skipped by the template's contributed-tab loop.
+  cart through its own small forms, not a form submit) and exists so a plugin
+  can add a <fieldset> through onAlfaAdminForm and have it drawn as a section at
+  the end of the builder page, contributed as on the Order and Item edit
+  screens. The one core fieldset below is skipped by the template's loop.
 -->
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
     <fieldset name="builder">
