@@ -25,13 +25,18 @@ use Joomla\Database\ParameterType;
  * to letter case (the registry table's key, #__alfa_skus). A SKU names one unit, so an ERP finds a product or a variant
  * by its SKU and two writes cannot give one SKU to two units.
  *
- *     $unit = SkuIndex::unit('SMX-WHT-256');   // a SkuUnit, or a Refusal saying why none
- *     SkuIndex::keep(itemId: 42);              // inside the write's transaction, after the product's rows are written
+ *     $unit = SkuIndex::unit('SMX-WHT-256');           // a SkuUnit, or a Refusal saying why none
+ *
+ *     $before = SkuIndex::skusOf(itemId: 42);          // before the write
+ *     // ... the write ...
+ *     SkuIndex::keep(itemId: 42, before: $before);     // in the write's transaction, after the product's rows
  *
  * Every writer of a SKU calls keep() for the product it wrote, in its own transaction: the item save, the inline SKU
  * edit, the variant's own save, the grid (inside the item save) and a deletion (forget()). keep() reads the product's
- * SKUs from its rows and writes what changed; a SKU another unit holds throws SkuInUseException, and the write's
- * transaction rolls back. Two writes claiming one SKU at once meet on the registry's key: one wins, the other is refused.
+ * SKUs from its rows and writes what changed; a unit that takes a SKU another unit holds throws SkuInUseException, and
+ * the write's transaction rolls back. A unit that keeps the SKU it held before the write is never refused for it: a
+ * SKU two units held before the registry (the update names them) stays out of it until one of them changes. Two writes
+ * claiming one SKU at once meet on the registry's key: one wins, the other is refused.
  *
  * @api READ ONLY: unit() and holder() find the unit a SKU names; keep() and forget() are the writers' own calls.
  *
@@ -157,13 +162,14 @@ final class SkuIndex
      * Called by every writer of a SKU inside its transaction, after the product's rows are written.
      *
      * @param int $itemId The product.
+     * @param array<int, string> $before The product's SKUs before the write, by combination ({@see self::skusOf()}).
      *
-     * @throws SkuInUseException When a SKU of the product is another unit's, or two of its units share one; the
+     * @throws SkuInUseException When a unit takes a SKU another unit holds, or two of its units take one; the
      *                           caller's transaction rolls back.
      *
      * @since  2.3.0
      */
-    public static function keep(int $itemId): void
+    public static function keep(int $itemId, array $before = []): void
     {
         if ($itemId <= 0) {
             return;
@@ -190,19 +196,23 @@ final class SkuIndex
             return;
         }
 
-        // A SKU another unit already holds, registered or (a duplicate the registry never took) in the catalogue.
+        // A SKU another unit already holds, registered or (a duplicate the registry never took) in the catalogue: a
+        // unit that takes it is refused; one that held it before the write keeps it, out of the registry.
         foreach ($new as $combinationId => $sku) {
             $other = self::holder(sku: $sku);
+            $others = $other !== null && $other->itemId !== $itemId ? [$other] : self::heldBy(sku: $sku, exceptItemId: $itemId);
 
-            if ($other !== null && $other->itemId !== $itemId) {
-                throw self::inUse(sku: $sku, holder: $other);
+            if ($others === []) {
+                continue;
             }
 
-            $others = self::heldBy(sku: $sku, exceptItemId: $itemId);
+            if (($before[$combinationId] ?? null) === $sku) {
+                unset($new[$combinationId]);
 
-            if ($others !== []) {
-                throw self::inUse(sku: $sku, holder: $others[0]);
+                continue;
             }
+
+            throw self::inUse(sku: $sku, holder: $others[0]);
         }
 
         if ($gone !== []) {
@@ -235,7 +245,9 @@ final class SkuIndex
                     throw $e;
                 }
 
-                throw self::inUse(sku: $sku, holder: $other);
+                if (($before[$combinationId] ?? null) !== $sku) {
+                    throw self::inUse(sku: $sku, holder: $other);
+                }
             }
         }
     }
@@ -401,6 +413,21 @@ final class SkuIndex
     public static function shown(string $sku): string
     {
         return htmlspecialchars($sku, ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
+     * A product's SKUs as its rows hold them now, by combination (0 the product itself): what a writer reads before
+     * its write and hands to keep().
+     *
+     * @param int $itemId The product; 0 for one not saved yet (no SKUs).
+     *
+     * @return array<int, string>
+     *
+     * @since  2.3.0
+     */
+    public static function skusOf(int $itemId): array
+    {
+        return $itemId > 0 ? self::unitsOf(db: self::db(), itemId: $itemId) : [];
     }
 
     /**

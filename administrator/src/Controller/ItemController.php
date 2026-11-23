@@ -347,6 +347,7 @@ class ItemController extends FormController
                 $change = ProjectionManager::markChange(itemId: $id);
 
                 // The row and the registry in one transaction: a SKU in use leaves both as they were.
+                $skusBefore = SkuIndex::skusOf(itemId: $id);
                 $db->transactionStart(true);
 
                 try {
@@ -366,7 +367,7 @@ class ItemController extends FormController
                             ->bind(':id', $id, ParameterType::INTEGER),
                     )->execute();
 
-                    SkuIndex::keep(itemId: $id);
+                    SkuIndex::keep(itemId: $id, before: $skusBefore);
                     TransactionState::commitLevel(db: $db);
                 } catch (Throwable $e) {
                     TransactionState::rollBackLevel(db: $db, failure: $e);

@@ -728,6 +728,9 @@ class ItemModel extends AlfaAdminModel
 
         $pk = (int) ($data['id'] ?? (int) $this->getState($this->getName() . '.id'));
 
+        // The SKUs the product and its combinations hold before the save: one they keep is never refused for it.
+        $skusBefore = SkuIndex::skusOf(itemId: $pk);
+
         // STOCK INTENT. The stock field never writes a column: a posted figure is an
         // instruction to the inventory service, applied after the row save. A shop
         // stocking one location posts the plain 'stock' figure, otherwise the
@@ -1293,7 +1296,7 @@ class ItemModel extends AlfaAdminModel
 
             // The product's SKUs and its combinations' in the registry, in this transaction: a SKU another product or
             // variant holds refuses the save, and nothing of it is kept.
-            SkuIndex::keep(itemId: $currentId);
+            SkuIndex::keep(itemId: $currentId, before: $skusBefore);
 
             // What follows the save, once it has committed (2.2.1).
             PostCommit::defer(

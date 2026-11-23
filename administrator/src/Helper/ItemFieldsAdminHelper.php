@@ -4871,6 +4871,9 @@ class ItemFieldsAdminHelper
             return false;
         }
 
+        // The SKUs the product's units hold before the save: one they keep is never refused for it.
+        $skusBefore = SkuIndex::skusOf(itemId: $itemId);
+
         // Quantity rules are judged before anything is written; a refusal throws.
         $changedRules = self::changedQuantityRules(
             itemId: $itemId,
@@ -4997,7 +5000,7 @@ class ItemFieldsAdminHelper
             CommerceChange::mark(db: $db, itemIds: [$itemId]);
 
             // The variant's SKU in the registry: one another unit holds refuses the save.
-            SkuIndex::keep(itemId: $itemId);
+            SkuIndex::keep(itemId: $itemId, before: $skusBefore);
 
             // What the inventory service announces for this save waits for this commit.
             TransactionState::commitLevel(db: $db);
