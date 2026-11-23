@@ -276,6 +276,9 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_places' => [
             'subdivision_code' => ["varchar(6) DEFAULT NULL COMMENT 'The ISO 3166-2 code of a place below a country (GR-I, ES-CN); NULL for a country (its codes are code2 and code3) and for a place without one'", 'code3'],
         ],
+        '#__alfa_orders_statuses' => [
+            'customer_can_cancel' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT 'When 1, a customer may cancel their own order in this status from their account; the order moves to the status Options name (customer_cancel_status). Never inferred from the name or the role flags.'", 'is_completed'],
+        ],
     ];
 
     /**
