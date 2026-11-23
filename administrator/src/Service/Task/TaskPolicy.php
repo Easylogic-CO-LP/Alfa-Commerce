@@ -46,6 +46,7 @@ final class TaskPolicy
      * @param string $sequence The subject's sequence the tasks join, '' for none: a task is not claimed while an
      *                         earlier task of the same sequence and subject is pending or running (an order's
      *                         e-mails go in the order they were written); a failed or held one does not hold it up.
+     * @param bool $cancellable Its owner may cancel it while it waits; the shop's correctness work never is.
      *
      * @since  2.1.4
      */
@@ -58,6 +59,7 @@ final class TaskPolicy
         public readonly string $staffAction = '',
         public readonly string $attention = 'warning',
         public readonly string $sequence = '',
+        public readonly bool $cancellable = false,
     ) {
     }
 }

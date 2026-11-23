@@ -11,15 +11,15 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
+use Alfa\Component\Alfa\Administrator\Background\Enqueued;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundDelivery;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
-use Alfa\Component\Alfa\Administrator\Service\Task\EnqueueResult;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
-use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
@@ -51,9 +51,9 @@ final class OutboundDeliveryJob implements JobHandler
      *
      * @since  2.2.2
      */
-    public static function enqueueFor(int $consumerId): EnqueueResult
+    public static function enqueueFor(int $consumerId): Enqueued
     {
-        return Runner::enqueue(handler: self::NAME, scopeKey: self::NAME . ':' . $consumerId, payload: ['consumer' => $consumerId]);
+        return BackgroundWork::core()->job(self::NAME)->scope((string) $consumerId)->with(['consumer' => $consumerId])->enqueue();
     }
 
     /**

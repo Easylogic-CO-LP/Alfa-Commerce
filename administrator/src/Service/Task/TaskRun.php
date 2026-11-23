@@ -26,6 +26,13 @@ use Joomla\Database\ParameterType;
 final class TaskRun
 {
     /**
+     * What the work reported, as JSON, or null.
+     *
+     * @since  2.3.0
+     */
+    private ?string $result = null;
+
+    /**
      * Outcome of a unit: it took effect.
      *
      * @since  2.1.4
@@ -76,6 +83,16 @@ final class TaskRun
     public function id(): int
     {
         return (int) $this->row['id'];
+    }
+
+    /**
+     * Whose work it is: com_alfa, or the plugin that declared it.
+     *
+     * @since  2.3.0
+     */
+    public function owner(): string
+    {
+        return (string) ($this->row['owner'] ?? '');
     }
 
     /**
@@ -155,6 +172,46 @@ final class TaskRun
         }
 
         return true;
+    }
+
+    /**
+     * Whether a unit was recorded done, by this task or by the one it resends or runs again: a part never repeated.
+     *
+     * @param string $unit The unit.
+     *
+     * @since  2.3.0
+     */
+    public function isDone(string $unit): bool
+    {
+        foreach ([...$this->history, ...$this->earlier] as $entry) {
+            if (($entry['unit'] ?? null) === $unit && ($entry['outcome'] ?? '') === self::DONE) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Keep what the work reports, as JSON, for the settle that records it done.
+     *
+     * @param string $json The result.
+     *
+     * @since  2.3.0
+     */
+    public function keepResult(string $json): void
+    {
+        $this->result = $json;
+    }
+
+    /**
+     * What the work reported, as JSON; null when it reported nothing.
+     *
+     * @since  2.3.0
+     */
+    public function result(): ?string
+    {
+        return $this->result;
     }
 
     /**

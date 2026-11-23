@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Service\Search\CatalogDocumentSource;
 use Alfa\Component\Alfa\Administrator\Service\Search\RebuildableEngine;
 use Alfa\Component\Alfa\Administrator\Service\Search\RebuildRunner;
@@ -21,7 +22,6 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
-use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 use Joomla\CMS\Language\Text;
 use Throwable;
@@ -76,7 +76,7 @@ final class SearchRebuildJob implements JobHandler
      */
     public static function enqueueFor(string $engine): int
     {
-        return Runner::enqueue(handler: self::NAME, scopeKey: self::scopeFor(engine: $engine), payload: ['engine' => $engine])->id;
+        return BackgroundWork::core()->job(self::NAME)->scope($engine)->with(['engine' => $engine])->enqueue()->id;
     }
 
     public function policy(): JobPolicy

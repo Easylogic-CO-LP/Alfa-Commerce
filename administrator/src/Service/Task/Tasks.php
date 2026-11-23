@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
@@ -252,6 +253,15 @@ final class Tasks
     private static array $handlers = [];
 
     /**
+     * The extensions' task handlers made in this request, by owner and name.
+     *
+     * @var array<string, TaskHandler>
+     *
+     * @since  2.3.0
+     */
+    private static array $extensionHandlers = [];
+
+    /**
      * The batch of each connection's open transaction.
      *
      * @var WeakMap<DatabaseDriver, string>|null
@@ -298,7 +308,8 @@ final class Tasks
     private static array $requestNotes = [];
 
     /**
-     * Owe one thing after the commit of the change being made.
+     * Owe one of core's own things after the commit of the change being made: the engine's write behind
+     * BackgroundWork::core(), which is how core's code asks for it.
      *
      * Inside a transaction the row joins the batch of the outermost transaction, which runs once that transaction
      * has committed and Alfa's named locks are released; a rollback removes it. With no transaction open it is
@@ -312,6 +323,8 @@ final class Tasks
      * @return int The task's id.
      *
      * @throws InvalidArgumentException When no handler has that name.
+     *
+     * @internal
      *
      * @since  2.1.4
      */
@@ -331,6 +344,8 @@ final class Tasks
      * @param string $trigger What runs it first: request or staff.
      * @param int $userId Who asked for it.
      * @param list<array<string, mixed>> $history What it starts with: the done units a resend carries ({@see self::doneUnits()}).
+     * @param string $owner Whose work it is: com_alfa, or the plugin that declared it.
+     * @param string|null $onceKey The key of a task of which at most one waits or runs; null for none.
      *
      * @return int The task's id.
      *
@@ -338,17 +353,17 @@ final class Tasks
      *
      * @since  2.1.4
      */
-    public static function write(string $handler, string $subjectType, int $subjectId, array $payload, string $trigger, int $userId, array $history = []): int
+    public static function write(string $handler, string $subjectType, int $subjectId, array $payload, string $trigger, int $userId, array $history = [], string $owner = DueRead::CORE_OWNER, ?string $onceKey = null): int
     {
-        $implementation = self::handler(name: $handler);
+        $implementation = self::handler(name: $handler, owner: $owner);
 
         if ($implementation === null) {
-            throw new InvalidArgumentException('No task handler is named ' . $handler . '.');
+            throw new InvalidArgumentException('No task handler is named ' . $handler . ' for ' . $owner . '.');
         }
 
         $db = self::db();
         [$token, $waiting] = self::batch(db: $db);
-        $id = self::insert(db: $db, implementation: $implementation, handler: $handler, subjectType: $subjectType, subjectId: $subjectId, payload: $payload, token: $token, userId: $userId, history: $history);
+        $id = self::insert(db: $db, implementation: $implementation, handler: $handler, subjectType: $subjectType, subjectId: $subjectId, payload: $payload, token: $token, userId: $userId, history: $history, owner: $owner, scopeKey: $onceKey === null ? null : $handler . ':' . $onceKey);
         self::notePlacement(db: $db, token: $token, handler: $handler, subjectType: $subjectType, subjectId: $subjectId, payload: $payload, id: $id);
         self::noteForRequest(id: $id);
 
@@ -373,6 +388,66 @@ final class Tasks
         }
 
         return $id;
+    }
+
+    /**
+     * Write a single of which at most one of its owner, name and key waits or runs (the unique active key holds the key
+     * while it does): a second write with the same subject and payload joins the one there; one with other data writes
+     * nothing and is answered refused with its id, so two different consequences are never merged and the caller's own
+     * transaction is never rolled back by it (a duplicate key ends only its own statement).
+     *
+     * @param string $handler The handler's name.
+     * @param string $subjectType What it is about.
+     * @param int $subjectId The id of what it is about.
+     * @param array<string, mixed> $payload What the handler needs.
+     * @param string $owner Whose work it is.
+     * @param string $onceKey The key.
+     *
+     * @return array{id: int, joined: bool, refused: bool}
+     *
+     * @throws InvalidArgumentException When no handler has that name.
+     * @throws RuntimeException When the waiting task kept ending and starting again under the write.
+     *
+     * @since  2.3.0
+     */
+    public static function writeOnce(string $handler, string $subjectType, int $subjectId, array $payload, string $owner, string $onceKey): array
+    {
+        $db = self::db();
+        $key = $handler . ':' . $onceKey;
+        $version = self::handler(name: $handler, owner: $owner)?->policy()->version ?? 1;
+        $asked = json_decode((string) json_encode(['version' => $version] + $payload, self::JSON), true);
+
+        for ($attempt = 1; $attempt <= self::WRITE_ATTEMPTS; $attempt++) {
+            try {
+                return ['id' => self::write(handler: $handler, subjectType: $subjectType, subjectId: $subjectId, payload: $payload, trigger: 'request', userId: self::userId(), owner: $owner, onceKey: $onceKey), 'joined' => false, 'refused' => false];
+            } catch (Throwable $e) {
+                if (MysqlError::number(error: $e) !== 1062) {
+                    throw $e;
+                }
+            }
+
+            $waiting = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'payload', 'subject_type', 'subject_id']))
+                    ->from($db->quoteName(self::TABLE))
+                    ->where($db->quoteName('owner') . ' = :owner')
+                    ->where($db->quoteName('active_key') . ' = :key')
+                    ->bind(':owner', $owner)
+                    ->bind(':key', $key),
+            )->loadAssoc();
+
+            // It ended between the write and the read: written again.
+            if (!\is_array($waiting)) {
+                continue;
+            }
+
+            $same = json_decode((string) $waiting['payload'], true) == $asked
+                && (string) $waiting['subject_type'] === $subjectType && (int) $waiting['subject_id'] === $subjectId;
+
+            return ['id' => (int) $waiting['id'], 'joined' => $same, 'refused' => !$same];
+        }
+
+        throw new RuntimeException('The task ' . $handler . ' of ' . $owner . ' with the key ' . $onceKey . ' could not be written: the one of its key kept ending and starting again.');
     }
 
     /**
@@ -483,12 +558,15 @@ final class Tasks
      * @param string $token Its batch.
      * @param int $userId Who asked for it.
      * @param list<array<string, mixed>> $history What it starts with.
+     * @param string $owner Whose work it is.
+     * @param string|null $scopeKey Its once() key after its name, which the unique active key holds while it waits or
+     *                              runs; null for none.
      *
      * @return int The task's id.
      *
      * @since  2.1.4
      */
-    private static function insert(DatabaseDriver $db, TaskHandler $implementation, string $handler, string $subjectType, int $subjectId, array $payload, string $token, int $userId, array $history = []): int
+    private static function insert(DatabaseDriver $db, TaskHandler $implementation, string $handler, string $subjectType, int $subjectId, array $payload, string $token, int $userId, array $history = [], string $owner = DueRead::CORE_OWNER, ?string $scopeKey = null): int
     {
         $json = json_encode(['version' => $implementation->policy()->version] + $payload, self::JSON);
         $type = self::TYPE_SINGLE;
@@ -496,9 +574,10 @@ final class Tasks
         $started = $history === [] ? null : self::encodeHistory($history);
         $query = $db->getQuery(true)
             ->insert($db->quoteName(self::TABLE))
-            ->columns($db->quoteName(['type', 'handler', 'batch', 'subject_type', 'subject_id', 'payload', 'history', 'run_after', 'origin', 'created_by', 'created_at', 'updated_at']))
-            ->values(':type, :handler, :batch, :subjectType, :subjectId, :payload, ' . ($started === null ? 'NULL' : ':history') . ', UTC_TIMESTAMP(3), :origin, :createdBy, UTC_TIMESTAMP(6), UTC_TIMESTAMP(3)')
+            ->columns($db->quoteName(['type', 'owner', 'handler', 'batch', 'subject_type', 'subject_id', 'scope_key', 'payload', 'history', 'run_after', 'origin', 'created_by', 'created_at', 'updated_at']))
+            ->values(':type, :owner, :handler, :batch, :subjectType, :subjectId, ' . ($scopeKey === null ? 'NULL' : ':scope') . ', :payload, ' . ($started === null ? 'NULL' : ':history') . ', UTC_TIMESTAMP(3), :origin, :createdBy, UTC_TIMESTAMP(6), UTC_TIMESTAMP(3)')
             ->bind(':type', $type)
+            ->bind(':owner', $owner)
             ->bind(':handler', $handler)
             ->bind(':batch', $token)
             ->bind(':subjectType', $subjectType)
@@ -509,6 +588,10 @@ final class Tasks
 
         if ($started !== null) {
             $query->bind(':history', $started);
+        }
+
+        if ($scopeKey !== null) {
+            $query->bind(':scope', $scopeKey);
         }
 
         $db->setQuery($query)->execute();
@@ -1286,14 +1369,32 @@ final class Tasks
     }
 
     /**
-     * The handler of a name, or null when there is none.
+     * The handler of an owner's task of a name, or null when there is none: core's from its own map; an extension's
+     * built from its declaration ({@see PluginTask}), while the plugin declares a task of that name.
      *
      * @param string $name The handler's name.
+     * @param string $owner Whose work it is: com_alfa, or the plugin that declared it.
      *
      * @since  2.1.4
      */
-    public static function handler(string $name): ?TaskHandler
+    public static function handler(string $name, string $owner = DueRead::CORE_OWNER): ?TaskHandler
     {
+        if ($owner !== DueRead::CORE_OWNER) {
+            $key = $owner . '|' . $name;
+
+            if (isset(self::$extensionHandlers[$key])) {
+                return self::$extensionHandlers[$key];
+            }
+
+            $declaration = WorkDeclarations::find(owner: $owner, name: $name);
+
+            if ($declaration === null || $declaration['kind'] !== self::TYPE_SINGLE) {
+                return null;
+            }
+
+            return self::$extensionHandlers[$key] = new PluginTask(owner: PluginId::of($owner), declaration: $declaration);
+        }
+
         if (isset(self::$handlers[$name])) {
             return self::$handlers[$name];
         }
@@ -1305,6 +1406,18 @@ final class Tasks
         }
 
         return self::$handlers[$name] = new $class();
+    }
+
+    /**
+     * The names of core's own task handlers, from which core's declarations are written ({@see WorkDeclarations}).
+     *
+     * @return list<string>
+     *
+     * @since  2.3.0
+     */
+    public static function coreHandlerNames(): array
+    {
+        return array_keys(self::coreHandlers());
     }
 
     /**
@@ -1328,6 +1441,8 @@ final class Tasks
             PaymentAutomation::NAME => PaymentAutomation::class,
             ShipmentAutomation::NAME => ShipmentAutomation::class,
             PaymentRefundFlip::NAME => PaymentRefundFlip::class,
+            // An extension told how its task or job ended.
+            WorkSettled::NAME => WorkSettled::class,
         ];
     }
 
@@ -1744,7 +1859,7 @@ final class Tasks
         try {
             $reserved = $db->setQuery(
                 $db->getQuery(true)
-                    ->select($db->quoteName(['id', 'handler', 'subject_type', 'subject_id']))
+                    ->select($db->quoteName(['id', 'owner', 'handler', 'subject_type', 'subject_id']))
                     ->from($db->quoteName(self::TABLE))
                     ->where($db->quoteName('batch') . ' = :batch')
                     ->where($db->quoteName('lease_owner') . ' = :lease')
@@ -2083,7 +2198,7 @@ final class Tasks
      */
     private static function waitsInSequence(DatabaseDriver $db, array $single): bool
     {
-        $sequence = self::handler(name: (string) $single['handler'])?->policy()->sequence ?? '';
+        $sequence = self::handler(name: (string) $single['handler'], owner: (string) $single['owner'])?->policy()->sequence ?? '';
 
         if ($sequence === '' || (string) $single['subject_type'] === '') {
             return false;
@@ -2109,6 +2224,7 @@ final class Tasks
                 ->where($db->quoteName('subject_id') . ' = :subject')
                 ->where($db->quoteName('id') . ' < :id')
                 ->whereIn($db->quoteName('handler'), $handlers, ParameterType::STRING)
+                ->where($db->quoteName('owner') . ' = ' . $db->quote(DueRead::CORE_OWNER))
                 ->whereIn($db->quoteName('state'), [self::STATE_PENDING, self::STATE_RUNNING], ParameterType::STRING)
                 ->bind(':type', $type)
                 ->bind(':subject', $subject, ParameterType::INTEGER)
@@ -2136,7 +2252,10 @@ final class Tasks
      */
     public static function notifySettled(array $row, string $event, string $state, array $history, string $error = '', int $userId = 0, int $newTaskId = 0, string $reason = ''): void
     {
-        $handler = self::handler(name: (string) $row['handler']);
+        $owner = (string) ($row['owner'] ?? DueRead::CORE_OWNER);
+        $handler = ($row['type'] ?? self::TYPE_SINGLE) === self::TYPE_JOB
+            ? Runner::handler(name: (string) $row['handler'], owner: $owner)
+            : self::handler(name: (string) $row['handler'], owner: $owner);
 
         if (!$handler instanceof TaskSettleListener) {
             return;
@@ -2305,10 +2424,10 @@ final class Tasks
             return;
         }
 
-        $handler = self::handler(name: (string) $row['handler']);
+        $handler = self::handler(name: (string) $row['handler'], owner: (string) $row['owner']);
 
         if ($handler === null) {
-            $error = 'No task handler is named ' . $row['handler'] . ' in this version.';
+            $error = 'No task handler is named ' . $row['handler'] . ' for ' . $row['owner'] . ' in this version.';
             $history = [...self::decodeHistory($row['history']), self::entry(trigger: $trigger, userId: $userId, outcome: self::STATE_FAILED, error: $error)];
             self::settle(db: $db, id: $id, lease: $lease, state: self::STATE_FAILED, history: $history, error: $error, failures: (int) $row['failures']);
             $counts['failed']++;
@@ -2358,9 +2477,18 @@ final class Tasks
         $history = $run->history();
         $failures = (int) $row['failures'];
 
+        if ($failure instanceof OwnerUnavailable) {
+            // Its plugin is disabled or gone: back to waiting, no attempt counted; it runs once the plugin is enabled.
+            WorkDeclarations::setEnabled(owner: (string) $row['owner'], enabled: false);
+            self::settle(db: $db, id: $id, lease: $lease, state: self::STATE_PENDING, history: $history, error: (string) $row['last_error'], failures: $failures);
+            self::log(entry: 'Task #' . $id . ' (' . $row['handler'] . ') waits: ' . ErrorText::of($failure), priority: Log::INFO);
+
+            return;
+        }
+
         if ($failure === null) {
             $history[] = self::entry(trigger: $trigger, userId: $userId, outcome: self::STATE_DONE);
-            self::settled(db: $db, row: $row, lease: $lease, state: self::STATE_DONE, history: $history, error: '', failures: 0, counts: $counts);
+            self::settled(db: $db, row: $row, lease: $lease, state: self::STATE_DONE, history: $history, error: '', failures: 0, counts: $counts, result: $run->result());
 
             return;
         }
@@ -2378,7 +2506,7 @@ final class Tasks
             $state = self::STATE_PENDING;
         }
 
-        $delay = $state === self::STATE_PENDING ? self::BACKOFF_SECONDS[min($failures, \count(self::BACKOFF_SECONDS) - 1)] : 0;
+        $delay = $state === self::STATE_PENDING ? max(self::BACKOFF_SECONDS[min($failures, \count(self::BACKOFF_SECONDS) - 1)], $failure instanceof TaskFailure ? $failure->after : 0) : 0;
         $history[] = self::entry(
             trigger: $trigger,
             userId: $userId,
@@ -2409,13 +2537,14 @@ final class Tasks
      * @param int $failures Its consecutive known failures.
      * @param array<string, int> $counts The tally.
      * @param int $delay Seconds before a retry.
+     * @param string|null $result What the work reported, as JSON, kept with the done settle.
      *
      * @since  2.1.4
      */
-    private static function settled(DatabaseDriver $db, array $row, string $lease, string $state, array $history, string $error, int $failures, array &$counts, int $delay = 0): void
+    private static function settled(DatabaseDriver $db, array $row, string $lease, string $state, array $history, string $error, int $failures, array &$counts, int $delay = 0, ?string $result = null): void
     {
         $id = (int) $row['id'];
-        $recorder = $state === self::STATE_DONE ? self::handler(name: (string) $row['handler']) : null;
+        $recorder = $state === self::STATE_DONE ? self::handler(name: (string) $row['handler'], owner: (string) $row['owner']) : null;
 
         if ($recorder instanceof TaskSettleRecorder) {
             if (!self::settleRecorded(db: $db, row: $row, lease: $lease, history: $history, recorder: $recorder)) {
@@ -2423,7 +2552,7 @@ final class Tasks
 
                 return;
             }
-        } elseif (!self::settle(db: $db, id: $id, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay)) {
+        } elseif (!self::settleTelling(db: $db, row: $row, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay, result: $result)) {
             $counts['lost']++;
             self::log(entry: 'Task #' . $id . ': its claim was taken over before its outcome (' . $state . ') could be recorded.', priority: Log::WARNING);
 
@@ -2437,6 +2566,51 @@ final class Tasks
             default => 'failed',
         }]++;
         self::notifySettled(row: $row, event: TaskSettlement::RUN, state: $state, history: $history, error: $error);
+    }
+
+    /**
+     * Settle a run; an extension's task that ends (done, failed, held) owes its plugin the news in the same transaction
+     * ({@see WorkSettled}).
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param array<string, mixed> $row The task.
+     * @param string $lease The claim.
+     * @param string $state The state it ends in.
+     * @param list<array<string, mixed>> $history Its history.
+     * @param string $error The last error.
+     * @param int $failures Its consecutive known failures.
+     * @param int $delay Seconds before a retry.
+     * @param string|null $result What the work reported, as JSON.
+     *
+     * @return bool False when the claim was no longer this run's.
+     *
+     * @since  2.3.0
+     */
+    private static function settleTelling(DatabaseDriver $db, array $row, string $lease, string $state, array $history, string $error, int $failures, int $delay, ?string $result): bool
+    {
+        $id = (int) $row['id'];
+
+        if ((string) $row['owner'] === DueRead::CORE_OWNER || $state === self::STATE_PENDING) {
+            return self::settle(db: $db, id: $id, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay, result: $result);
+        }
+
+        $db->transactionStart(true);
+
+        try {
+            $settled = self::settle(db: $db, id: $id, lease: $lease, state: $state, history: $history, error: $error, failures: $failures, delay: $delay, result: $result);
+
+            if ($settled) {
+                WorkSettled::owe(owner: (string) $row['owner'], id: $id);
+            }
+
+            TransactionState::commitLevel($db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
+        }
+
+        return $settled;
     }
 
     /**
@@ -2494,12 +2668,13 @@ final class Tasks
      * @param string $error The last error.
      * @param int $failures Its consecutive known failures.
      * @param int $delay Seconds before a retry, for pending.
+     * @param string|null $result What the work reported, as JSON, written in the same statement as its done state.
      *
      * @return bool False when the claim was no longer this run's.
      *
      * @since  2.1.4
      */
-    private static function settle(DatabaseDriver $db, int $id, string $lease, string $state, array $history, string $error, int $failures, int $delay = 0): bool
+    private static function settle(DatabaseDriver $db, int $id, string $lease, string $state, array $history, string $error, int $failures, int $delay = 0, ?string $result = null): bool
     {
         $json = self::encodeHistory($history);
         $error = mb_substr($error, 0, 1000);
@@ -2528,6 +2703,10 @@ final class Tasks
             $query->set($db->quoteName('finished_at') . ' = UTC_TIMESTAMP(3)');
         }
 
+        if ($result !== null && $state === self::STATE_DONE) {
+            $query->set($db->quoteName('result') . ' = :result')->bind(':result', $result);
+        }
+
         return self::changed(db: $db, query: $query) === 1;
     }
 
@@ -2554,7 +2733,7 @@ final class Tasks
 
         $id = (int) $candidate['id'];
         $old = (string) $candidate['lease_owner'];
-        $policy = self::handler(name: (string) $candidate['handler'])?->policy();
+        $policy = self::handler(name: (string) $candidate['handler'], owner: (string) $candidate['owner'])?->policy();
         $again = $policy !== null && $policy->idempotent;
 
         if ($again && $policy->needsApplication && !DueRead::hasApplication()) {
@@ -2598,7 +2777,32 @@ final class Tasks
                 ->bind(':error', $last);
         }
 
-        if (self::changed(db: $db, query: $query) !== 1) {
+        // An extension's task held is told to its plugin in the same transaction.
+        $tells = !$again && (string) $candidate['owner'] !== DueRead::CORE_OWNER;
+
+        if ($tells) {
+            $db->transactionStart(true);
+        }
+
+        try {
+            $changed = self::changed(db: $db, query: $query) === 1;
+
+            if ($tells && $changed) {
+                WorkSettled::owe(owner: (string) $candidate['owner'], id: $id);
+            }
+
+            if ($tells) {
+                TransactionState::commitLevel($db);
+            }
+        } catch (Throwable $e) {
+            if ($tells) {
+                TransactionState::rollBackLevel(db: $db, failure: $e);
+            }
+
+            throw $e;
+        }
+
+        if (!$changed) {
             return false;
         }
 
@@ -2694,7 +2898,7 @@ final class Tasks
     {
         $rows = [];
 
-        foreach (self::dueQueries(db: $db, select: implode(', ', $db->quoteName(['id', 'handler', 'state', 'batch', 'lease_owner', 'history', 'subject_type', 'subject_id', 'payload']))) as $kind => $query) {
+        foreach (self::dueQueries(db: $db, select: implode(', ', $db->quoteName(['id', 'owner', 'handler', 'state', 'batch', 'lease_owner', 'history', 'subject_type', 'subject_id', 'payload']))) as $kind => $query) {
             $query->order($db->quoteName($kind === 'pending' ? 'run_after' : 'lease_until') . ' ASC, ' . $db->quoteName('id') . ' ASC');
 
             foreach ($db->setQuery($query, 0, $limit)->loadAssocList() ?: [] as $row) {
@@ -2726,7 +2930,8 @@ final class Tasks
             ->where($db->quoteName('type') . ' = ' . $db->quote(self::TYPE_SINGLE))
             ->where($db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING))
             ->where(DueRead::singleDue(db: $db))
-            ->where(DueRead::unreserved(db: $db));
+            ->where(DueRead::unreserved(db: $db))
+            ->where(DueRead::runnableOwner(db: $db));
         self::onlyRunnable(db: $db, query: $pending);
 
         $running = $db->getQuery(true)
@@ -2779,6 +2984,9 @@ final class Tasks
         if ($needing !== []) {
             $query->whereNotIn($db->quoteName('handler'), $needing, ParameterType::STRING);
         }
+
+        // An extension's task runs its plugin, which needs an application.
+        $query->where($db->quoteName('owner') . ' = ' . $db->quote(DueRead::CORE_OWNER));
     }
 
     /**

@@ -30,6 +30,7 @@ final class JobRun
      * @param string $trigger What runs it.
      * @param float|null $until The moment the chunk must be done by (microtime(true)): the tick's budget, and never past
      *                          the job's lease; a handler that waits (for a lock) waits no longer. Null outside a tick.
+     * @param string $owner Whose work it is: com_alfa, or the plugin that declared it.
      *
      * @since  2.2.0
      */
@@ -43,6 +44,7 @@ final class JobRun
         public readonly int $totalUnits,
         public readonly string $trigger,
         public readonly ?float $until = null,
+        public readonly string $owner = DueRead::CORE_OWNER,
     ) {
     }
 
@@ -67,6 +69,7 @@ final class JobRun
             totalUnits: $totalUnits,
             trigger: $this->trigger,
             until: $this->until,
+            owner: $this->owner,
         );
     }
 
@@ -89,6 +92,7 @@ final class JobRun
             totalUnits: $this->totalUnits,
             trigger: $this->trigger,
             until: $until,
+            owner: $this->owner,
         );
     }
 }

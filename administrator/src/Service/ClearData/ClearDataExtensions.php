@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\SchemaRecreator;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
+use Alfa\Component\Alfa\Administrator\Service\Task\WorkDeclarations;
 use Joomla\CMS\Extension\ExtensionHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -955,6 +956,13 @@ final class ClearDataExtensions
 
         if (!$remove) {
             return $result + ['status' => 'cleared', 'message' => trim(Text::sprintf('COM_ALFA_EXTENSIONS_CLEARED', $name, implode(' ', $said)))];
+        }
+
+        // Its background work is its data: every task and job of its plugins goes, with their declarations.
+        foreach ($plugins as $plugin) {
+            if (str_starts_with((string) $plugin['folder'], 'alfa')) {
+                WorkDeclarations::removeWithData(plugin: PluginId::from(group: (string) $plugin['folder'], element: (string) $plugin['element']));
+            }
         }
 
         // Its data is gone: its uninstall is not warned that data stays.

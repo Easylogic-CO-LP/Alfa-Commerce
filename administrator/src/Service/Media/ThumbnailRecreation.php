@@ -11,10 +11,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Media;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\ThumbnailsRecreateJob;
-use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
@@ -205,7 +205,7 @@ final class ThumbnailRecreation
                     ->bind(':value', $mode)
                     ->bind(':name', $name),
             )->execute();
-            $id = Runner::enqueue(handler: ThumbnailsRecreateJob::NAME, scopeKey: ThumbnailsRecreateJob::NAME, payload: [])->id;
+            $id = BackgroundWork::core()->job(ThumbnailsRecreateJob::NAME)->enqueue()->id;
             TransactionState::commitLevel(db: $db);
 
             return $id;

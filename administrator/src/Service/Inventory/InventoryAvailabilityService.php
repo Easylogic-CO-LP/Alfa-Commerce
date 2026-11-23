@@ -934,6 +934,9 @@ final class InventoryAvailabilityService
      *
      * @return float 0 when no threshold applies anywhere.
      *
+     * @api READ ONLY: the low-stock threshold that applies to a unit (its own, else its product's, else the shop's),
+     *      the one rule an extension that judges low stock follows.
+     *
      * @since  2.0.0
      */
     public static function lowStockThreshold(?float $combination, ?float $item): float

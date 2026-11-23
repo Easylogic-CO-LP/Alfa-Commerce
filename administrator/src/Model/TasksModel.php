@@ -22,8 +22,8 @@ use Joomla\Database\QueryInterface;
 
 /**
  * The tasks as the API lists them (GET v1/alfa/tasks), newest first, each in its document's fields
- * ({@see TaskDocument::fields()}). Filters: filter.state, filter.type (single or job) and filter.owner (every task of
- * this version is com_alfa's, so any other owner lists none).
+ * ({@see TaskDocument::fields()}). Filters: filter.state, filter.type (single or job) and filter.owner (com_alfa, or
+ * an alfa plugin as group.element).
  *
  * @since  2.2.0
  */
@@ -90,7 +90,7 @@ class TasksModel extends ListModel
         $type = (string) $this->getState('filter.type', '');
         $owner = (string) $this->getState('filter.owner', '');
 
-        // A state no task can be in, a type that is neither, and an owner other than com_alfa each list none.
+        // A state no task can be in and a type that is neither each list none; an owner lists its own rows.
         if ($state !== '' && \in_array($state, self::STATES, true)) {
             $query->where($db->quoteName('state') . ' = :state')->bind(':state', $state);
         } elseif ($state !== '') {
@@ -103,8 +103,8 @@ class TasksModel extends ListModel
             $query->where('1 = 0');
         }
 
-        if ($owner !== '' && $owner !== TaskDocument::OWNER) {
-            $query->where('1 = 0');
+        if ($owner !== '') {
+            $query->where($db->quoteName('owner') . ' = :owner')->bind(':owner', $owner);
         }
 
         return $query;

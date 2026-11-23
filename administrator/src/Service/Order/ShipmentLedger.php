@@ -54,6 +54,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
@@ -62,12 +63,10 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\ShipmentAutomation;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodCategoryScope;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedTax;
-use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
@@ -1949,13 +1948,13 @@ class ShipmentLedger
         $methodId = (int) ($oldSnapshot->id_shipment_method ?? 0);
 
         if (\array_key_exists('status', $data) && $to !== $from && self::automationMethod(methodId: $methodId, status: $to) !== null) {
-            Tasks::single(handler: ShipmentAutomation::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+            BackgroundWork::core()->task(ShipmentAutomation::NAME)->about('order', $orderId)->with([
                 'shipment' => $id,
                 'method' => $methodId,
                 'from' => $from,
                 'to' => $to,
                 'order_status' => self::orderStatus(orderId: $orderId),
-            ]);
+            ])->enqueue();
         }
 
         // The order's shipping method follows its latest live parcel (OrderMethods): a parcel cancelled, returned

@@ -14,6 +14,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailRecreation;
 use DomainException;
 use Joomla\CMS\Factory;
@@ -32,7 +34,7 @@ use Throwable;
  * the chain; it runs at once, its handler attempts only the parts not recorded as done, and the original becomes
  * resolved in the same transaction. Mark resolved
  * closes a task with no action, with the reason given. Retry puts a failed job back in the queue with its failures
- * reset; a job is never cancelled. A refusal is a DomainException whose code is one of the REFUSED_
+ * reset. Cancel stops an extension's work that has not finished (core's correctness work is never cancelled). A refusal is a DomainException whose code is one of the REFUSED_
  * constants and whose message is its language key.
  *
  * @since  2.1.4
@@ -105,7 +107,7 @@ final class TaskStaff
         $db = self::db();
         $rows = $db->setQuery(
             $db->getQuery(true)
-                ->select($db->quoteName(['id', 'handler', 'state', 'subject_type', 'subject_id', 'failures', 'claims', 'last_error', 'last_trigger', 'created_at', 'finished_at', 'history']))
+                ->select($db->quoteName(['id', 'owner', 'handler', 'state', 'subject_type', 'subject_id', 'failures', 'claims', 'last_error', 'last_trigger', 'created_at', 'finished_at', 'history']))
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_SINGLE))
                 ->whereIn($db->quoteName('state'), [Tasks::STATE_FAILED, Tasks::STATE_HELD], ParameterType::STRING)
@@ -115,8 +117,10 @@ final class TaskStaff
         )->loadAssocList() ?: [];
 
         foreach ($rows as &$row) {
-            $policy = Tasks::handler(name: (string) $row['handler'])?->policy();
+            WorkDeclarations::loadLanguage(owner: (string) $row['owner']);
+            $policy = Tasks::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy();
             $row['label'] = $policy->label ?? '';
+            $row['extension'] = self::extensionName(owner: (string) $row['owner']);
             $row['action'] = $policy->staffAction ?? '';
             $row['history'] = Tasks::decodeHistory($row['history']);
             $row['units'] = [];
@@ -230,7 +234,7 @@ final class TaskStaff
             . ' THEN 1 WHEN ' . $db->quote(Tasks::STATE_FAILED) . ' THEN 2 ELSE 3 END';
         $rows = $db->setQuery(
             $db->getQuery(true)
-                ->select($db->quoteName(['id', 'handler', 'state', 'scope_key', 'done_units', 'total_units', 'failures', 'last_error', 'run_after', 'created_at', 'started_at', 'finished_at']))
+                ->select($db->quoteName(['id', 'owner', 'handler', 'state', 'scope_key', 'done_units', 'total_units', 'failures', 'last_error', 'run_after', 'created_at', 'started_at', 'finished_at', 'result', 'cancel_requested']))
                 // Driven: running, or started, due and advanced within DRIVEN_SECONDS (a step's end writes updated_at;
                 // a failed step sets its retry in the future, so a job waiting out its retry is not driven).
                 ->select('(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' OR (' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING)
@@ -262,8 +266,16 @@ final class TaskStaff
         )->loadAssocList('id', 'group_list') ?: []);
 
         foreach ($rows as &$row) {
-            $row['label'] = Runner::handler(name: (string) $row['handler'])?->policy()->label ?? '';
+            $owner = (string) $row['owner'];
+            WorkDeclarations::loadLanguage(owner: $owner);
+            $row['label'] = Runner::handler(name: (string) $row['handler'], owner: $owner)?->policy()->label ?? '';
             $row['driven'] = (bool) $row['driven'];
+            $row['extension'] = self::extensionName(owner: $owner);
+            $row['extensionCovers'] = $owner === DueRead::CORE_OWNER ? '' : self::extensionCovers(row: $row);
+            $row['waits'] = $owner === DueRead::CORE_OWNER || $row['state'] !== Tasks::STATE_PENDING ? '' : self::waitReason(row: $row);
+            $row['resultLines'] = $owner === DueRead::CORE_OWNER ? [] : self::resultLines(result: (string) ($row['result'] ?? ''));
+            $row['cancellable'] = \in_array($row['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) && (int) $row['cancel_requested'] === 0 && WorkCancel::cancellable(row: $row + ['type' => Tasks::TYPE_JOB]);
+            unset($row['result']);
             $list = str_starts_with((string) $row['scope_key'], $prefix) ? (string) ($lists[(int) substr((string) $row['scope_key'], \strlen($prefix))] ?? '') : '';
             $row['groups'] = $list === '' ? [] : array_map('intval', explode(',', $list));
             $row['report'] = $row['handler'] === Job\ThumbnailsRecreateJob::NAME ? ThumbnailRecreation::reportOf(checkpoint: $row['checkpoint']) : null;
@@ -273,6 +285,115 @@ final class TaskStaff
         unset($row);
 
         return $rows;
+    }
+
+    /**
+     * The name of an extension that owns work, as Extensions: Plugins shows it; '' for core's own work.
+     *
+     * @param string $owner The owner.
+     *
+     * @since  2.3.0
+     */
+    private static function extensionName(string $owner): string
+    {
+        return $owner === DueRead::CORE_OWNER ? '' : AlfaPluginHelper::get()->name(PluginId::of($owner));
+    }
+
+    /**
+     * What an extension's job covers: its declaration's Covers text with the scope, or the scope as given, or the
+     * whole shop for a job with no scope.
+     *
+     * @param array<string, mixed> $row The job's row.
+     *
+     * @since  2.3.0
+     */
+    private static function extensionCovers(array $row): string
+    {
+        $prefix = (string) $row['handler'] . ':';
+        $scope = str_starts_with((string) $row['scope_key'], $prefix) ? substr((string) $row['scope_key'], \strlen($prefix)) : '';
+        $covers = (string) (WorkDeclarations::find(owner: (string) $row['owner'], name: (string) $row['handler'])['covers'] ?? '');
+
+        if ($scope === '') {
+            return Text::_('COM_ALFA_TASKS_COVERS_SHOP');
+        }
+
+        return $covers === '' ? $scope : Text::sprintf($covers, $scope);
+    }
+
+    /**
+     * Why an extension's job waits when its owner cannot run it: disabled, or no longer declaring the work; '' when it
+     * waits for its turn only.
+     *
+     * @param array<string, mixed> $row The job's row.
+     *
+     * @since  2.3.0
+     */
+    private static function waitReason(array $row): string
+    {
+        $declaration = WorkDeclarations::find(owner: (string) $row['owner'], name: (string) $row['handler']);
+
+        return match (true) {
+            $declaration === null => Text::_('COM_ALFA_TASKS_WAITS_UNDECLARED'),
+            (int) $declaration['enabled'] !== 1 => Text::_('COM_ALFA_TASKS_WAITS_DISABLED'),
+            default => '',
+        };
+    }
+
+    /**
+     * An extension's result as plain key: value lines: scalars as they are, anything nested as JSON shortened to 200
+     * characters.
+     *
+     * @param string $result The stored result.
+     *
+     * @return list<string>
+     *
+     * @since  2.3.0
+     */
+    private static function resultLines(string $result): array
+    {
+        $decoded = json_decode($result, true);
+        $lines = [];
+
+        foreach (\is_array($decoded) ? $decoded : [] as $key => $value) {
+            $text = match (true) {
+                \is_string($value) => $value,
+                \is_bool($value) => $value ? 'true' : 'false',
+                $value === null => 'null',
+                \is_scalar($value) => (string) $value,
+                default => (string) json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            };
+            $lines[] = $key . ': ' . (mb_strlen($text) > 200 ? mb_substr($text, 0, 197) . '...' : $text);
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Cancel an extension's waiting or running job, or a waiting task, with the reason given: a waiting one at once, a
+     * running job once its step has ended.
+     *
+     * @param int $id The task or job.
+     * @param int $userId Who cancels it.
+     * @param string $reason Why.
+     *
+     * @throws DomainException When no reason is given, or it cannot be cancelled (finished, running task, core's
+     *                         correctness work); the message is a language key.
+     *
+     * @since  2.3.0
+     */
+    public static function cancel(int $id, int $userId, string $reason): void
+    {
+        $reason = mb_substr(trim($reason), 0, self::REASON_MAX);
+
+        if ($reason === '') {
+            throw new DomainException('COM_ALFA_TASKS_REASON_REQUIRED', self::REFUSED_NO_REASON);
+        }
+
+        if (!WorkCancel::cancel(id: $id, owner: null, trigger: 'staff', userId: $userId, reason: $reason)) {
+            throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
+        }
+
+        Tasks::log(entry: 'Task #' . $id . ' was cancelled by user ' . $userId . ': ' . $reason, priority: Log::INFO);
     }
 
     /**
@@ -310,8 +431,8 @@ final class TaskStaff
 
         return [
             'id' => (int) $row['id'],
-            'label' => Runner::handler(name: (string) $row['handler'])?->policy()->label ?? '',
-            'heavy' => Runner::handler(name: (string) $row['handler'])?->policy()->weight === JobPolicy::HEAVY,
+            'label' => Runner::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy()->label ?? '',
+            'heavy' => Runner::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy()->weight === JobPolicy::HEAVY,
             'state' => (string) $row['state'],
             'done' => (int) $row['done_units'],
             'total' => (int) $row['total_units'],
@@ -501,8 +622,24 @@ final class TaskStaff
         $row = self::actionable(db: $db, id: $id);
         $history = [...Tasks::decodeHistory($row['history']), Tasks::entry(trigger: 'staff', userId: $userId, outcome: Tasks::STATE_RESOLVED, more: ['reason' => $reason])];
 
-        if (!self::close(db: $db, id: $id, history: $history)) {
-            throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
+        // Closed, and an extension's plugin told, in one transaction.
+        $db->transactionStart(true);
+
+        try {
+            if (!self::close(db: $db, id: $id, history: $history)) {
+                TransactionState::rollBackLevel(db: $db);
+
+                throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
+            }
+
+            WorkSettled::owe(owner: (string) $row['owner'], id: $id, reason: $reason);
+            TransactionState::commitLevel($db);
+        } catch (DomainException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
         }
 
         // Its handler records it where staff look for it (the order's timeline): who, when and why.
@@ -529,7 +666,7 @@ final class TaskStaff
     {
         $db = self::db();
         $row = self::actionable(db: $db, id: $id);
-        $policy = Tasks::handler(name: (string) $row['handler'])?->policy();
+        $policy = Tasks::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy();
 
         if ($policy === null || $policy->staffAction !== $action) {
             throw new DomainException('COM_ALFA_TASKS_ACTION_NOT_OFFERED', self::REFUSED_NOT_OFFERED);
@@ -559,6 +696,7 @@ final class TaskStaff
                 trigger: 'staff',
                 userId: $userId,
                 history: $carried,
+                owner: (string) $row['owner'],
             );
             $history = [...Tasks::decodeHistory($row['history']), Tasks::entry(trigger: 'staff', userId: $userId, outcome: $outcome, more: ['task' => $newId])];
 
@@ -567,6 +705,8 @@ final class TaskStaff
 
                 throw new DomainException('COM_ALFA_TASKS_ACTION_GONE', self::REFUSED_GONE);
             }
+
+            WorkSettled::owe(owner: (string) $row['owner'], id: $id);
 
             // Recorded with the act, in its transaction (the order's timeline: who resent or ran it again).
             Tasks::notifySettled(
@@ -610,7 +750,7 @@ final class TaskStaff
     {
         $row = $db->setQuery(
             $db->getQuery(true)
-                ->select($db->quoteName(['id', 'type', 'handler', 'state', 'subject_type', 'subject_id', 'payload', 'history']))
+                ->select($db->quoteName(['id', 'type', 'owner', 'handler', 'state', 'subject_type', 'subject_id', 'payload', 'history']))
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('id') . ' = :id')
                 ->bind(':id', $id, ParameterType::INTEGER),

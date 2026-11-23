@@ -58,18 +58,18 @@ final class TaskAttention
         $db = Factory::getContainer()->get('DatabaseDriver');
         $rows = $db->setQuery(
             $db->getQuery(true)
-                ->select($db->quoteName(['handler', 'state']))
+                ->select($db->quoteName(['owner', 'handler', 'state']))
                 ->select('COUNT(*) AS ' . $db->quoteName('n'))
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_SINGLE))
                 ->whereIn($db->quoteName('state'), [Tasks::STATE_FAILED, Tasks::STATE_HELD], ParameterType::STRING)
-                ->group($db->quoteName(['handler', 'state'])),
+                ->group($db->quoteName(['owner', 'handler', 'state'])),
         )->loadAssocList() ?: [];
         $counts = ['failed' => 0, 'held' => 0, 'severity' => 'warning'];
 
         foreach ($rows as $row) {
-            // A task whose handler this version no longer has is shown, as a warning.
-            $attention = Tasks::handler(name: (string) $row['handler'])?->policy()->attention ?? 'warning';
+            // A task whose handler this version, or its extension, no longer has is shown, as a warning.
+            $attention = Tasks::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy()->attention ?? 'warning';
 
             if ($attention === '') {
                 continue;
@@ -83,11 +83,20 @@ final class TaskAttention
         }
 
         // A job that failed for good waits for staff too: its derived state (a price list, a search index) stays as it
-        // was until it is run again.
-        $counts['failed'] += (int) $db->setQuery(
-            'SELECT COUNT(*) FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB)
-            . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_FAILED),
-        )->loadResult();
+        // was until it is run again. An extension's job declared urgent makes the notice danger.
+        $jobs = $db->setQuery(
+            'SELECT ' . $db->quoteName('owner') . ', ' . $db->quoteName('handler') . ', COUNT(*) AS ' . $db->quoteName('n') . ' FROM ' . $db->quoteName(Tasks::TABLE)
+            . ' WHERE ' . $db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB) . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_FAILED)
+            . ' GROUP BY ' . $db->quoteName('owner') . ', ' . $db->quoteName('handler'),
+        )->loadAssocList() ?: [];
+
+        foreach ($jobs as $row) {
+            $counts['failed'] += (int) $row['n'];
+
+            if ((string) $row['owner'] !== DueRead::CORE_OWNER && (int) (WorkDeclarations::find(owner: (string) $row['owner'], name: (string) $row['handler'])['urgent'] ?? 0) === 1) {
+                $counts['severity'] = 'danger';
+            }
+        }
 
         return $counts;
     }

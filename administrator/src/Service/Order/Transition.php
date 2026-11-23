@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
@@ -29,7 +30,6 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEvent;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStock;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
-use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -1163,7 +1163,7 @@ class Transition
         $stockOwed = $claimChanged || $this->owes(handler: OrderStock::NAME, guard: static fn (): bool => InventoryEffectOutbox::owesOrderClaim(orderId: $orderId));
 
         if ($stockOwed) {
-            $stockTask = Tasks::single(handler: OrderStock::NAME, subjectType: 'order', subjectId: $orderId, payload: ['from' => $oldStatusId, 'to' => $toStatusId]);
+            $stockTask = BackgroundWork::core()->task(OrderStock::NAME)->about('order', $orderId)->with(['from' => $oldStatusId, 'to' => $toStatusId])->enqueue()->id;
             self::$awaiting[$stockTask] = WeakReference::create($this);
         }
 
@@ -1222,11 +1222,11 @@ class Transition
 
         // Download access: a cancelled status revokes it, a status that grants downloads grants it, any other leaves it.
         if ($this->owes(handler: OrderEntitlements::NAME, guard: static fn (): bool => OrderStatusHelper::isCancelled($toStatusId) || Entitlements::grantsDownloads($toStatusId))) {
-            Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+            BackgroundWork::core()->task(OrderEntitlements::NAME)->about('order', $orderId)->with(['status' => $toStatusId])->enqueue();
         }
 
         if ($this->owes(handler: OrderDocuments::NAME, guard: static fn (): bool => AutoIssuePolicy::issuesForStatus(statusId: $toStatusId))) {
-            Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+            BackgroundWork::core()->task(OrderDocuments::NAME)->about('order', $orderId)->with(['status' => $toStatusId])->enqueue();
         }
 
         // The customer is left out of a change made silent for the customer alone; its single then has work only when the
@@ -1234,17 +1234,17 @@ class Transition
         $toCustomer = !$this->silentCustomer;
 
         if (!$this->silent && $this->owes(handler: OrderStatusEmail::NAME, guard: static fn (): bool => EmailService::notifiesForStatus(statusId: $toStatusId, customer: $toCustomer))) {
-            Tasks::single(handler: OrderStatusEmail::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId, 'customer' => $toCustomer]);
+            BackgroundWork::core()->task(OrderStatusEmail::NAME)->about('order', $orderId)->with(['status' => $toStatusId, 'customer' => $toCustomer])->enqueue();
         }
 
         if ($this->owes(handler: OrderStatusEvent::NAME, guard: static fn (): bool => OrderStatusEvent::hasListeners())) {
-            Tasks::single(handler: OrderStatusEvent::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+            BackgroundWork::core()->task(OrderStatusEvent::NAME)->about('order', $orderId)->with([
                 'from' => $oldStatusId,
                 'to' => $toStatusId,
                 'actor' => $actor,
                 'note' => $this->note,
                 'at' => Factory::getDate('now', 'UTC')->toSql(),
-            ]);
+            ])->enqueue();
         }
 
         return $stockOwed;

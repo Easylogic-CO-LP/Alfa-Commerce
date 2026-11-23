@@ -11,10 +11,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Media;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\MediaFetchJob;
-use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
@@ -228,11 +228,10 @@ final class MediaUrls
             return;
         }
 
-        Runner::enqueue(
-            handler: MediaFetchJob::NAME,
-            scopeKey: MediaFetchJob::NAME . ':' . $origin . ':' . $recordId . ':' . bin2hex(random_bytes(4)),
-            payload: ['origin' => $origin, 'record' => $recordId, 'images' => $images],
-        );
+        BackgroundWork::core()->job(MediaFetchJob::NAME)
+            ->scope($origin . ':' . $recordId . ':' . bin2hex(random_bytes(4)))
+            ->with(['origin' => $origin, 'record' => $recordId, 'images' => $images])
+            ->enqueue();
     }
 
     /**

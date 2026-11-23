@@ -204,6 +204,14 @@ $statusLine = function (array $extension): string {
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
+            <?php if (($preview['work'] ?? []) !== []) : ?>
+                <h3 class="h6 mt-3"><?php echo Text::_('COM_ALFA_CLEAR_WORK_TITLE'); ?></h3>
+                <ul class="list-unstyled mb-0">
+                    <?php foreach ($preview['work'] as $work) : ?>
+                        <li><?php echo Text::sprintf('COM_ALFA_CLEAR_WORK_LINE', '<strong>' . $this->escape((string) $work['name']) . '</strong>', (int) $work['waiting'], (int) $work['failed'], (int) $work['held']); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
         </div>
     </div>
 

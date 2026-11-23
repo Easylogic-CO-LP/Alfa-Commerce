@@ -22,23 +22,17 @@ use Joomla\Database\ParameterType;
  * What the API shows of a task: the fields of its document (GET v1/alfa/tasks/{id}), and the tasks a request wrote or
  * joined (meta.tasks of a save's answer).
  *
- * The owner is com_alfa and the result null for every task of this version; the fields are there so that a later
- * public task API fills them without changing the document. Times are UTC, as stored. The last error is staff's
- * information: shown, shortened, to callers with Tools only, and null to every other reader (the creator, the orders
- * view). It is stored without a database's text (Tasks::failureLine()); an older row may still hold one.
+ * The owner is com_alfa for core's work, or the alfa plugin that declared it as group.element; the result is what an
+ * extension's task or job reported when it was done (null before), and for core's work only the images fetched by
+ * address, what became of each so far, read while the fetch runs as well as once it is done (null for core's other
+ * work). Times are UTC, as stored. The last error is staff's information: shown, shortened, to callers with Tools
+ * only, and null to every other reader (the creator, the orders view). It is stored without a database's text (Tasks::failureLine()); an older row may still hold one.
  * meta.tasks lists only the tasks its reader may read.
  *
  * @since  2.2.0
  */
 final class TaskDocument
 {
-    /**
-     * The owner of every task of this version.
-     *
-     * @since  2.2.0
-     */
-    public const OWNER = 'com_alfa';
-
     /**
      * The longest last error shown.
      *
@@ -63,7 +57,7 @@ final class TaskDocument
     public const COLUMNS = [
         'id', 'type', 'handler', 'state', 'subject_type', 'subject_id', 'scope_key', 'done_units', 'total_units',
         'run_after', 'created_at', 'started_at', 'finished_at', 'updated_at', 'origin', 'last_error', 'created_by',
-        'checkpoint',
+        'checkpoint', 'owner', 'result',
     ];
 
     /**
@@ -109,7 +103,7 @@ final class TaskDocument
             'id' => (int) $row['id'],
             'type' => (string) $row['type'],
             'handler' => (string) $row['handler'],
-            'owner' => self::OWNER,
+            'owner' => (string) ($row['owner'] ?? DueRead::CORE_OWNER),
             'scope' => self::scope(row: $row),
             'state' => (string) $row['state'],
             'done_units' => (int) $row['done_units'],
@@ -123,9 +117,30 @@ final class TaskDocument
             'origin' => (string) $row['origin'],
             // Said in the reader's language when it is a failure of the work's own.
             'last_error' => $withError ? self::shortError(error: Tasks::errorText((string) $row['last_error'])) : null,
-            // The images a write gave as addresses and what became of each (media.fetch); none for other work.
-            'result' => (string) $row['handler'] === MediaFetchJob::NAME ? MediaFetchJob::result(checkpoint: self::checkpointOf(row: $row)) : null,
+            'result' => self::resultOf(row: $row),
         ];
+    }
+
+    /**
+     * What a task reported: an extension's result as its plugin gave it; for core, the images a write gave as
+     * addresses and what became of each so far (media.fetch), while it runs as well as once it is done; null for core's
+     * other work, and for an extension's work before it is done.
+     *
+     * @param array<string, mixed> $row The row.
+     *
+     * @return array<string, mixed>|list<mixed>|null
+     *
+     * @since  2.3.0
+     */
+    private static function resultOf(array $row): ?array
+    {
+        if ((string) ($row['owner'] ?? DueRead::CORE_OWNER) !== DueRead::CORE_OWNER) {
+            $result = json_decode((string) ($row['result'] ?? ''), true);
+
+            return \is_array($result) ? $result : null;
+        }
+
+        return (string) $row['handler'] === MediaFetchJob::NAME ? MediaFetchJob::result(checkpoint: self::checkpointOf(row: $row)) : null;
     }
 
     /**

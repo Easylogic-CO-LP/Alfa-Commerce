@@ -316,6 +316,11 @@ class com_alfaInstallerScript extends InstallerScript
             'fee_percent' => ["decimal(10,4) NOT NULL DEFAULT 0.0000 COMMENT 'Fee as a percentage of the order total before the fee; 0 = none'", 'fee_amount'],
             'fee_entry_mode' => ["enum('tax_included','tax_excluded') NOT NULL DEFAULT 'tax_included' COMMENT 'What the fee figures mean: tax_included (the customer pays them, the tax is inside, and the percentage is of the gross total) or tax_excluded (the tax is added on top, and the percentage is of the net total)'", 'fee_percent'],
         ],
+        '#__alfa_tasks' => [
+            'owner' => ["varchar(100) NOT NULL DEFAULT '' COMMENT 'Whose work it is: com_alfa, or the plugin that declared it as group.element; never empty once written'", 'finished_at'],
+            'result' => ["mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise'", 'owner'],
+            'cancel_requested' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: cancelled while running; the row stays running until its step has ended, then cancelled'", 'result'],
+        ],
     ];
 
     /**
@@ -2029,6 +2034,21 @@ class com_alfaInstallerScript extends InstallerScript
             Factory::getApplication()->enqueueMessage($this->installerText(
                 key:      'COM_ALFA_INSTALL_CRON_KEY_FAILED',
                 fallback: 'Alfa Commerce %1$s could not make the web cron\'s key: %2$s The cron command still runs the background work.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+        }
+
+        // Core's background work as its handler classes declare it, which the runner's schedules and Tools > Tasks read.
+        // A failure is said, never a failed install: core's own work still runs; its schedules wait for the rows.
+        try
+        {
+            \Alfa\Component\Alfa\Administrator\Service\Task\WorkDeclarations::writeCore();
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_WORK_DECLARATIONS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not write the background work it declares: %2$s Install the package again.',
                 values:   [$this->packageVersion, $e->getMessage()],
             ), 'warning');
         }
