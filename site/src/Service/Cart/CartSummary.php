@@ -9,6 +9,8 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Cart;
 
+use Alfa\Component\Alfa\Site\Helper\CartShows;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Summary\SummaryRow;
@@ -19,7 +21,8 @@ use Joomla\CMS\Language\Text;
 /**
  * The cart's money totals as labelled rows.
  *
- * Decides which rows exist and what each one is called; computes nothing. Every
+ * Decides which rows exist (the amounts, and the Options' switches of what the cart
+ * shows, CartShows) and what each one is called; computes nothing. Every
  * figure is a Money the reading already holds, so the summary cannot disagree with
  * the totals it describes. The cart.summary layout only prints the rows.
  *
@@ -125,6 +128,7 @@ final class CartSummary
             amount: $totals->grand,
         );
 
-        return $rows;
+        // The rows the Options' switches show; a subtotal or total of zero the Options hide is no row at all.
+        return PriceDisplay::summary(rows: CartShows::options()->rows(rows: $rows));
     }
 }

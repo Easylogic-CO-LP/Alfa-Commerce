@@ -319,6 +319,35 @@
                     <option value="1">COM_ALFA_CONFIG_CATALOGUE_ONLY_CATALOGUE</option>
                 </field>
 
+                <!-- A PRICE OF ZERO, AS THE SHOPPER READS IT. Read through
+                     PriceDisplay: the product's price, a line's unit and total,
+                     the subtotal and the total, on the storefront, in the cart
+                     module, the order e-mails and the documents. The figure
+                     itself stays zero everywhere, the REST API included. -->
+                <field name="zero_price_display" type="list" default="show"
+                       label="COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY"
+                       description="COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY_DESC"
+                       validate="options"
+                       showon="catalogue_only:0"
+                >
+                    <option value="show">COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY_SHOW</option>
+                    <option value="hide">COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY_HIDE</option>
+                    <option value="text">COM_ALFA_CONFIG_ZERO_PRICE_DISPLAY_TEXT</option>
+                </field>
+
+                <!-- A PRODUCT WITH NO PRICE (none applies for the shopper, or the
+                     catalogue only mode): what its price's place shows, read
+                     through PriceDisplay::unpriced(). It is not bought, so it is
+                     a setting of its own, apart from a price of zero. -->
+                <field name="unpriced_display" type="list" default="text"
+                       label="COM_ALFA_CONFIG_UNPRICED_DISPLAY"
+                       description="COM_ALFA_CONFIG_UNPRICED_DISPLAY_DESC"
+                       validate="options"
+                >
+                    <option value="text">COM_ALFA_CONFIG_UNPRICED_DISPLAY_TEXT</option>
+                    <option value="none">COM_ALFA_CONFIG_UNPRICED_DISPLAY_NONE</option>
+                </field>
+
                 <!-- WHICH FIELD SAYS WHERE THE ORDER IS GOING. Only needed by a
                      checkout carrying more than one place field: with exactly
                      one it is inferred, and a shop with none sells fine without
@@ -342,6 +371,81 @@
                 >
                     <option value="0">COM_ALFA_CONFIG_CHECKOUT_GUEST_ACCOUNT</option>
                     <option value="1">COM_ALFA_CONFIG_CHECKOUT_GUEST_ALLOWED</option>
+                </field>
+
+                <!-- THE STATUS OF AN ORDER WITH NOTHING TO COLLECT (its total is
+                     zero), set at placement (OrderPlacement::placedStatusId()):
+                     a quote request lands where the shop picks it up. Empty is
+                     the initial status, as for every other order. -->
+                <field name="zero_total_status" type="model"
+                       model="orderstatuses"
+                       column_value="id"
+                       column_text="name"
+                       orderBy="ordering"
+                       filter="integer"
+                       label="COM_ALFA_CONFIG_ZERO_TOTAL_STATUS"
+                       description="COM_ALFA_CONFIG_ZERO_TOTAL_STATUS_DESC"
+                >
+                    <option value="">COM_ALFA_CONFIG_ZERO_TOTAL_STATUS_INITIAL</option>
+                </field>
+
+            </fieldset>
+
+            <!-- THE CART SHOWS: which amounts the cart page with its checkout
+                 summary, the cart module and the added-to-cart card show, read
+                 through CartShows. Display only: the cart, the placement and the
+                 order carry every amount. -->
+            <fieldset name="cart_shows" label="COM_ALFA_CONFIG_FIELDSET_CART_SHOWS"
+                      description="COM_ALFA_CONFIG_FIELDSET_CART_SHOWS_DESC">
+
+                <field name="cart_show_line_price" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+                       label="COM_ALFA_CONFIG_CART_SHOW_LINE_PRICE"
+                       description="COM_ALFA_CONFIG_CART_SHOW_LINE_PRICE_DESC"
+                >
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+
+                <field name="cart_show_subtotal" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+                       label="COM_ALFA_CONFIG_CART_SHOW_SUBTOTAL"
+                       description="COM_ALFA_CONFIG_CART_SHOW_SUBTOTAL_DESC"
+                >
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+
+                <field name="cart_show_shipping" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+                       label="COM_ALFA_CONFIG_CART_SHOW_SHIPPING"
+                       description="COM_ALFA_CONFIG_CART_SHOW_SHIPPING_DESC"
+                >
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+
+                <field name="cart_show_tax" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+                       label="COM_ALFA_CONFIG_CART_SHOW_TAX"
+                       description="COM_ALFA_CONFIG_CART_SHOW_TAX_DESC"
+                >
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+
+                <field name="cart_show_total" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+                       label="COM_ALFA_CONFIG_CART_SHOW_TOTAL"
+                       description="COM_ALFA_CONFIG_CART_SHOW_TOTAL_DESC"
+                >
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+
+                <!-- The coupon form on the cart page, the one storefront way to
+                     enter a code; off, cart.applyCoupon refuses every code. -->
+                <field name="coupon_field" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+                       label="COM_ALFA_CONFIG_COUPON_FIELD"
+                       description="COM_ALFA_CONFIG_COUPON_FIELD_DESC"
+                >
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
                 </field>
 
             </fieldset>

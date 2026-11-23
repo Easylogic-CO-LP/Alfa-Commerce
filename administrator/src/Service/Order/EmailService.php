@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
@@ -2278,7 +2279,8 @@ class EmailService
      * formula as the totals table rendered below it, so the token agrees with
      * that table on an order carrying shipping, a fee or a cart rule (a sum of
      * the items alone would not). Falls back to the items sum when the
-     * breakdown or a currency is unavailable.
+     * breakdown or a currency is unavailable. A total of zero prints as the
+     * Options print a price of zero (PriceDisplay).
      *
      * @param int $orderId Order PK.
      * @param object[] $items Hydrated line items (carry ->currency).
@@ -2298,10 +2300,10 @@ class EmailService
         foreach ($items as $item) {
             if (isset($item->currency) && is_object($item->currency)) {
                 try {
-                    return (string) \Alfa\Component\Alfa\Site\Service\Pricing\Money::of(
+                    return PriceDisplay::price(price: \Alfa\Component\Alfa\Site\Service\Pricing\Money::of(
                         (float) $breakdown->grand_total_tax_incl,
                         $item->currency,
-                    )->format();
+                    ));
                 } catch (Throwable $e) {
                     break;
                 }
@@ -2339,7 +2341,7 @@ class EmailService
                 : $total->add($item->total_price_tax_incl);
         }
 
-        return $total === null ? '' : (string) $total->format();
+        return $total === null ? '' : PriceDisplay::price(price: $total);
     }
 
     /**

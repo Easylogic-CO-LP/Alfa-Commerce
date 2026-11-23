@@ -88,6 +88,12 @@ final class OrderCreator
      *                                no shipping method (a virtual order).
      *   id_address_invoice    int    Existing #__alfa_user_info id (0 = none).
      *   id_order_status       int    0/absent = the is_initial status.
+     *   nothing_due           bool   Default false. The caller's statement that
+     *                                the order's total is zero, from the total
+     *                                it computed (lines, carriage, fees and
+     *                                rules): nothing is due, so the order is
+     *                                paid and a status that requires payment
+     *                                takes it.
      *   id_language           int    Default 1.
      *   customer_note, note   string
      *   ip_address            string Default: current request IP.
@@ -258,14 +264,17 @@ final class OrderCreator
             throw new RuntimeException('OrderCreator: no target status and no is_initial status exists.');
         }
 
-        // A status that requires payment cannot be satisfied at creation: no
-        // order exists yet, so nothing has been paid. Entering it by CREATING
-        // into it would be a way around the gate that refuses the same status
-        // on a transition, so it obeys the same rule: allowed only where the
-        // status permits the exception, and then recorded as one.
+        // A status that requires payment is satisfied at creation only by an
+        // order with nothing due: its total is zero, so it is paid, as the gate
+        // of a transition reads it (the total less what the ledger holds).
+        // Any other new order has money due and nothing paid yet. Entering such
+        // a status by CREATING into it would be a way around the gate that
+        // refuses the same status on a transition, so it obeys the same rule:
+        // allowed only where the status permits the unpaid exception, and then
+        // recorded as one.
         $unpaidExceptionAtCreation = false;
 
-        if (self::statusRequiresPayment($statusId)) {
+        if (empty($draft['nothing_due']) && self::statusRequiresPayment($statusId)) {
             if (!self::mayCreateInto($statusId)) {
                 throw new RuntimeException(
                     'OrderCreator: status ' . $statusId . ' requires payment, which a new order cannot have.',

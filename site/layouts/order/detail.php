@@ -10,6 +10,7 @@
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Site\Helper\Layout;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Service\Order\OrderConfirmation;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
@@ -180,7 +181,7 @@ $columns = [
                     <?php endif; ?>
                 </td>
                 <td data-label="<?php echo $columns['quantity']; ?>" class="order-item-quantity"><?php echo (int) $line->quantity; ?></td>
-                <td data-label="<?php echo $columns['total']; ?>" class="order-item-total cart-money"><?php echo $line->total->format(); ?></td>
+                <td data-label="<?php echo $columns['total']; ?>" class="order-item-total cart-money"><?php echo PriceDisplay::price(price: $line->total); ?></td>
             </tr>
             <?php endforeach; ?>
             </tbody>

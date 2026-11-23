@@ -41,6 +41,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Joomla\CMS\Language\Text;
 
 // FileLayout passes $displayData as a single array; pull the named
@@ -72,8 +73,8 @@ $muted      = 'padding:14px 10px;text-align:center;color:#6b7280;font-style:ital
 $wasStyle   = 'text-decoration:line-through;color:#9ca3af;margin-right:6px;';
 
 // A Money row renders only when the value exists and is non-zero. The
-// grand-total row is the exception: it always renders if non-null,
-// even at 0, so admins see "Total: €0.00" rather than nothing.
+// grand-total row is the exception: at 0 it prints as the Options print a
+// price of zero (the amount, the shop's text, or no row when they hide it).
 $showMoney = static fn($money) => $money !== null && !$money->isZero();
 
 ?>
@@ -148,12 +149,14 @@ $showMoney = static fn($money) => $money !== null && !$money->isZero();
                 </tr>
             <?php endif; ?>
 
-            <?php if ($total !== null) : ?>
+            <?php // A total of zero prints as the Options say (PriceDisplay); hidden, the row is not drawn. ?>
+            <?php $totalShown = $total !== null ? PriceDisplay::price(price: $total) : ''; ?>
+            <?php if ($totalShown !== '') : ?>
                 <tr>
                     <td style="<?php echo $totalLbl; ?>">
                         <?php echo htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_TOTALS_GRAND_TOTAL'), ENT_COMPAT, 'UTF-8'); ?>
                     </td>
-                    <td style="<?php echo $totalVal; ?>"><?php echo $total->format(); ?></td>
+                    <td style="<?php echo $totalVal; ?>"><?php echo $totalShown; ?></td>
                 </tr>
             <?php endif; ?>
 

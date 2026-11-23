@@ -13,7 +13,7 @@
  * Uses PriceResult object for accurate Money calculations.
  *
  * REQUIRED PARAMETERS:
- * @var object $item      Item with price data (must have ->price property)
+ * @var object $item      Item with price data (->price: its PriceResult, or null for no price)
  * @var array  $settings  Price visibility settings (from PriceSettings helper)
  *
  * OPTIONAL PARAMETERS:
@@ -41,19 +41,20 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Language\Text;
+use Alfa\Component\Alfa\Site\Helper\PriceDisplay;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 
 // Extract display data
 extract($displayData);
 
-// Get price object
+// Get price object: null when no price applies for the shopper, or the shop shows its catalogue only
 $prices = $item->price ?? null;
 
-// No price to show (none is set for the shopper, or the shop shows its catalogue only): its place says how to get one,
-// in the shop's own words (COM_ALFA_PRICE_ON_REQUEST, which a language override can change, or empty to show nothing).
+// No price to show: its place shows what the Options say (PriceDisplay::unpriced()), the shop's text or nothing.
+// Such a product is not bought, so there is no price block to swap.
 if (!$prices) {
-	$onRequest = Text::_('COM_ALFA_PRICE_ON_REQUEST');
+	$onRequest = PriceDisplay::unpriced();
 
 	if ($onRequest !== '') {
 		?>
@@ -74,6 +75,21 @@ $showTotals = !empty($options['show_totals']);
 
 // Get CSS class option
 $cssClass = 'item-prices' . (!empty($options['css_class']) ? ' ' . trim($options['css_class']) : '');
+
+// A PRICE OF ZERO, AS THE OPTIONS PRINT IT (PriceDisplay): its block, nothing, or the shop's text in its place. The
+// block's element stays, empty or with the text, so a quantity or an option that prices the product again swaps it.
+$zeroShown = $prices->getTotal()->isZero() ? PriceDisplay::zero() : null;
+
+if ($zeroShown !== null) {
+	?>
+<div class="<?php echo $cssClass; ?>" data-item-prices data-display-mode="<?php echo $showTotals ? 'totals' : 'unit'; ?>">
+	<?php if ($zeroShown !== '') : ?>
+    <div class="item-price-request"><?php echo htmlspecialchars($zeroShown, ENT_QUOTES, 'UTF-8'); ?></div>
+	<?php endif; ?>
+</div>
+	<?php
+	return;
+}
 
 // Prepare display values
 // Construct all price values based on display mode (totals vs per-unit).
