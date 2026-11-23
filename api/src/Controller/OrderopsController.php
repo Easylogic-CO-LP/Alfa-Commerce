@@ -1218,7 +1218,8 @@ class OrderopsController extends OrdersController
     }
 
     /**
-     * The order id from the route, verified to exist.
+     * The order id from the route, verified to exist: an order with no row answers 404 for every operation, before
+     * anything is read or written for it (adding a line too, whose model would otherwise refuse it as a failed save).
      *
      *
      * @since  2.0.0
@@ -1226,8 +1227,15 @@ class OrderopsController extends OrdersController
     private function requireOrderId(): int
     {
         $orderId = $this->routeInt('id');
+        $db = Factory::getContainer()->get('DatabaseDriver');
 
-        if ($orderId <= 0) {
+        if ($orderId <= 0 || !$db->setQuery(
+            $db->getQuery(true)
+                ->select('1')
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $orderId, ParameterType::INTEGER),
+        )->loadResult()) {
             throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
         }
 
