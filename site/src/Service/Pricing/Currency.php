@@ -761,6 +761,38 @@ class Currency
     }
 
     /**
+     * An order line's or a document line's unit as every screen, e-mail and document prints it.
+     *
+     * A line that carries the stored price it was priced at (a price row's own value or a sale's own price, frozen
+     * beside its units) prints that price by the stored-price rule, as the storefront printed it: 25.338 beside seven
+     * prints 25,338. Any other line prints its unit by the line rule, from its own total and quantity: the same line
+     * without the stored price prints 25,339. Both by {@see self::unitFigure()}.
+     *
+     * @param float|int|string $unit The line's stored unit column.
+     * @param float|int|string|null $stored The stored price the line carries beside that unit; null when it has none.
+     * @param float|int|string $lineTotal The line's whole amount, in the unit's tax space.
+     * @param float|int|string $quantity The line's quantity.
+     * @param float|int|string|null $rate The line's agreed custom rate, beside the gross unit only; null when none.
+     * @param bool $includeSymbol Whether to include the currency symbol.
+     * @param bool|null $auto Null: the shop's setting. True: the Auto form whatever the setting.
+     *
+     * @since 2.3.0
+     */
+    public function formatLineUnit(
+        float|int|string $unit,
+        float|int|string|null $stored,
+        float|int|string $lineTotal,
+        float|int|string $quantity,
+        float|int|string|null $rate = null,
+        bool $includeSymbol = true,
+        ?bool $auto = null,
+    ): string {
+        return $stored === null || $stored === ''
+            ? $this->formatUnit(unit: $unit, lineTotal: $lineTotal, quantity: $quantity, rate: $rate, includeSymbol: $includeSymbol, auto: $auto)
+            : $this->formatUnit(unit: $stored, lineTotal: $lineTotal, quantity: $quantity, includeSymbol: $includeSymbol, auto: $auto, stated: true);
+    }
+
+    /**
      * A stored figure as this currency prints it: a stored unit, or a stored per-unit amount such as an option's
      * price impact, that is a fact of its own and not a line's money per unit.
      *

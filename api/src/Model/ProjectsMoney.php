@@ -133,12 +133,15 @@ trait ProjectsMoney
      * @param mixed $quantity The line's quantity.
      * @param mixed $rate The line's agreed custom rate, beside the gross unit only; null when none.
      * @param Currency|null $currency The record's currency at its frozen scale; null when it names none.
+     * @param mixed $stored The stored price the line was priced at, frozen beside the unit; null when it has none.
+     *                      `formatted` then prints it by the stored-price rule, as the storefront did, and `amount`
+     *                      stays the unit column.
      *
      * @return array|null {amount, formatted, minor_units}, or null.
      *
      * @since  2.0.0
      */
-    protected function unit(mixed $value, mixed $lineTotal, mixed $quantity, mixed $rate, ?Currency $currency): ?array
+    protected function unit(mixed $value, mixed $lineTotal, mixed $quantity, mixed $rate, ?Currency $currency, mixed $stored = null): ?array
     {
         if (!is_numeric($value)) {
             return null;
@@ -154,8 +157,9 @@ trait ProjectsMoney
 
         return [
             'amount' => PublishedDecimal::unit(value: $value, scale: $currency->getDecimalPlaces()),
-            'formatted' => $currency->formatUnit(
+            'formatted' => $currency->formatLineUnit(
                 unit: $value,
+                stored: is_numeric($stored) ? $this->storedText(value: $stored) : null,
                 lineTotal: $lineTotal instanceof Money ? $lineTotal->getAmount() : (is_numeric($lineTotal) ? $lineTotal : 0),
                 quantity: is_numeric($quantity) ? $quantity : 0,
                 rate: is_numeric($rate) ? $rate : null,

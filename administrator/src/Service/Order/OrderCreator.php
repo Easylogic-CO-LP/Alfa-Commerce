@@ -623,6 +623,10 @@ final class OrderCreator
         // text, so its eight decimals are written as stated; NULL when the
         // caller carries no PriceResult.
         $row->payable_unit = isset($line['payable_unit']) ? $unit($line['payable_unit']) : null;
+        // The stored price the line's units are (OrderLineMoney): the line prints its units as the storefront did.
+        // NULL when a unit was computed, and when the caller carries no PriceResult.
+        $row->stated_unit_tax_excl = isset($line['stated_unit_tax_excl']) ? $unit($line['stated_unit_tax_excl']) : null;
+        $row->stated_unit_tax_incl = isset($line['stated_unit_tax_incl']) ? $unit($line['stated_unit_tax_incl']) : null;
         $row->tax_rate = (float) ($line['tax_rate'] ?? 0);
         // The applied tax's name, whole (the column is text): a combined rules' name joined with ' + ' can
         // pass 255 characters, and a name on a fiscal document is never shortened.

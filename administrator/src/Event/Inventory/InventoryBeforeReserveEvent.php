@@ -15,9 +15,22 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Joomla\CMS\Event\AbstractEvent;
 
 /**
- * onInventoryBeforeReserve: dispatched BEFORE the reserve transaction
- * opens. Subscribers may amend the lines (updateLines) or veto by
- * throwing; a veto costs nothing, no row was touched yet.
+ * onInventoryBeforeReserve: a reservation is about to be made. Subscribers
+ * may amend the lines (updateLines) or veto by throwing; the reservation has
+ * touched no row yet, and a veto rolls back what the caller's transaction did
+ * (at placement, the whole placement).
+ *
+ * WHEN IT RUNS. Before the reservation writes anything, and inside the transaction its
+ * caller holds open: core reserves inside one, at an order's placement in the
+ * placement's transaction and, for the stock owed after a status change or a
+ * document, in that effect's transaction after the order's row is locked
+ * (SELECT ... FOR UPDATE). A listener therefore runs under that lock. It reads
+ * and writes the database only; its writes join the transaction and are undone
+ * with it. It never calls outside (a web service, a mail, a file) and never
+ * waits on anything: every other request that touches the order waits for it
+ * meanwhile, and what it sent outside stays sent when the transaction rolls
+ * back. Work outside belongs after the commit: the after-event, which is
+ * delivered once the transaction commits, or PostCommit::defer().
  *
  * Quantities are never changed from AFTER events; this is the only
  * place a package may reshape a reservation ask.

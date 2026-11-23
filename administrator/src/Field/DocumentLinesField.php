@@ -122,8 +122,9 @@ class DocumentLinesField extends FormField
                         : '')
                     . '</td>';
                 $html[] = '<td class="text-end">'
-                    . $escape($lineCurrency->formatUnit(
+                    . $escape($lineCurrency->formatLineUnit(
                         unit: $line->unit_price_tax_incl,
+                        stored: $line->stated_unit_tax_incl,
                         lineTotal: $line->total_price_tax_incl,
                         quantity: $line->quantity,
                         rate: $line->custom_unit_price_tax_incl,
@@ -198,6 +199,7 @@ class DocumentLinesField extends FormField
                 $entry->row->total_tax_incl,
                 $entry->row->quantity,
                 $entry->row->custom_unit_price_tax_incl,
+                $entry->row->stated_unit_tax_incl ?? null,
             )) . '</td>';
             $html[] = '<td class="text-center"><input class="form-control form-control-sm issue-line-qty"'
                 . ' type="number" min="0" step="any" max="' . $left . '"'
@@ -265,7 +267,7 @@ class DocumentLinesField extends FormField
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
-            ->select($db->quoteName(['id', 'name', 'sku', 'quantity', 'unit_price_tax_incl', 'total_price_tax_incl', 'custom_unit_price_tax_incl']))
+            ->select($db->quoteName(['id', 'name', 'sku', 'quantity', 'unit_price_tax_incl', 'total_price_tax_incl', 'custom_unit_price_tax_incl', 'stated_unit_tax_incl']))
             ->from($db->quoteName('#__alfa_order_items'))
             ->where($db->quoteName('id_order') . ' = :order')
             ->order($db->quoteName('id') . ' ASC')

@@ -39,9 +39,10 @@ $showPrices = $displayData['showPrices'] ?? true;
 // number is written follows the language; the stored figures and the totals do not change.
 $separators = DocumentRenderer::separators(document: $displayData['document'] ?? null);
 $fmt = DocumentMoney::formatter($displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
-// The net unit by the one unit rule, at the same frozen scale, from the
-// line's own net total and quantity: a unit is presentation, the line total
-// is the money. Totals keep $fmt.
+// The net unit by the one unit rule, at the same frozen scale: the stored
+// price the line froze where it has one, else from the line's own net total
+// and quantity: a unit is presentation, the line total is the money. Totals
+// keep $fmt.
 $unitFmt = DocumentMoney::unitFormatter(document: $displayData['document'] ?? null, decimalSeparator: $separators['decimal'], thousandsSeparator: $separators['thousands']);
 // A quantity to three places, its padding zeros dropped (2.5, 1,200).
 $quantity = static fn ($value): string => rtrim(rtrim(number_format((float) $value, 3, $separators['decimal'], $separators['thousands']), '0'), $separators['decimal']);
@@ -82,7 +83,7 @@ $quantity = static fn ($value): string => rtrim(rtrim(number_format((float) $val
                 <?php endif; ?>
             </td>
             <?php if ($showPrices) : ?>
-                <td class="num"><?php echo $unitFmt($line->unit_price_tax_excl, $line->total_tax_excl, $line->quantity); ?></td>
+                <td class="num"><?php echo $unitFmt($line->unit_price_tax_excl, $line->total_tax_excl, $line->quantity, null, $line->stated_unit_tax_excl ?? null); ?></td>
                 <td class="num"><?php echo (float) $line->discount_tax_excl > 0 ? $fmt((float) $line->discount_tax_excl) : '-'; ?></td>
                 <td class="num"><?php echo htmlspecialchars(AlfaHelper::percentDisplay(value: $line->tax_rate, decimalSeparator: $separators['decimal']), ENT_COMPAT, 'UTF-8'); ?></td>
                 <td class="num"><?php echo $fmt((float) $line->total_tax_excl); ?></td>

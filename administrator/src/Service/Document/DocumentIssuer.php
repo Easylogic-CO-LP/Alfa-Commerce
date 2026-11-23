@@ -2938,6 +2938,10 @@ final class DocumentIssuer
             // never re-read from the order line. NULL when the draft states none.
             $row->custom_unit_price_tax_incl = isset($line['custom_unit_price_tax_incl'])
                 ? $unit($line['custom_unit_price_tax_incl']) : null;
+            // The stored price the units print as, as the draft states it (a whole line only): frozen here and never
+            // re-read from the order line. NULL when the draft states none.
+            $row->stated_unit_tax_excl = isset($line['stated_unit_tax_excl']) ? $unit($line['stated_unit_tax_excl']) : null;
+            $row->stated_unit_tax_incl = isset($line['stated_unit_tax_incl']) ? $unit($line['stated_unit_tax_incl']) : null;
             $row->discount_tax_excl = $unit($line['discount_tax_excl'] ?? 0);
             $row->tax_rate = (float) ($line['tax_rate'] ?? 0);
             $row->vat_category = isset($line['vat_category']) ? (int) $line['vat_category'] : null;
@@ -2953,6 +2957,8 @@ final class DocumentIssuer
                 $row->unit_price_tax_excl = $zero;
                 $row->unit_price_tax_incl = $zero;
                 $row->custom_unit_price_tax_incl = null;
+                $row->stated_unit_tax_excl = null;
+                $row->stated_unit_tax_incl = null;
                 $row->discount_tax_excl = $zero;
                 $row->total_tax_excl = $zero;
                 $row->tax_amount = $zero;

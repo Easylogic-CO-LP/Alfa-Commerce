@@ -252,6 +252,30 @@ final class PriceUnits
     }
 
     /**
+     * The stored price a figure IS: a price row's own value or a sale's own price, by the result's provenance, as the
+     * page prints it ({@see self::page()}); null when the figure is computed or is an agreed rate.
+     *
+     * An order line freezes it beside its units, so the line prints its unit as the storefront printed it.
+     *
+     * @param PriceResult $price The priced result.
+     * @param string $figure One of FIGURES.
+     *
+     * @return string|null The exact decimal text of the stored price, or null.
+     *
+     * @throws InvalidArgumentException When the figure is not one of FIGURES.
+     *
+     * @since  2.3.0
+     */
+    public static function stored(PriceResult $price, string $figure): ?string
+    {
+        if (!\in_array($figure, self::FIGURES, true)) {
+            throw new InvalidArgumentException(sprintf("'%s' is not a figure of a price block.", $figure));
+        }
+
+        return $price->getStatedOrigin() === UnitOrigin::AgreedRate ? null : self::statedValue(price: $price, figure: $figure);
+    }
+
+    /**
      * One figure's per-piece money, its line, the exact unit it is when it is one, and whether that is a stored price.
      *
      * @param PriceResult $price The priced result.

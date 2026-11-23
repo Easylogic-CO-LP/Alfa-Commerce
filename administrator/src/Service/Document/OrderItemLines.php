@@ -594,10 +594,43 @@ final class OrderItemLines
                 // The agreed custom rate, frozen as at issue from the order
                 // line, which stays editable afterwards.
                 customRate:       $row->custom_unit_price_tax_incl !== null ? (string) $row->custom_unit_price_tax_incl : null,
+                // The stored price the units print as, only on a line that carries the whole order line: a part
+                // of it is a share of the line's money, not that price times its quantity.
+                stated:           self::wholeLine(quantity: $quantity, of: (float) $row->quantity) ? self::statedOf(row: $row) : [null, null],
             );
         }
 
         return $lines;
+    }
+
+    /**
+     * Whether a drafted quantity is the whole of the line it is drafted from.
+     *
+     * @param float $quantity The drafted quantity.
+     * @param float $of The line's own quantity.
+     *
+     * @since  2.3.0
+     */
+    private static function wholeLine(float $quantity, float $of): bool
+    {
+        return $of > 0 && abs($quantity - $of) < 0.000001;
+    }
+
+    /**
+     * The stored price a line's net and gross units print as, from its stated_unit_tax_* columns, as exact decimal
+     * texts; null where a column holds none.
+     *
+     * @param object $row An order line or a document line.
+     *
+     * @return array{0: string|null, 1: string|null}
+     *
+     * @since  2.3.0
+     */
+    private static function statedOf(object $row): array
+    {
+        $text = static fn (mixed $value): ?string => $value === null || $value === '' ? null : ExactAmount::ofNumber($value)->text();
+
+        return [$text($row->stated_unit_tax_excl ?? null), $text($row->stated_unit_tax_incl ?? null)];
     }
 
     /**
@@ -677,6 +710,8 @@ final class OrderItemLines
                 currency:         $currency,
                 // The corrected line's own agreed rate, never the order line's.
                 customRate:       $frozen->custom_unit_price_tax_incl !== null ? (string) $frozen->custom_unit_price_tax_incl : null,
+                // The corrected line's stored price, on a credit of the whole of that line only.
+                stated:           self::wholeLine(quantity: $quantity, of: (float) $frozen->quantity) ? self::statedOf(row: $frozen) : [null, null],
             );
         }
 
@@ -812,6 +847,8 @@ final class OrderItemLines
      * @param array $claimed claim()'s two totals.
      * @param Currency $currency The balance's currency.
      * @param string|null $customRate The agreed custom unit rate, tax incl, as stored; null = none.
+     * @param array{0: string|null, 1: string|null} $stated The stored price the net and the gross unit print as;
+     *                                                      null where the line prints by the line rule.
      *
      * @return array Every money and unit figure as its exact decimal text.
      *
@@ -837,6 +874,7 @@ final class OrderItemLines
         array $claimed,
         Currency $currency,
         ?string $customRate,
+        array $stated,
     ): array {
         return [
             'line_type' => DocumentHelper::LINE_ITEM,
@@ -858,6 +896,8 @@ final class OrderItemLines
             // The explicit custom rate the line was agreed at, frozen as a fact
             // of the document and never re-read from the order line.
             'custom_unit_price_tax_incl' => $customRate,
+            'stated_unit_tax_excl' => $stated[0],
+            'stated_unit_tax_incl' => $stated[1],
             // One predicate for sales and credit lines alike: a
             // was-price only beside a positive whole-line saving.
             'original_unit_price_tax_excl' => $discountExcl->isPositive() ? $originalUnitExcl?->text() : null,

@@ -258,12 +258,13 @@ class OrderModel extends AdminOrderModel
         // one unit rule's fixed Auto form from the line's own quantity and
         // totals; the agreed custom rate is the rate itself, as data.
         $rate = fn ($value): ?array => $this->rate(value: $value, currency: $currency);
-        $unit = fn ($value, $lineTotal, $quantity, $customRate = null): ?array => $this->unit(
+        $unit = fn ($value, $stored, $lineTotal, $quantity, $customRate = null): ?array => $this->unit(
             value: $value,
             lineTotal: $lineTotal,
             quantity: $quantity,
             rate: $customRate,
             currency: $currency,
+            stored: $stored,
         );
 
         $rows = static fn ($v): array => \is_array($v) ? array_values($v) : [];
@@ -277,8 +278,8 @@ class OrderModel extends AdminOrderModel
                 'sku' => $l->sku ?? '',
                 'quantity' => isset($l->quantity) ? (float) $l->quantity : null,
                 'quantity_removed' => isset($l->quantity_removed) ? (float) $l->quantity_removed : null,
-                'unit_price_tax_incl' => $unit($l->unit_price_tax_incl ?? null, $l->total_price_tax_incl ?? null, $l->quantity ?? 0, $l->custom_unit_price_tax_incl ?? null),
-                'unit_price_tax_excl' => $unit($l->unit_price_tax_excl ?? null, $l->total_price_tax_excl ?? null, $l->quantity ?? 0),
+                'unit_price_tax_incl' => $unit($l->unit_price_tax_incl ?? null, $l->stated_unit_tax_incl ?? null, $l->total_price_tax_incl ?? null, $l->quantity ?? 0, $l->custom_unit_price_tax_incl ?? null),
+                'unit_price_tax_excl' => $unit($l->unit_price_tax_excl ?? null, $l->stated_unit_tax_excl ?? null, $l->total_price_tax_excl ?? null, $l->quantity ?? 0),
                 'total_price_tax_incl' => $amount($l->total_price_tax_incl ?? null),
                 'total_price_tax_excl' => $amount($l->total_price_tax_excl ?? null),
                 // The line's stated pricing instructions, as the order-line

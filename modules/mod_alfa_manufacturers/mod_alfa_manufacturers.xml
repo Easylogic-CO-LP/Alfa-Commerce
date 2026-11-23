@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_ALFA_MANUFACTURERS</name>
+    <author>Agamemnon Fakas</author>
+    <creationDate>2026-11-23</creationDate>
+    <copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE</license>
+    <authorEmail>info@easylogic.gr</authorEmail>
+    <version>2.2.1</version>
+    <!-- The Alfa Commerce lines this build is made for: the line it ships with. -->
+    <alfacore min="2.2" max="2.2"/>
+    <description>MOD_ALFA_MANUFACTURERS_DESC</description>
+    <namespace path="src">Alfa\Module\AlfaManufacturers</namespace>
+    <files>
+        <folder module="mod_alfa_manufacturers">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="mod_alfa_manufacturers" folder="media">
+        <filename>joomla.asset.json</filename>
+        <folder>css</folder>
+    </media>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/mod_alfa_manufacturers.ini</language>
+        <language tag="en-GB">en-GB/mod_alfa_manufacturers.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+                <!-- Empty: every manufacturer the shop shows, in the chosen order. -->
+                <field
+                        name="manufacturers" type="model"
+                        model="manufacturers"
+                        column_value="id"
+                        column_text="name"
+                        input_type="list"
+                        multiple="true"
+                        layout="joomla.form.field.list-fancy-select"
+                        label="MOD_ALFA_MANUFACTURERS_SELECTION_LBL"
+                        description="MOD_ALFA_MANUFACTURERS_SELECTION_DESC"
+                        hint="MOD_ALFA_MANUFACTURERS_SELECTION_HINT"
+                />
+
+                <field name="show" type="list" default="logo_name" validate="options"
+                       label="MOD_ALFA_MANUFACTURERS_SHOW_LBL" description="MOD_ALFA_MANUFACTURERS_SHOW_DESC">
+                    <option value="logo_name">MOD_ALFA_MANUFACTURERS_SHOW_LOGO_NAME</option>
+                    <option value="logo">MOD_ALFA_MANUFACTURERS_SHOW_LOGO</option>
+                    <option value="name">MOD_ALFA_MANUFACTURERS_SHOW_NAME</option>
+                </field>
+
+                <field name="link" type="list" default="products" validate="options"
+                       label="MOD_ALFA_MANUFACTURERS_LINK_LBL" description="MOD_ALFA_MANUFACTURERS_LINK_DESC">
+                    <option value="products">MOD_ALFA_MANUFACTURERS_LINK_PRODUCTS</option>
+                    <option value="page">MOD_ALFA_MANUFACTURERS_LINK_PAGE</option>
+                </field>
+
+                <field name="ordering" type="list" default="name" validate="options"
+                       label="MOD_ALFA_MANUFACTURERS_ORDERING_LBL" description="MOD_ALFA_MANUFACTURERS_ORDERING_DESC">
+                    <option value="name">MOD_ALFA_MANUFACTURERS_ORDERING_NAME</option>
+                    <option value="ordering">MOD_ALFA_MANUFACTURERS_ORDERING_ORDERING</option>
+                </field>
+
+                <field name="limit" type="number" default="0" min="0" step="1" filter="integer"
+                       label="MOD_ALFA_MANUFACTURERS_LIMIT_LBL" description="MOD_ALFA_MANUFACTURERS_LIMIT_DESC"/>
+
+            </fieldset>
+
+            <fieldset name="advanced">
+
+                <field
+                        name="layout"
+                        type="modulelayout"
+                        label="JFIELD_ALT_LAYOUT_LABEL"
+                        class="form-select"
+                        validate="moduleLayout"
+                />
+
+                <field
+                        name="moduleclass_sfx"
+                        type="textarea"
+                        label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                        rows="3"
+                        validate="CssIdentifier"
+                />
+
+            </fieldset>
+        </fields>
+    </config>
+</extension>

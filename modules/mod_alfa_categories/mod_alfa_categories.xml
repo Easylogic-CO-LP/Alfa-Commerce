@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_ALFA_CATEGORIES</name>
+    <author>Agamemnon Fakas</author>
+    <creationDate>2026-11-23</creationDate>
+    <copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE</license>
+    <authorEmail>info@easylogic.gr</authorEmail>
+    <version>2.2.1</version>
+    <!-- The Alfa Commerce lines this build is made for: the line it ships with. -->
+    <alfacore min="2.2" max="2.2"/>
+    <description>MOD_ALFA_CATEGORIES_DESC</description>
+    <namespace path="src">Alfa\Module\AlfaCategories</namespace>
+    <files>
+        <folder module="mod_alfa_categories">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="mod_alfa_categories" folder="media">
+        <filename>joomla.asset.json</filename>
+        <folder>css</folder>
+    </media>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/mod_alfa_categories.ini</language>
+        <language tag="en-GB">en-GB/mod_alfa_categories.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+                <!-- 0: the shop's top-level categories. -->
+                <field name="parent" type="categories" showPath="true" default="0" filter="integer"
+                       layout="joomla.form.field.list-fancy-select"
+                       label="MOD_ALFA_CATEGORIES_PARENT_LBL" description="MOD_ALFA_CATEGORIES_PARENT_DESC">
+                    <option value="0">MOD_ALFA_CATEGORIES_PARENT_TOP</option>
+                </field>
+
+                <field name="levels" type="number" default="3" min="1" max="10" step="1" filter="integer"
+                       label="MOD_ALFA_CATEGORIES_LEVELS_LBL" description="MOD_ALFA_CATEGORIES_LEVELS_DESC"/>
+
+                <field name="open" type="list" default="current" validate="options"
+                       label="MOD_ALFA_CATEGORIES_OPEN_LBL" description="MOD_ALFA_CATEGORIES_OPEN_DESC">
+                    <option value="current">MOD_ALFA_CATEGORIES_OPEN_CURRENT</option>
+                    <option value="all">MOD_ALFA_CATEGORIES_OPEN_ALL</option>
+                </field>
+
+                <field name="show_count" type="radio" layout="joomla.form.field.radio.switcher" default="0" filter="integer"
+                       label="MOD_ALFA_CATEGORIES_SHOW_COUNT_LBL" description="MOD_ALFA_CATEGORIES_SHOW_COUNT_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+            </fieldset>
+
+            <fieldset name="advanced">
+
+                <field
+                        name="layout"
+                        type="modulelayout"
+                        label="JFIELD_ALT_LAYOUT_LABEL"
+                        class="form-select"
+                        validate="moduleLayout"
+                />
+
+                <field
+                        name="moduleclass_sfx"
+                        type="textarea"
+                        label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                        rows="3"
+                        validate="CssIdentifier"
+                />
+
+            </fieldset>
+        </fields>
+    </config>
+</extension>

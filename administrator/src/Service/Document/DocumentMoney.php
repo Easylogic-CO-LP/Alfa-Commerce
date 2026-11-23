@@ -88,14 +88,17 @@ final class DocumentMoney
      * over 1000 prints 0,10081 under Auto, never a 0,10 that times 1000 is not
      * the line, and a stored division tail that its line does not need is never
      * printed. The agreed custom rate is passed beside the gross unit only.
-     * Totals keep formatter().
+     * A line that froze the stored price it was priced at (its stated_unit_tax_*
+     * columns, beside the unit) prints that price by the stored-price rule, as
+     * the storefront did ({@see Currency::formatLineUnit()}); a document issued
+     * without one prints as it always printed. Totals keep formatter().
      *
      * @param object|null $document The document row; its `currency_scale` is the scale.
      * @param string $decimalSeparator The decimal separator to print.
      * @param string $thousandsSeparator The thousands separator to print.
      *
-     * @return callable(float|int|string, float|int|string, float|int|string, float|int|string|null=): string
-     *                                                                                                        (unit, lineTotal, quantity, rate)
+     * @return callable(float|int|string, float|int|string, float|int|string, float|int|string|null=, float|int|string|null=): string
+     *                                                                                                                                (unit, lineTotal, quantity, rate, stored)
      *
      * @since  2.0.0
      */
@@ -104,8 +107,10 @@ final class DocumentMoney
         $scale = self::scaleOf(document: $document);
         $auto = Currency::unitPrecisionIsAuto();
 
-        return static fn (float|int|string $unit, float|int|string $lineTotal, float|int|string $quantity, float|int|string|null $rate = null): string => Currency::groupFigure(
-            figure: Currency::unitFigure(unit: $unit, lineTotal: $lineTotal, quantity: $quantity, scale: $scale, rate: $rate, auto: $auto)['figure'],
+        return static fn (float|int|string $unit, float|int|string $lineTotal, float|int|string $quantity, float|int|string|null $rate = null, float|int|string|null $stored = null): string => Currency::groupFigure(
+            figure: ($stored === null || $stored === ''
+                ? Currency::unitFigure(unit: $unit, lineTotal: $lineTotal, quantity: $quantity, scale: $scale, rate: $rate, auto: $auto)
+                : Currency::unitFigure(unit: $stored, lineTotal: $lineTotal, quantity: $quantity, scale: $scale, rate: null, auto: $auto, stated: true))['figure'],
             decimalSeparator: $decimalSeparator,
             thousandSeparator: $thousandsSeparator,
         );

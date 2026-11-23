@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Closure;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Log\Log;
 use Throwable;
 
 /**
@@ -49,17 +50,27 @@ final class PageCache
      * This request's response is never stored in Joomla's page cache. Asked any number of times in a request (each
      * price drawn for a visitor's own currency asks), the answer is listening once.
      *
+     * @api BEST EFFORT: keeps this request's response out of Joomla's page cache (System - Page Cache), and nothing
+     *      more: core's own views and modules call it, and an extension calls it only for a response of its own (its
+     *      view, module or plugin output holding one visitor's data at an address every visitor shares). It cannot keep
+     *      a page stored earlier from being served, nor another cache (a server's, a CDN's, a browser's) from keeping
+     *      the response. A failure to register the answer is logged in com_alfa and never thrown into the caller.
+     *
      * @since  2.2.1
      */
     public static function excludeResponse(): void
     {
-        $plugins = AlfaPluginHelper::get();
-        $answer = self::$answer ??= static function ($event): void {
-            $event->addResult(true);
-        };
+        try {
+            $plugins = AlfaPluginHelper::get();
+            $answer = self::$answer ??= static function ($event): void {
+                $event->addResult(true);
+            };
 
-        $plugins->forget('onPageCacheIsExcluded', $answer);
-        $plugins->listen('onPageCacheIsExcluded', $answer);
+            $plugins->forget('onPageCacheIsExcluded', $answer);
+            $plugins->listen('onPageCacheIsExcluded', $answer);
+        } catch (Throwable $e) {
+            Log::add('This response could not be kept out of Joomla\'s page cache: ' . ErrorText::of($e), Log::ERROR, 'com_alfa');
+        }
     }
 
     /**
@@ -79,7 +90,7 @@ final class PageCache
                 ->createCacheController('callback', ['defaultgroup' => 'page'])
                 ->clean();
         } catch (Throwable $e) {
-            \Joomla\CMS\Log\Log::add('The stored pages of Joomla\'s page cache could not be dropped: ' . ErrorText::of($e), \Joomla\CMS\Log\Log::WARNING, 'com_alfa');
+            Log::add('The stored pages of Joomla\'s page cache could not be dropped: ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
         }
     }
 }
