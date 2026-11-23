@@ -32,8 +32,9 @@ final class DisputeChangedEvent extends AbstractImmutableEvent
     public const NAME = 'onAlfaDisputeChanged';
 
     /**
-     * The dispute's record as committed (id, id_order, id_payment, state, outcome, stage, amount, stated_amount,
-     * stated_currency, reference, evidence_due_by, decided_at); null when it no longer exists.
+     * The dispute's record as committed: the whole row of #__alfa_order_disputes (among its columns id, id_order,
+     * id_payment, state, outcome, stage, amount, stated_amount, stated_currency, reference, evidence_due_by, decided_at,
+     * and gateway_response, the provider's last answer as stored); null when it no longer exists.
      *
      * @api READ ONLY: the record.
      *
