@@ -44,6 +44,9 @@ final class PluginId
     /**
      * The identity from its string form `group.element`.
      *
+     * @api READ ONLY: a plugin identity, for the calls that take one (ExtensionJob::enqueue(),
+     *      OutboundConsumers::ofPlugin()).
+     *
      * @param string $id The identity, for example alfa-payments.standard.
      *
      * @throws InvalidArgumentException When the string is not group.element.
@@ -63,6 +66,8 @@ final class PluginId
 
     /**
      * The identity from its two parts.
+     *
+     * @api READ ONLY: a plugin identity, as of() makes it.
      *
      * @param string $group The plugin group (folder).
      * @param string $element The plugin element.
