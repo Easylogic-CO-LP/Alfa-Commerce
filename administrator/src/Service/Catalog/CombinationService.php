@@ -116,7 +116,8 @@ final class CombinationService
     private array $stockBaseline = [];
 
     /**
-     * Opening stock by location, when tracking is switched on.
+     * Opening stock by location: of a switch of tracking on, or a new combination's first stock when its product
+     * already tracks stock.
      *
      * @var array<int, string>
      * @since  2.3.0
@@ -312,7 +313,8 @@ final class CombinationService
     }
 
     /**
-     * Opening stock by location, when the save switches tracking on.
+     * Opening stock by location: the opening figures of a switch of tracking on, or a new combination's first stock
+     * when its product already tracks stock (applied after the save, as changed figures are).
      *
      * @param array<int, string> $figures location id => figure
      *
