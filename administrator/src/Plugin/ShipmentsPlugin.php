@@ -54,8 +54,9 @@
  *    $cart->delivery()  invoice()    AddressView
  *
  *  THE ADDRESS: read any field the merchant pointed you at with a
- *  `checkoutfield` param. The core holds no postcode role and hardcodes no
- *  column; a postcode is your concern.
+ *  `checkoutfield` param. The core hardcodes no column: a postcode setting
+ *  starts on the shop's postcode field (the postcode role, RoleRegistry), and
+ *  the merchant may point it at another.
  *
  *    $cart->delivery()->field($id)->value()          string|null
  *    $cart->delivery()->field($id)->int()            int|null
