@@ -94,4 +94,15 @@ class CartrulesController extends ApiController
 
         return parent::displayList();
     }
+
+    /**
+     * A cart rule is deleted from the trash only, as the administrator's list of cart rules deletes it: a DELETE of a
+     * rule in another state answers 409; a PATCH of state -2 moves it to the trash first.
+     *
+     * @since  2.3.0
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
 }

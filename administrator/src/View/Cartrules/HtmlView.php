@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Cartrules;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
@@ -92,6 +93,7 @@ class HtmlView extends BaseHtmlView
         $user = $this->getCurrentUser();
         $canEdit = AlfaHelper::can(section: 'cartrules', action: 'edit', user: $user);
         $canChange = AlfaHelper::can(section: 'cartrules', action: 'edit.state', user: $user);
+        $isTrashed = (string) $this->state->get('filter.state') === (string) AlfaComponent::CONDITION_TRASHED;
         $toolbar = $this->getDocument()->getToolbar();
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_CARTRULES'), 'generic');
@@ -114,6 +116,11 @@ class HtmlView extends BaseHtmlView
             if ($canChange) {
                 $childBar->publish('cartrules.publish')->listCheck(true);
                 $childBar->unpublish('cartrules.unpublish')->listCheck(true);
+
+                // A rule in the trash applies to no cart; orders placed with it keep the shares it gave them.
+                if (!$isTrashed) {
+                    $childBar->trash('cartrules.trash')->listCheck(true);
+                }
             }
 
             if ($canEdit) {
@@ -121,9 +128,10 @@ class HtmlView extends BaseHtmlView
             }
         }
 
-        if (AlfaHelper::can(section: 'cartrules', action: 'delete', user: $user)) {
+        // A rule is deleted from the trash only: emptying it is a delete and needs the delete permission alone.
+        if ($isTrashed && AlfaHelper::can(section: 'cartrules', action: 'delete', user: $user)) {
             $toolbar->delete('cartrules.delete')
-                ->text('JTOOLBAR_DELETE')
+                ->text('JTOOLBAR_EMPTY_TRASH')
                 ->message('JGLOBAL_CONFIRM_DELETE')
                 ->listCheck(true);
         }

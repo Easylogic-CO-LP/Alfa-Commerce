@@ -5558,7 +5558,9 @@ class OrderModel extends AlfaAdminModel
      * order whose status holds a reservation is therefore asked what a move into
      * that status is asked ({@see InventoryBridge::untrashRefusal()}): one with a
      * line that would wait for its stock without a reservation stays in the trash
-     * and is named in a message, and the others are restored.
+     * and is named in a message, and the others are restored. When every order
+     * asked stays in the trash, the refusal is also the model's error, so a
+     * caller that answers with it (the REST state change) says why.
      *
      * Only orders the user may change the state of are asked; the others, and
      * every order of a move into the trash, are left to the parent.
@@ -5577,6 +5579,7 @@ class OrderModel extends AlfaAdminModel
 
         if ((int) $value !== -2) {
             $table = $this->getTable();
+            $refused = null;
 
             foreach ($pks as $index => $pk) {
                 $table->reset();
@@ -5592,6 +5595,7 @@ class OrderModel extends AlfaAdminModel
                 }
 
                 unset($pks[$index]);
+                $refused = Text::sprintf('COM_ALFA_ORDERS_UNTRASH_REFUSED', (int) $pk, $refusal);
 
                 // The refusal is raw and the message queue renders HTML.
                 Factory::getApplication()->enqueueMessage(
@@ -5602,6 +5606,13 @@ class OrderModel extends AlfaAdminModel
                     ),
                     type: 'warning',
                 );
+            }
+
+            // No order is left to restore: the parent would only say that no row was selected.
+            if ($pks === [] && $refused !== null) {
+                $this->setError(error: $refused);
+
+                return false;
             }
         }
 
