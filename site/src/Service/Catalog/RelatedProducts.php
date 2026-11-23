@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Site\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\RelatedResolveEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLink;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SelectionRules;
@@ -32,8 +34,9 @@ use Joomla\CMS\Factory;
  * shop hides the product's out-of-stock units the unit it names must be in stock. A link that does not stand, like a
  * product the visitor may not see, is skipped and the next one takes its place. A unit with no price for the visitor
  * shows with no price and no add to cart, as the listing shows a product without one. The links are read once, at
- * most {@see self::READ_MAX}, and their products in pages of twice the count (at least 8), so a product with many links
- * never loads them all to show a few; a count of 0 reads nothing.
+ * most {@see self::READ_MAX}, and handed to onAlfaRelatedResolve ({@see RelatedResolveEvent}), whose listeners may
+ * add, remove and reorder them; their products are read in pages of twice the count (at least 8), so a product with
+ * many links never loads them all to show a few; a count of 0 reads nothing.
  *
  * @since  2.2.2
  */
@@ -72,7 +75,14 @@ final class RelatedProducts
         }
 
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $links = self::onePerProduct(links: RelatedItems::links(db: $db, itemId: $itemId, limit: self::READ_MAX));
+
+        // Extensions may add, remove and reorder links before any is judged; what they add is judged as stored links
+        // are, and a product is shown once.
+        $plugins = AlfaPluginHelper::get();
+        $plugins->importGroup('alfa');
+        $event = RelatedResolveEvent::of(itemId: $itemId, links: RelatedItems::links(db: $db, itemId: $itemId, limit: self::READ_MAX), count: $count);
+        $plugins->dispatchIsolated($event);
+        $links = self::onePerProduct(links: \array_slice($event->links(), 0, self::READ_MAX));
 
         if ($links === []) {
             return [];

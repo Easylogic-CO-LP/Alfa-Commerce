@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\RelatedLinksChangedEvent;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
@@ -2138,7 +2139,7 @@ class ItemFieldsAdminHelper
             $db->execute();
 
             // Related links that preselect a removed option go with it.
-            RelatedItems::forgetVanished(db: $db, linkedItemIds: [$itemId]);
+            RelatedItems::forgetVanished(db: $db, linkedItemIds: [$itemId], cause: RelatedLinksChangedEvent::CAUSE_VALUE);
         }
 
         // Drag-to-reorder: the rows post in document (dragged) order, so the
@@ -3092,7 +3093,7 @@ class ItemFieldsAdminHelper
                 }
 
                 // Related links to a removed combination, or to values no combination left carries, go with it.
-                RelatedItems::forgetVanished(db: $db, linkedItemIds: [$itemId]);
+                RelatedItems::forgetVanished(db: $db, linkedItemIds: [$itemId], cause: RelatedLinksChangedEvent::CAUSE_COMBINATION);
             }
 
             // Last combination removed -> the per-item dimension order has no more

@@ -11,9 +11,11 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Catalog\RelatedLinksChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel;
+use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Joomla\CMS\Factory;
@@ -276,7 +278,8 @@ final class RelatedItems
      * Run inside the save's transaction, after {@see self::refusals()}. Values naming every dimension of the product are
      * stored as the combination they name, and a combination link keeps its option values only. Each row is written only
      * while its product (and its combination, for a combination link) is current, so one deleted since the check leaves
-     * no link.
+     * no link. When the links come out other than they were, onAlfaRelatedLinksChanged (cause save) is raised once the
+     * save commits.
      *
      * @param DatabaseInterface $db The database.
      * @param int $itemId The product.
@@ -286,6 +289,9 @@ final class RelatedItems
      */
     public static function replace(DatabaseInterface $db, int $itemId, array $links): void
     {
+        $before = array_map(static fn (RelatedLink $link): array => $link->toRow(), self::links(db: $db, itemId: $itemId));
+        $after = [];
+
         foreach ([self::VALUES_TABLE, self::TABLE] as $table) {
             $db->setQuery(
                 $db->getQuery(true)
@@ -334,6 +340,7 @@ final class RelatedItems
 
             $position++;
             $written[$link->itemId] = true;
+            $after[] = $link->toRow();
 
             if ($link->values === []) {
                 continue;
@@ -352,12 +359,17 @@ final class RelatedItems
                     ->values($tuples),
             )->execute();
         }
+
+        if ($after !== $before) {
+            self::announce(db: $db, itemIds: [$itemId], cause: RelatedLinksChangedEvent::CAUSE_SAVE);
+        }
     }
 
     /**
      * Remove every link of these products, on both sides and of every kind, with their values: the links they hold and
      * the links other products hold to them. The item delete's own statement
-     * ({@see \Alfa\Component\Alfa\Administrator\Model\ItemModel::delete()}).
+     * ({@see \Alfa\Component\Alfa\Administrator\Model\ItemModel::delete()}); the products that kept links to them
+     * hear onAlfaRelatedLinksChanged (cause delete) once the delete commits.
      *
      * @param DatabaseInterface $db The database.
      * @param list<int> $itemIds The deleted products.
@@ -373,6 +385,11 @@ final class RelatedItems
         }
 
         $list = implode(',', $itemIds);
+        $owners = array_map('intval', $db->setQuery(
+            'SELECT DISTINCT ' . $db->quoteName('item_id') . ' FROM ' . $db->quoteName(self::TABLE)
+            . ' WHERE ' . $db->quoteName('linked_item_id') . ' IN (' . $list . ') AND ' . $db->quoteName('item_id') . ' NOT IN (' . $list . ')'
+            . ' AND ' . $db->quoteName('link_type') . ' = ' . $db->quote(self::TYPE_RELATED),
+        )->loadColumn() ?: []);
 
         foreach ([self::VALUES_TABLE, self::TABLE] as $table) {
             $db->setQuery(
@@ -381,6 +398,8 @@ final class RelatedItems
                     ->where('(' . $db->quoteName('item_id') . ' IN (' . $list . ') OR ' . $db->quoteName('linked_item_id') . ' IN (' . $list . '))'),
             )->execute();
         }
+
+        self::announce(db: $db, itemIds: $owners, cause: RelatedLinksChangedEvent::CAUSE_DELETE);
     }
 
     /**
@@ -388,16 +407,17 @@ final class RelatedItems
      * (deleted, or archived for its order history), a value none of their current combinations carries, an option
      * they no longer offer, dimension values no current combination carries together. Run inside the transaction
      * that removed it, after the removal: a rollback keeps the links. Once that transaction commits, staff are told
-     * how many links went and from which products' pages.
+     * how many links went and from which products' pages, and onAlfaRelatedLinksChanged is raised for those products.
      *
      * @param DatabaseInterface $db The database.
      * @param list<int> $linkedItemIds The products whose combinations, options or values were removed.
+     * @param string $cause What was removed: RelatedLinksChangedEvent::CAUSE_COMBINATION or CAUSE_VALUE.
      *
      * @return list<int> The products whose links were removed.
      *
      * @since  2.3.0
      */
-    public static function forgetVanished(DatabaseInterface $db, array $linkedItemIds): array
+    public static function forgetVanished(DatabaseInterface $db, array $linkedItemIds, string $cause): array
     {
         $linkedItemIds = array_values(array_unique(array_filter(array_map('intval', $linkedItemIds), static fn (int $id): bool => $id > 0)));
 
@@ -466,6 +486,7 @@ final class RelatedItems
 
         $ownerIds = array_values(array_unique(array_map(static fn (array $pair): int => $pair[0], $gone)));
         $count = \count($gone);
+        self::announce(db: $db, itemIds: $ownerIds, cause: $cause);
 
         if ($db instanceof DatabaseDriver) {
             PostCommit::defer(
@@ -508,7 +529,7 @@ final class RelatedItems
                 ->whereIn($db->quoteName('value_id'), $valueIds),
         )->loadColumn() ?: []);
 
-        return self::forgetVanished(db: $db, linkedItemIds: $linked);
+        return self::forgetVanished(db: $db, linkedItemIds: $linked, cause: RelatedLinksChangedEvent::CAUSE_VALUE);
     }
 
     /**
@@ -635,6 +656,34 @@ final class RelatedItems
     public static function clearChoices(): void
     {
         self::$choices = [];
+    }
+
+    /**
+     * Raise onAlfaRelatedLinksChanged for these products once the transaction that changed their links commits (at
+     * once when none is open): the alfa and alfa-search groups, dispatched isolated.
+     *
+     * @param DatabaseInterface $db The database the change was written on.
+     * @param list<int> $itemIds The products whose links changed.
+     * @param string $cause Why ({@see RelatedLinksChangedEvent::CAUSE_SAVE} and the others).
+     *
+     * @since  2.3.0
+     */
+    private static function announce(DatabaseInterface $db, array $itemIds, string $cause): void
+    {
+        if ($itemIds === [] || !$db instanceof DatabaseDriver) {
+            return;
+        }
+
+        PostCommit::defer(
+            db: $db,
+            label: 'onAlfaRelatedLinksChanged (' . $cause . ')',
+            work: static function () use ($itemIds, $cause): void {
+                $plugins = AlfaPluginHelper::get();
+                $plugins->importGroup('alfa-search');
+                $plugins->importGroup('alfa');
+                $plugins->dispatchIsolated(RelatedLinksChangedEvent::of(itemIds: $itemIds, cause: $cause));
+            },
+        );
     }
 
     /**
