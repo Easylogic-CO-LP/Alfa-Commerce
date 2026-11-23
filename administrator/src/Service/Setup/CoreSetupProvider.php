@@ -13,13 +13,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
-use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
-use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
-use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -40,6 +37,11 @@ use Joomla\Database\ParameterType;
  * Probes are existence reads (LIMIT 1 on indexed columns) or params reads: cheap
  * enough that the cache in {@see SetupHelper} exists for politeness, not survival.
  *
+ * The checklist holds the steps an administrator completes. What is only to be known (Joomla's page cache, a
+ * library missing or disabled, an Alfa extension not built for this version, online sales switched off, products
+ * priced only from a larger quantity than they sell from) is a notification ({@see InformationNotices},
+ * {@see ExtensionCompatibility}), never a row.
+ *
  * @since  2.0.0
  */
 final class CoreSetupProvider
@@ -53,24 +55,6 @@ final class CoreSetupProvider
      */
     public const OWNER_GROUP = 'core';
     public const OWNER_NAME = 'com_alfa';
-
-    /**
-     * The state of the page cache check while Joomla's System - Page Cache is enabled and System - Alfa Commerce Sync
-     * does not run for visitors who are not logged in (disabled, not installed, or an Access they do not hold). Alfa
-     * Commerce's own pages and modules that show a visitor's own data keep themselves out of the page cache whatever
-     * the plugin's state (the cart view in every layout, a product page opened to change a cart line, the cart module
-     * while it shows products, the registration page that shows a refusal, the listing's own search handle, the items
-     * module's recently viewed list, and any response priced for a currency or place of the visitor's own;
-     * PageCache::excludeResponse()), so none of them shows one visitor's data to another; pages of other extensions are
-     * theirs to keep out. What is lost is the plugin's serving side: a shopper with products in the cart, or priced for
-     * a currency or place of their own, can be served a page stored for another visitor, with an empty cart and the
-     * shop's own prices. A warning, then, proposed in 2.2.1 once these pages kept themselves out (fail was chosen
-     * before); the owner decides. SetupCheck::STATE_FAIL or SetupCheck::STATE_WARN; this one value decides which.
-     *
-     * @var string
-     * @since  2.2.1
-     */
-    public const PAGE_CACHE_WITHOUT_SYNC = SetupCheck::STATE_WARN;
 
     /**
      * The checks built so far by {@see self::checks()}.
@@ -268,66 +252,6 @@ final class CoreSetupProvider
             ->priority(400)
             ->probe(static fn (): bool => self::exists(table: '#__alfa_document_series', where: ['state' => 1]));
 
-        // Sales documents become PDFs (the PDF button, the REST PDF route, a status e-mail's attachments) through the
-        // dompdf library, which ships with the package with the libraries it needs; the row fails when one of them was
-        // removed. RECOMMENDED, not required: the documents are issued and the print view shows them without it (2.2.1).
-        $this->check('documents.pdf_library', 'COM_ALFA_SETUP_CHECK_PDF_LIBRARY_LABEL')
-            ->tier(SetupCheck::TIER_RECOMMENDED)
-            ->reason('COM_ALFA_SETUP_CHECK_PDF_LIBRARY_REASON')
-            ->cta('index.php?option=com_installer&view=install')
-            ->priority(390)
-            ->probe(static fn (): bool => PdfRenderer::libraryInstalled());
-
-        // The installed Alfa extensions not known to work with this version: a range in their manifest that excludes
-        // this line, or no range at all (2.2.1). Read from their manifests whenever the checklist computes,
-        // which System - Alfa Commerce Sync asks for whenever an Alfa extension is installed, updated, uninstalled,
-        // enabled or disabled; the row clears once each one named declares this line. RECOMMENDED: the shop runs, with
-        // the named extensions' parts missing or failing.
-        // Read once per computation of the checklist: the state and the reason follow the same reading.
-        $named = null;
-        $compatibility = static function () use (&$named): array {
-            return $named ??= ExtensionCompatibility::named();
-        };
-
-        $this->check('extensions.compatible', 'COM_ALFA_SETUP_CHECK_EXTENSIONS_LABEL')
-            ->tier(SetupCheck::TIER_RECOMMENDED)
-            ->reason('COM_ALFA_SETUP_CHECK_EXTENSIONS_REASON')
-            ->cta('index.php?option=com_alfa&view=extensions')
-            ->priority(385)
-            ->probe(static fn (): string => $compatibility() === [] ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN)
-            ->reasonArguments(
-                arguments: static fn (): array => [ExtensionCompatibility::describe(named: $compatibility()), ExtensionCompatibility::coreLine()],
-                unnamed:   'COM_ALFA_SETUP_CHECK_EXTENSIONS_REASON_UNNAMED',
-            );
-
-        // Products that sell from a quantity no price row covers (2.2.2): the card and the product page open at that
-        // quantity and show no price there, and the cart refuses it. An information row: the shop runs; the named
-        // products are priced only from a larger quantity. Read once per computation: the state and the reason follow.
-        $underTier = null;
-        $minimumUnderTier = static function () use (&$underTier): array {
-            return $underTier ??= self::minimumUnderTier();
-        };
-
-        $this->check('catalog.minimum_under_tier', 'COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER_LABEL')
-            ->tier(SetupCheck::TIER_OPTIONAL)
-            ->reason('COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER')
-            ->cta('index.php?option=com_alfa&view=items')
-            ->priority(380)
-            ->probe(static fn (): string => $minimumUnderTier()['count'] === 0 ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN)
-            ->reasonArguments(
-                arguments: static fn (): array => $minimumUnderTier()['count'] === 0 ? [] : [(string) $minimumUnderTier()['count'], implode(', ', $minimumUnderTier()['names'])],
-                unnamed:   'COM_ALFA_SETUP_CHECK_MINIMUM_UNDER_TIER_UNNAMED',
-            );
-
-        // Online sales switched off (2.2.2): the shop shows its catalogue only. An information row, so the mode is never
-        // forgotten: the shop runs, and nothing can be bought online.
-        $this->check('cart.catalogue_only', 'COM_ALFA_SETUP_CHECK_CATALOGUE_ONLY_LABEL')
-            ->tier(SetupCheck::TIER_OPTIONAL)
-            ->reason('COM_ALFA_SETUP_CHECK_CATALOGUE_ONLY')
-            ->cta('index.php?option=com_config&view=component&component=com_alfa')
-            ->priority(385)
-            ->probe(static fn (): string => ShopMode::sellsOnline() ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN);
-
         $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)
             ->reason('COM_ALFA_SETUP_CHECK_MAIL_REASON')
@@ -353,28 +277,6 @@ final class CoreSetupProvider
 
                 // A missing folder is fine when its parent can create it on first upload.
                 return is_dir($path) ? is_writable($path) : is_writable(\dirname($path));
-            });
-
-        // Joomla's System - Page Cache stores the page a visitor who is not logged in opens, by its address, and shows
-        // it to the next visitors. Alfa Commerce's own pages and modules that show a visitor's own data keep themselves
-        // out of it; System - Alfa Commerce Sync, when it runs for such a visitor, also keeps a shopper with a cart or
-        // prices of their own from being served a page stored for another visitor. Read once here: the state and the reason follow the same
-        // reading.
-        [$pageCache, $sync] = self::pageCacheReading();
-
-        $this->check('joomla.pagecache', 'COM_ALFA_SETUP_CHECK_PAGECACHE_LABEL')
-            ->tier(SetupCheck::TIER_RECOMMENDED)
-            ->reason(match (true) {
-                $pageCache && $sync === SyncPluginState::NOT_FOR_GUESTS => 'COM_ALFA_SETUP_CHECK_PAGECACHE_ACCESS_REASON',
-                $pageCache && $sync !== SyncPluginState::EFFECTIVE => 'COM_ALFA_SETUP_CHECK_PAGECACHE_UNGUARDED_REASON',
-                default => 'COM_ALFA_SETUP_CHECK_PAGECACHE_REASON',
-            })
-            ->cta('index.php?option=com_plugins&view=plugins&filter[folder]=system')
-            ->priority(250)
-            ->probe(static fn (): string => match (true) {
-                !$pageCache => SetupCheck::STATE_PASS,
-                $sync === SyncPluginState::EFFECTIVE => SetupCheck::STATE_WARN,
-                default => self::PAGE_CACHE_WITHOUT_SYNC,
             });
 
         $this->check('sef.enabled', 'COM_ALFA_SETUP_CHECK_SEF_LABEL')
@@ -533,48 +435,6 @@ final class CoreSetupProvider
     }
 
     /**
-     * The published products whose minimum quantity no price row covers (2.2.2): the product has price rows for every
-     * shopper of a currency (no group, customer or place of their own; an empty scope read as none, as 0), and none of
-     * them covers the minimum, whether the rows begin above it or all end below it. A row of any currency counts, so a
-     * shop with one row per currency is named only where none covers the minimum. A product priced only for a group, a
-     * customer or a place is not named: it is priced for them on purpose. Product rows only (a variant's own rows and
-     * minimum are not read); a row's publish window is not read.
-     *
-     * @return array{count: int, names: list<string>} How many, and the names of the first ten in the default language.
-     *
-     * @since  2.2.2
-     */
-    private static function minimumUnderTier(): array
-    {
-        $db = self::db();
-        $minimum = 'GREATEST(' . $db->quoteName('i.quantity_min') . ', 1)';
-        $general = $db->quoteName('p.item_id') . ' = ' . $db->quoteName('i.id') . ' AND ' . $db->quoteName('p.combination_id') . ' IS NULL'
-            . ' AND ' . $db->quoteName('p.state') . ' = 1'
-            . ' AND COALESCE(' . $db->quoteName('p.usergroup_id') . ', 0) = 0 AND COALESCE(' . $db->quoteName('p.user_id') . ', 0) = 0'
-            . ' AND COALESCE(' . $db->quoteName('p.country_id') . ', 0) = 0';
-        $where = $db->quoteName('i.state') . ' = 1'
-            . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices', 'p') . ' WHERE ' . $general . ')'
-            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_prices', 'p') . ' WHERE ' . $general
-            . ' AND COALESCE(' . $db->quoteName('p.quantity_start') . ', 0) <= ' . $minimum
-            . ' AND (' . $db->quoteName('p.quantity_end') . ' IS NULL OR ' . $db->quoteName('p.quantity_end') . ' >= ' . $minimum . '))';
-        $count = (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_items', 'i') . ' WHERE ' . $where)->loadResult();
-
-        if ($count === 0) {
-            return ['count' => 0, 'names' => []];
-        }
-
-        $names = $db->setQuery(
-            'SELECT COALESCE(NULLIF(' . $db->quoteName('n.name') . ", ''), CONCAT('#', " . $db->quoteName('i.id') . ')) FROM ' . $db->quoteName('#__alfa_items', 'i')
-            . ' LEFT JOIN ' . $db->quoteName('#__alfa_items_' . MultilingualHelper::getDefaultLanguageTag(), 'n') . ' ON ' . $db->quoteName('n.id_item') . ' = ' . $db->quoteName('i.id')
-            . ' WHERE ' . $where . ' ORDER BY ' . $db->quoteName('i.id'),
-            0,
-            10,
-        )->loadColumn() ?: [];
-
-        return ['count' => $count, 'names' => array_map('strval', $names)];
-    }
-
-    /**
      * The fields as the setup row names them: each field's name with the details it is required in, for example
      * "phone (billing details, shipping details)".
      *
@@ -634,39 +494,6 @@ final class CoreSetupProvider
         $db->setQuery($query, 0, 1);
 
         return (string) $db->loadResult() !== '';
-    }
-
-    /**
-     * What the page cache check reads: whether Joomla's System - Page Cache is enabled (its extension row), and
-     * System - Alfa Commerce Sync's state for visitors who are not logged in ({@see SyncPluginState}). The checklist
-     * keeps it beside its cached verdict ({@see SetupHelper::status()}): Alfa Commerce Sync hears no change made while
-     * it is off, nor its own enabling, so a verdict computed under another reading is computed again. Each call reads
-     * the page cache plugin's row and Alfa Commerce Sync's ({@see SyncPluginState::read()}): two indexed reads of
-     * #__extensions, and the guest's view levels.
-     *
-     * @return array{0: bool, 1: string} [page cache enabled, a SyncPluginState constant]
-     *
-     * @since  2.2.1
-     */
-    public static function pageCacheReading(): array
-    {
-        $db = self::db();
-        $folder = 'system';
-        $element = 'cache';
-        $enabled = (int) $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('enabled'))
-                ->from($db->quoteName('#__extensions'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
-                ->where($db->quoteName('folder') . ' = :folder')
-                ->where($db->quoteName('element') . ' = :element')
-                ->bind(':folder', $folder, ParameterType::STRING)
-                ->bind(':element', $element, ParameterType::STRING),
-            0,
-            1,
-        )->loadResult();
-
-        return [$enabled === 1, SyncPluginState::read()];
     }
 
     /**

@@ -52,6 +52,17 @@ final class CoreTables
     public const KEEP = ['#__alfa_maintenance'];
 
     /**
+     * Core tables an update makes that no install SQL creates: the previous price index the update keeps, renamed,
+     * while the new one is built. Clear everything drops them with the rest, so a cleared shop never reads
+     * them again.
+     *
+     * @var string[]
+     *
+     * @since  2.2.2
+     */
+    public const MADE_BY_UPDATES = ['#__alfa_items_price_index_prev'];
+
+    /**
      * The shape of a language suffix: a Joomla language tag as core names its tables by it
      * (MultilingualHelper::normaliseTag(): lower case, underscore).
      *
@@ -104,7 +115,7 @@ final class CoreTables
         $existing = $this->existing();
         $found = [];
 
-        foreach ([...$this->sqlTables(), ...$this->logTables()] as $table) {
+        foreach ([...$this->sqlTables(), ...$this->logTables(), ...array_map(fn (string $table): string => $this->db->replacePrefix($table), self::MADE_BY_UPDATES)] as $table) {
             if (isset($existing[strtolower($table)])) {
                 $found[$existing[strtolower($table)]] = null;
             }

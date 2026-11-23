@@ -16,6 +16,8 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -94,6 +96,10 @@ final class OrderCreator
      *                                the row AND the activity log: 'storefront',
      *                                'admin', 'renewal', 'api'. Presence is
      *                                enforced; the value is not validated.
+     *   external_source       string The other system's name, with
+     *   external_reference    string its id of the order: both or neither,
+     *                                checked by OrderExternalReference; the
+     *                                pair is unique in the database.
      *   deduct_stock          bool   Default true; still gated by the status'
      *                                stock_operation (StockPolicy).
      *   allow_empty           bool   Default false. Explicitly permits a
@@ -275,6 +281,8 @@ final class OrderCreator
 
         try {
             $orderId = self::insertOrder(db: $db, draft: $draft, statusId: $statusId);
+            // The consumers of new orders are owed this one, written with it; they read it whole when it is sent.
+            OutboundFeed::record(db: TransactionState::driver($db), topic: OutboundTopics::ORDER_CREATED, subjectId: $orderId);
             // The lines' money is the order's, at the scale the order froze.
             $currency = OrderCurrency::of(orderId: $orderId);
             $lineIds = [];
@@ -515,6 +523,9 @@ final class OrderCreator
         $order->customer_note = (string) ($draft['customer_note'] ?? '');
         $order->note = (string) ($draft['note'] ?? '');
         $order->source = (string) $draft['source'];
+        // The other system's id of the order, both or neither (OrderExternalReference); unique in the database.
+        $order->external_source = isset($draft['external_source']) ? (string) $draft['external_source'] : null;
+        $order->external_reference = isset($draft['external_reference']) ? (string) $draft['external_reference'] : null;
         $order->state = 1;
         $order->checked_out = 0;
         $order->checked_out_time = $db->getNullDate();

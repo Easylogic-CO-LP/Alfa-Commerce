@@ -244,25 +244,26 @@ final class TaskStaff
             max(1, $limit),
         )->loadAssocList() ?: [];
         $prefix = Job\PriceSetPrepareJob::NAME . ':';
-        $digests = [];
+        $contextIds = [];
 
         foreach ($rows as $row) {
             if (str_starts_with((string) $row['scope_key'], $prefix)) {
-                $digests[] = substr((string) $row['scope_key'], \strlen($prefix));
+                $contextIds[] = (int) substr((string) $row['scope_key'], \strlen($prefix));
             }
         }
 
-        $lists = $digests === [] ? [] : ($db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName(['digest', 'group_list']))
-                ->from($db->quoteName('#__alfa_price_group_sets'))
-                ->whereIn($db->quoteName('digest'), array_values(array_unique($digests)), ParameterType::STRING),
-        )->loadAssocList('digest', 'group_list') ?: []);
+        // A preparation job's scope names its pricing context: the groups shown are the context's set's.
+        $contextIds = array_values(array_unique(array_filter($contextIds)));
+        $lists = $contextIds === [] ? [] : ($db->setQuery(
+            'SELECT c.id, s.group_list FROM ' . $db->quoteName('#__alfa_price_contexts', 'c')
+            . ' INNER JOIN ' . $db->quoteName('#__alfa_price_group_sets', 's') . ' ON s.id = c.group_set_id'
+            . ' WHERE c.id IN (' . implode(',', $contextIds) . ')',
+        )->loadAssocList('id', 'group_list') ?: []);
 
         foreach ($rows as &$row) {
             $row['label'] = Runner::handler(name: (string) $row['handler'])?->policy()->label ?? '';
             $row['driven'] = (bool) $row['driven'];
-            $list = str_starts_with((string) $row['scope_key'], $prefix) ? (string) ($lists[substr((string) $row['scope_key'], \strlen($prefix))] ?? '') : '';
+            $list = str_starts_with((string) $row['scope_key'], $prefix) ? (string) ($lists[(int) substr((string) $row['scope_key'], \strlen($prefix))] ?? '') : '';
             $row['groups'] = $list === '' ? [] : array_map('intval', explode(',', $list));
             $row['report'] = $row['handler'] === Job\ThumbnailsRecreateJob::NAME ? ThumbnailRecreation::reportOf(checkpoint: $row['checkpoint']) : null;
             unset($row['checkpoint']);

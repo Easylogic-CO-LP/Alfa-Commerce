@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\AddToCartCommand;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
+use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityDecision;
+use Alfa\Component\Alfa\Administrator\Service\Cart\QuantityReason;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\ChargeableQuantity;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceAction;
@@ -37,10 +39,22 @@ defined('_JEXEC') or die;
  * refusal names the smallest quantity this cart may hold of it that is
  * charged.
  *
+ * When the shelf cuts or refuses a shopper's add or quantity change and the
+ * cart holds some of that stock, the shopper reads one notice naming the
+ * available quantity, said once the write is known ({@see StockLimit}), and
+ * the caller can read it from {@see self::stockLimit()}.
+ *
  * @since  2.0.0
  */
 final class CartLineWriter
 {
+    /**
+     * What the shelf said about the last add or quantity change made here.
+     *
+     * @since  2.2.2
+     */
+    private ?StockLimit $stockLimit = null;
+
     /** @since 2.0.0 */
     public function __construct(
         private readonly CartRepository $repository,
@@ -89,6 +103,8 @@ final class CartLineWriter
      */
     public function add(AddToCartCommand $command): int|false
     {
+        $this->stockLimit = null;
+
         try {
             $this->rows->mintKeyIfEmpty();
 
@@ -190,15 +206,18 @@ final class CartLineWriter
                 : null;
 
             if ($editedLine !== null && (int) $editedLine->id_item === $command->itemId) {
-                $quantity = $this->clamp->allowed(
-                    $this->cartId(),
-                    $item,
-                    $combinationId,
-                    (int) $command->quantity,
-                    $editLineId,
+                $decision = $this->clamp->decision(
+                    cartId: $this->cartId(),
+                    item: $item,
+                    combinationId: $combinationId,
+                    quantity: (int) $command->quantity,
+                    excludeLineId: $editLineId,
                 );
+                $quantity = $decision->quantity;
 
                 if ($quantity <= 0) {
+                    $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: false);
+
                     return false;
                 }
 
@@ -206,6 +225,12 @@ final class CartLineWriter
                 if (!$this->charged(item: $item, combinationId: $combinationId, configuration: $request, quantity: $quantity, price: $this->instructionOf(lineId: $editLineId), lineId: $editLineId)) {
                     return false;
                 }
+
+                // What the cart held of the new unit's stock is read only when the
+                // shelf cut the edit: it tells "filled up to" from "already held",
+                // also when the edit moves the line to another unit.
+                $cut = $decision->because(QuantityReason::ClampedToStock);
+                $before = $cut ? $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId) : 0;
 
                 try {
                     $this->repository->replaceLineConfiguration($editLineId, $combinationId, $quantity, $rows);
@@ -217,6 +242,10 @@ final class CartLineWriter
 
                 $this->rows->touch();
                 $this->hydrator->reloadLines();
+
+                // The figure after the write, read once: it says whether more went in and is the one the notice names.
+                $after = $cut ? $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId) : null;
+                $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: $after !== null && $after > $before, held: $after);
 
                 return $editLineId;
             }
@@ -241,26 +270,34 @@ final class CartLineWriter
                     // - and a request that would have fitted was cut, or
                     // refused for falling under the minimum once cut. Both now
                     // leave the line they are about out of the pool.
+                    //
+                    // The shopper hears one of the two: the first when it refuses,
+                    // otherwise the second, which judges the line that will exist.
+                    // A line already holding every available unit gets nothing
+                    // more, and that is a notice, not a failed add.
                     $existingQuantity = $this->repository->lineQuantity($this->cartId(), $existingId);
-                    $added = $this->clamp->allowed(
-                        $this->cartId(),
-                        $item,
-                        $combinationId,
-                        (int) $command->quantity,
-                        $existingId,
+                    $delta = $this->clamp->decision(
+                        cartId: $this->cartId(),
+                        item: $item,
+                        combinationId: $combinationId,
+                        quantity: (int) $command->quantity,
+                        excludeLineId: $existingId,
                     );
 
-                    if ($added <= 0) {
+                    if ($delta->refused()) {
+                        $this->tell(decision: $delta, item: $item, combinationId: $combinationId, added: false);
+
                         return false;
                     }
 
-                    $newTotal = $this->clamp->allowed(
-                        $this->cartId(),
-                        $item,
-                        $combinationId,
-                        $existingQuantity + $added,
-                        $existingId,
+                    $decision = $this->clamp->decision(
+                        cartId: $this->cartId(),
+                        item: $item,
+                        combinationId: $combinationId,
+                        quantity: $existingQuantity + $delta->quantity,
+                        excludeLineId: $existingId,
                     );
+                    $newTotal = $decision->quantity;
 
                     // The line that would exist is judged at its total, with
                     // the negotiated price it carries.
@@ -275,14 +312,25 @@ final class CartLineWriter
                     if ($newTotal <= $existingQuantity) {
                         $this->hydrator->reloadLines();
 
+                        // A line holding more than the stock now has is lowered to it: nothing went in, the cart changed.
+                        $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: false, lowered: $newTotal < $existingQuantity);
+
                         return false;
                     }
 
                     $lineId = $existingId;
                 } else {
-                    $quantity = $this->clamp->allowed($this->cartId(), $item, $combinationId, (int) $command->quantity);
+                    $decision = $this->clamp->decision(
+                        cartId: $this->cartId(),
+                        item: $item,
+                        combinationId: $combinationId,
+                        quantity: (int) $command->quantity,
+                    );
+                    $quantity = $decision->quantity;
 
                     if ($quantity <= 0) {
+                        $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: false);
+
                         return false;
                     }
 
@@ -306,6 +354,7 @@ final class CartLineWriter
 
             $this->rows->touch();
             $this->hydrator->reloadLines();
+            $this->tell(decision: $decision, item: $item, combinationId: $combinationId, added: true);
 
             return $lineId;
         } catch (Throwable $e) {
@@ -338,6 +387,9 @@ final class CartLineWriter
      * keeps off the catalogue, since the cart page shows that line as out of
      * stock.
      *
+     * A quantity the shelf cuts is said as an add says it: the cart already
+     * holds the available quantity, or now holds it ({@see StockLimit}).
+     *
      * @param int $lineId The line.
      * @param int $quantity The quantity wanted; 0 removes the line.
      *
@@ -347,6 +399,7 @@ final class CartLineWriter
      */
     public function setQuantity(int $lineId, int $quantity): bool
     {
+        $this->stockLimit = null;
         $cartId = $this->cartId();
 
         if ($cartId <= 0 || $lineId <= 0) {
@@ -359,6 +412,11 @@ final class CartLineWriter
             if (!$line) {
                 return false;
             }
+
+            $decision = null;
+            $item = null;
+            $comboId = null;
+            $before = 0;
 
             if ($quantity > 0) {
                 $item = $this->items->load((int) $line->id_item, requirePublished: true);
@@ -377,7 +435,17 @@ final class CartLineWriter
                     return false;
                 }
 
-                $quantity = $this->clamp->allowed($cartId, $item, $comboId, $quantity, $lineId);
+                $decision = $this->clamp->decision(
+                    cartId: $cartId,
+                    item: $item,
+                    combinationId: $comboId,
+                    quantity: $quantity,
+                    excludeLineId: $lineId,
+                );
+                $quantity = $decision->quantity;
+                $before = $decision->because(QuantityReason::ClampedToStock)
+                    ? $this->repository->lineQuantity($cartId, $lineId)
+                    : 0;
 
                 // A quantity that would leave a priced line charging nothing is
                 // refused, and the line stays as it was.
@@ -394,6 +462,10 @@ final class CartLineWriter
 
             $this->rows->touch();
             $this->hydrator->reload();
+
+            if ($decision !== null && $item !== null) {
+                $this->tell(decision: $decision, item: $item, combinationId: $comboId, added: $quantity > $before);
+            }
         } catch (Throwable $e) {
             $this->messaging->failed('setLineQuantity', $cartId, $e, 'COM_ALFA_CART_ITEM_UPDATE_FAILED');
 
@@ -401,6 +473,19 @@ final class CartLineWriter
         }
 
         return true;
+    }
+
+    /**
+     * What the shelf said about the last add or quantity change made through
+     * this writer: the cart already held, or now holds, the available quantity.
+     *
+     * @return StockLimit|null The figure and whether more went in; null when the shelf said nothing.
+     *
+     * @since  2.2.2
+     */
+    public function stockLimit(): ?StockLimit
+    {
+        return $this->stockLimit;
     }
 
     /**
@@ -615,6 +700,46 @@ final class CartLineWriter
         }
 
         $this->messaging->error(key: $key);
+    }
+
+    /**
+     * Say what a quantity decision meant to the shopper, once its write is known.
+     *
+     * When the shelf cut or refused the request and the cart holds some of that
+     * stock, the shopper reads one notice naming the available quantity: the
+     * cart already holds it, or now holds it ({@see CartMessaging::stock()}).
+     * Never the out-of-stock sentence beside it, and never a cut announced for
+     * a write that did not happen. Everything else the decision means is said
+     * as the policy's adapter says it ({@see CartMessaging::announce()}): the
+     * merchant's rules, and the shelf's refusal when the cart holds none of
+     * that stock.
+     *
+     * @param QuantityDecision $decision The decision the write followed.
+     * @param object $item The product.
+     * @param int|null $combinationId The unit.
+     * @param bool $added Whether the cart holds more of it than before the request.
+     * @param bool $lowered Whether a line was lowered to what the stock holds.
+     * @param int|null $held What the cart holds of that stock, when the caller has read it after the write; null
+     *                       reads it here.
+     *
+     * @since  2.2.2
+     */
+    private function tell(QuantityDecision $decision, object $item, ?int $combinationId, bool $added, bool $lowered = false, ?int $held = null): void
+    {
+        if ($decision->because(QuantityReason::StockExhausted) || $decision->because(QuantityReason::ClampedToStock)) {
+            $held ??= $this->clamp->held(cartId: $this->cartId(), item: $item, combinationId: $combinationId);
+
+            if ($held > 0) {
+                $this->stockLimit = $added
+                    ? StockLimit::reached(quantity: $held)
+                    : StockLimit::held(quantity: $held, lowered: $lowered);
+                $this->messaging->stock(limit: $this->stockLimit);
+
+                return;
+            }
+        }
+
+        $this->messaging->announce(decision: $decision);
     }
 
     /**

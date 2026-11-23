@@ -121,7 +121,7 @@ final class CartService
         $lineId = (int) $cart->lines->add($command);
 
         if ($lineId <= 0) {
-            return new CartAddResult(false, 0, null, 0, 0);
+            return $this->notAdded(cart: $cart);
         }
 
         // A SECOND READING, DELIBERATELY. The cart that performed the write
@@ -139,7 +139,33 @@ final class CartService
             itemCount: $state->itemCount(),
             quantity: $state->quantity(),
             grandTotal: $again->computation->totals()->grandTotal(),
+            stockLimit: $cart->lines->stockLimit(),
         );
+    }
+
+    /**
+     * The answer to an add that added nothing.
+     *
+     * When the cart already holds the available quantity the answer
+     * says so with its figure and, like an add that landed, what the cart
+     * holds: its lines and units as the writer left them. Any other refusal
+     * names no line and no totals.
+     *
+     * @param OpenedCart $cart The cart the add was made on.
+     *
+     * @since  2.2.2
+     */
+    private function notAdded(OpenedCart $cart): CartAddResult
+    {
+        $limit = $cart->lines->stockLimit();
+
+        if ($limit === null) {
+            return new CartAddResult(false, 0, null, 0, 0);
+        }
+
+        $state = $cart->hydrator->current();
+
+        return new CartAddResult(false, 0, null, $state->itemCount(), $state->quantity(), stockLimit: $limit);
     }
 
     /**

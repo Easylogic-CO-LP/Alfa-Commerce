@@ -391,6 +391,52 @@ class PriceDataLoader
     }
 
     /**
+     * The price rows of many combinations in one statement (the price index prices every published combination
+     * of a chunk from one load), under the same terms as {@see self::loadCombinationPriceRowsBatch()}, grouped by
+     * combination.
+     *
+     * @param int[] $itemIds The products.
+     * @param int[] $combinationIds The combinations, of those products.
+     * @param PriceContext $context Whose terms the rows are read under.
+     *
+     * @return array<int, object[]> The rows by combination id.
+     *
+     * @since  2.2.2
+     */
+    public function loadCombinationPriceRowsFor(array $itemIds, array $combinationIds, PriceContext $context): array
+    {
+        $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds))));
+        $combinationIds = array_values(array_unique(array_filter(array_map('intval', $combinationIds))));
+
+        if ($itemIds === [] || $combinationIds === []) {
+            return [];
+        }
+
+        $db = $this->db;
+        $query = $db->getQuery(true)
+            ->select('*')
+            ->from($db->qn('#__alfa_items_prices'))
+            ->whereIn($db->qn('item_id'), $itemIds)
+            ->whereIn($db->qn('combination_id'), $combinationIds)
+            ->where('state = 1')
+            ->where($this->dateHelper->getActiveCondition('publish_up', 'publish_down', $context->getReferenceDate()));
+
+        $this->applyPriceContextFilters($query, $context);
+
+        $query->order([
+            'currency_id DESC',
+            'usergroup_id DESC',
+            'user_id DESC',
+            'country_id DESC',
+            'quantity_start ASC',
+        ]);
+
+        $db->setQuery($query);
+
+        return $this->groupByProductId($db->loadObjectList() ?: [], 'combination_id');
+    }
+
+    /**
      * Fetch the price deltas of the selected option values (free options, those
      * with no operation, are skipped). Each delta carries operation, amount and
      * apply_on (net 'start' / gross 'final'; NULL = follow the global default).

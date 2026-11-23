@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\FormfieldModel as AdminFormfieldModel;
+use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 
 /**
  * API Formfield model: the admin model plus resolved translations.
@@ -52,11 +53,20 @@ class FormfieldModel extends AdminFormfieldModel
             // Full per-language map ({"en_gb": {...}, "el_gr": {...}}) so API
             // clients can read every translation and PATCH back the same
             // per-language keys the admin form posts (name_el_gr, ...).
-            $item->translations = MultilingualHelper::getMultilingualData(
-                currentId:         (int) $item->id,
-                primaryColumnName: 'id_formfield',
-                tableName:         '#__alfa_form_fields',
-            );
+            // Every content language's texts, only when the read asks for them (include=translations).
+            if (ApiInclude::asks(ApiInclude::TRANSLATIONS)) {
+                $item->translations = MultilingualHelper::getMultilingualData(
+                    currentId:         (int) $item->id,
+                    primaryColumnName: 'id_formfield',
+                    tableName:         '#__alfa_form_fields',
+                );
+            }
+
+            // The field type's settings, as the form builds the field from them: a choice's options (each a
+            // value and its text), min_selections and max_selections, a phone's default_region. A text stored per
+            // language reads in the request's language, as the storefront form reads it (FormFieldsPlugin::prepareDom()).
+            // Read only: the field's settings are written on its edit screen.
+            $item->params = MultilingualHelper::collapseToCurrent(data: \is_array($item->params ?? null) ? $item->params : []);
         }
 
         return $item;

@@ -11,23 +11,22 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Api\ApiTaskAccess;
+use Alfa\Component\Alfa\Administrator\Service\Order\LinePricing;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
+use Alfa\Component\Alfa\Administrator\Service\Order\StaffSettleResult;
 use Alfa\Component\Alfa\Administrator\Service\Order\Transition;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceCommand;
-use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoney;
-use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
-use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use InvalidArgumentException;
-use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
@@ -68,9 +67,19 @@ class OrderopsController extends OrdersController
     private const STATUS_TASK = 'changeStatus';
 
     /**
+     * What a payment's change takes: its method, the provider's reference and the note, as the payment window changes
+     * them; its amount and status move only through the settle and the refund.
+     *
+     * @since  2.2.2
+     */
+    private const PAYMENT_CHANGES = ['id_payment_method', 'transaction_id', 'note'];
+
+    /**
      * Every operation here mutates an existing order, so they gate on the order
      * EDIT permission rather than create/delete, except moving the order between
-     * statuses, which asks Change State instead of edit, plus view.
+     * statuses, which asks Change State instead of edit, plus view (declared
+     * here, enforced by HasApiGuards::assertAuthorisedForTask() before the task
+     * runs, listed by Tools, Security).
      *
      * WHY THE STATUS TASK IS NOT ORDINARY EDITING. Entering a status runs stock
      * movements, issues a sales document against a GAPLESS series, emails the
@@ -80,57 +89,33 @@ class OrderopsController extends OrdersController
      * orders list renders a read-only badge without alfa.orders.edit.state, and
      * OrderModel refuses the change without it. This endpoint is the same act
      * through a different door, and it was reachable with ordinary edit rights.
+     * The state permission is the one the administrator path enforces
+     * (OrderModel::STATUS_CHANGE_ACTION names it), so one operator is never told
+     * yes on one door and no on the other.
      *
      * WHY IT ALSO ASKS VIEW. The status task answers with the full order body
      * (customer, addresses, payments). In the admin the status select lives on
      * the orders list, which opens only with orders view, so edit.state alone
      * must not become a way to read orders.
      *
-     * A Joomla Super User still passes, because the one Alfa check lets a
-     * Super User through every action.
+     * HasApiGuards::execute() enforces it BEFORE dispatching the task, so an
+     * unauthorised caller is refused before the target status is read, before
+     * force is considered, and before any Transition exists to have a side
+     * effect. A Joomla Super User still passes, because the one Alfa check lets
+     * a Super User through every action.
      *
-     * @param string $task The task about to run.
-     *
+     * @param string $task The task.
      *
      * @since  2.0.0
      */
-    protected function assertAuthorisedForTask(string $task): void
+    public function taskAccess(string $task): ApiTaskAccess
     {
         // The same split as the admin's orders list: view to see the order, edit.state to move it.
         if ($task === self::STATUS_TASK) {
-            $this->assertAuthorised('view');
-            $this->assertStateChangeAuthorised();
-
-            return;
+            return ApiTaskAccess::asks($this->actionPermission(action: 'view'), AdminOrderModel::STATUS_CHANGE_ACTION);
         }
 
-        $this->assertAuthorised('edit');
-    }
-
-    /**
-     * Refuse a status change to anyone without the orders state permission.
-     *
-     * One permission, the same one the administrator path enforces
-     * (OrderModel::STATUS_CHANGE_ACTION names it), so one operator is never told
-     * yes on one door and no on the other.
-     *
-     * Called from assertAuthorisedForTask(), which HasApiGuards::execute() runs
-     * BEFORE dispatching the task, so an unauthorised caller is refused before
-     * the target status is read, before force is considered, and before any
-     * Transition exists to have a side effect.
-     *
-     *
-     * @throws NotAllowed When the identity lacks the state permission.
-     *
-     * @since  2.0.0
-     */
-    private function assertStateChangeAuthorised(): void
-    {
-        if (AlfaHelper::can(section: 'orders', action: 'edit.state', user: $this->app->getIdentity())) {
-            return;
-        }
-
-        throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        return ApiTaskAccess::asks($this->actionPermission(action: 'edit'));
     }
 
     /**
@@ -272,32 +257,8 @@ class OrderopsController extends OrdersController
     }
 
     /**
-     * The pricing instructions of a line body, validated before anything is written.
-     *
-     * unit_price_tax_incl is a DERIVED column and is refused as an input: the
-     * owner forbids overloading it as the custom-price instruction, and reading
-     * it silently would make one field mean two things. The custom price goes
-     * through the one decoder the admin uses ({@see CustomPriceCommand::fromPayload()}),
-     * so "abc", true, "", "1e1" and a negative amount are refused naming the
-     * field, and so is an amount beyond Alfa's unit-rate precision
-     * (8 decimal places, 14 significant digits). A rate finer than the
-     * order's currency is a unit rate, not settled money
-     * yet: the line charges it times the
-     * quantity, rounded once.
-     *
-     * THE MANUAL DISCOUNT HAS THE POPUP'S NAME, manual_discount_percent, and
-     * the popup's meaning: the line's stored setting, which
-     * a value sets and 0 clears, so a retried PATCH changes nothing. It is
-     * read by the writer's own rule ({@see AdminOrderModel::manualDiscountPercent()}):
-     * 0-100 in whole hundredths, the column's precision. The stored
-     * whole-line rate, discount_percent, is REFUSED as an input like
-     * unit_price_tax_incl: it is a derived column, and reading it as an
-     * instruction re-applied it on every read-modify-write.
-     *
-     * THE TICK HAS THE COLUMN'S NAME, manual_discount_scope, and its two
-     * values ("The API must expose the same explicit state as the
-     * administrator UI"). Omitted, the line's choice stands; it is never
-     * inferred from a manual discount being present.
+     * The pricing instructions of a line body, validated before anything is written: the line's own reader
+     * ({@see LinePricing::fromPayload()}), its refusal answered 400 with the sentence that names the field.
      *
      * @param array $body The decoded request body.
      *
@@ -309,54 +270,11 @@ class OrderopsController extends OrdersController
      */
     private function linePricing(array $body): array
     {
-        if (\array_key_exists('unit_price_tax_incl', $body)) {
-            throw new Save(
-                'unit_price_tax_incl is derived and cannot be written; send ' . CustomPriceCommand::FIELD
-                . ' (a number to set, null to clear, omitted to leave unchanged)',
-                400,
-            );
-        }
-
-        if (\array_key_exists('discount_percent', $body)) {
-            throw new Save(
-                'discount_percent is the line\'s derived discount rate and cannot be written; send '
-                . 'manual_discount_percent (0-100) to take a manual discount off the line',
-                400,
-            );
-        }
-
         try {
-            $price = CustomPriceCommand::fromPayload(payload: $body);
+            return LinePricing::fromPayload(payload: $body);
         } catch (InvalidArgumentException $e) {
-            throw new Save(CustomPriceCommand::FIELD . ': ' . $e->getMessage(), 400);
+            throw new Save($e->getMessage(), 400);
         }
-
-        $manual = null;
-
-        if (\array_key_exists('manual_discount_percent', $body)) {
-            $manual = AdminOrderModel::manualDiscountPercent($body['manual_discount_percent']);
-
-            if ($manual === null) {
-                throw new Save('manual_discount_percent must be a number from 0 to 100 with at most two decimal places (0 clears the manual discount)', 400);
-            }
-        }
-
-        $scope = null;
-
-        if (\array_key_exists('manual_discount_scope', $body)) {
-            $value = $body['manual_discount_scope'];
-            $scope = \is_string($value) ? ManualDiscountScope::tryFrom($value) : null;
-
-            if ($scope === null) {
-                throw new Save(
-                    'manual_discount_scope must be ' . ManualDiscountScope::ExcludeCustomPrice->value
-                    . ' or ' . ManualDiscountScope::ApplyToCustomPrice->value,
-                    400,
-                );
-            }
-        }
-
-        return ['price' => $price, 'manualDiscountPercent' => $manual, 'manualDiscountScope' => $scope];
     }
 
     /**
@@ -438,8 +356,16 @@ class OrderopsController extends OrdersController
      * Create a shipment / fulfil lines.
      *
      * POST v1/alfa/orders/:id/shipments
-     * {id_shipment_method, tracking_number?, status?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
+     * {id_shipment_method, tracking_number?, carrier?, status?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
      *  shipping_tax_rate?, items?: [{id_order_item, quantity}]}
+     *
+     * `carrier` is the carrier company's name (the parcel's carrier_name). A parcel keeps no note: a `note` is refused
+     * (422).
+     *
+     * A parcel with no charge (no figures, or both at 0.00) states no rate: it takes the shipping tax that applies.
+     * The order is charged shipping once: a second open parcel's charge is set to 0 and meta.warnings says
+     * so (shipping_charged_once), and a quantity beyond what the line still has to send is cut to it and said
+     * (quantity_cut).
      *
      * The charge: shipping_cost_tax_incl alone is an untaxed charge (the net is
      * the gross, the rate 0). A taxed charge sends all three; the VAT rate is a
@@ -462,14 +388,19 @@ class OrderopsController extends OrdersController
     {
         $orderId = $this->requireOrderId();
         $body = $this->body();
+        $this->refuseParcelNote(body: $body);
 
         $data = [
             'id_order' => $orderId,
             'id_shipment_method' => (int) ($body['id_shipment_method'] ?? 0),
             'tracking_number' => $body['tracking_number'] ?? '',
             'status' => (string) ($body['status'] ?? 'pending'),
-            'note' => $body['note'] ?? '',
         ];
+
+        // The carrier company's name is the parcel's carrier_name.
+        if (isset($body['carrier'])) {
+            $data['carrier_name'] = (string) $body['carrier'];
+        }
 
         foreach (['shipping_cost_tax_incl', 'shipping_cost_tax_excl'] as $key) {
             if (isset($body[$key])) {
@@ -498,8 +429,10 @@ class OrderopsController extends OrdersController
      * Update a shipment: status, tracking, carrier, cost or composition.
      *
      * PATCH v1/alfa/orders/:id/shipments/:shipmentId
-     * {status?, tracking_number?, carrier?, weight?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
+     * {status?, tracking_number?, carrier?, id_shipment_method?, weight?, shipping_cost_tax_incl?, shipping_cost_tax_excl?,
      *  shipping_tax_rate?, items?}
+     *
+     * `carrier` writes the parcel's carrier_name; a `note` is refused (422), a parcel keeps none.
      *
      * The charge follows the rules of addShipment(), on the entry mode the
      * parcel kept: a figure the body does not carry is the parcel's own, and the
@@ -530,16 +463,22 @@ class OrderopsController extends OrdersController
         $orderId = $this->requireOrderId();
         $shipment = $this->requireOwnedShipment($orderId);
         $body = $this->body();
+        $this->refuseParcelNote(body: $body);
 
         $data = [
             'id' => (int) $shipment->id,
             'id_order' => $orderId,
         ];
 
-        foreach (['status', 'tracking_number', 'carrier', 'note'] as $key) {
+        foreach (['status', 'tracking_number'] as $key) {
             if (isset($body[$key])) {
                 $data[$key] = (string) $body[$key];
             }
+        }
+
+        // The carrier company's name is the parcel's carrier_name.
+        if (isset($body['carrier'])) {
+            $data['carrier_name'] = (string) $body['carrier'];
         }
 
         foreach (['shipping_cost_tax_incl', 'shipping_cost_tax_excl'] as $key) {
@@ -568,6 +507,172 @@ class OrderopsController extends OrdersController
         $this->runOrderWrite('saveOrderShipment', $data);
 
         return $this->displayItem($orderId);
+    }
+
+    /**
+     * Answer 422 naming note when a parcel's write carries one: a parcel keeps no note (#__alfa_order_shipments
+     * has no column for one, and its plugin data is the carrier plugin's), so a note sent was dropped with a 200. An
+     * empty note asks nothing and is let through.
+     *
+     * @param array $body The request body.
+     *
+     * @throws Save When the body carries a note (422).
+     *
+     * @since  2.2.2
+     */
+    private function refuseParcelNote(array $body): void
+    {
+        if (($body['note'] ?? null) !== null && $body['note'] !== '') {
+            throw new Save('note cannot be written through the API: a parcel keeps no note. Write the order\'s note to the'
+                . ' customer through PATCH v1/alfa/orders/:id (customer_note), or a status change\'s note through POST'
+                . ' v1/alfa/orders/:id/status. Nothing was saved.', 422);
+        }
+    }
+
+    /**
+     * Change a payment, as the payment window of the order screen changes one.
+     *
+     * PATCH v1/alfa/orders/:id/payments/:paymentId
+     * {id_payment_method?, transaction_id?, note?}
+     *
+     * Written by the order model's saveOrderPayment(), the screen's own save, with its rules: the staff guard keeps the
+     * method and the provider's transaction id of a payment its gateway collected, a payment that live refunds or
+     * provider facts name keeps its method, and the order's payment method follows its latest live payment. The amount
+     * and the status are not changed here: a payment is settled with POST .../settle and money is returned with POST
+     * .../refund; any other key is refused with 422. A refusal answers 409 with the ledger's sentence.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function updatePayment()
+    {
+        $orderId = $this->requireOrderId();
+        $payment = $this->requireOwnedPayment($orderId);
+        $body = $this->body();
+        $other = array_values(array_diff(array_map('strval', array_keys($body)), self::PAYMENT_CHANGES));
+
+        if ($other !== []) {
+            throw new Save(implode(', ', array_map(fn (string $key): string => $this->shownKey(key: $key), $other))
+                . ' cannot be changed on a payment: send id_payment_method, transaction_id or note. A payment is settled with'
+                . ' POST v1/alfa/orders/:id/payments/:paymentId/settle and money is returned with .../refund. Nothing was saved.', 422);
+        }
+
+        $data = ['id' => (int) $payment->id, 'id_order' => $orderId];
+
+        if (\array_key_exists('id_payment_method', $body)) {
+            $data['id_payment_method'] = $this->paymentMethodId(value: $body['id_payment_method']);
+        }
+
+        foreach (['transaction_id', 'note'] as $key) {
+            if (\array_key_exists($key, $body)) {
+                if ($body[$key] !== null && !\is_string($body[$key])) {
+                    throw new Save($key . ' must be text. Nothing was saved.', 422);
+                }
+
+                $data[$key] = (string) $body[$key];
+            }
+        }
+
+        $this->runOrderWrite('saveOrderPayment', $data);
+
+        return $this->displayItem($orderId);
+    }
+
+    /**
+     * Remove a payment, as the order screen removes one.
+     *
+     * DELETE v1/alfa/orders/:id/payments/:paymentId
+     *
+     * Through the order model's deleteOrderPayment(), the screen's own delete: only a payment that moved no money goes
+     * (pending, authorized, failed or cancelled); a completed or refunded payment, a refund that reserves its amount, a
+     * provider's report and a payment one of them names are refused with 409 and the ledger's sentence. The order's
+     * history records the removal, and the answer is the order as it now stands.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function removePayment()
+    {
+        $orderId = $this->requireOrderId();
+        $payment = $this->requireOwnedPayment($orderId);
+        $this->runOrderRemoval('deleteOrderPayment', (int) $payment->id, $orderId);
+
+        return $this->displayItem($orderId);
+    }
+
+    /**
+     * Remove a parcel, as the order screen removes one.
+     *
+     * DELETE v1/alfa/orders/:id/shipments/:shipmentId
+     *
+     * Through the order model's deleteOrderShipment(), the screen's own delete: the parcel's lines are released, so
+     * they may go in another parcel, and the order's history records the removal; the order's shipping method follows
+     * its latest live parcel. The carrier is not asked: a parcel booked with a carrier is removed from the order only.
+     * The answer is the order as it now stands.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function removeShipment()
+    {
+        $orderId = $this->requireOrderId();
+        $shipment = $this->requireOwnedShipment($orderId);
+        $this->runOrderRemoval('deleteOrderShipment', (int) $shipment->id, $orderId);
+
+        return $this->displayItem($orderId);
+    }
+
+    /**
+     * A payment method's id from the body: a whole number that names a payment method of the shop.
+     *
+     * @param mixed $value The body's id_payment_method.
+     *
+     * @throws Save When it names no payment method (422).
+     *
+     * @since  2.2.2
+     */
+    private function paymentMethodId(mixed $value): int
+    {
+        $id = \is_int($value) ? $value : (\is_string($value) && preg_match('/^[1-9][0-9]{0,9}$/D', $value) === 1 ? (int) $value : 0);
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $found = $id > 0 && $id <= 2147483647 && (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_payments'))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $id, ParameterType::INTEGER),
+        )->loadResult() > 0;
+
+        if (!$found) {
+            throw new Save('id_payment_method must be the id of a payment method of the shop. Nothing was saved.', 422);
+        }
+
+        return $id;
+    }
+
+    /**
+     * Run a removal on the order model, a refusal answered as runOrderWrite() answers one: 409 with the model's error,
+     * else the sentence the ledger told staff.
+     *
+     * @param string $method deleteOrderPayment or deleteOrderShipment.
+     * @param int $rowId The payment or the parcel.
+     * @param int $orderId The order it belongs to.
+     *
+     * @throws Save When the model refuses the removal (409).
+     *
+     * @since  2.2.2
+     */
+    private function runOrderRemoval(string $method, int $rowId, int $orderId): void
+    {
+        $model = $this->orderModel();
+        $told = \count($this->app->getMessageQueue());
+
+        if (!$model->$method($rowId, $orderId)) {
+            throw new Save($this->modelError($model, PaymentLedger::queuedRefusal(app: $this->app, told: $told) ?: 'The order could not be updated'), 409);
+        }
     }
 
     /**
@@ -699,113 +804,22 @@ class OrderopsController extends OrdersController
         $payment = $this->requireOwnedPayment($orderId);
         $body = $this->body();
 
-        $to = (string) ($body['to_status'] ?? '');
+        // The settle's rules are the ledger's: this verb words its outcome in HTTP.
+        $result = PaymentLedger::staffSettle(
+            payment: $payment,
+            orderId: $orderId,
+            toStatus: (string) ($body['to_status'] ?? ''),
+            fromStatus: (string) ($body['from_status'] ?? ''),
+            transactionId: isset($body['transaction_id']) ? (string) $body['transaction_id'] : null,
+            note: isset($body['note']) ? (string) $body['note'] : null,
+        );
 
-        // A reversal or a chargeback is a provider fact, born completed and never moved.
-        if (\in_array((string) $payment->payment_type, PaymentLedger::FACT_TYPES, true)) {
-            throw new Save(
-                sprintf('payment %d is a %s recorded from the provider; it has no status to settle', (int) $payment->id, (string) $payment->payment_type),
-                409,
-            );
-        }
-
-        if (!\in_array($to, PaymentLedger::allStatuses(), true)) {
-            throw new Save(
-                'to_status must be one of: ' . implode(', ', PaymentLedger::allStatuses()),
-                400,
-            );
-        }
-
-        // Refunding is not a status write. Flipping the column here would drop
-        // the money out of the paid total with no linked refund row, leaving
-        // the same money refundable a second time.
-        if ($to === PaymentLedger::STATUS_REFUNDED) {
-            throw new Save('Use POST /orders/:id/payments/:paymentId/refund to return money', 409);
-        }
-
-        $current = (string) $payment->transaction_status;
-        $from = (string) ($body['from_status'] ?? '');
-
-        // The precondition is checked BEFORE the idempotent short-circuit: a
-        // caller who sends from_status is asking to be told when reality
-        // disagrees, and answering 200 would hide exactly that.
-        if ($from !== '' && $from !== $current) {
-            throw new Save(
-                sprintf('payment %d is %s, not %s', (int) $payment->id, $current, $from),
-                409,
-            );
-        }
-
-        // Already there. An identical-value conditional write affects 0 rows
-        // and would read as a lost race, turning a harmless retry into a 409.
-        if ($current === $to) {
-            return $this->displayItem($orderId);
-        }
-
-        // THE REFUND BLOCK. A failed or cancelled refund brought back into the
-        // books is a refund typed by staff: while a provider has reported a
-        // refund on this order that the books do not hold, it waits; and it
-        // never takes what the order's pending provider refunds reserve.
-        $refusal = PaymentLedger::staffRefundRefusal(stored: $payment, data: ['transaction_status' => $to], orderId: $orderId)
-            ?? PaymentLedger::staffRefundReservedRefusal(stored: $payment, data: ['transaction_status' => $to], orderId: $orderId);
-
-        if ($refusal !== null) {
-            throw new Save($refusal, 409);
-        }
-
-        $isRefund = (string) $payment->payment_type === PaymentLedger::TYPE_REFUND;
-
-        // A staff entry point: the write is held to the ledger's staff guard at its door, through update() or the
-        // compare-and-set alike (PaymentLedger::staffWriteRefusal(); since 2.1.0).
-        $write = PaymentLedger::load((int) $payment->id)
-            ->asStaff()
-            ->set('transaction_status', $to);
-
-        if (!$isRefund) {
-            $write->expectStatus($current);
-        }
-
-        // processed_at is auto-stamped only when a completed payment is
-        // CREATED; the update paths never touch it, so a settle to completed
-        // would otherwise leave it null.
-        if ($to === PaymentLedger::STATUS_COMPLETED) {
-            $write->processedAt(Factory::getDate()->toSql());
-        }
-
-        // Only when supplied: the ledger writes $data straight through, so an
-        // unconditional key would blank the stored gateway reference.
-        if (isset($body['transaction_id'])) {
-            $write->transactionId((string) $body['transaction_id']);
-        }
-
-        if (isset($body['note'])) {
-            $write->note((string) $body['note']);
-        }
-
-        // What the ledger tells about a write it refuses is queued; only what
-        // this write adds is read.
-        $told = \count($this->app->getMessageQueue());
-
-        switch ($write->saveVerdict()) {
-            case PaymentLedger::WRITE_OK:
-                break;
-
-            case PaymentLedger::WRITE_RACED:
-                throw new Save(
-                    sprintf('Payment %d was changed by another writer; re-read and retry', (int) $payment->id),
-                    409,
-                );
-
-            default:
-                $refusal = $this->ledgerRefusal(told: $told);
-
-                throw new Save(
-                    $refusal !== '' ? $refusal : sprintf(
-                        'The ledger refused the settle of payment %d; see the com_alfa.orders log',
-                        (int) $payment->id,
-                    ),
-                    422,
-                );
+        if (!$result->settled()) {
+            throw new Save($result->sentence, match ($result->outcome) {
+                StaffSettleResult::UNKNOWN_STATUS => 400,
+                StaffSettleResult::REFUSED => 422,
+                default => 409,
+            });
         }
 
         return $this->displayItem($orderId);
@@ -877,11 +891,8 @@ class OrderopsController extends OrdersController
 
         $forced = (bool) ($body['force'] ?? false);
 
-        if (
-            !$forced
-            && OrderStatusHelper::isCancelled($fromStatusId)
-            && !OrderStatusHelper::isCancelled($toStatusId)
-        ) {
+        // The transition's own rule: leaving the cancelled family needs force().
+        if (!$forced && Transition::leavesCancelledFamily(fromStatusId: $fromStatusId, toStatusId: $toStatusId)) {
             throw new Save('Order is in the cancelled family; send "force": true to reinstate it', 409);
         }
 
@@ -1049,6 +1060,11 @@ class OrderopsController extends OrdersController
     /**
      * Run a write on the order model and translate failure into an HTTP error.
      *
+     * The refusal's sentence is the model's error when it set one (a line), else the sentence the payments or the
+     * shipments ledger told staff about the write it refused (a second pending payment while one covers the
+     * balance, a parcel's charge the tax rule refuses), read by PaymentLedger::queuedRefusal() as the settle reads
+     * it; the generic sentence only when neither said why.
+     *
      * @param string $method The model method to call.
      * @param array $data Data passed by reference to the model.
      * @param array $arguments Further arguments, by name (the line writer's pricing instructions).
@@ -1059,9 +1075,10 @@ class OrderopsController extends OrdersController
     private function runOrderWrite(string $method, array $data, array $arguments = []): void
     {
         $model = $this->orderModel();
+        $told = \count($this->app->getMessageQueue());
 
         if (!$model->$method($data, ...$arguments)) {
-            throw new Save($this->modelError($model, 'The order could not be updated'), 409);
+            throw new Save($this->modelError($model, PaymentLedger::queuedRefusal(app: $this->app, told: $told) ?: 'The order could not be updated'), 409);
         }
     }
 
@@ -1173,7 +1190,8 @@ class OrderopsController extends OrdersController
     /**
      * A parcel's VAT rate from the body: a percentage of zero or more with at
      * most three decimal places, as the column holds it. A JSON number is read
-     * at the digits it carries; text as written, never rounded.
+     * at the digits it carries; text as written, never rounded. The rule is
+     * {@see OrderCreateParts::rate()}, which the one-call create reads too.
      *
      * @param mixed $value The body's value, already known to be present.
      *
@@ -1185,14 +1203,11 @@ class OrderopsController extends OrdersController
      */
     private function parcelRate(mixed $value): string
     {
-        $text = \is_float($value) && is_finite($value) ? ExactAmount::ofNumber($value)->text() : $value;
-
-        if ((!\is_string($text) && !\is_int($text)) || preg_match('/^\d+(?:\.\d+)?$/D', (string) $text) !== 1
-            || StoredDecimal::refusal(value: ExactAmount::of((string) $text), precision: 10, scale: 3) !== null) {
-            throw new Save('shipping_tax_rate must be a percentage of zero or more with at most three decimal places', 400);
+        try {
+            return OrderCreateParts::rate(value: $value, field: 'shipping_tax_rate');
+        } catch (InvalidArgumentException $e) {
+            throw new Save($e->getMessage(), 400);
         }
-
-        return (string) $text;
     }
 
     /**
@@ -1230,7 +1245,8 @@ class OrderopsController extends OrdersController
      *
      * Canonical ungrouped decimals only, and NOT trimmed: presentation formats
      * ("1.234,56", " 5") belong to a parser with a format contract, not to a
-     * money verb.
+     * money verb. The rule is {@see OrderCreateParts::amount()}, which the
+     * one-call create reads too.
      *
      * @param mixed $value The body's value, already known to be present.
      * @param string $field The body key, for the refusal.
@@ -1243,23 +1259,10 @@ class OrderopsController extends OrdersController
      */
     private function exactAmount(mixed $value, string $field, Currency $currency): Money
     {
-        if (!\is_int($value) && !\is_float($value) && !\is_string($value)) {
-            throw new Save($field . ' must be a number', 400);
-        }
-
         try {
-            return ExactMoney::of(value: $value, currency: $currency);
-        } catch (ExactMoneyRefusal $e) {
-            throw new Save(
-                match ($e->reason()) {
-                    ExactMoney::FINER => sprintf('%s has more decimal places than %s allows (%d)', $field, $currency->getCode(), $currency->getDecimalPlaces()),
-                    ExactMoney::LARGER => sprintf('%s %s is larger than an amount of %s holds', $field, $e->typed(), $currency->getCode()),
-                    ExactMoney::NOT_EXACT => sprintf('%s is a JSON number that does not carry its digits exactly: send the amount as a string', $field),
-                    default => $field . ' must be a decimal number',
-                },
-                400,
-                $e,
-            );
+            return OrderCreateParts::amount(value: $value, field: $field, currency: $currency);
+        } catch (InvalidArgumentException $e) {
+            throw new Save($e->getMessage(), 400, $e);
         }
     }
 
@@ -1279,30 +1282,6 @@ class OrderopsController extends OrdersController
         $first = $errors[0] ?? ($model->getError() ?? '');
 
         return $first instanceof Throwable ? $first->getMessage() : ((string) $first ?: $fallback);
-    }
-
-    /**
-     * The sentence the ledger told about the write it just refused, as plain text.
-     *
-     * The ledger queues its refusal as an escaped error message; this returns
-     * the last one queued after $told, unescaped, or '' when it told none.
-     *
-     * @param int $told How many messages were queued before the write.
-     *
-     *
-     * @since   2.0.0
-     */
-    private function ledgerRefusal(int $told): string
-    {
-        $refusal = '';
-
-        foreach (\array_slice($this->app->getMessageQueue(), $told) as $message) {
-            if ((string) ($message['type'] ?? '') === 'error') {
-                $refusal = html_entity_decode(strip_tags((string) ($message['message'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            }
-        }
-
-        return $refusal;
     }
 
     /**

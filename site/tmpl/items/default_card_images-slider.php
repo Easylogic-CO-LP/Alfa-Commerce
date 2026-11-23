@@ -18,6 +18,10 @@
  * are in the tab order, the dots are not (the arrows reach every image). A product with one image is drawn as the
  * default card draws it, with no controls.
  *
+ * Each image is the generated thumbnail, never the stored image, at its file's versioned address. The first image
+ * loads as the default card's image does at the card's place on the page ($this->cardImageLoading(): the first four
+ * cards at once, the others lazily), and the slider's other images lazily.
+ *
  * Overridable as html/com_alfa/items/default_card_images-slider.php. The card is on $this->item; the images to show
  * come from $this->cardSlides($this->item).
  *
@@ -37,7 +41,7 @@ $count = \count($slides);
 <?php if ($count === 1): ?>
     <div class="item-image">
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt="" />
+            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt=""<?php echo $this->cardImageLoading(); ?> />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>
@@ -51,7 +55,7 @@ $count = \count($slides);
         <div class="card-slider-track" data-card-slider-track tabindex="-1">
             <?php foreach ($slides as $index => $slide): ?>
                 <a class="card-slider-slide" href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true" data-card-slider-slide>
-                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $index > 0 ? ' loading="lazy"' : ''; ?> />
+                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $index > 0 ? ' loading="lazy"' : $this->cardImageLoading(); ?> />
                 </a>
             <?php endforeach; ?>
         </div>

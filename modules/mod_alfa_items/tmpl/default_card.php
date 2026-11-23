@@ -16,6 +16,9 @@
  * card names its place (`data-look`); how it looks there, on every screen and per
  * breakpoint, is in the rules the module writes for that place (CardLook::css).
  *
+ * The image is the product's generated thumbnail, never its stored image, at the file's versioned address. It loads
+ * lazily, since a module's place on the page is not known.
+ *
  * @var object $item          A decorated item (Alfa's ItemsModel)
  * @var string $place         The card's place, which its rules are written for
  * @var array $priceSettings Price visibility settings
@@ -47,7 +50,7 @@ if ($name === '') {
         <div class="item-card-image">
             <?php // The name's destination again, for the mouse only: one link per card in the tab order and for a screen reader.?>
             <a href="<?php echo $esc($link); ?>" tabindex="-1" aria-hidden="true">
-                <img src="<?php echo $esc((string) $item->medias[0]->thumbnail_url); ?>" alt="">
+                <img src="<?php echo $esc((string) $item->medias[0]->thumbnail_url); ?>" alt="" loading="lazy">
             </a>
             <?php echo Surface::render(owner: $item, slot: ItemListSurface::Image); ?>
         </div>

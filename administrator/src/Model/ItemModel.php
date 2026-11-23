@@ -29,7 +29,11 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
@@ -52,6 +56,9 @@ use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
+use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
+use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -598,6 +605,55 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * The stock figures a write states, kept only when its caller named them (one rule for every writer, the REST
+     * update included): a stock figure is an instruction to the inventory service, so one the caller did
+     * not send (a figure backfilled from the stored row, as a PATCH or a read-modify-write does) is dropped, and the
+     * derived available quantity and the edit form's rendering baseline are never taken from a caller.
+     *
+     * @api READ ONLY: an item write's data with the stock figures its caller did not name removed; hand save() the
+     *      result.
+     *
+     * @param array<string, mixed> $data The write's data.
+     * @param list<string> $sent The keys the caller named.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.2.2
+     */
+    public static function withoutUnsentStock(array $data, array $sent): array
+    {
+        foreach (['stock', 'inventory_stock'] as $key) {
+            if (!\in_array($key, $sent, true)) {
+                unset($data[$key]);
+            }
+        }
+
+        unset($data['available_quantity'], $data['inventory_stock_baseline']);
+
+        return $data;
+    }
+
+    /**
+     * The state of the product's own prices the writer read, when it sent one ({@see self::expectPricesState()}).
+     *
+     * @since  2.2.2
+     */
+    private ?string $expectedPricesState = null;
+
+    /**
+     * Refuse the next save's prices when the product's own prices no longer have the state the writer read them in
+     * ({@see PricesState::assertUnchanged()}): the save then throws PricesStateChanged, rolled back whole.
+     *
+     * @param string $state The state the writer read.
+     *
+     * @since  2.2.2
+     */
+    public function expectPricesState(string $state): void
+    {
+        $this->expectedPricesState = $state;
+    }
+
+    /**
      * Method to save the form data.
      *
      * Extends the parent save() to also maintain the price index.
@@ -798,6 +854,14 @@ class ItemModel extends AlfaAdminModel
             if ($widened !== []) {
                 return $this->refuseSave(messages: [PriceRowPlaces::refusal(widened: $widened)]);
             }
+        }
+
+        // A price is stored exactly as typed: a row whose figure is not a number, or has more decimals or digits
+        // than the column holds, is refused here, naming the row, before anything is written.
+        $priceRefusals = self::priceRefusals(rows: \is_array($data['prices'] ?? null) ? $data['prices'] : []);
+
+        if ($priceRefusals !== []) {
+            return $this->refuseSave(messages: $priceRefusals);
         }
 
         // The posted quantity rules, parsed exactly and normalised in $data.
@@ -1016,7 +1080,16 @@ class ItemModel extends AlfaAdminModel
             // non-array), because [] means "delete every price row". Without the
             // coalesce a body that omits prices raised an undefined-key warning
             // straight into the API's JSON response.
+            // Prices changed since the writer read them are refused, under a lock on them until the commit.
+            if ($this->expectedPricesState !== null && $pk > 0) {
+                PricesState::assertUnchanged(db: $db, itemId: $pk, expected: $this->expectedPricesState);
+            }
+
             $this->setPrices($currentId, $data['prices'] ?? null);
+
+            // What the product sells for or has to sell may have changed with this save (its prices, its own fields,
+            // its combinations): recorded in the save's transaction, for the REST API's filter[changed_since].
+            CommerceChange::mark(db: $db, itemIds: [$currentId]);
 
             // Step 3: save all associations
             // Get old categories BEFORE overwriting so we can clear their cache too
@@ -1281,6 +1354,11 @@ class ItemModel extends AlfaAdminModel
             // existing item, written before it, stays and is cleared by the next rebuild.
             TransactionState::rollBackLevel(db: $db, failure: $e);
 
+            // Prices changed since they were read: the writer is told so, by the refusal itself.
+            if ($e instanceof PricesStateChanged) {
+                throw $e;
+            }
+
             Log::add(
                 entry:    'Item ' . ($pk > 0 ? '#' . $pk : '(new)') . ' was not saved; its save was rolled back: ' . $e->getMessage(),
                 priority: Log::ERROR,
@@ -1370,6 +1448,11 @@ class ItemModel extends AlfaAdminModel
                     $this->markChanging(ids: $ids, value: $value);
                     // Let Joomla handle the actual state change in the database
                     $result = parent::publish(pks: $pks, value: $value);
+
+                    // Whether the products sell changed with their state (filter[changed_since]).
+                    if ($result) {
+                        CommerceChange::mark(db: $db, itemIds: $ids);
+                    }
                 }
 
                 TransactionState::commitLevel(db: $db);
@@ -2822,6 +2905,38 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * The posted price rows whose price or custom discount the DECIMAL(24,8) columns cannot store: not a number,
+     * more than eight decimals, or more than sixteen digits before the point. Each named by its row and what was typed.
+     *
+     * @param array $rows jform[prices].
+     *
+     * @return string[] One refusal per figure refused.
+     *
+     * @since  2.2.2
+     */
+    public static function priceRefusals(array $rows): array
+    {
+        $refusals = [];
+        $position = 0;
+
+        foreach ($rows as $row) {
+            $position++;
+
+            foreach (['value', 'override_value'] as $column) {
+                $typed = \is_array($row) ? ($row[$column] ?? null) : null;
+
+                try {
+                    StoredDecimal::ofTyped($typed);
+                } catch (InvalidArgumentException) {
+                    $refusals[] = Text::sprintf('COM_ALFA_ITEM_PRICE_INVALID', $position, htmlspecialchars(\is_scalar($typed) ? (string) $typed : '', ENT_QUOTES, 'UTF-8'));
+                }
+            }
+        }
+
+        return $refusals;
+    }
+
+    /**
      * Refuse a save before anything is written.
      *
      * The refusals are reported once, through the model error: the edit form's
@@ -2989,7 +3104,29 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
-     * A product's name in the staff member's language, for a refusal that names it (UX-42); its number when it has none.
+     * Refuse a delete by the item rule that stops it: the refusal is a DeleteRefusedException, as the category,
+     * payment method and currency models refuse theirs, so the back office prints the same sentence as before and the
+     * REST delete answers 409 with it. Before, the sentence was a plain error, which the REST delete answered as a
+     * server fault (500).
+     *
+     * The exception's message is safe to print as HTML (the back office prints it so) and its plain sentence is what the
+     * REST delete answers: a sentence of plain text, which can carry a product's name, is escaped for the message; one
+     * already escaped for the screen (the stock held message, the archive's refusal) is unescaped for the plain text.
+     *
+     * @param string $sentence The refusal.
+     * @param bool $escaped Whether the sentence is already escaped for HTML.
+     *
+     * @since  2.2.2
+     */
+    private function refuseDelete(string $sentence, bool $escaped = false): void
+    {
+        $this->setError($escaped
+            ? new DeleteRefusedException($sentence, html_entity_decode($sentence, ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+            : new DeleteRefusedException(htmlspecialchars($sentence, ENT_QUOTES, 'UTF-8'), $sentence));
+    }
+
+    /**
+     * A product's name in the staff member's language, for a refusal that names it; its number when it has none.
      * The one rule for naming a product to staff: the item's own refusals, the Related tab's refusals and the title of
      * its product picker.
      *
@@ -3076,17 +3213,17 @@ class ItemModel extends AlfaAdminModel
             $blockers = $service->retirementBlockers(itemId: $pk, combinationIds: null);
 
             if ($blockers !== []) {
-                $this->setError(error: $this->stockHeldMessage(
+                $this->refuseDelete(sentence: $this->stockHeldMessage(
                     key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
                     itemId:   $pk,
                     blockers: $blockers,
-                ));
+                ), escaped: true);
 
                 return false;
             }
 
             if (!$this->projectionsAgree(itemId: $pk)) {
-                $this->setError(error: Text::_('COM_ALFA_INVENTORY_FIGURES_DISAGREE'));
+                $this->refuseDelete(sentence: Text::_('COM_ALFA_INVENTORY_FIGURES_DISAGREE'));
 
                 return false;
             }
@@ -3109,7 +3246,11 @@ class ItemModel extends AlfaAdminModel
         if ($orderHistory !== []) {
             $archive = array_keys($orderHistory);
 
+            // The archive's refusal (stock that arrived, or figures that diverged, after the read-only check above) is
+            // a refusal of the delete, answered 409 over the REST API with its sentence, as every other delete refusal.
             if (!$this->publish(pks: $archive, value: CombinationState::ARCHIVED, queueRefusal: false)) {
+                $this->refuseDelete(sentence: (string) ($this->getError() ?: Text::_('JLIB_APPLICATION_ERROR_DELETE')), escaped: true);
+
                 return false;
             }
 
@@ -3192,7 +3333,7 @@ class ItemModel extends AlfaAdminModel
 
         if ($busy !== []) {
             $itemLock->release(itemIds: $locked);
-            $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $busy[0]), (int) $busy[0]));
+            $this->refuseDelete(sentence: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $busy[0]), (int) $busy[0]));
 
             return false;
         }
@@ -3211,7 +3352,7 @@ class ItemModel extends AlfaAdminModel
 
                         // Every close of this level discards what was deferred inside it.
                         TransactionState::rollBackLevel(db: $db, failure: new RuntimeException($refusal));
-                        $this->setError(error: $refusal);
+                        $this->refuseDelete(sentence: $refusal);
 
                         return false;
                     }
@@ -3294,11 +3435,11 @@ class ItemModel extends AlfaAdminModel
             } catch (InventoryUnitRetirementException $retirement) {
                 TransactionState::rollBackLevel(db: $db, failure: $retirement);
 
-                $this->setError(error: $this->stockHeldMessage(
+                $this->refuseDelete(sentence: $this->stockHeldMessage(
                     key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
                     itemId:   $retirement->itemId,
                     blockers: $retirement->blockers,
-                ));
+                ), escaped: true);
 
                 return false;
             } catch (Throwable $e) {
@@ -3309,7 +3450,7 @@ class ItemModel extends AlfaAdminModel
                 // The removal met another writer: nothing was deleted, and the merchant is told so.
                 if ($e === $busyRemoval) {
                     Log::add('Item delete: the price index rows of item(s) ' . implode(', ', $existing) . ' could not be removed, nothing was deleted: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
-                    $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
+                    $this->refuseDelete(sentence: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
 
                     return false;
                 }
@@ -3511,8 +3652,10 @@ class ItemModel extends AlfaAdminModel
             $priceObject = new stdClass();
             $priceObject->id = isset($price['id']) ? intval($price['id']) : 0;
             $priceObject->item_id = $productId;
-            $priceObject->value = isset($price['value']) ? floatval($price['value']) : 0.0;
-            $priceObject->override_value = (trim((string) ($price['override_value'] ?? '')) !== '') ? floatval($price['override_value']) : null;
+            // Exact decimal text for the DECIMAL(24,8) columns: the typed figure on its digits, never
+            // through a float; a value that is not a number, or is finer or larger than the column holds, is refused.
+            $priceObject->value = StoredDecimal::ofTyped($price['value'] ?? null) ?? StoredDecimal::of(ExactAmount::of('0'));
+            $priceObject->override_value = StoredDecimal::ofTyped($price['override_value'] ?? null);
             $priceObject->override_type = in_array($price['override_type'] ?? '', ['start', 'final'], true) ? $price['override_type'] : 'start';
             $priceObject->state = ((string) ($price['price_status'] ?? '1') === '1') ? 1 : 0;
             $priceObject->country_id = isset($price['country_id']) ? intval($price['country_id']) : 0;

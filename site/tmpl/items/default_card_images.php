@@ -12,6 +12,11 @@
  * always drawn it. Chosen per item, per category, per menu item or in the Options (Items List Item Images); a variant
  * such as default_card_images-slider.php draws more than one.
  *
+ * The image is the product's generated thumbnail, one file fitted in the thumbnail size of Options, Media; the card
+ * never loads the stored image. The first four cards of the page load at once, the first before every other image,
+ * and the others lazily ($this->cardImageLoading()). The address carries the file's version (getMediaData(),
+ * MediaHelper::displayUrl()), so a file written again is never drawn from the browser's cache.
+ *
  * Overridable as html/com_alfa/items/default_card_images.php. The card is on $this->item.
  *
  * @var \Alfa\Component\Alfa\Site\View\Items\HtmlView $this
@@ -33,7 +38,7 @@ $item = $this->item;
             // is decorative for the same reason: the title states the name.
         ?>
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape($item->medias[0]->thumbnail_url); ?>" alt="" />
+            <img src="<?php echo $this->escape($item->medias[0]->thumbnail_url); ?>" alt=""<?php echo $this->cardImageLoading(); ?> />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>

@@ -13,8 +13,12 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreateParts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderExternalReferenceTakenException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
+use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
@@ -52,6 +56,9 @@ class OrdersController extends ApiController
      * and created (the time the order was placed). The delivery details are written through alfa_form_fields, and a
      * PATCH that leaves either out keeps it as stored.
      *
+     * The parts a create takes in its one call, lines, shipment and payment, are refused on an update too: an
+     * existing order's lines, parcels and payments change through the order operations.
+     *
      * @var string[]
      * @since  2.2.1
      */
@@ -62,8 +69,38 @@ class OrdersController extends ApiController
         'fulfillment_status', 'fulfillment_percentage', 'payment_percentage', 'balance', 'overpaid', 'excess', 'still_held',
         'order_total', 'order_total_tax_excl', 'items_total', 'shipping_total', 'discount_total', 'contributions_total',
         'total_paid_real', 'total_refunded_real', 'source', 'created', 'modified', 'lines', 'payments', 'shipments',
-        'contributions', 'history', 'delivery_address', 'invoice_address',
+        'contributions', 'history', 'delivery_address', 'invoice_address', 'shipment', 'payment',
     ];
+
+    /**
+     * The method keys an order's create (POST) does not take at its top level: an order takes its payment and
+     * shipping methods from its payments and parcels, and follows the latest live one of each (OrderMethods). A create
+     * in one call names them inside its payment and its shipment ({@see OrderCreateParts}).
+     *
+     * @var string[]
+     * @since  2.2.2
+     */
+    private const NOT_CREATED = ['id_payment_method', 'payment_method_name', 'id_shipment_method', 'shipment_method_name'];
+
+    /**
+     * The lists of an order that a create does not take: payments and shipments, as the read publishes them, and
+     * items, the order screen's name for its lines. The order form declares them, so its filter dropped them and a
+     * create answered 201 with no payment, parcel or line; a create in one call sends payment, shipment and lines.
+     *
+     * @var string[]
+     * @since  2.2.2
+     */
+    private const NOT_CREATED_LISTS = ['payments', 'shipments', 'items'];
+
+    /**
+     * The models this request made, so a write the order model refused is answered with the refusal that model set
+     * ({@see self::answerRefusal()}). A PATCH makes more than one (core's save and the read of the stored record), and
+     * the one that refused is not always the last.
+     *
+     * @var list<object>
+     * @since  2.2.2
+     */
+    private array $models = [];
 
     /**
      * The content type of the item.
@@ -87,7 +124,8 @@ class OrdersController extends ApiController
      * Each filter goes onto the model state under the name the orders screen's filter form gives it, and the list
      * model applies it as it does for the screen (payment, fulfilment, waiting, reconciliation, overpaid, the
      * order date window and item_id; and the customer, by account or by the order's e-mail). The date window's bounds
-     * are shop-local times, as the screen's calendars hold them; the screen's date presets are not read here.
+     * are UTC, as every date the API publishes: a bound without a zone is a UTC time and a day is the UTC day;
+     * a bound with Z or an offset is read in its own zone. The screen's date presets are not read here.
      *
      * @return static A BaseController object to support chaining.
      *
@@ -158,6 +196,18 @@ class OrdersController extends ApiController
             $this->modelState->set('filter.email', RequestScalar::member($apiFilterInfo, 'email', 'STRING', 'filter'));
         }
 
+        // Where orders came from, and the other system's id of an order, each matched whole: the orders of one channel
+        // or of one system, or the one order of a pair.
+        foreach (['source', 'external_source', 'external_reference'] as $name) {
+            if (\array_key_exists($name, $apiFilterInfo)) {
+                $this->modelState->set('filter.' . $name, RequestScalar::member($apiFilterInfo, $name, 'STRING', 'filter'));
+            }
+        }
+
+        // Every date bound of the API is UTC: a bound without a zone is a UTC time, a day the UTC day; a bound
+        // with Z or an offset keeps its own zone.
+        $this->modelState->set('filter.date_zone', 'UTC');
+
         $apiListInfo = $this->input->get('list', [], 'array');
 
         if (\array_key_exists('ordering', $apiListInfo)) {
@@ -172,23 +222,11 @@ class OrdersController extends ApiController
     }
 
     /**
-     * Keep a separate invoice address alive across a partial update.
+     * Update an order: the guards' edit, after the refusals of the keys the update does not take.
      *
-     * OrderModel::save() runs saveInvoiceInfo() on EVERY save, and decides the
-     * invoice address from the billing bucket. In the admin that bucket only
-     * arrives when the "different details" checkbox is ticked (an unticked box
-     * posts nothing), so its absence legitimately means "invoice to the
-     * delivery address". An API PATCH never posts a form bucket either, so
-     * every partial update silently collapsed id_address_invoice onto
-     * id_address_delivery and orphaned the customer's real invoice record.
-     *
-     * The model cannot tell the two cases apart, so the API layer states its
-     * own contract (absent means unchanged, exactly as for relations) by
-     * capturing the pointer before the save and putting it back afterwards.
-     *
-     * Re-supplying the values instead does not work: for a GUEST order
-     * UserInfoHelper::insertData() always writes a fresh row, so every PATCH
-     * would leave a duplicate address behind.
+     * The invoice details are the model's to keep: an update that sends neither invoice_differs nor
+     * alfa_form_fields_billing keeps the order's own invoice details, and the answer is the order as stored
+     * (OrderModel::keepsStoredInvoice()). Only invoice_differs 0 invoices the order to its delivery details.
      *
      * @param int|null $id The record id.
      *
@@ -220,30 +258,146 @@ class OrdersController extends ApiController
 
         $orderId = (int) ($id ?? RequestScalar::read($this->input, 'id', null, 'int'));
         $this->refuseInvoiceWithoutDetails(orderId: $orderId);
-        $restore = $this->billingMentioned() ? null : $this->invoiceAddressId($orderId);
 
-        // The guards' edit: the published attributes the update does not write are refused first (2.2.1).
-        $result = $this->guardedEdit();
+        // The guards' edit: the published attributes the update does not write are refused first. A write the model
+        // refused with a sentence of its own (the external reference written once) is answered with it.
+        try {
+            return $this->guardedEdit();
+        } catch (Save $e) {
+            $this->answerRefusal(refused: $e);
 
-        if ($restore !== null) {
-            $this->restoreInvoiceAddress($orderId, $restore);
+            return $this;
         }
-
-        return $result;
     }
 
     /**
-     * Create an order: the guards' create, after the invoice details' own refusal ({@see self::refuseUnstatedInvoice()}).
+     * Create an order, in one call when the body carries its parts: lines, a shipment and a payment beside the
+     * customer's details, customer_note, invoice_differs with alfa_form_fields_billing, id_order_status and silent.
+     * Everything is written in one transaction by the order model ({@see OrderCreateParts}); a part refused leaves no
+     * order and answers 422 when it is not in a shape the create takes, 409 when its writer refused it, with the part
+     * named as a JSON pointer into the body. The status the order opens in mails as a status change does, once the
+     * creation has committed, the customer left out when silent; an order created without lines mails nobody.
+     *
+     * source names the channel the order comes from (lower-case letters, digits, _ and -, up to 32 characters, none of
+     * core's own: storefront, admin, renewal; 422 otherwise); without it the order is api.
+     *
+     * external_source with external_reference (the other system's name and its id of the order) names one order: a
+     * create that sends a pair an order already carries creates nothing and answers 409 with that order's id in
+     * meta.existing_id, however often it is sent.
+     *
+     * Asked in order: the permission to create (403), the invoice details' own refusal
+     * ({@see self::refuseUnstatedInvoice()}), the method keys at the top level ({@see self::NOT_CREATED}, 422), the
+     * lists the read publishes ({@see self::NOT_CREATED_LISTS}, 422), then the guards' create.
      *
      * @return void
+     *
+     * @throws NotAllowed When the user may not create an order (403).
+     * @throws Save When the body carries a method key at its top level (422), or a part is refused (422, 409).
      *
      * @since  2.2.2
      */
     public function add()
     {
+        if (!$this->allowAdd()) {
+            throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
+        }
+
         $this->refuseUnstatedInvoice();
 
-        $this->guardedAdd();
+        $carried = array_values(array_intersect(self::NOT_CREATED, array_keys($this->requestBody())));
+
+        if ($carried !== []) {
+            throw new Save(implode(', ', $carried) . ' cannot be written at the top level of an order\'s create: send the'
+                . ' shipping method inside shipment (shipment.id_shipment_method) and the payment method inside payment'
+                . ' (payment.id_payment_method); the order follows its parcels and payments. Nothing was saved.', 422);
+        }
+
+        $lists = array_values(array_intersect(self::NOT_CREATED_LISTS, array_keys($this->requestBody())));
+
+        if ($lists !== []) {
+            throw new Save(implode(', ', $lists) . ' cannot be written when an order is created: send its payment as payment,'
+                . ' its parcel as shipment and its lines as lines; an order\'s payments and shipments are read in payments and'
+                . ' shipments. Nothing was saved.', 422);
+        }
+
+        try {
+            $this->guardedAdd();
+        } catch (Save $e) {
+            $this->answerRefusal(refused: $e);
+        }
+    }
+
+    /**
+     * Answer a write the order model refused with the refusal it set: its status and its sentence, and for an
+     * external_source and external_reference another order holds, 409 with that order's id in meta.existing_id, so a
+     * client that sent the same order again reads the order it made the first time. Any other failure is raised as it
+     * came.
+     *
+     * @param Save $refused What the write raised.
+     *
+     * @throws Save The refusal as the API answers it, or the failure as it came.
+     *
+     * @since  2.2.2
+     */
+    private function answerRefusal(Save $refused): void
+    {
+        $refusal = $this->partRefusal();
+
+        if ($refusal === null) {
+            throw $refused;
+        }
+
+        if ($refusal instanceof OrderExternalReferenceTakenException) {
+            // The error as Joomla's renderer writes one, beside the meta it cannot carry.
+            $document = $this->app->getDocument();
+            $document->setErrors([['title' => $refusal->plain, 'code' => $refusal->status]]);
+            $document->addMeta('existing_id', $refusal->existingId);
+            $this->app->setHeader('status', (string) $refusal->status, true);
+
+            return;
+        }
+
+        throw new Save($refusal->plain, $refusal->status, $refused);
+    }
+
+    /**
+     * A model, kept so a refused write can read the refusal it set; every call makes a new model, as core's does.
+     *
+     * @param string $name The model name.
+     * @param string $prefix The class prefix.
+     * @param array $config The configuration.
+     *
+     * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel|bool Model object on success; otherwise false on failure.
+     *
+     * @since  2.2.2
+     */
+    public function getModel($name = '', $prefix = '', $config = [])
+    {
+        $model = parent::getModel($name, $prefix, $config);
+
+        if (\is_object($model)) {
+            $this->models[] = $model;
+        }
+
+        return $model;
+    }
+
+    /**
+     * The refusal a model of this request set, or null ({@see OrderPartRefusedException}).
+     *
+     * @since  2.2.2
+     */
+    private function partRefusal(): ?OrderPartRefusedException
+    {
+        foreach ($this->models as $model) {
+            foreach (method_exists($model, 'getErrors') ? $model->getErrors() : [] as $error) {
+                if ($error instanceof OrderPartRefusedException) {
+                    return $error;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -448,20 +602,6 @@ class OrdersController extends ApiController
     }
 
     /**
-     * Did the caller say anything about the invoice address?
-     *
-     *
-     * @since  2.0.0
-     */
-    private function billingMentioned(): bool
-    {
-        $body = $this->input->get('data', json_decode($this->input->json->getRaw(), true), 'array');
-
-        return \array_key_exists(FieldsHelper::BILLING_FIELDS_KEY, (array) $body)
-            || \array_key_exists('invoice_differs', (array) $body);
-    }
-
-    /**
      * The order's current invoice address id, or null when it has none of its own.
      *
      * @param int $orderId Order id.
@@ -487,58 +627,5 @@ class OrdersController extends ApiController
         $delivery = (int) ($row->id_address_delivery ?? 0);
 
         return ($invoice > 0 && $invoice !== $delivery) ? $invoice : null;
-    }
-
-    /**
-     * Put the invoice pointer back, and clear up any snapshot the save minted.
-     *
-     * @param int $orderId Order id.
-     * @param int $addressId The invoice address it pointed at before.
-     *
-     *
-     * @since  2.0.0
-     */
-    private function restoreInvoiceAddress(int $orderId, int $addressId): void
-    {
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $current = (int) $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('id_address_invoice'))
-                ->from($db->quoteName('#__alfa_orders'))
-                ->where($db->quoteName('id') . ' = ' . $orderId),
-        )->loadResult();
-
-        if ($current === $addressId) {
-            return;
-        }
-
-        $db->setQuery(
-            $db->getQuery(true)
-                ->update($db->quoteName('#__alfa_orders'))
-                ->set($db->quoteName('id_address_invoice') . ' = ' . $addressId)
-                ->where($db->quoteName('id') . ' = ' . $orderId),
-        )->execute();
-
-        // A guest save mints a brand-new address row every time; drop the one
-        // this request created, but only once nothing points at it any more.
-        if ($current <= 0) {
-            return;
-        }
-
-        $stillUsed = (int) $db->setQuery(
-            $db->getQuery(true)
-                ->select('COUNT(*)')
-                ->from($db->quoteName('#__alfa_orders'))
-                ->where($db->quoteName('id_address_invoice') . ' = ' . $current)
-                ->orWhere($db->quoteName('id_address_delivery') . ' = ' . $current),
-        )->loadResult();
-
-        if ($stillUsed === 0) {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->quoteName('#__alfa_user_info'))
-                    ->where($db->quoteName('id') . ' = ' . $current),
-            )->execute();
-        }
     }
 }

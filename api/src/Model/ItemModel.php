@@ -13,6 +13,8 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
+use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 
 /**
@@ -51,13 +53,20 @@ class ItemModel extends AdminItemModel
             // Full per-language map ({"en_gb": {...}, "el_gr": {...}}) so API
             // clients can read every translation and PATCH back the same
             // per-language keys the admin form posts (name_el_gr, ...).
-            $item->translations = MultilingualHelper::getMultilingualData(
-                currentId:         (int) $item->id,
-                primaryColumnName: 'id_item',
-                tableName:         '#__alfa_items',
-            );
+            // Every content language's texts, only when the read asks for them (include=translations).
+            if (ApiInclude::asks(ApiInclude::TRANSLATIONS)) {
+                $item->translations = MultilingualHelper::getMultilingualData(
+                    currentId:         (int) $item->id,
+                    primaryColumnName: 'id_item',
+                    tableName:         '#__alfa_items',
+                );
+            }
 
             $this->attachFieldGraph($item);
+
+            // The state of the product's own prices, which a write of its prices sends back to be refused when they
+            // changed since.
+            $item->prices_state = PricesState::ofItems(itemIds: [(int) $item->id])[(int) $item->id];
         }
 
         return $item;
@@ -132,6 +141,16 @@ class ItemModel extends AdminItemModel
             ],
             $data->combinations ?? [],
         ));
+
+        // Each combination's prices_state, the state of its own price rows, which a write of its prices in a batch of
+        // units sends back to be refused when they changed since.
+        $states = PricesState::ofUnits(units: [(int) $item->id => array_fill_keys(array_column($item->combinations, 'id'), true)]);
+
+        foreach ($item->combinations as &$combination) {
+            $combination['prices_state'] = $states[(int) $item->id . ':' . $combination['id']] ?? null;
+        }
+
+        unset($combination);
 
         $item->options = array_values(array_map(
             static fn ($o): array => [

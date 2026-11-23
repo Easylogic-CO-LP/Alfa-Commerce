@@ -63,6 +63,19 @@ final class DueRead
     /** @since 2.2.1 */
     public const STOCK_EFFECTS_DRAIN = 'stock.effects.drain';
 
+    /**
+     * The job that delivers what a consumer of the shop's changes is owed.
+     *
+     * @since 2.2.2
+     */
+    public const OUTBOUND_DELIVER = 'outbound.deliver';
+
+    /** @since 2.2.2 */
+    public const OUTBOUND_DELIVERIES = '#__alfa_outbound_deliveries';
+
+    /** @since 2.2.2 */
+    public const OUTBOUND_CONSUMERS = '#__alfa_outbound_consumers';
+
     /** @since 2.2.1 */
     public const MOVEMENT_PENDING = 'pending';
 
@@ -153,6 +166,25 @@ final class DueRead
     public static function unreserved(DatabaseDriver $db): string
     {
         return '(' . $db->quoteName('lease_owner') . ' IS NULL OR ' . $db->quoteName('lease_until') . ' < UTC_TIMESTAMP(3))';
+    }
+
+    /**
+     * A change owed to a delivering consumer and due now (never tried, or its backoff passed), with no delivery job of
+     * that consumer pending or running: a change whose job finished while it waited out a retry, or whose job a hand
+     * deletion removed. The deliveries table is aliased d. A paused consumer owes nothing until it is resumed.
+     *
+     * @param DatabaseDriver $db The connection.
+     *
+     * @since  2.2.2
+     */
+    public static function outboundOwedWhere(DatabaseDriver $db): string
+    {
+        return $db->quoteName('d.state') . ' = ' . $db->quote(self::STATE_PENDING)
+            . ' AND (' . $db->quoteName('d.next_attempt_at') . ' IS NULL OR ' . $db->quoteName('d.next_attempt_at') . ' <= UTC_TIMESTAMP(6))'
+            . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName(self::OUTBOUND_CONSUMERS, 'c') . ' WHERE ' . $db->quoteName('c.id') . ' = ' . $db->quoteName('d.consumer_id')
+            . ' AND ' . $db->quoteName('c.state') . ' = 1)'
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName(self::TABLE, 't') . ' WHERE ' . $db->quoteName('t.active_key') . ' = CONCAT('
+            . $db->quote(self::OUTBOUND_DELIVER . ':') . ', CAST(' . $db->quoteName('d.consumer_id') . ' AS CHAR)) COLLATE utf8mb4_unicode_ci)';
     }
 
     /**

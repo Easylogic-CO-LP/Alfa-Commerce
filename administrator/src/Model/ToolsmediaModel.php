@@ -207,8 +207,9 @@ class ToolsmediaModel extends ListModel
         }
 
         foreach ($items as $row) {
-            $row->url = MediaHelper::toUrl($row->path);
-            $row->thumbnail_url = MediaHelper::toUrl($row->thumbnail);
+            // The files' versioned addresses: a file written again is never shown from the browser's cache.
+            $row->url = MediaHelper::displayUrl(MediaHelper::toUrl($row->path));
+            $row->thumbnail_url = MediaHelper::displayUrl(MediaHelper::toUrl($row->thumbnail));
             $row->is_orphan = !(int) ($row->has_parent ?? 1);
 
             // External (type=url) media has no local file; never "missing".

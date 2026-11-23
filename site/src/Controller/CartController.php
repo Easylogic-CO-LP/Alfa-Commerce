@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
+use Alfa\Component\Alfa\Site\Service\Cart\CartMessaging;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot;
 use Alfa\Component\Alfa\Site\Service\CartRules\CouponOutcome;
@@ -216,6 +217,12 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * their type (application/json), so the script can tell the cart's answer from any
      * other page a request may be answered with.
      *
+     * When the shelf limited the add the answer says so in one sentence, a notice
+     * and never a failure: the cart already holds the available quantity, so nothing was
+     * added, or now holds it, the request cut to it. That sentence is the JSON message,
+     * the card's words and, on a navigation, the only message; the figure is the JSON's
+     * available_quantity.
+     *
      * @return void
      *
      * @since  1.0.0
@@ -262,6 +269,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         $lineId = $result?->lineId ?? 0;
         $line = $result?->line;
+        $limit = $result?->stockLimit;
+        $notice = $limit !== null ? CartMessaging::stockSentence(limit: $limit) : '';
 
         if ($line !== null) {
             // Cart lines carry no media (the drawer never shows one); the card does,
@@ -276,33 +285,51 @@ class CartController extends FormController implements UserFactoryAwareInterface
             'total_quantity' => $result?->quantity ?? 0,
         ];
 
+        if ($limit !== null) {
+            $responseData['available_quantity'] = $limit->quantity;
+        }
+
+        // Whether the cart's lines changed: always for a line added or edited; for an add that added nothing, only
+        // when a line was lowered to what the stock holds, so the script tells the other cart surfaces to read again.
+        $responseData['cart_changed'] = $line !== null || ($limit !== null && $limit->lowered);
+
         $options = $this->addedCardOptions();
 
         // The card key is present only when there is a card to show: a rejected
-        // add always has one, a successful add only while the confirmation is on.
-        if ($line === null || $options['enabled']) {
+        // add always has one, a successful add while the confirmation is on, or
+        // when the stock cut it, since the card is where the shopper reads that.
+        if ($line === null || $options['enabled'] || $notice !== '') {
             $responseData['added'] = Layout::render('cart.added', [
                 'line' => $line,
                 'edited' => $line !== null && $editLineId > 0 && $lineId === $editLineId,
                 'quantity' => $result?->quantity ?? 0,
                 'grandTotal' => $result?->grandTotal,
                 'priceSettings' => PriceSettings::minimal(),
+                'notice' => $notice,
                 'messages' => $line === null ? $this->app->getMessageQueue() : [],
             ] + $options);
         }
 
         // A browser navigation gets Post/Redirect/Get; every other caller keeps today's JSON.
+        // The shelf's notice is already queued, and it is the one sentence the page shows.
         if ($this->wantsHtml()) {
-            $this->app->enqueueMessage(
-                $line === null ? $failMessage : $successMessage,
-                $line === null ? 'error' : 'message',
-            );
+            if ($limit === null) {
+                $this->app->enqueueMessage(
+                    $line === null ? $failMessage : $successMessage,
+                    $line === null ? 'error' : 'message',
+                );
+            }
+
             $this->app->redirect($this->safeReturnUrl());
 
             return;
         }
 
-        $response = new JsonResponse($responseData, $line === null ? $failMessage : $successMessage, $line === null);
+        $response = new JsonResponse(
+            $responseData,
+            $notice !== '' ? $notice : ($line === null ? $failMessage : $successMessage),
+            $line === null,
+        );
 
         $this->app->setHeader(name: 'Content-Type', value: 'application/json; charset=utf-8', replace: true);
         $this->app->sendHeaders();

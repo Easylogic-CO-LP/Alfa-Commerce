@@ -186,6 +186,9 @@ class DocumentsController extends BaseController
      * Serve the document's PDF, rendered on demand from the frozen entity
      * (nothing is stored). GET, opened in a tab.
      *
+     * While the PDF library, or a library it needs, is missing or disabled the
+     * PDF is refused with a plain message on the documents list: the
+     * print view still shows the document.
      *
      * @since  2.0.0
      */
@@ -212,9 +215,10 @@ class DocumentsController extends BaseController
             }
 
             $bytes = PdfRenderer::pdfBytes(documentId: $id);
-        } catch (PdfLibraryMissingException $e) {
-            // The PDF library, which ships with the package, was removed: 503 with the sentence that names it (2.2.1).
-            throw new RuntimeException(Text::_('COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING'), 503, $e);
+        } catch (PdfLibraryMissingException) {
+            $this->setRedirect(Route::_('index.php?option=com_alfa&view=documents', false), Text::_('COM_ALFA_DOCUMENT_PDF_LIBRARY_MISSING'), 'error');
+
+            return;
         } catch (Throwable $e) {
             throw new RuntimeException($e->getMessage(), 500);
         }

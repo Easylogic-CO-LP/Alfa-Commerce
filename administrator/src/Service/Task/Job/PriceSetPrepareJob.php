@@ -21,17 +21,17 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
 
 /**
- * Prepare the list prices of one set of customer groups (2.2.0; it replaces the scheduled task of plg_task_alfapricesets).
+ * Prepare the list prices of one pricing context of the price index (a currency class, a place class, a set of customer
+ * groups and, for a customer named by their own prices, that customer).
  *
- * One job per set, its scope the set's digest. Each chunk writes the set's rows for the next published products from
- * the set's own checkpoint (prepared_through, mirrored in the job's), through PriceIndexSyncService::prepareSetChunk();
- * the last marks the set prepared. A set dropped while its job waits or runs ends the job done. Heavy: one preparer at
- * a time. A merge never asks a rerun: live item saves keep a waiting set current up to its checkpoint.
+ * One job per context, its scope the context's id. Each chunk writes the context's rows for the next published
+ * products from the context's own checkpoint (prepared_through), through PriceIndexSyncService::prepareContextChunk();
+ * the last marks the context prepared, and from then on the storefront reads it. A context dropped while its job waits
+ * or runs ends the job done. Heavy: one preparer at a time. A merge never asks a rerun: live saves keep a waiting
+ * context current up to its checkpoint.
  *
- * It keeps its own transactions: each chunk takes its products' item locks before it reads the set, writes in its own
- * transaction and releases after the commit, so a save waiting for a product reads the checkpoint past it. The
- * runner's chunk transaction carries the heavy slot's renewal and the fenced progress only; a claim lost meanwhile
- * loses progress only, the set's checkpoint being its own.
+ * It keeps its own transactions: each chunk takes its products' item locks before it reads the context, writes in its
+ * own transaction and releases after the commit.
  *
  * @since  2.2.0
  */
@@ -45,27 +45,27 @@ final class PriceSetPrepareJob implements JobHandler
     public const NAME = DueRead::PRICE_SET_PREPARE;
 
     /**
-     * The scope of a set's job.
+     * The scope of a context's job.
      *
-     * @param string $digest The set's digest.
+     * @param int $contextId The context (#__alfa_price_contexts.id).
      *
-     * @since  2.2.0
+     * @since  2.2.2
      */
-    public static function scopeFor(string $digest): string
+    public static function scopeFor(int $contextId): string
     {
-        return self::NAME . ':' . $digest;
+        return self::NAME . ':' . $contextId;
     }
 
     /**
-     * Owe a set's preparation: its job, or the one it already has.
+     * Owe a context's preparation: its job, or the one it already has.
      *
-     * @param string $digest The set's digest.
+     * @param int $contextId The context.
      *
-     * @since  2.2.0
+     * @since  2.2.2
      */
-    public static function enqueueFor(string $digest): void
+    public static function enqueueFor(int $contextId): void
     {
-        Runner::enqueue(handler: self::NAME, scopeKey: self::scopeFor(digest: $digest), payload: ['digest' => $digest]);
+        Runner::enqueue(handler: self::NAME, scopeKey: self::scopeFor(contextId: $contextId), payload: ['context' => $contextId]);
     }
 
     public function policy(): JobPolicy
@@ -76,8 +76,8 @@ final class PriceSetPrepareJob implements JobHandler
     public function total(JobRun $run): int
     {
         $service = new PriceIndexSyncService();
-        // The sets customers hold, brought in line first, as the scheduled task did at each run.
-        $service->alignSets();
+        // The contexts the data defines, brought in line first.
+        $service->alignContexts();
 
         return $service->publishedItemCount();
     }
@@ -85,17 +85,16 @@ final class PriceSetPrepareJob implements JobHandler
     public function chunk(JobRun $run, int $units): JobChunk
     {
         $service = new PriceIndexSyncService();
-        $setId = $service->waitingSetId(digest: (string) ($run->payload['digest'] ?? ''));
+        $contextId = (int) ($run->payload['context'] ?? 0);
 
-        if ($setId === null) {
+        if (!$service->contextWaits(contextId: $contextId)) {
             return new JobChunk(units: 0, checkpoint: null, finished: true);
         }
 
-        $result = $service->prepareSetChunk(setId: $setId, limit: $units);
+        $result = $service->prepareContextChunk(contextId: $contextId, limit: $units);
 
         return match ($result['state']) {
-            // What stopped the chunk is the failure's cause: the job's stored line then follows it (Tasks::failureLine()).
-            'failed' => throw new TaskError('COM_ALFA_TASKS_ERROR_PRICE_SET_STEP', [$setId], $result['failure'] ?? null),
+            'failed' => throw new TaskError('COM_ALFA_TASKS_ERROR_PRICE_SET_STEP', [$contextId], $result['failure'] ?? null),
             'chunk' => new JobChunk(units: $result['products'], checkpoint: ['through' => $result['through']], finished: false),
             default => new JobChunk(units: $result['products'], checkpoint: null, finished: true),
         };

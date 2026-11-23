@@ -14,19 +14,23 @@ namespace Alfa\Component\Alfa\Administrator\View\Extensions;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
+use Alfa\Component\Alfa\Administrator\Service\Setup\ExtensionCompatibility;
 use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Throwable;
 
 /**
- * Tools > Extensions: the Alfa extensions installed apart from Alfa Commerce, each with its type, version, state and
- * what Clear Data can do with it, and the three actions as toolbar dialogs on the selected rows: Clear Data, Remove
- * extension only, Remove extension and its data. A plugin without the hook shows "Automatic Clear Data not supported";
- * a module shows nothing of Clear Data. Opening the page boots each plugin to ask whether it has the hook, which
- * changes nothing.
+ * Tools > Extensions: the Alfa extensions installed apart from Alfa Commerce, each with its type, version, state,
+ * whether it is built for this version of Alfa Commerce ({@see ExtensionCompatibility::verdicts()}, where the
+ * compatibility notification leads) and what Clear Data can do with it, and the three actions as toolbar dialogs on
+ * the selected rows: Clear Data, Remove extension only, Remove extension and its data. A plugin without the hook shows
+ * "Automatic Clear Data not supported"; a module shows nothing of Clear Data. Opening the page boots each plugin to ask
+ * whether it has the hook, which changes nothing.
  *
  * @since  2.1.0
  */
@@ -41,6 +45,16 @@ class HtmlView extends BaseHtmlView
      * @since  2.1.0
      */
     public array $rows = [];
+
+    /**
+     * Each Alfa plugin's and module's verdict by its key ({@see ExtensionCompatibility::verdicts()}); empty when the
+     * verdicts cannot be read (logged): the page then shows none.
+     *
+     * @var array<string, array{key: string, name: string, verdict: string, range: ?\Alfa\Component\Alfa\Administrator\Service\Setup\AlfaCoreRange, why: string}>
+     *
+     * @since  2.2.2
+     */
+    public array $compatibility = [];
 
     /**
      * Whether the user may clear an extension's data.
@@ -99,6 +113,14 @@ class HtmlView extends BaseHtmlView
             $row['language_pack'] = isset($packs[(int) $row['extension_id']]);
             $row['children'] = array_map(static fn (array $child): array => $child + ['last' => $last($child)], (array) $row['children']);
             $this->rows[] = $row;
+        }
+
+        // The verdicts this page shows, and the notification that leads here brought in line with them.
+        try {
+            $this->compatibility = ExtensionCompatibility::verdicts();
+            ExtensionCompatibility::follow(verdicts: $this->compatibility);
+        } catch (Throwable $e) {
+            Log::add('Tools > Extensions could not read which extensions are built for this version: ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
         }
 
         $this->mayClear = ClearDataExtensions::permitted(user: $user);

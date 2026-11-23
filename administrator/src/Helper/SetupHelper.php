@@ -37,7 +37,8 @@ use Throwable;
  * what is true right now ({@see SetupCheck}), never from stored progress, but the
  * ambient surfaces (every admin page via the component dispatcher, later the
  * dashboard card) read a cached copy so they cost nothing. Freshness comes from
- * three directions, mirroring {@see IntegrityHelper::cachedVerdict()}:
+ * three directions, mirroring {@see IntegrityHelper::cachedVerdict()}, and a cached status of another shape is computed
+ * again ({@see self::STATUS_VERSION}):
  *
  *   - TTL           - {@see self::TTL_MINUTES} (6h, deliberately not a setting:
  *                     event-driven invalidation is the real freshness mechanism,
@@ -46,14 +47,7 @@ use Throwable;
  *                     delete/publish path, and {@see self::invalidate()} from
  *                     plg_system_alfasync when the world outside com_alfa changes
  *                     (storefront menu items, gateway plugins, component params);
- *   - demand        - surfaces that show the checklist itself pass `$fresh = true`;
- *   - reading       - the page cache check's reading ({@see CoreSetupProvider::pageCacheReading()})
- *                     is kept beside the verdict and compared on every read: Joomla's page cache
- *                     and plg_system_alfasync change without an event the plugin can hear (its own
- *                     enabling, any switch while it is off), and a verdict computed under another
- *                     reading is computed again. Its cost on every status() call: two indexed reads
- *                     of #__extensions (the two plugins' rows) and the guest's view levels, which
- *                     Joomla reads once per request (the view levels table and the guest group).
+ *   - demand        - surfaces that show the checklist itself pass `$fresh = true`.
  *
  * Notification push/clear happens ONLY inside a recompute, and re-alerts only when
  * the verdict actually transitions; a cache hit can never nag.
@@ -116,7 +110,7 @@ final class SetupHelper
      * @var int
      * @since  2.2.2
      */
-    public const STATUS_VERSION = 3;
+    public const STATUS_VERSION = 4;
 
     /**
      * The `#__alfa_meta` row that holds the steps the merchant ignored: a JSON list of their identities
@@ -155,8 +149,8 @@ final class SetupHelper
 
             $status = (array) $cache->get([self::class, 'evaluate'], [], 'status');
 
-            // Computed again under another page cache reading, or when the cached status has another shape.
-            if (($status['basis'] ?? null) !== CoreSetupProvider::pageCacheReading() || ($status['version'] ?? null) !== self::STATUS_VERSION) {
+            // Computed again when the cached status has another shape.
+            if (($status['version'] ?? null) !== self::STATUS_VERSION) {
                 self::invalidate();
                 $status = (array) $cache->get([self::class, 'evaluate'], [], 'status');
             }
@@ -176,7 +170,6 @@ final class SetupHelper
      * Shape:
      *   version   int     - cache-shape version (bump when rows change meaning)
      *   generated string  - SQL datetime of this evaluation
-     *   basis     array   - the page cache check's reading this evaluation used
      *   checks    array[] - {id, tier, label, reason, cta, tour, priority, state,
      *                        provisionable, owner_group, owner_name, ignorable, ignored},
      *                        priority DESC
@@ -255,8 +248,6 @@ final class SetupHelper
         $status = [
             'version' => self::STATUS_VERSION,
             'generated' => Factory::getDate()->toSql(),
-            // What the page cache check read: a later read under another one computes again (status()).
-            'basis' => CoreSetupProvider::pageCacheReading(),
             'checks' => $rows,
             'counts' => $counts,
             'signature' => md5(implode('|', $pairs)),

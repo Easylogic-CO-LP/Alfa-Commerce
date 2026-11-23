@@ -26,6 +26,8 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEvent;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStock;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundTopics;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Exception;
 use Joomla\CMS\Factory;
@@ -341,6 +343,24 @@ class Transition
         $this->silentCustomer = true;
 
         return $this;
+    }
+
+    /**
+     * Whether a move from one status to another leaves the is_cancelled family: the move that save() refuses unless
+     * force() was asked (the one rule; the REST status verb and an extension ask it before they move an order,
+     * so they can say why a move is refused).
+     *
+     * @api READ ONLY: whether moving an order from $fromStatusId to $toStatusId reinstates a cancelled order, which only
+     *      a conscious act (force()) may do.
+     *
+     * @param int $fromStatusId The status the order is in.
+     * @param int $toStatusId The status it would enter.
+     *
+     * @since  2.2.2
+     */
+    public static function leavesCancelledFamily(int $fromStatusId, int $toStatusId): bool
+    {
+        return OrderStatusHelper::isCancelled($fromStatusId) && !OrderStatusHelper::isCancelled($toStatusId);
     }
 
     /**
@@ -931,11 +951,7 @@ class Transition
 
         try {
             // Leaving the cancelled family only happens on a conscious admin act.
-            if (
-                !$this->force
-                && OrderStatusHelper::isCancelled($oldStatusId)
-                && !OrderStatusHelper::isCancelled($this->toStatusId)
-            ) {
+            if (!$this->force && self::leavesCancelledFamily(fromStatusId: $oldStatusId, toStatusId: $this->toStatusId)) {
                 Log::add(
                     entry:    'Transition refused for order ' . $this->orderId . ': leaving the cancelled family ('
                               . $oldStatusId . ' -> ' . $this->toStatusId . ') requires force().',
@@ -1163,6 +1179,14 @@ class Transition
                 'actor' => $actor,
                 'note' => $this->note,
             ],
+        );
+
+        // The consumers of status changes are owed this move, written with it: every move is told, in order.
+        OutboundFeed::record(
+            db: TransactionState::driver(Factory::getContainer()->get('DatabaseDriver')),
+            topic: OutboundTopics::ORDER_STATUS,
+            subjectId: $orderId,
+            payload: $oldStatusId . ':' . $toStatusId,
         );
 
         // An allowed unpaid completion is an exception, not a silent pass:

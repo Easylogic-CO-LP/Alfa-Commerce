@@ -17,6 +17,8 @@ use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFulfillment;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderPartRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderSource;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -38,18 +40,23 @@ class OrderModel extends AdminOrderModel
     use ProjectsMoney;
 
     /**
-     * Orders created through the API are API orders.
+     * An order created through the API takes the source its client names (its channel, for example base), checked by
+     * {@see OrderSource::ofClient()}, and is api when the client names none.
      *
      * The parent writes 'admin' for its own form controller; this class IS the
      * API client, so overriding here needs no application probe and no change
      * to forms/order.xml.
      *
+     * @param array $data The creation's validated data.
+     *
+     * @throws OrderPartRefusedException When the source sent is not in its shape, or is one core writes for its own
+     *                                   orders.
      *
      * @since  2.0.0
      */
-    protected function newOrderSource(): string
+    protected function newOrderSource(array $data): string
     {
-        return 'api';
+        return OrderSource::ofClient(value: $data['source'] ?? null);
     }
 
     /**
@@ -309,10 +316,27 @@ class OrderModel extends AdminOrderModel
             $rows($item->payments ?? null),
         );
 
+        // Each parcel's lines, read for the order's parcels in one statement.
+        $parcelLines = ShipmentLedger::itemQuantitiesOfOrder(orderId: (int) ($item->id ?? 0));
+
         $item->shipments = array_map(
             static fn ($s): array => [
                 'id' => (int) ($s->id ?? 0),
                 'id_shipment_method' => isset($s->id_shipment_method) ? (int) $s->id_shipment_method : null,
+                // Where the parcel stands (pending, shipped, delivered, cancelled, on_hold, returned), the method's name
+                // as the parcel froze it, the carrier, when it went out and arrived, and the order lines it carries with
+                // the units of each, under the names the parcel's write takes: a cancelled parcel is told
+                // from an open one without a second read.
+                'status' => $s->status ?? null,
+                'shipment_method_name' => $s->shipment_method_name ?? null,
+                'carrier_name' => $s->carrier_name ?? null,
+                'shipped' => $s->shipped ?? null,
+                'delivered' => $s->delivered ?? null,
+                'items' => array_map(
+                    static fn (int $lineId, int $quantity): array => ['id_order_item' => $lineId, 'quantity' => $quantity],
+                    array_keys($parcelLines[(int) ($s->id ?? 0)] ?? []),
+                    array_values($parcelLines[(int) ($s->id ?? 0)] ?? []),
+                ),
                 'tracking_number' => $s->tracking_number ?? null,
                 'shipping_cost_tax_incl' => $amount($s->shipping_cost_tax_incl ?? null),
                 'shipping_cost_tax_excl' => $amount($s->shipping_cost_tax_excl ?? null),

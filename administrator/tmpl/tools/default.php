@@ -107,6 +107,7 @@ $toolsUser = Factory::getApplication()->getIdentity();
         <?php echo LayoutHelper::render('tasks.attention', $this->tasks + ['failedJobs' => $this->jobs['failedJobs']], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo $renderActions($tasksAction('tasks.run')); ?>
         <?php echo LayoutHelper::render('tasks.jobs', $this->jobs, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo LayoutHelper::render('tasks.outbound', $this->outbound, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         <?php echo $renderActions($tasksAction('tasks.prune')); ?>
         <?php echo $renderActions($tasksOthers); ?>
         <?php echo LayoutHelper::render('tasks.runner', $this->runner + ['newKey' => $this->newCronKey], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
@@ -129,6 +130,9 @@ $toolsUser = Factory::getApplication()->getIdentity();
         <?php /* Verdict card is built in the View from a fixed-path partial (NOT the
                  overridable layout system), so a template override cannot fake it. */ ?>
         <?php echo $this->integrityHtml; ?>
+
+        <?php /* Every address of the REST API and who may call it, one table: a fixed-path partial too. */ ?>
+        <?php echo $this->apiRoutesHtml; ?>
 
         <?php echo $renderSurface('integrity'); ?>
 
