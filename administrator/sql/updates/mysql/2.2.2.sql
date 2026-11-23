@@ -145,6 +145,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_work_declarations` (
   PRIMARY KEY (`owner`, `name`),
   KEY `idx_every` (`enabled`, `every_minutes`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The work each owner declares, as core last read it';
+
 -- The extension job is gone: a plugin declares its own tasks and jobs. Its rows, which no handler runs any more, are
 -- deleted; a second run deletes nothing.
 DELETE FROM `#__alfa_tasks` WHERE `handler` = 'extension.job';
