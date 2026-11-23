@@ -50,6 +50,8 @@ use Alfa\Component\Alfa\Administrator\Service\Document\OrderItemLines;
 use Alfa\Component\Alfa\Administrator\Service\Document\VoidAndReplace;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCoupons;
+use Alfa\Component\Alfa\Site\Service\CartRules\CouponOutcome;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\CustomPriceAction;
@@ -1422,6 +1424,115 @@ class OrderController extends FormController
         }
 
         $this->setRedirect(Route::_($success ? $redirectSuccessURL : $redirectURL, false));
+    }
+
+    //  Coupons on a placed order
+
+    /**
+     * Why a code was not added to, or removed from, a placed order, in staff wording.
+     *
+     * @var array<string, string>
+     * @since 2.3.0
+     */
+    private const COUPON_REFUSALS = [
+        CouponOutcome::CONDITIONS_NOT_MET => 'COM_ALFA_ORDER_COUPON_CONDITIONS_NOT_MET',
+        CouponOutcome::CUSTOMER_LIMIT_REACHED => 'COM_ALFA_ORDER_COUPON_CUSTOMER_LIMIT_REACHED',
+        CouponOutcome::EXPIRED => 'COM_ALFA_ORDER_COUPON_EXPIRED',
+        CouponOutcome::NOT_ELIGIBLE => 'COM_ALFA_ORDER_COUPON_NOT_ELIGIBLE',
+        CouponOutcome::NOT_FOUND => 'COM_ALFA_ORDER_COUPON_NOT_FOUND',
+        CouponOutcome::NOT_YET_ACTIVE => 'COM_ALFA_ORDER_COUPON_NOT_YET_ACTIVE',
+        CouponOutcome::REQUIRES_LOGIN => 'COM_ALFA_ORDER_COUPON_REQUIRES_LOGIN',
+        CouponOutcome::UNPUBLISHED => 'COM_ALFA_ORDER_COUPON_UNPUBLISHED',
+        CouponOutcome::USAGE_LIMIT_REACHED => 'COM_ALFA_ORDER_COUPON_USAGE_LIMIT_REACHED',
+        OrderCoupons::GONE => 'COM_ALFA_ORDER_COUPON_GONE',
+        OrderCoupons::NOT_COMBINABLE => 'COM_ALFA_ORDER_COUPON_NOT_COMBINABLE',
+        OrderCoupons::NOTHING_OFF => 'COM_ALFA_ORDER_COUPON_NOTHING_OFF',
+        OrderCoupons::ON_ORDER => 'COM_ALFA_ORDER_COUPON_ON_ORDER',
+        OrderCoupons::SHARES_NOT_KEPT => 'COM_ALFA_ORDER_COUPON_SHARES_NOT_KEPT',
+    ];
+
+    /**
+     * Add a code to a placed order, or put it in place of one the order holds, from the order screen's Coupons card.
+     *
+     * POST, token-checked, Orders edit. The card's sibling form posts the code, the coupon it replaces (0 = none) and
+     * the order; {@see OrderCoupons::add()} decides, and the page says what it did or why it did not.
+     *
+     * @since  2.3.0
+     */
+    public function addCoupon(): void
+    {
+        $this->checkToken();
+        $this->assertCanEdit();
+
+        $app = Factory::getApplication();
+        $orderId = RequestScalar::int($this->input, 'id_order');
+
+        try {
+            $result = OrderCoupons::add(
+                orderId: $orderId,
+                code: RequestScalar::string($this->input, 'code'),
+                replaces: RequestScalar::int($this->input, 'replaces'),
+            );
+
+            if ($result->outcome === CouponOutcome::APPLIED) {
+                $code = htmlspecialchars((string) $result->rule->code, ENT_QUOTES, 'UTF-8');
+                $amount = $result->rule->discountTaxIncl->format();
+                $app->enqueueMessage(
+                    $result->replaced === null
+                        ? Text::sprintf('COM_ALFA_ORDER_COUPON_ADDED', $code, $amount)
+                        : Text::sprintf('COM_ALFA_ORDER_COUPON_REPLACED', $code, htmlspecialchars($result->replaced, ENT_QUOTES, 'UTF-8'), $amount),
+                    'success',
+                );
+            } else {
+                $app->enqueueMessage(Text::_(self::COUPON_REFUSALS[$result->outcome] ?? 'COM_ALFA_ORDER_COUPON_NOT_FOUND'), 'warning');
+            }
+        } catch (Throwable $e) {
+            // Escaped, as every sibling task escapes.
+            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+        }
+
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false) . '#alfa-order-coupons');
+    }
+
+    /**
+     * Remove a code from a placed order, from the order screen's Coupons card.
+     *
+     * POST, token-checked, Orders edit. The button names the coupon (id_order_cart_rule); {@see OrderCoupons::remove()}
+     * decides.
+     *
+     * @since  2.3.0
+     */
+    public function removeCoupon(): void
+    {
+        $this->checkToken();
+        $this->assertCanEdit();
+
+        $app = Factory::getApplication();
+        $orderId = RequestScalar::int($this->input, 'id_order');
+        $orderRuleId = RequestScalar::int($this->input, 'id_order_cart_rule');
+
+        try {
+            // The code, for the message, as the order holds it before the removal.
+            $code = '';
+
+            foreach (OrderCoupons::onOrder(orderId: $orderId)->coupons as $coupon) {
+                if ((int) $coupon->id_order_cart_rule === $orderRuleId) {
+                    $code = (string) $coupon->code;
+                }
+            }
+
+            $outcome = OrderCoupons::remove(orderId: $orderId, orderRuleId: $orderRuleId);
+            $app->enqueueMessage(
+                $outcome === OrderCoupons::REMOVED
+                    ? Text::sprintf('COM_ALFA_ORDER_COUPON_REMOVED', htmlspecialchars($code, ENT_QUOTES, 'UTF-8'))
+                    : Text::_(self::COUPON_REFUSALS[$outcome]),
+                $outcome === OrderCoupons::REMOVED ? 'success' : 'warning',
+            );
+        } catch (Throwable $e) {
+            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+        }
+
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false) . '#alfa-order-coupons');
     }
 
     //  AJAX product search

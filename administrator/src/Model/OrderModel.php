@@ -45,13 +45,14 @@ use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCoupons;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
-use Alfa\Component\Alfa\Administrator\Service\Order\OrderRuleShares;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderRuleShares;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Order\ReconciliationFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
@@ -1542,6 +1543,9 @@ class OrderModel extends AlfaAdminModel
                 ->where('deleted = 0');
             $db->setQuery($discountQuery);
             $discountRows = $db->loadObjectList() ?: [];
+
+            // The coupons on the order, and whether staff may change them here.
+            $order->coupons = OrderCoupons::onOrder(orderId: (int) $order->id);
 
             // Load frozen cart contributions (labeled charge rows, for the
             // totals card and the formula alike)

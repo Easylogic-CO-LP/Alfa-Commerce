@@ -176,3 +176,8 @@ foreach ($this->form->getFieldsets() as $fieldsetName => $fieldset) {
     <input type="hidden" name="id_order" value="<?php echo (int) $this->order->id; ?>"/>
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
+
+<?php // Sibling form for the Coupons card (edit_coupons.php), for the same reasons. ?>
+<form id="alfa-order-coupon-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
+	<?php echo HTMLHelper::_('form.token'); ?>
+</form>

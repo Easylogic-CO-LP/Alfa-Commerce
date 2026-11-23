@@ -98,6 +98,7 @@ final class OrderLabels
         'document' => 'COM_ALFA_ORDER_HISTORY_ENTITY_DOCUMENT',
         'stock' => 'COM_ALFA_STOCK',
         'downloads' => 'COM_ALFA_ORDER_HISTORY_ENTITY_DOWNLOADS',
+        'coupon' => 'COM_ALFA_ORDER_HISTORY_ENTITY_COUPON',
     ];
 
     /**
