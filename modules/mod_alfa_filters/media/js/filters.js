@@ -17,6 +17,11 @@
  * .close(id) and .toggle(id). Where the panel sits in the page as a column (a screen
  * wider than the module's breakpoint), opening it brings it into view.
  *
+ * The panel is a dialog. Over the page it opens as a modal (showModal()): the browser
+ * draws it in its top layer, placed against the screen whatever the page's own boxes do
+ * (a header that slides away with a transform), the page behind it inert, Escape closing
+ * it with its own movement. As a column it is shown in the page by its open attribute.
+ *
  * @package    Alfa
  * @subpackage mod_alfa_filters
  */
@@ -739,51 +744,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const self = this;
 
+            // The panel is a dialog. As a column it is shown in the page by its open attribute
+            // (no focus moved, nothing made inert); over the page it is a modal in the browser's
+            // top layer, laid out closed there first so the opening is a movement from the
+            // closed look rather than a jump to the open one.
             this.open = ({ fullscreen = false } = {}) => {
+                if (fullscreen) {
+                    if (self.offCanvas.matches(':modal')) {
+                        self.opener = null;
+                        self.offCanvas.close();
+                    }
+
+                    self.offCanvas.toggleAttribute('open', true);
+                    htmlElement.classList.remove('alfa-filters-noscroll');
+                } else {
+                    if (!self.offCanvas.open) {
+                        self.offCanvas.showModal();
+                        self.offCanvas.getBoundingClientRect();
+                    }
+
+                    htmlElement.classList.add('alfa-filters-noscroll');
+                }
+
                 self.offCanvas.classList.add(
                     'alfa-filters-offcanvas--animatable',
                     'alfa-filters-offcanvas--visible',
                     'alfa-filters-offcanvas--visible-inner'
                 );
 
-                if (fullscreen) {
-                    htmlElement.classList.remove('alfa-filters-noscroll');
-                } else {
-                    htmlElement.classList.add('alfa-filters-noscroll');
-                }
-
                 self.tellOpeners(true);
                 self.isVisible = true;
             };
 
+            // Without its movement the dialog closes at once; with it, it closes once the
+            // panel's closing transitions have ended. The close event does the rest.
             this.close = ({ skipTransition = false } = {}) => {
+                self.isVisible = false;
+
                 if (skipTransition) {
-                    self.offCanvas.classList.remove(
-                        'alfa-filters-offcanvas--animatable',
-                        'alfa-filters-offcanvas--visible-inner',
-                        'alfa-filters-offcanvas--visible'
-                    );
-                    htmlElement.classList.remove('alfa-filters-noscroll');
-                    self.tellOpeners(false);
-                } else {
-                    self.offCanvas.classList.add('alfa-filters-offcanvas--animatable');
-                    self.offCanvas.classList.remove('alfa-filters-offcanvas--visible-inner');
+                    self.offCanvas.close();
 
-                    const handleTransitionEnd = (event) => {
-                        if (event.target !== innerWrapper) return;
+                    return;
+                }
 
-                        self.offCanvas.classList.remove('alfa-filters-offcanvas--visible');
-                        htmlElement.classList.remove('alfa-filters-noscroll');
-                        self.tellOpeners(false);
+                self.offCanvas.classList.add('alfa-filters-offcanvas--animatable');
+                self.offCanvas.classList.remove('alfa-filters-offcanvas--visible-inner');
+                self.closeWhenStill();
+            };
 
-                        innerWrapper.removeEventListener('transitionend', handleTransitionEnd);
-                    };
-
-                    innerWrapper.addEventListener('transitionend', handleTransitionEnd);
+            // Closed by any way at all (the panel's own close, a change to the column, the
+            // browser's own close): the panel and the page are put back in their closed state,
+            // and the focus goes back to what opened the panel. Shown again before this event
+            // came (a reopening, the column), it stays as it is.
+            this.offCanvas.addEventListener('close', () => {
+                if (self.offCanvas.open) {
+                    return;
                 }
 
                 self.isVisible = false;
-            };
+                self.offCanvas.classList.remove(
+                    'alfa-filters-offcanvas--animatable',
+                    'alfa-filters-offcanvas--visible-inner',
+                    'alfa-filters-offcanvas--visible'
+                );
+                htmlElement.classList.remove('alfa-filters-noscroll');
+                self.tellOpeners(false);
+
+                const back = self.opener;
+
+                self.opener = null;
+
+                if (back) {
+                    (document.contains(back) ? back : self.toggler)?.focus({ preventScroll: true });
+                }
+            });
+
+            // Escape is the panel's key handler's (below): a dropdown or a search box with text
+            // takes it first, then the panel closes with its own movement. The browser's instant
+            // close of the dialog is set aside.
+            this.offCanvas.addEventListener('cancel', (event) => event.preventDefault());
 
             this.offCanvas.addEventListener('transitionend', (event) => {
                 if (event.target === innerWrapper) {
@@ -791,9 +830,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // The backdrop, the close button and Escape close the panel and give the focus
-            // back to what opened it; the module's own button opens and closes it.
-            this.offCanvas.addEventListener('click', () => this.hide());
+            // The scrim (the dialog's own box around the panel), the close button and Escape
+            // close the panel and give the focus back to what opened it; the module's own
+            // button opens and closes it. A press on the loading layer closes nothing.
+            this.offCanvas.addEventListener('click', (event) => {
+                if (event.target === this.offCanvas) {
+                    this.hide();
+                }
+            });
             innerWrapper.addEventListener('click', (event) => event.stopPropagation());
             this.toggler.addEventListener('click', () => this.act('toggle', this.toggler));
 
@@ -879,7 +923,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         /**
-         * Close the panel that lies over the page, and give the focus back to what opened it.
+         * Close the panel that lies over the page; the focus goes back to what opened it once
+         * the dialog has closed (the page behind it is inert until then).
          */
         hide() {
             if (!this.isVisible || !this.isOverlay()) {
@@ -887,11 +932,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             this.close();
+        }
 
-            const back = this.opener && document.contains(this.opener) ? this.opener : this.toggler;
+        /**
+         * Close the dialog once the panel's closing transitions have ended, at once when it
+         * has none. Opened again meanwhile, it stays open.
+         */
+        async closeWhenStill() {
+            const closing = this.offCanvas.getAnimations({ subtree: true })
+                .filter((animation) => animation instanceof CSSTransition)
+                .map((animation) => animation.finished);
 
-            this.opener = null;
-            back?.focus({ preventScroll: true });
+            await Promise.allSettled(closing);
+
+            if (!this.isVisible && this.offCanvas.open) {
+                this.offCanvas.close();
+            }
         }
 
         /*

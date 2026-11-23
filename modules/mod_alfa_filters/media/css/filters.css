@@ -196,13 +196,42 @@
  * Overlay
  */
 
+/* The panel, a dialog: over the page the script opens it as a modal, so it lies in the
+   browser's top layer, placed against the screen whatever its ancestors do; as a column
+   it is shown in the page. The browser's own dialog frame (size limits, margin, padding,
+   border, colours, backdrop) is set aside; the panel draws its own scrim. */
 .alfa-filters-offcanvas {
     position: fixed;
     inset: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
     opacity: 0;
     pointer-events: none;
     z-index: 1001;
     display: flex;
+}
+
+/* Closed, it is not shown at all, and its controls are out of the Tab order. */
+.alfa-filters-offcanvas:not([open]) {
+    display: none;
+}
+
+/* Over the page: visible even inside a header that hides itself, and its movements never
+   scroll its frame. */
+.alfa-filters-offcanvas:modal {
+    visibility: visible;
+    overflow: hidden;
+}
+
+.alfa-filters-offcanvas::backdrop {
+    background: none;
 }
 
 .alfa-filters-offcanvas.alfa-filters-offcanvas--visible {

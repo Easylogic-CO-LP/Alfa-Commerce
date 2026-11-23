@@ -76,13 +76,21 @@ $moduleId = $module->id;
 <div class="mod-alfa-filters-wrapper mod-alfa-filters-<?= $moduleId ?> <?= $fixed ? 'alfa-filters-fixed ' . $fixed_pos :
  '' ?>" data-module-id="<?= $moduleId ?>" data-af-icon="<?= htmlspecialchars($groupSettings['icon'], ENT_QUOTES, 'UTF-8') ?>"<?= $groupSettings['turn'] ? ' data-af-icon-turn' : '' ?>>
     <button class="alfa-filters-offcanvas-toggler"
+            id="alfa-filters-toggler-<?=$moduleId?>"
+            aria-haspopup="dialog"
             aria-controls="alfa-filters-offcanvas-<?=$moduleId?>"
             aria-expanded="false">
 		<?= Text::_('MOD_ALFAFILTERS_TOGGLE_BUTTON_TXT') ?>
     </button>
 
-    <div class="alfa-filters-offcanvas-wrapper alfa-filters-offcanvas <?= $animation ?>"
-         id="alfa-filters-offcanvas-<?=$moduleId?>">
+    <?php // The panel is a dialog, named by the module's button. Over the page the script opens it as a
+          // modal: the browser draws it in its top layer, placed against the screen, so a page header that
+          // slides away with a transform cannot carry it off the screen, and the page behind it is inert.
+          // Where it can be a column it is printed open, so the column holds its place from the first
+          // paint; the script closes it where the screen is narrower than the breakpoint. ?>
+    <dialog class="alfa-filters-offcanvas-wrapper alfa-filters-offcanvas <?= $animation ?>"
+            id="alfa-filters-offcanvas-<?=$moduleId?>"
+            aria-labelledby="alfa-filters-toggler-<?=$moduleId?>"<?= $fixed ? '' : ' open' ?>>
         <div class="alfa-filters-wrapper-inner">
             <div class="alfa-filters-header">
                 <?php if ($headerTxt !== '') : ?>
@@ -122,23 +130,24 @@ $moduleId = $module->id;
                 </div>
             </form>
         </div>
-    </div>
-    <div class="alfa-filters-loading-overlay" aria-hidden="true">
-        <?php if ($loadingImg === 'image'): ?>
-            <div class="af-loading-anim">
-                <img src="<?=htmlspecialchars($loadingImageFile, ENT_QUOTES, 'UTF-8')?>" alt="<?= Text::_('MOD_ALFAFILTERS_LOADING_ICON_ALT') ?>">
-            </div>
-        <?php elseif ($loadingImg === 'svg' && !empty($svg_loading_icon)) : ?>
-            <div class="af-loading-anim">
-	            <?= $svg_loading_icon ?>
-            </div>
-        <?php else :?>
-            <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="47" fill="none" stroke="#e0e0e0" stroke-width="3"/>
-                <circle cx="50" cy="50" r="47" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="74 222" stroke-linecap="round">
-                    <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="0.6s" repeatCount="indefinite"/>
-                </circle>
-            </svg>
-        <?php endif; ?>
-    </div>
+        <?php // Inside the dialog, so it shows over the panel in the top layer too. ?>
+        <div class="alfa-filters-loading-overlay" aria-hidden="true">
+            <?php if ($loadingImg === 'image'): ?>
+                <div class="af-loading-anim">
+                    <img src="<?=htmlspecialchars($loadingImageFile, ENT_QUOTES, 'UTF-8')?>" alt="<?= Text::_('MOD_ALFAFILTERS_LOADING_ICON_ALT') ?>">
+                </div>
+            <?php elseif ($loadingImg === 'svg' && !empty($svg_loading_icon)) : ?>
+                <div class="af-loading-anim">
+                    <?= $svg_loading_icon ?>
+                </div>
+            <?php else :?>
+                <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="47" fill="none" stroke="#e0e0e0" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="47" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="74 222" stroke-linecap="round">
+                        <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="0.6s" repeatCount="indefinite"/>
+                    </circle>
+                </svg>
+            <?php endif; ?>
+        </div>
+    </dialog>
 </div>
