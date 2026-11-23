@@ -40,6 +40,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseDriver;
+use Joomla\Database\ParameterType;
 use RuntimeException;
 use Throwable;
 
