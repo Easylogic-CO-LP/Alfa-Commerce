@@ -31,10 +31,15 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -42,6 +47,7 @@ use Alfa\Component\Alfa\Administrator\Service\Download\Storage;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryCommands;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityNotice;
@@ -97,6 +103,21 @@ use Throwable;
  */
 class ItemModel extends AlfaAdminModel
 {
+    /**
+     * What the last save of this model came to.
+     *
+     * @since  2.3.0
+     */
+    private ?ItemWriteResult $written = null;
+
+    /**
+     * The steps of the product's graph a REST write sends with it, laid on the write the save builds.
+     *
+     * @var (\Closure(ItemWriteService): void)|null
+     * @since  2.3.0
+     */
+    private ?\Closure $graph = null;
+
     /**
      * @var string Alias to manage history control
      */
@@ -654,7 +675,66 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
-     * Method to save the form data.
+     * The item screen's and the REST API's save: the request read into the item write (ItemWriteService), the one way
+     * a product is saved; its refusals stay the model's errors and its warnings are queued as messages.
+     *
+     * @param array $data The form data, validated.
+     *
+     * @return bool True on success, False on error.
+     *
+     * @since  1.0.0
+     */
+    public function save($data)
+    {
+        $input = Factory::getApplication()->getInput();
+        $id = (int) ($data['id'] ?? 0);
+        $write = ($id > 0 ? ItemWriteService::change(id: $id) : ItemWriteService::create())
+            ->validated(data: $data, form: $input->post->get('jform', [], 'array'))
+            ->files(files: $input->files->get('jform')['uploads'] ?? []);
+
+        if (RequestScalar::cmd($input, 'task') === 'save2copy') {
+            $write->asCopyOf(originalId: RequestScalar::int($input, 'id'));
+        }
+
+        if ($this->graph !== null) {
+            ($this->graph)($write);
+        }
+
+        $this->written = $write->save(model: $this);
+
+        foreach ($this->written->warnings as $warning) {
+            Factory::getApplication()->enqueueMessage($warning['message'], $warning['type']);
+        }
+
+        return $this->written->saved;
+    }
+
+    /**
+     * The product's graph a REST write sends with it (its item fields' values, options, specifications, combinations
+     * and their stock): the steps laid on the write this model's save builds, so the product and its graph are saved
+     * in one transaction ({@see ItemWriteService}).
+     *
+     * @param \Closure(ItemWriteService): void $steps The steps.
+     *
+     * @since  2.3.0
+     */
+    public function expectGraph(\Closure $steps): void
+    {
+        $this->graph = $steps;
+    }
+
+    /**
+     * What the last save of this model came to, for a caller that reports it (the REST API's meta.warnings).
+     *
+     * @since  2.3.0
+     */
+    public function written(): ?ItemWriteResult
+    {
+        return $this->written;
+    }
+
+    /**
+     * The item save, run by ItemWriteService::save().
      *
      * Extends the parent save() to also maintain the price index.
      *
@@ -707,27 +787,31 @@ class ItemModel extends AlfaAdminModel
      * stock of an existing product is recorded by the inventory service, so every
      * cached stock verdict is rebuilt.
      *
-     * @param array $data The form data.
+     * @internal ItemWriteService::save() runs it: an extension saves a product through the service.
+     *
+     * @param ItemWriteService $write The write: the data, the form as posted, the uploaded files, a copy's original.
      *
      * @return bool True on success, False on error.
      *
-     * @since  1.0.0
+     * @since  2.3.0
      */
-    public function save($data)
+    public function write(ItemWriteService $write): bool
     {
-        $app = Factory::getApplication();
-        $input = $app->getInput();
+        $data = $write->data();
         $table = $this->getTable();
 
         // Recover the per-language flat keys (e.g. name_en_gb) and other undeclared
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = $input->post->get('jform', [], 'array');
+        $rawData = $write->form();
         $form = $this->getForm(data: $data, loadData: false) ?: null;
         $data = MultilingualHelper::mergeValidatedFormData(validated: $data, raw: $rawData, form: $form);
 
         $pk = (int) ($data['id'] ?? (int) $this->getState($this->getName() . '.id'));
+
+        // The SKUs the product and its combinations hold before the save: one they keep is never refused for it.
+        $skusBefore = SkuIndex::skusOf(itemId: $pk);
 
         // STOCK INTENT. The stock field never writes a column: a posted figure is an
         // instruction to the inventory service, applied after the row save. A shop
@@ -788,7 +872,7 @@ class ItemModel extends AlfaAdminModel
             ['robots' => $data['robots'] ?? ''],
         );
 
-        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+        $newDropped = $write->uploads();
 
         // A NEW category of the product, or a new default category, must be available (not archived or trashed,
         // not inside an archived or trashed category); a category the product already holds is kept.
@@ -918,12 +1002,25 @@ class ItemModel extends AlfaAdminModel
         // URL ALIASES, judged before anything is written: a save that would put this product
         // on another one's address in any language is refused; an address it already shared
         // is kept and said after the save. A copy takes its own aliases, generated.
-        if (RequestScalar::cmd($input, 'task') === 'save2copy') {
+        if ($write->isCopy()) {
+            // A SKU names one product: a copy of a product keeps none of the SKU its original holds, and says so.
+            $copiedSku = trim((string) ($data['sku'] ?? ''));
+            $skuHolder = $copiedSku === '' ? null : SkuIndex::holder(sku: $copiedSku);
+
+            if ($skuHolder !== null) {
+                $data['sku'] = '';
+                $write->warn(msg: Text::sprintf(
+                    'COM_ALFA_SKU_COPY_LEFT_EMPTY',
+                    SkuIndex::shown(sku: $copiedSku),
+                    InventoryUnitException::labelFor(itemId: $skuHolder->itemId, combinationId: $skuHolder->combinationId),
+                ));
+            }
+
             $data = MultilingualHelper::releaseCopiedAliases(
                 data:              $data,
                 tableName:         '#__alfa_items',
                 primaryColumnName: 'id_item',
-                originalId:        RequestScalar::int($input, 'id'),
+                originalId:        $write->copyOf(),
                 aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
             );
         }
@@ -1043,7 +1140,7 @@ class ItemModel extends AlfaAdminModel
             );
 
             foreach ($aliasClashes['warn'] as $warning) {
-                $app->enqueueMessage($warning, 'warning');
+                $write->warn($warning, 'warning');
             }
 
             if (!empty($data['media'])) {
@@ -1112,24 +1209,11 @@ class ItemModel extends AlfaAdminModel
             // product deleted since the check above leaves no link.
             RelatedItems::replace(db: $db, itemId: (int) $currentId, ids: $relatedIds);
 
-            // ITEM FIELDS: no wizard step; option values are ADDED via the
-            // picker popup (item.addOptions), informational values save via
-            // their popup (item.saveFieldSettings), combinations via the
-            // explicit generator. The item save persists the LIST edits:
-            // option deltas + deferred option removals (variants-grid mechanics).
-            ItemFieldsAdminHelper::saveItemOptions(
-                itemId:          $currentId,
-                payload:         (array) ($data['options'] ?? []),
-                deletedValueIds: (string) ($data['deleted_option_value_ids'] ?? ''),
-            );
-            ItemFieldsAdminHelper::deleteItemInfoValues(
-                itemId:          $currentId,
-                deletedValueIds: (string) ($data['deleted_info_value_ids'] ?? ''),
-            );
-            ItemFieldsAdminHelper::saveItemInfoOrder(
-                itemId:          $currentId,
-                orderedValueIds: (array) ($data['info_values'] ?? []),
-            );
+            // ITEM FIELDS: options and specifications are ADDED by their pickers (item.addOptions, item.addInfoValues),
+            // combinations by the generator. The item save writes the LIST edits through the one way they are written
+            // (ItemOptionService): the options' price changes, order and removals, and the specifications' removals
+            // and order. A refused option list leaves both lists as they were and says why; the rest of the save stands.
+            $this->saveOptionLists(itemId: (int) $currentId, data: $data, write: $write);
             // Per-item GROUP order: the option/info field groups, dragged by header.
             ItemFieldsAdminHelper::saveItemFieldOrder(
                 itemId:          $currentId,
@@ -1181,7 +1265,7 @@ class ItemModel extends AlfaAdminModel
                     category: 'com_alfa.inventory',
                 );
 
-                $app->enqueueMessage(
+                $write->warn(
                     msg:  Text::sprintf('COM_ALFA_ITEM_SAVED_VARIANTS_NOT_CHANGED', $combinationError->getMessage()),
                     type: 'error',
                 );
@@ -1236,7 +1320,7 @@ class ItemModel extends AlfaAdminModel
                     // Stock reserved after the pre-flight is refused by the kernel under
                     // the record's lock; the operator reads the floor it keeps. Its
                     // sentence is complete, so it follows the saved notice whole.
-                    $app->enqueueMessage(
+                    $write->warn(
                         msg:  match (true) {
                             $stockError instanceof InventoryIntegrityException => $this->inventoryRefusalMessage(error: $stockError),
                             $stockError instanceof InventoryReservedFloorException => Text::sprintf(
@@ -1291,6 +1375,10 @@ class ItemModel extends AlfaAdminModel
 
                 $archived = $this->publish(pks: $moved, value: $archiveMove);
             }
+
+            // The product's SKUs and its combinations' in the registry, in this transaction: a SKU another product or
+            // variant holds refuses the save, and nothing of it is kept.
+            SkuIndex::keep(itemId: $currentId, before: $skusBefore);
 
             // What follows the save, once it has committed.
             PostCommit::defer(
@@ -1353,6 +1441,13 @@ class ItemModel extends AlfaAdminModel
             // Nothing of the save is kept: its writes and what it deferred go with its transaction. The mark of an
             // existing item, written before it, stays and is cleared by the next rebuild.
             TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            // A SKU in use is the merchant's to change: the refusal is said as it is, never as a failed save.
+            if ($e instanceof SkuInUseException) {
+                $this->setError($e);
+
+                return false;
+            }
 
             // Prices changed since they were read: the writer is told so, by the refusal itself.
             if ($e instanceof PricesStateChanged) {
@@ -2116,6 +2211,85 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
+     * The item screen's Options and Informational lists saved with the product, through ItemOptionService: each option
+     * still on the product takes its posted price change (an operation without a numeric amount, or a fixed amount's
+     * base outside start and final, is no price change, as the list's inputs mean it) and its posted place; the options
+     * removed in the list go; the specifications removed in the list go and the others take their posted order (one
+     * not posted keeps its place after them). The two lists are written as two steps: a refused option list leaves the
+     * specifications' changes standing, as the screen saves them apart.
+     *
+     * @param int $itemId The product.
+     * @param array $data The save's data: options, deleted_option_value_ids, info_values, deleted_info_value_ids.
+     * @param ItemWriteService $write The write, told the refusals.
+     *
+     * @since  2.3.0
+     */
+    private function saveOptionLists(int $itemId, array $data, ItemWriteService $write): void
+    {
+        $ids = static fn (mixed $list): array => array_values(array_unique(array_filter(array_map('intval', \is_array($list) ? $list : explode(',', (string) $list)), static fn (int $id): bool => $id > 0)));
+        $current = array_column(ItemOptionService::options(itemId: $itemId), 'value_id');
+        $deleted = array_values(array_intersect($ids($data['deleted_option_value_ids'] ?? ''), $current));
+        $options = ItemOptionService::of(itemId: $itemId);
+        $order = [];
+
+        if ($deleted !== []) {
+            $options->remove(valueIds: $deleted);
+        }
+
+        foreach ((array) ($data['options'] ?? []) as $valueId => $delta) {
+            $valueId = (int) $valueId;
+
+            // A row of an option no longer on the product (removed elsewhere since the form was drawn) is passed over.
+            if (!\in_array($valueId, $current, true) || \in_array($valueId, $deleted, true)) {
+                continue;
+            }
+
+            $delta = (array) $delta;
+            $operation = \in_array($delta['operation'] ?? '', ItemOptionService::OPERATIONS, true) ? (string) $delta['operation'] : null;
+            $amount = trim((string) ($delta['amount'] ?? ''));
+
+            if ($amount === '' || !is_numeric($amount)) {
+                $operation = null;
+            }
+
+            $applyOn = \in_array($delta['apply_on'] ?? '', ItemOptionService::APPLY_ON, true) ? (string) $delta['apply_on'] : null;
+            $options->change(valueId: $valueId, operation: $operation, amount: $operation === null ? null : $amount, applyOn: $applyOn);
+            $order[] = $valueId;
+        }
+
+        if ($order !== []) {
+            $options->order(valueIds: $order);
+        }
+
+        $result = $options->save();
+
+        if (!$result->saved) {
+            foreach ($result->refusals as $refusal) {
+                $write->warn($refusal->sentence, 'error');
+            }
+
+            $write->warn(Text::_('COM_ALFA_ITEM_OPTIONS_NOT_SAVED'), 'error');
+        }
+
+        $specifications = array_column(ItemOptionService::specifications(itemId: $itemId), 'value_id');
+        $removed = $ids($data['deleted_info_value_ids'] ?? '');
+        $posted = $ids($data['info_values'] ?? []);
+
+        if ($removed === [] && $posted === []) {
+            return;
+        }
+
+        $kept = array_values(array_diff($specifications, $removed));
+        $result = ItemOptionService::of(itemId: $itemId)
+            ->informational(valueIds: array_merge(array_values(array_intersect($posted, $kept)), array_values(array_diff($kept, $posted))))
+            ->save();
+
+        foreach ($result->refusals as $refusal) {
+            $write->warn($refusal->sentence, 'error');
+        }
+    }
+
+    /**
      * Apply the item form's changed stock figures through the inventory kernel.
      *
      * Extracted so the caller can catch a kernel refusal without swallowing
@@ -2192,49 +2366,46 @@ class ItemModel extends AlfaAdminModel
             return;
         }
 
-        $db = $this->alfaDriver();
-        $unapplied = false;
+        // One adjustment, the changed figures its lines: every location converges, or none does.
+        $adjustment = InventoryCommands::adjust()->source(type: 'catalog_edit', id: $itemId)->by(context: InventoryContext::ambient());
 
-        $db->transactionStart(asSavepoint: true);
-
-        try {
-            $service->lockItemStock(itemId: $itemId);
-
-            foreach ($targets as $locationId => $target) {
-                $applied = $service->adjustTo(
-                    itemId:        $itemId,
-                    combinationId: null,
-                    locationId:    (int) $locationId,
-                    target:        $target,
-                    sourceType:    'catalog_edit',
-                    sourceId:      $itemId,
-                    context:       InventoryContext::ambient(),
-                );
-
-                // Null means the product is no longer a stock unit of its own.
-                if ($applied === null) {
-                    $unapplied = true;
-
-                    break;
-                }
-            }
-
-            // The change stands whole or not at all: what the locations already
-            // converged would announce is discarded with a change that does not.
-            if ($unapplied) {
-                TransactionState::rollBackLevel(db: $db, failure: new RuntimeException('The product is no longer a stock unit of its own.'));
-            } else {
-                TransactionState::commitLevel(db: $db);
-            }
-        } catch (Throwable $e) {
-            TransactionState::rollBackLevel(db: $db, failure: $e);
-
-            throw $e;
+        foreach ($targets as $locationId => $target) {
+            $adjustment->set(itemId: $itemId, combinationId: null, locationId: (int) $locationId, quantity: (float) $target);
         }
 
-        if ($unapplied) {
+        $outcome = $adjustment->apply();
+
+        if ($outcome->applied) {
+            return;
+        }
+
+        // The product is no longer a stock unit of its own.
+        if ($outcome->unapplied) {
             throw new RuntimeException($this->unappliedStockReason(itemId: $itemId));
         }
+
+        // A figure the save's own check passed and the stock records refuse now: the floor in the inventory service's
+        // own sentence, any other reason in the save's words.
+        foreach ($outcome->problemsAsStated() as $problem) {
+            if (($problem['code'] ?? '') === 'reserved_floor') {
+                throw new InventoryReservedFloorException(
+                    itemId: $itemId,
+                    combinationId: 0,
+                    locationId: (int) $problem['location_id'],
+                    onHand: (float) $problem['on_hand'],
+                    reserved: (float) $problem['reserved'],
+                    requested: (float) $problem['requested'],
+                    minimum: (float) $problem['minimum'],
+                    command: 'adjust',
+                );
+            }
+        }
+
+        if ($outcome->problems !== []) {
+            throw new RuntimeException(implode(' ', $this->targetRefusals(problems: $outcome->problemsAsStated())));
+        }
+
+        throw $outcome->failure ?? new RuntimeException($this->unappliedStockReason(itemId: $itemId));
     }
 
     /**
@@ -3431,6 +3602,9 @@ class ItemModel extends AlfaAdminModel
                     )->execute();
                 }
 
+                // Their SKUs are free again.
+                SkuIndex::forget(itemIds: array_map('intval', $deletePks));
+
                 TransactionState::commitLevel(db: $db);
             } catch (InventoryUnitRetirementException $retirement) {
                 TransactionState::rollBackLevel(db: $db, failure: $retirement);
@@ -3657,7 +3831,8 @@ class ItemModel extends AlfaAdminModel
             $priceObject->value = StoredDecimal::ofTyped($price['value'] ?? null) ?? StoredDecimal::of(ExactAmount::of('0'));
             $priceObject->override_value = StoredDecimal::ofTyped($price['override_value'] ?? null);
             $priceObject->override_type = in_array($price['override_type'] ?? '', ['start', 'final'], true) ? $price['override_type'] : 'start';
-            $priceObject->state = ((string) ($price['price_status'] ?? '1') === '1') ? 1 : 0;
+            // The form posts a row's state as price_status; the REST API and a stored row read back carry it as state.
+            $priceObject->state = ((string) ($price['price_status'] ?? $price['state'] ?? '1') === '1') ? 1 : 0;
             $priceObject->country_id = isset($price['country_id']) ? intval($price['country_id']) : 0;
             $priceObject->usergroup_id = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
             $priceObject->user_id = isset($price['user_id']) ? intval($price['user_id']) : 0;

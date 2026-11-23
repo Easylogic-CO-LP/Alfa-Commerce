@@ -17,8 +17,8 @@ $this->getDocument()->getWebAssetManager()->useScript('com_alfa.sortable');
 
 /**
  * Inline value pool. Every value of the field is managed right here: names
- * per language and the type plugin's per-value config (params/value.xml). The alias auto-generates per language
- * on save (and powers greeklish search).
+ * per language, the value's code (its machine key for an ERP, unique in the field) and the type plugin's per-value
+ * config (params/value.xml). The alias auto-generates per language on save (and powers greeklish search).
  *
  * Row inputs post as jform[values][<idx>][...]; removed existing rows collect
  * in the deleted_value_ids hidden field. Plugin value-config renders on SAVED
@@ -69,6 +69,14 @@ $renderValueRow = function ($idx, $row = null) {
                             </div>
                         <?php endforeach; ?>
 
+                        <div>
+                            <label class="form-label small mb-0" for="<?php echo $idBase; ?>_code"><?php echo Text::_('COM_ALFA_ITEMFIELDVALUES_CODE'); ?></label>
+                            <input type="text" class="form-control form-control-sm" maxlength="64"
+                                   id="<?php echo $idBase; ?>_code"
+                                   name="<?php echo $base; ?>[code]"
+                                   title="<?php echo $this->escape(Text::_('COM_ALFA_ITEMFIELDVALUES_CODE_DESC')); ?>"
+                                   value="<?php echo $this->escape((string) ($row->code ?? '')); ?>">
+                        </div>
                     </div>
 
                     <?php if ($valueId > 0 && $this->valueXmlPath) : ?>

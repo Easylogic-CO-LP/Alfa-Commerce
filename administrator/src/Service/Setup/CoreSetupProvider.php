@@ -15,6 +15,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SignUpHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
 use Alfa\Component\Alfa\Administrator\Setup\MenuProvisioningService;
 use Alfa\Component\Alfa\Administrator\Setup\SetupCheck;
 use Joomla\CMS\Component\ComponentHelper;
@@ -251,6 +253,31 @@ final class CoreSetupProvider
             ->tour('com_alfa.document-series')
             ->priority(400)
             ->probe(static fn (): bool => self::exists(table: '#__alfa_document_series', where: ['state' => 1]));
+
+        // SKUs held by more than one product or variant: each SKU names one unit, so the REST API cannot find such a SKU
+        // and no other unit can take it. Read once per computation: the state and the reason follow.
+        $duplicateSkus = null;
+        $skuDuplicates = static function () use (&$duplicateSkus): array {
+            return $duplicateSkus ??= SkuIndex::duplicates();
+        };
+
+        $this->check('catalog.sku_unique', 'COM_ALFA_SETUP_CHECK_SKU_UNIQUE_LABEL')
+            ->tier(SetupCheck::TIER_RECOMMENDED)
+            ->reason('COM_ALFA_SETUP_CHECK_SKU_UNIQUE')
+            ->cta('index.php?option=com_alfa&view=items')
+            ->priority(381)
+            ->probe(static fn (): string => $skuDuplicates() === [] ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN)
+            ->reasonArguments(
+                arguments: static fn (): array => $skuDuplicates() === [] ? [] : [
+                    (string) \count($skuDuplicates()),
+                    implode('; ', array_map(
+                        static fn (string $sku, array $units): string => SkuIndex::shown(sku: $sku) . ' (' . implode(', ', $units) . ')',
+                        array_map('strval', array_keys($skuDuplicates())),
+                        array_values($skuDuplicates()),
+                    )),
+                ],
+                unnamed:   'COM_ALFA_SETUP_CHECK_SKU_UNIQUE_UNNAMED',
+            );
 
         $this->check('mail.configured', 'COM_ALFA_SETUP_CHECK_MAIL_LABEL')
             ->tier(SetupCheck::TIER_RECOMMENDED)

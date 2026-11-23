@@ -1229,6 +1229,20 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
 
 --
+-- Every SKU in use, once: a product's own SKU and each combination's, archived ones included. The key is the SKU,
+-- compared without regard to letter case, so one SKU names one unit; every writer of a SKU keeps its product's rows
+-- here in its own transaction (SkuIndex::keep()), and the REST API finds a unit by its SKU through it.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_skus` (
+  `sku` varchar(255) NOT NULL COMMENT 'A SKU in use, trimmed; compared without regard to letter case',
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination; 0 for the product itself',
+  PRIMARY KEY (`sku`),
+  UNIQUE KEY `uq_unit` (`item_id`, `combination_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Every SKU in use, once: products and combinations, archived ones included';
+
+--
 -- Table structure for table `#__alfa_items_prices`
 --
 
@@ -3323,6 +3337,23 @@ CREATE TABLE IF NOT EXISTS `#__alfa_action_once` (
   PRIMARY KEY (`id_user`, `key_hash`),
   KEY `idx_claimed` (`claimed`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='One-time action keys already used, per user';
+
+--
+-- The Idempotency-Keys of the REST API's writes: a write sent again with the same key is answered with what the first
+-- one stored and applies nothing; the same key with another body is refused. Claimed in the write's transaction, so a
+-- refused write keeps no key. Kept 30 days (IdempotencyKeys).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_api_keys` (
+  `created_by` int(11) NOT NULL COMMENT 'The API user whose key it is',
+  `scope` varchar(32) NOT NULL COMMENT 'The write the key names, such as inventory.adjustments',
+  `key_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the key the client sent',
+  `request_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the request body in its canonical form',
+  `result` text DEFAULT NULL COMMENT 'JSON: what the write answered (the ids and operation ids it wrote), to answer a replay',
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`created_by`, `scope`, `key_hash`),
+  KEY `idx_created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Idempotency keys of REST API writes, kept 30 days';
 
 --
 -- The tasks table: a single is one thing a change owes after its commit (an e-mail, a

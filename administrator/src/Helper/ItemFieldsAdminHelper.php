@@ -16,10 +16,12 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryCommands;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryProjectionMismatchException;
@@ -1222,7 +1224,7 @@ class ItemFieldsAdminHelper
      *
      * @since  2.0.0
      */
-    private static function ensureOnePublishedDefault(int $itemId): void
+    public static function ensureOnePublishedDefault(int $itemId): void
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
 
@@ -1391,85 +1393,6 @@ class ItemFieldsAdminHelper
         $ids = array_map('intval', $db->loadColumn() ?: []);
 
         return $ids;
-    }
-
-    /**
-     * ADD option values (the picker popup, generator-style): only MISSING
-     * rows are inserted, with no delta: additive and idempotent. Deltas are
-     * edited inline in the Options list and persist with the item save;
-     * removal happens in the list too (deferred, like the variants grid).
-     *
-     * @param int $itemId The item id.
-     * @param array $valueIds Picked pool value ids.
-     *
-     * @return int Number of option rows created.
-     *
-     * @since  2.0.0
-     */
-    public static function addItemOptions(int $itemId, array $valueIds): int
-    {
-        if ($itemId <= 0 || !$valueIds) {
-            return 0;
-        }
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $eligible = array_diff(
-            self::getEligibleChoiceFieldIds(itemId: $itemId),
-            self::getCombinationFieldIds(itemId: $itemId),
-        );
-
-        if (!$eligible) {
-            return 0;
-        }
-
-        // Validate values: published, of an eligible non-dimension field.
-        $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->qn('id'))
-                ->from($db->qn('#__alfa_item_field_values'))
-                ->whereIn($db->qn('id'), array_map('intval', $valueIds))
-                ->whereIn($db->qn('item_field_id'), $eligible)
-                ->where($db->qn('state') . ' = 1'),
-        );
-        $validIds = array_map('intval', $db->loadColumn() ?: []);
-
-        if (!$validIds) {
-            return 0;
-        }
-
-        $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->qn('value_id'))
-                ->from($db->qn('#__alfa_item_option_values'))
-                ->where($db->qn('item_id') . ' = ' . $itemId),
-        );
-        $existing = array_map('intval', $db->loadColumn() ?: []);
-
-        // Insert in the PICKED order (the popup posts values in drag order), so a
-        // value dragged before another is created before it; its ordering follows.
-        $validSet = array_flip($validIds);
-        $existingSet = array_flip($existing);
-        $added = 0;
-
-        foreach ($valueIds as $valueId) {
-            $valueId = (int) $valueId;
-
-            if ($valueId <= 0 || !isset($validSet[$valueId]) || isset($existingSet[$valueId])) {
-                continue;
-            }
-
-            $optionRow = (object) [
-                'item_id' => $itemId,
-                'value_id' => $valueId,
-                'operation' => null,
-                'amount' => null,
-                'ordering' => count($existing) + $added,
-            ];
-            $db->insertObject('#__alfa_item_option_values', $optionRow);
-            $added++;
-        }
-
-        return $added;
     }
 
     /**
@@ -2045,271 +1968,6 @@ class ItemFieldsAdminHelper
         }
 
         return $out;
-    }
-
-    /**
-     * Persist the Options LIST edits with the item save (variants-grid
-     * mechanics): update each remaining row's delta, hard-delete the rows
-     * removed in the list (deferred via the hidden deleted-ids input).
-     *
-     * @param int $itemId The item id.
-     * @param array $payload jform[options]: [value_id => ['operation' => '+|-|%|', 'amount' => string]].
-     * @param string $deletedValueIds Comma list of value ids removed in the list.
-     *
-     * @return void Nothing of the list is written when a delta is refused; the
-     *              refusals are queued as error messages naming each figure.
-     *
-     * @since  2.0.0
-     */
-    public static function saveItemOptions(int $itemId, array $payload, string $deletedValueIds): void
-    {
-        if ($itemId <= 0) {
-            return;
-        }
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
-        $deleted = array_values(array_filter(array_map('intval', explode(',', $deletedValueIds))));
-
-        // A delta its column cannot hold as it is is refused by name, before
-        // anything of the list is written: the column never rounds a delta.
-        $refused = [];
-
-        foreach ($payload as $valueId => $delta) {
-            $delta = (array) $delta;
-            $amount = trim((string) ($delta['amount'] ?? ''));
-
-            if ((int) $valueId <= 0 || in_array((int) $valueId, $deleted, true) || !in_array($delta['operation'] ?? '', ['+', '-', '%', '-%'], true)
-                || $amount === '' || !is_numeric($amount)) {
-                continue;
-            }
-
-            $refused[] = match (\Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal::refusal(value: \Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount::ofNumber($amount))) {
-                \Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal::FINER => Text::sprintf('COM_ALFA_ERROR_DECIMAL_TOO_FINE', $amount, \Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal::SCALE),
-                \Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal::LARGER => Text::sprintf('COM_ALFA_ERROR_DECIMAL_TOO_LARGE', $amount),
-                default => null,
-            };
-        }
-
-        $refused = array_values(array_filter($refused));
-
-        if ($refused !== []) {
-            $app = Factory::getApplication();
-
-            foreach ($refused as $message) {
-                $app->enqueueMessage($message, 'error');
-            }
-
-            $app->enqueueMessage(Text::_('COM_ALFA_ITEM_OPTIONS_NOT_SAVED'), 'error');
-
-            return;
-        }
-
-        if ($deleted) {
-            // The removed rows' ids FIRST: their option-scoped field params
-            // (configurator areas, subscription terms, ...) go with them, or a
-            // later re-add gets a fresh row id and the stale config would sit
-            // orphaned forever (and a reused id would resurrect it wrongly).
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->qn('id'))
-                    ->from($db->qn('#__alfa_item_option_values'))
-                    ->where($db->qn('item_id') . ' = ' . $itemId)
-                    ->whereIn($db->qn('value_id'), $deleted),
-            );
-            $removedRowIds = array_map('intval', $db->loadColumn() ?: []);
-
-            if ($removedRowIds) {
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->delete($db->qn('#__alfa_item_combination_field_params'))
-                        ->where($db->qn('scope') . ' = ' . $db->quote('option'))
-                        ->whereIn($db->qn('scope_id'), $removedRowIds),
-                );
-                $db->execute();
-            }
-
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->qn('#__alfa_item_option_values'))
-                    ->where($db->qn('item_id') . ' = ' . $itemId)
-                    ->whereIn($db->qn('value_id'), $deleted),
-            );
-            $db->execute();
-        }
-
-        // Drag-to-reorder: the rows post in document (dragged) order, so the
-        // running position IS the per-item ordering (Sortable is per field, so
-        // a field's values keep their relative order regardless of the others).
-        $position = 0;
-
-        foreach ($payload as $valueId => $delta) {
-            $valueId = (int) $valueId;
-
-            if ($valueId <= 0 || in_array($valueId, $deleted, true)) {
-                continue;
-            }
-
-            $delta = (array) $delta;
-            $operation = in_array($delta['operation'] ?? '', ['+', '-', '%', '-%'], true) ? $delta['operation'] : null;
-            $amount = trim((string) ($delta['amount'] ?? ''));
-            // A delta is a number; it is handed to its column as its exact
-            // decimal text, never a float printed with fourteen digits.
-            $hasDelta = $operation !== null && $amount !== '' && is_numeric($amount);
-
-            // Net/gross base for a fixed-amount delta. NULL = follow the global
-            // config (resolved at price time); only meaningful while a delta runs.
-            $applyOn = in_array($delta['apply_on'] ?? '', ['start', 'final'], true) ? $delta['apply_on'] : null;
-
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->update($db->qn('#__alfa_item_option_values'))
-                    ->set($db->qn('operation') . ' = ' . ($hasDelta ? $db->quote($operation) : 'NULL'))
-                    ->set($db->qn('amount') . ' = ' . ($hasDelta ? $db->quote(\Alfa\Component\Alfa\Administrator\Filter\DecimalFilter::text($amount)) : 'NULL'))
-                    ->set($db->qn('apply_on') . ' = ' . ($hasDelta && $applyOn !== null ? $db->quote($applyOn) : 'NULL'))
-                    ->set($db->qn('ordering') . ' = ' . $position++)
-                    ->where($db->qn('item_id') . ' = ' . $itemId)
-                    ->where($db->qn('value_id') . ' = ' . $valueId),
-            );
-            $db->execute();
-        }
-    }
-
-    /**
-     * ADD informational values (the picker popup, generator-style): only
-     * MISSING rows are inserted: additive and idempotent. Removal happens
-     * in the Informational list (deferred, persists with the item save).
-     *
-     * @param int $itemId The item id.
-     * @param array $valueIds Picked pool value ids.
-     *
-     * @return int Number of rows created.
-     *
-     * @since  2.0.0
-     */
-    public static function addItemInfoValues(int $itemId, array $valueIds): int
-    {
-        if ($itemId <= 0 || !$valueIds) {
-            return 0;
-        }
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
-        // Validate: published values of published INFORMATIONAL fields.
-        $db->setQuery(
-            $db->getQuery(true)
-                ->select('v.id')
-                ->from($db->qn('#__alfa_item_field_values', 'v'))
-                ->join('INNER', $db->qn('#__alfa_item_fields', 'f') . ' ON f.id = v.item_field_id')
-                ->whereIn($db->qn('v.id'), array_map('intval', $valueIds))
-                ->where('v.state = 1')
-                ->where('f.state = 1')
-                ->where('f.informational = 1'),
-        );
-        $validIds = array_map('intval', $db->loadColumn() ?: []);
-
-        if (!$validIds) {
-            return 0;
-        }
-
-        $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->qn('value_id'))
-                ->from($db->qn('#__alfa_item_info_values'))
-                ->where($db->qn('item_id') . ' = ' . $itemId),
-        );
-        $existing = array_map('intval', $db->loadColumn() ?: []);
-
-        // Insert in the PICKED order (the popup posts values in drag order), so the
-        // created rows' ordering follows the order you arranged them in the popup.
-        $validSet = array_flip($validIds);
-        $existingSet = array_flip($existing);
-        $added = 0;
-
-        foreach ($valueIds as $valueId) {
-            $valueId = (int) $valueId;
-
-            if ($valueId <= 0 || !isset($validSet[$valueId]) || isset($existingSet[$valueId])) {
-                continue;
-            }
-
-            $infoRow = (object) [
-                'item_id' => $itemId,
-                'value_id' => $valueId,
-                'ordering' => count($existing) + $added,
-            ];
-            $db->insertObject('#__alfa_item_info_values', $infoRow);
-            $added++;
-        }
-
-        return $added;
-    }
-
-    /**
-     * Persist the Informational LIST removals with the item save (variants
-     * mechanics: deferred via the hidden deleted-ids input).
-     *
-     * @param int $itemId The item id.
-     * @param string $deletedValueIds Comma list of value ids removed in the list.
-     *
-     *
-     * @since  2.0.0
-     */
-    public static function deleteItemInfoValues(int $itemId, string $deletedValueIds): void
-    {
-        $deleted = array_values(array_filter(array_map('intval', explode(',', $deletedValueIds))));
-
-        if ($itemId <= 0 || !$deleted) {
-            return;
-        }
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $db->setQuery(
-            $db->getQuery(true)
-                ->delete($db->qn('#__alfa_item_info_values'))
-                ->where($db->qn('item_id') . ' = ' . $itemId)
-                ->whereIn($db->qn('value_id'), $deleted),
-        );
-        $db->execute();
-    }
-
-    /**
-     * Persist the Informational LIST drag order with the item save. The list
-     * posts a hidden value-id per row (jform[info_values][]) in document order,
-     * so the running position IS the per-item ordering, the same position-based
-     * model the options + variations lists use (no extra request).
-     *
-     * @param int $itemId The item id.
-     * @param array $orderedValueIds Posted value ids in displayed (dragged) order.
-     *
-     *
-     * @since  2.0.0
-     */
-    public static function saveItemInfoOrder(int $itemId, array $orderedValueIds): void
-    {
-        if ($itemId <= 0 || !$orderedValueIds) {
-            return;
-        }
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $position = 0;
-
-        foreach ($orderedValueIds as $valueId) {
-            $valueId = (int) $valueId;
-
-            if ($valueId <= 0) {
-                continue;
-            }
-
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->update($db->qn('#__alfa_item_info_values'))
-                    ->set($db->qn('ordering') . ' = ' . $position++)
-                    ->where($db->qn('item_id') . ' = ' . $itemId)
-                    ->where($db->qn('value_id') . ' = ' . $valueId),
-            );
-            $db->execute();
-        }
     }
 
     /**
@@ -3334,71 +2992,31 @@ class ItemFieldsAdminHelper
             return [self::notAppliedText(itemId: $itemId, combinationId: $combinationId, tracks: $tracks)];
         }
 
-        $inventory = new InventoryService();
+        // The breakdown moves as a whole or not at all: one adjustment, the changed figures its lines.
+        $adjustment = InventoryCommands::adjust()->source(type: 'catalog_edit', id: $itemId)->by(context: InventoryContext::ambient());
 
-        $problems = self::targetProblemTexts(
-            itemId: $itemId,
-            combinationId: $combinationId,
-            problems: $inventory->validateTargets(
-                itemId: $itemId,
-                combinationId: $combinationId,
-                targets: $changes,
-                assumeTracked: false,
-            ),
-        );
+        foreach ($changes as $locationId => $target) {
+            $adjustment->set(itemId: $itemId, combinationId: $combinationId, locationId: $locationId, quantity: $target);
+        }
+
+        $outcome = $adjustment->apply();
+        $problems = self::targetProblemTexts(itemId: $itemId, combinationId: $combinationId, problems: $outcome->problemsAsStated());
 
         if ($problems !== []) {
             throw new RuntimeException(implode(' ', $problems));
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $unapplied = false;
-
-        $db->transactionStart(true);
-
-        try {
-            $inventory->lockItemStock(itemId: $itemId);
-
-            foreach ($changes as $locationId => $target) {
-                try {
-                    $applied = $inventory->adjustTo(
-                        itemId: $itemId,
-                        combinationId: $combinationId,
-                        locationId: $locationId,
-                        target: $target,
-                        sourceType: 'catalog_edit',
-                        sourceId: $itemId,
-                        context: InventoryContext::ambient(),
-                    );
-                } catch (InventoryUnitException $e) {
-                    // The combination stopped tracking stock, or went, while waiting for its lock.
-                    $applied = null;
-                } catch (InventoryReservedFloorException $e) {
-                    // Reserved while waiting for its lock: the breakdown rolls back, and the operator reads why.
-                    throw new RuntimeException(message: self::escapedText(text: $e->operatorMessage()), previous: $e);
-                }
-
-                if ($applied === null) {
-                    $unapplied = true;
-
-                    break;
-                }
-            }
-
-            // The breakdown moves as a whole or not at all: what the locations
-            // already converged would announce is discarded with it.
-            if ($unapplied) {
-                TransactionState::rollBackLevel(db: $db, failure: new RuntimeException('The combination is no longer a stock unit.'));
-            } else {
-                TransactionState::commitLevel(db: $db);
-            }
-        } catch (Throwable $e) {
-            TransactionState::rollBackLevel(db: $db, failure: $e);
-
-            throw $e;
+        // Reserved while waiting for its lock: the breakdown rolled back, and the operator reads why.
+        if ($outcome->failure instanceof InventoryReservedFloorException) {
+            throw new RuntimeException(message: self::escapedText(text: $outcome->failure->operatorMessage()), previous: $outcome->failure);
         }
 
-        if (!$unapplied) {
+        // The combination stopped tracking stock, or went, while waiting for its lock: not applied, and said.
+        if ($outcome->failure !== null && !$outcome->failure instanceof InventoryUnitException) {
+            throw $outcome->failure;
+        }
+
+        if ($outcome->applied) {
             return [];
         }
 
@@ -3456,43 +3074,28 @@ class ItemFieldsAdminHelper
             return $decision['text'];
         }
 
-        $inventory = new InventoryService();
-        $targets = [$decision['location'] => $decision['target']];
-
-        $problems = self::targetProblemTexts(
-            itemId: $itemId,
-            combinationId: $combinationId,
-            problems: $inventory->validateTargets(
-                itemId: $itemId,
-                combinationId: $combinationId,
-                targets: $targets,
-                assumeTracked: false,
-            ),
-        );
+        $outcome = InventoryCommands::adjust()
+            ->source(type: 'catalog_edit', id: $itemId)
+            ->by(context: InventoryContext::ambient())
+            ->set(itemId: $itemId, combinationId: $combinationId, locationId: $decision['location'], quantity: $decision['target'])
+            ->apply();
+        $problems = self::targetProblemTexts(itemId: $itemId, combinationId: $combinationId, problems: $outcome->problemsAsStated());
 
         if ($problems !== []) {
             throw new RuntimeException(implode(' ', $problems));
         }
 
-        try {
-            $applied = $inventory->adjustTo(
-                itemId: $itemId,
-                combinationId: $combinationId,
-                locationId: $decision['location'],
-                target: $decision['target'],
-                sourceType: 'catalog_edit',
-                sourceId: $itemId,
-                context: InventoryContext::ambient(),
-            );
-        } catch (InventoryUnitException $e) {
-            // The combination stopped tracking stock, or went, while waiting for its lock.
-            $applied = null;
-        } catch (InventoryReservedFloorException $e) {
-            // Below what open orders reserve there: the grid save rolls back, and the operator reads why.
-            throw new RuntimeException(message: self::escapedText(text: $e->operatorMessage()), previous: $e);
+        // Below what open orders reserve there: the grid save rolls back, and the operator reads why.
+        if ($outcome->failure instanceof InventoryReservedFloorException) {
+            throw new RuntimeException(message: self::escapedText(text: $outcome->failure->operatorMessage()), previous: $outcome->failure);
         }
 
-        if ($applied !== null) {
+        // The combination stopped tracking stock, or went, while waiting for its lock: not applied, and said.
+        if ($outcome->failure !== null && !$outcome->failure instanceof InventoryUnitException) {
+            throw $outcome->failure;
+        }
+
+        if ($outcome->applied) {
             return null;
         }
 
@@ -4105,43 +3708,11 @@ class ItemFieldsAdminHelper
             return [];
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $titles = $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->qn(['id', 'title']))
-                ->from($db->qn('#__alfa_inventory_locations')),
-        )->loadAssocList('id', 'title') ?: [];
-
+        $titles = InventoryCommands::locationTitles();
         $texts = [];
 
         foreach ($problems as $problem) {
-            $problem = (array) $problem;
-            $locationId = (int) ($problem['location_id'] ?? 0);
-            $location = (string) ($titles[$locationId] ?? ('#' . $locationId));
-
-            $text = match ((string) ($problem['code'] ?? '')) {
-                'not_a_location' => Text::sprintf('COM_ALFA_INVENTORY_TARGET_NOT_A_LOCATION', '#' . $locationId),
-                'location_disabled' => Text::sprintf('COM_ALFA_INVENTORY_TARGET_LOCATION_DISABLED', $location),
-                'negative_floor' => Text::sprintf('COM_ALFA_INVENTORY_TARGET_NEGATIVE', $location),
-                // The unit's figures as the inventory service reports them: the
-                // ones it shows without stock records, or those it showed when
-                // its hold began.
-                'ledger_missing', 'integrity_held' => InventoryIntegrityException::refusalText(
-                    stock: isset($problem['stock']) ? (float) $problem['stock'] : null,
-                    available: isset($problem['available']) ? (float) $problem['available'] : null,
-                    held: $problem['code'] === 'integrity_held',
-                ),
-                // Below what open orders reserve there: the service's own sentence, names escaped once.
-                'reserved_floor' => self::escapedText(text: InventoryReservedFloorException::refusalText(
-                    itemId: $itemId,
-                    combinationId: $combinationId,
-                    locationId: $locationId,
-                    onHand: (float) $problem['on_hand'],
-                    reserved: (float) $problem['reserved'],
-                    requested: (float) $problem['requested'],
-                )),
-                default => null,
-            };
+            $text = InventoryCommands::problemText(itemId: $itemId, combinationId: $combinationId, problem: (array) $problem, titles: $titles);
 
             if ($text !== null && !\in_array($text, $texts, true)) {
                 $texts[] = $text;
@@ -4913,6 +4484,9 @@ class ItemFieldsAdminHelper
             return false;
         }
 
+        // The SKUs the product's units hold before the save: one they keep is never refused for it.
+        $skusBefore = SkuIndex::skusOf(itemId: $itemId);
+
         // Quantity rules are judged before anything is written; a refusal throws.
         $changedRules = self::changedQuantityRules(
             itemId: $itemId,
@@ -4921,15 +4495,20 @@ class ItemFieldsAdminHelper
             row: $row,
         );
 
+        // stock/available_quantity are inventory PROJECTIONS, written
+        // only by InventoryService, never here.
         $update = (object) [
             'id' => $combinationId,
-            'sku' => trim((string) ($row['sku'] ?? '')),
-            // stock/available_quantity are inventory PROJECTIONS, written
-            // only by InventoryService, never here.
-            'gtin' => (string) ($row['gtin'] ?? ''),
-            'mpn' => (string) ($row['mpn'] ?? ''),
             'modified_by' => (int) Factory::getApplication()->getIdentity()?->id,
         ];
+
+        // The identifiers the write sends: one it leaves out keeps its stored value (the variant window always posts
+        // all three; a REST PATCH or a service change sends only what changes). Clearing one sends ''.
+        foreach (['sku', 'gtin', 'mpn'] as $column) {
+            if (\array_key_exists($column, $row)) {
+                $update->{$column} = $column === 'sku' ? trim((string) $row[$column]) : (string) $row[$column];
+            }
+        }
 
         // Every scalar override, cast by the ONE registry the editor renders from:
         // no parallel column list to fall out of step with it.
@@ -5037,6 +4616,9 @@ class ItemFieldsAdminHelper
             // The combination's prices and its sale rules are its product's: recorded in this transaction, for the
             // REST API's filter[changed_since].
             CommerceChange::mark(db: $db, itemIds: [$itemId]);
+
+            // The variant's SKU in the registry: one another unit holds refuses the save.
+            SkuIndex::keep(itemId: $itemId, before: $skusBefore);
 
             // What the inventory service announces for this save waits for this commit.
             TransactionState::commitLevel(db: $db);

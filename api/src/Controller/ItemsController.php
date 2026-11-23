@@ -15,9 +15,12 @@ use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\UnitBatch;
+use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Joomla\CMS\Document\JsonapiDocument;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
@@ -38,7 +41,21 @@ class ItemsController extends ApiController
         preprocessSaveData as private guardedPreprocessSaveData;
         refuseUnwrittenKeys as private guardedRefuseUnwrittenKeys;
         taskActions as private crudTaskActions;
+        displayItem as private guardedDisplayItem;
+        add as private guardedAdd;
+        edit as private guardedEdit;
     }
+    use AnswersFromServices;
+    use ReadsCatalogBodies;
+
+    /**
+     * The keys of a product's graph a write takes with it, written in one transaction with the product
+     * ({@see ItemWriteService}): item fields' values, options, specifications and combinations with their stock.
+     *
+     * @var string[]
+     * @since  2.3.0
+     */
+    private const GRAPH_KEYS = ['field_values', 'options', 'informational', 'combinations'];
 
     /**
      * The content type of the item.
@@ -57,11 +74,35 @@ class ItemsController extends ApiController
     protected $default_view = 'items';
 
     /**
+     * The item models this request made, so the answer can say what their saves did not apply.
+     *
+     * @var list<AdminItemModel>
+     * @since  2.3.0
+     */
+    private array $itemModels = [];
+
+    /**
      * The prices_state the update sent with its prices, or null when it sent none.
      *
      * @since  2.2.2
      */
     private ?string $pricesState = null;
+
+    /**
+     * The steps of the product's graph the request sends, laid on the item model's write; null for a write without one.
+     *
+     * @var (\Closure(ItemWriteService): void)|null
+     * @since  2.3.0
+     */
+    private ?\Closure $graph = null;
+
+    /**
+     * The warnings of the graph's keys a part does not take.
+     *
+     * @var list<array<string, string>>
+     * @since  2.3.0
+     */
+    private array $graphWarnings = [];
 
     /**
      * The tasks of the items and what each asks: the batch of units writes prices and stock, so it asks edit, as a
@@ -123,7 +164,7 @@ class ItemsController extends ApiController
     }
 
     /**
-     * Relations the admin model clears when the key is absent from a PATCH.
+     * Relations the admin model clears when the key is absent from a PATCH: the item write's own list.
      *
      * @return string[]
      *
@@ -131,22 +172,126 @@ class ItemsController extends ApiController
      */
     protected function preserveOnPatch(): array
     {
-        return [
-            'categories',
-            'manufacturers',
-            'allowedUsers',
-            'allowedUserGroups',
-            'prices',
-            'robots',
-            'related',
-        ];
+        return ItemWriteService::KEPT_WHEN_ABSENT;
+    }
+
+    /**
+     * Core's model, kept when it is the item model, for the answer's warnings.
+     *
+     * @param string $name The model.
+     * @param string $prefix Its prefix.
+     * @param array $config Its configuration.
+     *
+     * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel|false
+     *
+     * @since  2.3.0
+     */
+    public function getModel($name = '', $prefix = '', $config = [])
+    {
+        $model = parent::getModel($name, $prefix, $config);
+
+        if ($model instanceof AdminItemModel) {
+            if ($this->graph !== null) {
+                $model->expectGraph(steps: $this->graph);
+            }
+
+            if ($this->pricesState !== null) {
+                $model->expectPricesState(state: $this->pricesState);
+            }
+
+            $this->itemModels[] = $model;
+        }
+
+        return $model;
+    }
+
+    /**
+     * Answer one product; after a save applied in part (stock or variants refused once the product was written, an
+     * address shared with another product), meta.warnings names each thing the save did not apply.
+     *
+     * @param int|null $id The product.
+     *
+     * @return static
+     *
+     * @since  2.3.0
+     */
+    public function displayItem($id = null)
+    {
+        $answer = $this->guardedDisplayItem($id);
+        $warnings = $this->graphWarnings;
+        $written = [];
+
+        foreach ($this->itemModels as $model) {
+            foreach ($model->written()->warnings ?? [] as $warning) {
+                $warnings[] = ['code' => 'not_applied', 'title' => $warning['message']];
+            }
+
+            $written = $model->written()->written ?? [] ?: $written;
+        }
+
+        if ($warnings !== []) {
+            $this->app->getDocument()->addMeta('warnings', $warnings);
+        }
+
+        // What a write with the product's graph wrote, part by part: each with its place in the request, its id and
+        // whether it was created.
+        if ($written !== []) {
+            $this->app->getDocument()->addMeta('written', $written);
+        }
+
+        return $answer;
+    }
+
+    /**
+     * Save the write: prices changed since they were read answer 409 naming prices_state, a SKU another product or variant
+     * holds answers 409 with the refusal's sentence, a refused graph answers its refusals; nothing saved.
+     *
+     * @param int|null $recordKey The record's key.
+     *
+     * @return int The record's id.
+     *
+     * @throws Save When the write's SKU is another unit's (409), or the save was refused otherwise.
+     *
+     * @since  2.3.0
+     */
+    protected function save($recordKey = null)
+    {
+        try {
+            return parent::save($recordKey);
+        } catch (PricesStateChanged $e) {
+            // The write checked the product out before its save; a refused write gives it back as it found it.
+            $model = $this->getModel('item', '', ['ignore_request' => true]);
+
+            if ($model instanceof AdminItemModel) {
+                $model->checkin($e->itemId);
+            }
+
+            throw new Save(ErrorText::of($e), 409, $e);
+        } catch (Save $e) {
+            foreach ($this->itemModels as $model) {
+                if ($this->graph !== null && ($model->written()->refused ?? []) !== []) {
+                    // The write checked the product out before its save; a refused write gives it back as it found it.
+                    $model->checkin(RequestScalar::int($this->input, 'id'));
+
+                    throw new ItemGraphRefusedException(refusals: $model->written()->refused);
+                }
+
+                foreach ($model->getErrors() as $error) {
+                    if ($error instanceof SkuInUseException) {
+                        throw new Save($error->refusal->placed(), $error->refusal->status, $e);
+                    }
+                }
+            }
+
+            throw $e;
+        }
     }
 
     /**
      * Items list view amended to add filtering of data
      *
      * Each filter goes onto the model state under the name the items screen's filter form gives it, and the list
-     * model applies it as it does for the screen (stock, in, low or out, and fields, the item field values).
+     * model applies it as it does for the screen (2.2.1: stock, in, low or out, and fields, the item field values).
      *
      * @return static A BaseController object to support chaining.
      *
@@ -163,6 +308,16 @@ class ItemsController extends ApiController
 
         if (\array_key_exists('state', $apiFilterInfo)) {
             $this->modelState->set('filter.state', RequestScalar::member($apiFilterInfo, 'state', 'INT', 'filter'));
+        }
+
+        if (\array_key_exists('sku', $apiFilterInfo)) {
+            $sku = trim((string) RequestScalar::member($apiFilterInfo, 'sku', 'STRING', 'filter'));
+
+            if ($sku === '' || mb_strlen($sku) > 255 || preg_match('/[\x00-\x1F\x7F]/', $sku) === 1) {
+                throw new Save('filter[sku] must be a SKU of 1 to 255 characters without control characters.', 400);
+            }
+
+            $this->modelState->set('filter.sku', $sku);
         }
 
         if (\array_key_exists('category', $apiFilterInfo)) {
@@ -241,10 +396,10 @@ class ItemsController extends ApiController
     }
 
     /**
-     * An item's options, combinations, item field values and downloads, and its related products (`related`, set on
+     * An item's options, combinations, item field values and downloads, and its related products (`related`, 2.2.2, set on
      * the product's Related tab), which the API does not write: the four keys the item read publishes, then the keys the item edit form's grids post for the same writes and for the downloads
      * grid, which the item save reads from the request as the form posts them. A list sent in the read's shape was
-     * taken by its positions, as value or combination ids.
+     * taken by its positions, as value or combination ids (2.2.1).
      *
      * @return string[]
      *
@@ -252,7 +407,7 @@ class ItemsController extends ApiController
      */
     protected function unwrittenKeys(): array
     {
-        return ['fields', 'options', 'combinations', 'informational', 'combinations_default', 'deleted_combination_ids',
+        return ['fields', 'combinations_default', 'deleted_combination_ids',
             'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order', 'field_required', 'item_downloads',
             'related'];
     }
@@ -264,8 +419,9 @@ class ItemsController extends ApiController
      */
     protected function unwrittenReason(): string
     {
-        return 'an item\'s options, combinations, item field values, downloads and related products are edited on its page in the administrator.'
-            . ' Send the item without them; nothing was saved.';
+        return 'the item screen\'s own lists (the variants\' grid, the option and specification lists, the field order, the'
+            . ' downloads) are not keys of the API; options, informational, combinations and field_values are sent as the'
+            . ' API\'s lists. Nothing was saved.';
     }
 
     /**
@@ -287,6 +443,11 @@ class ItemsController extends ApiController
         // The item model's own rule: a stock figure counts only when the body names it.
         $data = AdminItemModel::withoutUnsentStock(data: $data, sent: array_keys($this->requestBody()));
 
+        // The graph's keys are the write's steps ({@see self::readGraph()}), never the item form's fields.
+        foreach (self::GRAPH_KEYS as $key) {
+            unset($data[$key]);
+        }
+
         return $this->guardedPreprocessSaveData(data: $data);
     }
 
@@ -306,6 +467,7 @@ class ItemsController extends ApiController
         $this->guardedRefuseUnwrittenKeys(update: $update);
         $this->refuseStockShapes(body: $this->requestBody());
         $this->pricesState = $this->sentPricesState(body: $this->requestBody(), update: $update);
+        $this->readGraph(body: $this->requestBody());
     }
 
     /**
@@ -344,52 +506,156 @@ class ItemsController extends ApiController
     }
 
     /**
-     * The model of a write, told the prices_state the update sent, so its save refuses prices changed since.
+     * POST creates a product, with its graph when the body sends one; a refused graph answers its refusals, each with
+     * its JSON pointer, nothing saved.
      *
-     * @param string $name The model name.
-     * @param string $prefix The class prefix.
-     * @param array $config The configuration.
+     * @return void
      *
-     * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel|false
-     *
-     * @since  2.2.2
+     * @since  2.3.0
      */
-    public function getModel($name = '', $prefix = '', $config = [])
+    public function add()
     {
-        $model = parent::getModel($name, $prefix, $config);
-
-        if ($this->pricesState !== null && $model instanceof AdminItemModel) {
-            $model->expectPricesState(state: $this->pricesState);
+        try {
+            $this->guardedAdd();
+        } catch (ItemGraphRefusedException $e) {
+            $this->refuse(refusals: $e->refusals);
         }
-
-        return $model;
     }
 
     /**
-     * Save the write: a write of prices changed since they were read answers 409, its sentence naming prices_state.
+     * PATCH changes a product, with its graph when the body sends one; a refused graph answers its refusals, each with
+     * its JSON pointer, nothing saved.
      *
-     * @param int|null $recordKey The record's key.
+     * @return mixed What core's edit answers, or this controller with the refusals.
      *
-     * @return int The record's id.
-     *
-     * @throws Save When the prices changed since they were read (409).
-     *
-     * @since  2.2.2
+     * @since  2.3.0
      */
-    protected function save($recordKey = null)
+    public function edit()
     {
         try {
-            return parent::save($recordKey);
-        } catch (PricesStateChanged $e) {
-            // The write checked the product out before its save; a refused write gives it back as it found it.
-            $model = $this->getModel('item', '', ['ignore_request' => true]);
+            return $this->guardedEdit();
+        } catch (ItemGraphRefusedException $e) {
+            return $this->refuse(refusals: $e->refusals);
+        }
+    }
 
-            if ($model instanceof AdminItemModel) {
-                $model->checkin($e->itemId);
+    /**
+     * The product's graph the body sends, read into the write's steps in the order of resolution (values, options and
+     * specifications, combinations with their stock; the product itself between the values and the options): each part
+     * read as its own route reads it, a value or an option named by its id or by its field and code, a combination's
+     * values by field (id or field_name) to value (id or code).
+     *
+     * @param array $body The request body.
+     *
+     * @throws ItemGraphRefusedException When a part cannot be read (422, each refusal at its JSON pointer).
+     *
+     * @since  2.3.0
+     */
+    private function readGraph(array $body): void
+    {
+        $sent = array_intersect_key($body, array_flip(self::GRAPH_KEYS));
+
+        if ($sent === []) {
+            return;
+        }
+
+        $steps = [];
+        $refusals = [];
+        $warnings = [];
+        $list = static function (mixed $value, string $key) use (&$refusals): array {
+            if (!\is_array($value) || !array_is_list($value)) {
+                $refusals[] = new Refusal(code: 'invalid', sentence: 'send a list.', pointer: '/' . $key);
+
+                return [];
             }
 
-            throw new Save(ErrorText::of($e), 409, $e);
+            return $value;
+        };
+        $reference = static function (mixed $entry, string $at) use (&$refusals): int|array|null {
+            if (\is_int($entry) && $entry > 0) {
+                return $entry;
+            }
+
+            if (\is_array($entry) && (\is_int($entry['field'] ?? null) || \is_string($entry['field'] ?? null)) && \is_string($entry['code'] ?? null)) {
+                return ['field' => $entry['field'], 'code' => $entry['code']];
+            }
+
+            $refusals[] = new Refusal(code: 'invalid', sentence: 'name a value by its id, or by {"field": "colour", "code": "silver"}.', pointer: $at);
+
+            return null;
+        };
+
+        foreach ($list($sent['field_values'] ?? [], 'field_values') as $n => $entry) {
+            $at = '/field_values/' . $n;
+
+            if (!\is_array($entry) || !(\is_int($entry['field'] ?? null) || \is_string($entry['field'] ?? null))) {
+                $refusals[] = new Refusal(code: 'invalid', sentence: 'send {"field": "colour", "code": "silver", "translations": {"en_gb": {"name": "Silver"}}}.', pointer: $at);
+
+                continue;
+            }
+
+            [$fields, $partRefusals, $partWarnings] = $this->valueFields(body: $entry, pointer: $at, alsoTaken: ['field']);
+            array_push($refusals, ...$partRefusals);
+            array_push($warnings, ...$partWarnings);
+            $field = $entry['field'];
+            $steps[] = static fn (ItemWriteService $write) => $write->value(field: $field, fields: $fields, pointer: $at);
         }
+
+        foreach ($list($sent['options'] ?? [], 'options') as $n => $entry) {
+            $at = '/options/' . $n;
+            $entry = \is_array($entry) ? $entry : [];
+            array_push($warnings, ...$this->unknownKeys(body: $entry, keys: ['value_id', 'value', 'operation', 'amount', 'apply_on'], what: 'an option', pointer: $at));
+            $value = \array_key_exists('value', $entry) ? $reference($entry['value'], $at . '/value') : $reference($entry['value_id'] ?? null, $at . '/value_id');
+            [$delta, $partRefusals] = $this->optionDelta(body: $entry, pointer: $at);
+            array_push($refusals, ...$partRefusals);
+
+            if ($value !== null) {
+                $steps[] = static fn (ItemWriteService $write) => $write->option(value: $value, operation: $delta['operation'] ?? null, amount: $delta['amount'] ?? null,
+                    applyOn: $delta['apply_on'] ?? null, pointer: $at);
+            }
+        }
+
+        if (\array_key_exists('informational', $sent)) {
+            $values = [];
+
+            foreach ($list($sent['informational'], 'informational') as $n => $entry) {
+                $values[] = $reference($entry, '/informational/' . $n);
+            }
+
+            $steps[] = static fn (ItemWriteService $write) => $write->informational(values: $values, pointer: '/informational');
+        }
+
+        foreach ($list($sent['combinations'] ?? [], 'combinations') as $n => $entry) {
+            $at = '/combinations/' . $n;
+
+            if (!\is_array($entry) || !\is_array($entry['values'] ?? null) || $entry['values'] === [] || array_is_list($entry['values'])) {
+                $refusals[] = new Refusal(code: 'values_missing', sentence: 'send values, an object of field (id or field_name) to value (id or code), {"colour": "silver", "6": 23}.', pointer: $at . '/values');
+
+                continue;
+            }
+
+            array_push($warnings, ...$this->unknownKeys(body: $entry, keys: ['values', 'sku', 'gtin', 'mpn', 'state', 'manage_stock', 'default', 'overrides', 'translations', 'prices', 'stock'],
+                what: 'a combination', pointer: $at));
+            [$fields, $prices, $partRefusals, $partWarnings] = $this->combinationFields(body: $entry, pointer: $at);
+            [$stock, $stockRefusals] = \array_key_exists('stock', $entry) ? $this->stockFigures(lines: $entry['stock'], pointer: $at . '/stock') : [[], []];
+            array_push($refusals, ...$partRefusals, ...$stockRefusals);
+            array_push($warnings, ...$partWarnings);
+            $values = $entry['values'];
+            $steps[] = static fn (ItemWriteService $write) => $write->combination(values: $values, fields: $fields, prices: $prices, stock: $stock, pointer: $at);
+        }
+
+        if ($refusals !== []) {
+            throw new ItemGraphRefusedException(refusals: $refusals);
+        }
+
+        $this->graphWarnings = $warnings;
+        $this->graph = static function (ItemWriteService $write) use ($steps): void {
+            foreach ($steps as $step) {
+                $step($write);
+            }
+
+            $write->from(origin: 'api');
+        };
     }
 
     /**
@@ -463,7 +729,7 @@ class ItemsController extends ApiController
     /**
      * The note of a product the delete archived instead of deleting it: ItemModel::delete() archives a product that order
      * lines were sold as, whose orders are still fulfilled, cancelled and returned against its stock identity, and the
-     * delete answers 200 with the product, archived, and this note.
+     * delete answers 200 with the product, archived, and this note (2.2.1).
      *
      * @param int $id The product.
      *
@@ -476,7 +742,7 @@ class ItemsController extends ApiController
     }
 
     /**
-     * A product is deleted from the trash only, as the administrator's list of products deletes it.
+     * A product is deleted from the trash only, as the administrator's list of products deletes it (2.2.1).
      *
      * @since  2.2.1
      */

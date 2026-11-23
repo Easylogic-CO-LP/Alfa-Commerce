@@ -109,3 +109,44 @@ CREATE TABLE IF NOT EXISTS `#__alfa_outbound_deliveries` (
   KEY `idx_state_due` (`state`, `next_attempt_at`),
   KEY `idx_subject` (`consumer_id`, `subject_id`, `state`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='What the shop owes each consumer, written in the transaction of the change';
+-- One SKU, one unit
+
+-- Every SKU in use is kept once in a registry: a product's own SKU and each combination's, archived ones included,
+-- compared without regard to letter case. A save that gives a product or a variant a SKU another one holds is refused,
+-- and the REST API finds a unit by its SKU. The update fills the registry after this file runs (script.php); a SKU held
+-- by more than one unit is left out and named, until each has its own. The install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_skus` (
+  `sku` varchar(255) NOT NULL COMMENT 'A SKU in use, trimmed; compared without regard to letter case',
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination; 0 for the product itself',
+  PRIMARY KEY (`sku`),
+  UNIQUE KEY `uq_unit` (`item_id`, `combination_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Every SKU in use, once: products and combinations, archived ones included';
+
+-- A write sent twice is applied once
+
+-- The REST API's writes that move stock take an Idempotency-Key: the same request sent again with the same key is
+-- answered with what the first one stored and applies nothing, and the same key with another body is refused. The keys
+-- are kept 30 days. The install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_api_keys` (
+  `created_by` int(11) NOT NULL COMMENT 'The API user whose key it is',
+  `scope` varchar(32) NOT NULL COMMENT 'The write the key names, such as inventory.adjustments',
+  `key_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the key the client sent',
+  `request_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the request body in its canonical form',
+  `result` text DEFAULT NULL COMMENT 'JSON: what the write answered (the ids and operation ids it wrote), to answer a replay',
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`created_by`, `scope`, `key_hash`),
+  KEY `idx_created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Idempotency keys of REST API writes, kept 30 days';
+
+-- A value's code
+
+-- An item field's value gets a machine key of its own, unique in its field: an ERP names a value by its field's
+-- field_name and the value's code instead of an id. Codes start empty; staff (the field's Values tab) or the REST API set
+-- them. A site that ran an earlier copy of this file gets the column and the key from script.php. The install SQL has
+-- the same column and key.
+
+ALTER TABLE `#__alfa_item_field_values` ADD COLUMN `code` varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none' AFTER `item_field_id` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_item_field_values` ADD UNIQUE KEY `uq_field_code` (`item_field_id`, `code`) /** CAN FAIL **/;

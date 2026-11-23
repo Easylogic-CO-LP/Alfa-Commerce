@@ -279,6 +279,22 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_items' => [
             'opening_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings; the listing reads its price index row by it'", 'projection_dirty_at'],
         ],
+        '#__alfa_item_field_values' => [
+            'code' => ["varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none'", 'item_field_id'],
+        ],
+    ];
+
+    /**
+     * Keys over the columns of {@see self::NEW_COLUMNS}: table => key name => its definition, exactly as the install
+     * SQL's CREATE has it. The installation adds each one a table lacks ({@see self::addMissingKeys()}).
+     *
+     * @var array<string, array<string, string>>
+     * @since 2.3.0
+     */
+    private const NEW_KEYS = [
+        '#__alfa_item_field_values' => [
+            'uq_field_code' => 'UNIQUE KEY `uq_field_code` (`item_field_id`, `code`)',
+        ],
     ];
 
     /**
@@ -947,6 +963,45 @@ class com_alfaInstallerScript extends InstallerScript
                 );
             } catch (\Throwable $e) {
                 $failed[] = $table . ': ' . implode(', ', array_keys($columns)) . ' (' . $e->getMessage() . ')';
+            }
+        }
+
+        if ($failed !== []) {
+            $message = $this->installerText(
+                key:      'COM_ALFA_INSTALL_NEW_COLUMNS_FAILED',
+                fallback: 'Alfa Commerce %1$s could not add columns this version needs: %2$s. Install the package again; the pages that read them need them.',
+                values:   [$this->packageVersion, implode('; ', $failed)],
+            );
+            Factory::getApplication()->enqueueMessage($message, 'error');
+            self::maintenanceLog(line: $message, priority: \Joomla\CMS\Log\Log::ERROR);
+        }
+    }
+
+    /**
+     * Add the keys this release adds over its new columns ({@see self::NEW_KEYS}), each only where the table lacks it:
+     * the table's keys are read first, so a fresh install, an update run again and a table kept by an uninstall all go
+     * on. A key a table refuses (rows that break it) is named in an error and the maintenance log; the shop works and
+     * the next installation adds it.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function addMissingKeys(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $failed = [];
+
+        foreach (self::NEW_KEYS as $name => $keys) {
+            try {
+                $present = array_map('strval', array_column($db->setQuery('SHOW KEYS FROM ' . $db->quoteName($name))->loadAssocList() ?: [], 'Key_name'));
+
+                foreach ($keys as $key => $definition) {
+                    if (!\in_array($key, $present, true)) {
+                        $db->setQuery('ALTER TABLE ' . $db->quoteName($name) . ' ADD ' . $definition)->execute();
+                    }
+                }
+            } catch (\Throwable $e) {
+                $failed[] = $db->replacePrefix($name) . ': ' . implode(', ', array_keys($keys)) . ' (' . $e->getMessage() . ')';
             }
         }
 
@@ -1874,6 +1929,7 @@ class com_alfaInstallerScript extends InstallerScript
         $this->completeLinkKeys();
         $this->dropLeftoverColumns();
         $this->addMissingColumns();
+        $this->addMissingKeys();
         $this->exactPriceValues();
         $this->migratePriceIndex(type: $type);
         $this->recordSchemaVersion();
@@ -1908,6 +1964,13 @@ class com_alfaInstallerScript extends InstallerScript
         if ($type === 'update' && $this->versionBefore !== null && version_compare($this->versionBefore, '2.2.2', '<'))
         {
             $this->raiseThumbnailBox();
+        }
+
+        // Every SKU in use, once, in the registry the item saves and the REST API read: filled on every update (what
+        // is registered already stays), the SKUs held by more than one unit named.
+        if ($type === 'update')
+        {
+            $this->fillSkuRegistry();
         }
 
         // The web cron's key: made when none is kept; nobody sees it, staff make the one they copy in
@@ -2112,6 +2175,54 @@ class com_alfaInstallerScript extends InstallerScript
             fallback: 'Alfa Commerce %1$s: the thumbnail size stored in Options > Media was %2$d x %3$d, below the default of 500 x 500, and is now %4$d x %5$d. New images get thumbnails of the new size; Tools, Media, Create missing thumbnails makes the smaller thumbnails already made again at it.',
             values:   [$this->packageVersion, $raised['before'][0], $raised['before'][1], $raised['after'][0], $raised['after'][1]],
         ));
+    }
+
+    /**
+     * Fill the SKU registry from the catalogue, a range of products at a time (SkuIndex::fill()): each product's own
+     * SKU and each combination's, archived included, unless another unit holds the same SKU. Run on every update; a
+     * SKU already registered stays as it is. The SKUs held by more than one unit are left out and named, with their
+     * products and variants, as the setup checklist names them until each has its own. A failure is said, never a
+     * failed update.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function fillSkuRegistry(): void
+    {
+        $app = Factory::getApplication();
+
+        try
+        {
+            $filled = \Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex::fill();
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_SKU_REGISTRY_FAILED',
+                fallback: 'Alfa Commerce %1$s could not list the SKUs in use: %2$s Run the update again; until then the REST API may not find a product or a variant by its SKU.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+
+            return;
+        }
+
+        if ($filled['duplicates'] === [])
+        {
+            return;
+        }
+
+        $named = [];
+
+        foreach ($filled['duplicates'] as $sku => $units)
+        {
+            $named[] = htmlspecialchars((string) $sku, ENT_QUOTES, 'UTF-8') . ' (' . implode(', ', $units) . ')';
+        }
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_SKU_REGISTRY_DUPLICATES',
+            fallback: 'Alfa Commerce %1$s: a SKU now names one product or variant. These SKUs are held by more than one, and the REST API cannot find them until each has its own (the setup checklist lists them): %2$s.',
+            values:   [$this->packageVersion, implode('; ', $named)],
+        ), 'warning');
     }
 
     /**

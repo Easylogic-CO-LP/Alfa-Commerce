@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemFieldValueService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
@@ -367,61 +368,40 @@ class ItemfieldModel extends AlfaAdminModel
     }
 
     /**
-     * Persist the inline value pool of the field.
-     *
-     * Each submitted row carries: id (0 = new), per-language name_/alias_ keys
-     * and the plugin-owned valueparams (declared by the type plugin's
-     * params/value.xml). Row order in the form becomes the ordering.
-     * Removed rows cascade exactly like a value delete.
+     * The Values tab's list saved through the one way values are written ({@see ItemFieldValueService}): the rows in
+     * their posted order (a new row without a name in any language is a blank row and skipped), the removed rows
+     * removed. A removed value a product still uses is kept, placed after the posted rows in the order it had, and
+     * the operator is told why; the rest of the list is saved. The field's row is already saved when this runs, so a
+     * refusal of the list leaves the field as saved and says why the values were not.
      *
      * @param int $fieldId The owning field id.
-     * @param array $rows Submitted value rows (indexed).
+     * @param array $rows Submitted value rows (indexed): id (0 for a new one), name_ and alias_ keys, code, valueparams.
      * @param string $deletedValueIds Comma list of removed existing value ids.
-     *
      *
      * @since  2.0.0
      */
     protected function saveValues(int $fieldId, array $rows, string $deletedValueIds): void
     {
-        $db = $this->getDatabase();
-
-        // Deletions first: a deleted value must not survive as another row's parent.
         $deletedIds = array_values(array_filter(array_map('intval', explode(',', $deletedValueIds))));
         $refusedIds = [];
 
-        if ($deletedIds) {
-            // A VALUE THAT FORMS A VARIANT IS NOT THE MERCHANT'S TO REMOVE HERE.
-            //
-            // This handed the form's list straight to cascadeDeleteValues(),
-            // which deletes the combination links unconditionally, so removing
-            // a value on the Values tab silently amputated every variant built
-            // from it, while deleting the whole FIELD was correctly refused for
-            // exactly that reason. One rule, one path enforcing it.
-            //
-            // Refused per value rather than as a whole: parent::save() has
-            // already committed the field row by the time this runs, so
-            // abandoning the save would leave it half applied. The bound values
-            // stay, everything else the merchant asked for still happens, and
-            // the reason is said out loud.
-            $binding = $this->usageBinding($deletedIds);
+        // A value that forms a variant, an option or a specification is not removed here: removing the whole field is
+        // refused for the same reason, so the tab refuses the bound values one by one and saves the rest.
+        if ($deletedIds !== []) {
+            $usage = ItemFieldValueService::usage(valueIds: $deletedIds);
 
-            if ($binding['ids'] !== []) {
-                $refusedIds = $binding['ids'];
-                $deletedIds = array_values(array_diff($deletedIds, $binding['ids']));
+            if ($usage['ids'] !== []) {
+                $refusedIds = $usage['ids'];
+                $deletedIds = array_values(array_diff($deletedIds, $refusedIds));
 
-                Factory::getApplication()->enqueueMessage(
-                    Text::sprintf(
-                        'COM_ALFA_ITEMFIELD_VALUE_DELETE_IN_USE',
-                        \count($binding['ids']),
-                        $binding['items'],
-                    ),
-                    'error',
-                );
+                Factory::getApplication()->enqueueMessage(Text::sprintf('COM_ALFA_ITEMFIELD_VALUE_DELETE_IN_USE', \count($refusedIds), $usage['items']), 'error');
             }
         }
 
-        if ($deletedIds) {
-            $this->cascadeDeleteValues(valueIds: $deletedIds);
+        $write = ItemFieldValueService::of(fieldId: $fieldId);
+
+        if ($deletedIds !== []) {
+            $write->remove(valueIds: $deletedIds);
         }
 
         $ordering = 0;
@@ -430,239 +410,49 @@ class ItemfieldModel extends AlfaAdminModel
             $row = (array) $row;
             $valueId = (int) ($row['id'] ?? 0);
 
-            if (in_array($valueId, $deletedIds, true)) {
+            if (\in_array($valueId, $deletedIds, true)) {
                 continue;
             }
 
-            // Skip fully empty new rows (no name typed in any language).
-            $hasName = false;
+            $fields = ['ordering' => $ordering, 'state' => 1];
+            $named = false;
 
             foreach ($row as $rowKey => $rowValue) {
-                if (str_starts_with((string) $rowKey, 'name_') && trim((string) $rowValue) !== '') {
-                    $hasName = true;
-                    break;
+                if (str_starts_with((string) $rowKey, 'name_') || str_starts_with((string) $rowKey, 'alias_')) {
+                    $fields[(string) $rowKey] = (string) $rowValue;
+                    $named = $named || (str_starts_with((string) $rowKey, 'name_') && trim((string) $rowValue) !== '');
                 }
             }
 
-            if ($valueId <= 0 && !$hasName) {
+            if ($valueId <= 0 && !$named) {
                 continue;
             }
 
-            $table = $this->getMVCFactory()->createTable('Itemfieldvalue', 'Administrator');
-
-            if ($valueId > 0) {
-                $table->load($valueId);
+            if (\array_key_exists('code', $row)) {
+                $fields['code'] = trim((string) $row['code']);
             }
 
-            $table->bind([
-                'item_field_id' => $fieldId,
-                'params' => (isset($row['valueparams']) && is_array($row['valueparams']))
-                    ? (json_encode($row['valueparams'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: null) : ($valueId > 0 ? $table->params : null),
-                'ordering' => $ordering++,
-                'state' => 1,
-            ]);
-
-            if (!$table->store()) {
-                continue;
+            if (isset($row['valueparams']) && \is_array($row['valueparams'])) {
+                $fields['valueparams'] = $row['valueparams'];
             }
 
-            $valueId = (int) $table->id;
-
-            // MULTILINGUAL per row: name + auto-generated, scope-unique alias.
-            MultilingualHelper::saveMultilingualData(
-                currentId:         $valueId,
-                primaryColumnName: 'id_item_field_value',
-                tableName:         '#__alfa_item_field_values',
-                data:              $row,
-                aliasFields:       ['alias'],
-            );
+            $valueId > 0 ? $write->change(valueId: $valueId, fields: $fields) : $write->create(fields: $fields);
+            $ordering++;
         }
 
-        // A REFUSED VALUE STILL NEEDS A PLACE IN THE LIST.
-        //
-        // The Values tab DETACHES a removed row, so a refused value is not in
-        // $rows and the loop above never renumbered it. Left alone it keeps the
-        // ordering it had before the save and collides with a row that has just
-        // been renumbered; the list order then falls to the engine, which is
-        // exactly what prepareTable() refuses to allow for field rows.
-        //
-        // Its intended position no longer exists (the merchant removed it), so
-        // it goes last, in its previous relative order, where the message
-        // telling them why it is still here says to look.
+        // A kept value's place in the list is gone (it was removed there): it goes last, in its previous relative
+        // order, where the message telling why it is still here says to look.
         if ($refusedIds !== []) {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->qn('id'))
-                    ->from($db->qn('#__alfa_item_field_values'))
-                    ->whereIn($db->qn('id'), $refusedIds)
-                    ->order($db->qn('ordering') . ' ASC, ' . $db->qn('id') . ' ASC'),
-            );
-
-            foreach (array_map('intval', (array) $db->loadColumn()) as $refusedId) {
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->update($db->qn('#__alfa_item_field_values'))
-                        ->set($db->qn('ordering') . ' = ' . $db->q((string) $ordering++))
-                        ->where($db->qn('id') . ' = ' . $refusedId),
-                );
-                $db->execute();
+            foreach (ItemFieldValueService::read(fieldId: $fieldId, valueIds: $refusedIds) as $kept) {
+                $write->change(valueId: $kept['id'], fields: ['ordering' => $ordering++]);
             }
         }
-    }
 
-    /**
-     * Everything an item still depends on, across ALL THREE surfaces.
-     *
-     * THE CONTRACT, stated once for both paths that delete. A combination's
-     * identity IS its set of rows in `#__alfa_item_combination_values`, and its
-     * `signature` is those value ids sorted and joined by '-'. Remove one value
-     * from that set and the combination survives describing a set it no longer
-     * has: amputated, not edited, and invisible to everything downstream.
-     *
-     * Variants are not the only way to be load-bearing, which is why this asks the
-     * wider question: an offered option carries a price delta, a spec is printed on
-     * the page, and deleting the field behind either used to cascade those rows
-     * away in silence. Orders survived (they carry frozen snapshots) but every live
-     * product lost the line.
-     *
-     * Read from the LIVE tables, never from the filter projection: a guard must not
-     * depend on a materialised view being in sync.
-     *
-     * The two callers ask this same question and answer it differently, which is
-     * why it returns FACTS rather than a verdict:
-     *
-     *   delete()     - nothing has been written yet, so it vetoes the whole
-     *                  operation and says how many products stand in the way.
-     *   saveValues() - parent::save() has ALREADY committed the field row, with
-     *                  no transaction around it. A veto there would abandon a
-     *                  half-finished save, so it refuses only the bound values,
-     *                  keeps the rest of the save, and tells the operator.
-     *
-     * @param array $valueIds Candidate value ids.
-     *
-     * @return array{ids: int[], items: int, combinations: int, options: int, informational: int}
-     *                                                                                            The value ids actually in use, how many distinct items depend on
-     *                                                                                            them, and how many rows of each kind.
-     *
-     * @since  2.0.0
-     */
-    private function usageBinding(array $valueIds): array
-    {
-        $valueIds = array_values(array_filter(array_map('intval', $valueIds)));
-        $empty = ['ids' => [], 'items' => 0, 'combinations' => 0, 'options' => 0, 'informational' => 0];
+        $result = $write->save();
 
-        if ($valueIds === []) {
-            return $empty;
+        foreach ($result->refusals as $refusal) {
+            Factory::getApplication()->enqueueMessage($refusal->sentence, 'error');
         }
-
-        $db = $this->getDatabase();
-        $in = implode(',', $valueIds);
-
-        $db->setQuery(
-            'SELECT cv.' . $db->qn('value_id') . ' AS value_id, c.' . $db->qn('item_id') . ' AS item_id, '
-            . $db->quote('combinations') . ' AS surface, cv.' . $db->qn('combination_id') . ' AS ref'
-            . ' FROM ' . $db->qn('#__alfa_item_combination_values', 'cv')
-            . ' INNER JOIN ' . $db->qn('#__alfa_item_combinations', 'c') . ' ON c.id = cv.combination_id'
-            . ' WHERE cv.value_id IN (' . $in . ')'
-            . ' UNION ALL SELECT ' . $db->qn('value_id') . ', ' . $db->qn('item_id') . ', '
-            . $db->quote('options') . ', ' . $db->qn('id')
-            . ' FROM ' . $db->qn('#__alfa_item_option_values') . ' WHERE ' . $db->qn('value_id') . ' IN (' . $in . ')'
-            // Informational rows have no surrogate key: their identity IS
-            // (item_id, value_id), so that pair is what counts as one row here.
-            . ' UNION ALL SELECT ' . $db->qn('value_id') . ', ' . $db->qn('item_id') . ', '
-            . $db->quote('informational') . ', CONCAT(' . $db->qn('item_id') . ', ' . $db->quote('-') . ', '
-            . $db->qn('value_id') . ')'
-            . ' FROM ' . $db->qn('#__alfa_item_info_values') . ' WHERE ' . $db->qn('value_id') . ' IN (' . $in . ')',
-        );
-
-        $rows = $db->loadObjectList() ?: [];
-
-        if (!$rows) {
-            return $empty;
-        }
-
-        $ids = $items = $refs = [];
-
-        foreach ($rows as $row) {
-            $ids[(int) $row->value_id] = true;
-            $items[(int) $row->item_id] = true;
-            $refs[$row->surface][(string) $row->ref] = true;
-        }
-
-        return [
-            'ids' => array_map('intval', array_keys($ids)),
-            'items' => \count($items),
-            'combinations' => \count($refs['combinations'] ?? []),
-            'options' => \count($refs['options'] ?? []),
-            'informational' => \count($refs['informational'] ?? []),
-        ];
-    }
-
-    /**
-     * Delete value rows with their dependents: per-item subsets, combination
-     * links and translations. Order snapshots stay.
-     *
-     * @param array $valueIds Value ids to delete.
-     *
-     *
-     * @since  2.0.0
-     */
-
-    protected function cascadeDeleteValues(array $valueIds): void
-    {
-        $db = $this->getDatabase();
-        $valueIds = array_map('intval', $valueIds);
-
-        if (!$valueIds) {
-            return;
-        }
-
-        // EVERYTHING THAT MUST DIE WITH A VALUE DIES HERE.
-        //
-        // The cart selections used to be cleaned by delete() alone, one level
-        // up, so the Values tab, which calls this method directly, removed the
-        // value and left live carts holding a selection that pointed at nothing.
-        // A value is deleted in exactly one place; its dependants belong in that
-        // same place, or the next caller inherits the same hole.
-        //
-        // The filter projection (#__alfa_item_field_value_index) is deliberately
-        // NOT listed: save() re-syncs the affected items through ProjectionManager
-        // right after this runs, and delete() clears it by field_id: it is
-        // rebuilt, not cascaded, and probe case 1b holds that to account.
-        foreach (
-            [
-                '#__alfa_item_info_values' => 'value_id',
-                '#__alfa_item_option_values' => 'value_id',
-                '#__alfa_item_combination_values' => 'value_id',
-            ] as $tableName => $column
-        ) {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->delete($db->qn($tableName))
-                    ->whereIn($db->qn($column), $valueIds),
-            );
-            $db->execute();
-        }
-
-        // SELECTION-ONLY. A merchant withdrawing an option value has not
-        // withdrawn the product: the shopper keeps the cart line, and what
-        // changes is that the line is now configured differently from the way
-        // they configured it. The repository has a separate operation for this
-        // precisely so it cannot be confused with removing a line.
-        (new CartRepository($db))->removeSelectionsForFieldValues($valueIds);
-
-        $db->setQuery(
-            $db->getQuery(true)
-                ->delete($db->qn('#__alfa_item_field_values'))
-                ->whereIn($db->qn('id'), $valueIds),
-        );
-        $db->execute();
-
-        MultilingualHelper::deleteMultilingualData(
-            ids:               $valueIds,
-            primaryColumnName: 'id_item_field_value',
-            tableName:         '#__alfa_item_field_values',
-        );
     }
 
     /**
@@ -814,9 +604,9 @@ class ItemfieldModel extends AlfaAdminModel
         // a spec it is a line the product still shows. Unpublishing is the
         // reversible way to retire one; deletion is refused while anything points
         // at it. The question is shared with the Values tab; only the response
-        // differs (see usageBinding()).
+        // differs (see ItemFieldValueService::usage()).
         if ($valueIds) {
-            $binding = $this->usageBinding($valueIds);
+            $binding = ItemFieldValueService::usage(valueIds: $valueIds);
 
             if ($binding['items'] > 0) {
                 // Only the surfaces that actually hold it: "0 offered options" in a
@@ -879,8 +669,8 @@ class ItemfieldModel extends AlfaAdminModel
             }
 
             if ($valueIds) {
-                // Live cart selections go with them; cascadeDeleteValues() owns that.
-                $this->cascadeDeleteValues(valueIds: $valueIds);
+                // The values go with everything that names them, as a value removed on the Values tab goes.
+                ItemFieldValueService::cascade(db: $db, valueIds: $valueIds);
             }
 
             // SELECTION-ONLY, again: the field is gone, the cart lines that
