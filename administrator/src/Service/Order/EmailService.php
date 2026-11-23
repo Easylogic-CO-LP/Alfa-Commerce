@@ -2152,9 +2152,9 @@ class EmailService
      * Format the {order_total} token: the amount the customer is charged.
      *
      * Items + shipping + fees - discounts via OrderTotalHelper, the same
-     * formula as the totals table rendered below it. The items-only sum this
-     * token used to print contradicted that table on any order carrying
-     * shipping, a fee or a cart rule. Falls back to the items sum when the
+     * formula as the totals table rendered below it, so the token agrees with
+     * that table on an order carrying shipping, a fee or a cart rule (a sum of
+     * the items alone would not). Falls back to the items sum when the
      * breakdown or a currency is unavailable.
      *
      * @param int $orderId Order PK.

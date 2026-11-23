@@ -16,9 +16,9 @@ use Alfa\Component\Alfa\Administrator\Service\Task\TaskPolicy;
 /**
  * order.placement_email: the e-mail of an order's placement, for the status it was placed in.
  *
- * The status e-mail of the initial status, as placement has always sent it, as a single of its own: written with the
- * order, sent once the placement's own work after its commit (the gateway hooks) is done, recovered when the request
- * dies. The same outcomes and staff actions as a status e-mail.
+ * The status e-mail of the status the order was placed in, as a single of its own: written with the order, sent once
+ * the placement's own work after its commit (the gateway hooks) is done, recovered when the request dies. The same
+ * outcomes and staff actions as a status e-mail.
  *
  * @since  2.1.4
  */
