@@ -868,6 +868,7 @@ final class FactoryReset
             'images' => $images,
             'tables' => \count($removed),
             'made' => $made,
+            'work' => (array) ($state['work'] ?? []),
         ];
         MaintenanceState::leave(lastClear: $last);
 
