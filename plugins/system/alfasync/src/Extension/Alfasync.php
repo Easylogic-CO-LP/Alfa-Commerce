@@ -1628,7 +1628,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $error = $event->getError();
             $app = $event->getApplication();
 
-            if (!ErrorRecorder::isServerError(error: $error) || !$app instanceof CMSApplicationInterface) {
+            if (!$app instanceof CMSApplicationInterface || !ErrorRecorder::isServerError(error: $error, app: $app)) {
                 return;
             }
 

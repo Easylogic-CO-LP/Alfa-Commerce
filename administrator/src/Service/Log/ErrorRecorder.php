@@ -9,7 +9,17 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\Log;
 
+use Exception;
 use Joomla\CMS\Application\CMSApplicationInterface;
+use Joomla\CMS\Error\JsonApi\AuthenticationFailedExceptionHandler;
+use Joomla\CMS\Error\JsonApi\CheckinCheckoutExceptionHandler;
+use Joomla\CMS\Error\JsonApi\InvalidParameterExceptionHandler;
+use Joomla\CMS\Error\JsonApi\InvalidRouteExceptionHandler;
+use Joomla\CMS\Error\JsonApi\NotAcceptableExceptionHandler;
+use Joomla\CMS\Error\JsonApi\NotAllowedExceptionHandler;
+use Joomla\CMS\Error\JsonApi\ResourceNotFoundExceptionHandler;
+use Joomla\CMS\Error\JsonApi\SaveExceptionHandler;
+use Joomla\CMS\Error\JsonApi\SendEmailExceptionHandler;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Uri\Uri;
 use mysqli_sql_exception;
@@ -89,17 +99,56 @@ final class ErrorRecorder
     private const SECRET_PARAMETER = '/^(?:[0-9a-f]{32}|.*(?:token|key|pass|secret|sig|auth|hash|code).*)$/i';
 
     /**
-     * Whether an error is a server error, the kind recorded: anything but a 4xx code.
+     * Whether an error is a server error, the kind recorded: one the application answers with a status that is not
+     * a 4xx. The REST API answers through Joomla's JSON:API error handlers, which give a refused parameter, a refused
+     * save, a record not found, a refused access and the like their 4xx whatever the exception's code (a refused
+     * parameter thrown with code 0 answers 400), and anything else 500. The site and the administrator answer an
+     * error's 4xx code with it and anything else as a server error.
+     *
+     * @param Throwable $error The uncaught error.
+     * @param CMSApplicationInterface $app The application that caught it.
+     *
+     * @since  2.2.2
+     */
+    public static function isServerError(Throwable $error, CMSApplicationInterface $app): bool
+    {
+        $code = $app->isClient('api') ? self::apiStatus(error: $error) : (int) $error->getCode();
+
+        return $code < 400 || $code > 499;
+    }
+
+    /**
+     * The status the REST API answers an uncaught error with: the first of Joomla's JSON:API error handlers that manages
+     * it decides, in the order Joomla's JsonapiRenderer registers them; an error none manages, or one that is not an
+     * Exception, answers 500, as the renderer's fallback does.
      *
      * @param Throwable $error The uncaught error.
      *
      * @since  2.2.2
      */
-    public static function isServerError(Throwable $error): bool
+    private static function apiStatus(Throwable $error): int
     {
-        $code = (int) $error->getCode();
+        if (!$error instanceof Exception) {
+            return 500;
+        }
 
-        return $code < 400 || $code > 499;
+        foreach ([
+            new InvalidRouteExceptionHandler(),
+            new AuthenticationFailedExceptionHandler(),
+            new NotAcceptableExceptionHandler(),
+            new NotAllowedExceptionHandler(),
+            new InvalidParameterExceptionHandler(),
+            new ResourceNotFoundExceptionHandler(),
+            new SaveExceptionHandler(),
+            new CheckinCheckoutExceptionHandler(),
+            new SendEmailExceptionHandler(),
+        ] as $handler) {
+            if ($handler->manages($error)) {
+                return (int) $handler->handle($error)->getStatus();
+            }
+        }
+
+        return 500;
     }
 
     /**
