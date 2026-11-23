@@ -386,7 +386,14 @@ final class UnitBatch
             // The combination's prices go through the one way a combination is written (CombinationService), which
             // leaves the catalogue's rebuild to this batch inside its transaction.
             $written = CombinationService::change(itemId: $itemId, combinationId: $combinationId)
-                ->prices(rows: array_map(static fn (array $row): array => ['_mode' => $row['mode'] ?? 'price'] + $row, $rows))
+                ->prices(rows: array_map(static function (array $row): array {
+                    // The API's row in the window's keys, as the combination routes read it: its mode, its state as
+                    // price_status, and its override_type as an adjust's target.
+                    $mode = ($row['mode'] ?? 'price') === 'adjust' ? 'adjust' : 'price';
+
+                    return ['_mode' => $mode, 'price_status' => (string) ($row['state'] ?? '1'),
+                        $mode === 'adjust' ? 'adjust_target' : 'override_type' => $row['override_type'] ?? 'start'] + $row;
+                }, $rows))
                 ->from(origin: 'api')
                 ->save();
 
