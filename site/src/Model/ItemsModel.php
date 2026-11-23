@@ -2159,25 +2159,21 @@ class ItemsModel extends UrlListModel
         }
 
         $uri = new Uri(htmlspecialchars_decode($link, ENT_COMPAT));
-        $carried = [];
+        $query = $uri->getQuery(true);
 
-        foreach ($item->variant?->variantFieldIds ?? [] as $fieldId) {
+        foreach ($item->variant->variantFieldIds ?? [] as $fieldId) {
             $valueId = (int) ($item->variant->selection[$fieldId] ?? 0);
 
             if ($valueId > 0) {
-                $carried[(int) $fieldId] = $valueId;
+                $query['sel'][(int) $fieldId] = $valueId;
             }
         }
 
-        if ($carried !== []) {
-            $uri->setVar('sel', $carried);
+        foreach ((array) ($item->preselected['optionValueIds'] ?? []) as $fieldId => $valueId) {
+            $query['opt'][(int) $fieldId] = (int) $valueId;
         }
 
-        $options = array_map('intval', (array) ($item->preselected['optionValueIds'] ?? []));
-
-        if ($options !== []) {
-            $uri->setVar('opt', $options);
-        }
+        $uri->setQuery($query);
 
         return $uri->toString();
     }
