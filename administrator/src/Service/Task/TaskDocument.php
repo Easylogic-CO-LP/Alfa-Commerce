@@ -23,10 +23,10 @@ use Joomla\Database\ParameterType;
  * joined (meta.tasks of a save's answer).
  *
  * The owner is com_alfa for core's work, or the alfa plugin that declared it as group.element; the result is what an
- * extension's task or job reported when it was done (null before, and for core's work but the images fetched by
- * address). Times are UTC, as stored. The last error is staff's
- * information: shown, shortened, to callers with Tools only, and null to every other reader (the creator, the orders
- * view). It is stored without a database's text (Tasks::failureLine()); an older row may still hold one.
+ * extension's task or job reported when it was done (null before), and for core's work only the images fetched by
+ * address, what became of each so far, read while the fetch runs as well as once it is done (null for core's other
+ * work). Times are UTC, as stored. The last error is staff's information: shown, shortened, to callers with Tools
+ * only, and null to every other reader (the creator, the orders view). It is stored without a database's text (Tasks::failureLine()); an older row may still hold one.
  * meta.tasks lists only the tasks its reader may read.
  *
  * @since  2.2.0
@@ -123,7 +123,8 @@ final class TaskDocument
 
     /**
      * What a task reported: an extension's result as its plugin gave it; for core, the images a write gave as
-     * addresses and what became of each (media.fetch); null for any other work, and before it is done.
+     * addresses and what became of each so far (media.fetch), while it runs as well as once it is done; null for core's
+     * other work, and for an extension's work before it is done.
      *
      * @param array<string, mixed> $row The row.
      *
