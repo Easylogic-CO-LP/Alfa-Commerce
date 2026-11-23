@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
@@ -522,7 +523,7 @@ final class Runner
         try {
             Job\PriceIndexTidyJob::owe(db: $db);
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Runner: the tidy of the price index could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+            Tasks::log(entry: 'Runner: the tidy of the price index could not be queued: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         try {
