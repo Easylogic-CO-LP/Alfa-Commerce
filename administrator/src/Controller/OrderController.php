@@ -30,6 +30,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CreditNoteRefusedException;
@@ -1488,7 +1489,7 @@ class OrderController extends FormController
             }
         } catch (Throwable $e) {
             // Escaped, as every sibling task escapes.
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false) . '#alfa-order-coupons');
@@ -1529,7 +1530,7 @@ class OrderController extends FormController
                 $outcome === OrderCoupons::REMOVED ? 'success' : 'warning',
             );
         } catch (Throwable $e) {
-            $app->enqueueMessage(htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'), 'error');
+            $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
         $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false) . '#alfa-order-coupons');
