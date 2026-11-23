@@ -167,9 +167,9 @@ class PlaceModel extends AlfaAdminModel
     }
 
     /**
-     * Save a place. A place that takes another parent changes the chain of every place below it, so the price index
-     * slots kept at or below it, priced with the old chain, owe the catalogue a rebuild (2.2.1): it runs in Tools >
-     * Tasks and staff are told.
+     * Save a place. A place that takes another parent changes the chain of every place below it, so the price index's
+     * contexts priced at or below it, priced with the old chain, get their next generation, prepared by the
+     * price.set.prepare job (Tools > Tasks) and switched whole when complete; staff are told.
      *
      * @param array $data The form data.
      *
@@ -195,8 +195,9 @@ class PlaceModel extends AlfaAdminModel
 
     /**
      * Publish, unpublish, archive or trash places: a place prices a buyer only while it and every place above it
-     * are published, so the price index's contexts priced at or below a place whose state changed are rewritten by the
-     * catalogue job, and staff are told (PriceIndexSyncService::oweChainRebuild()).
+     * are published, so the price index's contexts priced at or below a place whose state changed get their next
+     * generation, prepared by the price.set.prepare job and switched whole when complete, and staff are told
+     * (PriceIndexSyncService::oweChainRebuild()).
      *
      * @param array $pks The places.
      * @param int $value The state.
@@ -239,8 +240,8 @@ class PlaceModel extends AlfaAdminModel
     }
     /**
      * Delete places and every row scoped by them: the four module pivots
-     * and the price-index rows of the place axis (the ranked read falls
-     * back to the 0-place rows until the next rebuild).
+     * and the price index's contexts priced at a deleted place, dropped
+     * with their rows when the index aligns its contexts.
      *
      * Refused, with nothing written, when the set is the last place of a
      * discount or tax rule: with no place left the rule would apply in every
