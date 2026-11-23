@@ -112,10 +112,11 @@ class ItemModel extends AlfaAdminModel
      *   with the opening stock of a switch to tracked. A save that moves the product into
      *   or out of the archive leaves state out of $data (a new product is written
      *   unpublished): publish() makes the move once the save is done.
-     * - onAlfaAdminAfterSave fires right after the ROW write, before multilingual, media,
-     *   prices, associations, item-fields, combinations, stock and projections. A handler
-     *   that needs the FINISHED item listens to onItemAfterSave (the domain event at the
-     *   end of save()) instead.
+     * - onAlfaAdminAfterSave fires once the whole save has committed (the row, multilingual,
+     *   media, prices, associations, item-fields, combinations, stock and the archive move are
+     *   one transaction), never after a rollback, with the record read as committed; inside a
+     *   caller's transaction, at the caller's commit. onItemAfterSave, the domain event, is
+     *   heard at the same commit.
      * - save() re-invokes getForm() to merge multilingual data, so the form/prepare-data
      *   pair dispatches a second time during a save request; handlers must be idempotent.
      *
