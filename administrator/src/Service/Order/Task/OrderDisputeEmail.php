@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
@@ -117,7 +118,7 @@ final class OrderDisputeEmail extends OrderTaskHandler implements TaskSettleReco
             );
         } catch (Throwable $e) {
             // Raised before the message was handed over: nothing was delivered.
-            throw TaskFailure::retry(message: $e->getMessage(), previous: $e);
+            throw TaskFailure::retry(message: ErrorText::of($e), previous: $e);
         }
 
         $run->unit(unit: $unit, outcome: match ($outcome) {

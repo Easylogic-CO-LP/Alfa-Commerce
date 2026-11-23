@@ -1712,7 +1712,7 @@ class ActionRegistry
         $valid = $model->validate($form, $typed);
 
         if ($valid === false) {
-            $errors = array_map(static fn ($error): string => $error instanceof Throwable ? $error->getMessage() : (string) $error, $model->getErrors());
+            $errors = array_map(static fn ($error): string => $error instanceof Throwable ? ErrorText::of($error) : (string) $error, $model->getErrors());
 
             return self::disputeForm(event: $event, payment: $payment, dispute: $dispute, act: $act, form: $model->getForm(['act' => $act, 'payment' => $payment, 'dispute' => $dispute, 'typed' => $typed]), refusal: implode(' ', $errors));
         }

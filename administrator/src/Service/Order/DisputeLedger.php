@@ -968,7 +968,7 @@ final class DisputeLedger
         try {
             $currency = OrderCurrency::of(orderId: $orderId);
         } catch (OrderCurrencyException $e) {
-            return self::refused(code: DisputeVerdict::CODE_NOT_COLLECTED, message: $e->getMessage());
+            return self::refused(code: DisputeVerdict::CODE_NOT_COLLECTED, message: ErrorText::of($e));
         }
 
         $payment = $db->setQuery('SELECT * FROM ' . $db->quoteName(self::PAYMENTS) . ' WHERE ' . $db->quoteName('id') . ' = ' . $paymentId)->loadObject();
