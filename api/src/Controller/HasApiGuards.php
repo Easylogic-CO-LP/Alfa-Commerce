@@ -130,7 +130,7 @@ trait HasApiGuards
      * Whether a record of this resource is deleted from the trash only: true where the
      * administrator's list moves a record to the trash before it deletes it, its Delete being the trashed view's Empty
      * trash. A DELETE of a record in any other state then answers 409 and deletes nothing; a PATCH of state -2 trashes
-     * it first. Resources the administrator deletes without a trash step, and orders, keep their one-call delete.
+     * it first. Resources the administrator deletes without a trash step keep their one-call delete.
      *
      * @since  2.2.1
      */
