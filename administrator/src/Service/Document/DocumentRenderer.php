@@ -78,9 +78,12 @@ final class DocumentRenderer
             throw new RuntimeException("DocumentRenderer: document #{$documentId} does not exist.");
         }
 
-        // Labels print in the DOCUMENT's language: merge that language's
-        // com_alfa strings over the current ones (falls back to en-GB
-        // while translations are pending).
+        // Labels print in the DOCUMENT's language: that language's com_alfa
+        // strings are merged over the ones this request holds. A string the
+        // document's language lacks, or every string of a language Alfa
+        // Commerce has no translation for, stays as the request holds it: the
+        // request's own language's once the request has loaded Alfa's
+        // strings, else English's, which Joomla loads first.
         $lang = Factory::getApplication()->getLanguage();
         $lang->load('com_alfa', JPATH_ADMINISTRATOR, (string) $document->language, true);
 
@@ -146,9 +149,10 @@ final class DocumentRenderer
      * Read from Joomla's own file of the document's language in the administrator (joomla.ini, its DECIMALS_SEPARATOR
      * and THOUSANDS_SEPARATOR), apart from the request's language, once per language and request; English's when that
      * language has no administrator joomla.ini of its own that names both. The labels come from another file, Alfa
-     * Commerce's own (com_alfa.ini) of that language, and Joomla loads English for them when it is missing: so a
-     * language that Joomla's administrator has and Alfa Commerce's translations do not prints English labels with that
-     * language's separators (a French document: English labels, 15,5%). A partial drawn without a document prints with
+     * Commerce's own (com_alfa.ini) of that language, and where it is missing or lacks a string the label stays as the
+     * request holds it ({@see self::render()}): so a language that Joomla's administrator has and Alfa Commerce's
+     * translations do not prints the request's labels with that language's separators (a French document printed from
+     * an English request: English labels, 15,5%). A partial drawn without a document prints with
      * the request's language's separators, by the same rule: English's when the request's language names neither (a
      * command line request, which loads no joomla.ini).
      *
