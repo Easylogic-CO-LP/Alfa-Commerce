@@ -1612,11 +1612,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * A server error of the request (an uncaught throwable that is not a 4xx): one line in Alfa Commerce's error log
-     * ({@see ErrorRecorder}), the reference in a response header, and the error the page shows replaced by a sentence
-     * with that reference, the original chained to it as its cause. The status stays the error's own 5xx (500 for any
-     * other code). A 4xx is Joomla's own and is left as it is. Nothing is retried and nothing is held back from the
-     * log; a failure here never changes the page.
+     * A server error of the request (an uncaught throwable that is not a 4xx; on the REST API one answered 500): one
+     * line in Alfa Commerce's error log ({@see ErrorRecorder}), the reference in a response header, and the error the
+     * page shows replaced by a sentence with that reference, the original chained to it as its cause. The status stays
+     * the error's own 5xx (500 for any other code). A REST API answer Joomla's JSON:API handlers give keeps its own
+     * sentence and status, with the header ({@see ErrorRecorder::keepsAnswer()}). A 4xx is Joomla's own and is left as
+     * it is. Nothing is retried and nothing is held back from the log; a failure here never changes the page.
      *
      * @param ErrorEvent $event The application's error event.
      *
@@ -1637,6 +1638,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             if ($app instanceof WebApplicationInterface) {
                 $app->setHeader(ErrorRecorder::HEADER, $reference, true);
+            }
+
+            if (ErrorRecorder::keepsAnswer(error: $error, app: $app)) {
+                return;
             }
 
             $this->loadLanguage();

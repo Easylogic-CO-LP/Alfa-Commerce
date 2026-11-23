@@ -26,6 +26,7 @@ use Joomla\CMS\Uri\Uri;
 use mysqli_sql_exception;
 use PDOException;
 use Throwable;
+use Tobscure\JsonApi\Exception\Handler\ExceptionHandlerInterface;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -44,7 +45,8 @@ use Throwable;
  * in Alfa Commerce's code it passed through; then the request's peak memory and time.
  *
  * The visitor's page carries the reference only: the error shown is a sentence with the reference, the original
- * chained to it as its cause (Joomla's error page shows that cause only with Debug System on). The status stays a 5xx,
+ * chained to it as its cause (Joomla's error page shows that cause only with Debug System on). A REST API answer keeps
+ * the sentence the code gave it, which names no detail, and gains the reference header. The status stays a 5xx,
  * nothing is retried and nothing is hidden from the log. A failure to write never changes the page.
  *
  * Joomla's Rotate Logs task rotates the file with the site's other logs.
@@ -91,11 +93,13 @@ final class ErrorRecorder
     private const SECRET_PARAMETER = '/^(?:[0-9a-f]{32}|.*(?:token|key|pass|secret|sig|auth|hash|code).*)$/i';
 
     /**
-     * Whether an error is a server error, the kind recorded: one the application answers with a status that is not
-     * a 4xx. The REST API answers through Joomla's JSON:API error handlers, which give a refused parameter, a refused
-     * save, a record not found, a refused access and the like their 4xx whatever the exception's code (a refused
-     * parameter thrown with code 0 answers 400), and anything else 500. The site and the administrator answer an
-     * error's 4xx code with it and anything else as a server error.
+     * Whether an error is a server error, the kind recorded. The site and the administrator answer an error's 4xx code
+     * with it and anything else as a server error. The REST API answers through Joomla's JSON:API error handlers, which
+     * give a refused parameter, a refused save, a record not found, a refused access and the like their 4xx whatever
+     * the exception's code (a refused parameter thrown with code 0 answers 400), a save refused with a 5xx its code, and
+     * anything else 500: there the server error is the one answered 500. A 503 the code answers on purpose, with
+     * Retry-After and its own sentence (an extension that cannot be loaded, a record busy with another write), asks the
+     * client to come back and is no error of the server.
      *
      * @param Throwable $error The uncaught error.
      * @param CMSApplicationInterface $app The application that caught it.
@@ -104,9 +108,29 @@ final class ErrorRecorder
      */
     public static function isServerError(Throwable $error, CMSApplicationInterface $app): bool
     {
-        $code = $app->isClient('api') ? self::apiStatus(error: $error) : (int) $error->getCode();
+        if ($app->isClient('api')) {
+            return self::apiStatus(error: $error) === 500;
+        }
+
+        $code = (int) $error->getCode();
 
         return $code < 400 || $code > 499;
+    }
+
+    /**
+     * Whether the answer keeps the error's own sentence and status: on the REST API an error one of Joomla's JSON:API
+     * handlers manages is a sentence the code chose, which names no detail (the detail is in the record's line), and
+     * its status is the one the handler gives; replaced by another kind of exception it would read "Internal server
+     * error" with 500. The site's and the administrator's error is replaced by the sentence with the reference.
+     *
+     * @param Throwable $error The uncaught error.
+     * @param CMSApplicationInterface $app The application that caught it.
+     *
+     * @since  2.3.0
+     */
+    public static function keepsAnswer(Throwable $error, CMSApplicationInterface $app): bool
+    {
+        return $app->isClient('api') && self::apiHandler(error: $error) !== null;
     }
 
     /**
@@ -120,8 +144,23 @@ final class ErrorRecorder
      */
     private static function apiStatus(Throwable $error): int
     {
+        $handler = self::apiHandler(error: $error);
+
+        return $handler !== null && $error instanceof Exception ? (int) $handler->handle($error)->getStatus() : 500;
+    }
+
+    /**
+     * The first of Joomla's JSON:API error handlers that manages an uncaught error, in the order Joomla's
+     * JsonapiRenderer registers them; null for an error none manages, or one that is not an Exception.
+     *
+     * @param Throwable $error The uncaught error.
+     *
+     * @since  2.3.0
+     */
+    private static function apiHandler(Throwable $error): ?ExceptionHandlerInterface
+    {
         if (!$error instanceof Exception) {
-            return 500;
+            return null;
         }
 
         foreach ([
@@ -136,11 +175,11 @@ final class ErrorRecorder
             new SendEmailExceptionHandler(),
         ] as $handler) {
             if ($handler->manages($error)) {
-                return (int) $handler->handle($error)->getStatus();
+                return $handler;
             }
         }
 
-        return 500;
+        return null;
     }
 
     /**
