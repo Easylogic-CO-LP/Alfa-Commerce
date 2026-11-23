@@ -41,8 +41,9 @@ use Throwable;
  * reason, and the other units are written. A unit's prices replace its own price rows as the item write and the
  * combination's price editor write them (rows kept by id, rows not sent removed; a combination's through
  * CombinationService), refused 409 when the unit's prices_state was sent and its prices changed since; its stock is an
- * absolute figure, as the item write takes it (stock at the one location the unit is stocked at, or inventory_stock by
- * location), set through InventoryCommands as every stock editor sets it.
+ * absolute figure, as the item write takes it (stock for the shop's default location, refused when the shop keeps stock
+ * at more than one location; or inventory_stock by location), set through InventoryCommands as every stock editor sets
+ * it.
  *
  * The products whose prices were written are marked owed a rebuild in each unit's transaction, and their catalogue (the
  * price index through PriceIndexSyncService, with the other catalogue projections) is rebuilt once for all of them
