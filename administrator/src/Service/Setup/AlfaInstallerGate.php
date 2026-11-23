@@ -71,7 +71,7 @@ use Throwable;
  *
  * The refusal is plain English: no language file exists yet at an install's preflight.
  *
- * THE POLICY. Every Alfa extension declares both min and max, max being the last line it was tested on (2.2, never a
+ * THE POLICY. Every Alfa extension declares both min and max, max being the last line it was tested on (2.3, never a
  * patch release). One that installs on its own enforces the range in its preflight exactly as above, so its install,
  * update and discover_install are refused outside the range, from the command line too, and its uninstall never is. One
  * that ships inside Alfa Commerce's package declares the range and calls no gate: it arrives with the core it is built
