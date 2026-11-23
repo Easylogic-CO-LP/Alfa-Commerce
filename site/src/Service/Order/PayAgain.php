@@ -42,7 +42,9 @@ use Throwable;
  * - money is still owed (PaymentLedger::amountToCollect());
  * - its status is neither in the cancelled family nor in the completed one;
  * - no payment of it is held (authorized) at a provider;
- * - no refund of it is unsettled (PaymentLedger::orderDeleteRefusal());
+ * - nothing holds the order that PaymentLedger::orderDeleteRefusal() names: a refund not settled, or a card dispute
+ *   the bank has not decided; either is answered REFUND (the buyer reads COM_ALFA_PAY_AGAIN_REFUND, staff sending the
+ *   payment link COM_ALFA_ORDER_PAYMENT_LINK_REFUSED_REFUND);
  * - its payment method is published, and its gateway plugin is available and answers
  *   PaymentsPlugin::supportsPayAgain() true: its process view opens a new attempt for an existing order. A gateway that
  *   does not answer, or fails to, is refused; core's Standard method, paid outside the shop, keeps the default.
@@ -66,7 +68,7 @@ final class PayAgain
     /** A payment of the order is held at a provider. */
     public const HELD = 'held';
 
-    /** A refund of the order is not settled. */
+    /** A refund of the order is not settled, or a dispute of it is not decided. */
     public const REFUND = 'refund';
 
     /** The order's payment method or its gateway is not available, or the gateway does not open a new attempt. */
