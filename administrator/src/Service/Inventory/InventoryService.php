@@ -256,8 +256,6 @@ final class InventoryService
     public const MOVE_DEDUCT = 'deduct';
     public const MOVE_RESTORE = 'restore';
     public const MOVE_ADJUST = 'adjust';
-    public const MOVE_TRANSFER_OUT = 'transfer_out';
-    public const MOVE_TRANSFER_IN = 'transfer_in';
 
     public const BACKORDER_DENY = 'deny';
     public const BACKORDER_ALLOW = 'allow';
@@ -6078,7 +6076,6 @@ final class InventoryService
         InventoryContext $context,
         string $counterpartyType = '',
         ?int $counterpartyId = null,
-        ?int $transferId = null,
     ): void {
         $row = (object) [
             'item_id' => $unit['item'],
@@ -6091,7 +6088,6 @@ final class InventoryService
             'source_line_id' => $sourceLineId,
             'counterparty_type' => $counterpartyType,
             'counterparty_id' => $counterpartyId,
-            'transfer_id' => $transferId,
             'operation_id' => $operationId,
             'correlation_id' => $context->correlationId,
             'note' => $context->note,

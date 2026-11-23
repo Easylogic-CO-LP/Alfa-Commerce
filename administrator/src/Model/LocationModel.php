@@ -387,12 +387,6 @@ class LocationModel extends AlfaAdminModel
                 ->select('1')->from($db->quoteName('#__alfa_inventory_movements'))
                 ->where($db->quoteName('location_id') . ' = ' . $locationId)
                 ->setLimit(1),
-            'COM_ALFA_LOCATION_FOOTPRINT_TRANSFERS' => $db->getQuery(true)
-                ->select('1')->from($db->quoteName('#__alfa_inventory_transfers'))
-                ->where('(' . $db->quoteName('source_location_id') . ' = ' . $locationId
-                    . ' OR ' . $db->quoteName('destination_location_id') . ' = ' . $locationId . ')')
-                ->where($db->quoteName('state') . ' != ' . $db->quote('completed'))
-                ->setLimit(1),
             // Any stock record, a record at zero included: stock records are
             // written and removed only by the inventory kernel, never swept here.
             'COM_ALFA_LOCATION_FOOTPRINT_STOCK_RECORDS' => $db->getQuery(true)
