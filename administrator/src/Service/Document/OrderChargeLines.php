@@ -1383,11 +1383,12 @@ final class OrderChargeLines
         // negative any more than a sales document may.
         $draftValueIncl = $draftIncl->add($shippingLeft)->add($feesIncl);
         $merchandise = self::merchandiseDiscounts(
-            charges:   $charges,
-            valueIncl: $draftValueIncl->getAmount(),
-            credited:  $credited,
-            final:     $final,
-            currency:  $currency,
+            charges:    $charges,
+            valueIncl:  $draftValueIncl->getAmount(),
+            credited:   $credited,
+            final:      $final,
+            currency:   $currency,
+            shareParts: self::shareCredits(orderId: $orderId, charges: $charges, itemLines: $itemLines, currency: $currency),
         );
 
         // Each rate's part is claimed from the rule's buckets at that rate only.
@@ -1455,6 +1456,10 @@ final class OrderChargeLines
      * @param array<string, object{incl: Money, qty: float}> $credited The goods the credit takes, keyed by rateKey().
      * @param bool $final Whether the credit takes the last goods the document has left.
      * @param Currency $currency The corrected document's currency.
+     * @param array<int, array<string, int>> $shareParts For a rule held as its shares of the order lines, by its id:
+     *                                                  what the credited lines' shares come to at each rate, in minor
+     *                                                  units ({@see self::shareCredits()}); such a rule gives back
+     *                                                  that at each rate, never more than it has left there.
      *
      * @return object{claims: list<array{0: object, 1: float, 2: array<string, int>}>, left: float} Each rule
      *                                                                                              that gives back money, in rule order: the rule, its gross claim (the sum of its parts, stated for a
@@ -1463,7 +1468,7 @@ final class OrderChargeLines
      *
      * @since  2.0.0
      */
-    private static function merchandiseDiscounts(object $charges, float $valueIncl, array $credited, bool $final, Currency $currency): object
+    private static function merchandiseDiscounts(object $charges, float $valueIncl, array $credited, bool $final, Currency $currency, array $shareParts = []): object
     {
         $claims = [];
         $value = Money::of($valueIncl, $currency);
@@ -1476,6 +1481,14 @@ final class OrderChargeLines
             $terms = [];
 
             foreach (self::leftByRate(rule: $rule, currency: $currency) as $rate => $left) {
+                if (isset($shareParts[(int) $rule->id])) {
+                    // Held as shares: the credited lines' shares at this rate, never more than is left there; the
+                    // last goods take what is left.
+                    $terms[$rate] = [$final ? $left : min($left, (int) ($shareParts[(int) $rule->id][$rate] ?? 0)), 1, 1];
+
+                    continue;
+                }
+
                 $terms[$rate] = $final
                     ? [$left, 1, 1]
                     : self::rateTerm(
@@ -2784,6 +2797,93 @@ final class OrderChargeLines
         }
 
         return array_values(array_filter($parts, static fn (array $part): bool => $part[1] > 0));
+    }
+
+    /**
+     * What a credit's lines give back of each cart rule held as its shares of the order lines, by VAT rate.
+     *
+     * Each credited item line gives back its line's share of the rule for the quantity it credits, cumulatively over
+     * the order's credits: the share's gross at the quantity credited after this draft, less at the quantity credited
+     * before, each the share's gross times that quantity over the line's quantity, rounded once, half away from zero;
+     * the credit that reaches the line's whole quantity gives back the rest of its share. The parts are gross, at the
+     * line's own rate; the walk keeps each within what the corrected document has left of the rule there.
+     *
+     * @param int $orderId The order.
+     * @param object $charges The corrected document's charges (correctedCharges()).
+     * @param array $itemLines The credit draft's item lines.
+     * @param Currency $currency The corrected document's currency.
+     *
+     * @return array<int, array<string, int>> By the rule's id (#__alfa_order_cart_rule), its parts by rateKey(), in
+     *                                        minor units; only rules held as shares.
+     *
+     * @since  2.3.0
+     */
+    private static function shareCredits(int $orderId, object $charges, array $itemLines, Currency $currency): array
+    {
+        $ruleIds = array_values(array_filter(array_map(
+            static fn (object $rule): int => $rule->discount_class === 'shipping' ? 0 : (int) $rule->id,
+            $charges->rules,
+        )));
+
+        if ($ruleIds === []) {
+            return [];
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select([
+                    $db->quoteName('s.id_order_cart_rule'), $db->quoteName('s.id_order_item'), $db->quoteName('s.value_tax_incl'),
+                    $db->quoteName('i.quantity'), $db->quoteName('i.tax_rate'),
+                ])
+                ->from($db->quoteName('#__alfa_order_item_cart_rule', 's'))
+                ->join('INNER', $db->quoteName('#__alfa_order_items', 'i'), $db->quoteName('i.id') . ' = ' . $db->quoteName('s.id_order_item'))
+                ->join('INNER', $db->quoteName('#__alfa_order_cart_rule', 'r'), $db->quoteName('r.id_order_cart_rule') . ' = ' . $db->quoteName('s.id_order_cart_rule'))
+                ->where($db->quoteName('r.line_shares') . ' = 1')
+                ->whereIn($db->quoteName('s.id_order_cart_rule'), $ruleIds),
+        )->loadObjectList() ?: [];
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $creditedBefore = DocumentHelper::consumedQuantities(orderId: $orderId, docTypes: DocumentHelper::creditTypes());
+        $draftQuantity = [];
+
+        foreach ($itemLines as $line) {
+            $lineId = (int) ($line['id_order_item'] ?? 0);
+
+            if ($lineId > 0) {
+                $draftQuantity[$lineId] = ($draftQuantity[$lineId] ?? 0.0) + (float) ($line['quantity'] ?? 0);
+            }
+        }
+
+        $at = static function (int $gross, float $quantity, float $ordered): int {
+            if ($quantity >= $ordered - self::QUANTITY_EPSILON) {
+                return $gross;
+            }
+
+            return $quantity <= self::QUANTITY_EPSILON ? 0 : (int) round($gross * $quantity / $ordered, 0, PHP_ROUND_HALF_UP);
+        };
+        $parts = [];
+
+        foreach ($rows as $row) {
+            $lineId = (int) $row->id_order_item;
+            $ordered = (float) $row->quantity;
+
+            if (!isset($draftQuantity[$lineId]) || $ordered <= 0.0) {
+                continue;
+            }
+
+            $gross = Money::of((string) $row->value_tax_incl, $currency)->getMinorUnits();
+            $before = min($ordered, (float) ($creditedBefore[$lineId] ?? 0.0));
+            $after = min($ordered, $before + $draftQuantity[$lineId]);
+            $rate = self::rateKey((float) $row->tax_rate);
+            $ruleId = (int) $row->id_order_cart_rule;
+            $parts[$ruleId][$rate] = ($parts[$ruleId][$rate] ?? 0) + $at($gross, $after, $ordered) - $at($gross, $before, $ordered);
+        }
+
+        return $parts;
     }
 
     /**
