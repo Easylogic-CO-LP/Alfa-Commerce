@@ -600,16 +600,12 @@ class FieldsHelper
         $template = null;
         $name = 'default';
 
-        if ($layoutValue !== '') {
-            if (str_contains($layoutValue, ':')) {
-                [$prefix, $rawName] = explode(':', $layoutValue, 2);
-                $template = ($prefix !== '' && $prefix !== '_') ? $prefix : null;
-                if ($rawName !== '') {
-                    $name = $rawName;
-                }
-            } else {
-                // Back-compat: bare layout name without prefix.
-                $name = $layoutValue;
+        // The stored value is "_:<layout>" (the plugin's own) or "<template>:<layout>" (FieldLayoutField).
+        if (str_contains($layoutValue, ':')) {
+            [$prefix, $rawName] = explode(':', $layoutValue, 2);
+            $template = ($prefix !== '' && $prefix !== '_') ? $prefix : null;
+            if ($rawName !== '') {
+                $name = $rawName;
             }
         }
 
