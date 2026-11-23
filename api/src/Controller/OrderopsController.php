@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel as AdminOrderModel;
@@ -267,7 +268,7 @@ class OrderopsController extends OrdersController
         try {
             return LinePricing::fromPayload(payload: $body);
         } catch (InvalidArgumentException $e) {
-            throw new Save($e->getMessage(), 400);
+            throw new Save(ErrorText::of($e), 400);
         }
     }
 
