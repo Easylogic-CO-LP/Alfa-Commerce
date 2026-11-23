@@ -242,8 +242,8 @@ class ItemsModel extends UrlListModel
      */
     private const ORDER_KEYS = [
         'a.ordering' => 'ordering', 'ordering' => 'ordering', 'name' => 'name', 'a.id' => 'id', 'id' => 'id',
-        'a.sku' => 'sku', 'sku' => 'sku', 'a.stock' => 'stock', 'stock' => 'stock', 'created' => 'created',
-        'a.created' => 'created', 'pf.final_price' => 'price', 'price' => 'price', 'pf.price' => 'price',
+        'a.sku' => 'sku', 'sku' => 'sku', 'a.stock' => 'stock', 'stock' => 'stock',
+        'pf.final_price' => 'price', 'price' => 'price', 'pf.price' => 'price',
         'pf.discount_amount' => 'discount_amount', 'pf.discount_percent' => 'discount_percent',
     ];
 
@@ -407,7 +407,8 @@ class ItemsModel extends UrlListModel
                 'ordering', 'a.ordering',
                 'sku',      'a.sku',
                 'stock',    'a.stock',
-                'created',  'a.created',
+                // No date column: the items table keeps none, so a request for one reads as the listing's default
+                // order (the newest first, a.id DESC).
                 // Price-index columns: all three must be listed so that
                 // parseFullordering() in UrlListModel accepts them as valid
                 // ordering targets (it does in_array($orderCol, $filter_fields)).
