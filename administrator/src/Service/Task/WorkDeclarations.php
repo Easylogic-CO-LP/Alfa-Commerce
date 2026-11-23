@@ -528,6 +528,60 @@ final class WorkDeclarations
     }
 
     /**
+     * The extensions' tasks and jobs that wait, failed or are held, counted by owner, with the owner's name as
+     * Extensions: Plugins shows it: what Clear everything deletes with the shop's data, said on its confirmation page
+     * and kept in its record.
+     *
+     * @return list<array{owner: string, name: string, waiting: int, failed: int, held: int}>
+     *
+     * @since  2.3.0
+     */
+    public static function extensionCounts(): array
+    {
+        $db = self::db();
+        $rows = $db->setQuery(
+            'SELECT ' . $db->quoteName('owner') . ', SUM(' . $db->quoteName('state') . ' IN (' . $db->quote(Tasks::STATE_PENDING) . ', ' . $db->quote(Tasks::STATE_RUNNING) . ')) AS '
+            . $db->quoteName('waiting') . ', SUM(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_FAILED) . ') AS ' . $db->quoteName('failed')
+            . ', SUM(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_HELD) . ') AS ' . $db->quoteName('held')
+            . ' FROM ' . $db->quoteName(DueRead::TABLE) . ' WHERE ' . $db->quoteName('owner') . ' <> ' . $db->quote(DueRead::CORE_OWNER)
+            . ' AND ' . $db->quoteName('state') . ' IN (' . implode(', ', array_map([$db, 'quote'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING, Tasks::STATE_FAILED, Tasks::STATE_HELD])) . ')'
+            . ' GROUP BY ' . $db->quoteName('owner') . ' ORDER BY ' . $db->quoteName('owner'),
+        )->loadAssocList() ?: [];
+        $helper = AlfaPluginHelper::get();
+
+        return array_map(static fn (array $row): array => [
+            'owner' => (string) $row['owner'],
+            'name' => $helper->name(PluginId::of((string) $row['owner'])),
+            'waiting' => (int) $row['waiting'],
+            'failed' => (int) $row['failed'],
+            'held' => (int) $row['held'],
+        ], $rows);
+    }
+
+    /**
+     * Load an extension's own language, for its labels and Covers texts in Tools > Tasks (strict language ownership:
+     * the plugin owns its strings). Once a request per owner; core's own is loaded already.
+     *
+     * @param string $owner group.element.
+     *
+     * @since  2.3.0
+     */
+    public static function loadLanguage(string $owner): void
+    {
+        static $loaded = [];
+
+        if ($owner === DueRead::CORE_OWNER || isset($loaded[$owner])) {
+            return;
+        }
+
+        $loaded[$owner] = true;
+        $id = PluginId::of($owner);
+        $extension = 'plg_' . $id->group . '_' . $id->element;
+        $language = Factory::getApplication()->getLanguage();
+        $language->load($extension, JPATH_ADMINISTRATOR) || $language->load($extension, JPATH_PLUGINS . '/' . $id->group . '/' . $id->element);
+    }
+
+    /**
      * Forget what this request read: the next read asks the table.
      *
      * @since  2.3.0

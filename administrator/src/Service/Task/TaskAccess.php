@@ -18,8 +18,9 @@ use Joomla\CMS\User\User;
  * Who may read a task through the API, and who may process a job.
  *
  * Only a signed-in user reads a task. Its creator reads their own; anyone else needs the permission of the work: Tools
- * (alfa.tools) for a job or a single about anything but an order, and the orders view permission for an order's
- * single. A caller who may not read a task is told it does not exist, so its existence is never revealed. Processing
+ * (alfa.tools) for a job or a single about anything but an order, and the orders view permission for core's single
+ * about an order. An extension's task about an order is read with Tools: nothing may infer what an extension's work
+ * needs. A caller who may not read a task is told it does not exist, so its existence is never revealed. Processing
  * a job needs Tools, whoever created it.
  *
  * @since  2.2.0
@@ -37,7 +38,7 @@ final class TaskAccess
     /**
      * Whether a user may read a task.
      *
-     * @param array<string, mixed> $row The task's row: type, subject_type and created_by at least.
+     * @param array<string, mixed> $row The task's row: type, owner, subject_type and created_by at least.
      * @param User $user Who asks.
      *
      * @since  2.2.0
@@ -54,7 +55,7 @@ final class TaskAccess
             return true;
         }
 
-        if ($row['type'] === Tasks::TYPE_SINGLE && $row['subject_type'] === 'order') {
+        if ($row['type'] === Tasks::TYPE_SINGLE && $row['subject_type'] === 'order' && (string) ($row['owner'] ?? '') === DueRead::CORE_OWNER) {
             return AlfaHelper::can(section: 'orders', action: 'view', user: $user);
         }
 

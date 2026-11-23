@@ -205,8 +205,26 @@ final class FactoryReset
             'store' => $store->toState() + $store->inspect(),
             'images' => $this->images(),
             'extensions' => $this->extensionSupport(),
+            'work' => self::extensionWork(),
             'refusal' => $refusal,
         ];
+    }
+
+    /**
+     * The extensions' background work that Clear everything deletes with the shop's data, by extension; an empty list
+     * when it cannot be read (the tasks table missing): nothing is hidden that exists.
+     *
+     * @return list<array{owner: string, name: string, waiting: int, failed: int, held: int}>
+     *
+     * @since  2.3.0
+     */
+    private static function extensionWork(): array
+    {
+        try {
+            return WorkDeclarations::extensionCounts();
+        } catch (Throwable) {
+            return [];
+        }
     }
 
     /**
@@ -719,7 +737,10 @@ final class FactoryReset
         $drop = $core->dropSet();
         $floors = $core->identifierFloors(tables: $drop, recorded: array_map('intval', (array) ($state['ids'] ?? [])));
         $dropped = array_values(array_unique([...array_map('strval', (array) ($state['dropped'] ?? [])), ...$drop]));
-        MaintenanceState::update(changes: ['ids' => $floors, 'dropped' => $dropped]);
+        // The extensions' background work that goes with the tables, counted before anything goes (a run again keeps
+        // the first count).
+        $work = (array) ($state['work'] ?? self::extensionWork());
+        MaintenanceState::update(changes: ['ids' => $floors, 'dropped' => $dropped, 'work' => $work]);
 
         // The store's objects, at the place resolved before the configuration goes.
         $this->at(step: $step = 'files');
@@ -818,6 +839,17 @@ final class FactoryReset
 
         foreach ($warnings as $key => $extension) {
             MaintenanceAudit::detail(run: $run, line: sprintf('warning %s: %s', $key, self::warning(extension: $extension)));
+        }
+
+        foreach ((array) ($state['work'] ?? []) as $work) {
+            MaintenanceAudit::detail(run: $run, line: sprintf(
+                'background work of %s (%s) deleted with the tables: %d waiting or running, %d failed, %d held.',
+                (string) ($work['name'] ?? ''),
+                (string) ($work['owner'] ?? ''),
+                (int) ($work['waiting'] ?? 0),
+                (int) ($work['failed'] ?? 0),
+                (int) ($work['held'] ?? 0),
+            ));
         }
 
         $this->notify(user: $user, run: $run, headline: $headlineKey, warnings: $warnings, images: $images);
