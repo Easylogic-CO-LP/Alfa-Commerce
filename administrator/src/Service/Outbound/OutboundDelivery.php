@@ -247,7 +247,9 @@ final class OutboundDelivery
     }
 
     /**
-     * Hand a batch to a plugin consumer.
+     * Hand a batch to a plugin consumer, booted for the work whatever its Access (the delivery runs as the system, not
+     * as the visitor whose request ran the runner): a plugin that is disabled, missing or cannot be loaded holds the
+     * batch one backoff step with no attempt counted.
      *
      * @param object $consumer The consumer's row.
      * @param list<object> $rows The batch.
@@ -265,7 +267,7 @@ final class OutboundDelivery
 
         try {
             $plugin = PluginId::of((string) $consumer->plugin);
-            $loaded = $helper->bootSingle($plugin);
+            $loaded = $helper->bootForWork($plugin);
         } catch (PluginUnavailable $e) {
             return ['answers' => $all('hold', $e->getMessage()), 'retryAfter' => null, 'ok' => false, 'result' => $e->getMessage()];
         }
