@@ -413,8 +413,8 @@ final class CartService
      *
      * The mode is the caller's, because this is the one use case where callers
      * genuinely differ: a storefront reader takes the visitor's own cart, an
-     * operator screen takes one by name. Mutable is refused: a look does not
-     * leave a row behind.
+     * operator screen takes one by name. A creating mode (Mutable, Fresh) is
+     * refused: a look does not leave a row behind.
      *
      * NOT A PURE FUNCTION, AND NOT PRETENDING TO BE. Resolving a cart under a
      * discovering mode is what performs guest adoption, and hydrating its lines
@@ -432,8 +432,8 @@ final class CartService
      */
     public function read(CartResolution $mode, int $cartId = 0): CartSnapshot
     {
-        if ($mode === CartResolution::Mutable) {
-            throw new InvalidArgumentException('A cart is not created in order to be read.');
+        if ($mode->mayCreate()) {
+            throw new InvalidArgumentException('A cart is not created in order to be read: ' . $mode->value . ' may create one.');
         }
 
         $cart = $this->cart($mode, $cartId);
@@ -450,7 +450,7 @@ final class CartService
      *
      * @api ANSWERS: the lines and totals of the cart under the mode given, without offers; CURRENT creates no cart for
      *      a visitor without one (resolving may adopt a guest cart and re-clamp a quantity, as every cart page does);
-     *      Mutable is refused.
+     *      a creating mode (Mutable, Fresh) is refused.
      *
      * @param CartResolution $mode How to find it.
      * @param int $cartId Which one, when naming it.
@@ -463,8 +463,8 @@ final class CartService
      */
     public function summary(CartResolution $mode, int $cartId = 0): CartSnapshot
     {
-        if ($mode === CartResolution::Mutable) {
-            throw new InvalidArgumentException('A cart is not created in order to be read.');
+        if ($mode->mayCreate()) {
+            throw new InvalidArgumentException('A cart is not created in order to be read: ' . $mode->value . ' may create one.');
         }
 
         $cart = $this->cart($mode, $cartId);
