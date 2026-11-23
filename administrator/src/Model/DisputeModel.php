@@ -273,8 +273,16 @@ class DisputeModel extends AdminModel
     {
         if ($act === 'record' && $payment !== null) {
             $currency = OrderCurrency::of(orderId: (int) $payment->id_order);
+            // The stored figure: the screen's payment object carries its amount as Money for display.
+            $db = $this->getDatabase();
+            $stored = (string) $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('amount'))
+                    ->from($db->quoteName('#__alfa_order_payments'))
+                    ->where($db->quoteName('id') . ' = ' . (int) $payment->id),
+            )->loadResult();
 
-            return ['kind' => DisputeLedger::STATE_OPEN, 'amount' => PublishedDecimal::money(money: Money::of((string) $payment->amount, $currency)->abs()), 'reason_code' => DisputeLedger::REASON_OTHER];
+            return ['kind' => DisputeLedger::STATE_OPEN, 'amount' => PublishedDecimal::money(money: Money::of($stored, $currency)->abs()), 'reason_code' => DisputeLedger::REASON_OTHER];
         }
 
         if ($dispute === null) {
