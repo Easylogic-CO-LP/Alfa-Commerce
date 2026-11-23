@@ -16,15 +16,19 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
   KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
 
--- No stock transfers between locations
+-- The transfer headers
+--
+-- No command moves stock between locations, and Alfa Commerce itself never made a transfer: nothing writes or reads
+-- #__alfa_inventory_transfers. It is dropped; the install SQL no longer creates it.
 
--- Nothing moves stock between locations, so nothing writes a transfer header or a movement's link to one. The headers'
--- table goes, and the movements lose the link and its key; the movements' type and the stock commands' log no longer
--- name the transfer types in their comments. A site with no transfer table or column left goes on: the table is
--- dropped only where it exists, and the key and the column drops carry the CAN FAIL marker. The install SQL makes the
--- same tables.
+DROP TABLE IF EXISTS `#__alfa_inventory_transfers` /** CAN FAIL **/;
 
-DROP TABLE IF EXISTS `#__alfa_inventory_transfers`;
+-- The movements' link to a transfer
+
+-- With no transfer headers, a movement links to none: the movements lose transfer_id and its key, and the movements'
+-- type and the stock commands' log no longer name the transfer types in their comments. A site with the column or the
+-- key already gone goes on: both drops carry the CAN FAIL marker. The install SQL makes the same tables.
+
 ALTER TABLE `#__alfa_inventory_movements` DROP KEY `idx_transfer` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_inventory_movements` DROP COLUMN `transfer_id` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_inventory_movements` MODIFY `movement_type` varchar(30) NOT NULL DEFAULT '' COMMENT 'receive | deduct | restore | adjust | migration';

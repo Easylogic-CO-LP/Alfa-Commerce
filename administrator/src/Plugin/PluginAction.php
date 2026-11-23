@@ -253,7 +253,8 @@ class PluginAction
     }
 
     /**
-     * Disable this action (button appears grayed out).
+     * Disable this action: it is left out of the actions the plugin offers (getActions() keeps only valid, enabled
+     * actions), so no button is shown for it.
      *
      * @return static For chaining
      * @since  1.0.0

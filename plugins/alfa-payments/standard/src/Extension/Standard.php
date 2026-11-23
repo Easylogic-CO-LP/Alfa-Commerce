@@ -674,7 +674,7 @@ final class Standard extends PaymentsPlugin
      * Cart page: show payment method selector or payment form.
      *
      * Available on $event:
-     *   $event->getRequest()  -> MethodViewRequest (methodId, methodType, methodParams, isSelected, cartTotal)
+     *   $event->getRequest()  -> MethodViewRequest: ->method (the Method, entire) and ->cart (the Cart, entire)
      *                           (alias of getSubject())
      *   $event->getMethod()   -> Payment method record
      *
@@ -1196,8 +1196,8 @@ final class Standard extends PaymentsPlugin
     //  grants nothing and moves no order status. Only
     //  $this->paymentUpdate($id)->completed() does.
     //
-    //  getPaymentsByOrder() returns RAW rows (plain floats), unlike the
-    //  order object's ->payments, whose amounts are Money objects.
+    //  getPaymentsByOrder() returns the rows with their amounts as Money,
+    //  as the order object's ->payments holds them.
     //
     //  Only completed rows of type 'payment' count, so a pending deposit
     //  leaves the order 'unpaid' until it is flipped to ->completed().
