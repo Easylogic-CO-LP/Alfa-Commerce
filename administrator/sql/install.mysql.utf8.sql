@@ -1846,6 +1846,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
   `payment_method_type` varchar(50) NOT NULL DEFAULT '' COMMENT 'Payment plugin element snapshot - which gateway took THIS money. credit = no gateway (store credit).',
   `id_refunded_payment` int(11) DEFAULT NULL COMMENT 'Refund or chargeback: the payment whose money this row takes back',
   `id_reversed_payment` int(11) DEFAULT NULL COMMENT 'Reversal: the refund or chargeback row this row reverses; written once, by PaymentLedger::recordReversal()',
+  `id_dispute` int(11) DEFAULT NULL COMMENT 'Chargeback or reversal: the dispute that booked this row; written once, by the ledger',
   `id_document` int(11) UNSIGNED DEFAULT NULL COMMENT 'Credit document this refund settles -> #__alfa_documents.id; NULL = none',
   `id_credit_transaction` int(11) UNSIGNED DEFAULT NULL COMMENT 'Wallet spend this row IS -> #__alfa_customer_credit_transactions.id; NULL = not paid from the wallet',
   `payment_type` enum('payment','refund','authorization','reversal','chargeback') NOT NULL DEFAULT 'payment' COMMENT 'payment=normal, refund=money back, authorization=held funds, reversal=a provider undid a refund or chargeback, chargeback=the customer''s bank took money back',
@@ -1869,6 +1870,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
   KEY `idx_transaction_id_hash` (`transaction_id_hash`),
   KEY `idx_id_refunded_payment` (`id_refunded_payment`),
   KEY `idx_id_reversed_payment` (`id_reversed_payment`),
+  KEY `idx_id_dispute` (`id_dispute`),
   KEY `idx_id_document` (`id_document`),
   KEY `idx_id_credit_transaction` (`id_credit_transaction`),
   KEY `idx_payment_method_type` (`payment_method_type`),
@@ -1885,6 +1887,60 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
   -- dashboard dates them by when they were attempted, and that needs its own key.
   KEY `idx_added` (`added`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Table structure for table `#__alfa_order_disputes`
+--
+-- Card disputes: one case a row, tied to the disputed payment row and its order. The record holds the case (state,
+-- the bank's last decision, round, amounts as stated and in the order's currency, deadline, fee, the provider's
+-- reference) and no money: the order's money moves only through the chargeback and reversal rows the dispute ledger
+-- books at a decision, each naming the case in `#__alfa_order_payments`.`id_dispute`. One record per payment and
+-- reference: a provider's repeated word finds its record by the unique key; records with no reference never collide,
+-- since both engines let NULLs repeat in a unique key.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_order_disputes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_order` int(11) NOT NULL COMMENT 'The order of the disputed payment',
+  `id_payment` int(11) NOT NULL COMMENT 'The disputed payment: #__alfa_order_payments.id, a row of type payment',
+  `payment_method_type` varchar(50) NOT NULL DEFAULT '' COMMENT 'The plugin element of the disputed payment, copied when the record is made: the one gateway that may write it',
+  `source` enum('staff','provider','migrated') NOT NULL COMMENT 'Who made the record: staff by hand, a gateway from its provider, or the update from an older chargeback row',
+  `joined` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 once the record follows a provider word',
+  `state` enum('inquiry','open','under_review','won','lost','closed') NOT NULL,
+  `outcome` enum('won','lost') DEFAULT NULL COMMENT 'The bank''s last decision; kept by a reopen; NULL when none was made or a record by hand was closed in error. The money follows it, never the state',
+  `closed_reason` enum('inquiry_ended','merged','in_error') DEFAULT NULL COMMENT 'Only for state closed',
+  `merged_into` int(11) DEFAULT NULL COMMENT 'closed as merged: the record this one is the same case as',
+  `stage` tinyint(3) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'The round: 1, then one more each time a won or lost case opens again',
+  `reference` mediumtext DEFAULT NULL COMMENT 'The provider''s dispute id or the bank''s case number, complete; NULL when none is known',
+  `reference_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin GENERATED ALWAYS AS (IF(OCTET_LENGTH(`reference`) > 0, SHA2(`reference`, 256), NULL)) STORED COMMENT 'Lowercase hex SHA-256 of reference; the lookup key, never the identity',
+  `id_currency` int(10) UNSIGNED NOT NULL COMMENT 'The order''s currency',
+  `currency_scale` tinyint(1) UNSIGNED NOT NULL COMMENT 'The order''s frozen scale; amount is read at it',
+  `amount` decimal(24,8) DEFAULT NULL COMMENT 'The disputed amount in the order''s currency; NULL while only another currency''s figure is known',
+  `stated_amount` decimal(24,8) NOT NULL COMMENT 'The disputed amount as the provider or the bank states it',
+  `stated_currency` char(3) NOT NULL COMMENT 'ISO 4217 code of stated_amount',
+  `reason_code` enum('fraud','not_received','not_as_described','duplicate','credit_not_processed','cancelled','unrecognised','other') NOT NULL DEFAULT 'other',
+  `reason_text` varchar(255) NOT NULL DEFAULT '' COMMENT 'The provider''s own reason, as given',
+  `evidence_due_by` datetime DEFAULT NULL COMMENT 'UTC',
+  `evidence_sent_at` datetime DEFAULT NULL COMMENT 'UTC',
+  `fee_amount` decimal(24,8) DEFAULT NULL COMMENT 'The provider''s fee, in fee_currency',
+  `fee_currency` char(3) DEFAULT NULL,
+  `fee_returned` decimal(24,8) DEFAULT NULL COMMENT 'The part of the fee given back, in fee_currency',
+  `provider_link` varchar(2048) NOT NULL DEFAULT '' COMMENT 'https address of the case at the provider',
+  `waits_for` enum('same_payment','amount_unknown') DEFAULT NULL COMMENT 'What staff must decide before the record books money',
+  `bookings` smallint(5) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Money rows booked so far; numbers the core references dispute:<id>:<n>',
+  `provider_as_of` datetime(6) DEFAULT NULL COMMENT 'UTC time of the last provider word applied; an older word is not applied',
+  `gateway_response` mediumtext DEFAULT NULL COMMENT 'The last provider payload, for staff and support',
+  `note` varchar(255) NOT NULL DEFAULT '',
+  `decided_at` datetime DEFAULT NULL COMMENT 'UTC of the last outcome',
+  `created` datetime NOT NULL,
+  `created_by` int(11) NOT NULL DEFAULT 0 COMMENT '0 for a provider word',
+  `modified` datetime NOT NULL,
+  `modified_by` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_payment_reference` (`id_payment`, `reference_hash`),
+  KEY `idx_order` (`id_order`),
+  KEY `idx_state_due` (`state`, `evidence_due_by`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Card disputes: one case a row, tied to the disputed payment; money moves only through the payment rows it books';
 
 --
 -- Table structure for table `#__alfa_refund_report_outcomes`
