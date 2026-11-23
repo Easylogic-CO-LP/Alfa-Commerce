@@ -5615,10 +5615,10 @@ class OrderModel extends AlfaAdminModel
                 }
 
                 unset($pks[$index]);
-                Factory::getApplication()->enqueueMessage(
-                    msg:  Text::sprintf('COM_ALFA_ORDERS_TRASH_DISPUTE_REFUSED', (int) $pk, '#' . implode(', #', $undecided)),
-                    type: 'warning',
-                );
+                $refusal = Text::sprintf('COM_ALFA_ORDERS_TRASH_DISPUTE_REFUSED', (int) $pk, '#' . implode(', #', $undecided));
+                // The model's error too: the REST API answers a state that did not change with it.
+                $this->setError($refusal);
+                Factory::getApplication()->enqueueMessage(msg: $refusal, type: 'warning');
             }
         }
 
