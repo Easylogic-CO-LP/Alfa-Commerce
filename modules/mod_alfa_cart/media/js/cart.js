@@ -1,10 +1,14 @@
+// Every cart module on the page is wired on its own: its button, its drawer, its re-reads.
 document.addEventListener("DOMContentLoaded", () => {
-    const cartOuter = document.querySelector('[data-mod-cart-outer]');
+    document.querySelectorAll('[data-mod-cart-outer]').forEach(setUpCart);
+});
 
-    if (!cartOuter) {
-        return;
-    }
-
+/**
+ * Wire one cart module.
+ *
+ * @param {HTMLElement} cartOuter The module's root ([data-mod-cart-outer]).
+ */
+function setUpCart(cartOuter) {
     const cartToggler = cartOuter.querySelector('.cart-toggler');
     const cartItemsWrapper = cartOuter.querySelector('[data-cart-items]').parentElement;
 
@@ -12,8 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // (which each send the absolute new quantity) can't render out of order.
     let quantityUpdateController = new AbortController();
 
-    // The drawer announces alfa:cart:changed under this name and ignores its own.
+    // The drawer announces alfa:cart:changed under this name and ignores its own
+    // announcement; another cart module's, under the same name, it re-reads for.
     const CART_CHANGED_SOURCE = 'cart-module';
+    let announcing = false;
 
     // A newer re-read supersedes an older one, so the last answer is the one shown.
     let reloadController = new AbortController();
@@ -25,6 +31,20 @@ document.addEventListener("DOMContentLoaded", () => {
     cartToggler.addEventListener("click", toggleCart, false);
     cartItemsWrapper.addEventListener("transitionend", onTransitionCartEnd, false);
     cartItemsWrapper.addEventListener("click", toggleCart, false);
+
+    // Escape closes the drawer with its own movement, not the browser's instant close.
+    cartItemsWrapper.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        toggleCart();
+    });
+
+    // Closed by any way at all (the browser may close it without asking): the drawer
+    // and the page are put back in their closed state.
+    cartItemsWrapper.addEventListener("close", () => {
+        cartItemsWrapper.classList.remove("cart--visible", "cart--animatable");
+        document.querySelector("html").classList.remove("mod-alfa-cart-no-scroll");
+        cartToggler.setAttribute("aria-expanded", "false");
+    });
 
     cartOuter.addEventListener("click", async (event) => {
         const clickedElement = event.target;
@@ -119,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Another surface changed the cart: re-read the drawer. The drawer's own
     // changes are applied from their answer, so its own signal is ignored.
     document.addEventListener("alfa:cart:changed", (event) => {
-        if (event.detail && event.detail.source === CART_CHANGED_SOURCE) {
+        if (announcing && event.detail && event.detail.source === CART_CHANGED_SOURCE) {
             return;
         }
 
@@ -219,10 +239,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // The contents changed here; the other cart surfaces re-read theirs. A
             // remove is the quantity 0 write, read from what was posted.
+            announcing = true;
             document.dispatchEvent(new CustomEvent('alfa:cart:changed', {
                 bubbles: true,
                 detail: { source: CART_CHANGED_SOURCE, action: Number(params.get('quantity')) === 0 ? 'remove' : 'quantity' },
             }));
+            announcing = false;
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('mod_alfa_cart: update error', error);
@@ -303,7 +325,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /** Open the drawer if it is not already visible. */
     function openCart() {
-        if (!cartItemsWrapper.classList.contains("cart--visible")) {
+        // One drawer at a time: with another cart module's drawer open, this one stays shut.
+        if (!cartItemsWrapper.classList.contains("cart--visible") && !document.querySelector(".mod-alfa-cart-data[open]")) {
             toggleCart();
         }
     }
@@ -313,18 +336,43 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        cartItemsWrapper.classList.add("cart--animatable");
-
         if (!cartItemsWrapper.classList.contains("cart--visible")) {
+            // Opened as a modal first and laid out closed there, so the opening is a
+            // transition from the closed look rather than a jump to the open one.
+            if (!cartItemsWrapper.open) {
+                cartItemsWrapper.showModal();
+                cartItemsWrapper.getBoundingClientRect();
+            }
+
+            cartItemsWrapper.classList.add("cart--animatable");
             document.querySelector("html").classList.add("mod-alfa-cart-no-scroll");
             cartItemsWrapper.classList.add("cart--visible");
+            cartToggler.setAttribute("aria-expanded", "true");
         } else {
+            cartItemsWrapper.classList.add("cart--animatable");
             document.querySelector("html").classList.remove("mod-alfa-cart-no-scroll");
             cartItemsWrapper.classList.remove("cart--visible");
+            closeWhenStill();
+        }
+    }
+
+    /**
+     * Close the dialog once the drawer's closing transitions have ended, at once when
+     * it has none; the focus then returns to what opened it. Reopened meanwhile, it stays.
+     */
+    async function closeWhenStill() {
+        const closing = cartItemsWrapper.getAnimations({ subtree: true })
+            .filter((animation) => animation instanceof CSSTransition)
+            .map((animation) => animation.finished);
+
+        await Promise.allSettled(closing);
+
+        if (!cartItemsWrapper.classList.contains("cart--visible") && cartItemsWrapper.open) {
+            cartItemsWrapper.close();
         }
     }
 
     function onTransitionCartEnd() {
         cartItemsWrapper.classList.remove("cart--animatable");
     }
-});
+}

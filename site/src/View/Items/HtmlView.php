@@ -92,8 +92,8 @@ class HtmlView extends BaseHtmlView
 
     /**
      * @var string The results region's name: the counter Joomla's pagination prints ("1 - 25 / 132
-     *             items"), so the focus a filter gives the region announces how many products show; with no products
-     *             Joomla's sentence for none.
+     *             items"), so the focus a page gives the region announces how many products show, and a filters
+     *             module's status line says it after the module's swap; with no products Joomla's sentence for none.
      */
     protected string $resultsCounter = '';
 

@@ -101,6 +101,8 @@ class AlfaFiltersHelper
             'form_fields' => self::getFormFields($moduleId),
             'dynamic_filtering' => $dynamic,
             'sectionOrder' => self::getSectionOrder($params, $alfa_filters),
+            'groupSettings' => self::getGroupSettings($params),
+            'resultCount' => self::getResultCount(),
         ];
 
         $html = $layout->render($layoutData);
@@ -219,6 +221,53 @@ class AlfaFiltersHelper
         return ShopMode::sellsOnline()
             ? $sections
             : array_values(array_diff($sections, self::PRICE_SECTIONS));
+    }
+
+    /**
+     * How many products the current filters leave: the number the panel's foot shows, read
+     * by the same items model as the facets, so it is the listing's own total.
+     *
+     * @return int
+     */
+    public static function getResultCount(): int
+    {
+        return (int) self::getItemsModel()->getTotal();
+    }
+
+    /**
+     * How the panel's option groups (the categories, the manufacturers, each item field)
+     * behave, read once for the page and for every refresh alike.
+     *
+     * @param Registry $params The module parameters.
+     *
+     * @return array{icon: string, turn: bool, search: int, length: int, lengths: array<string, int>}
+     *                            icon: the opener's icon (chevron, caret, plus or none); turn:
+     *                            whether it turns while its group is open; search: the fewest
+     *                            options a group holds to get a search box, 0 when no group gets
+     *                            one; length: how many options a group shows before Show more,
+     *                            0 for all; lengths: a group's own length by its section key.
+     */
+    public static function getGroupSettings(Registry $params): array
+    {
+        $icon = (string) $params->get('group_icon', 'chevron');
+        $lengths = [];
+
+        foreach ((array) $params->get('group_lengths', []) as $row) {
+            $row = (array) $row;
+            $key = (string) ($row['group'] ?? '');
+
+            if ($key !== '') {
+                $lengths[$key] = max(0, (int) ($row['length'] ?? 0));
+            }
+        }
+
+        return [
+            'icon' => \in_array($icon, ['chevron', 'caret', 'plus', 'none'], true) ? $icon : 'chevron',
+            'turn' => (int) $params->get('group_icon_turn', 1) === 1,
+            'search' => (int) $params->get('group_search', 1) === 1 ? max(1, (int) $params->get('group_search_min', 8)) : 0,
+            'length' => max(0, (int) $params->get('group_length', 8)),
+            'lengths' => $lengths,
+        ];
     }
 
     /**

@@ -18,6 +18,7 @@ $minimum_price ??= 0;
 $maximum_price ??= 0;
 $form_fields ??= [];
 $dynamic_filtering ??= false;
+$resultCount ??= 0;
 
 // THE PANEL IS A SEQUENCE OF SECTIONS, AND THE SEQUENCE IS RESOLVED UPSTREAM: item-field
 // ordering from the backend, with this module's optional override reconciled on top. A
@@ -234,8 +235,16 @@ foreach ($sectionOrder as $sectionKey) {
 <?php endforeach; ?>
 </div>
 
-<?php // The submit button ends the form whatever order the sections are in; it is the
-      // form's control, not one of the sections a merchant arranges.?>
-<?php if (!$dynamic_filtering): ?>
-    <button type="submit"><?= Text::_('MOD_ALFAFILTERS_FILTER_SUBMIT_BTN') ?></button>
-<?php endif; ?>
+<?php // THE PANEL'S FOOT: the shopper's next step, at the bottom of the panel and always in
+      // view (it stays at the foot while the panel scrolls). It ends the form whatever order the
+      // sections are in, and every refresh redraws it with the products the ticks leave. Applied
+      // live, the results are already in place behind the panel, so the button closes it;
+      // applied on submit, the button is the submit. Clear all clears every filter. ?>
+<div class="af-foot" data-af-applies="<?= $dynamic_filtering ? 'live' : 'submit' ?>">
+    <button type="button" class="af-reset-all"><?= Text::_('MOD_ALFAFILTERS_FILTER_RESET_ALL_BTN') ?></button>
+    <?php if ($dynamic_filtering): ?>
+        <button type="button" class="af-show-results" data-af-show-results><?= Text::plural('MOD_ALFAFILTERS_SHOW_RESULTS', (int) $resultCount) ?></button>
+    <?php else: ?>
+        <button type="submit" class="af-show-results"><?= Text::plural('MOD_ALFAFILTERS_SHOW_RESULTS', (int) $resultCount) ?></button>
+    <?php endif; ?>
+</div>

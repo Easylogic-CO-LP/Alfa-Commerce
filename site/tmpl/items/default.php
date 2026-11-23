@@ -80,9 +80,10 @@ $titleTag = $this->showPageHeading ? 'h2' : 'h1';
 <?php endif; ?>
 
 <?php // THE RESULTS REGION: the pagination and the list. Focusable by its markup (tabindex -1),
-      // which an override keeps or drops; list-form.js brings it into view and focuses it after a filter swap
-      // (alfa:results:updated) and on a page the view marks (data-results-reveal: a later page, a submitted filter).
-      // Named by the results counter, so the focus announces how many products show. ?>
+      // which an override keeps or drops; list-form.js brings it into view after a filter swap
+      // (alfa:results:updated) and on a page the view marks (data-results-reveal: a later page, a submitted filter),
+      // and focuses it on such a page. Named by the results counter, so the focus announces how many products show;
+      // after its swap a filters module's status line says the same name, the focus staying on the shopper's control. ?>
 <section data-results tabindex="-1"<?php echo $this->resultsCounter !== '' ? ' aria-labelledby="alfa-results-counter"' : ''; ?><?php echo $this->revealResults ? ' data-results-reveal' : ''; ?>>
     <?php if ($this->resultsCounter !== '') : ?>
     <span id="alfa-results-counter" hidden><?php echo $this->escape($this->resultsCounter); ?></span>

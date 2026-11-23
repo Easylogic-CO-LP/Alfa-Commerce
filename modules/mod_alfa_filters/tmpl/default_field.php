@@ -40,6 +40,7 @@ $groups ??= [];
 $activeGroups ??= [];
 $fieldType ??= '';
 $groupValues ??= false;   // already resolved by default_filters
+$groupLength ??= 0;       // the options shown before Show more; 0 shows them all
 
 // Grouping only happens where there is something to group. A field whose values carry no
 // colours renders exactly as it always did, so switching the setting on cannot empty a
@@ -55,6 +56,20 @@ if (!empty($facetGroups)) {
 }
 
 $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+
+// Past the group's length an option is marked data-af-more and waits behind Show more,
+// counted across the group chips and the plain values in the order they print; one more
+// than the length is simply shown, and a ticked option is never hidden. A dropdown keeps
+// every value in its list.
+$position = 0;
+$moreFrom = $renderAs !== 'select' && $groupLength > 0 && \count($facetGroups) + \count($fieldValues) > $groupLength + 1
+    ? $groupLength
+    : PHP_INT_MAX;
+$more = static function (bool $isChecked) use (&$position, $moreFrom): string {
+    $position++;
+
+    return $position > $moreFrom && !$isChecked ? ' data-af-more' : '';
+};
 
 $inputName = 'filter[fields][' . (int) $fieldId . '][]';
 
@@ -88,7 +103,7 @@ $chipInterior = static function (array $source) use ($fieldType): string {
             $isChecked = \in_array($token, array_map('strval', $activeGroups), true);
             $inputId = 'af-' . $moduleId . '-group-' . (int) $fieldId . '-' . preg_replace('/[^a-z0-9]/i', '', $token);
             ?>
-            <li class="af-item af-item-<?= $gIndex ?> depth-0" data-group-type="<?= $esc($group['type'] ?? '') ?>">
+            <li class="af-item af-item-<?= $gIndex ?> depth-0" data-group-type="<?= $esc($group['type'] ?? '') ?>"<?= $more($isChecked) ?>>
                 <?php // The MODULE owns every state-carrying attribute here: the control,
                       // its name, the token and the field id. A field type only ever draws
                       // the chip interior below, so nothing it returns can reach these.?>
@@ -157,7 +172,7 @@ $chipInterior = static function (array $source) use ($fieldType): string {
             $inputId = 'af-' . $moduleId . '-field-' . (int) $fieldId . '-' . $valueId;
             $interior = $renderAs === 'swatches' ? $chipInterior($value) : '';
             ?>
-            <li class="af-item af-item-<?= $vIndex ?> depth-0" data-id="<?= $valueId ?>">
+            <li class="af-item af-item-<?= $vIndex ?> depth-0" data-id="<?= $valueId ?>"<?= $more($isChecked) ?>>
                 <?php // The input is a SIBLING of the chip, not a child: the checked/focus
                       // skin is driven by `input:checked + .af-chip`. :has() would read
                       // better but its :checked invalidation is unreliable, so a chip
@@ -194,7 +209,7 @@ $chipInterior = static function (array $source) use ($fieldType): string {
             $isChecked = \in_array($valueId, $activeValues, true);
             $inputId = 'af-' . $moduleId . '-field-' . (int) $fieldId . '-' . $valueId;
             ?>
-            <li class="af-item af-item-<?= $vIndex ?> depth-0" data-id="<?= $valueId ?>">
+            <li class="af-item af-item-<?= $vIndex ?> depth-0" data-id="<?= $valueId ?>"<?= $more($isChecked) ?>>
                 <div class="af-option">
                     <input
                         type="checkbox"

@@ -7,6 +7,20 @@
  * - Responsive layout switching
  * - Price range slider
  * - Category/subcategory checkbox toggling
+ * - Option groups: their search box, opener and Show more
+ *
+ * The panel opens from anywhere on the page: any element carrying
+ * data-alfa-filters-open="<module id>" opens it when pressed, data-alfa-filters-toggle
+ * opens or closes it, data-alfa-filters-close closes it. Each opener carries
+ * aria-expanded while the panel is open, and the focus returns to the one that opened it
+ * when it closes. A script does the same through window.AlfaFilters.open(id),
+ * .close(id) and .toggle(id). Where the panel sits in the page as a column (a screen
+ * wider than the module's breakpoint), opening it brings it into view.
+ *
+ * The panel is a dialog. Over the page it opens as a modal (showModal()): the browser
+ * draws it in its top layer, placed against the screen whatever the page's own boxes do
+ * (a header that slides away with a transform), the page behind it inert, Escape closing
+ * it with its own movement. As a column it is shown in the page by its open attribute.
  *
  * @package    Alfa
  * @subpackage mod_alfa_filters
@@ -87,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.offCanvas = qs('.alfa-filters-offcanvas', this.wrapper);
             this.toggler = qs('.alfa-filters-offcanvas-toggler', this.wrapper);
             this.loadingOverlay = qs('.alfa-filters-loading-overlay', this.wrapper);
+            this.resultsStatus = qs('[data-af-results-status]', this.wrapper);
 
             // State
             this.isVisible = false;
@@ -112,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.initDiscountFilters();
                 this.initSubcategoryTogglers();
                 this.initFacetSelects();
+                this.initGroups();
             } catch (error) {
                 console.error(`[AlfaFilters:${this.moduleId}] Init failed:`, error);
             }
@@ -174,11 +190,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     const priceReset = qs('.af-price-reset', this.wrapper);
                     priceReset?.click();
 
+                    // What was typed in the groups' search boxes goes too.
+                    this.groupQueries?.clear();
+
                     this.filterForm.dispatchEvent(new Event('change', { bubbles: true }));
                 };
 
+                // Inside the form (the panel's foot) the button is redrawn by every refresh,
+                // so the form, which outlives it, answers for it; outside (the column's
+                // actions bar) each button is bound itself.
+                this.filterForm.addEventListener('click', (event) => {
+                    if (event.target.closest('.af-reset-all')) {
+                        resetAll();
+                    }
+                });
+
                 qsAll('.af-reset-all', this.wrapper).forEach((btn) => {
-                    btn.addEventListener('click', resetAll);
+                    if (!this.filterForm.contains(btn)) {
+                        btn.addEventListener('click', resetAll);
+                    }
                 });
 
                 // Listen for form changes to update reset button visibility
@@ -249,7 +279,17 @@ document.addEventListener('DOMContentLoaded', () => {
             toggle('.af-price-reset', hasPrice);
 
             // Global: any filter is in effect, whether or not it has a control on screen.
+            // A Clear all that hides itself while the keyboard is on it hands the focus on: to
+            // the results button, else to the first group's heading.
+            const focusedClear = document.activeElement?.closest?.('.af-reset-all');
+
             toggle('.af-reset-all', this.hasActiveFilterState());
+
+            if (focusedClear && this.wrapper.contains(focusedClear) && !focusedClear.classList.contains('is-visible')) {
+                Array.from(qsAll('.af-show-results, .af-group-toggle', this.wrapper))
+                    .find((element) => element.getClientRects().length > 0)
+                    ?.focus({ preventScroll: true });
+            }
         }
 
         /**
@@ -315,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.initDiscountFilters();
             this.initSubcategoryTogglers();
             this.initFacetSelects();
+            this.initGroups();
             this.updateResetVisibility();
 
             // The AJAX response replaced the facets, so any ShowOn target the engine was
@@ -438,11 +479,26 @@ document.addEventListener('DOMContentLoaded', () => {
         applyAvailableFilters({ html, priceRange }) {
             const container = qs('.af-form-content', this.wrapper);
             if (container && html) {
+                // The control the shopper is on is replaced with the rest; its twin in the
+                // new markup (same id) takes the focus back, so the keyboard keeps its place.
+                // A control with no twin (Clear all, gone once nothing is left to clear) hands
+                // the focus to the panel's results button, the next step.
+                const hadFocus = container.contains(document.activeElement);
+                const focusedId = hadFocus ? document.activeElement.id : '';
+
                 // Choices goes BEFORE the markup does: it listens on the document, so an
                 // instance dropped with its select would keep handling clicks for it.
                 this.destroyFacetSelects();
                 container.innerHTML = html;
                 this.reinitFormElements();
+
+                const twin = focusedId ? document.getElementById(focusedId) : null;
+
+                if (twin) {
+                    twin.focus({ preventScroll: true });
+                } else if (hadFocus) {
+                    qs('.af-show-results', container)?.focus({ preventScroll: true });
+                }
             }
 
             // Update absoluteMin/Max from server response for the submit handler.
@@ -450,6 +506,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.absoluteMin = priceRange.min;
                 this.absoluteMax = priceRange.max;
             }
+        }
+
+        /**
+         * Write the results region's name (the pagination's count, the text its aria-labelledby
+         * points at) on the module's status line, which a screen reader says. A region with no
+         * name leaves the line empty.
+         *
+         * @param {Element} container The swapped results' container.
+         */
+        sayResults(container) {
+            if (!this.resultsStatus) {
+                return;
+            }
+
+            const nameId = qs('[data-results]', container)?.getAttribute('aria-labelledby');
+            const name = nameId ? document.getElementById(nameId) : null;
+
+            this.resultsStatus.textContent = name ? name.textContent.trim() : '';
         }
 
         /*
@@ -479,6 +553,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // would emit /en/katastema&filter[...], a path with an ampersand in it.
             const separator = itemsActionUrl.includes('?') ? '&' : '?';
             const url = `${itemsActionUrl}${separator}${queryString}`;
+
+            // Emptied while the results load, so their name is said again when they land, even
+            // when it is the same as before.
+            if (this.resultsStatus) {
+                this.resultsStatus.textContent = '';
+            }
 
             this._itemsAbort?.abort();
             this._itemsAbort = new AbortController();
@@ -530,6 +610,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // after Joomla's own signal, on the results' container, bubbling. A consumer
                 // listening on the document reads the swapped container's attribution here.
                 oldItems.dispatchEvent(new CustomEvent('alfa:results:updated', { bubbles: true, detail: { view: 'items' } }));
+
+                // The results' own script brings them into view and leaves the focus on the control
+                // the shopper is on; a screen reader hears their name (their count) from here.
+                this.sayResults(oldItems);
             }
 
             // Update URL DETERMINISTICALLY from the query string, never by reading
@@ -677,55 +761,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const self = this;
 
+            // The panel is a dialog. As a column it is shown in the page by its open attribute
+            // (no focus moved, nothing made inert); over the page it is a modal in the browser's
+            // top layer, laid out closed there first so the opening is a movement from the
+            // closed look rather than a jump to the open one.
             this.open = ({ fullscreen = false } = {}) => {
+                if (fullscreen) {
+                    if (self.offCanvas.matches(':modal')) {
+                        self.opener = null;
+                        self.offCanvas.close();
+                    }
+
+                    self.offCanvas.toggleAttribute('open', true);
+                    htmlElement.classList.remove('alfa-filters-noscroll');
+                } else {
+                    if (!self.offCanvas.open) {
+                        self.offCanvas.showModal();
+                        self.offCanvas.getBoundingClientRect();
+                    }
+
+                    htmlElement.classList.add('alfa-filters-noscroll');
+                }
+
                 self.offCanvas.classList.add(
                     'alfa-filters-offcanvas--animatable',
                     'alfa-filters-offcanvas--visible',
                     'alfa-filters-offcanvas--visible-inner'
                 );
 
-                if (fullscreen) {
-                    htmlElement.classList.remove('alfa-filters-noscroll');
-                } else {
-                    htmlElement.classList.add('alfa-filters-noscroll');
-                }
-
-                self.toggler.setAttribute('aria-expanded', 'true');
+                self.tellOpeners(true);
                 self.isVisible = true;
             };
 
+            // Without its movement the dialog closes at once; with it, it closes once the
+            // panel's closing transitions have ended. The close event does the rest.
             this.close = ({ skipTransition = false } = {}) => {
+                self.isVisible = false;
+
                 if (skipTransition) {
-                    self.offCanvas.classList.remove(
-                        'alfa-filters-offcanvas--animatable',
-                        'alfa-filters-offcanvas--visible-inner',
-                        'alfa-filters-offcanvas--visible'
-                    );
-                    htmlElement.classList.remove('alfa-filters-noscroll');
-                    self.toggler.setAttribute('aria-expanded', 'false');
-                } else {
-                    self.offCanvas.classList.add('alfa-filters-offcanvas--animatable');
-                    self.offCanvas.classList.remove('alfa-filters-offcanvas--visible-inner');
+                    self.offCanvas.close();
 
-                    const handleTransitionEnd = (event) => {
-                        if (event.target !== innerWrapper) return;
+                    return;
+                }
 
-                        self.offCanvas.classList.remove('alfa-filters-offcanvas--visible');
-                        htmlElement.classList.remove('alfa-filters-noscroll');
-                        self.toggler.setAttribute('aria-expanded', 'false');
+                self.offCanvas.classList.add('alfa-filters-offcanvas--animatable');
+                self.offCanvas.classList.remove('alfa-filters-offcanvas--visible-inner');
+                self.closeWhenStill();
+            };
 
-                        innerWrapper.removeEventListener('transitionend', handleTransitionEnd);
-                    };
-
-                    innerWrapper.addEventListener('transitionend', handleTransitionEnd);
+            // Closed by any way at all (the panel's own close, a change to the column, the
+            // browser's own close): the panel and the page are put back in their closed state,
+            // and the focus goes back to what opened the panel. Shown again before this event
+            // came (a reopening, the column), it stays as it is.
+            this.offCanvas.addEventListener('close', () => {
+                if (self.offCanvas.open) {
+                    return;
                 }
 
                 self.isVisible = false;
-            };
+                self.offCanvas.classList.remove(
+                    'alfa-filters-offcanvas--animatable',
+                    'alfa-filters-offcanvas--visible-inner',
+                    'alfa-filters-offcanvas--visible'
+                );
+                htmlElement.classList.remove('alfa-filters-noscroll');
+                self.tellOpeners(false);
 
-            this.toggle = (options = {}) => {
-                self.isVisible ? self.close(options) : self.open(options);
-            };
+                const back = self.opener;
+
+                self.opener = null;
+
+                if (back) {
+                    (document.contains(back) ? back : self.toggler)?.focus({ preventScroll: true });
+                }
+            });
+
+            // Escape is the panel's key handler's (below): a dropdown or a search box with text
+            // takes it first, then the panel closes with its own movement. The browser's instant
+            // close of the dialog is set aside.
+            this.offCanvas.addEventListener('cancel', (event) => event.preventDefault());
 
             this.offCanvas.addEventListener('transitionend', (event) => {
                 if (event.target === innerWrapper) {
@@ -733,12 +847,123 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            this.offCanvas.addEventListener('click', () => this.toggle());
+            // The scrim (the dialog's own box around the panel), the close button and Escape
+            // close the panel and give the focus back to what opened it; the module's own
+            // button opens and closes it. A press on the loading layer closes nothing.
+            this.offCanvas.addEventListener('click', (event) => {
+                if (event.target === this.offCanvas) {
+                    this.hide();
+                }
+            });
             innerWrapper.addEventListener('click', (event) => event.stopPropagation());
-            this.toggler.addEventListener('click', () => this.toggle());
+            this.toggler.addEventListener('click', () => this.act('toggle', this.toggler));
 
             if (closeBtn) {
-                closeBtn.addEventListener('click', () => this.toggle());
+                closeBtn.addEventListener('click', () => this.hide());
+            }
+
+            // Escape belongs to an open dropdown or to a search box that still holds text
+            // first; otherwise it closes the panel. Heard on the document, so it works
+            // wherever the focus is while the panel lies open.
+            document.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape' || !this.isVisible || !this.isOverlay()) {
+                    return;
+                }
+
+                if ((event.target.matches?.('[data-af-search]') && event.target.value !== '')
+                    || (this._facetSelects || []).some((instance) => instance.dropdown.isActive)) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.hide();
+            });
+        }
+
+        /**
+         * Whether the panel lies over the page (the module's button, or a screen narrower
+         * than its breakpoint) rather than in the page as a column.
+         */
+        isOverlay() {
+            return this.currentMode !== 'desktop';
+        }
+
+        /**
+         * Say on the module's own button and on every opener of this module on the page
+         * whether the panel is open.
+         *
+         * @param {boolean} open
+         */
+        tellOpeners(open) {
+            const id = this.moduleId;
+
+            this.toggler?.setAttribute('aria-expanded', open ? 'true' : 'false');
+            document.querySelectorAll(`[data-alfa-filters-open="${id}"], [data-alfa-filters-toggle="${id}"]`).forEach((element) => {
+                element.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+        }
+
+        /**
+         * What an opener asks: open, toggle or close. Where the panel is a column in the
+         * page, opening brings it into view and puts the focus in it.
+         *
+         * @param {string} action 'open', 'toggle' or 'close'.
+         * @param {Element|null} from The element pressed, to give the focus back to.
+         */
+        act(action, from = null) {
+            if (!this.open) {
+                return;
+            }
+
+            if (action === 'close' || (action === 'toggle' && this.isVisible && this.isOverlay())) {
+                this.hide();
+
+                return;
+            }
+
+            if (!this.isOverlay()) {
+                const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                this.wrapper.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'start' });
+                qs('.af-group-toggle, input, select, button', this.filterForm)?.focus({ preventScroll: true });
+
+                return;
+            }
+
+            if (this.isVisible) {
+                return;
+            }
+
+            this.opener = from instanceof Element ? from : this.toggler;
+            this.open();
+            qs('.alfa-filters-close-btn', this.offCanvas)?.focus({ preventScroll: true });
+        }
+
+        /**
+         * Close the panel that lies over the page; the focus goes back to what opened it once
+         * the dialog has closed (the page behind it is inert until then).
+         */
+        hide() {
+            if (!this.isVisible || !this.isOverlay()) {
+                return;
+            }
+
+            this.close();
+        }
+
+        /**
+         * Close the dialog once the panel's closing transitions have ended, at once when it
+         * has none. Opened again meanwhile, it stays open.
+         */
+        async closeWhenStill() {
+            const closing = this.offCanvas.getAnimations({ subtree: true })
+                .filter((animation) => animation instanceof CSSTransition)
+                .map((animation) => animation.finished);
+
+            await Promise.allSettled(closing);
+
+            if (!this.isVisible && this.offCanvas.open) {
+                this.offCanvas.close();
             }
         }
 
@@ -748,14 +973,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         initResponsiveBehavior() {
             const isFixed = this.config?.fixedPos ?? false;
-            const breakpoint = this.config?.responsiveChange ?? 768;
 
             if (isFixed) return;
             if (!this.filterForm || !this.offCanvas || !this.toggler) return;
 
+            // The same query as the column's stylesheet, which the dispatcher writes from the same
+            // setting: the panel is a column from that width up, so the two never disagree, at the
+            // breakpoint itself included.
+            const column = window.matchMedia(`(min-width: ${this.config.responsiveChange}px)`);
+
             const updateLayout = () => {
-                const isMobile = window.innerWidth <= breakpoint;
-                const newMode = isMobile ? 'mobile' : 'desktop';
+                const newMode = column.matches ? 'desktop' : 'mobile';
 
                 if (newMode === this.currentMode) return;
                 this.currentMode = newMode;
@@ -767,7 +995,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            window.addEventListener('resize', updateLayout);
+            column.addEventListener('change', updateLayout);
             updateLayout();
         }
 
@@ -1045,13 +1273,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hasCheckedChild = childContainer.querySelector('input[type="checkbox"]:checked') !== null;
                 const shouldBeExpanded = wasManuallyExpanded || hasCheckedChild;
 
+                // Open or shut as an attribute on the category; the stylesheet shows its
+                // children, so a search in the group can still reach a shut one's.
                 if (shouldBeExpanded) {
                     button.setAttribute('aria-expanded', 'true');
-                    childContainer.style.display = 'block';
+                    listItem.setAttribute('data-af-open', '');
                     this.expandedSubcategories.add(categoryId);
                 } else {
                     button.setAttribute('aria-expanded', 'false');
-                    childContainer.style.display = 'none';
+                    listItem.removeAttribute('data-af-open');
                 }
 
                 const handleClick = (e) => {
@@ -1062,11 +1292,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (currentlyExpanded) {
                         button.setAttribute('aria-expanded', 'false');
-                        childContainer.style.display = 'none';
+                        listItem.removeAttribute('data-af-open');
                         this.expandedSubcategories.delete(categoryId);
                     } else {
                         button.setAttribute('aria-expanded', 'true');
-                        childContainer.style.display = 'block';
+                        listItem.setAttribute('data-af-open', '');
                         this.expandedSubcategories.add(categoryId);
                     }
                 };
@@ -1078,6 +1308,204 @@ document.addEventListener('DOMContentLoaded', () => {
                 button.addEventListener('click', handleClick);
                 button._alfaClickHandler = handleClick;
             });
+        }
+
+        /*
+           Option groups (categories, manufacturers, each item field)
+           */
+
+        /**
+         * Text as the group search compares it: without case and without accents, and a
+         * Greek final sigma read as the ordinary one, so "kafes" finds "Kafes" and any
+         * accented spelling of it.
+         *
+         * @param {string} text
+         */
+        static plain(text) {
+            return String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\u03c2/g, '\u03c3');
+        }
+
+        /**
+         * Bind the groups' controls once, on the form, which outlives every refresh; then put
+         * back what the shopper set in each group before the refresh replaced its markup.
+         */
+        initGroups() {
+            this.groupQueries ??= new Map();
+
+            this.closedGroups ??= new Set();
+            this.expandedGroups ??= new Set();
+
+            if (!this._groupsBound) {
+                this._groupsBound = true;
+
+                // A group's heading opens and shuts it; the form outlives the refresh, so one
+                // listener serves every heading the refresh draws.
+                this.filterForm.addEventListener('click', (event) => {
+                    const toggle = event.target.closest('.af-group-toggle');
+
+                    if (toggle) {
+                        this.toggleGroup(toggle);
+                    }
+
+                    const more = event.target.closest('[data-af-more-toggle]');
+
+                    if (more) {
+                        this.toggleMore(more);
+                    }
+
+                    // Applied live, the results are in place behind the panel: show them.
+                    if (event.target.closest('[data-af-show-results]')) {
+                        this.hide();
+                    }
+                });
+
+                // The search box narrows its group and is no filter: its typing and its
+                // change never reach the form's refresh, and Enter in it submits nothing.
+                this.filterForm.addEventListener('change', (event) => {
+                    if (event.target.matches('[data-af-search]')) {
+                        event.stopImmediatePropagation();
+                    }
+                }, true);
+
+                this.filterForm.addEventListener('input', (event) => {
+                    if (event.target.matches('[data-af-search]')) {
+                        this.searchGroup(event.target);
+                    }
+                });
+
+                this.filterForm.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' && event.target.matches('[data-af-search]')) {
+                        event.preventDefault();
+                    }
+                });
+            }
+
+            qsAll('[data-af-group]', this.filterForm).forEach((group) => {
+                const input = qs('[data-af-search]', group);
+                const query = this.groupQueries.get(group.dataset.afGroup);
+                const toggle = qs('.af-group-toggle', group);
+
+                const more = qs('[data-af-more-toggle]', group);
+
+                if (toggle && this.closedGroups.has(group.dataset.afGroup)) {
+                    toggle.setAttribute('aria-expanded', 'false');
+                    group.setAttribute('data-af-closed', '');
+                }
+
+                if (more && this.expandedGroups.has(group.dataset.afGroup)) {
+                    more.setAttribute('aria-expanded', 'true');
+                    group.setAttribute('data-af-expanded', '');
+                }
+
+                if (input && query) {
+                    input.value = query;
+                    this.searchGroup(input);
+                }
+            });
+        }
+
+        /**
+         * Open or shut a group from its heading, and remember it across the refresh.
+         *
+         * @param {HTMLButtonElement} toggle The group's heading button.
+         */
+        toggleGroup(toggle) {
+            const group = toggle.closest('[data-af-group]');
+
+            if (!group) {
+                return;
+            }
+
+            const open = toggle.getAttribute('aria-expanded') !== 'true';
+
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            group.toggleAttribute('data-af-closed', !open);
+
+            if (open) {
+                this.closedGroups.delete(group.dataset.afGroup);
+            } else {
+                this.closedGroups.add(group.dataset.afGroup);
+            }
+        }
+
+        /**
+         * Show a group's options past its length, or hide them again, and remember it across
+         * the refresh.
+         *
+         * @param {HTMLButtonElement} more The group's Show more / Show less button.
+         */
+        toggleMore(more) {
+            const group = more.closest('[data-af-group]');
+
+            if (!group) {
+                return;
+            }
+
+            const expanded = more.getAttribute('aria-expanded') !== 'true';
+
+            more.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            group.toggleAttribute('data-af-expanded', expanded);
+
+            if (expanded) {
+                this.expandedGroups.add(group.dataset.afGroup);
+            } else {
+                this.expandedGroups.delete(group.dataset.afGroup);
+            }
+        }
+
+        /**
+         * Narrow a group to the options whose name holds what is typed. A match marks the
+         * option and, in the category tree, every category above it, so the path to it
+         * stays in view; the stylesheet hides the rest while the group is searched.
+         *
+         * @param {HTMLInputElement} input The group's search box.
+         */
+        searchGroup(input) {
+            const group = input.closest('[data-af-group]');
+
+            if (!group) {
+                return;
+            }
+
+            const typed = AlfaFiltersInstance.plain(input.value.trim());
+            const items = qsAll('.af-item', group);
+            const empty = qs('[data-af-search-empty]', group);
+
+            items.forEach((item) => item.removeAttribute('data-af-match'));
+
+            if (typed === '') {
+                group.removeAttribute('data-af-filtering');
+                this.groupQueries.delete(group.dataset.afGroup);
+
+                if (empty) {
+                    empty.hidden = true;
+                }
+
+                return;
+            }
+
+            let found = 0;
+
+            items.forEach((item) => {
+                const name = qs(':scope > .af-option > .af-label, :scope > .af-chip > .af-chip-name', item);
+
+                if (!name || !AlfaFiltersInstance.plain(name.textContent).includes(typed)) {
+                    return;
+                }
+
+                found += 1;
+
+                for (let node = item; node; node = node.parentElement.closest('.af-item')) {
+                    node.setAttribute('data-af-match', '');
+                }
+            });
+
+            group.setAttribute('data-af-filtering', '');
+            this.groupQueries.set(group.dataset.afGroup, input.value);
+
+            if (empty) {
+                empty.hidden = found > 0;
+            }
         }
     }
 
@@ -1104,4 +1532,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const moduleId = wrapper.dataset.moduleId;
         window.alfaFiltersInstances[moduleId] = new AlfaFiltersInstance(wrapper);
     });
+
+    // Free and Pro ship this same script: the page gets one listener and one API, whichever
+    // copy runs first, serving every module of both on the page.
+    if (window.AlfaFilters) {
+        return;
+    }
+
+    // Openers placed anywhere on the page, found when pressed: one listener for them all,
+    // so one added later works too. In the capture phase, because the panel keeps clicks
+    // inside it from bubbling (its backdrop closes it) and a close control may sit there.
+    document.addEventListener('click', (event) => {
+        const element = event.target.closest?.('[data-alfa-filters-open], [data-alfa-filters-toggle], [data-alfa-filters-close]');
+
+        if (!element) {
+            return;
+        }
+
+        const action = element.hasAttribute('data-alfa-filters-open') ? 'open'
+            : (element.hasAttribute('data-alfa-filters-toggle') ? 'toggle' : 'close');
+        const instance = window.alfaFiltersInstances[element.getAttribute(`data-alfa-filters-${action}`)];
+
+        if (instance) {
+            event.preventDefault();
+            instance.act(action, element);
+        }
+    }, true);
+
+    window.AlfaFilters = {
+        open: (id) => window.alfaFiltersInstances[String(id)]?.act('open'),
+        close: (id) => window.alfaFiltersInstances[String(id)]?.act('close'),
+        toggle: (id) => window.alfaFiltersInstances[String(id)]?.act('toggle'),
+    };
 });

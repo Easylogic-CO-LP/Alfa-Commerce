@@ -165,9 +165,17 @@
     gap: 5px;
 }
 
-/* toggler */
+/* toggler: a button drawn as the bare icon, the browser's button frame set aside */
 .mod-alfa-cart .cart-toggler{
     position:relative;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    line-height: 0;
+    cursor: pointer;
     color:var(--mod-alfa-cart-toggler-color, currentColor);
 }
 
@@ -192,13 +200,23 @@
   content: attr(data-counter);
 }
 
-/* main wrapper */
+/* main wrapper: the drawer, a dialog the script opens as a modal, so it lies in the
+   top layer, placed against the screen whatever its ancestors do. The browser's own
+   dialog frame (border, padding, colours, size limits, backdrop) is set aside; the
+   drawer draws its own overlay. Visible even inside a header that hides itself. */
 .mod-alfa-cart .mod-alfa-cart-data {
     position: fixed;
-    left: 0;
-    top: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    visibility: visible;
     overflow: hidden;
     pointer-events: none;
     scrollbar-width: none;
@@ -207,6 +225,14 @@
     align-items: center;
     justify-content: center;
     z-index: 60000;
+}
+
+.mod-alfa-cart .mod-alfa-cart-data:not([open]) {
+    display: none;
+}
+
+.mod-alfa-cart .mod-alfa-cart-data::backdrop {
+    background: none;
 }
 
 .mod-alfa-cart .cart--visible {

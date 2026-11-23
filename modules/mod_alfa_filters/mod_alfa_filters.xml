@@ -212,6 +212,15 @@
                     <option value="%">MOD_ALFAFILTERS_PERCENTAGE_UNIT</option>
                 </field>
 
+                <!-- The attribute a merchant puts on a button or link of their own to open these filters. -->
+                <field
+                        name="opener"
+                        type="FiltersOpener"
+                        addfieldprefix="Alfa\Module\AlfaFilters\Site\Field"
+                        label="MOD_ALFAFILTERS_OPENER_LBL"
+                        description="MOD_ALFAFILTERS_OPENER_DESC"
+                />
+
                 <field type="note" name="sub_count_note"
                        label="MOD_ALFAFILTERS_SUBCATEGORY_PRODCOUNT_NOTE"
                        class="alert alert-info" />
@@ -302,6 +311,100 @@
                         label="MOD_ALFAFILTERS_SECTIONS_LABEL"
                         description="MOD_ALFAFILTERS_SECTIONS_DESC"
                         default=""
+                />
+
+            </fieldset>
+
+            <fieldset name="groups" label="MOD_ALFAFILTERS_GROUPS_FIELDSET">
+
+                <field type="note" name="groups_note"
+                       label="MOD_ALFAFILTERS_GROUPS_NOTE"
+                       class="alert alert-info" />
+
+                <field name="group_icon" type="radio" class="btn-group" default="chevron"
+                       filter="cmd" validate="options"
+                       label="MOD_ALFAFILTERS_GROUP_ICON_LBL"
+                       description="MOD_ALFAFILTERS_GROUP_ICON_DESC"
+                >
+                    <option value="chevron">MOD_ALFAFILTERS_GROUP_ICON_CHEVRON</option>
+                    <option value="caret">MOD_ALFAFILTERS_GROUP_ICON_CARET</option>
+                    <option value="plus">MOD_ALFAFILTERS_GROUP_ICON_PLUS</option>
+                    <option value="none">MOD_ALFAFILTERS_GROUP_ICON_NONE</option>
+                </field>
+
+                <field
+                        name="group_icon_turn"
+                        type="radio"
+                        label="MOD_ALFAFILTERS_GROUP_ICON_TURN_LBL"
+                        description="MOD_ALFAFILTERS_GROUP_ICON_TURN_DESC"
+                        layout="joomla.form.field.radio.switcher"
+                        default="1"
+                        filter="integer"
+                        showon="group_icon!:none"
+                >
+                    <option value="0">MOD_ALFAFILTERS_NO_OPTION</option>
+                    <option value="1">MOD_ALFAFILTERS_YES_OPTION</option>
+                </field>
+
+                <field
+                        name="group_length"
+                        type="number"
+                        label="MOD_ALFAFILTERS_GROUP_LENGTH_LBL"
+                        description="MOD_ALFAFILTERS_GROUP_LENGTH_DESC"
+                        default="8"
+                        min="0"
+                        filter="integer"
+                />
+
+                <field
+                        name="group_lengths"
+                        type="subform"
+                        multiple="true"
+                        layout="joomla.form.field.subform.repeatable-table"
+                        buttons="add,remove"
+                        label="MOD_ALFAFILTERS_GROUP_LENGTHS_LBL"
+                        description="MOD_ALFAFILTERS_GROUP_LENGTHS_DESC"
+                >
+                    <form>
+                        <field
+                                name="group"
+                                type="FilterGroup"
+                                addfieldprefix="Alfa\Module\AlfaFilters\Site\Field"
+                                label="MOD_ALFAFILTERS_GROUP_LENGTHS_GROUP"
+                        />
+                        <field
+                                name="length"
+                                type="number"
+                                label="MOD_ALFAFILTERS_GROUP_LENGTHS_LENGTH"
+                                default="8"
+                                min="0"
+                                filter="integer"
+                        />
+                    </form>
+                </field>
+
+                <field
+                        name="group_search"
+                        type="radio"
+                        label="MOD_ALFAFILTERS_GROUP_SEARCH_LBL"
+                        description="MOD_ALFAFILTERS_GROUP_SEARCH_DESC"
+                        layout="joomla.form.field.radio.switcher"
+                        default="1"
+                        filter="integer"
+                >
+                    <option value="0">MOD_ALFAFILTERS_NO_OPTION</option>
+                    <option value="1">MOD_ALFAFILTERS_YES_OPTION</option>
+                </field>
+
+                <field
+                        name="group_search_min"
+                        type="number"
+                        label="MOD_ALFAFILTERS_GROUP_SEARCH_MIN_LBL"
+                        description="MOD_ALFAFILTERS_GROUP_SEARCH_MIN_DESC"
+                        default="8"
+                        min="1"
+                        filter="integer"
+                        showon="group_search:1"
                 />
 
             </fieldset>

@@ -196,13 +196,42 @@
  * Overlay
  */
 
+/* The panel, a dialog: over the page the script opens it as a modal, so it lies in the
+   browser's top layer, placed against the screen whatever its ancestors do; as a column
+   it is shown in the page. The browser's own dialog frame (size limits, margin, padding,
+   border, colours, backdrop) is set aside; the panel draws its own scrim. */
 .alfa-filters-offcanvas {
     position: fixed;
     inset: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
     opacity: 0;
     pointer-events: none;
     z-index: 1001;
     display: flex;
+}
+
+/* Closed, it is not shown at all, and its controls are out of the Tab order. */
+.alfa-filters-offcanvas:not([open]) {
+    display: none;
+}
+
+/* Over the page: visible even inside a header that hides itself, and its movements never
+   scroll its frame. */
+.alfa-filters-offcanvas:modal {
+    visibility: visible;
+    overflow: hidden;
+}
+
+.alfa-filters-offcanvas::backdrop {
+    background: none;
 }
 
 .alfa-filters-offcanvas.alfa-filters-offcanvas--visible {
@@ -320,7 +349,11 @@ html.alfa-filters-noscroll {
  * Animations
  */
 
+/* The panel is a column of its header, its actions bar and its form: the form takes the
+   height the others leave, whatever the header's own height, and scrolls inside it. */
 .alfa-filters-wrapper-inner{
+    display: flex;
+    flex-direction: column;
     transition: width 0.25s ease;
 }
 
@@ -404,10 +437,15 @@ html.alfa-filters-noscroll {
 
 .mod-alfa-filters {
     padding: var(--alfa-filters-panel-padding);
+    /* The panel's foot is its last row and carries its own inset; a bottom padding here
+       would lift the foot, which stays at the bottom of the scroll, off the panel's edge. */
+    padding-bottom: 0;
     overflow-y: auto;
     overflow-x: hidden;
     font-size: var(--alfa-filters-text-base);  /* base size for all filter content; scales with parent */
     height: var(--mod-alfa-filters-form-height);
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--alfa-filters-space-xl);
@@ -459,6 +497,7 @@ html.alfa-filters-noscroll {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: var(--alfa-filters-space-sm);
 }
 
 .af-fieldset-header legend {
@@ -487,11 +526,42 @@ html.alfa-filters-noscroll {
     color: var(--alfa-filters-text);
 }
 
-.mod-alfa-filters button[type="submit"] {
+/*
+ * The panel's foot: Clear all and Show N results, at the bottom of the panel and in view
+ * while the panel scrolls. Full width under the panel's own inline inset.
+ */
+
+.mod-alfa-filters .af-foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    display: flex;
+    align-items: stretch;
+    gap: var(--alfa-filters-space-sm);
+    margin: var(--alfa-filters-space-xl) calc(var(--alfa-filters-panel-padding-inline) * -1) 0;
+    padding: var(--alfa-filters-space-md) var(--alfa-filters-panel-padding-inline);
+    background-color: var(--alfa-filters-surface);
+    border-top: 1px solid var(--alfa-filters-border);
+}
+
+.mod-alfa-filters .af-foot .af-reset-all {
+    flex: none;
+    margin: 0;
+    padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-lg);
+    font-size: var(--alfa-filters-text-sm);
+    color: var(--alfa-filters-text);
+    text-decoration: none;
+    border: 1px solid var(--alfa-filters-border);
+    border-radius: var(--alfa-filters-radius-md);
+}
+
+.mod-alfa-filters .af-show-results {
+    flex: 1 1 auto;
     display: block;
     width: 100%;
+    margin: 0;
     background-color: var(--mod-alfa-filters-submit-color, var(--alfa-filters-accent));
-    color: var(--alfa-filters-surface);
+    color: var(--mod-alfa-filters-submit-color-text, var(--alfa-filters-surface));
     border: none;
     padding: var(--alfa-filters-space-md) var(--alfa-filters-space-lg);
     font-size: var(--alfa-filters-text-sm);
@@ -501,14 +571,13 @@ html.alfa-filters-noscroll {
     border-radius: var(--alfa-filters-radius-md);
     cursor: pointer;
     transition: background-color var(--alfa-filters-duration) var(--alfa-filters-ease);
-    margin-top: var(--alfa-filters-space-md);
 }
 
-.mod-alfa-filters button[type="submit"]:hover {
+.mod-alfa-filters .af-show-results:hover {
     background-color: var(--mod-alfa-filters-submit-color-hover, var(--alfa-filters-accent-hover));
 }
 
-.mod-alfa-filters button[type="submit"]:disabled {
+.mod-alfa-filters .af-show-results:disabled {
     background-color: var(--alfa-filters-border);
     color: var(--alfa-filters-text-muted);
     cursor: not-allowed;
@@ -742,9 +811,133 @@ html.alfa-filters-noscroll {
     display: none;
 }
 
+/* An opened category (filters.js marks it) shows its subcategories; so does every
+   category while its group is searched, where the search decides what stays. */
+.mod-alfa-filters-wrapper .af-item[data-af-open] > .af-children,
+.mod-alfa-filters-wrapper [data-af-filtering] .af-children {
+    display: block;
+}
+
 .mod-alfa-filters-wrapper .af-children .af-list {
     margin-left: var(--alfa-filters-indent);
     padding-top: var(--alfa-filters-space-xs);
+}
+
+/*
+ * Option groups: the heading opens and shuts the group
+ */
+
+.mod-alfa-filters .af-fieldset-header legend {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.mod-alfa-filters .af-group-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--alfa-filters-space-sm);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-align: start;
+    color: inherit;
+    cursor: pointer;
+}
+
+.mod-alfa-filters .af-group-icon {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+}
+
+.mod-alfa-filters [data-af-closed] > .af-group-body {
+    display: none;
+}
+
+/* The icon turns while its group is open, unless the module keeps it still; a plus turns
+   into a cross. */
+.mod-alfa-filters-wrapper[data-af-icon-turn] .af-group-toggle[aria-expanded="true"] .af-group-icon {
+    transform: rotate(var(--alfa-filters-group-icon-turn, 180deg));
+}
+
+.mod-alfa-filters-wrapper[data-af-icon="plus"] {
+    --alfa-filters-group-icon-turn: 45deg;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .mod-alfa-filters .af-group-icon {
+        transition: transform var(--alfa-filters-duration) var(--alfa-filters-ease);
+    }
+}
+
+/*
+ * Option groups: Show more / Show less
+ */
+
+/* Past the group's length an option waits until the group is opened out, or searched. */
+.mod-alfa-filters [data-af-group]:not([data-af-expanded], [data-af-filtering]) .af-item[data-af-more] {
+    display: none;
+}
+
+.mod-alfa-filters .af-more {
+    align-self: flex-start;
+    margin: 0;
+    padding: var(--alfa-filters-space-xs) 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--alfa-filters-text-sm);
+    font-weight: var(--alfa-filters-weight-medium);
+    color: var(--alfa-filters-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.mod-alfa-filters .af-more[aria-expanded="true"] .af-more-show,
+.mod-alfa-filters .af-more[aria-expanded="false"] .af-more-hide,
+.mod-alfa-filters [data-af-filtering] .af-more {
+    display: none;
+}
+
+/*
+ * Option groups: the search box
+ */
+
+.mod-alfa-filters .af-group-search-input {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0 0 var(--alfa-filters-space-xs);
+    padding: var(--alfa-filters-space-xs) var(--alfa-filters-space-sm);
+    font: inherit;
+    font-size: var(--alfa-filters-text-sm);
+    color: inherit;
+    background-color: var(--alfa-filters-surface);
+    border: 1px solid var(--alfa-filters-border);
+    border-radius: var(--alfa-filters-radius-sm);
+}
+
+.mod-alfa-filters .af-group-search-input:focus-visible {
+    outline: 2px solid var(--alfa-filters-border-focus);
+    outline-offset: 1px;
+}
+
+/* While a group is searched, only the options it marked stay. */
+.mod-alfa-filters [data-af-filtering] .af-item:not([data-af-match]) {
+    display: none;
+}
+
+.mod-alfa-filters .af-group-empty {
+    margin: 0;
+    padding: var(--alfa-filters-space-xs) 0;
+    font-size: var(--alfa-filters-text-sm);
+    color: var(--alfa-filters-text-muted);
 }
 
 /*
@@ -1222,6 +1415,23 @@ html.alfa-filters-noscroll {
     outline: none;
     border-color: var(--alfa-filters-border-focus);
     box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+/*
+ * The status line a screen reader says after each live swap (the results' count): heard,
+ * not shown.
+ */
+
+.af-results-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
 }
 
 /*
