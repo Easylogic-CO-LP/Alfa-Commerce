@@ -78,6 +78,10 @@ class InventorymovementsController extends ApiController
             $this->modelState->set('filter.item_id', RequestScalar::member($apiFilterInfo, 'item_id', 'INT', 'filter'));
         }
 
+        // Every date bound of the API is UTC: a bound without a zone is a UTC time, a day the UTC day; a bound
+        // with Z or an offset keeps its own zone.
+        $this->modelState->set('filter.date_zone', 'UTC');
+
         $apiListInfo = $this->input->get('list', [], 'array');
 
         if (\array_key_exists('ordering', $apiListInfo)) {

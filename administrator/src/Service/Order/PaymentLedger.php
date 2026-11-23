@@ -2946,20 +2946,10 @@ class PaymentLedger
 
         $newId = (int) $data[self::PK];
 
-        // Domain rule: an order created without a payment method (admin
-        // shell orders) adopts the method of its first real payment: the
-        // order's frozen method name is the display source for email
-        // tokens and documents. Never overwrites an existing choice.
-        if (
-            !empty($data['id_payment_method'])
-            && ($data['payment_type'] ?? 'payment') === 'payment'
-            && ($data['payment_method'] ?? '') !== ''
-        ) {
-            self::adoptMethodOnOrderIfEmpty(
-                orderId:    $orderId,
-                methodId:   (int) $data['id_payment_method'],
-                methodName: (string) $data['payment_method'],
-            );
+        // The order's payment method follows its latest live payment (OrderMethods): the order's method is the
+        // display source for e-mail tokens and documents. Under the order's lock, in this write's transaction.
+        if (($data['payment_type'] ?? self::TYPE_PAYMENT) === self::TYPE_PAYMENT) {
+            OrderMethods::followPayments(orderId: $orderId);
         }
 
         // The wallet leg is settled by create(), which owns the transaction and
@@ -10715,6 +10705,10 @@ class PaymentLedger
         if (self::settlesLinkedRefund(stored: $oldSnapshot, data: $data, orderId: $orderId)) {
             self::oweRefundFlip(paymentId: (int) $oldSnapshot->id_refunded_payment, orderId: $orderId);
         }
+
+        // The order's payment method follows its latest live payment (OrderMethods): a payment cancelled, failed
+        // or moved to another method moves the order's, a bookkeeping write too, since it changes which rows are live.
+        OrderMethods::followPayments(orderId: $orderId);
     }
 
     /**
@@ -12602,10 +12596,12 @@ class PaymentLedger
      * The payment cap's refusal: REFUSAL_OPEN_ATTEMPT when the payment would fit if the order's open
      * attempts were not counted, REFUSAL_OVER_TOTAL when it would not fit even then. An open attempt is a pending payment
      * row (payment type 'payment') of the order, of any gateway, the row being written left out; an authorized row is a
-     * reservation the buyer already made and counts as held. The staff sentence is the cap's (COM_ALFA_PAYMENT_REFUSED_
-     * PAST_TOTAL) either way; the verdict's figures, for the plugin's log only: amount, total (the total the cap compared
-     * against), held (what the order holds against it, this row left out), pending (the open attempts in held) and left
-     * (total less held, never below zero).
+     * reservation the buyer already made and counts as held. The staff sentence follows the code: an open attempt names
+     * the pending payment or payments that hold what the order owes (COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPT, or
+     * COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPTS for several), a payment over the total is the cap's own sentence
+     * (COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL); the verdict's figures, for the plugin's log only: amount, total (the total
+     * the cap compared against), held (what the order holds against it, this row left out), pending (the open attempts
+     * in held) and left (total less held, never below zero).
      *
      * @param string $log The detail for the log.
      * @param int $orderId The order.
@@ -12624,14 +12620,46 @@ class PaymentLedger
         );
         $left = $total->subtract($held)->nonNegative();
         $withoutOpen = self::heldAgainstTotal($orderId, excludeId: $excludeId, plus: $amount)->subtract($pending);
+        $figures = ['amount' => $amount, 'total' => $total, 'held' => $held, 'pending' => $pending, 'left' => $left];
 
-        self::moneyRefusal(
-            log: $log,
+        if (!$pending->isPositive() || self::exceedsCap([$withoutOpen], $total, $orderId)) {
+            self::moneyRefusal(
+                log: $log,
+                orderId: $orderId,
+                key: 'COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL',
+                amounts: [$amount, $left, $total],
+                code: self::REFUSAL_OVER_TOTAL,
+                figures: $figures,
+            );
+
+            return;
+        }
+
+        // An open attempt in the way: the sentence names the pending payment, since "is owed 0.00" read wrong
+        // beside a balance the order still owes. Several pending rows are named together with their sum.
+        $db = self::db();
+        $open = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'amount']))
+                ->from($db->quoteName(self::TABLE))
+                ->where($db->quoteName('id_order') . ' = ' . $orderId)
+                ->where($db->quoteName('payment_type') . ' = ' . $db->quote(self::TYPE_PAYMENT))
+                ->where($db->quoteName('transaction_status') . ' = ' . $db->quote(self::STATUS_PENDING))
+                ->where($db->quoteName(self::PK) . ' != ' . $excludeId)
+                ->order($db->quoteName(self::PK)),
+        )->loadObjectList() ?: [];
+        $ids = array_map(static fn (object $row): int => (int) $row->id, $open);
+        $shown = $amount->format();
+        $pendingShown = (\count($open) === 1 ? self::money((string) $open[0]->amount, $orderId)->abs() : $pending)->format();
+
+        self::refuse(
+            detail: $log,
             orderId: $orderId,
-            key: 'COM_ALFA_PAYMENT_REFUSED_PAST_TOTAL',
-            amounts: [$amount, $left, $total],
-            code: $pending->isPositive() && !self::exceedsCap([$withoutOpen], $total, $orderId) ? self::REFUSAL_OPEN_ATTEMPT : self::REFUSAL_OVER_TOTAL,
-            figures: ['amount' => $amount, 'total' => $total, 'held' => $held, 'pending' => $pending, 'left' => $left],
+            code: self::REFUSAL_OPEN_ATTEMPT,
+            plain: static fn (string $number): string => \count($ids) === 1
+                ? Text::sprintf('COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPT', $shown, $number, $ids[0], $pendingShown)
+                : Text::sprintf('COM_ALFA_PAYMENT_REFUSED_OPEN_ATTEMPTS', $shown, $number, implode(', ', $ids), $pendingShown),
+            figures: $figures,
         );
     }
 
@@ -13359,6 +13387,9 @@ class PaymentLedger
 
                 return false;
             }
+
+            // The order's payment method follows the payments that are left (OrderMethods).
+            OrderMethods::followPayments(orderId: $orderId);
 
             if ($payment) {
                 $methodName = $payment->payment_method ?? '';
@@ -16018,6 +16049,31 @@ class PaymentLedger
     }
 
     /**
+     * The sentence the ledger queued about a write it just refused, as plain text: the last error queued after $told,
+     * unescaped, or '' when it queued none.
+     *
+     * One reader for every door that reports a ledger's refusal: the payments and the shipments ledgers queue theirs
+     * through LedgerSupport::warn(), and the REST order operations and the settle read them here.
+     *
+     * @param \Joomla\CMS\Application\CMSApplicationInterface $app The application.
+     * @param int $told How many messages were queued before the write.
+     *
+     * @since  2.2.2
+     */
+    public static function queuedRefusal(\Joomla\CMS\Application\CMSApplicationInterface $app, int $told): string
+    {
+        $refusal = '';
+
+        foreach (\array_slice($app->getMessageQueue(), $told) as $message) {
+            if ((string) ($message['type'] ?? '') === 'error') {
+                $refusal = html_entity_decode(strip_tags((string) ($message['message'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
+        return $refusal;
+    }
+
+    /**
      * Why a refund written by staff may not enter the books now, or null.
      *
      * While the refund block holds ({@see self::refundStartRefusal()}), no write
@@ -16443,43 +16499,4 @@ class PaymentLedger
     //  INTERNAL: Database Operations
 
     //  INTERNAL: Utilities
-
-    /**
-     * Freeze a payment method onto the order row when the order has none
-     * yet (id + snapshot name). One guarded UPDATE: an order that already
-     * carries a method name is never touched.
-     *
-     * @param int $orderId The order id.
-     * @param int $methodId The payment method id.
-     * @param string $methodName The resolved method-name snapshot.
-     *
-     *
-     * @since  1.0.0
-     */
-    private static function adoptMethodOnOrderIfEmpty(int $orderId, int $methodId, string $methodName): void
-    {
-        // Outside the try: the catch below needs a connection to ask about the transaction.
-        $db = self::db();
-
-        try {
-            $query = $db->getQuery(true)
-                ->update($db->quoteName('#__alfa_orders'))
-                ->set([
-                    $db->quoteName('id_payment_method') . ' = ' . $methodId,
-                    $db->quoteName('payment_method_name') . ' = ' . $db->quote($methodName),
-                ])
-                ->where([
-                    $db->quoteName('id') . ' = ' . $orderId,
-                    '(' . $db->quoteName('payment_method_name') . " = '' OR " . $db->quoteName('payment_method_name') . ' IS NULL)',
-                ]);
-            $db->setQuery(query: $query);
-            $db->execute();
-        } catch (Exception $e) {
-            if (TransactionState::endedBy($db, $e)) {
-                throw $e;
-            }
-
-            self::warnFailure(message: 'adoptMethodOnOrderIfEmpty(): the order\'s payment method was not filled in', failure: $e);
-        }
-    }
 }

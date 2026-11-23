@@ -1154,6 +1154,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `checked_out_time` datetime DEFAULT NULL,
   `created_by` int(11) DEFAULT 0,
   `modified` datetime NOT NULL,
+  `commerce_changed_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]',
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   `projection_dirty_at` datetime(6) NULL DEFAULT NULL COMMENT 'When a rebuild of this item projections was found owed and not yet done; NULL = current',
@@ -1163,7 +1164,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
-  KEY `idx_projection_dirty` (`projection_dirty_at`)
+  KEY `idx_projection_dirty` (`projection_dirty_at`),
+  -- The products changed since a time (the REST API filter[changed_since]): a range read on this key.
+  KEY `idx_commerce_changed` (`commerce_changed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1223,6 +1226,20 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_links` (
   KEY `idx_linked_item_id` (`linked_item_id`),
   KEY `idx_item_ordering` (`item_id`, `link_type`, `ordering`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product links by kind (related: the products a product page shows), in order';
+
+--
+-- Every SKU in use, once: a product's own SKU and each combination's, archived ones included. The key is the SKU,
+-- compared without regard to letter case, so one SKU names one unit; every writer of a SKU keeps its product's rows
+-- here in its own transaction (SkuIndex::keep()), and the REST API finds a unit by its SKU through it.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_skus` (
+  `sku` varchar(255) NOT NULL COMMENT 'A SKU in use, trimmed; compared without regard to letter case',
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination; 0 for the product itself',
+  PRIMARY KEY (`sku`),
+  UNIQUE KEY `uq_unit` (`item_id`, `combination_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Every SKU in use, once: products and combinations, archived ones included';
 
 --
 -- Table structure for table `#__alfa_items_prices`
@@ -1437,9 +1454,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_media` (
   `ordering` int(11) NOT NULL DEFAULT 0,
   `origin` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `thumbnail_origin` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'What the thumbnail was made from: image (the row image) or chosen (a picture chosen on the tile); NULL before 2.2.0',
+  `source_url` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The address the image was fetched from, as the REST API client gave it; NULL for an image uploaded or picked',
+  `source_url_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'sha256 of source_url: the same address is not fetched twice for one record',
   PRIMARY KEY (`id`),
   KEY `idx_alfa_media_origin_item` (`origin`, `item_id`),
-  KEY `idx_alfa_media_type` (`type`)
+  KEY `idx_alfa_media_type` (`type`),
+  KEY `idx_alfa_media_source` (`origin`, `item_id`, `source_url_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1480,7 +1500,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `ip_address` varchar(255) DEFAULT NULL,
   `customer_note` text DEFAULT NULL,
   `note` text DEFAULT NULL,
-  `source` varchar(16) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api',
+  `source` varchar(32) NOT NULL DEFAULT 'storefront' COMMENT 'Order origin: storefront | admin | renewal | api, or the channel a REST API client names (lower-case letters, digits, _ and -)',
+  -- THE OTHER SYSTEM ID OF THE ORDER: the name of the system an order came from (a marketplace, an ERP, a connector)
+  -- and its id of the order there, both or neither, written once. One pair names one order (idx_external_reference),
+  -- so a connector that sends the same order again is answered with the order it made.
+  `external_source` varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once',
+  `external_reference` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source',
   `checked_out` int(10) DEFAULT NULL,
   `state` tinyint(1) DEFAULT 1 COMMENT 'To manage trashed orders e.g. before delete',
   `checked_out_time` datetime DEFAULT NULL,
@@ -1505,7 +1530,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   -- address on the customer screen and the cart): without these, a full read of the
   -- orders for each address.
   KEY `idx_address_delivery` (`id_address_delivery`),
-  KEY `idx_address_invoice` (`id_address_invoice`)
+  KEY `idx_address_invoice` (`id_address_invoice`),
+  -- One order per pair of the other system name and its id; a row with neither holds no place in it. Also the
+  -- lookup of the REST API filters filter[external_source] and filter[external_reference].
+  UNIQUE KEY `idx_external_reference` (`external_source`, `external_reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -3282,6 +3310,23 @@ CREATE TABLE IF NOT EXISTS `#__alfa_action_once` (
   PRIMARY KEY (`id_user`, `key_hash`),
   KEY `idx_claimed` (`claimed`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='One-time action keys already used, per user';
+
+--
+-- The Idempotency-Keys of the REST API's writes: a write sent again with the same key is answered with what the first
+-- one stored and applies nothing; the same key with another body is refused. Claimed in the write's transaction, so a
+-- refused write keeps no key. Kept 30 days (IdempotencyKeys).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_api_keys` (
+  `created_by` int(11) NOT NULL COMMENT 'The API user whose key it is',
+  `scope` varchar(32) NOT NULL COMMENT 'The write the key names, such as inventory.adjustments',
+  `key_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the key the client sent',
+  `request_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 hex of the request body in its canonical form',
+  `result` text DEFAULT NULL COMMENT 'JSON: what the write answered (the ids and operation ids it wrote), to answer a replay',
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`created_by`, `scope`, `key_hash`),
+  KEY `idx_created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Idempotency keys of REST API writes, kept 30 days';
 
 --
 -- The tasks table: a single is one thing a change owes after its commit (an e-mail, a

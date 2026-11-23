@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
+use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 
 /**
@@ -51,11 +52,14 @@ class ItemModel extends AdminItemModel
             // Full per-language map ({"en_gb": {...}, "el_gr": {...}}) so API
             // clients can read every translation and PATCH back the same
             // per-language keys the admin form posts (name_el_gr, ...).
-            $item->translations = MultilingualHelper::getMultilingualData(
-                currentId:         (int) $item->id,
-                primaryColumnName: 'id_item',
-                tableName:         '#__alfa_items',
-            );
+            // Every content language's texts, only when the read asks for them (include=translations).
+            if (ApiInclude::asks(ApiInclude::TRANSLATIONS)) {
+                $item->translations = MultilingualHelper::getMultilingualData(
+                    currentId:         (int) $item->id,
+                    primaryColumnName: 'id_item',
+                    tableName:         '#__alfa_items',
+                );
+            }
 
             $this->attachFieldGraph($item);
         }

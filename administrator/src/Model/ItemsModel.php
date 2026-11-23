@@ -457,6 +457,23 @@ class ItemsModel extends AlfaListModel
             $this->applyStockFilter($query, $stock);
         }
 
+        // The products whose stock, prices or own fields changed at or after a UTC time (the REST API's
+        // filter[changed_since], read by the controller into UTC to the microsecond), a range read on
+        // idx_commerce_changed.
+        $changedSince = (string) $this->getState('filter.changed_since', '');
+
+        if ($changedSince !== '') {
+            $query->where($db->quoteName('a.commerce_changed_at') . ' >= ' . $db->quote($changedSince));
+        }
+
+        // One product by its own SKU, exactly (the REST API's filter[sku]): equal in the column's collation, so
+        // letter case does not count, and never a part of another SKU as the search's match is.
+        $sku = trim((string) $this->getState('filter.sku', ''));
+
+        if ($sku !== '') {
+            $query->where($db->quoteName('a.sku') . ' = ' . $db->quote($sku));
+        }
+
         // Filter by category (multi-select, many-to-many). Matches the selected
         // categories exactly: no subcategory expansion. Subquery keeps the main
         // query shape (no JOIN, no GROUP BY needed).

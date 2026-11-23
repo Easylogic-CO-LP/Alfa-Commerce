@@ -696,6 +696,8 @@ final class Runner
             Job\TasksPruneJob::NAME => Job\TasksPruneJob::class,
             // The gallery's thumbnails, recreated from Tools > Media (2.2.0, part C21).
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
+            // The images a REST API write gave as addresses, fetched and stored.
+            Job\MediaFetchJob::NAME => Job\MediaFetchJob::class,
         ];
     }
 

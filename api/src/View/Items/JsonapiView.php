@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\View\Items;
 
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
+use Alfa\Component\Alfa\Api\View\ListsTranslations;
 use Alfa\Component\Alfa\Api\View\PublishesStoredFigures;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
@@ -25,6 +26,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 class JsonApiView extends BaseApiView
 {
     use ListsRequestTasks;
+    use ListsTranslations;
     use PublishesStoredFigures;
 
     /**
@@ -77,6 +79,7 @@ class JsonApiView extends BaseApiView
         'publish_down',
         'created_by',
         'modified',
+        'commerce_changed_at',
         'modified_by',
         'ordering',
     ];
@@ -107,6 +110,8 @@ class JsonApiView extends BaseApiView
         'publish_up',
         'publish_down',
         'modified',
+        // When the product's stock, prices or own fields last changed (UTC, to the microsecond): filter[changed_since].
+        'commerce_changed_at',
         'ordering',
     ];
 
@@ -162,6 +167,25 @@ class JsonApiView extends BaseApiView
             $item->related = RelatedItems::posted(posted: $item->related);
         }
 
+        // A product that tracks stock and holds no stock record has none on the shelf: its stock reads 0. The
+        // inventory makes no record for a figure of 0, so a product created with stock 0 read null, which a client
+        // takes for "not tracked". A product that does not track stock keeps null.
+        if (\is_object($item) && property_exists($item, 'stock') && $item->stock === null && (int) ($item->manage_stock ?? 0) === 1) {
+            $item->stock = 0.0;
+        }
+
         return $item;
+    }
+
+    /**
+     * The translations a list row carries with include=translations (ListsTranslations).
+     *
+     * @return array{0: string, 1: string, 2: string[]}
+     *
+     * @since  2.2.2
+     */
+    protected function translationSource(): array
+    {
+        return ['#__alfa_items', 'id_item', []];
     }
 }

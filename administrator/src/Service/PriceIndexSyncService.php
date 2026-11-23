@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Event\Catalog\PricesChangedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
@@ -1659,6 +1660,14 @@ class PriceIndexSyncService
 
                     return;
                 }
+
+                // The products whose price periods begin now sell for another price (CommerceChange), whether or not
+                // a plugin listens: marked in the transaction that moves the cursor past them.
+                CommerceChange::mark(db: $db, itemIds: $db->setQuery(
+                    'SELECT DISTINCT ' . $db->quoteName('item_id') . ' FROM ' . $db->quoteName('#__alfa_items_price_index')
+                    . ' WHERE ' . $db->quoteName('valid_from') . ' >= ' . $db->quote($cursor['from'])
+                    . ' AND ' . $db->quoteName('valid_from') . ' <= ' . $db->quote($until),
+                )->loadColumn() ?: []);
 
                 $rows = $announcement !== null && $announcement->listening
                     ? self::openedPeriods(db: $db, from: $cursor['from'], after: $cursor['after'], until: $until, limit: self::ANNOUNCE_LIMIT + 1)

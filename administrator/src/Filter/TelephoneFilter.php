@@ -75,8 +75,11 @@ class TelephoneFilter implements FormFilterInterface
             return $value;
         }
 
+        // A leading 00 is the international prefix, read as +.
+        $value = FieldsHelper::phoneTyped($value);
+
         if (class_exists(PhoneNumberUtil::class)) {
-            $canonical = $this->viaLibrary($element, $value);
+            $canonical = $this->viaLibrary($element, $value, $input);
 
             if ($canonical !== null) {
                 return $canonical;
@@ -89,15 +92,20 @@ class TelephoneFilter implements FormFilterInterface
     /**
      * E.164 from libphonenumber, or null when it cannot read the number.
      *
+     * The region a number without a country code is read against is the one rule's (FieldsHelper::phoneRegion()):
+     * the country of the place field in the same section of the submission, else the field's Default region,
+     * else the shop's default country.
+     *
      * @param SimpleXMLElement $element The field element.
      * @param string $value The typed number.
+     * @param Registry|null $input The whole submission.
      *
      *
      * @since  2.0.0
      */
-    private function viaLibrary(SimpleXMLElement $element, string $value): ?string
+    private function viaLibrary(SimpleXMLElement $element, string $value, ?Registry $input = null): ?string
     {
-        $region = strtoupper(trim((string) ($element['default_region'] ?? ''))) ?: FieldsHelper::shopRegionCode();
+        $region = FieldsHelper::phoneRegion($element, $input);
 
         // No region and no country code: not a number yet, and inventing a
         // country to read it against is how '+30' came to be glued onto

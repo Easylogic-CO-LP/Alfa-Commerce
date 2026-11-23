@@ -1906,6 +1906,13 @@ class com_alfaInstallerScript extends InstallerScript
             $this->oweOpeningQuantityRebuild();
         }
 
+        // Every SKU in use, once, in the registry the item saves and the REST API read: filled on every update (what
+        // is registered already stays), the SKUs held by more than one unit named.
+        if ($type === 'update')
+        {
+            $this->fillSkuRegistry();
+        }
+
         // The web cron's key (2.2.0): made when none is kept; nobody sees it, staff make the one they copy in
         // Tools > Tasks. A failure is said, never a failed install: the web cron refuses every call until a key exists.
         try
@@ -2153,6 +2160,54 @@ class com_alfaInstallerScript extends InstallerScript
             fallback: 'Alfa Commerce %1$s: the product list now filters and sorts each product by its price at the quantity it sells from, its minimum quantity, as its card shows it. The list prices of %2$d products with a minimum quantity above 1 are being rebuilt in the background (Tools > Tasks); until that ends, the price filters and the price sort may use their price for one piece, or leave out a product whose prices begin at its minimum.',
             values:   [$this->packageVersion, $marked],
         ));
+    }
+
+    /**
+     * Fill the SKU registry from the catalogue, a range of products at a time (SkuIndex::fill()): each product's own
+     * SKU and each combination's, archived included, unless another unit holds the same SKU. Run on every update; a
+     * SKU already registered stays as it is. The SKUs held by more than one unit are left out and named, with their
+     * products and variants: a save that keeps one is refused until each has its own, and the setup checklist names
+     * them too. A failure is said, never a failed update.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function fillSkuRegistry(): void
+    {
+        $app = Factory::getApplication();
+
+        try
+        {
+            $filled = \Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex::fill();
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_SKU_REGISTRY_FAILED',
+                fallback: 'Alfa Commerce %1$s could not list the SKUs in use: %2$s Run the update again; until then the REST API may not find a product or a variant by its SKU.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
+
+            return;
+        }
+
+        if ($filled['duplicates'] === [])
+        {
+            return;
+        }
+
+        $named = [];
+
+        foreach ($filled['duplicates'] as $sku => $units)
+        {
+            $named[] = htmlspecialchars((string) $sku, ENT_QUOTES, 'UTF-8') . ' (' . implode(', ', $units) . ')';
+        }
+
+        $app->enqueueMessage($this->installerText(
+            key:      'COM_ALFA_INSTALL_SKU_REGISTRY_DUPLICATES',
+            fallback: 'Alfa Commerce %1$s: a SKU now names one product or variant. These SKUs are held by more than one, and a save that keeps one is refused until each has its own (the setup checklist lists them): %2$s.',
+            values:   [$this->packageVersion, implode('; ', $named)],
+        ), 'warning');
     }
 
     /**

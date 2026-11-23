@@ -142,12 +142,18 @@ class DocumentsModel extends AlfaListModel
         // offset and land invoices in the wrong month, which on a fiscal list is a
         // reporting error, not a cosmetic one. (a.issue_date is the UTC instant; it
         // is not what a period filter should ask about.)
+        //
+        // The REST API asks in UTC (filter.date_zone), as every date it publishes is: its bounds are read against
+        // the UTC instant a.issue_date, a day being the UTC day, so a client never needs the shop's time zone.
+        $utc = AlfaHelper::boundsZone(stated: $this->getState('filter.date_zone'));
+
         AlfaHelper::applyDateRange(
             query:        $query,
-            column:       'a.issue_date_local',
+            column:       $utc === null ? 'a.issue_date_local' : 'a.issue_date',
             localStart:   (string) $this->getState('filter.date_start', ''),
             localEnd:     (string) $this->getState('filter.date_end', ''),
-            convertToUtc: false,
+            convertToUtc: $utc !== null,
+            zone:         $utc,
         );
 
         $docType = (string) $this->getState('filter.doc_type', '');

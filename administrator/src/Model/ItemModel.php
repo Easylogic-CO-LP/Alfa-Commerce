@@ -29,8 +29,14 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -90,6 +96,13 @@ use Throwable;
  */
 class ItemModel extends AlfaAdminModel
 {
+    /**
+     * What the last save of this model came to.
+     *
+     * @since  2.3.0
+     */
+    private ?ItemWriteResult $written = null;
+
     /**
      * @var string Alias to manage history control
      */
@@ -598,7 +611,48 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
-     * Method to save the form data.
+     * The item screen's and the REST API's save: the request read into the item write (ItemWriteService), the one way
+     * a product is saved; its refusals stay the model's errors and its warnings are queued as messages.
+     *
+     * @param array $data The form data, validated.
+     *
+     * @return bool True on success, False on error.
+     *
+     * @since  1.0.0
+     */
+    public function save($data)
+    {
+        $input = Factory::getApplication()->getInput();
+        $id = (int) ($data['id'] ?? 0);
+        $write = ($id > 0 ? ItemWriteService::change(id: $id) : ItemWriteService::create())
+            ->validated(data: $data, form: $input->post->get('jform', [], 'array'))
+            ->files(files: $input->files->get('jform')['uploads'] ?? []);
+
+        if (RequestScalar::cmd($input, 'task') === 'save2copy') {
+            $write->asCopyOf(originalId: RequestScalar::int($input, 'id'));
+        }
+
+        $this->written = $write->save(model: $this);
+
+        foreach ($this->written->warnings as $warning) {
+            Factory::getApplication()->enqueueMessage($warning['message'], $warning['type']);
+        }
+
+        return $this->written->saved;
+    }
+
+    /**
+     * What the last save of this model came to, for a caller that reports it (the REST API's meta.warnings).
+     *
+     * @since  2.3.0
+     */
+    public function written(): ?ItemWriteResult
+    {
+        return $this->written;
+    }
+
+    /**
+     * The item save, run by ItemWriteService::save().
      *
      * Extends the parent save() to also maintain the price index.
      *
@@ -651,27 +705,31 @@ class ItemModel extends AlfaAdminModel
      * stock of an existing product is recorded by the inventory service, so every
      * cached stock verdict is rebuilt.
      *
-     * @param array $data The form data.
+     * @internal ItemWriteService::save() runs it: an extension saves a product through the service.
+     *
+     * @param ItemWriteService $write The write: the data, the form as posted, the uploaded files, a copy's original.
      *
      * @return bool True on success, False on error.
      *
-     * @since  1.0.0
+     * @since  2.3.0
      */
-    public function save($data)
+    public function write(ItemWriteService $write): bool
     {
-        $app = Factory::getApplication();
-        $input = $app->getInput();
+        $data = $write->data();
         $table = $this->getTable();
 
         // Recover the per-language flat keys (e.g. name_en_gb) and other undeclared
         // keys the form filter drops, without overwriting any validated field or
         // resurrecting the housekeeping fields the form unsets. Recovered
         // per-language values are safehtml-cleaned like their base field.
-        $rawData = $input->post->get('jform', [], 'array');
+        $rawData = $write->form();
         $form = $this->getForm(data: $data, loadData: false) ?: null;
         $data = MultilingualHelper::mergeValidatedFormData(validated: $data, raw: $rawData, form: $form);
 
         $pk = (int) ($data['id'] ?? (int) $this->getState($this->getName() . '.id'));
+
+        // The SKUs the product and its combinations hold before the save: one they keep is never refused for it.
+        $skusBefore = SkuIndex::skusOf(itemId: $pk);
 
         // STOCK INTENT. The stock field never writes a column: a posted figure is an
         // instruction to the inventory service, applied after the row save. A shop
@@ -732,7 +790,7 @@ class ItemModel extends AlfaAdminModel
             ['robots' => $data['robots'] ?? ''],
         );
 
-        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+        $newDropped = $write->uploads();
 
         // A NEW category of the product, or a new default category, must be available (not archived or trashed,
         // not inside an archived or trashed category); a category the product already holds is kept.
@@ -854,12 +912,25 @@ class ItemModel extends AlfaAdminModel
         // URL ALIASES, judged before anything is written: a save that would put this product
         // on another one's address in any language is refused; an address it already shared
         // is kept and said after the save. A copy takes its own aliases, generated.
-        if (RequestScalar::cmd($input, 'task') === 'save2copy') {
+        if ($write->isCopy()) {
+            // A SKU names one product: a copy of a product keeps none of the SKU its original holds, and says so.
+            $copiedSku = trim((string) ($data['sku'] ?? ''));
+            $skuHolder = $copiedSku === '' ? null : SkuIndex::holder(sku: $copiedSku);
+
+            if ($skuHolder !== null) {
+                $data['sku'] = '';
+                $write->warn(msg: Text::sprintf(
+                    'COM_ALFA_SKU_COPY_LEFT_EMPTY',
+                    SkuIndex::shown(sku: $copiedSku),
+                    InventoryUnitException::labelFor(itemId: $skuHolder->itemId, combinationId: $skuHolder->combinationId),
+                ));
+            }
+
             $data = MultilingualHelper::releaseCopiedAliases(
                 data:              $data,
                 tableName:         '#__alfa_items',
                 primaryColumnName: 'id_item',
-                originalId:        RequestScalar::int($input, 'id'),
+                originalId:        $write->copyOf(),
                 aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
             );
         }
@@ -979,7 +1050,7 @@ class ItemModel extends AlfaAdminModel
             );
 
             foreach ($aliasClashes['warn'] as $warning) {
-                $app->enqueueMessage($warning, 'warning');
+                $write->warn($warning, 'warning');
             }
 
             if (!empty($data['media'])) {
@@ -1017,6 +1088,10 @@ class ItemModel extends AlfaAdminModel
             // coalesce a body that omits prices raised an undefined-key warning
             // straight into the API's JSON response.
             $this->setPrices($currentId, $data['prices'] ?? null);
+
+            // What the product sells for or has to sell may have changed with this save (its prices, its own fields,
+            // its combinations): recorded in the save's transaction, for the REST API's filter[changed_since].
+            CommerceChange::mark(db: $db, itemIds: [$currentId]);
 
             // Step 3: save all associations
             // Get old categories BEFORE overwriting so we can clear their cache too
@@ -1108,7 +1183,7 @@ class ItemModel extends AlfaAdminModel
                     category: 'com_alfa.inventory',
                 );
 
-                $app->enqueueMessage(
+                $write->warn(
                     msg:  Text::sprintf('COM_ALFA_ITEM_SAVED_VARIANTS_NOT_CHANGED', $combinationError->getMessage()),
                     type: 'error',
                 );
@@ -1163,7 +1238,7 @@ class ItemModel extends AlfaAdminModel
                     // Stock reserved after the pre-flight is refused by the kernel under
                     // the record's lock; the operator reads the floor it keeps. Its
                     // sentence is complete, so it follows the saved notice whole.
-                    $app->enqueueMessage(
+                    $write->warn(
                         msg:  match (true) {
                             $stockError instanceof InventoryIntegrityException => $this->inventoryRefusalMessage(error: $stockError),
                             $stockError instanceof InventoryReservedFloorException => Text::sprintf(
@@ -1218,6 +1293,10 @@ class ItemModel extends AlfaAdminModel
 
                 $archived = $this->publish(pks: $moved, value: $archiveMove);
             }
+
+            // The product's SKUs and its combinations' in the registry, in this transaction: a SKU another product or
+            // variant holds refuses the save, and nothing of it is kept.
+            SkuIndex::keep(itemId: $currentId, before: $skusBefore);
 
             // What follows the save, once it has committed.
             PostCommit::defer(
@@ -1280,6 +1359,13 @@ class ItemModel extends AlfaAdminModel
             // Nothing of the save is kept: its writes and what it deferred go with its transaction. The mark of an
             // existing item, written before it, stays and is cleared by the next rebuild.
             TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            // A SKU in use is the merchant's to change: the refusal is said as it is, never as a failed save.
+            if ($e instanceof SkuInUseException) {
+                $this->setError($e);
+
+                return false;
+            }
 
             Log::add(
                 entry:    'Item ' . ($pk > 0 ? '#' . $pk : '(new)') . ' was not saved; its save was rolled back: ' . $e->getMessage(),
@@ -1370,6 +1456,11 @@ class ItemModel extends AlfaAdminModel
                     $this->markChanging(ids: $ids, value: $value);
                     // Let Joomla handle the actual state change in the database
                     $result = parent::publish(pks: $pks, value: $value);
+
+                    // Whether the products sell changed with their state (filter[changed_since]).
+                    if ($result) {
+                        CommerceChange::mark(db: $db, itemIds: $ids);
+                    }
                 }
 
                 TransactionState::commitLevel(db: $db);
@@ -2989,7 +3080,29 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
-     * A product's name in the staff member's language, for a refusal that names it (UX-42); its number when it has none.
+     * Refuse a delete by the item rule that stops it: the refusal is a DeleteRefusedException, as the category,
+     * payment method and currency models refuse theirs, so the back office prints the same sentence as before and the
+     * REST delete answers 409 with it. Before, the sentence was a plain error, which the REST delete answered as a
+     * server fault (500).
+     *
+     * The exception's message is safe to print as HTML (the back office prints it so) and its plain sentence is what the
+     * REST delete answers: a sentence of plain text, which can carry a product's name, is escaped for the message; one
+     * already escaped for the screen (the stock held message, the archive's refusal) is unescaped for the plain text.
+     *
+     * @param string $sentence The refusal.
+     * @param bool $escaped Whether the sentence is already escaped for HTML.
+     *
+     * @since  2.2.2
+     */
+    private function refuseDelete(string $sentence, bool $escaped = false): void
+    {
+        $this->setError($escaped
+            ? new DeleteRefusedException($sentence, html_entity_decode($sentence, ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+            : new DeleteRefusedException(htmlspecialchars($sentence, ENT_QUOTES, 'UTF-8'), $sentence));
+    }
+
+    /**
+     * A product's name in the staff member's language, for a refusal that names it; its number when it has none.
      * The one rule for naming a product to staff: the item's own refusals, the Related tab's refusals and the title of
      * its product picker.
      *
@@ -3076,17 +3189,17 @@ class ItemModel extends AlfaAdminModel
             $blockers = $service->retirementBlockers(itemId: $pk, combinationIds: null);
 
             if ($blockers !== []) {
-                $this->setError(error: $this->stockHeldMessage(
+                $this->refuseDelete(sentence: $this->stockHeldMessage(
                     key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
                     itemId:   $pk,
                     blockers: $blockers,
-                ));
+                ), escaped: true);
 
                 return false;
             }
 
             if (!$this->projectionsAgree(itemId: $pk)) {
-                $this->setError(error: Text::_('COM_ALFA_INVENTORY_FIGURES_DISAGREE'));
+                $this->refuseDelete(sentence: Text::_('COM_ALFA_INVENTORY_FIGURES_DISAGREE'));
 
                 return false;
             }
@@ -3109,7 +3222,11 @@ class ItemModel extends AlfaAdminModel
         if ($orderHistory !== []) {
             $archive = array_keys($orderHistory);
 
+            // The archive's refusal (stock that arrived, or figures that diverged, after the read-only check above) is
+            // a refusal of the delete, answered 409 over the REST API with its sentence, as every other delete refusal.
             if (!$this->publish(pks: $archive, value: CombinationState::ARCHIVED, queueRefusal: false)) {
+                $this->refuseDelete(sentence: (string) ($this->getError() ?: Text::_('JLIB_APPLICATION_ERROR_DELETE')), escaped: true);
+
                 return false;
             }
 
@@ -3192,7 +3309,7 @@ class ItemModel extends AlfaAdminModel
 
         if ($busy !== []) {
             $itemLock->release(itemIds: $locked);
-            $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $busy[0]), (int) $busy[0]));
+            $this->refuseDelete(sentence: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $busy[0]), (int) $busy[0]));
 
             return false;
         }
@@ -3211,7 +3328,7 @@ class ItemModel extends AlfaAdminModel
 
                         // Every close of this level discards what was deferred inside it.
                         TransactionState::rollBackLevel(db: $db, failure: new RuntimeException($refusal));
-                        $this->setError(error: $refusal);
+                        $this->refuseDelete(sentence: $refusal);
 
                         return false;
                     }
@@ -3290,15 +3407,18 @@ class ItemModel extends AlfaAdminModel
                     )->execute();
                 }
 
+                // Their SKUs are free again.
+                SkuIndex::forget(itemIds: array_map('intval', $deletePks));
+
                 TransactionState::commitLevel(db: $db);
             } catch (InventoryUnitRetirementException $retirement) {
                 TransactionState::rollBackLevel(db: $db, failure: $retirement);
 
-                $this->setError(error: $this->stockHeldMessage(
+                $this->refuseDelete(sentence: $this->stockHeldMessage(
                     key:      'COM_ALFA_ITEM_DELETE_STOCK_HELD',
                     itemId:   $retirement->itemId,
                     blockers: $retirement->blockers,
-                ));
+                ), escaped: true);
 
                 return false;
             } catch (Throwable $e) {
@@ -3309,7 +3429,7 @@ class ItemModel extends AlfaAdminModel
                 // The removal met another writer: nothing was deleted, and the merchant is told so.
                 if ($e === $busyRemoval) {
                     Log::add('Item delete: the price index rows of item(s) ' . implode(', ', $existing) . ' could not be removed, nothing was deleted: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
-                    $this->setError(error: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
+                    $this->refuseDelete(sentence: Text::sprintf('COM_ALFA_ITEM_DELETE_BUSY', self::nameForStaff(itemId: (int) $existing[0]), (int) $existing[0]));
 
                     return false;
                 }
@@ -3514,7 +3634,8 @@ class ItemModel extends AlfaAdminModel
             $priceObject->value = isset($price['value']) ? floatval($price['value']) : 0.0;
             $priceObject->override_value = (trim((string) ($price['override_value'] ?? '')) !== '') ? floatval($price['override_value']) : null;
             $priceObject->override_type = in_array($price['override_type'] ?? '', ['start', 'final'], true) ? $price['override_type'] : 'start';
-            $priceObject->state = ((string) ($price['price_status'] ?? '1') === '1') ? 1 : 0;
+            // The form posts a row's state as price_status; the REST API and a stored row read back carry it as state.
+            $priceObject->state = ((string) ($price['price_status'] ?? $price['state'] ?? '1') === '1') ? 1 : 0;
             $priceObject->country_id = isset($price['country_id']) ? intval($price['country_id']) : 0;
             $priceObject->usergroup_id = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
             $priceObject->user_id = isset($price['user_id']) ? intval($price['user_id']) : 0;

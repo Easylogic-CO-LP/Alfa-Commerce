@@ -25,6 +25,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
@@ -326,9 +327,8 @@ class ItemController extends FormController
 
                 // An identifier, never markup: tags are stripped outright rather
                 // than reusing the form's safehtml, which would let them reach
-                // order-line snapshots. No uniqueness check: the column has no
-                // unique key and the edit form declares none, so the inline path
-                // must not be stricter than the screen it shortcuts.
+                // order-line snapshots. A SKU names one product or variant: the
+                // registry refuses one another unit holds, as the item save does.
                 $value = trim(InputFilter::getInstance()->clean((string) ($payload['value'] ?? ''), 'string'));
 
                 if (mb_strlen($value) > self::SKU_MAX_LENGTH) {
@@ -346,6 +346,10 @@ class ItemController extends FormController
                 // item is marked first under its lock and rebuilt after the write.
                 $change = ProjectionManager::markChange(itemId: $id);
 
+                // The row and the registry in one transaction: a SKU in use leaves both as they were.
+                $skusBefore = SkuIndex::skusOf(itemId: $id);
+                $db->transactionStart(true);
+
                 try {
                     // A targeted three-column UPDATE, never Table::store(): stock and
                     // available_quantity on this row are service-maintained caches and
@@ -362,6 +366,13 @@ class ItemController extends FormController
                             ->bind(':modifiedBy', $userId, ParameterType::INTEGER)
                             ->bind(':id', $id, ParameterType::INTEGER),
                     )->execute();
+
+                    SkuIndex::keep(itemId: $id, before: $skusBefore);
+                    TransactionState::commitLevel(db: $db);
+                } catch (Throwable $e) {
+                    TransactionState::rollBackLevel(db: $db, failure: $e);
+
+                    throw $e;
                 } finally {
                     ProjectionManager::rebuildChanged(change: $change);
                 }

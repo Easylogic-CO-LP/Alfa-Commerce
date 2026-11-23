@@ -14,7 +14,9 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\BackorderPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
@@ -4869,6 +4871,9 @@ class ItemFieldsAdminHelper
             return false;
         }
 
+        // The SKUs the product's units hold before the save: one they keep is never refused for it.
+        $skusBefore = SkuIndex::skusOf(itemId: $itemId);
+
         // Quantity rules are judged before anything is written; a refusal throws.
         $changedRules = self::changedQuantityRules(
             itemId: $itemId,
@@ -4989,6 +4994,13 @@ class ItemFieldsAdminHelper
 
             self::saveCombinationTranslations(combinationId: $combinationId, row: $row);
             self::syncCombinationPrices(itemId: $itemId, combinationId: $combinationId, rows: $priceRows);
+
+            // The combination's prices and its sale rules are its product's: recorded in this transaction, for the
+            // REST API's filter[changed_since].
+            CommerceChange::mark(db: $db, itemIds: [$itemId]);
+
+            // The variant's SKU in the registry: one another unit holds refuses the save.
+            SkuIndex::keep(itemId: $itemId, before: $skusBefore);
 
             // What the inventory service announces for this save waits for this commit.
             TransactionState::commitLevel(db: $db);

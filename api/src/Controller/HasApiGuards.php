@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Media\MediaUrls;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Doctrine\Inflector\InflectorFactory;
 use Joomla\CMS\Access\Exception\NotAllowed;
@@ -267,6 +268,7 @@ trait HasApiGuards
      * @return void
      *
      * @throws NotAllowed When the identity may not create the resource.
+     * @throws Save When the save is refused.
      *
      * @since  2.2.1
      */
@@ -280,10 +282,34 @@ trait HasApiGuards
 
         $recordId = (int) $this->save();
 
+        // An image given by its address that was not stored is answered by its pointer, the new record's id beside it.
+        if ($this->answerMediaRefusals(recordId: $recordId)) {
+            return;
+        }
+
         $this->displayItem($recordId);
 
         $this->app->setHeader('status', '201', true);
         $this->app->setHeader('Location', rtrim(Uri::current(), '/') . '/' . $recordId, true);
+    }
+
+    /**
+     * Answer one record: core's, unless the write before it left an image given by its address unstored, which is
+     * answered instead ({@see self::answerMediaRefusals()}).
+     *
+     * @param int|null $id The record.
+     *
+     * @return static
+     *
+     * @since  2.2.2
+     */
+    public function displayItem($id = null)
+    {
+        if ($this->answerMediaRefusals(recordId: (int) ($id ?? RequestScalar::read($this->input, 'id', 0, 'int')))) {
+            return $this;
+        }
+
+        return parent::displayItem($id);
     }
 
     /**
@@ -322,6 +348,55 @@ trait HasApiGuards
         if ($carried !== []) {
             throw new Save(implode(', ', $carried) . ' cannot be written through the API: ' . $this->unwrittenReason(), 422);
         }
+
+        $this->refuseLanguageKeys();
+    }
+
+    /**
+     * Answer 422, naming them, when the body names a text by a language suffix (name_el_gr): a write takes the
+     * texts of each language in the translations object, {"translations": {"el_gr": {"name": "..."}}}, the object a
+     * read with include=translations gives, so what a client reads it can send back as it is.
+     *
+     * @throws Save When the body carries a key ending in the suffix of a language of the site (422).
+     *
+     * @since  2.2.2
+     */
+    protected function refuseLanguageKeys(): void
+    {
+        $suffixes = array_map(static fn (string $tag): string => '_' . $tag, MultilingualHelper::getLanguageTags());
+        $carried = array_values(array_filter(
+            array_keys($this->requestBody()),
+            static function ($key) use ($suffixes): bool {
+                foreach ($suffixes as $suffix) {
+                    if (\is_string($key) && \strlen($key) > \strlen($suffix) && str_ends_with($key, $suffix)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+        ));
+
+        if ($carried !== []) {
+            $shown = array_map(fn (string $key): string => $this->shownKey(key: $key), $carried);
+
+            throw new Save(implode(', ', $shown) . ' cannot be written through the API: send the texts of each language in'
+                . ' translations, {"translations": {"en_gb": {"name": "..."}, "el_gr": {"name": "..."}}}, as a read with'
+                . ' include=translations gives them. Nothing was saved.', 422);
+        }
+    }
+
+    /**
+     * A key the client sent, as a refusal shows it: its first 64 characters. A key is the client's text; it is
+     * named so the client knows which one, and never repeated whole.
+     *
+     * @param string $key The key as sent.
+     *
+     * @since  2.2.2
+     */
+    protected function shownKey(string $key): string
+    {
+        return mb_strlen($key, 'UTF-8') > 64 ? mb_substr($key, 0, 64, 'UTF-8') . '...' : $key;
     }
 
     /**
@@ -551,6 +626,8 @@ trait HasApiGuards
     protected function normaliseMediaPayload(array $data): array
     {
         // A GET emits `medias`; the save path reads `media`. Accept either.
+        $sentAs = isset($data['media']) ? 'media' : 'medias';
+
         if (!isset($data['media']) && isset($data['medias'])) {
             $data['media'] = $data['medias'];
         }
@@ -567,12 +644,20 @@ trait HasApiGuards
 
         // Native shape (keyed by id / "new-..."): normalise each row, keep keys.
         if (!array_is_list($rows)) {
-            $data['media'] = array_map(
-                fn ($row): array => $this->normaliseMediaRow((array) $row),
-                $rows,
-            );
+            $normalised = [];
+
+            foreach ($rows as $rowKey => $row) {
+                $normalised[$rowKey] = $this->normaliseMediaRow((array) $row) + ['pointer' => '/' . $sentAs . '/' . $rowKey . '/url'];
+            }
+
+            $data['media'] = $this->fetchedMedia(rows: $normalised, recordId: (int) ($data['id'] ?? 0));
 
             return $data;
+        }
+
+        // Each row's place in the request, for a refusal's pointer, before the rows are put in order.
+        foreach ($rows as $index => $row) {
+            $rows[$index] = (array) $row + ['__sent' => $index];
         }
 
         // Declarative list: honour a supplied ordering, since saveMedia itself
@@ -585,16 +670,74 @@ trait HasApiGuards
         $normalised = [];
 
         foreach ($rows as $index => $row) {
-            $row = (array) $row;
             $rowId = (int) ($row['id'] ?? 0);
             $rowKey = $rowId > 0 ? (string) $rowId : 'new-' . $index . '-' . bin2hex(random_bytes(4));
 
-            $normalised[$rowKey] = $this->normaliseMediaRow($row);
+            $normalised[$rowKey] = $this->normaliseMediaRow($row) + ['pointer' => '/' . $sentAs . '/' . $row['__sent'] . '/url'];
         }
 
-        $data['media'] = $normalised;
+        $data['media'] = $this->fetchedMedia(rows: $normalised, recordId: (int) ($data['id'] ?? 0));
 
         return $data;
+    }
+
+    /**
+     * The images the write gives as addresses, brought to the upload path ({@see MediaUrls::prepare()}): one already
+     * fetched for the record is not fetched again, one or two are fetched now, before the save, and more are left for
+     * the background job the save writes. An image refused is answered by its pointer once the save is done
+     * ({@see self::answerMediaRefusals()}).
+     *
+     * @param array<string, array> $rows The media rows, keyed as the save reads them.
+     * @param int $recordId The record, 0 for one the write creates.
+     *
+     * @return array<string, array>
+     *
+     * @since  2.2.2
+     */
+    protected function fetchedMedia(array $rows, int $recordId): array
+    {
+        $model = $this->getModel(InflectorFactory::create()->build()->singularize($this->contentType), '', ['ignore_request' => true]);
+
+        return MediaUrls::prepare(rows: $rows, origin: \is_object($model) ? (string) $model->getName() : '', recordId: $recordId);
+    }
+
+    /**
+     * Answer the images of a write that were not fetched or not stored: 422, one error each with its JSON pointer
+     * into the request, the address and the reason, and the record's id in meta.id, since the record was saved with
+     * everything else the write sent.
+     *
+     * @param int $recordId The record the write saved.
+     *
+     * @return bool Whether an image was refused and the answer is written.
+     *
+     * @since  2.2.2
+     */
+    protected function answerMediaRefusals(int $recordId): bool
+    {
+        $refused = MediaUrls::refusals();
+
+        if ($refused === []) {
+            return false;
+        }
+
+        $errors = [];
+
+        foreach ($refused as $one) {
+            $errors[] = [
+                'title' => $one['pointer'] . ': the image at ' . $one['url'] . ' was not stored: ' . $one['reason']
+                    . '. The record was saved with everything else the request sent.',
+                'code' => 422,
+                'source' => ['pointer' => $one['pointer']],
+            ];
+        }
+
+        // The error document Joomla's renderer writes, beside the record's id, which it cannot carry.
+        $document = $this->app->getDocument();
+        $document->setErrors($errors);
+        $document->addMeta('id', $recordId);
+        $this->app->setHeader('status', '422', true);
+
+        return true;
     }
 
     /**
@@ -608,6 +751,19 @@ trait HasApiGuards
     protected function normaliseMediaRow(array $row): array
     {
         $type = (string) ($row['type'] ?? 'image');
+
+        // An image given by its address (type image with url, no path): the shop fetches it and stores it as an upload
+        // (MediaUrls). type url keeps meaning an outside link shown from its address.
+        if ($type === 'image' && (string) ($row['url'] ?? '') !== '' && ($row['path'] ?? null) === null && ($row['source'] ?? null) === null && empty($row['id'])) {
+            $alt = (string) ($row['alt'] ?? '');
+
+            if (StringHelper::strlen($alt) > MediaHelper::ALT_MAX_LENGTH) {
+                throw new Save(Text::sprintf('COM_ALFA_MEDIA_ALT_TOO_LONG_API', MediaHelper::ALT_MAX_LENGTH), 400);
+            }
+
+            return ['source' => '', 'thumbnail' => '', 'alt' => $alt, 'type' => 'image', 'delete' => 0, 'fetch' => trim((string) $row['url'])];
+        }
+
         $source = (string) ($row['source'] ?? $row['url'] ?? $row['path'] ?? '');
 
         // A site-relative path has to arrive picker://-prefixed to take the
@@ -653,11 +809,11 @@ trait HasApiGuards
      * Translate a nested translations map into the flat per-language keys the
      * save path understands.
      *
-     * A GET emits attributes.translations = {"el_gr": {"name": "..."}, ...} while
-     * the write path only ever understood name_el_gr, so a client could not
-     * send back what it had just read. Both spellings of the tag are accepted
-     * ("el-GR" and "el_gr"); an explicitly supplied flat key always wins over
-     * the nested map.
+     * A GET with include=translations emits attributes.translations =
+     * {"el_gr": {"name": "..."}, ...}, and a write takes the same object: the
+     * one way a write names a text in a language (a key with a language
+     * suffix, name_el_gr, is refused by {@see self::refuseLanguageKeys()}).
+     * Both spellings of the tag are accepted ("el-GR" and "el_gr").
      *
      * Note the field must still be present for the DEFAULT language on every
      * write when the form marks it required: MultilingualTextField::validate()
@@ -671,7 +827,7 @@ trait HasApiGuards
     protected function flattenTranslations(array $data): array
     {
         if (!isset($data['translations']) || !\is_array($data['translations'])) {
-            // Never let the read-only key reach the model as an unknown field.
+            // Never let a translations that is not an object reach the model as an unknown field.
             unset($data['translations']);
 
             return $data;
