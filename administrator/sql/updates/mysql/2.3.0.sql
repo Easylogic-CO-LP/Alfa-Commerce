@@ -343,9 +343,9 @@ DELETE FROM `#__alfa_tasks` WHERE `handler` = 'extension.job';
 
 DROP TABLE IF EXISTS `#__alfa_inventory_transfers` /** CAN FAIL **/;
 
--- Each cart rule's share of each order line, frozen at placement (the install SQL creates the same table and says what
--- it holds). An updated site starts with no rows: orders placed before keep their documents' sharing of a rule over the
--- goods, and none is filled in by guess. This runs again harmlessly over it.
+-- Each cart rule's share of each order line, frozen at placement or when staff add a coupon (the install SQL creates the
+-- same table and says what it holds). An updated site starts with no rows: orders placed before keep their documents'
+-- sharing of a rule over the goods, and none is filled in by guess. This runs again harmlessly over it.
 
 CREATE TABLE IF NOT EXISTS `#__alfa_order_item_cart_rule` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_item_cart_rule` (
   KEY `idx_order` (`id_order`),
   KEY `idx_order_cart_rule` (`id_order_cart_rule`),
   CONSTRAINT `fk_rule_share_order_item` FOREIGN KEY (`id_order_item`) REFERENCES `#__alfa_order_items` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Each cart rule''s share of each order line, frozen at placement';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Each cart rule''s share of each order line, frozen at placement and when staff add a coupon to the order (OrderCoupons)';
 
 -- Customers may cancel their orders in a status
 --
