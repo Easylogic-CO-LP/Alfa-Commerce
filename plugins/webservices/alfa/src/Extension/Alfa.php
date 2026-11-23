@@ -145,6 +145,14 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
             // records what the command did). Its task is edit, the stock editors' permission; the records read only.
             new Route(['POST'], 'v1/alfa/inventory/adjustments', 'inventoryadjustments.edit', [], $defaults),
             new Route(['GET'], 'v1/alfa/inventory/stock', 'inventorystock.displayList', [], $defaults),
+
+            // A product's combinations, each written through the one way a combination is written: the task of every
+            // write is edit (the product's edit permission), of every read displayList or displayItem.
+            new Route(['GET'], 'v1/alfa/items/:id/combinations', 'combinations.displayList', ['id' => '\d+'], $defaults),
+            new Route(['POST'], 'v1/alfa/items/:id/combinations', 'combinations.edit', ['id' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/items/:id/combinations/:combinationId', 'combinations.displayItem', ['id' => '\d+', 'combinationId' => '\d+'], $defaults),
+            new Route(['PATCH', 'DELETE'], 'v1/alfa/items/:id/combinations/:combinationId', 'combinations.edit', ['id' => '\d+', 'combinationId' => '\d+'], $defaults),
+            new Route(['GET'], 'v1/alfa/combinations', 'combinations.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/documents', 'documents.displayList', [], $defaults),
             new Route(['GET'], 'v1/alfa/documents/:id', 'documents.displayItem', ['id' => '\d+'], $defaults),
 
