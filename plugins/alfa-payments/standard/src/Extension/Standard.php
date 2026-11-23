@@ -102,8 +102,10 @@
  *     $event->getSubject()   -> the event's main object
  *
  * Because "the main object" means something different in every hook,
- * each event also declares a DOMAIN-NAMED ALIAS returning the very same
- * thing (the body is literally `return $this->getSubject();`):
+ * each event also declares a DOMAIN-NAMED ALIAS returning the same thing:
+ * most return getSubject() as it is; the order events' getOrder() returns
+ * it as an Order (Order::of($this->getSubject())), and PaymentResponseEvent's
+ * null when the buyer returned for no order:
  *
  *   ItemViewEvent            getItem()   -> product being viewed
  *   CartViewEvent            getRequest()  -> MethodViewRequest for the method being rendered
@@ -421,15 +423,12 @@
  * When creating a payment with the fluent builder, the amount is
  * auto-resolved if you don't call ->amount($x) explicitly:
  *
- *   Priority 1: $order->total_paid_tax_incl (Money object, always correct)
- *     - During checkout: set by OrderPlacement from the placement cart
- *     - During admin/API: computed by OrderModel::getItem() from DB
+ *   Without ->amount(): amountToCollect($order) as the order's Money, the
+ *     grand total minus what the shop still holds of it (money collected
+ *     less anything given back), clamped at zero
  *
- *   Priority 2: OrderTotalHelper::getOrderTotal() (recomputes from DB)
- *     - Defensive fallback if total_paid_tax_incl is missing
- *
- *   Priority 3: ->amount($x) manual override (always wins when called)
- *     - Use for: partial payments, split payments, specific refund amounts
+ *   ->amount($x): that amount (partial payments, split payments, a
+ *     specific refund amount)
  *
  * In this Standard plugin, onOrderAfterPlace() does NOT call ->amount()
  * because the auto-resolution handles it correctly.
@@ -686,7 +685,7 @@ final class Standard extends PaymentsPlugin
      * Available on $event:
      *   $event->getRequest()  -> MethodViewRequest: ->method (the Method, entire) and ->cart (the Cart, entire)
      *                           (alias of getSubject())
-     *   $event->getMethod()   -> Payment method record
+     *   $event->getMethod()   -> Method, the payment method the request is for
      *   $event->paymentMethods()->setLayout('x')->setData([...])
      *                         -> the method's panel
      *
@@ -731,7 +730,7 @@ final class Standard extends PaymentsPlugin
      *
      * Available on $event:
      *   $event->getOrder()    -> Order object (with ->id, ->payments, etc.)
-     *                           (alias of getSubject())
+     *                           (the subject, as an Order)
      *   $event->getMethod()   -> Payment method record
      *
      * @param object $event OrderProcessViewEvent
@@ -752,7 +751,7 @@ final class Standard extends PaymentsPlugin
      * external gateway site.
      *
      * Available on $event:
-     *   $event->getOrder()    -> Order object   (alias of getSubject())
+     *   $event->getOrder()    -> Order object   (the subject, as an Order)
      *   $event->getMethod()   -> Payment method record
      *
      * @param object $event OrderCompleteViewEvent
@@ -761,7 +760,7 @@ final class Standard extends PaymentsPlugin
     public function onOrderCompleteView($event): void
     {
         $event->orderComplete()->setLayout('default_order_completed')->setData([
-            'order' => $event->getOrder(),   // getSubject(): this event's subject is the order
+            'order' => $event->getOrder(),   // The event's subject, the order, as an Order
             'method' => $event->getMethod(),
         ]);
     }
