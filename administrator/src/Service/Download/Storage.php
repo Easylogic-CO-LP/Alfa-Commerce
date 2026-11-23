@@ -363,7 +363,7 @@ class Storage
      * Options path when one is set, else the recorded root, else null (no store was ever set up).
      *
      * For Clear everything, which has to know where the store is before the configuration that
-     * says so is removed.
+     * says so is removed. Not an extension's way to the store: an extension calls root().
      *
      * @since  2.1.0
      */
@@ -404,6 +404,20 @@ class Storage
      *
      * The recorded root ({@see self::META_ROOT}), unless the Options name a
      * different path: the shop moved the store, and that path is recorded.
+     *
+     * THE FILE AREA OF AN EXTENSION. This root is where core keeps the files a
+     * shop must not serve to the web, and the one place an extension keeps its
+     * own: in a folder named after its element, root() . '/' . $element, which
+     * it creates itself. Core's objects sit in two levels of two hex characters
+     * (aa/bb/<key>), so a folder of that shape is never an extension's. The
+     * root's guard files (GUARD_FILES: deny-all for Apache and IIS, an empty
+     * index) cover every folder under it, so the extension's files are served
+     * only by its own code, as core's are. Clear everything removes core's
+     * objects only: an extension removes its folder in its onClearData, and a
+     * folder left there is reported by the clear as not a file of Alfa. A new
+     * Options path moves no file, core's or an extension's: root() answers the
+     * new path from then on, and the files stay where they were written, so an
+     * extension that must reach them after a move keeps the full path of each.
      *
      * @api ANSWERS: the download store's absolute root, provisioned with deny-all guards; throws when no root is
      *      recorded (install Alfa Commerce again). An extension keeps its own files only in a folder named after its
