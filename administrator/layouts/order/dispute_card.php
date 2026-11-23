@@ -59,7 +59,8 @@ $deadline = '';
 
 if ($dispute->evidence_due_by !== null && \in_array($state, [DisputeLedger::STATE_INQUIRY, DisputeLedger::STATE_OPEN], true) && $dispute->evidence_sent_at === null) {
     $due = Factory::getDate((string) $dispute->evidence_due_by, 'UTC');
-    $days = (int) ceil(($due->toUnix() - time()) / 86400);
+    // Whole days left: less than a day is today, and a deadline that has passed is overdue at once.
+    $days = (int) floor(($due->toUnix() - time()) / 86400);
     $deadline = $days >= 0
         ? Text::plural('COM_ALFA_DISPUTE_CARD_ANSWER_BY', $days, $date((string) $dispute->evidence_due_by))
         : Text::sprintf('COM_ALFA_DISPUTE_CARD_OVERDUE', $date((string) $dispute->evidence_due_by));
