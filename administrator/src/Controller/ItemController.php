@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Controller\Traits\HasInlineEditTrait;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ExecuteFieldActionEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
