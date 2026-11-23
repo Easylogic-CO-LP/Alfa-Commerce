@@ -26,7 +26,8 @@ use Alfa\Component\Alfa\Administrator\Service\Task\TaskError;
  *
  * One job per context, its scope the context's id. Each chunk writes the context's rows for the next published
  * products from the context's own checkpoint (prepared_through), through PriceIndexSyncService::prepareContextChunk();
- * the last marks the context prepared, and from then on the storefront reads it. A context dropped while its job waits
+ * the last marks the context complete and asks its switch ({@see PriceIndexSyncService::switchReady()}): a context new
+ * to the data is read from then on, a next generation once every next generation of its change is complete. A context dropped while its job waits
  * or runs ends the job done. Heavy: one preparer at a time. A merge never asks a rerun: live saves keep a waiting
  * context current up to its checkpoint.
  *
@@ -87,7 +88,10 @@ final class PriceSetPrepareJob implements JobHandler
         $service = new PriceIndexSyncService();
         $contextId = (int) ($run->payload['context'] ?? 0);
 
+        // Complete already (a run after a switch that failed): the switch is asked again.
         if (!$service->contextWaits(contextId: $contextId)) {
+            $service->switchReady();
+
             return new JobChunk(units: 0, checkpoint: null, finished: true);
         }
 

@@ -42,6 +42,13 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * nothing until the clock passes the cursor again; a period edited after it began is announced by the edit's own
  * write (with its cause), one edited before it begins when its new moment comes.
  *
+ * PREPARED PRICES GO LIVE WHOLE: a pricing context's first preparation, and the next generation a change of a rule, a
+ * tax or a place prepares beside the live prices, are written chunk by chunk where no reader reads them, and none of
+ * those chunks is announced. Their switch is, once it has committed: one PriceChange per row a switched generation holds
+ * that differs from the live generation it replaced (each row of a first preparation, which replaced none), with the
+ * cause set unless the write that started it switched it in its own request; large switches go out as several exact
+ * events, as any write does. So a listener hears a price when shoppers can read it, never before.
+ *
  * WHAT IT DOES NOT COVER: the prices the product page and the cart compute live from their rules, and
  * whether a place may buy (decided when prices are read). Nor are two removals no customer reads: the rows of a set of
  * pricing groups nobody holds any more, dropped with the set, and the rows of a deleted place (a listener learns of a
@@ -100,7 +107,10 @@ final class PricesChangedEvent extends AbstractImmutableEvent
     public const CAUSE_MANUFACTURER = 'manufacturer';
 
     /**
-     * @var string A chunk of a set of pricing groups' preparation; causeId the set.
+     * @var string Prepared prices went live: a switch of the index's generations (a pricing context's first
+     *             preparation, or the next generations a change prepared beside the live prices, switched together);
+     *             causeId the generation whose last chunk made the switch, 0 when the background tidy made it. A switch
+     *             made in the request of the write that started it (a rule's save) carries that write's cause instead.
      * @since  2.2.0
      */
     public const CAUSE_SET = 'set';

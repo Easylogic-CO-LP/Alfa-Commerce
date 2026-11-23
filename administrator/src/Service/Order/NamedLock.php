@@ -19,7 +19,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * A named database lock, taken without waiting, held while a piece of work runs.
+ * A named database lock, held while a piece of work runs; taken without waiting unless the caller names a wait.
  *
  * The lock belongs to the database connection, so a request that dies frees
  * it, and the connection that holds it may take it again. Named locks are
@@ -41,6 +41,7 @@ trait NamedLock
      * @param string $label What the lock guards, for the log and the exception.
      * @param string $logCategory Where a failed release is logged.
      * @param callable $work Called with no arguments.
+     * @param int $wait Seconds to wait for another connection to release it; 0 does not wait.
      *
      * @return bool False when another connection holds the lock; the work did not run.
      *
@@ -48,12 +49,12 @@ trait NamedLock
      *
      * @since  2.0.0
      */
-    private static function runLocked(string $name, string $label, string $logCategory, callable $work): bool
+    private static function runLocked(string $name, string $label, string $logCategory, callable $work, int $wait = 0): bool
     {
         // The connection that takes the lock is the one that releases it.
         $db = Factory::getContainer()->get('DatabaseDriver');
         $quoted = $db->quote($name);
-        $got = $db->setQuery('SELECT GET_LOCK(' . $quoted . ', 0)')->loadResult();
+        $got = $db->setQuery('SELECT GET_LOCK(' . $quoted . ', ' . max(0, $wait) . ')')->loadResult();
 
         if ($got === null) {
             throw new RuntimeException('The ' . $label . ' could not be taken: the database returned no answer.');

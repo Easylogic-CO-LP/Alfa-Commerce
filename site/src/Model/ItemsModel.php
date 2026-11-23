@@ -38,6 +38,7 @@ use Alfa\Component\Alfa\Administrator\Service\Search\SearchProviderFactory;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchQuery;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
+use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
 use Alfa\Component\Alfa\Site\Helper\SaleTag;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
@@ -83,7 +84,8 @@ use Throwable;
  *   filter.price_min           float   Minimum final_price (range slider left)
  *   filter.price_max           float   Maximum final_price (range slider right)
  *   filter.on_sale             bool    Only items with discount_amount > 0
- *   filter.discount_amount_min float   Save at least €X  (e.g. >= 10)
+ *   filter.discount_amount_min float   Save at least €X  (e.g. >= 10), the saving on the basis the
+ *                                      visitor's card shows it ({@see self::savingExpression()})
  *   filter.discount_percent_min float  Save at least X%  (e.g. >= 20)
  *   filter.category            int[]   Category ids
  *   filter.manufacturer        int[]   Manufacturer ids
@@ -1399,7 +1401,7 @@ class ItemsModel extends UrlListModel
         $discountAmountMin = $sellsOnline ? $this->getState('filter.discount_amount_min') : null;
         $savingAsked = is_numeric($discountAmountMin) && (float) $discountAmountMin > 0;
         if ($savingAsked) {
-            $query->where('pf.discount_amount >= ' . (float) $discountAmountMin);
+            $query->where($this->savingExpression() . ' >= ' . (float) $discountAmountMin);
         }
 
         // Minimum discount percentage filter
@@ -1451,9 +1453,11 @@ class ItemsModel extends UrlListModel
             // By a figure of the price index: a product with none for the visitor's
             // set (no price, or a set not yet prepared) comes after every product
             // that has one, in either direction; those, and equal figures, by id.
+            // The saving on the basis the visitor's card shows it.
             if (str_starts_with($orderCol, 'pf.')) {
-                $query->order($db->quoteName($orderCol) . ' IS NULL ASC');
-                $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
+                $figure = $orderCol === 'pf.discount_amount' ? $this->savingExpression() : $db->quoteName($orderCol);
+                $query->order($figure . ' IS NULL ASC');
+                $query->order($figure . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
                 $query->order($db->quoteName('a.id') . ' ASC');
             } else {
                 $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
@@ -1533,6 +1537,22 @@ class ItemsModel extends UrlListModel
     }
 
     /**
+     * The saving the catalogue's saving filter and sort compare: on the basis the visitor's price block shows it first
+     * ({@see PriceSettings::netSaving()}), the net saving (the base less the subtotal, as the block prints it) or the
+     * tax-included saving the index stores (discount_amount). NULL for a product with no valid price, so the filter
+     * leaves it out and the sort places it last. The sale filter needs no basis: a product is on sale when either
+     * saving is above zero, and the stored one is.
+     *
+     * @since  2.2.2
+     */
+    private function savingExpression(): string
+    {
+        return PriceSettings::netSaving(settings: PriceSettings::get())
+            ? 'GREATEST(pf.base_price - pf.base_price_with_discounts, 0)'
+            : 'pf.discount_amount';
+    }
+
+    /**
      * The read of the previous price index, while the new one is built after the update: the
      * previous index under the name the update gave it, read as before, so a visitor meets the previous prices
      * until the new ones are complete. The subquery (alias pf) reduces it to one row per product for the visitor's
@@ -1562,6 +1582,7 @@ class ItemsModel extends UrlListModel
                 SELECT
                     ranked.item_id,
                     MIN(ranked.final_price)                  AS final_price,
+                    MIN(ranked.base_price)                   AS base_price,
                     MAX(ranked.discount_amount)              AS discount_amount,
                     MAX(ranked.discount_percent)             AS discount_percent,
                     MIN(ranked.base_price_with_tax)          AS base_price_with_tax,
@@ -1569,7 +1590,7 @@ class ItemsModel extends UrlListModel
                     MIN(ranked.tax_amount)                   AS tax_amount
                 FROM (
                     SELECT
-                        pi.item_id, pi.final_price, pi.discount_amount,
+                        pi.item_id, pi.final_price, pi.base_price, pi.discount_amount,
                         pi.discount_percent, pi.base_price_with_tax,
                         pi.base_price_with_discounts, pi.tax_amount,
                         ROW_NUMBER() OVER (

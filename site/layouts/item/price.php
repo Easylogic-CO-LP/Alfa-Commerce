@@ -87,8 +87,8 @@ $discountShown = !empty($settings['discount_amount_show']) && $hasDiscount;
 $showBase = !empty($settings['base_price_show']);
 $showSubtotal = !empty($settings['base_price_with_discounts_show']);
 $showWithTax = !empty($settings['base_price_with_tax_show']);
-$showFinal = !empty($settings['final_price_show']);
-$netSaving = $discountShown && ($showBase || $showSubtotal) && ($showSubtotal || (!$showWithTax && !$showFinal));
+// The rule is PriceSettings::netSaving(), which the catalogue's saving filter and sort read too.
+$netSaving = $discountShown && PriceSettings::netSaving(settings: $settings);
 $grossSaving = $discountShown && ($showWithTax || (!$showBase && !$showSubtotal));
 // EACH SAVING NAMED BY ITS BASIS WHEN BOTH SHOW: two rows both reading "Discount" read as two discounts
 // on a product that has one. A block showing one saving keeps the plain word.
