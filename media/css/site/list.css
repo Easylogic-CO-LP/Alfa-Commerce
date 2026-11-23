@@ -189,8 +189,10 @@
     padding: 0 10px;
 }
 
+/* A product name of one word longer than the card is wide wraps rather than widen the card. */
 .item-title {
     margin-top: auto;
+    overflow-wrap: anywhere;
 }
 
 /* A card's read-only specifications: one line per field, its name then its
