@@ -34,7 +34,8 @@ final class CartTotalsView
      * @param Money $shipment The carrier's price as the cart pays it.
      * @param Money $shipmentGross The carrier's price before rules.
      * @param object $shippingBenefit The shipping rule's own summary.
-     * @param object[] $contributions Folded plugin charges, by sort order.
+     * @param object[] $contributions Every charge beside the goods and the shipping, as CartComputation::contributions()
+     *                               gives them: the plugins' folded charges, then the chosen payment method's fee.
      * @param Money $grand What the shopper pays.
      * @param Money $grandExcl The same, tax excluded.
      * @param string[] $contributionsNotLoaded The plugins (group.element) the customer's view levels admit that Joomla

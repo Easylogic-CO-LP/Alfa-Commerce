@@ -212,3 +212,23 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_item_cart_rule` (
 -- creates the same column.
 
 ALTER TABLE `#__alfa_orders_statuses` ADD COLUMN `customer_can_cancel` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'When 1, a customer may cancel their own order in this status from their account; the order moves to the status Options name (customer_cancel_status). Never inferred from the name or the role flags.' AFTER `is_completed` /** CAN FAIL **/;
+
+-- A payment method's fee: the tax rules it is taxed with (the fee's three columns on #__alfa_payments are added by the
+-- installation's new-columns step). No row = an untaxed fee. The install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_fee_taxes` (
+  `payment_id` int(11) NOT NULL,
+  `tax_id` int(11) NOT NULL,
+  PRIMARY KEY (`payment_id`, `tax_id`),
+  KEY `idx_tax_id` (`tax_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The categories a shipping method does not deliver. No row = none; an updated shop starts with none, so every method
+-- serves what it served. The install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_excluded_categories` (
+  `shipment_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `category_id`),
+  KEY `idx_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

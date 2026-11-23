@@ -50,6 +50,8 @@ $emptyKey = match (true) {
 		// Each method in the order every method keeps: its radio, then in its label the image the shop set (none
 		// drawn without one) and its title, then the description the shop wrote, then what its plugin adds.
 		$image = Layout::render('methods.image', ['image' => $snapshot->offers->imageFor('payment', (int) $payment->id), 'title' => (string) $payment->name]);
+		// The fee the method adds to the order, before it is chosen: the same figure the totals carry once it is.
+		$fee = $snapshot->offers->feeFor((int) $payment->id);
 		?>
         <div>
             <input
@@ -63,6 +65,7 @@ $emptyKey = match (true) {
 
             <label for="payment_method_<?php echo $payment->id; ?>">
 				<?php echo $image . htmlspecialchars($payment->name, ENT_QUOTES, 'UTF-8'); ?>
+				<?php if ($fee !== null) : ?><span class="cart-method-fee"><?php echo htmlspecialchars(Text::sprintf('COM_ALFA_CART_PAYMENT_FEE', $fee->format()), ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
             </label>
 
             <?php if (trim((string) $payment->description) !== '') : ?><p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>

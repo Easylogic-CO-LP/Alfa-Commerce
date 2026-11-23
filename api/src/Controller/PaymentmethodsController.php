@@ -70,6 +70,8 @@ class PaymentmethodsController extends ApiController
             'places',
             'users',
             'usergroups',
+            'shipments',
+            'fee_taxes',
         ];
     }
 

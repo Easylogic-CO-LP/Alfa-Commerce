@@ -86,12 +86,31 @@ final class CartMethods
     private array $withheld = [];
 
     /**
+     * The chosen carrier the last reconciliation withdrew for its own answer: its id and the code of that refusal
+     * ({@see ShippingQuote::refusalCode()}); empty when it withdrew none.
+     *
+     * @var array{id?: int, code?: string}
+     *
+     * @since  2.3.0
+     */
+    private array $withdrawnChosen = [];
+
+    /**
      * Whether the carriers are being asked right now: a question a carrier's answer puts back to this list gets the
      * list before the carriers were asked, never a second round of questions.
      *
      * @since  2.2.2
      */
     private bool $asking = false;
+
+    /**
+     * Why the cart's goods keep each shipping method off the list, by method id, or null before the first ask.
+     *
+     * @var array<int, string>|null
+     *
+     * @since  2.2.2
+     */
+    private ?array $refusals = null;
 
     /**
      * @param Closure $customer (): User - the customer the money follows. A method limited
@@ -314,6 +333,55 @@ final class CartMethods
         }
 
         return array_values(array_filter(['country', 'postcode'], static fn (string $fact): bool => isset($needs[$fact])));
+    }
+
+    /**
+     * Why the cart's goods keep a shipping method off the list: by method id, the sentence naming the method and the
+     * products in a category it does not serve (MethodCategoryScope). Only a method every other scope would offer
+     * (customer group, user, destination, and the manufacturers of every line) is named, so the shopper is never told
+     * about a method they could not have had. The storefront's list and the order builder show them; placement refuses
+     * such a method as it refuses any method not offered.
+     *
+     * @return array<int, string>
+     *
+     * @since  2.2.2
+     */
+    public function shipmentRefusals(): array
+    {
+        if (($this->isVirtual)()) {
+            return [];
+        }
+
+        if ($this->refusals !== null) {
+            return $this->refusals;
+        }
+
+        $user = ($this->customer)();
+        $lines = ($this->lineScopes)('shipment');
+        $this->refusals = [];
+
+        foreach (AlfaHelper::getFilteredMethods(
+            categories:    [],
+            manufacturers: [],
+            usergroups:    PriceContext::customerGroups(customer: $user),
+            userId:        $user->id,
+            baseTable:     'shipment',
+            placeIds:      $this->deliveryPlaces,
+            lines:         $lines,
+            categoryScope: false,
+        ) as $id => $method) {
+            $refused = MethodCategoryScope::of($method)->refused($lines);
+
+            if ($refused !== []) {
+                $this->refusals[(int) $id] = Text::sprintf(
+                    'COM_ALFA_CART_SHIPMENT_CATEGORY_REFUSED',
+                    (string) ($method->name ?? ''),
+                    implode(', ', array_values(array_unique(array_filter(array_column($refused, 'name'))))),
+                );
+            }
+        }
+
+        return $this->refusals;
     }
 
     /**
@@ -600,6 +668,32 @@ final class CartMethods
     public function clearNotices(): void
     {
         $this->notices = ['shipment' => [], 'payment' => []];
+        $this->withdrawnChosen = [];
+    }
+
+    /**
+     * Record that the reconciliation withdrew the chosen carrier for its own answer about this cart.
+     *
+     * @param int $id The carrier.
+     * @param ShippingQuote $answer Its answer.
+     *
+     * @since  2.3.0
+     */
+    public function withdrawChosen(int $id, ShippingQuote $answer): void
+    {
+        $this->withdrawnChosen = ['id' => $id, 'code' => $answer->refusalCode()];
+    }
+
+    /**
+     * The chosen carrier the last reconciliation withdrew for its own answer, with the code of that refusal.
+     *
+     * @return array{id?: int, code?: string} Empty when it withdrew none.
+     *
+     * @since  2.3.0
+     */
+    public function withdrawnChosen(): array
+    {
+        return $this->withdrawnChosen;
     }
 
     /**
@@ -632,6 +726,7 @@ final class CartMethods
         $this->payments = null;
         $this->shipments = null;
         $this->withheld = [];
+        $this->refusals = null;
 
         ($this->onForget)();
     }

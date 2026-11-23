@@ -137,4 +137,20 @@ final class ShippingQuote
     {
         return new self(false, null, 'COM_ALFA_SHIPMENT_NO_ANSWER', false);
     }
+
+    /**
+     * The code a refusal of this quote is recorded under: a carrier that answered nothing, the carrier's own reason,
+     * or that it cannot carry the cart. Placement refuses an order with it, and the order builder says it to staff
+     * when the settle at the moment of placing withdrew the chosen carrier.
+     *
+     * @since  2.3.0
+     */
+    public function refusalCode(): string
+    {
+        return match (true) {
+            !$this->answered => 'COM_ALFA_SHIPMENT_NO_ANSWER',
+            $this->reasonKey !== '' => $this->reasonKey,
+            default => 'COM_ALFA_ORDER_SHIPMENT_CANNOT_CARRY',
+        };
+    }
 }

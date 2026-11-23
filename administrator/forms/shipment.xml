@@ -64,6 +64,12 @@
             <option value="0">COM_ALFA_FORM_CATEGORY_ALL</option>
         </field>
 
+        <!-- The categories the method does not deliver, below the ones it serves only: a product in one of them, or in
+             a category under one, keeps the method off the cart. No "every category" choice: empty is none. -->
+        <field name="excluded_categories" type="categories" showPath="true" multiple="true"
+               layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_SHIPMENT_EXCLUDED_CATEGORIES"
+               description="COM_ALFA_FORM_DESC_SHIPMENT_EXCLUDED_CATEGORIES"/>
+
         <field
                 name="manufacturers" type="model"
                 model="manufacturers"

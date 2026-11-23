@@ -109,13 +109,24 @@ final class CartSnapshotFactory
     private function offers(HydratedCart $state, CartComputation $computation, array $paymentViews, array $shipmentViews): CartOffersView
     {
         $methods = $computation->methods();
+        $payments = $methods->payments();
+        $fees = [];
+
+        // The fee each offered method would add, worked out as the totals work out the chosen one's.
+        foreach ($payments as $id => $method) {
+            $fee = $computation->paymentFee($method);
+
+            if ($fee !== null) {
+                $fees[(int) $id] = $fee->taxIncl;
+            }
+        }
 
         return new CartOffersView(
             hasPayments: $methods->hasPaymentCandidates(),
             hasShipments: $methods->hasShipmentCandidates(),
             paymentRequirement: $methods->paymentRequirement(),
             shipmentRequirement: $methods->shipmentRequirement(),
-            payments: $methods->payments(),
+            payments: $payments,
             paymentsIgnoringShipping: $methods->paymentsIgnoringShipping(),
             shipments: $methods->shipments(),
             selectedPaymentId: $state->paymentId(),
@@ -133,6 +144,9 @@ final class CartSnapshotFactory
             paymentViews: $paymentViews,
             shipmentViews: $shipmentViews,
             shipmentNeeds: $methods->shipmentNeeds(),
+            paymentFees: $fees,
+            shipmentRefusals: $methods->shipmentRefusals(),
+            withdrawnShipment: $methods->withdrawnChosen(),
         );
     }
 }

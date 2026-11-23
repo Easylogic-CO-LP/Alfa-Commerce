@@ -88,6 +88,11 @@ $section = function (
                 <div class="alert alert-warning" role="status"><?php echo $this->escape($notice); ?></div>
             <?php endforeach; ?>
 
+            <?php // The carriers the cart's goods keep off the list, in the storefront's words. ?>
+            <?php foreach ($kind === 'shipment' ? $offers->shipmentRefusals : [] as $refusal) : ?>
+                <div class="alert alert-info" role="status"><?php echo $this->escape($refusal); ?></div>
+            <?php endforeach; ?>
+
             <?php if ($requirement->permitsNone()) : ?>
                 <p class="text-muted mb-0"><?php echo Text::_($notApplicable); ?></p>
             <?php elseif ($offered === []) : ?>
@@ -113,6 +118,8 @@ $section = function (
                     <?php foreach ($offered as $method) :
                         $methodId = (int) $method->id;
                         $view     = $offers->viewFor($kind, $methodId);
+                        // The fee a payment method adds to the order, as the storefront shows it.
+                        $fee      = $kind === 'payment' ? $offers->feeFor($methodId) : null;
                         ?>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="radio"
@@ -122,6 +129,9 @@ $section = function (
 
                             <label class="form-check-label" for="alfa-<?php echo $kind; ?>-<?php echo $methodId; ?>">
                                 <span class="fw-semibold"><?php echo $this->escape((string) ($method->name ?? $method->type)); ?></span>
+                                <?php if ($fee !== null) : ?>
+                                    <span class="text-muted ms-1"><?php echo $this->escape(Text::sprintf('COM_ALFA_CART_PAYMENT_FEE', $fee->format())); ?></span>
+                                <?php endif; ?>
                             </label>
 
                             <?php if ((string) ($method->description ?? '') !== '') : ?>

@@ -1288,6 +1288,9 @@ class OrderPlacement
                 return false;
             }
 
+            // The order is totalled with the fee of the method it records.
+            $this->cart->assumePayment($paymentMethodId);
+
             return true;
         } catch (Throwable $e) {
             // \Throwable: this runs the payment/shipment method checks, which
@@ -2437,11 +2440,7 @@ class OrderPlacement
             // too big. Distinguished so the operator reading the failure is
             // sent to the plugin.
             $this->fail(
-                match (true) {
-                    !$quote->answered => 'COM_ALFA_SHIPMENT_NO_ANSWER',
-                    $quote->reasonKey !== '' => $quote->reasonKey,
-                    default => 'COM_ALFA_ORDER_SHIPMENT_CANNOT_CARRY',
-                },
+                $quote->refusalCode(),
                 ['method' => $id],
                 '',
                 null,

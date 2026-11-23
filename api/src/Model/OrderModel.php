@@ -358,9 +358,13 @@ class OrderModel extends AdminOrderModel
         $item->contributions = array_map(
             static fn ($c): array => [
                 'id' => (int) ($c->id ?? 0),
+                // What the charge is: a plugin's own code, or payment_fee for the payment method's fee.
+                'code' => (string) ($c->code ?? ''),
                 'name' => $c->name ?? '',
                 'amount_tax_incl' => $amount($c->amount_tax_incl ?? null),
                 'amount_tax_excl' => $amount($c->amount_tax_excl ?? null),
+                'tax_amount' => $amount($c->tax_amount ?? null),
+                'tax_rate' => self::decimal(value: $c->tax_rate ?? null),
             ],
             $rows($item->contributions ?? null),
         );

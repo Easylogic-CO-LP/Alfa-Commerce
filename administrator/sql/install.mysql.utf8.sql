@@ -2101,6 +2101,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payments` (
   `bg_color` varchar(50) NOT NULL,
   `params` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT ('{}'),
   `show_on_product` tinyint(4) NOT NULL,
+  -- THE METHOD'S FEE: a fixed amount and a percentage of the order total before
+  -- the fee, summed, both 0 for none; read through fee_entry_mode and taxed with
+  -- the rules #__alfa_payment_fee_taxes names. Charged on the order as a frozen
+  -- contribution (code payment_fee).
+  `fee_amount` decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Fixed fee in the order currency; 0 = none',
+  `fee_percent` decimal(10,4) NOT NULL DEFAULT 0.0000 COMMENT 'Fee as a percentage of the order total before the fee; 0 = none',
+  `fee_entry_mode` enum('tax_included','tax_excluded') NOT NULL DEFAULT 'tax_included' COMMENT 'What the fee figures mean: tax_included (the customer pays them, the tax is inside, and the percentage is of the gross total) or tax_excluded (the tax is added on top, and the percentage is of the net total)',
   -- Translatable fields (name, description) live ONLY in the per-language
   -- tables #__alfa_payments_<langtag>. No main-table copy.
   `ordering` int(11) DEFAULT 0,
@@ -2149,6 +2156,22 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_categories` (
   `payment_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
   PRIMARY KEY (`payment_id`, `category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Table structure for table `#__alfa_payment_fee_taxes`
+--
+-- The tax rules a payment method's fee is taxed with, several allowed. No row =
+-- the fee is untaxed (there is no shop default). Each rule's places, user
+-- groups, users and publish window decide whether it applies, against the
+-- delivery destination, as a shipping method's taxes are read.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_fee_taxes` (
+  `payment_id` int(11) NOT NULL,
+  `tax_id` int(11) NOT NULL,
+  PRIMARY KEY (`payment_id`, `tax_id`),
+  KEY `idx_tax_id` (`tax_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2788,6 +2811,22 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_categories` (
   `shipment_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
   PRIMARY KEY (`shipment_id`, `category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Table structure for table `#__alfa_shipment_excluded_categories`
+--
+-- The categories a shipping method does not deliver: a cart holding a product in
+-- one of them, or anywhere below one, is not offered the method. No row = none.
+-- There is no wildcard row; the categories it serves only are
+-- #__alfa_shipment_categories.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_excluded_categories` (
+  `shipment_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `category_id`),
+  KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

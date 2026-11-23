@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Site\Service\Cart\MethodCategoryScope;
 use Closure;
 use InvalidArgumentException;
 use Joomla\CMS\Component\ComponentHelper;
@@ -67,7 +68,9 @@ class AlfaHelper
      * the method. A single product passes its own scope through
      * $categories / $manufacturers, which is the one-line case of the same
      * rule. A context with no line at all is admitted by unrestricted
-     * methods only.
+     * methods only. The categories are judged by MethodCategoryScope: a
+     * listed category covers its subcategories, and a shipping method's
+     * excluded categories refuse a line that lies inside one of them.
      *
      * @param array $categories Category ids of the single product in scope (ignored when $lines is given).
      * @param array $manufacturers Manufacturer ids of the single product in scope (ignored when $lines is given).
@@ -81,12 +84,14 @@ class AlfaHelper
      *                                     the same chain it will later be quoted and placed against.
      * @param int|null $shipmentId The chosen shipping method, 0 when none is chosen; null = not evaluated (payment methods only).
      * @param array|null $lines Per-line scopes of a cart, [['categories' => int[], 'manufacturers' => int[]], ...]; null = the single product scope.
+     * @param bool $categoryScope False to leave the category lists out of the question: the methods every other scope
+     *                            offers, so the reasons a cart's goods keep one off can be told (CartMethods).
      *
      * @return array The offered methods keyed by id, in administration order.
      *
      * @since  1.0.0
      */
-    public static function getFilteredMethods($categories, $manufacturers, $usergroups, $userId, $baseTable = 'payment', array|Closure|null $placeIds = null, ?int $shipmentId = null, ?array $lines = null)
+    public static function getFilteredMethods($categories, $manufacturers, $usergroups, $userId, $baseTable = 'payment', array|Closure|null $placeIds = null, ?int $shipmentId = null, ?array $lines = null, bool $categoryScope = true)
     {
         $scopes = $lines ?? [['categories' => (array) $categories, 'manufacturers' => (array) $manufacturers]];
 
@@ -99,7 +104,7 @@ class AlfaHelper
 
         foreach (self::loadedMethods($baseTable) as $id => $method) {
             if (
-                !self::everyLineAllowed($method, $scopes)
+                !self::everyLineAllowed($method, $scopes, $categoryScope)
                 || !self::scopeAllows($method->usergroups, (array) $usergroups)
                 || !self::scopeAllows($method->users, [(int) $userId])
             ) {
@@ -137,27 +142,26 @@ class AlfaHelper
     /**
      * Whether a method's category and manufacturer restrictions admit
      * EVERY line of the context. A wildcard row admits every line at once;
-     * a restricted dimension must be met by each line on its own.
+     * a restricted dimension must be met by each line on its own. The
+     * categories are the category reader's (MethodCategoryScope).
      *
-     * @param object $method The loaded method (categories / manufacturers comma lists).
+     * @param object $method The loaded method (categories / excluded_categories / manufacturers comma lists).
      * @param array $lines Per-line scopes: [['categories' => int[], 'manufacturers' => int[]], ...].
+     * @param bool $categoryScope False to judge the manufacturers only.
      *
      * @return bool True when every line is admitted on both dimensions.
      *
      * @since  1.0.0
      */
-    private static function everyLineAllowed(object $method, array $lines): bool
+    private static function everyLineAllowed(object $method, array $lines, bool $categoryScope = true): bool
     {
         foreach ($lines as $line) {
-            if (
-                !self::scopeAllows($method->categories, (array) ($line['categories'] ?? []))
-                || !self::scopeAllows($method->manufacturers, (array) ($line['manufacturers'] ?? []))
-            ) {
+            if (!self::scopeAllows($method->manufacturers, (array) ($line['manufacturers'] ?? []))) {
                 return false;
             }
         }
 
-        return true;
+        return !$categoryScope || MethodCategoryScope::of($method)->refused($lines) === [];
     }
 
     /**
@@ -250,8 +254,15 @@ class AlfaHelper
             'places' => ['#__alfa_' . $baseTable . '_places', 'place_id'],
         ];
 
+        // The categories a shipping method does not deliver (MethodCategoryScope).
+        if ($baseTable === 'shipment') {
+            $pivots['excluded_categories'] = ['#__alfa_shipment_excluded_categories', 'category_id'];
+        }
+
         if ($baseTable === 'payment') {
             $pivots['shipments'] = ['#__alfa_payment_shipments', 'shipment_id'];
+            // The tax rules the method's fee is taxed with (PaymentFee).
+            $pivots['fee_taxes'] = ['#__alfa_payment_fee_taxes', 'tax_id'];
         }
 
         foreach ($pivots as $alias => [$table, $column]) {

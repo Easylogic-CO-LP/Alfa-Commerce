@@ -311,6 +311,11 @@ class com_alfaInstallerScript extends InstallerScript
             'stated_unit_tax_excl' => ["decimal(24,8) DEFAULT NULL COMMENT 'FROZEN AT ISSUE: the stored price the line''s net unit prints as, from the order line when the document carries the whole of it (on a credit, from the corrected line when it credits the whole of that). NULL on a partial line, on every line without money and on every document issued before this column: the unit prints by the line rule'", 'custom_unit_price_tax_incl'],
             'stated_unit_tax_incl' => ["decimal(24,8) DEFAULT NULL COMMENT 'FROZEN AT ISSUE: the stored price the line''s gross unit prints as; NULL as stated_unit_tax_excl'", 'stated_unit_tax_excl'],
         ],
+        '#__alfa_payments' => [
+            'fee_amount' => ["decimal(24,8) NOT NULL DEFAULT 0.00000000 COMMENT 'Fixed fee in the order currency; 0 = none'", 'show_on_product'],
+            'fee_percent' => ["decimal(10,4) NOT NULL DEFAULT 0.0000 COMMENT 'Fee as a percentage of the order total before the fee; 0 = none'", 'fee_amount'],
+            'fee_entry_mode' => ["enum('tax_included','tax_excluded') NOT NULL DEFAULT 'tax_included' COMMENT 'What the fee figures mean: tax_included (the customer pays them, the tax is inside, and the percentage is of the gross total) or tax_excluded (the tax is added on top, and the percentage is of the net total)'", 'fee_percent'],
+        ],
     ];
 
     /**
