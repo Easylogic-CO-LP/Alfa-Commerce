@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Model\DisputeModel;
@@ -1168,7 +1169,7 @@ class OrderopsController extends OrdersController
             }
 
             $document = $this->app->getDocument();
-            $document->setErrors([['title' => $e->getMessage(), 'code' => 422, 'source' => ['pointer' => '/' . $field]]]);
+            $document->setErrors([['title' => ErrorText::of($e), 'code' => 422, 'source' => ['pointer' => '/' . $field]]]);
             $this->app->setHeader('status', '422', true);
 
             return $this;

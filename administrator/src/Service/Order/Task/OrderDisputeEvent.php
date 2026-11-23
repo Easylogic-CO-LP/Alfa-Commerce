@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\DisputeChangedEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Order\DisputeLedger;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskFailure;
@@ -104,9 +105,9 @@ final class OrderDisputeEvent extends OrderTaskHandler
                 $run->unit(unit: $unit, outcome: TaskRun::DONE);
             } catch (Throwable $e) {
                 $failed[] = $unit;
-                $run->unit(unit: $unit, outcome: TaskRun::FAILED, error: $e::class . ': ' . $e->getMessage());
+                $run->unit(unit: $unit, outcome: TaskRun::FAILED, error: $e::class . ': ' . ErrorText::of($e));
                 Log::add(
-                    entry:    DisputeChangedEvent::NAME . ' listener ' . $unit . ' failed for dispute #' . $disputeId . ': ' . $e->getMessage(),
+                    entry:    DisputeChangedEvent::NAME . ' listener ' . $unit . ' failed for dispute #' . $disputeId . ': ' . ErrorText::of($e),
                     priority: Log::ERROR,
                     category: 'com_alfa.orders',
                 );
