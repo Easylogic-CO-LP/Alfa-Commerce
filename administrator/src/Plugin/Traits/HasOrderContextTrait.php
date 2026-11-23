@@ -11,8 +11,8 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin\Traits;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -120,8 +120,8 @@ trait HasOrderContextTrait
             }
         }
 
-        // The site's default language, as Joomla's Languages options name it: never the language of the request
-        // that runs this (an administrator's own, a webhook's), which is not the buyer's.
-        return (string) ComponentHelper::getParams('com_languages')->get('site', 'en-GB');
+        // The site's default language as Alfa Commerce defines it, the one definition: never the language of the
+        // request that runs this (an administrator's own, a webhook's), which is not the buyer's.
+        return MultilingualHelper::getDefaultLanguageCode();
     }
 }
