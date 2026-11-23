@@ -356,6 +356,48 @@ final class ItemFieldValueService
     }
 
     /**
+     * Values as an answer names them, whatever their field: the field (id and field_name), the code and the texts of
+     * every content language (name, alias), by value id.
+     *
+     * @param list<int> $valueIds The values.
+     *
+     * @return array<int, array{field_id: int, field_name: string, code: ?string, translations: array<string, array{name: string, alias: string}>}>
+     *
+     * @since  2.3.0
+     */
+    public static function describe(array $valueIds): array
+    {
+        $valueIds = array_values(array_unique(array_filter(array_map('intval', $valueIds), static fn (int $id): bool => $id > 0)));
+
+        if ($valueIds === []) {
+            return [];
+        }
+
+        $db = self::db();
+        $rows = $db->setQuery(
+            'SELECT v.id, v.item_field_id, v.code, f.field_name FROM ' . $db->quoteName('#__alfa_item_field_values', 'v') . ' INNER JOIN '
+            . $db->quoteName('#__alfa_item_fields', 'f') . ' ON f.id = v.item_field_id WHERE v.id IN (' . implode(',', $valueIds) . ')',
+        )->loadAssocList('id') ?: [];
+        $texts = MultilingualHelper::getMultilingualDataForIds(ids: $valueIds, primaryColumnName: 'id_item_field_value', tableName: '#__alfa_item_field_values');
+        $out = [];
+
+        foreach ($rows as $id => $row) {
+            $translations = [];
+
+            foreach (MultilingualHelper::getLanguageTags() as $tag) {
+                $key = MultilingualHelper::normaliseTag(tag: $tag);
+                $text = (array) ($texts[(int) $id][$tag] ?? $texts[(int) $id][$key] ?? []);
+                $translations[$key] = ['name' => (string) ($text['name'] ?? ''), 'alias' => (string) ($text['alias'] ?? '')];
+            }
+
+            $out[(int) $id] = ['field_id' => (int) $row['item_field_id'], 'field_name' => (string) $row['field_name'],
+                'code' => $row['code'] === null ? null : (string) $row['code'], 'translations' => $translations];
+        }
+
+        return $out;
+    }
+
+    /**
      * Every step judged before anything is written: the values named belong to the field, a code is well formed and
      * free in the field, a state is 0 or 1, an order a whole number, a new value has a name, a value removed is used by
      * no product.

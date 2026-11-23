@@ -18,15 +18,11 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\CombinationReader;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CombinationService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
-use Joomla\CMS\Document\JsonapiDocument;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\ApiController;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\Exception\Save;
-use Joomla\CMS\Serializer\JoomlaSerializer;
 use Joomla\CMS\Uri\Uri;
-use Tobscure\JsonApi\Collection;
-use Tobscure\JsonApi\Resource;
 
 /**
  * A product's combinations over the REST API, through the one way a combination is written
@@ -46,6 +42,7 @@ use Tobscure\JsonApi\Resource;
 class CombinationsController extends ApiController
 {
     use HasApiGuards;
+    use AnswersFromServices;
 
     /**
      * The keys a combination's body takes.
@@ -90,7 +87,7 @@ class CombinationsController extends ApiController
         if ($itemId > 0) {
             $this->requireItem(itemId: $itemId);
 
-            return $this->answer(data: new Collection(array_map(static fn (array $row): object => (object) $row, CombinationReader::of(itemId: $itemId)), new JoomlaSerializer($this->contentType)));
+            return $this->answer(data: CombinationReader::of(itemId: $itemId));
         }
 
         $filter = $this->input->get('filter', [], 'array');
@@ -125,7 +122,7 @@ class CombinationsController extends ApiController
             $this->app->getDocument()->addLink('next', (string) $next);
         }
 
-        return $this->answer(data: new Collection(array_map(static fn (array $row): object => (object) $row, $result['rows']), new JoomlaSerializer($this->contentType)));
+        return $this->answer(data: $result['rows']);
     }
 
     /**
@@ -147,7 +144,7 @@ class CombinationsController extends ApiController
             throw new ResourceNotFound(Text::sprintf('COM_ALFA_COMBINATION_NOT_CURRENT', (string) $this->routeId(name: 'combinationId')), 404);
         }
 
-        return $this->answer(data: new Resource((object) $combination, new JoomlaSerializer($this->contentType)));
+        return $this->answer(data: $combination);
     }
 
     /**
@@ -208,14 +205,10 @@ class CombinationsController extends ApiController
             $warnings[] = ['code' => 'not_applied', 'title' => $warning['message']];
         }
 
-        $this->answer(data: new Resource((object) CombinationReader::one(itemId: $itemId, combinationId: $result->id), new JoomlaSerializer($this->contentType)), status: $creating ? 201 : 200);
+        $this->answer(data: (array) CombinationReader::one(itemId: $itemId, combinationId: $result->id), status: $creating ? 201 : 200, warnings: $warnings);
 
         if ($creating) {
             $this->app->setHeader('Location', Uri::root() . 'api/index.php/v1/alfa/items/' . $itemId . '/combinations/' . $result->id, true);
-        }
-
-        if ($warnings !== []) {
-            $this->app->getDocument()->addMeta('warnings', $warnings);
         }
 
         return $this;
@@ -238,7 +231,7 @@ class CombinationsController extends ApiController
         }
 
         if ($result->archived !== []) {
-            $this->answer(data: new Resource((object) CombinationReader::one(itemId: $itemId, combinationId: $combinationId, archived: true), new JoomlaSerializer($this->contentType)));
+            $this->answer(data: (array) CombinationReader::one(itemId: $itemId, combinationId: $combinationId, archived: true));
             $this->app->getDocument()->addMeta('note', 'Order history names this combination: it is archived, kept as the stock identity its orders are fulfilled against, not deleted.');
 
             return $this;
@@ -385,70 +378,5 @@ class CombinationsController extends ApiController
         if ($itemId <= 0 || (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_items') . ' WHERE id = ' . $itemId)->loadResult() === 0) {
             throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
         }
-    }
-
-    /**
-     * A route's id.
-     *
-     * @since  2.3.0
-     */
-    private function routeId(string $name): int
-    {
-        // A POST's route variables arrive with its posted data, as the order operations read them.
-        $bag = strtoupper((string) $this->input->getMethod()) === 'POST' ? $this->input->post : $this->input;
-
-        return max(0, (int) RequestScalar::int($bag, $name, 0));
-    }
-
-    /**
-     * Put the data in the answer.
-     *
-     * @return static
-     *
-     * @since  2.3.0
-     */
-    private function answer(Resource|Collection $data, int $status = 200)
-    {
-        $document = $this->app->getDocument();
-
-        if (!$document instanceof JsonapiDocument) {
-            throw new Save('The answer could not be written.', 500);
-        }
-
-        $document->setData($data);
-        $this->app->setHeader('status', (string) $status, true);
-
-        return $this;
-    }
-
-    /**
-     * Answer the refusals: the first refusal's status, one error each with its JSON pointer; nothing was written.
-     *
-     * @param list<Refusal> $refusals The refusals.
-     *
-     * @return static
-     *
-     * @since  2.3.0
-     */
-    private function refuse(array $refusals)
-    {
-        $document = $this->app->getDocument();
-
-        if (!$document instanceof JsonapiDocument) {
-            throw new Save('The answer could not be written.', 500);
-        }
-
-        $errors = [];
-
-        foreach ($refusals as $refusal) {
-            $sentence = $refusal->placed();
-            $errors[] = ['title' => str_ends_with($sentence, 'Nothing was saved.') ? $sentence : $sentence . ' Nothing was saved.', 'code' => $refusal->status]
-                + ($refusal->pointer === '' ? [] : ['source' => ['pointer' => $refusal->pointer]]);
-        }
-
-        $document->setErrors($errors);
-        $this->app->setHeader('status', (string) ($refusals[0]->status ?? 422), true);
-
-        return $this;
     }
 }
