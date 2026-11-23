@@ -46,9 +46,10 @@ use Joomla\Database\ParameterType;
  * a customer reads it, the lines with their chosen options, the summary rows (OrderSummary::rows(), the
  * order's frozen money), the delivery and invoice addresses, the two method names the
  * order recorded, the payment state from the payments balance, the e-mail the
- * confirmation went to, whether downloads were granted and the parcels the shop gave a
- * tracking number. Never the phone, the notes, the IP address, a transaction id or
- * payment reference, a staff field or the key.
+ * confirmation went to, whether downloads were granted, the parcels the shop gave a
+ * tracking number and the sales documents the customer reads (OrderDocuments). Never the
+ * phone, the notes, the IP address, a transaction id or payment reference, a staff field
+ * or the key.
  *
  * It only reads. Nothing here writes, so a reload of the page repeats nothing. It logs
  * nothing either: the key never reaches a log.
@@ -96,6 +97,8 @@ final class OrderConfirmation
      * @param string $gateway The gateway of record: the plugin element the order recorded; '' for none.
      * @param int $statusId The order's status.
      * @param int $accountId The customer account the order is of; 0 for a guest's order.
+     * @param object[] $documents The sales documents the customer reads (OrderDocuments::of()): each id, type,
+     *                            number, date, voided, url.
      * @param object[] $parcels The parcels the shop gave a tracking number, in the order they were added: each
      *                          carrier (the carrier's name, else the shipping method's) and tracking.
      * @param object $order The order row, the gateway's event subject.
@@ -121,6 +124,7 @@ final class OrderConfirmation
         public readonly int $statusId,
         public readonly int $accountId,
         public readonly array $parcels,
+        public readonly array $documents,
         private readonly object $order,
         private readonly ?object $method,
     ) {
@@ -336,6 +340,7 @@ final class OrderConfirmation
             statusId: (int) ($order->id_order_status ?? 0),
             accountId: (int) ($order->id_user ?? 0),
             parcels: self::parcels(orderId: $orderId),
+            documents: OrderDocuments::of(order: $order),
             order: $order,
             method: self::method(methodId: (int) ($order->id_payment_method ?? 0)),
         );

@@ -412,7 +412,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     /**
      * Whether this request's page is the visitor's own and must never be shared through Joomla's page cache: the cart
      * view (any of its addresses and layouts, the cart and the checkout form), the customer's own orders (the orders
-     * and order views), or a visitor whose session keeps
+     * and order views, an order's document), or a visitor whose session keeps
      * checkout details typed into that form, or a pricing context a site's own code set for this visitor (the session's
      * alfa.currency_id or alfa.location_id, PriceContext::fromSession(): every price on the page is figured for this
      * visitor), or whose browser owns a guest cart with lines (the cart module on every page shows them). Any other
@@ -426,9 +426,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $app = $this->getApplication();
             $input = $app->getInput();
 
-            // The cart view, and the customer's own orders (My orders and an order's page): pages of one visitor at
-            // addresses every visitor shares.
-            if ($input->getCmd('option') === 'com_alfa' && \in_array($input->getCmd('view'), ['cart', 'orders', 'order'], true)) {
+            // The cart view, the customer's own orders (My orders and an order's page) and an order's document: answers
+            // of one visitor at addresses every visitor shares.
+            if ($input->getCmd('option') === 'com_alfa'
+                && (\in_array($input->getCmd('view'), ['cart', 'orders', 'order'], true) || $input->getCmd('task') === 'order.document')) {
                 return true;
             }
 

@@ -16,13 +16,14 @@ use Joomla\CMS\Language\Text;
 
 /**
  * ONE ORDER, as its customer reads it: the facts, Pay now while it may be paid again, the gateway's block, the parcels'
- * tracking numbers, the lines with the money summary and the addresses. The order completed page and the order page of
+ * tracking numbers, the sales documents to download, the lines with the money summary and the addresses. The order completed page and the order page of
  * the customer's account both print it, from the same read-only value (Site\Service\Order\OrderConfirmation); it
  * decides and queries nothing. Override html/layouts/com_alfa/order/detail.php in a template to restructure both pages.
  *
  * Classes the stylesheet reads (media/com_alfa/css/site/order-completed.css):
  *   .order-facts  .order-payment-state  .order-pay-again  .order-confirmation-notice  .order-downloads-notice
- *   .order-provider-unavailable  .order-gateway  .order-parcels  .order-items  .order-addresses  .order-address
+ *   .order-provider-unavailable  .order-gateway  .order-parcels  .order-documents  .order-document-date
+ *   .order-document-voided  .order-items  .order-addresses  .order-address
  * The lines and their totals are .cart-lines, so they look as the cart's do (cart.css).
  *
  * Display data:
@@ -131,6 +132,25 @@ $columns = [
             </div>
             <?php endforeach; ?>
         </dl>
+    </section>
+    <?php endif; ?>
+
+    <?php if ($order->documents !== []) : ?>
+    <section class="order-documents">
+        <h2><?php echo Text::_('COM_ALFA_ORDER_DOCUMENTS'); ?></h2>
+        <ul>
+            <?php foreach ($order->documents as $document) : ?>
+            <li>
+                <a href="<?php echo $this->escape($document->url); ?>" rel="nofollow"><?php echo $this->escape(trim($document->type . ' ' . $document->number)); ?></a>
+                <?php if ($document->date !== '') : ?>
+                <span class="order-document-date"><?php echo HTMLHelper::_('date', $document->date, Text::_('DATE_FORMAT_LC4'), null); ?></span>
+                <?php endif; ?>
+                <?php if ($document->voided) : ?>
+                <span class="order-document-voided"><?php echo Text::_('COM_ALFA_ORDER_DOCUMENT_VOIDED'); ?></span>
+                <?php endif; ?>
+            </li>
+            <?php endforeach; ?>
+        </ul>
     </section>
     <?php endif; ?>
 

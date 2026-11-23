@@ -12,15 +12,22 @@ namespace Alfa\Component\Alfa\Site\Controller;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfLibraryMissingException;
+use Alfa\Component\Alfa\Administrator\Service\Document\PdfRenderer;
+use Alfa\Component\Alfa\Site\Helper\PageCache;
 use Alfa\Component\Alfa\Site\Service\Order\CustomerCancel;
+use Alfa\Component\Alfa\Site\Service\Order\OrderDocuments;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Throwable;
 
 /**
- * What a customer does with one of their orders from their account: each a POST with the form's token, by the customer
- * logged in, on their own order. The pages themselves are the orders and order views.
+ * What a customer does with one of their orders: cancel it from their account (a POST with the form's token, the
+ * customer logged in), download its documents (each link's own token). The pages themselves are the orders and order
+ * views, and for a guest the order completed page's keyed address.
  *
  * @since  2.3.0
  */
@@ -56,6 +63,69 @@ class OrderController extends BaseController
                 : 'index.php?option=com_alfa&view=order&id=' . $orderId,
             false,
         ));
+    }
+
+    /**
+     * Download one of an order's sales documents as a PDF, as the order's page links it (OrderDocuments): the
+     * document's id and its token. A customer account's order needs that customer logged in (a visitor who is not is
+     * sent to log in and back to this address); a guest's order, the token alone. The answer is never stored, never
+     * indexed, and the address never leaves the site in a Referer. A document that cannot be downloaded sends the
+     * visitor back with the reason: their orders for a customer, the shop's home page for a guest.
+     *
+     * @since  2.3.0
+     */
+    public function document(): void
+    {
+        $app = $this->app;
+
+        PageCache::excludeResponse();
+        $app->allowCache(false);
+        $app->setHeader('X-Robots-Tag', 'noindex, nofollow', true);
+        $app->setHeader('Referrer-Policy', 'same-origin', true);
+
+        $documentId = (int) RequestScalar::read($this->input, 'doc', 0, 'uint');
+        $viewerId = (int) $app->getIdentity()->id;
+        [$verdict, $document] = OrderDocuments::open(
+            documentId: $documentId,
+            token: (string) RequestScalar::read($this->input, 'token', '', 'alnum'),
+            viewerId: $viewerId,
+        );
+
+        if ($verdict === OrderDocuments::LOGIN) {
+            $app->enqueueMessage(Text::_('COM_ALFA_ORDER_DOCUMENT_LOGIN_REQUIRED'), 'notice');
+            $app->redirect(Route::_('index.php?option=com_users&view=login&return=' . base64_encode(Uri::getInstance()->toString()), false));
+
+            return;
+        }
+
+        $back = $viewerId > 0 ? Route::_('index.php?option=com_alfa&view=orders', false) : Uri::root();
+
+        if ($verdict !== OrderDocuments::GRANTED || $document === null) {
+            $app->enqueueMessage(Text::_('COM_ALFA_ORDER_DOCUMENT_NOT_AVAILABLE'), 'warning');
+            $app->redirect($back);
+
+            return;
+        }
+
+        try {
+            $bytes = PdfRenderer::pdfBytes(documentId: $documentId);
+        } catch (Throwable $e) {
+            // The reason goes to the log; the customer reads that the document cannot be had now.
+            Log::add('Customer document ' . $documentId . ' could not be made into a PDF (' . $e::class . ': ' . $e->getMessage() . ').', $e instanceof PdfLibraryMissingException ? Log::WARNING : Log::ERROR, 'com_alfa.documents');
+            $app->enqueueMessage(Text::_('COM_ALFA_ORDER_DOCUMENT_UNAVAILABLE'), 'warning');
+            $app->redirect($back);
+
+            return;
+        }
+
+        $app->setHeader('Content-Type', 'application/pdf', true);
+        $app->setHeader('Content-Disposition', 'inline; filename="' . PdfRenderer::filename($document) . '"', true);
+        $app->setHeader('Content-Length', (string) \strlen($bytes), true);
+        $app->sendHeaders();
+
+        echo $bytes;
+
+        $app->close();
     }
 
     /**

@@ -2,8 +2,8 @@
  * Alfa Commerce: the order-completed page and the order page of the customer's account
  *
  * The pages' own layout under their root (.com-alfa.order-completed): the order's facts,
- * the parcels' tracking numbers, the lines, the addresses, the customer's cancel and the
- * actions. The lines and their totals are the cart's
+ * the parcels' tracking numbers, the sales documents, the lines, the addresses, the
+ * customer's cancel and the actions. The lines and their totals are the cart's
  * (.cart-lines in cart.css; this page's table has three columns). The process page's answer
  * when the gateway cannot be loaded uses the same root, number and actions. Colours come from
  * the shop's tokens only; logical properties only, so a right-to-left page mirrors.
@@ -113,6 +113,39 @@
 .com-alfa.order-completed .order-parcels dd {
     margin: 0;
     overflow-wrap: anywhere;
+}
+
+/* The order's sales documents: each a link to its PDF, its date beside it, a voided one marked. */
+.com-alfa.order-completed .order-documents {
+    margin-block: 1rem;
+}
+
+.com-alfa.order-completed .order-documents h2 {
+    margin-block: 0 0.5rem;
+    font-size: 1.05em;
+}
+
+.com-alfa.order-completed .order-documents ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.com-alfa.order-completed .order-documents li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    padding-block: 0.25rem;
+    overflow-wrap: anywhere;
+}
+
+.com-alfa.order-completed .order-document-date {
+    color: var(--alfa-muted-color);
+}
+
+.com-alfa.order-completed .order-document-voided {
+    color: var(--alfa-error-color);
+    font-weight: 700;
 }
 
 /* The customer's cancel on their order page: a button that opens its confirmation in place, no script. */
