@@ -28,7 +28,8 @@ use Joomla\CMS\Language\Text;
  *
  * Display data:
  *   order                OrderConfirmation  the order
- *   event                object|null        the gateway's completion view event (its layout and data); null for none
+ *   block                array|null         what the gateway drew through orderComplete(): one surface descriptor
+ *                                           (layout, layoutData, layoutPluginType, layoutPluginName); null for none
  *   providerUnavailable  bool               the gateway of record could not be asked: the neutral line, no block
  *   payAgainUrl          string             the address of Pay now; '' while the order may not be paid again
  *   email                string             the address the confirmation went to, to name it; '' to leave it out
@@ -38,7 +39,7 @@ use Joomla\CMS\Language\Text;
 
 /** @var OrderConfirmation $order */
 $order = $displayData['order'];
-$event = $displayData['event'] ?? null;
+$block = $displayData['block'] ?? null;
 $providerUnavailable = (bool) ($displayData['providerUnavailable'] ?? false);
 $payAgainUrl = (string) ($displayData['payAgainUrl'] ?? '');
 $email = (string) ($displayData['email'] ?? '');
@@ -107,15 +108,14 @@ $columns = [
 
     <?php if ($providerUnavailable) : ?>
     <p class="order-provider-unavailable"><?php echo Text::_('COM_ALFA_ORDER_PROVIDER_UNAVAILABLE'); ?></p>
-    <?php elseif ($event !== null) : ?>
+    <?php elseif ($block !== null) : ?>
     <div class="order-gateway">
         <?php
-        // An order with no payment method has an empty layout, which renders nothing.
         echo Layout::render(
-            $event->getLayout(),
-            $event->getLayoutData(),
-            $event->getLayoutPluginType(),
-            $event->getLayoutPluginName(),
+            $block['layout'],
+            $block['layoutData'],
+            $block['layoutPluginType'],
+            $block['layoutPluginName'],
         );
         ?>
     </div>

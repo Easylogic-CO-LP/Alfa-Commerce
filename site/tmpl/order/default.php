@@ -63,7 +63,7 @@ $this->getDocument()->getWebAssetManager()
     <?php
     echo Layout::render(layout: 'order.detail', data: [
         'order' => $order,
-        'event' => $this->gatewayEvent,
+        'block' => $this->gatewayBlock,
         'providerUnavailable' => $this->providerUnavailable,
         'payAgainUrl' => $this->payAgainUrl,
     ]);

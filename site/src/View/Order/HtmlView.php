@@ -41,11 +41,12 @@ class HtmlView extends BaseHtmlView
     protected ?OrderConfirmation $confirmation = null;
 
     /**
-     * The gateway's completion view event; null when the page shows none.
+     * What the gateway drew on the order's page through orderComplete(): one surface descriptor; null when it drew
+     * nothing or could not be asked.
      *
      * @since  2.3.0
      */
-    protected ?object $gatewayEvent = null;
+    protected ?array $gatewayBlock = null;
 
     /**
      * Whether the order's gateway of record could not be asked: the neutral line, no block.
@@ -129,7 +130,7 @@ class HtmlView extends BaseHtmlView
         }
 
         // The gateway's block, as the order completed page asks it: its gateway of record alone.
-        ['event' => $event, 'unavailable' => $this->providerUnavailable] = GatewayOfRecord::completeView(order: $this->confirmation);
+        ['event' => $event, 'unavailable' => $this->providerUnavailable, 'block' => $this->gatewayBlock] = GatewayOfRecord::completeView(order: $this->confirmation);
 
         if (!$this->providerUnavailable && $event->hasRedirect()) {
             $app->redirect($event->getRedirectUrl(), $event->getRedirectCode() ?? 303);
@@ -137,7 +138,6 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        $this->gatewayEvent = $event;
         $this->setDocumentTitle(Text::sprintf('COM_ALFA_ORDER_HEADING', $this->confirmation->number));
 
         parent::display($tpl);

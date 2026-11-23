@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Site\Service\Order;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\CheckoutSurface;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -40,8 +42,7 @@ final class GatewayOfRecord
 
     /**
      * Ask the order's gateway of record for its page or its block (targeted): its ambient subscriptions engaged, the
-     * view event delivered to its handler, the layout owner defaulted to it. A gateway with no handler for the page is
-     * asked nothing. Any Throwable leaving the handler is its failure: logged, and the caller renders no plugin block.
+     * view event delivered to its handler. A gateway with no handler for the page is asked nothing. Any Throwable leaving the handler is its failure: logged, and the caller renders no plugin block.
      *
      * @param string $paymentType The order's snapshot of the gateway's plugin element.
      * @param OrderProcessViewEvent|OrderCompleteViewEvent $event The view event.
@@ -75,27 +76,39 @@ final class GatewayOfRecord
             }
         }
 
-        if (empty($event->getLayoutPluginName())) {
-            $event->setLayoutPluginName($paymentType);
-        }
-
-        if (empty($event->getLayoutPluginType())) {
-            $event->setLayoutPluginType('alfa-payments');
-        }
-
         return self::ASKED;
+    }
+
+    /**
+     * What the gateway drew on its page through the event's builder (orderProcess() on the process page,
+     * orderComplete() on the order pages): one surface descriptor, its owner the gateway's plugin unless it named
+     * another; null when it drew nothing there.
+     *
+     * @param string $paymentType The order's snapshot of the gateway's plugin element.
+     * @param OrderProcessViewEvent|OrderCompleteViewEvent $event The view event, asked.
+     *
+     * @return array|null The descriptor (layout, layoutData, layoutPluginType, layoutPluginName), or null.
+     *
+     * @since  2.3.0
+     */
+    public static function block(string $paymentType, OrderProcessViewEvent|OrderCompleteViewEvent $event): ?array
+    {
+        $slot = $event instanceof OrderProcessViewEvent ? CheckoutSurface::OrderProcess : CheckoutSurface::OrderComplete;
+
+        return Surfaces::collect($event, 'alfa-payments', $paymentType)[$slot->value] ?? null;
     }
 
     /**
      * The gateway's block about an order already read, as the order completed page and the customer's order page draw
      * it: the completion view event with the order's own row as its subject, asked of its gateway of record when the
-     * order has one. An order with no payment plugin gets an event with no layout, which draws nothing.
+     * order has one, and what it drew. An order with no payment plugin has no block.
      *
      * @param OrderConfirmation $order The order, as the page read it.
      *
-     * @return array{event: OrderCompleteViewEvent, unavailable: bool} The event; unavailable when the gateway could not
-     *                                                                 be asked (the page says so in neutral words and
-     *                                                                 draws no block).
+     * @return array{event: OrderCompleteViewEvent, unavailable: bool, block: array|null} The event (for its redirect);
+     *                                                                 unavailable when the gateway could not be asked
+     *                                                                 (the page says so in neutral words and draws no
+     *                                                                 block); the block it drew, or null.
      *
      * @since  2.3.0
      */
@@ -107,7 +120,8 @@ final class GatewayOfRecord
         ]);
 
         $unavailable = $order->gateway !== '' && self::ask(paymentType: $order->gateway, event: $event) !== self::ASKED;
+        $block = $order->gateway !== '' && !$unavailable ? self::block(paymentType: $order->gateway, event: $event) : null;
 
-        return ['event' => $event, 'unavailable' => $unavailable];
+        return ['event' => $event, 'unavailable' => $unavailable, 'block' => $block];
     }
 }
